@@ -18,11 +18,14 @@ import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.WithPersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.internal.utils.protocol.config.WithProtocolConfig;
+
+import akka.actor.ActorSystem;
 
 /**
  * Provides the configuration settings of the Connectivity service.
@@ -93,4 +96,14 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
      * @return the config.
      */
     TunnelConfig getTunnelConfig();
+
+    /**
+     * Read the static connectivity config from an actor system.
+     *
+     * @param actorSystem the actor system.
+     * @return the connectivity config.
+     */
+    static ConnectivityConfig forActorSystem(final ActorSystem actorSystem) {
+        return DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
+    }
 }

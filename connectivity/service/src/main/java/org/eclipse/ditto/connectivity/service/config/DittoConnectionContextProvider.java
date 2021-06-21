@@ -15,29 +15,32 @@ package org.eclipse.ditto.connectivity.service.config;
 import java.util.Optional;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
+import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
 /**
- * Default implementation of {@link ConnectivityConfigProvider} which simply builds and returns a
- * {@link DittoConnectivityConfig}.
+ * Default implementation of {@link ConnectionContextProvider} which simply builds and returns a
+ * {@link org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext}.
  */
-public class DittoConnectivityConfigProvider implements ConnectivityConfigProvider {
+public class DittoConnectionContextProvider implements ConnectionContextProvider {
 
     private final DittoConnectivityConfig connectivityConfig;
 
-    public DittoConnectivityConfigProvider(final ActorSystem actorSystem) {
+    public DittoConnectionContextProvider(final ActorSystem actorSystem) {
         this.connectivityConfig =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
     }
 
     @Override
-    public ConnectivityConfig getConnectivityConfig(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
-        return connectivityConfig;
+    public ConnectionContext getConnectionContext(final Connection connection, final DittoHeaders dittoHeaders) {
+        return DittoConnectionContext.of(connection, connectivityConfig);
     }
 
     @Override

@@ -31,8 +31,9 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -49,6 +50,7 @@ public final class HttpPushValidatorTest {
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static Map<String, String> defaultSpecificConfig = new HashMap<>();
     private static ActorSystem actorSystem;
+    private static ConnectivityConfig connectivityConfig;
 
     private HttpPushValidator underTest;
 
@@ -57,6 +59,7 @@ public final class HttpPushValidatorTest {
         defaultSpecificConfig = new HashMap<>();
         defaultSpecificConfig.put("parallelism", "1");
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        connectivityConfig = ConnectivityConfig.forActorSystem(actorSystem);
     }
 
     @AfterClass
@@ -88,16 +91,20 @@ public final class HttpPushValidatorTest {
     @Test
     public void testValidTargetAddress() {
         final DittoHeaders emptyDittoHeaders = DittoHeaders.empty();
-        underTest.validate(getConnectionWithTarget("POST:events"), emptyDittoHeaders, actorSystem);
-        underTest.validate(getConnectionWithTarget("PUT:ditto/{{thing:id}}"), emptyDittoHeaders, actorSystem);
+        underTest.validate(getConnectionWithTarget("POST:events"), emptyDittoHeaders, actorSystem, connectivityConfig);
+        underTest.validate(getConnectionWithTarget("PUT:ditto/{{thing:id}}"), emptyDittoHeaders, actorSystem,
+                connectivityConfig);
         underTest.validate(getConnectionWithTarget("PATCH:/{{thing:namespace}}/{{thing:name}}"), emptyDittoHeaders,
-                actorSystem);
-        underTest.validate(getConnectionWithTarget("PATCH:/{{thing:namespace}}/{{thing:name}}/{{ feature:id }}"), emptyDittoHeaders,
-                actorSystem);
-        underTest.validate(getConnectionWithTarget("PUT:events#{{topic:full}}"), emptyDittoHeaders, actorSystem);
-        underTest.validate(getConnectionWithTarget("POST:ditto?{{header:x}}"), emptyDittoHeaders, actorSystem);
-        underTest.validate(getConnectionWithTarget("POST:"), emptyDittoHeaders, actorSystem);
-        underTest.validate(getConnectionWithTarget("GET:foo"), emptyDittoHeaders, actorSystem);
+                actorSystem, connectivityConfig);
+        underTest.validate(getConnectionWithTarget("PATCH:/{{thing:namespace}}/{{thing:name}}/{{ feature:id }}"),
+                emptyDittoHeaders,
+                actorSystem, connectivityConfig);
+        underTest.validate(getConnectionWithTarget("PUT:events#{{topic:full}}"), emptyDittoHeaders, actorSystem,
+                connectivityConfig);
+        underTest.validate(getConnectionWithTarget("POST:ditto?{{header:x}}"), emptyDittoHeaders, actorSystem,
+                connectivityConfig);
+        underTest.validate(getConnectionWithTarget("POST:"), emptyDittoHeaders, actorSystem, connectivityConfig);
+        underTest.validate(getConnectionWithTarget("GET:foo"), emptyDittoHeaders, actorSystem, connectivityConfig);
     }
 
     @Test
@@ -126,7 +133,8 @@ public final class HttpPushValidatorTest {
 
     private void verifyConnectionConfigurationInvalidExceptionIsThrown(final Connection connection) {
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+                .isThrownBy(
+                        () -> underTest.validate(connection, DittoHeaders.empty(), actorSystem, connectivityConfig));
     }
 
 }

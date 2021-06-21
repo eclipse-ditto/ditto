@@ -35,7 +35,7 @@ import scala.reflect.ClassTag$;
 import scala.util.Try;
 
 /**
- * Factory to instantiate new {@link ConnectivityConfigProvider}s.
+ * Factory to instantiate new {@link ConnectionContextProvider}s.
  */
 public final class ConnectivityConfigProviderFactory implements Extension {
 
@@ -50,30 +50,30 @@ public final class ConnectivityConfigProviderFactory implements Extension {
      * implementation is used as a fallback or an exception is thrown, depending on the config value of
      * {@value #DEFAULT_CONFIG_PROVIDER_CONFIG}.
      */
-    private static final Class<DittoConnectivityConfigProvider>
-            DEFAULT_CONNECTIVITY_CONFIG_PROVIDER_CLASS = DittoConnectivityConfigProvider.class;
+    private static final Class<DittoConnectionContextProvider>
+            DEFAULT_CONNECTIVITY_CONFIG_PROVIDER_CLASS = DittoConnectionContextProvider.class;
 
     /**
-     * Holds the instance of the {@link ConnectivityConfigProvider}.
+     * Holds the instance of the {@link ConnectionContextProvider}.
      */
-    private final ConnectivityConfigProvider connectivityConfigProvider;
+    private final ConnectionContextProvider connectionContextProvider;
 
     /**
-     * Returns the {@link ConnectivityConfigProvider} instance.
+     * Returns the {@link ConnectionContextProvider} instance.
      *
-     * @return the instance of the {@link ConnectivityConfigProvider}
+     * @return the instance of the {@link ConnectionContextProvider}
      */
-    public ConnectivityConfigProvider getInstance() {
-        return connectivityConfigProvider;
+    public ConnectionContextProvider getInstance() {
+        return connectionContextProvider;
     }
 
     /**
-     * Returns the {@link ConnectivityConfigProvider} instance.
+     * Returns the {@link ConnectionContextProvider} instance.
      *
      * @param actorSystem the actor system
-     * @return the instance of the {@link ConnectivityConfigProvider}
+     * @return the instance of the {@link ConnectionContextProvider}
      */
-    public static ConnectivityConfigProvider getInstance(final ActorSystem actorSystem) {
+    public static ConnectionContextProvider getInstance(final ActorSystem actorSystem) {
         return ConnectivityConfigProviderFactory.get(actorSystem).getInstance();
     }
 
@@ -81,29 +81,29 @@ public final class ConnectivityConfigProviderFactory implements Extension {
         final Config config = actorSystem.settings().config();
         final boolean loadDefaultProvider = config.getBoolean(DEFAULT_CONFIG_PROVIDER_CONFIG);
 
-        final Class<? extends ConnectivityConfigProvider> providerClass =
+        final Class<? extends ConnectionContextProvider> providerClass =
                 findProviderClass(c -> filterDefaultProvider(c, loadDefaultProvider));
 
         try {
-            final ClassTag<ConnectivityConfigProvider> tag =
-                    ClassTag$.MODULE$.apply(ConnectivityConfigProvider.class);
+            final ClassTag<ConnectionContextProvider> tag =
+                    ClassTag$.MODULE$.apply(ConnectionContextProvider.class);
             final Tuple2<Class<?>, Object> args = new Tuple2<>(ActorSystem.class, actorSystem);
             final DynamicAccess dynamicAccess = ((ExtendedActorSystem) actorSystem).dynamicAccess();
-            final Try<ConnectivityConfigProvider> providerBox = dynamicAccess.createInstanceFor(providerClass,
+            final Try<ConnectionContextProvider> providerBox = dynamicAccess.createInstanceFor(providerClass,
                     CollectionConverters.asScala(Collections.singleton(args)).toList(), tag);
-            connectivityConfigProvider = providerBox.get();
+            connectionContextProvider = providerBox.get();
         } catch (final Exception e) {
             throw configProviderInstantiationFailed(providerClass, e);
         }
     }
 
-    private static Class<? extends ConnectivityConfigProvider> findProviderClass(
-            final Predicate<Class<? extends ConnectivityConfigProvider>> classPredicate) {
+    private static Class<? extends ConnectionContextProvider> findProviderClass(
+            final Predicate<Class<? extends ConnectionContextProvider>> classPredicate) {
 
-        final Iterable<Class<? extends ConnectivityConfigProvider>> subclasses =
-                ClassIndex.getSubclasses(ConnectivityConfigProvider.class);
+        final Iterable<Class<? extends ConnectionContextProvider>> subclasses =
+                ClassIndex.getSubclasses(ConnectionContextProvider.class);
 
-        final List<Class<? extends ConnectivityConfigProvider>> candidates =
+        final List<Class<? extends ConnectionContextProvider>> candidates =
                 StreamSupport.stream(subclasses.spliterator(), false)
                         .filter(classPredicate)
                         .collect(Collectors.toList());
@@ -115,7 +115,7 @@ public final class ConnectivityConfigProviderFactory implements Extension {
         }
     }
 
-    private static boolean filterDefaultProvider(final Class<? extends ConnectivityConfigProvider> c,
+    private static boolean filterDefaultProvider(final Class<? extends ConnectionContextProvider> c,
             final boolean loadDefaultProvider) {
 
         if (loadDefaultProvider) {
@@ -126,12 +126,12 @@ public final class ConnectivityConfigProviderFactory implements Extension {
     }
 
     private static DittoRuntimeException configProviderNotFound(
-            final List<Class<? extends ConnectivityConfigProvider>> candidates) {
+            final List<Class<? extends ConnectionContextProvider>> candidates) {
         return ConnectivityConfigProviderMissingException.newBuilder(candidates).build();
     }
 
     private static DittoRuntimeException configProviderInstantiationFailed(final Class<?
-            extends ConnectivityConfigProvider> c, final Exception cause) {
+            extends ConnectionContextProvider> c, final Exception cause) {
         return ConnectivityConfigProviderFailedException.newBuilder(c)
                 .cause(cause)
                 .build();

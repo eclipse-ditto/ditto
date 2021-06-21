@@ -70,8 +70,6 @@ import org.eclipse.ditto.connectivity.model.signals.events.ConnectionOpened;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProvider;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProviderFactory;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
@@ -188,15 +186,13 @@ public final class ConnectionPersistenceActor
         this.propsFactory = propsFactory;
 
         final ActorSystem actorSystem = getContext().getSystem();
-        final ConnectivityConfigProvider configProvider = ConnectivityConfigProviderFactory.getInstance(actorSystem);
-        final ConnectivityConfig connectivityConfig = configProvider.getConnectivityConfig(connectionId);
+
+        final ConnectivityConfig connectivityConfig = ConnectivityConfig.forActorSystem(actorSystem);
         config = connectivityConfig.getConnectionConfig();
         this.allClientActorsOnOneNode = allClientActorsOnOneNode.orElse(config.areAllClientActorsOnOneNode());
         final MqttConfig mqttConfig = connectivityConfig.getConnectionConfig().getMqttConfig();
         final ConnectionValidator connectionValidator =
-                ConnectionValidator.of(
-                        configProvider,
-                        actorSystem.log(),
+                ConnectionValidator.of(actorSystem.log(),
                         RabbitMQValidator.newInstance(),
                         AmqpValidator.newInstance(),
                         Mqtt3Validator.newInstance(mqttConfig),
@@ -934,12 +930,14 @@ public final class ConnectionPersistenceActor
     private void startClientActorsIfRequired(final int clientCount) {
         if (entity != null && clientActorRouter == null && clientCount > 0) {
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", entityId, clientCount);
-            final Props props = propsFactory.getActorPropsForType(entity, proxyActor, getSelf(), getContext().getSystem());
+            final Props props =
+                    propsFactory.getActorPropsForType(entity, proxyActor, getSelf(), getContext().getSystem());
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
                     new ClusterRouterPoolSettings(clientCount, clientActorsPerNode(clientCount), true,
                             Set.of(CLUSTER_ROLE));
             final Pool pool = new ConsistentHashingPool(clientCount)
-                    .withSupervisorStrategy(OneForOneEscalateStrategy.withRetries(config.getClientActorRestartsBeforeEscalation()));
+                    .withSupervisorStrategy(
+                            OneForOneEscalateStrategy.withRetries(config.getClientActorRestartsBeforeEscalation()));
             final Props clusterRouterPoolProps =
                     new ClusterRouterPool(pool, clusterRouterPoolSettings).props(props);
 

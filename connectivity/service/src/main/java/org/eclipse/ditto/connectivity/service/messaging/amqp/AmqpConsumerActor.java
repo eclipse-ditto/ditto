@@ -53,7 +53,7 @@ import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProvider;
+import org.eclipse.ditto.connectivity.service.config.ConnectionContextProvider;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConsumerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
@@ -112,9 +112,10 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
 
-        final ConnectivityConfigProvider connectivityConfigProvider =
+        // TODO: thread connection context through consumer data
+        final ConnectionContextProvider connectionContextProvider =
                 ConnectivityConfigProviderFactory.getInstance(getContext().getSystem());
-        connectivityConfig = connectivityConfigProvider.getConnectivityConfig(connectionId);
+        connectivityConfig = connectionContextProvider.getConnectionContext(connection).getConnectivityConfig();
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
         this.messageConsumer = consumerData.getMessageConsumer();

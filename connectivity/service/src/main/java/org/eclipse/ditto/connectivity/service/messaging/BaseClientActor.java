@@ -90,15 +90,14 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.connectivity.service.config.ClientConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectionContextProvider;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProvider;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProviderFactory;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MapperLimitsConfig;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
-import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
@@ -197,8 +196,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final String actorUUID;
 
     // TODO: make async
-    private final ConnectivityConfigProvider connectivityConfigProvider;
-    private ConnectionContext connectionContext;
+    private final ConnectionContextProvider connectionContextProvider;
+    protected ConnectionContext connectionContext;
 
     private final ActorRef inboundMappingProcessorActor;
     private final ActorRef outboundDispatchingActor;
@@ -230,9 +229,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
         clientConfig = connectivityConfig.getClientConfig();
         proxyActorSelection = getLocalActorOfSamePath(proxyActor);
-        connectivityConfigProvider = ConnectivityConfigProviderFactory.getInstance(getContext().getSystem());
-        connectionContext =
-                DittoConnectionContext.of(connection, connectivityConfigProvider.getConnectivityConfig(connectionId));
+        connectionContextProvider = ConnectivityConfigProviderFactory.getInstance(getContext().getSystem());
+        connectionContext = connectionContextProvider.getConnectionContext(connection);
 
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
@@ -316,7 +314,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         whenUnhandled(inAnyState()
                 .anyEvent(this::onUnknownEvent));
 
-        connectivityConfigProvider.registerForConnectivityConfigChanges(connectionId(), getSelf());
+        connectionContextProvider.registerForConnectivityConfigChanges(connectionId(), getSelf());
 
         initialize();
 
@@ -528,7 +526,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(PublishMappedMessage.class, this::publishMappedMessage)
                 .event(ConnectivityCommand.class, this::onUnknownEvent) // relevant connectivity commands were handled
                 .event(org.eclipse.ditto.base.model.signals.events.Event.class,
-                        (event, data) -> connectivityConfigProvider.canHandle(event),
+                        (event, data) -> connectionContextProvider.canHandle(event),
                         (ccb, data) -> {
                             handleEvent(ccb);
                             return stay();
@@ -1610,15 +1608,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final OutboundMappingSettings settings;
         final OutboundMappingProcessor outboundMappingProcessor;
         try {
-            ConnectivityConfig retrievedConnectivityConfig =
-                    connectivityConfigProvider.getConnectivityConfig(connection.getId());
-            final var newConnectionContext = connectionContext.withConnectivityConfig(retrievedConnectivityConfig);
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            settings = OutboundMappingSettings.of(connectionContext,
-                    getContext().getSystem(),
-                    proxyActorSelection,
-                    protocolAdapter,
-                    logger);
+            settings = OutboundMappingSettings.of(connectionContext, getContext().getSystem(), proxyActorSelection,
+                    protocolAdapter, logger);
             outboundMappingProcessor = OutboundMappingProcessor.of(settings);
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {0}.", dre.getMessage());
@@ -1675,15 +1667,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         final InboundMappingProcessor inboundMappingProcessor;
         try {
-            ConnectivityConfig retrievedConnectivityConfig =
-                    connectivityConfigProvider.getConnectivityConfig(connection.getId());
-
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            inboundMappingProcessor = InboundMappingProcessor.of(
-                    connectionContext.withConnectivityConfig(retrievedConnectivityConfig),
-                    getContext().getSystem(),
-                    protocolAdapter,
-                    logger);
+            inboundMappingProcessor =
+                    InboundMappingProcessor.of(connectionContext, getContext().getSystem(), protocolAdapter, logger);
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {0}.", dre.getMessage());
             logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",

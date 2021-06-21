@@ -31,6 +31,7 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -48,6 +49,7 @@ public final class KafkaValidatorTest {
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static Map<String, String> defaultSpecificConfig = new HashMap<>();
     private static ActorSystem actorSystem;
+    private static ConnectivityConfig connectivityConfig;
 
     private KafkaValidator underTest;
 
@@ -56,6 +58,7 @@ public final class KafkaValidatorTest {
         defaultSpecificConfig = new HashMap<>();
         defaultSpecificConfig.put("bootstrapServers", "localhost:1883");
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        connectivityConfig = ConnectivityConfig.forActorSystem(actorSystem);
     }
 
     @AfterClass
@@ -87,12 +90,15 @@ public final class KafkaValidatorTest {
     @Test
     public void testValidTargetAddress() {
         final DittoHeaders emptyDittoHeaders = DittoHeaders.empty();
-        underTest.validate(getConnectionWithTarget("events"), emptyDittoHeaders, actorSystem);
-        underTest.validate(getConnectionWithTarget("ditto/{{thing:id}}"), emptyDittoHeaders, actorSystem);
+        underTest.validate(getConnectionWithTarget("events"), emptyDittoHeaders, actorSystem, connectivityConfig);
+        underTest.validate(getConnectionWithTarget("ditto/{{thing:id}}"), emptyDittoHeaders, actorSystem,
+                connectivityConfig);
         underTest.validate(getConnectionWithTarget("{{thing:namespace}}/{{thing:name}}"), emptyDittoHeaders,
-                actorSystem);
-        underTest.validate(getConnectionWithTarget("events#{{topic:full}}"), emptyDittoHeaders, actorSystem);
-        underTest.validate(getConnectionWithTarget("ditto/{{header:x}}"), emptyDittoHeaders, actorSystem);
+                actorSystem, connectivityConfig);
+        underTest.validate(getConnectionWithTarget("events#{{topic:full}}"), emptyDittoHeaders, actorSystem,
+                connectivityConfig);
+        underTest.validate(getConnectionWithTarget("ditto/{{header:x}}"), emptyDittoHeaders, actorSystem,
+                connectivityConfig);
     }
 
     @Test
@@ -108,10 +114,12 @@ public final class KafkaValidatorTest {
     @Test
     public void testValidBootstrapServers() {
         final DittoHeaders emptyDittoHeaders = DittoHeaders.empty();
-        underTest.validate(getConnectionWithBootstrapServers("foo:123"), emptyDittoHeaders, actorSystem);
-        underTest.validate(getConnectionWithBootstrapServers("foo:123,bar:456"), emptyDittoHeaders, actorSystem);
+        underTest.validate(getConnectionWithBootstrapServers("foo:123"), emptyDittoHeaders, actorSystem,
+                connectivityConfig);
+        underTest.validate(getConnectionWithBootstrapServers("foo:123,bar:456"), emptyDittoHeaders, actorSystem,
+                connectivityConfig);
         underTest.validate(getConnectionWithBootstrapServers("foo:123, bar:456 , baz:789"), emptyDittoHeaders,
-                actorSystem);
+                actorSystem, connectivityConfig);
     }
 
     @Test
@@ -153,7 +161,8 @@ public final class KafkaValidatorTest {
 
     private void verifyConnectionConfigurationInvalidExceptionIsThrown(final Connection connection) {
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+                .isThrownBy(
+                        () -> underTest.validate(connection, DittoHeaders.empty(), actorSystem, connectivityConfig));
     }
 
 }

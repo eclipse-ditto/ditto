@@ -20,10 +20,13 @@ import java.util.List;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.AbstractMqttClientActorTest;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.AbstractMqttClientActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttServerRule;
 import org.junit.Before;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
@@ -34,6 +37,11 @@ import akka.actor.Status;
 import akka.testkit.javadsl.TestKit;
 
 public final class HiveMqtt5ClientActorTest extends AbstractMqttClientActorTest<Mqtt5Publish> {
+
+    private static final TestConstants.FreePort FREE_PORT = new TestConstants.FreePort();
+
+    @ClassRule
+    public static final MqttServerRule MQTT_SERVER = new MqttServerRule(FREE_PORT.getPort());
 
     private MockHiveMqtt5ClientFactory mockHiveMqtt5ClientFactory;
 
@@ -70,6 +78,11 @@ public final class HiveMqtt5ClientActorTest extends AbstractMqttClientActorTest<
     protected Props createClientActor(final ActorRef proxyActor, final Connection connection) {
         return HiveMqtt5ClientActor.props(connection, proxyActor,
                 mockHiveMqtt5ClientFactory.withTestProbe(proxyActor), mockConnectionActor.ref());
+    }
+
+    @Override
+    protected TestConstants.FreePort getFreePort() {
+        return FREE_PORT;
     }
 
     @Override

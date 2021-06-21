@@ -40,7 +40,7 @@ public final class ConnectivityConfigProviderMissingException extends DittoRunti
         super(ERROR_CODE, HttpStatus.INTERNAL_SERVER_ERROR, dittoHeaders, message, description, cause, href);
     }
 
-    public static Builder newBuilder(final List<Class<? extends ConnectivityConfigProvider>> candidates) {
+    public static Builder newBuilder(final List<Class<? extends ConnectionContextProvider>> candidates) {
         return new Builder(MessageFormat.format(MESSAGE_TEMPLATE, candidates));
     }
 

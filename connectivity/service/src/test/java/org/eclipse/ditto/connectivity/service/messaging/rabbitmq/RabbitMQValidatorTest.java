@@ -31,8 +31,9 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.SourceBuilder;
 import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -47,10 +48,12 @@ public final class RabbitMQValidatorTest {
 
     private static final RabbitMQValidator UNDER_TEST = RabbitMQValidator.newInstance();
     private static ActorSystem actorSystem;
+    private static ConnectivityConfig connectivityConfig;
 
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        connectivityConfig = ConnectivityConfig.forActorSystem(actorSystem);
     }
 
     @AfterClass
@@ -103,13 +106,17 @@ public final class RabbitMQValidatorTest {
 
     @Test
     public void testValidTargetAddress() {
-        UNDER_TEST.validate(connectionWithTarget("ditto/rabbit"), DittoHeaders.empty(), actorSystem);
-        UNDER_TEST.validate(connectionWithTarget("ditto"), DittoHeaders.empty(), actorSystem);
-        UNDER_TEST.validate(connectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty(), actorSystem);
+        UNDER_TEST.validate(connectionWithTarget("ditto/rabbit"), DittoHeaders.empty(), actorSystem,
+                connectivityConfig);
+        UNDER_TEST.validate(connectionWithTarget("ditto"), DittoHeaders.empty(), actorSystem, connectivityConfig);
+        UNDER_TEST.validate(connectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty(), actorSystem,
+                connectivityConfig);
         UNDER_TEST.validate(connectionWithTarget("ditto/{{thing:id}}/{{feature:id}}"), DittoHeaders.empty(),
-                actorSystem);
-        UNDER_TEST.validate(connectionWithTarget("ditto/{{topic:full}}"), DittoHeaders.empty(), actorSystem);
-        UNDER_TEST.validate(connectionWithTarget("ditto/{{header:x}}"), DittoHeaders.empty(), actorSystem);
+                actorSystem, connectivityConfig);
+        UNDER_TEST.validate(connectionWithTarget("ditto/{{topic:full}}"), DittoHeaders.empty(), actorSystem,
+                connectivityConfig);
+        UNDER_TEST.validate(connectionWithTarget("ditto/{{header:x}}"), DittoHeaders.empty(), actorSystem,
+                connectivityConfig);
     }
 
     @Test

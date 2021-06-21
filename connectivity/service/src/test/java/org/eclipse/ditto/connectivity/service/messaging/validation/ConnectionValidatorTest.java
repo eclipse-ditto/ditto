@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Certificates;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -53,8 +52,8 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.SourceBuilder;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.connectivity.service.config.ConnectionContextProvider;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProvider;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.NormalizedMessageMapper;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
@@ -65,12 +64,10 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
@@ -92,7 +89,6 @@ public class ConnectionValidatorTest {
     private static final ConnectivityConfig CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST =
             DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG));
     private static ActorSystem actorSystem;
-    private ConnectivityConfigProvider connectivityConfigProvider;
 
     @BeforeClass
     public static void setUp() {
@@ -110,13 +106,6 @@ public class ConnectionValidatorTest {
     @Rule
     public final ExpectedException exception = ExpectedException.none();
 
-    @Before
-    public void before() {
-        connectivityConfigProvider = Mockito.mock(ConnectivityConfigProvider.class);
-        Mockito.when(connectivityConfigProvider.getConnectivityConfig(any(), any()))
-                .thenReturn(CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST);
-    }
-
     @Test
     public void testImmutability() {
         assertInstancesOf(ConnectionValidator.class,
@@ -126,7 +115,7 @@ public class ConnectionValidatorTest {
                 provided(QueryFilterCriteriaFactory.class,
                         LoggingAdapter.class,
                         DefaultHostValidator.class,
-                        ConnectivityConfigProvider.class).areAlsoImmutable());
+                        ConnectionContextProvider.class).areAlsoImmutable());
     }
 
     @Test
@@ -585,7 +574,7 @@ public class ConnectionValidatorTest {
     }
 
     private ConnectionValidator getConnectionValidator() {
-        return ConnectionValidator.of(connectivityConfigProvider, actorSystem.log(),
+        return ConnectionValidator.of(actorSystem.log(),
                 AmqpValidator.newInstance(), HttpPushValidator.newInstance());
     }
 

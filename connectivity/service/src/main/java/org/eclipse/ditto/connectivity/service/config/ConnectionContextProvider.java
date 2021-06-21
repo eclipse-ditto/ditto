@@ -17,8 +17,10 @@ import java.util.Optional;
 
 import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 
 import akka.actor.ActorRef;
 
@@ -26,25 +28,25 @@ import akka.actor.ActorRef;
  * Provides methods to load {@link ConnectivityConfig} and register for changes to {@link ConnectivityConfig}.
  */
 @IndexSubclasses
-public interface ConnectivityConfigProvider {
+public interface ConnectionContextProvider {
 
     /**
-     * Loads a {@link ConnectivityConfig} by a connection ID.
+     * Loads a {@link org.eclipse.ditto.connectivity.service.mapping.ConnectionContext} by a connection.
      *
-     * @param connectionId the connection id for which to load the {@link ConnectivityConfig}
-     * @param dittoHeaders the ditto headers for which to load the {@link ConnectivityConfig}
-     * @return the connectivity config
+     * @param connection the connection for which to load the connection context.
+     * @param dittoHeaders the ditto headers for which to load the connection context.
+     * @return the connectivity context
      */
-    ConnectivityConfig getConnectivityConfig(ConnectionId connectionId, DittoHeaders dittoHeaders);
+    ConnectionContext getConnectionContext(Connection connection, DittoHeaders dittoHeaders);
 
     /**
-     * Loads a {@link ConnectivityConfig} by a connection ID.
+     * Loads a connection context.
      *
-     * @param connectionId the connection id for which to load the {@link ConnectivityConfig}
-     * @return the connectivity config
+     * @param connection the connection for which to load the connection context.
+     * @return the connection context.
      */
-    default ConnectivityConfig getConnectivityConfig(ConnectionId connectionId) {
-        return getConnectivityConfig(connectionId, DittoHeaders.empty());
+    default ConnectionContext getConnectionContext(Connection connection) {
+        return getConnectionContext(connection, DittoHeaders.empty());
     }
 
     /**
