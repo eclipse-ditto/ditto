@@ -25,7 +25,6 @@ import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.jsonwebtoken.JwtParserBuilder;
 import io.jsonwebtoken.Jwts;
 
 /**
@@ -54,14 +53,15 @@ public final class DefaultJwtValidator implements JwtValidator {
 
     @Override
     public CompletableFuture<BinaryValidationResult> validate(final JsonWebToken jsonWebToken) {
-        final String issuer = jsonWebToken.getIssuer();
-        final String keyId = jsonWebToken.getKeyId();
+        final var issuer = jsonWebToken.getIssuer();
+        final var keyId = jsonWebToken.getKeyId();
+
         return publicKeyProvider.getPublicKey(issuer, keyId)
                 .thenApply(publicKeyOpt -> publicKeyOpt
                         .map(publicKey -> tryToValidateWithPublicKey(jsonWebToken, publicKey))
                         .orElseGet(() -> {
-                            final String msgPattern = "Public Key of issuer <{0}> with key ID <{1}> not found!";
-                            final String msg = MessageFormat.format(msgPattern, issuer, keyId);
+                            final var msgPattern = "Public Key of issuer <{0}> with key ID <{1}> not found!";
+                            final var msg = MessageFormat.format(msgPattern, issuer, keyId);
                             final Exception exception = GatewayAuthenticationFailedException.newBuilder(msg).build();
                             return BinaryValidationResult.invalid(exception);
                         }));
@@ -78,9 +78,10 @@ public final class DefaultJwtValidator implements JwtValidator {
     }
 
     private BinaryValidationResult validateWithPublicKey(final JsonWebToken jsonWebToken, final Key publicKey) {
-        final JwtParserBuilder jwtParserBuilder = Jwts.parserBuilder();
+        final var jwtParserBuilder = Jwts.parserBuilder();
         jwtParserBuilder.deserializeJsonWith(JjwtDeserializer.getInstance())
                 .setSigningKey(publicKey)
+                .setAllowedClockSkewSeconds(10)
                 .build()
                 .parseClaimsJws(jsonWebToken.getToken());
 

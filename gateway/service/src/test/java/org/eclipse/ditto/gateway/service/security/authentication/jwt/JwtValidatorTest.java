@@ -53,6 +53,12 @@ public final class JwtValidatorTest {
     private static final JsonWebToken INVALID_JSON_WEB_TOKEN =
             ImmutableJsonWebToken.fromToken(JwtTestConstants.EXPIRED_JWT_TOKEN);
 
+    private static final JsonWebToken VALID_JSON_WEB_TOKEN_WITH_NBF_AHEAD_OF_TIME =
+            ImmutableJsonWebToken.fromToken(JwtTestConstants.VALID_NBF_AHEAD_OF_TIME_JWT_TOKEN);
+
+    private static final JsonWebToken INVALID_JSON_WEB_TOKEN_WITH_NBF_AHEAD_OF_TIME =
+            ImmutableJsonWebToken.fromToken(JwtTestConstants.INVALID_NBF_AHEAD_OF_TIME_JWT_TOKEN);
+
     @Mock
     private PublicKeyProvider publicKeyProvider;
 
@@ -66,6 +72,32 @@ public final class JwtValidatorTest {
         final BinaryValidationResult jwtValidationResult = underTest.validate(VALID_JSON_WEB_TOKEN).get();
 
         assertThat(jwtValidationResult.isValid()).isTrue();
+    }
+
+    @Test
+    public void validateTokenWithNbfAheadOfTime() throws ExecutionException, InterruptedException {
+        when(publicKeyProvider.getPublicKey(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID)).thenReturn(
+                CompletableFuture.completedFuture(Optional.of(JwtTestConstants.PUBLIC_KEY)));
+
+        final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider);
+
+        final BinaryValidationResult jwtValidationResult =
+                underTest.validate(VALID_JSON_WEB_TOKEN_WITH_NBF_AHEAD_OF_TIME).get();
+
+        assertThat(jwtValidationResult.isValid()).isTrue();
+    }
+
+    @Test
+    public void validateFailsIfNbfIsTooFarInTheFuture() throws ExecutionException, InterruptedException {
+        when(publicKeyProvider.getPublicKey(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID)).thenReturn(
+                CompletableFuture.completedFuture(Optional.of(JwtTestConstants.PUBLIC_KEY)));
+
+        final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider);
+
+        final BinaryValidationResult jwtValidationResult =
+                underTest.validate(INVALID_JSON_WEB_TOKEN_WITH_NBF_AHEAD_OF_TIME).get();
+
+        assertThat(jwtValidationResult.isValid()).isFalse();
     }
 
     @Test
