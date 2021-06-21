@@ -16,7 +16,6 @@ import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataWriter;
 
 import akka.actor.AbstractActor;
 import akka.actor.Actor;
-import akka.actor.Address;
 import akka.cluster.Cluster;
 import akka.cluster.ClusterEvent;
 import akka.cluster.ddata.Replicator;
@@ -67,15 +66,20 @@ interface ClusterMemberRemovedAware extends Actor {
      * @param memberRemoved the member-removed event.
      */
     default void memberRemoved(final ClusterEvent.MemberRemoved memberRemoved) {
-        // acksUpdater detected unreachable remote. remove it from local ORMultiMap.
-        final Address address = memberRemoved.member().address();
-        log().info("Removing declared acks on removed member <{}>", address);
-        getDDataWriter().removeAddress(address, writeLocal())
-                .whenComplete((unused, error) -> {
-                    if (error != null) {
-                        log().error(error, "Failed to remove declared acks on removed cluster member <{}>", address);
-                    }
-                });
+        final var address = memberRemoved.member().address();
+        if (Cluster.get(context().system()).isTerminated()) {
+            log().info("This instance was terminated from cluster, NOT removing declared acks on removed member <{}>",
+                    address);
+        } else {
+            // acksUpdater detected unreachable remote. remove it from local ORMultiMap.
+            log().info("Removing declared acks on removed member <{}>", address);
+            getDDataWriter().removeAddress(address, writeLocal())
+                    .whenComplete((unused, error) -> {
+                        if (error != null) {
+                            log().error(error, "Failed to remove declared acks on removed cluster member <{}>", address);
+                        }
+                    });
+        }
     }
 
     /**

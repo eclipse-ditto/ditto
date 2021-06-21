@@ -14,6 +14,7 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -41,8 +42,10 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
+import akka.stream.Attributes;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
+import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.testkit.TestPublisher;
 import akka.stream.testkit.TestSubscriber;
@@ -59,7 +62,7 @@ public final class EnforcementFlowTest {
     private static ActorSystem system;
 
     private TestPublisher.Probe<Map<ThingId, Metadata>> sourceProbe;
-    private TestSubscriber.Probe<AbstractWriteModel> sinkProbe;
+    private TestSubscriber.Probe<List<AbstractWriteModel>> sinkProbe;
 
     @BeforeClass
     public static void init() {
@@ -115,7 +118,7 @@ public final class EnforcementFlowTest {
             policiesProbe.reply(SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty()));
 
             // THEN: the write model contains up-to-date revisions
-            final AbstractWriteModel writeModel = sinkProbe.expectNext();
+            final AbstractWriteModel writeModel = sinkProbe.expectNext().get(0);
             sinkProbe.expectComplete();
             assertThat(writeModel).isInstanceOf(ThingWriteModel.class);
             final var document = JsonObject.of(((ThingWriteModel) writeModel).getThingDocument().toJson());
@@ -162,7 +165,7 @@ public final class EnforcementFlowTest {
         final var policy1 = Policy.newBuilder(policyId).setRevision(policyRev1).build();
         policiesProbe.reply(SudoRetrievePolicyResponse.of(policyId, policy1, DittoHeaders.empty()));
 
-        final AbstractWriteModel writeModel1 = sinkProbe.expectNext();
+        final AbstractWriteModel writeModel1 = sinkProbe.expectNext().get(0);
         assertThat(writeModel1).isInstanceOf(ThingWriteModel.class);
         final var document1 = JsonObject.of(((ThingWriteModel) writeModel1).getThingDocument().toJson());
         assertThat(document1.getValue("_revision")).contains(JsonValue.of(thingRev2));
@@ -181,7 +184,7 @@ public final class EnforcementFlowTest {
         policiesProbe.reply(SudoRetrievePolicyResponse.of(policyId, policy2, DittoHeaders.empty()));
 
         // THEN: write model contains up-to-date policy revisions.
-        final AbstractWriteModel writeModel2 = sinkProbe.expectNext();
+        final AbstractWriteModel writeModel2 = sinkProbe.expectNext().get(0);
         sinkProbe.expectComplete();
         assertThat(writeModel2).isInstanceOf(ThingWriteModel.class);
         final var document2 = JsonObject.of(((ThingWriteModel) writeModel2).getThingDocument().toJson());
@@ -192,9 +195,12 @@ public final class EnforcementFlowTest {
     private void materializeTestProbes(
             final Flow<Map<ThingId, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> enforcementFlow) {
         final var source = TestSource.<Map<ThingId, Metadata>>probe(system);
-        final var sink = TestSink.<AbstractWriteModel>probe(system);
+        final var sink = TestSink.<List<AbstractWriteModel>>probe(system);
         final var runnableGraph =
-                source.viaMat(enforcementFlow, Keep.left()).flatMapConcat(x -> x).toMat(sink, Keep.both());
+                source.viaMat(enforcementFlow, Keep.left())
+                        .mapAsync(1, s -> s.runWith(Sink.seq(), system))
+                        .withAttributes(Attributes.inputBuffer(1, 1))
+                        .toMat(sink, Keep.both());
         final var materializedValue = runnableGraph.run(() -> system);
         sourceProbe = materializedValue.first();
         sinkProbe = materializedValue.second();
