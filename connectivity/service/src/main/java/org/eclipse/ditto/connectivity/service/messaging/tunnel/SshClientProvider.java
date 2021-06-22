@@ -85,7 +85,7 @@ public final class SshClientProvider implements Extension {
         }
 
         CoordinatedShutdown.get(actorSystem)
-                .addTask(CoordinatedShutdown.PhaseActorSystemTerminate(), "close ssh client",
+                .addTask(CoordinatedShutdown.PhaseBeforeActorSystemTerminate(), "close_ssh_client",
                         () -> {
                             LOGGER.info("Closing ssh client before shutdown.");
                             final CompletableFuture<Done> done = new CompletableFuture<>();

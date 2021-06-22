@@ -183,6 +183,8 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
         // - make Mongo URI known to the persistence plugin and to the NamespaceOps actor
         final String testConfig = "akka.log-dead-letters=0\n" +
                 "akka.persistence.journal-plugin-fallback.circuit-breaker.call-timeout=30s\n" +
+                "akka-contrib-mongodb-persistence-policies-journal.circuit-breaker.call-timeout=30s\n" +
+                "akka-contrib-mongodb-persistence-things-journal.circuit-breaker.call-timeout=30s\n" +
                 "akka.remote.artery.bind.port=0\n" +
                 "akka.cluster.seed-nodes=[]\n" +
                 "akka.coordinated-shutdown.exit-jvm=off\n" +

@@ -241,10 +241,10 @@ public final class HttpPushFactoryTest {
 
     @Test
     public void sendRequestsInParallel() throws Exception {
-        // GIVEN: the connection has the specific config parallelism=3
+        // GIVEN: the connection has the specific config parallelism=4
         connection = connection.toBuilder()
                 .uri("http://127.0.0.1:" + binding.localAddress().getPort())
-                .specificConfig(Map.of("parallelism", "3"))
+                .specificConfig(Map.of("parallelism", "4")) // must be a power of 2!
                 .build();
         final HttpPushFactory underTest = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
                 mock(ConnectionLogger.class), SshTunnelState::disabled);

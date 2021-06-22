@@ -17,6 +17,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 
@@ -69,6 +70,8 @@ public final class DefaultOAuthConfigTest {
 
         softly.assertThat(underTest.getProtocol()).isEqualTo("https");
 
+        softly.assertThat(underTest.getAllowedClockSkew()).isEqualTo(Duration.ofSeconds(10));
+
         softly.assertThat(underTest.getOpenIdConnectIssuers())
                 .as(OAuthConfig.OAuthConfigValue.OPENID_CONNECT_ISSUERS.getConfigPath())
                 .isEqualTo(OAuthConfig.OAuthConfigValue.OPENID_CONNECT_ISSUERS.getDefaultValue());
@@ -86,6 +89,8 @@ public final class DefaultOAuthConfigTest {
         final DefaultOAuthConfig underTest = DefaultOAuthConfig.of(oauthConfig);
 
         softly.assertThat(underTest.getProtocol()).isEqualTo("http");
+
+        softly.assertThat(underTest.getAllowedClockSkew()).isEqualTo(Duration.ofSeconds(20));
 
         softly.assertThat(underTest.getOpenIdConnectIssuers())
                 .as(OAuthConfig.OAuthConfigValue.OPENID_CONNECT_ISSUERS.getConfigPath())

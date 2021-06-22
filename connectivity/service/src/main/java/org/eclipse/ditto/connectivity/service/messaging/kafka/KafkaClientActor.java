@@ -12,11 +12,15 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -24,6 +28,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
@@ -47,23 +52,25 @@ public final class KafkaClientActor extends BaseClientActor {
 
     private final KafkaPublisherActorFactory publisherActorFactory;
     private final Set<ActorRef> pendingStatusReportsFromStreams;
-    private final KafkaConnectionFactory connectionFactory;
+    private final PropertiesFactory propertiesFactory;
 
     private CompletableFuture<Status.Status> testConnectionFuture = null;
     private ActorRef kafkaPublisherActor;
+    private final List<ActorRef> kafkaConsumerActors;
+    private final KafkaConfig kafkaConfig;
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private KafkaClientActor(final Connection connection,
             @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor,
-            final KafkaPublisherActorFactory factory) {
+            final KafkaPublisherActorFactory publisherActorFactory) {
 
         super(connection, proxyActor, connectionActor);
         final ConnectionConfig connectionConfig = connectionContext.getConnectivityConfig().getConnectionConfig();
-        final KafkaConfig kafkaConfig = connectionConfig.getKafkaConfig();
-        connectionFactory =
-                DefaultKafkaConnectionFactory.getInstance(connection, kafkaConfig, getClientId(connection.getId()));
-        publisherActorFactory = factory;
+        kafkaConfig = connectionConfig.getKafkaConfig();
+        kafkaConsumerActors = new ArrayList<>();
+        propertiesFactory = PropertiesFactory.newInstance(connection, kafkaConfig, getClientId(connection.getId()));
+        this.publisherActorFactory = publisherActorFactory;
         pendingStatusReportsFromStreams = new HashSet<>();
     }
 
@@ -155,26 +162,72 @@ public final class KafkaClientActor extends BaseClientActor {
 
         // start publisher
         startKafkaPublisher(dryRun, connectionId, correlationId);
-        // no command consumers as we don't support consuming from sources yet
+        // start consumers
+        startKafkaConsumers(dryRun, connectionId, correlationId);
     }
 
     private void startKafkaPublisher(final boolean dryRun, final ConnectionId connectionId,
-            @Nullable final CharSequence correlationid) {
+            @Nullable final CharSequence correlationId) {
 
-        logger.withCorrelationId(correlationid).withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId)
+        logger.withCorrelationId(correlationId).withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId)
                 .info("Starting Kafka publisher actor.");
         // ensure no previous publisher stays in memory
         stopPublisherActor();
+        final DefaultSendProducerFactory producerFactory =
+                DefaultSendProducerFactory.getInstance(propertiesFactory.getProducerSettings(),
+                        getContext().getSystem());
         final Props publisherActorProps =
-                publisherActorFactory.props(connection(), connectionFactory, dryRun, getDefaultClientId());
+                publisherActorFactory.props(connection(), kafkaConfig.getProducerConfig(), producerFactory, dryRun,
+                        getDefaultClientId());
         kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.getActorName(), publisherActorProps);
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
+    }
+
+    private void startKafkaConsumers(final boolean dryRun, final ConnectionId connectionId,
+            @Nullable final CharSequence correlationId) {
+
+        logger.withCorrelationId(correlationId).withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId)
+                .info("Starting Kafka consumer actor.");
+        // ensure no previous consumer stays in memory
+        stopConsumerActors();
+
+        // start consumer actors
+        connection().getSources().stream()
+                .flatMap(this::consumerDataFromSource)
+                .forEach(consumerData -> this.startKafkaConsumer(consumerData, dryRun));
+    }
+
+    private Stream<ConsumerData> consumerDataFromSource(final Source source) {
+        return source.getAddresses().stream()
+                .flatMap(sourceAddress ->
+                        IntStream.range(0, source.getConsumerCount())
+                                .mapToObj(i -> sourceAddress + "-" + i)
+                                .map(addressWithIndex -> new ConsumerData(source, sourceAddress, addressWithIndex)));
+    }
+
+    private void startKafkaConsumer(final ConsumerData consumerData, final boolean dryRun) {
+        final Props consumerActorProps =
+                KafkaConsumerActor.props(connection(), kafkaConfig.getConsumerConfig(), propertiesFactory,
+                        consumerData.getAddress(), getInboundMappingProcessorActor(), consumerData.getSource(), dryRun);
+        final ActorRef consumerActor =
+                startChildActorConflictFree(consumerData.getActorNamePrefix(), consumerActorProps);
+        kafkaConsumerActors.add(consumerActor);
+    }
+
+    private void stopConsumerActors() {
+        kafkaConsumerActors.forEach(consumerActor -> {
+            logger.debug("Stopping child actor <{}>.", consumerActor.path());
+            // shutdown using a message, so the actor can clean up first
+            consumerActor.tell(KafkaConsumerActor.GracefulStop.INSTANCE, getSelf());
+        });
+        kafkaConsumerActors.clear();
     }
 
     @Override
     protected void cleanupResourcesForConnection() {
         pendingStatusReportsFromStreams.clear();
         stopPublisherActor();
+        stopConsumerActors();
     }
 
     @Override

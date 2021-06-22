@@ -34,6 +34,7 @@
         <then>
             <appender name="stash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
                 <destination>${DITTO_LOGGING_LOGSTASH_SERVER}</destination>
+                <reconnectionDelay>1 second</reconnectionDelay>
 
                 <!-- Encoder is required -->
                 <encoder class="net.logstash.logback.encoder.LogstashEncoder">

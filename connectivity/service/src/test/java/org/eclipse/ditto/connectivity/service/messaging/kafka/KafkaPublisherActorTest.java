@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -14,50 +14,53 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.UUID;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
-import org.apache.kafka.clients.producer.Callback;
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.DisconnectException;
 import org.apache.kafka.common.errors.InvalidTopicException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.awaitility.Awaitility;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
+import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.KafkaProducerConfig;
+import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.junit.Test;
@@ -73,57 +76,47 @@ import akka.testkit.javadsl.TestKit;
  */
 public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
-    private static final String OUTBOUND_ADDRESS = "anyTopic/keyA";
+    private static final String TARGET_TOPIC = "anyTopic";
+    private static final String OUTBOUND_ADDRESS = TARGET_TOPIC + "/keyA";
 
-    private final Queue<ProducerRecord<String, String>> received = new ConcurrentLinkedQueue<>();
-    private KafkaConnectionFactory connectionFactory;
-    private Producer<String, String> mockProducer;
+    private final Queue<ProducerRecord<String, String>> published = new ConcurrentLinkedQueue<>();
+
+    private final KafkaProducerConfig kafkaConfig = DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG))
+            .getConnectionConfig()
+            .getKafkaConfig()
+            .getProducerConfig();
+    private MockSendProducerFactory mockSendProducerFactory;
 
     @Override
-    @SuppressWarnings("unchecked")
-    protected void setupMocks(final TestProbe probe) {
-        connectionFactory = mock(KafkaConnectionFactory.class);
-        mockProducer = mock(Producer.class);
-        when(connectionFactory.newProducer()).thenReturn(mockProducer);
-        when(mockProducer.send(any(), any()))
-                .thenAnswer(invocationOnMock -> {
-                    final ProducerRecord<String, String> record = invocationOnMock.getArgument(0);
-                    final RecordMetadata dummyMetadata =
-                            new RecordMetadata(new TopicPartition("topic", 5), 0L, 0L, 0L, 0L, 0, 0);
-                    invocationOnMock.getArgument(1, Callback.class).onCompletion(dummyMetadata, null);
-                    received.add(record);
-                    return null;
-                });
+    protected void setupMocks(final TestProbe notUsed) {
+        mockSendProducerFactory = MockSendProducerFactory.getInstance(TARGET_TOPIC, published);
     }
 
-    private void setUpMocksToFailWith(final Exception exception) {
-        connectionFactory = mock(KafkaConnectionFactory.class);
-        mockProducer = mock(Producer.class);
-        when(connectionFactory.newProducer()).thenReturn(mockProducer);
-        when(mockProducer.send(any(), any()))
-                .thenAnswer(invocationOnMock -> {
-                    invocationOnMock.getArgument(1, Callback.class).onCompletion(null, exception);
-                    return null;
-                });
+    private void setUpMocksToFailWith(final RuntimeException exception) {
+        mockSendProducerFactory = MockSendProducerFactory.getInstance(TARGET_TOPIC, published, exception);
     }
 
     @Override
     protected Props getPublisherActorProps() {
-        return KafkaPublisherActor.props(TestConstants.createConnection(), connectionFactory, false, "clientId");
+        final Connection connection = TestConstants.createConnection();
+        final String clientId = UUID.randomUUID().toString();
+        return KafkaPublisherActor.props(connection, kafkaConfig, mockSendProducerFactory, false, clientId);
     }
 
     protected Props getPublisherActorPropsWithDebugEnabled() {
-        return KafkaPublisherActor.props(TestConstants.createConnectionWithDebugEnabled(), connectionFactory, false,
-                "clientId");
+        final Connection connectionWithDebugEnabled = TestConstants.createConnectionWithDebugEnabled();
+        final String clientId = UUID.randomUUID().toString();
+        return KafkaPublisherActor.props(connectionWithDebugEnabled, kafkaConfig, mockSendProducerFactory, false,
+                clientId);
     }
 
     @Override
     protected void verifyPublishedMessage() {
-        Awaitility.await().until(() -> !received.isEmpty());
-        final ProducerRecord<String, String> record = checkNotNull(received.poll());
-        assertThat(received).isEmpty();
+        Awaitility.await("wait for published messages").until(() -> !published.isEmpty());
+        final ProducerRecord<String, String> record = checkNotNull(published.poll());
+        assertThat(published).isEmpty();
         assertThat(record).isNotNull();
-        assertThat(record.topic()).isEqualTo("anyTopic");
+        assertThat(record.topic()).isEqualTo(TARGET_TOPIC);
         assertThat(record.key()).isEqualTo("keyA");
         assertThat(record.value()).isEqualTo("payload");
         final List<Header> headers = Arrays.asList(record.headers().toArray());
@@ -143,9 +136,9 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected void verifyPublishedMessageToReplyTarget() {
-        Awaitility.await().until(() -> !received.isEmpty());
-        final ProducerRecord<String, String> record = checkNotNull(received.poll());
-        assertThat(received).isEmpty();
+        Awaitility.await().until(() -> !published.isEmpty());
+        final ProducerRecord<String, String> record = checkNotNull(published.poll());
+        assertThat(published).isEmpty();
         assertThat(record.topic()).isEqualTo("replyTarget");
         assertThat(record.key()).isEqualTo("thing:id");
         final List<Header> headers = Arrays.asList(record.headers().toArray());
@@ -161,6 +154,55 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(ack.getHttpStatus()).isEqualTo(HttpStatus.NO_CONTENT);
         assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
         assertThat(ack.getEntity()).isEmpty();
+    }
+
+    @Test
+    public void testMessageDroppedOnQueueOverflow() {
+        new TestKit(actorSystem) {{
+
+            // use blocking producer to simulate overflowing queue
+            mockSendProducerFactory = MockSendProducerFactory.getBlockingInstance(TARGET_TOPIC, published);
+
+            final OutboundSignal.MultiMapped multiMapped =
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(getMockOutboundSignal()), getRef());
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+
+            publisherCreated(this, publisherActor);
+
+            IntStream.range(0, kafkaConfig.getQueueSize() * 2).forEach(i -> publisherActor.tell(multiMapped, getRef()));
+
+            final ImmutableConnectionFailure failure = expectMsgClass(ImmutableConnectionFailure.class);
+            assertThat(failure.getFailure().cause()).isInstanceOf(CompletionException.class);
+            assertThat(failure.getFailure().cause().getCause()).isInstanceOf(MessageSendingFailedException.class);
+            assertThat(failure.getFailure().cause().getCause()).isInstanceOf(MessageSendingFailedException.class);
+        }};
+    }
+
+    @Test
+    public void testAllQueuedMessagesAreFinallyPublished() {
+        new TestKit(actorSystem) {{
+            // use slow start producer which blocks for the first published message
+            mockSendProducerFactory = MockSendProducerFactory.getSlowStartInstance(TARGET_TOPIC, published);
+
+            final OutboundSignal.MultiMapped multiMapped =
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(getMockOutboundSignal()), getRef());
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+
+            publisherCreated(this, publisherActor);
+
+            // publish #messages twice the size of the queue to make sure the queue does overflow
+            IntStream.range(0, kafkaConfig.getQueueSize() * 2).forEach(i -> publisherActor.tell(multiMapped, getRef()));
+
+            //
+            fishForMessage(Duration.ofSeconds(5), "message drop", o -> o instanceof ConnectionFailure);
+
+            Awaitility.await("all queued messages are published")
+                    .until(() -> published.size() > kafkaConfig.getQueueSize());
+        }};
     }
 
     @Test
@@ -187,8 +229,9 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                         .topics(Topic.TWIN_EVENTS)
                         .build();
 
-                final ThingEvent<?> source = ThingDeleted.of(TestConstants.Things.THING_ID, 99L, Instant.now(), dittoHeaders,
-                        null);
+                final ThingEvent<?> source =
+                        ThingDeleted.of(TestConstants.Things.THING_ID, 99L, Instant.now(), dittoHeaders,
+                                null);
                 final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(source, List.of(target));
                 final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(Map.of())
                         .withText("payload")
@@ -214,7 +257,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                                     .set("timestamp", 0)
                                     .set("serializedKeySize", 0)
                                     .set("serializedValueSize", 0)
-                                    .set("topic", "topic")
+                                    .set("topic", TARGET_TOPIC)
                                     .set("partition", 5)
                                     .set("offset", 0)
                                     .build());
@@ -244,7 +287,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected void publisherCreated(final TestKit kit, final ActorRef publisherActor) {
-        kit.expectMsgClass(Status.Success.class);
+        kit.expectMsgClass(Duration.ofSeconds(10), Status.Success.class);
     }
 
     @Override
@@ -267,7 +310,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(expectedHeader).isPresent();
     }
 
-    private void testSendFailure(final Exception exception, final BiConsumer<TestProbe, TestKit> assertions) {
+    private void testSendFailure(final RuntimeException exception, final BiConsumer<TestProbe, TestKit> assertions) {
         new TestKit(actorSystem) {{
             // GIVEN
             setUpMocksToFailWith(exception);

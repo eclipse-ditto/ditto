@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -12,25 +12,19 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
-import org.apache.kafka.clients.producer.Producer;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
+import akka.kafka.javadsl.SendProducer;
 
 /**
- * Creates Kafka sinks.
+ * Creates Kafka {@code SendProducer}s.
  */
-interface KafkaConnectionFactory {
-
-    /**
-     * Identifier of the connection.
-     *
-     * @return the ID.
-     */
-    EntityId connectionId();
+@FunctionalInterface
+interface SendProducerFactory {
 
     /**
      * Create a producer of Kafka messages.
      *
      * @return the producer.
      */
-    Producer<String, String> newProducer();
+    SendProducer<String, String> newSendProducer();
+
 }

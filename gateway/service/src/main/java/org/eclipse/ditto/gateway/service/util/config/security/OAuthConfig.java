@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.gateway.service.util.config.security;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 
@@ -34,6 +35,14 @@ public interface OAuthConfig {
      * @return the protocol with which to access all OAuth endpoints.
      */
     String getProtocol();
+
+    /**
+     * Returns the allowed clock skew in seconds to tolerate when verifying the local time against the {@code exp}
+     * and {@code nbf} claims.
+     *
+     * @return the allowed clock skew in seconds.
+     */
+    Duration getAllowedClockSkew();
 
     /**
      * Returns all supported openid connect issuers.
@@ -59,6 +68,7 @@ public interface OAuthConfig {
 
     enum OAuthConfigValue implements KnownConfigValue {
         PROTOCOL("protocol", "https"),
+        ALLOWED_CLOCK_SKEW("allowed-clock-skew", Duration.ofSeconds(10)),
         OPENID_CONNECT_ISSUERS("openid-connect-issuers", Collections.emptyMap()),
         OPENID_CONNECT_ISSUERS_EXTENSION("openid-connect-issuers-extension", Collections.emptyMap()),
         TOKEN_INTEGRATION_SUBJECT("token-integration-subject", "integration:{{policy-entry:label}}:{{jwt:aud}}");

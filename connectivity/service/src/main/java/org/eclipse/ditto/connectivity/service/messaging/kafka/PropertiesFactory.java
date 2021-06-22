@@ -15,81 +15,99 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 
 import com.typesafe.config.Config;
 
-/**
- * Creates Kafka producer properties from a given {@link org.eclipse.ditto.connectivity.model.Connection}
- * configuration.
- */
-final class ProducerPropertiesFactory {
+import akka.kafka.ConsumerSettings;
+import akka.kafka.ProducerSettings;
 
-    /**
-     * Key of properties defined by org.apache.kafka.clients.producer.ProducerConfig inside producer internal config.
-     * Defined by a previously used Alpakka kafka client.
-     */
-    private static final String KAFKA_CLIENTS_KEY = "kafka-clients";
+/**
+ * Creates Kafka properties from a given {@link org.eclipse.ditto.connectivity.model.Connection} configuration.
+ */
+final class PropertiesFactory {
 
     private static final Collection<KafkaSpecificConfig> SPECIFIC_CONFIGS =
             List.of(KafkaAuthenticationSpecificConfig.getInstance(), KafkaBootstrapServerSpecificConfig.getInstance());
 
     private final Connection connection;
-    private final KafkaConfig kafkaConfig;
+    private final KafkaConfig config;
     private final String clientId;
+    private final String bootstrapServers;
 
-    private ProducerPropertiesFactory(final Connection connection, final KafkaConfig kafkaConfig,
-            final String clientId) {
+    private PropertiesFactory(final Connection connection, final KafkaConfig config, final String clientId) {
         this.connection = checkNotNull(connection, "connection");
-        this.kafkaConfig = checkNotNull(kafkaConfig, "Kafka config");
+        this.config = checkNotNull(config, "config");
         this.clientId = checkNotNull(clientId, "clientId");
+        this.bootstrapServers = KafkaBootstrapServerSpecificConfig.getInstance().getBootstrapServers(connection);
     }
 
     /**
-     * Returns an instance of the ProducerSettings factory.
+     * Returns an instance of the factory.
      *
      * @param connection the Kafka connection.
-     * @param kafkaConfig the Kafka configuration settings.
+     * @param config the Kafka configuration settings.
      * @param clientId the client ID.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    static ProducerPropertiesFactory getInstance(final Connection connection, final KafkaConfig kafkaConfig,
-            final String clientId) {
-        return new ProducerPropertiesFactory(connection, kafkaConfig, clientId);
+    static PropertiesFactory newInstance(final Connection connection, final KafkaConfig config, final String clientId) {
+        return new PropertiesFactory(connection, config, clientId);
     }
 
-    Map<String, Object> getProducerProperties() {
-        final HashMap<String, Object> producerProperties =
-                configToProperties(kafkaConfig.getInternalProducerConfig().getConfig(KAFKA_CLIENTS_KEY));
-        addMetadata(producerProperties);
-        addSecurityProtocol(producerProperties);
-        addSpecificConfig(producerProperties);
-        return Collections.unmodifiableMap(producerProperties);
+    /**
+     * Returns settings for a kafka consumer.
+     *
+     * @return the settings.
+     */
+    ConsumerSettings<String, String> getConsumerSettings(final boolean dryRun) {
+        final Config alpakkaConfig = this.config.getConsumerConfig().getAlpakkaConfig();
+        final ConsumerSettings<String, String> consumerSettings =
+                ConsumerSettings.apply(alpakkaConfig, new StringDeserializer(), new StringDeserializer())
+                        .withBootstrapServers(bootstrapServers)
+                        .withGroupId(connection.getId().toString())
+                        .withClientId(clientId + "-consumer");
+
+        // disable auto commit in dry run mode
+        return dryRun ? consumerSettings.withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false") :
+                consumerSettings;
     }
 
-    private void addMetadata(final HashMap<String, Object> properties) {
-        properties.put(CommonClientConfigs.CLIENT_ID_CONFIG, clientId);
+    ProducerSettings<String, String> getProducerSettings() {
+        final Config alpakkaConfig = this.config.getProducerConfig().getAlpakkaConfig();
+        return ProducerSettings.apply(alpakkaConfig, new StringSerializer(), new StringSerializer())
+                .withBootstrapServers(bootstrapServers)
+                .withProperties(getClientIdProperties())
+                .withProperties(getSpecificConfigProperties())
+                .withProperties(getSecurityProtocolProperties());
     }
 
-    private void addSpecificConfig(final HashMap<String, Object> properties) {
+    private Map<String, String> getClientIdProperties() {
+        return Map.of(CommonClientConfigs.CLIENT_ID_CONFIG, clientId + "-producer");
+    }
+
+    private Map<String, String> getSpecificConfigProperties() {
+        final Map<String, String> properties = new HashMap<>();
         for (final KafkaSpecificConfig specificConfig : SPECIFIC_CONFIGS) {
-            specificConfig.apply(properties, connection);
+            properties.putAll(specificConfig.apply(connection));
         }
+        return properties;
     }
 
-    private void addSecurityProtocol(final HashMap<String, Object> properties) {
+    private Map<String, String> getSecurityProtocolProperties() {
         if (isConnectionAuthenticated()) {
-            addAuthenticatedSecurityProtocol(properties);
+            return addAuthenticatedSecurityProtocol();
         } else {
-            addUnauthenticatedSecurityProtocol(properties);
+            return addUnauthenticatedSecurityProtocol();
         }
     }
 
@@ -98,19 +116,19 @@ final class ProducerPropertiesFactory {
         return authenticationSpecificConfig.isApplicable(connection);
     }
 
-    private void addAuthenticatedSecurityProtocol(final HashMap<String, Object> properties) {
+    private Map<String, String> addAuthenticatedSecurityProtocol() {
         if (isConnectionSecure()) {
-            properties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_SSL");
+            return Map.of(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_SSL");
         } else {
-            properties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
+            return Map.of(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
         }
     }
 
-    private void addUnauthenticatedSecurityProtocol(final HashMap<String, Object> properties) {
+    private Map<String, String> addUnauthenticatedSecurityProtocol() {
         if (isConnectionSecure()) {
-            properties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
+            return Map.of(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SSL");
         } else {
-            properties.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT");
+            return Map.of(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "PLAINTEXT");
         }
     }
 
@@ -133,7 +151,7 @@ final class ProducerPropertiesFactory {
     }
 
     /**
-     * Convert an unwrapped config into a flat properties map for the Kafka producer.
+     * Convert an unwrapped config into a flat properties map.
      *
      * @param unwrapped Result of {@code ConfigObject#unwrapped} containing structural maps.
      * @param prefix prefix of the config path.

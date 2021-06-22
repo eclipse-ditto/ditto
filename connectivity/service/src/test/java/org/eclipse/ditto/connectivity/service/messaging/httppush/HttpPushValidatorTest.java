@@ -94,6 +94,8 @@ public final class HttpPushValidatorTest {
         underTest.validate(getConnectionWithTarget("POST:events"), emptyDittoHeaders, actorSystem, connectivityConfig);
         underTest.validate(getConnectionWithTarget("PUT:ditto/{{thing:id}}"), emptyDittoHeaders, actorSystem,
                 connectivityConfig);
+        underTest.validate(getConnectionWithTarget("PUT:ditto/{{entity:id}}"), emptyDittoHeaders, actorSystem,
+                connectivityConfig);
         underTest.validate(getConnectionWithTarget("PATCH:/{{thing:namespace}}/{{thing:name}}"), emptyDittoHeaders,
                 actorSystem, connectivityConfig);
         underTest.validate(getConnectionWithTarget("PATCH:/{{thing:namespace}}/{{thing:name}}/{{ feature:id }}"),

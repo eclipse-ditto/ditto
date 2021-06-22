@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.gateway.service.util.config.security;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,12 +49,14 @@ public final class DefaultOAuthConfig implements OAuthConfig {
     private static final String CONFIG_PATH = "oauth";
 
     private final String protocol;
+    private final Duration allowedClockSkew;
     private final Map<SubjectIssuer, SubjectIssuerConfig> openIdConnectIssuers;
     private final Map<SubjectIssuer, SubjectIssuerConfig> openIdConnectIssuersExtension;
     private final String tokenIntegrationSubject;
 
     private DefaultOAuthConfig(final ConfigWithFallback configWithFallback) {
         protocol = configWithFallback.getString(OAuthConfigValue.PROTOCOL.getConfigPath());
+        allowedClockSkew = configWithFallback.getDuration(OAuthConfigValue.ALLOWED_CLOCK_SKEW.getConfigPath());
         openIdConnectIssuers = loadIssuers(configWithFallback, OAuthConfigValue.OPENID_CONNECT_ISSUERS);
         openIdConnectIssuersExtension =
                 loadIssuers(configWithFallback, OAuthConfigValue.OPENID_CONNECT_ISSUERS_EXTENSION);
@@ -84,6 +87,11 @@ public final class DefaultOAuthConfig implements OAuthConfig {
     }
 
     @Override
+    public Duration getAllowedClockSkew() {
+        return allowedClockSkew;
+    }
+
+    @Override
     public Map<SubjectIssuer, SubjectIssuerConfig> getOpenIdConnectIssuers() {
         return openIdConnectIssuers;
     }
@@ -104,6 +112,7 @@ public final class DefaultOAuthConfig implements OAuthConfig {
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultOAuthConfig that = (DefaultOAuthConfig) o;
         return Objects.equals(protocol, that.protocol)
+                && Objects.equals(allowedClockSkew, that.allowedClockSkew)
                 && Objects.equals(openIdConnectIssuers, that.openIdConnectIssuers)
                 && Objects.equals(openIdConnectIssuersExtension, that.openIdConnectIssuersExtension)
                 && Objects.equals(tokenIntegrationSubject, that.tokenIntegrationSubject);
@@ -111,13 +120,15 @@ public final class DefaultOAuthConfig implements OAuthConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(protocol, openIdConnectIssuers, openIdConnectIssuersExtension, tokenIntegrationSubject);
+        return Objects.hash(protocol, allowedClockSkew, openIdConnectIssuers, openIdConnectIssuersExtension,
+                tokenIntegrationSubject);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "protocol=" + protocol +
+                ", allowedClocSkew=" + allowedClockSkew +
                 ", openIdConnectIssuers=" + openIdConnectIssuers +
                 ", openIdConnectIssuersExtension=" + openIdConnectIssuersExtension +
                 ", tokenIntegrationSubject=" + tokenIntegrationSubject +
