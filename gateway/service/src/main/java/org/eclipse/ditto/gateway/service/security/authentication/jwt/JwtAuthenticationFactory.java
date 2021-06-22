@@ -68,7 +68,7 @@ public final class JwtAuthenticationFactory {
 
     public JwtValidator getJwtValidator() {
         if (null == jwtValidator) {
-            jwtValidator = DefaultJwtValidator.of(getPublicKeyProvider());
+            jwtValidator = DefaultJwtValidator.of(getPublicKeyProvider(), oAuthConfig);
         }
         return jwtValidator;
     }
@@ -93,7 +93,7 @@ public final class JwtAuthenticationFactory {
     }
 
     public JwtAuthenticationResultProvider newJwtAuthenticationResultProvider() {
-        final JwtAuthorizationSubjectsProvider authorizationSubjectsProvider =
+        final var authorizationSubjectsProvider =
                jwtAuthorizationSubjectsProviderFactory.newProvider(getJwtSubjectIssuersConfig());
 
         return DefaultJwtAuthenticationResultProvider.of(authorizationSubjectsProvider);
