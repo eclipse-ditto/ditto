@@ -80,11 +80,6 @@
             <artifactId>akka-http_${scala.version}</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-        </dependency>
-
         <!-- logstash appender logging -->
         <dependency>
             <groupId>org.codehaus.janino</groupId>
@@ -93,6 +88,7 @@
         <dependency>
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

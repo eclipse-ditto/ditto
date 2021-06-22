@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Map;
@@ -29,10 +30,6 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
@@ -40,27 +37,28 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.messages.model.Message;
-import org.eclipse.ditto.messages.model.MessageHeadersBuilder;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.JsonifiableAdaptable;
-import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
+import org.eclipse.ditto.connectivity.service.messaging.signing.NoOpSigning;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.internal.utils.akka.controlflow.TimeMeasuringFlow;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.messages.model.Message;
+import org.eclipse.ditto.messages.model.MessageHeadersBuilder;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessage;
@@ -69,8 +67,13 @@ import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessageResponse;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
+import org.eclipse.ditto.protocol.JsonifiableAdaptable;
+import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.things.model.ThingId;
 
 import akka.Done;
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.http.javadsl.model.HttpCharset;
@@ -121,6 +124,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private final Materializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
     private final KillSwitch killSwitch;
+    private final HttpRequestSigning httpRequestSigning;
 
     @SuppressWarnings("unused")
     private HttpPublisherActor(final Connection connection, final HttpPushFactory factory, final String clientId) {
@@ -142,6 +146,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         // If self is alive, the error should be escalated.
         materialized.second()
                 .whenComplete((done, error) -> getSelf().tell(toConnectionFailure(done, error), ActorRef.noSender()));
+
+        httpRequestSigning = connection.getCredentials()
+                .map(credentials -> credentials.accept(HttpRequestSigningExtension.get(getContext().getSystem())))
+                .orElse(NoOpSigning.INSTANCE);
     }
 
     static Props props(final Connection connection, final HttpPushFactory factory, final String clientId) {
@@ -159,12 +167,22 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 .tag("id", connection.getId().toString());
 
         final Sink<Duration, CompletionStage<Done>> logRequestTimes = Sink.<Duration>foreach(duration ->
-            connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis())
+                connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis())
         );
+
+        final Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> requestSigningFlow =
+                Flow.<Pair<HttpRequest, HttpPushContext>>create()
+                        .flatMapConcat(pair -> httpRequestSigning.sign(pair.first())
+                                .map(signedRequest -> {
+                                    logger.debug("SignedRequest <{}>", signedRequest);
+                                    return Pair.create(signedRequest, pair.second());
+                                }));
 
         final var httpPushFlow = factory.<HttpPushContext>createFlow(getContext().getSystem(), logger, requestTimeout);
 
-        return TimeMeasuringFlow.measureTimeOf(httpPushFlow, timer, logRequestTimes);
+        final var httpFlowIncludingRequestSigning = requestSigningFlow.via(httpPushFlow);
+
+        return TimeMeasuringFlow.measureTimeOf(httpFlowIncludingRequestSigning, timer, logRequestTimes);
     }
 
     @Override
@@ -207,7 +225,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private HttpRequest createRequest(final HttpPublishTarget publishTarget, final ExternalMessage message) {
         final Pair<Iterable<HttpHeader>, ContentType> headersPair = getHttpHeadersPair(message);
-        final HttpRequest requestWithoutEntity = factory.newRequest(publishTarget).addHeaders(headersPair.first());
+        final HttpRequest requestWithoutEntity = newRequestWithoutEntity(publishTarget, headersPair.first(), message);
         final ContentType contentTypeHeader = headersPair.second();
         if (contentTypeHeader != null) {
             final HttpEntity.Strict httpEntity =
@@ -220,15 +238,37 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         }
     }
 
+    private HttpRequest newRequestWithoutEntity(final HttpPublishTarget publishTarget,
+            final Iterable<HttpHeader> headers, final ExternalMessage message) {
+        final HttpRequest request = factory.newRequest(publishTarget).addHeaders(headers);
+        final String httpPath = message.getHeaders().get(ReservedHeaders.HTTP_PATH.name);
+        final String httpQuery = message.getHeaders().get(ReservedHeaders.HTTP_QUERY.name);
+        return request.withUri(setPathAndQuery(request.getUri(), httpPath, httpQuery));
+    }
+
+    private static Uri setPathAndQuery(final Uri uri, @Nullable final String path, @Nullable final String query) {
+        final String slash = "/";
+        var newUri = uri;
+        if (path != null) {
+            newUri = path.startsWith(slash) ? newUri.path(path) : newUri.path(slash + path);
+        }
+        if (query != null) {
+            newUri = newUri.rawQueryString(query);
+        }
+        return newUri;
+    }
+
     private static Pair<Iterable<HttpHeader>, ContentType> getHttpHeadersPair(final ExternalMessage message) {
         final Collection<HttpHeader> headers = new ArrayList<>(message.getHeaders().size());
         ContentType contentType = null;
         for (final Map.Entry<String, String> entry : message.getHeaders().entrySet()) {
-            final HttpHeader httpHeader = HttpHeader.parse(entry.getKey(), entry.getValue());
-            if (httpHeader instanceof ContentType) {
-                contentType = (ContentType) httpHeader;
-            } else {
-                headers.add(httpHeader);
+            if (!ReservedHeaders.contains(entry.getKey())) {
+                final HttpHeader httpHeader = HttpHeader.parse(entry.getKey(), entry.getValue());
+                if (httpHeader instanceof ContentType) {
+                    contentType = (ContentType) httpHeader;
+                } else {
+                    headers.add(httpHeader);
+                }
             }
         }
         return Pair.create(headers, contentType);
@@ -287,7 +327,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 escalate(error, errorDescription);
             } else {
                 final HttpResponse response = tryResponse.toEither().right().get();
-                l.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
+                l.debug("Sent message <{}>. Got response <{} {}>", message,
+                        response.status(), response.getHeaders());
 
                 toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize, ackSizeQuota)
                         .thenAccept(resultFuture::complete)
@@ -333,11 +374,12 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 if (DittoAcknowledgementLabel.LIVE_RESPONSE.equals(autoAckLabel.get())) {
                     // Live-Response is declared as issued ack => parse live response from response
                     if (isMessageCommand) {
-                        result = toMessageCommandResponse((MessageCommand<?, ?>) signal, dittoHeaders, body, httpStatus);
+                        result =
+                                toMessageCommandResponse((MessageCommand<?, ?>) signal, dittoHeaders, body, httpStatus);
                     } else {
                         result = null;
                     }
-                }  else {
+                } else {
                     // There is an issued ack declared but its not live-response => handle response as acknowledgement.
                     result = Acknowledgement.of(autoAckLabel.get(), thingId, httpStatus, dittoHeaders, body);
                 }
@@ -389,7 +431,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     messageThingId);
             handleInvalidResponse(message, commandResponse);
         }
-        final EntityId responseThingId = ((WithEntityId)commandResponse).getEntityId();
+        final EntityId responseThingId = ((WithEntityId) commandResponse).getEntityId();
 
         if (!responseThingId.equals(messageThingId)) {
             final String message = String.format(
@@ -579,5 +621,25 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return requestUri.userInfo("");
     }
 
+    private enum ReservedHeaders {
+
+        HTTP_QUERY("http.query"),
+
+        HTTP_PATH("http.path");
+
+        private final String name;
+
+        ReservedHeaders(final String name) {
+            this.name = name;
+        }
+
+        private boolean matches(final String headerName) {
+            return name.equalsIgnoreCase(headerName);
+        }
+
+        private static boolean contains(final String header) {
+            return Arrays.stream(values()).anyMatch(reservedHeader -> reservedHeader.matches(header));
+        }
+    }
 }
 

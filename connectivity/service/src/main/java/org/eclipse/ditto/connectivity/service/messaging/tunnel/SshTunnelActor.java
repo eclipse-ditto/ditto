@@ -36,6 +36,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
+import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
@@ -304,6 +305,12 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
         sshUser = credentials.getUsername();
         sshUserAuthMethod = UserAuthMethodFactory.PUBLIC_KEY;
         logger.debug("Username ({}) for ssh session is '{}'.", sshUserAuthMethod, sshUser);
+        return null;
+    }
+
+    @Override
+    public Void hmac(final HmacCredentials credentials) {
+        // not supported
         return null;
     }
 

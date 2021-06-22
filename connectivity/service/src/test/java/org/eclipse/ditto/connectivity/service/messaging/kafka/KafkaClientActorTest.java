@@ -45,6 +45,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -259,6 +260,13 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
     @Override
     protected ActorSystem getActorSystem() {
         return actorSystem;
+    }
+
+    @Override
+    @Test
+    @Ignore("Kafka connections do not check certificate during connection test.")
+    public void testTLSConnectionWithoutCertificateCheck() {
+        super.testTLSConnectionWithoutCertificateCheck();
     }
 
     private static void expectPublisherReceivedShutdownSignal(final TestProbe probe) {

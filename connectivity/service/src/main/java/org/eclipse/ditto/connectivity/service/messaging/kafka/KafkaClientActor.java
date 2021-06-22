@@ -30,13 +30,14 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 
@@ -140,8 +141,9 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     @Override
-    protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
-        self().tell((ClientDisconnected) () -> null, origin);
+    protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin,
+            final boolean shutdownAfterDisconnect) {
+        getSelf().tell(new ImmutableClientDisconnected(origin, shutdownAfterDisconnect), origin);
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,19 +10,18 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.messaging.config;
+package org.eclipse.ditto.connectivity.service.config;
 
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
+import java.util.Map;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
-import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
-import org.eclipse.ditto.connectivity.service.config.BackOffConfig;
-import org.eclipse.ditto.connectivity.service.config.DefaultAmqp10Config;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -51,7 +50,8 @@ public final class DefaultAmqp10ConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultAmqp10Config.class,
                 areImmutable(),
-                provided(BackOffConfig.class, ThrottlingConfig.class).isAlsoImmutable());
+                provided(BackOffConfig.class, ThrottlingConfig.class).isAlsoImmutable(),
+                assumingFields("hmacAlgorithms").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test
@@ -95,6 +95,9 @@ public final class DefaultAmqp10ConfigTest {
         softly.assertThat(underTest.getGlobalPrefetchPolicyAllCount())
                 .as(Amqp10Config.Amqp10ConfigValue.GLOBAL_PREFETCH_POLICY_ALL_COUNT.getConfigPath())
                 .isEqualTo(Amqp10Config.Amqp10ConfigValue.GLOBAL_PREFETCH_POLICY_ALL_COUNT.getDefaultValue());
+        softly.assertThat(underTest.getHmacAlgorithms())
+                .as(Amqp10Config.Amqp10ConfigValue.HMAC_ALGORITHMS.getConfigPath())
+                .isEqualTo(Amqp10Config.Amqp10ConfigValue.HMAC_ALGORITHMS.getDefaultValue());
     }
 
     @Test
@@ -131,6 +134,9 @@ public final class DefaultAmqp10ConfigTest {
         softly.assertThat(underTest.getGlobalPrefetchPolicyAllCount())
                 .as(Amqp10Config.Amqp10ConfigValue.GLOBAL_PREFETCH_POLICY_ALL_COUNT.getConfigPath())
                 .isEqualTo(44);
+        softly.assertThat(underTest.getHmacAlgorithms())
+                .as(Amqp10Config.Amqp10ConfigValue.HMAC_ALGORITHMS.getConfigPath())
+                .isEqualTo(Map.of("algorithm1", "factory1", "algorithm2", "factory2"));
     }
 
 }

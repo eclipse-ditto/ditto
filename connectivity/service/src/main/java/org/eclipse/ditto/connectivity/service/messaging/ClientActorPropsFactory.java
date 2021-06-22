@@ -17,6 +17,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.connectivity.model.Connection;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
@@ -30,8 +31,10 @@ public interface ClientActorPropsFactory {
      * @param connection the connection.
      * @param proxyActor the actor used to send signals into the ditto cluster..
      * @param connectionActor the connectionPersistenceActor which creates this client.
+     * @param actorSystem the actorSystem.
      * @return the actor props
      */
-    Props getActorPropsForType(Connection connection, @Nullable ActorRef proxyActor, ActorRef connectionActor);
+    Props getActorPropsForType(Connection connection, @Nullable ActorRef proxyActor, ActorRef connectionActor,
+            ActorSystem actorSystem);
 
 }

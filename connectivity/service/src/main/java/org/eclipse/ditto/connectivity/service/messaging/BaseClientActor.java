@@ -214,7 +214,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         this.dittoProtocolSub = DittoProtocolSub.get(getContext().getSystem());
         actorUUID = UUID.randomUUID().toString();
 
-        final ConnectionId connectionId = connection.getId();
+        final var connectionId = connection.getId();
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
         // log the default client ID for tracing
@@ -226,7 +226,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         proxyActorSelection = getLocalActorOfSamePath(proxyActor);
         connectivityConfigProvider = ConnectivityConfigProviderFactory.getInstance(getContext().getSystem());
 
-        final ProtocolAdapterProvider protocolAdapterProvider =
+        final var protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
         protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
 
@@ -237,7 +237,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .tag("id", connectionId.toString())
                 .tag("type", connection.getConnectionType().getName());
 
-        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
+        final var monitoringConfig = connectivityConfig.getMonitoringConfig();
         connectionCounterRegistry = ConnectivityCounterRegistry.newInstance();
         connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
 
@@ -324,12 +324,22 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private void closeConnectionBeforeTerminatingCluster() {
-        CoordinatedShutdown.get(getContext().getSystem())
-                .addActorTerminationTask(
-                        CoordinatedShutdown.PhaseBeforeServiceUnbind(),
-                        "closeConnection",
-                        getSelf(),
-                        Optional.of(CloseConnection.of(connectionId(), DittoHeaders.empty())));
+        if (shouldAnyTargetSendConnectionAnnouncements()) {
+            // only add clients of connections to Coordinated shutdown having connection announcements configured
+            CoordinatedShutdown.get(getContext().getSystem())
+                    .addActorTerminationTask(
+                            CoordinatedShutdown.PhaseBeforeServiceUnbind(),
+                            "closeConnectionAndShutdown",
+                            getSelf(),
+                            Optional.of(CloseConnectionAndShutdown.INSTANCE));
+        }
+    }
+
+    private boolean shouldAnyTargetSendConnectionAnnouncements() {
+        return connection().getTargets().stream()
+                .anyMatch(target -> target.getTopics().stream()
+                        .map(FilteredTopic::getTopic)
+                        .anyMatch(Topic.CONNECTION_ANNOUNCEMENTS::equals));
     }
 
     @Override
@@ -337,6 +347,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         clientGauge.reset();
         clientConnectingGauge.reset();
         stopChildActor(tunnelActor);
+        logger.debug("Stopped client with id - <{}>", getDefaultClientId());
         try {
             super.postStop();
         } catch (final Exception e) {
@@ -348,7 +359,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     public void onConnectivityConfigModified(final ConnectivityConfig modifiedConfig) {
         if (hasInboundMapperConfigChanged(modifiedConfig)) {
             logger.debug("Config changed for InboundMappingProcessor, recreating it.");
-            final InboundMappingProcessor inboundMappingProcessor =
+            final var inboundMappingProcessor =
                     InboundMappingProcessor.of(connection.getId(), connection.getConnectionType(),
                             connection.getPayloadMappingDefinition(),
                             getContext().getSystem(), modifiedConfig,
@@ -357,7 +368,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         }
         if (hasOutboundMapperConfigChanged(modifiedConfig)) {
             logger.debug("Config changed for OutboundMappingProcessor, recreating it.");
-            final OutboundMappingProcessor outboundMappingProcessor =
+            final var outboundMappingProcessor =
                     OutboundMappingProcessor.of(connection, getContext().getSystem(), modifiedConfig,
                             protocolAdapter, logger);
             outboundMappingProcessorActor.tell(new ReplaceOutboundMappingProcessor(outboundMappingProcessor),
@@ -391,15 +402,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private boolean hasInboundMapperConfigChanged(final ConnectivityConfig connectivityConfig) {
-        final MapperLimitsConfig currentConfig = this.connectivityConfig.getMappingConfig().getMapperLimitsConfig();
-        final MapperLimitsConfig modifiedConfig = connectivityConfig.getMappingConfig().getMapperLimitsConfig();
+        final var currentConfig = this.connectivityConfig.getMappingConfig().getMapperLimitsConfig();
+        final var modifiedConfig = connectivityConfig.getMappingConfig().getMapperLimitsConfig();
         return currentConfig.getMaxMappedInboundMessages() != modifiedConfig.getMaxMappedInboundMessages()
                 || currentConfig.getMaxSourceMappers() != modifiedConfig.getMaxSourceMappers();
     }
 
     private boolean hasOutboundMapperConfigChanged(final ConnectivityConfig connectivityConfig) {
-        final MapperLimitsConfig currentConfig = this.connectivityConfig.getMappingConfig().getMapperLimitsConfig();
-        final MapperLimitsConfig modifiedConfig = connectivityConfig.getMappingConfig().getMapperLimitsConfig();
+        final var currentConfig = this.connectivityConfig.getMappingConfig().getMapperLimitsConfig();
+        final var modifiedConfig = connectivityConfig.getMappingConfig().getMapperLimitsConfig();
         return currentConfig.getMaxMappedOutboundMessages() != modifiedConfig.getMaxMappedOutboundMessages()
                 || currentConfig.getMaxTargetMappers() != modifiedConfig.getMaxTargetMappers();
     }
@@ -464,8 +475,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      *
      * @param connection the Connection to use for disconnecting.
      * @param origin the ActorRef which caused the DisconnectClient command.
+     * @param shutdownAfterDisconnect whether the base client actor should terminate itself after disconnection.
      */
-    protected abstract void doDisconnectClient(Connection connection, @Nullable ActorRef origin);
+    protected abstract void doDisconnectClient(Connection connection, @Nullable ActorRef origin,
+            final boolean shutdownAfterDisconnect);
 
     /**
      * Release any temporary resources allocated during a connection operation when the operation times out. Do nothing
@@ -532,7 +545,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     /**
      * Escapes the passed actorName in a actorName valid way. Actor name should be a valid URL with ASCII letters, see
-     * also {@code akka.actor.ActorPath#isValidPathElement}, therefor we encode the name as an ASCII URL.
+     * also {@code akka.actor.ActorPath#isValidPathElement}, therefore we encode the name as an ASCII URL.
      *
      * @param name the actorName to escape.
      * @return the escaped name.
@@ -682,7 +695,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private void publishConnectionOpenedAnnouncement() {
-        getSelf().tell(ConnectionOpenedAnnouncement.of(connectionId(), Instant.now(), DittoHeaders.empty()), getSelf());
+        if (shouldAnyTargetSendConnectionAnnouncements()) {
+            getSelf().tell(ConnectionOpenedAnnouncement.of(connectionId(), Instant.now(), DittoHeaders.empty()),
+                    getSelf());
+        }
     }
 
     /*
@@ -714,6 +730,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inInitializedState() {
         return matchEvent(OpenConnection.class, this::openConnection)
                 .event(CloseConnection.class, this::closeConnection)
+                .event(CloseConnectionAndShutdown.class, this::closeConnectionAndShutdown)
                 .event(TestConnection.class, this::testConnection);
     }
 
@@ -739,6 +756,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(ClientConnected.class, this::clientConnectedInConnectingState)
                 .event(InitializationResult.class, this::handleInitializationResult)
                 .event(CloseConnection.class, this::closeConnection)
+                .event(CloseConnectionAndShutdown.class, this::closeConnectionAndShutdown)
                 .event(SshTunnelActor.TunnelStarted.class, this::tunnelStarted)
                 .eventEquals(Control.CONNECT_AFTER_TUNNEL_ESTABLISHED, this::connectAfterTunnelStarted)
                 .event(SshTunnelActor.TunnelClosed.class, this::tunnelClosed)
@@ -752,6 +770,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inConnectedState() {
         return matchEvent(CloseConnection.class, this::closeConnection)
+                .event(CloseConnectionAndShutdown.class, this::closeConnectionAndShutdown)
                 .event(SshTunnelActor.TunnelClosed.class, this::tunnelClosed)
                 .event(OpenConnection.class, this::connectionAlreadyOpen)
                 .event(ConnectionFailure.class, this::connectedConnectionFailed);
@@ -779,7 +798,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectingState() {
         return matchEventEquals(StateTimeout(), (event, data) -> connectionTimedOut(data))
-                .eventEquals(SendDisconnectAnnouncement, (event, data) -> this.sendDisconnectAnnouncement(data))
+                .eventEquals(SEND_DISCONNECT_ANNOUNCEMENT, (event, data) -> this.sendDisconnectAnnouncement(data))
                 .event(Disconnect.class, this::disconnect)
                 .event(ConnectionFailure.class, this::connectingConnectionFailed)
                 .event(ClientDisconnected.class, this::clientDisconnected);
@@ -847,17 +866,35 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
+    private FSM.State<BaseClientState, BaseClientData> closeConnectionAndShutdown(
+            final CloseConnectionAndShutdown closeConnectionAndShutdown,
+            final BaseClientData data) {
+
+        return closeConnection(CloseConnection.of(connectionId(), DittoHeaders.empty()), data, true);
+    }
+
     private FSM.State<BaseClientState, BaseClientData> closeConnection(final CloseConnection closeConnection,
             final BaseClientData data) {
+        return closeConnection(closeConnection, data, false);
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> closeConnection(final CloseConnection closeConnection,
+            final BaseClientData data, boolean shutdownAfterDisconnect) {
 
         final ActorRef sender = getSender();
 
-        final Duration disconnectAnnouncementTimeout = clientConfig.getDisconnectAnnouncementTimeout();
-        final Duration timeoutUntilDisconnectCompletes =
-                clientConfig.getDisconnectingMaxTimeout().plus(disconnectAnnouncementTimeout);
-
-        getSelf().tell(SendDisconnectAnnouncement, sender);
-        startSingleTimer("startDisconnect", new Disconnect(sender), disconnectAnnouncementTimeout);
+        final Duration timeoutUntilDisconnectCompletes;
+        if (shouldAnyTargetSendConnectionAnnouncements()) {
+            final Duration disconnectAnnouncementTimeout = clientConfig.getDisconnectAnnouncementTimeout();
+            timeoutUntilDisconnectCompletes =
+                    clientConfig.getDisconnectingMaxTimeout().plus(disconnectAnnouncementTimeout);
+            getSelf().tell(SEND_DISCONNECT_ANNOUNCEMENT, sender);
+            startSingleTimer("startDisconnect", new Disconnect(sender, shutdownAfterDisconnect),
+                    disconnectAnnouncementTimeout);
+        } else {
+            timeoutUntilDisconnectCompletes = clientConfig.getDisconnectingMaxTimeout();
+            getSelf().tell(new Disconnect(sender, shutdownAfterDisconnect), sender);
+        }
 
         dittoProtocolSub.removeSubscriber(getSelf());
 
@@ -869,7 +906,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private State<BaseClientState, BaseClientData> sendDisconnectAnnouncement(final BaseClientData data) {
-        final ConnectionClosedAnnouncement announcement =
+        final var announcement =
                 ConnectionClosedAnnouncement.of(data.getConnectionId(), Instant.now(), DittoHeaders.empty());
         // need to tell the announcement directly to the dispatching actor since the state == DISCONNECTING
         outboundDispatchingActor.tell(announcement, getSender());
@@ -877,7 +914,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private State<BaseClientState, BaseClientData> disconnect(final Disconnect disconnect, final BaseClientData data) {
-        doDisconnectClient(connection(), disconnect.getSender());
+        doDisconnectClient(connection(), disconnect.getSender(), disconnect.shutdownAfterDisconnect());
         return stay()
                 .using(data.setConnectionStatusDetails("disconnecting connection at " + Instant.now()));
     }
@@ -886,7 +923,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final BaseClientData data) {
 
         final ActorRef sender = getSender();
-        final DittoHeaders dittoHeaders = openConnection.getDittoHeaders();
+        final var dittoHeaders = openConnection.getDittoHeaders();
         reconnectTimeoutStrategy.reset();
         final Duration connectingTimeout = clientConfig.getConnectingMinTimeout();
 
@@ -946,13 +983,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         final ActorRef self = getSelf();
         final ActorRef sender = getSender();
-        final Connection connectionToBeTested = testConnection.getConnection();
+        final var connectionToBeTested = testConnection.getConnection();
 
         if (stateData().getSshTunnelState().isEnabled() && !stateData().getSshTunnelState().isEstablished()) {
             logger.info("Connection requires SSH tunnel, starting tunnel.");
             tellTunnelActor(SshTunnelActor.TunnelControl.START_TUNNEL);
         } else if (!canConnectViaSocket(connectionToBeTested)) {
-            final ConnectionFailedException connectionFailedException =
+            final var connectionFailedException =
                     newConnectionFailedException(testConnection.getDittoHeaders());
             final Status.Status failure = new Status.Failure(connectionFailedException);
             getSelf().tell(failure, self);
@@ -1076,7 +1113,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private State<BaseClientState, BaseClientData> tunnelClosed(final SshTunnelActor.TunnelClosed tunnelClosed,
             final BaseClientData data) {
         logger.info("SSH tunnel closed: {}", tunnelClosed.getMessage());
-        final ImmutableConnectionFailure failure =
+        final var failure =
                 new ImmutableConnectionFailure(null, tunnelClosed.getError(), tunnelClosed.getMessage());
         getSelf().tell(failure, getSelf());
         final SshTunnelState closedState = data.getSshTunnelState().failed(tunnelClosed.getError());
@@ -1190,9 +1227,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             tellTunnelActor(SshTunnelActor.TunnelControl.STOP_TUNNEL);
             data.getSessionSenders()
                     .forEach(sender -> sender.first().tell(new Status.Success(DISCONNECTED), getSelf()));
-            return goTo(DISCONNECTED).using(data.resetSession()
+
+            final BaseClientData nextStateData = data.resetSession()
                     .setConnectionStatus(ConnectivityStatus.CLOSED)
-                    .setConnectionStatusDetails("Disconnected at " + Instant.now()));
+                    .setConnectionStatusDetails("Disconnected at " + Instant.now());
+
+            if (event.shutdownAfterDisconnected()) {
+                return stop(Normal(), nextStateData);
+            } else {
+                return goTo(DISCONNECTED).using(nextStateData);
+            }
         });
     }
 
@@ -1246,7 +1290,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
             if (reconnectTimeoutStrategy.canReconnect()) {
                 final Duration nextBackoff = reconnectTimeoutStrategy.getNextBackoff();
-                final String errorMessage =
+                final var errorMessage =
                         String.format("Connection failed due to: {0}. Will reconnect after %s.", nextBackoff);
                 connectionLogger.failure(errorMessage, event.getFailureDescription());
                 logger.info("Connection failed: {}. Reconnect after {}.", event, nextBackoff);
@@ -1300,7 +1344,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         // send to all children (consumers, publishers, except mapping actor)
         getContext().getChildren().forEach(child -> {
-            final String childName = child.path().name();
+            final var childName = child.path().name();
             if (!NO_ADDRESS_REPORTING_CHILD_NAMES.contains(childName)) {
                 logger.withCorrelationId(command)
                         .debug("Forwarding RetrieveAddressStatus to child <{}>.", child.path());
@@ -1328,15 +1372,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         logger.withCorrelationId(command)
                 .debug("Received RetrieveConnectionMetrics message for connection <{}>. Gathering metrics.",
                         command.getEntityId());
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final var dittoHeaders = command.getDittoHeaders();
 
-        final SourceMetrics sourceMetrics = connectionCounterRegistry.aggregateSourceMetrics(connectionId());
-        final TargetMetrics targetMetrics = connectionCounterRegistry.aggregateTargetMetrics(connectionId());
+        final var sourceMetrics = connectionCounterRegistry.aggregateSourceMetrics(connectionId());
+        final var targetMetrics = connectionCounterRegistry.aggregateTargetMetrics(connectionId());
 
-        final ConnectionMetrics connectionMetrics =
+        final var connectionMetrics =
                 connectionCounterRegistry.aggregateConnectionMetrics(sourceMetrics, targetMetrics);
 
-        final RetrieveConnectionMetricsResponse retrieveConnectionMetricsResponse =
+        final var retrieveConnectionMetricsResponse =
                 RetrieveConnectionMetricsResponse.getBuilder(connectionId(), dittoHeaders)
                         .connectionMetrics(connectionMetrics)
                         .sourceMetrics(sourceMetrics)
@@ -1359,7 +1403,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private FSM.State<BaseClientState, BaseClientData> enableConnectionLogs(final EnableConnectionLogs command) {
-        final ConnectionId connectionId = command.getEntityId();
+        final var connectionId = command.getEntityId();
         logger.withCorrelationId(command)
                 .debug("Received EnableConnectionLogs message for connection <{}>. Enabling logs.", connectionId);
 
@@ -1369,7 +1413,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private FSM.State<BaseClientState, BaseClientData> checkLoggingActive(final CheckConnectionLogsActive command) {
-        final ConnectionId connectionId = command.getEntityId();
+        final var connectionId = command.getEntityId();
         logger.withCorrelationId(command)
                 .debug("Received checkLoggingActive message for connection <{}>." +
                         " Checking if logging for connection is expired.", connectionId);
@@ -1445,9 +1489,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     protected boolean canConnectViaSocket(final Connection connection) {
-        final SshTunnelState tunnelState = stateData().getSshTunnelState();
+        final var tunnelState = stateData().getSshTunnelState();
         if (tunnelState.isEnabled()) {
-            final URI uri = connection.getSshTunnel().map(SshTunnel::getUri).map(URI::create).orElseThrow();
+            final var uri = connection.getSshTunnel().map(SshTunnel::getUri).map(URI::create).orElseThrow();
             final String sshHost = uri.getHost();
             final int sshPort = uri.getPort();
             final int localTunnelPort = tunnelState.getLocalPort();
@@ -1505,7 +1549,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private static Optional<EntityId> tryExtractEntityId(Signal<?> signal) {
         if (signal instanceof WithEntityId) {
-            final WithEntityId withEntityId = (WithEntityId) signal;
+            final var withEntityId = (WithEntityId) signal;
             return Optional.of(withEntityId.getEntityId());
         } else {
             return Optional.empty();
@@ -1515,7 +1559,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private void dispatchSearchCommand(final WithSubscriptionId<?> searchCommand) {
         final String subscriptionId = searchCommand.getSubscriptionId();
         if (subscriptionId.length() > subscriptionIdPrefixLength) {
-            final String prefix = subscriptionId.substring(0, subscriptionIdPrefixLength);
+            final var prefix = subscriptionId.substring(0, subscriptionIdPrefixLength);
             final Optional<Integer> index = parseHexString(prefix);
             if (index.isPresent()) {
                 final ActorRef receiver = clientActorRefs.get(index.get()).orElseThrow();
@@ -1577,7 +1621,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final OutboundMappingSettings settings;
         final OutboundMappingProcessor outboundMappingProcessor;
         try {
-            ConnectivityConfig retrievedConnectivityConfig =
+            var retrievedConnectivityConfig =
                     connectivityConfigProvider.getConnectivityConfig(connection.getId());
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
             settings = OutboundMappingSettings.of(connection,
@@ -1642,7 +1686,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         final InboundMappingProcessor inboundMappingProcessor;
         try {
-            ConnectivityConfig retrievedConnectivityConfig =
+            var retrievedConnectivityConfig =
                     connectivityConfigProvider.getConnectivityConfig(connection.getId());
 
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
@@ -1678,8 +1722,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     private ActorRef startSubscriptionManager(final ActorSelection proxyActor) {
         final ActorRef pubSubMediator = DistributedPubSub.get(getContext().getSystem()).mediator();
-        final Materializer mat = Materializer.createMaterializer(this::getContext);
-        final Props props = SubscriptionManager.props(clientConfig.getSubscriptionManagerTimeout(), pubSubMediator,
+        final var mat = Materializer.createMaterializer(this::getContext);
+        final var props = SubscriptionManager.props(clientConfig.getSubscriptionManagerTimeout(), pubSubMediator,
                 proxyActor, mat);
         return getContext().actorOf(props, SubscriptionManager.ACTOR_NAME);
     }
@@ -1734,7 +1778,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private Status.Status getStatusToReport(final Status.Status status, final DittoHeaders dittoHeaders) {
         final Status.Status answerToPublish;
         if (status instanceof Status.Failure) {
-            final Status.Failure failure = (Status.Failure) status;
+            final var failure = (Status.Failure) status;
             if (!(failure.cause() instanceof DittoRuntimeException)) {
                 final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
                         .description(describeEventualCause(failure.cause()))
@@ -1759,7 +1803,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         if (null == throwable) {
             return "Unknown cause.";
         }
-        final Throwable cause = throwable.getCause();
+        final var cause = throwable.getCause();
         if (cause == null || cause.equals(throwable)) {
             final String message =
                     throwable.getMessage() != null
@@ -1961,7 +2005,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         }
 
         private void increaseTimeoutAfterRecovery() {
-            final Instant now = Instant.now();
+            final var now = Instant.now();
             performRecovery(now);
             currentTimeout = minDuration(maxTimeout, currentTimeout.multipliedBy(2L));
             ++currentTries;
@@ -2108,15 +2152,17 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     }
 
-    private static final Object SendDisconnectAnnouncement = new Object();
+    private static final Object SEND_DISCONNECT_ANNOUNCEMENT = new Object();
 
     private static final class Disconnect {
 
         @Nullable
         private final ActorRef sender;
+        private final boolean shutdownAfterDisconnect;
 
-        private Disconnect(@Nullable final ActorRef sender) {
+        private Disconnect(@Nullable final ActorRef sender, final boolean shutdownAfterDisconnect) {
             this.sender = sender;
+            this.shutdownAfterDisconnect = shutdownAfterDisconnect;
         }
 
         @Nullable
@@ -2124,6 +2170,17 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             return sender;
         }
 
+        private boolean shutdownAfterDisconnect() {
+            return shutdownAfterDisconnect;
+        }
+    }
+
+    private static final class CloseConnectionAndShutdown {
+        private static final CloseConnectionAndShutdown INSTANCE = new CloseConnectionAndShutdown();
+
+        private CloseConnectionAndShutdown() {
+            // no-op
+        }
     }
 
 }

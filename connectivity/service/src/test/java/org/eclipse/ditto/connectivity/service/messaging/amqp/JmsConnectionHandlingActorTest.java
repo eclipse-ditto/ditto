@@ -32,12 +32,12 @@ import org.apache.qpid.jms.JmsSession;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.WithMockServers;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.connectivity.service.messaging.WithMockServers;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -210,7 +210,8 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
-            connectionHandlingActor.tell(new AmqpClientActor.JmsDisconnect(origin.ref(), mockConnection), getRef());
+            connectionHandlingActor.tell(new AmqpClientActor.JmsDisconnect(origin.ref(), mockConnection,
+                    false), getRef());
 
             final ClientDisconnected disconnected = expectMsgClass(ClientDisconnected.class);
             assertThat(disconnected.getOrigin()).contains(origin.ref());
@@ -231,7 +232,8 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
-            connectionHandlingActor.tell(new AmqpClientActor.JmsDisconnect(origin.ref(), mockConnection), getRef());
+            connectionHandlingActor.tell(new AmqpClientActor.JmsDisconnect(origin.ref(), mockConnection,
+                    false), getRef());
 
             final ClientDisconnected disconnected = expectMsgClass(ClientDisconnected.class);
             assertThat(disconnected.getOrigin()).contains(origin.ref());

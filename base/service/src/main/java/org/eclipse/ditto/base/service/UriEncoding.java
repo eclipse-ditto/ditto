@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.gateway.service.endpoints.utils;
+package org.eclipse.ditto.base.service;
 
 import static java.util.Objects.requireNonNull;
 
@@ -103,6 +103,16 @@ public final class UriEncoding {
     }
 
     /**
+     * Encodes every character other than unreserved characters. Used in AWS request signing.
+     *
+     * @param string the string to encode.
+     * @return the encoded string.
+     */
+    public static String encodeAllButUnreserved(final String string) {
+        return encodeRFC3986UriComponent(string, UriEncoding::isUnreserved);
+    }
+
+    /**
      * Decodes the given encoded source String according to the specified encoding type.
      *
      * @param source the source
@@ -181,7 +191,14 @@ public final class UriEncoding {
         }
     }
 
-    private static String encodeRFC3986UriComponent(final String source, final IntPredicate allowedChars) {
+    /**
+     * Encode a URI component with a custom predicate of allowed characters.
+     *
+     * @param source the string to encode.
+     * @param allowedChars what characters are not encoded.
+     * @return the encoded string.
+     */
+    public static String encodeRFC3986UriComponent(final String source, final IntPredicate allowedChars) {
         requireNonNull(source);
 
         try {
@@ -215,15 +232,22 @@ public final class UriEncoding {
 
     /**
      * Whether the given char belongs to the {@code pchar} set.
+     *
+     * @param c the char.
+     * @return whether it belongs to the {@code pchar} set.
+     * @since 2.1.0
      */
-    private static boolean isPchar(final int c) {
+    public static boolean isPchar(final int c) {
         return isUnreserved(c) || isSubDelimiter(c) || ':' == c || '@' == c;
     }
 
     /**
      * Whether the given char belongs to the {@code unreserved} set.
+     *
+     * @param c the char.
+     * @return whether it belongs to the {@code unreserved} set.
      */
-    private static boolean isUnreserved(final int c) {
+    public static boolean isUnreserved(final int c) {
         return isAlpha(c) || isDigit(c) || '-' == c || '.' == c || '_' == c || '~' == c;
     }
 

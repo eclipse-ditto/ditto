@@ -16,7 +16,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEm
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Collection;
@@ -28,25 +27,25 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
-import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
+import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
+import org.eclipse.ditto.base.service.devops.LogbackLoggingFacade;
+import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
+import org.eclipse.ditto.base.service.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.config.raw.RawConfigSupplier;
-import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
-import org.eclipse.ditto.base.service.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.internal.utils.health.status.StatusSupplierActor;
-import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
 import org.eclipse.ditto.internal.utils.metrics.prometheus.PrometheusReporterRoute;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
-import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
@@ -64,9 +63,9 @@ import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.model.Uri;
-import akka.http.javadsl.server.Route;
 import akka.management.cluster.bootstrap.ClusterBootstrap;
 import akka.management.javadsl.AkkaManagement;
+import ch.qos.logback.classic.LoggerContext;
 import kamon.Kamon;
 import kamon.prometheus.PrometheusReporter;
 
@@ -142,7 +141,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * @return the config of this service.
      */
     protected Config determineRawConfig() {
-        final Config loadedConfig = RawConfigSupplier.of(serviceName).get();
+        final var loadedConfig = RawConfigSupplier.of(serviceName).get();
 
         if (logger.isDebugEnabled()) {
             logger.debug("Using config <{}>", loadedConfig.root().render(ConfigRenderOptions.concise()));
@@ -175,7 +174,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         try {
             return getDittoConfigOrEmpty(rawConfig);
         } catch (final ConfigException.WrongType e) {
-            final String msgPattern = "Value at <{0}> was not of type Config!";
+            final var msgPattern = "Value at <{0}> was not of type Config!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, DITTO_CONFIG_PATH), e);
         }
     }
@@ -215,9 +214,9 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      */
     protected ActorSystem doStart() {
         logRuntimeParameters();
-        final Config actorSystemConfig = appendDittoInfo(appendAkkaPersistenceMongoUriToRawConfig());
+        final var actorSystemConfig = appendDittoInfo(appendAkkaPersistenceMongoUriToRawConfig());
         startKamon();
-        final ActorSystem actorSystem = createActorSystem(actorSystemConfig);
+        final var actorSystem = createActorSystem(actorSystemConfig);
         initializeActorSystem(actorSystem);
         startKamonPrometheusHttpEndpoint(actorSystem);
         return actorSystem;
@@ -227,8 +226,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         if (!isServiceWithMongoDbConfig()) {
             return rawConfig;
         }
-        final String configPath = "akka.contrib.persistence.mongodb.mongo.mongouri";
-        final MongoDbConfig mongoDbConfig = ((WithMongoDbConfig) serviceSpecificConfig).getMongoDbConfig();
+        final var configPath = "akka.contrib.persistence.mongodb.mongo.mongouri";
+        final var mongoDbConfig = ((WithMongoDbConfig) serviceSpecificConfig).getMongoDbConfig();
         final String mongoDbUri = mongoDbConfig.getMongoDbUri();
         return rawConfig.withValue(configPath, ConfigValueFactory.fromAnyRef(mongoDbUri));
     }
@@ -238,16 +237,16 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     }
 
     private void logRuntimeParameters() {
-        final RuntimeMXBean bean = ManagementFactory.getRuntimeMXBean();
+        final var bean = ManagementFactory.getRuntimeMXBean();
         logger.info("Running with following runtime parameters: <{}>.", bean.getInputArguments());
         logger.info("Available processors: <{}>.", Runtime.getRuntime().availableProcessors());
     }
 
     private void startKamon() {
-        final Config kamonConfig = ConfigFactory.load("kamon");
+        final var kamonConfig = ConfigFactory.load("kamon");
         Kamon.reconfigure(kamonConfig);
 
-        final MetricsConfig metricsConfig = serviceSpecificConfig.getMetricsConfig();
+        final var metricsConfig = serviceSpecificConfig.getMetricsConfig();
 
         if (metricsConfig.isSystemMetricsEnabled()) {
             // start system metrics collection
@@ -299,11 +298,11 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * Starts Prometheus HTTP endpoint on which Prometheus may scrape the data.
      */
     private void startKamonPrometheusHttpEndpoint(final ActorSystem actorSystem) {
-        final MetricsConfig metricsConfig = serviceSpecificConfig.getMetricsConfig();
+        final var metricsConfig = serviceSpecificConfig.getMetricsConfig();
         if (metricsConfig.isPrometheusEnabled() && null != prometheusReporter) {
             final String prometheusHostname = metricsConfig.getPrometheusHostname();
             final int prometheusPort = metricsConfig.getPrometheusPort();
-            final Route prometheusReporterRoute = PrometheusReporterRoute
+            final var prometheusReporterRoute = PrometheusReporterRoute
                     .buildPrometheusReporterRoute(prometheusReporter);
 
             Http.get(actorSystem)
@@ -336,7 +335,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
 
     private void startAkkaManagement(final ActorSystem actorSystem) {
         logger.info("Starting AkkaManagement ...");
-        final AkkaManagement akkaManagement = AkkaManagement.get(actorSystem);
+        final var akkaManagement = AkkaManagement.get(actorSystem);
         final CompletionStage<Uri> startPromise = akkaManagement.start();
         startPromise.whenComplete((uri, throwable) -> {
             if (null != throwable) {
@@ -349,7 +348,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
 
     private void startClusterBootstrap(final ActorSystem actorSystem) {
         logger.info("Starting ClusterBootstrap ...");
-        final ClusterBootstrap clusterBootstrap = ClusterBootstrap.get(actorSystem);
+        final var clusterBootstrap = ClusterBootstrap.get(actorSystem);
         clusterBootstrap.start();
     }
 
@@ -401,6 +400,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      */
     protected void startServiceRootActors(final ActorSystem actorSystem, final C serviceSpecificConfig) {
         logger.info("Waiting for member to be up before proceeding with further initialisation.");
+
         Cluster.get(actorSystem).registerOnMemberUp(() -> {
             logger.info("Member successfully joined the cluster, instantiating remaining actors.");
 
@@ -424,7 +424,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * @param serviceSpecificConfig the Ditto serviceSpecificConfig providing the limits from configuration
      */
     protected void injectSystemPropertiesLimits(final C serviceSpecificConfig) {
-        final LimitsConfig limitsConfig = serviceSpecificConfig.getLimitsConfig();
+        final var limitsConfig = serviceSpecificConfig.getLimitsConfig();
         System.setProperty(ThingCommandSizeValidator.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES,
                 Long.toString(limitsConfig.getThingsMaxSize()));
         System.setProperty(PolicyCommandSizeValidator.DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES,
@@ -469,7 +469,6 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      */
     protected Collection<RootActorInformation> getAdditionalRootActorsInformation(final C serviceSpecificConfig,
             final ActorRef pubSubMediator) {
-
         return Collections.emptyList();
     }
 
@@ -489,14 +488,26 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     }
 
     private void setUpCoordinatedShutdown(final ActorSystem actorSystem) {
-        final CoordinatedShutdown coordinatedShutdown = CoordinatedShutdown.get(actorSystem);
-        coordinatedShutdown.addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind(), "log_shutdown_initiation", () -> {
-            logger.info("Initiated coordinated shutdown; gracefully shutting down ...");
-            return CompletableFuture.completedFuture(Done.getInstance());
-        });
-        coordinatedShutdown.addTask(CoordinatedShutdown.PhaseBeforeActorSystemTerminate(),
+        final var coordinatedShutdown = CoordinatedShutdown.get(actorSystem);
+
+        coordinatedShutdown.addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind(),
+                "log_shutdown_initiation", () -> {
+                    logger.info("Initiated coordinated shutdown; gracefully shutting down ...");
+                    coordinatedShutdown.getShutdownReason().ifPresent(reason ->
+                            logger.info("Shutdown reason was - <{}>", reason));
+                    final CompletionStage<Done> stop = AkkaManagement.get(actorSystem).stop();
+                    return stop.thenApply(done -> {
+                        logger.info("AkkaManagement stopped!");
+                        return done;
+                    });
+
+                });
+        coordinatedShutdown.addTask(CoordinatedShutdown.PhaseActorSystemTerminate(),
                 "log_successful_graceful_shutdown", () -> {
                     logger.info("Graceful shutdown completed.");
+                    // close logback-classic logging correctly in order to flush/get the last logs:
+                    final var loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+                    loggerContext.stop();
                     return CompletableFuture.completedFuture(Done.getInstance());
                 });
     }

@@ -17,4 +17,9 @@ package org.eclipse.ditto.connectivity.service.messaging.internal;
  * {@link org.eclipse.ditto.connectivity.service.messaging.BaseClientActor Client} disconnected.
  */
 public interface ClientDisconnected extends WithOrigin {
+
+    /**
+     * @return whether the client actor should be closed after disconnecting or not.
+     */
+    boolean shutdownAfterDisconnected();
 }

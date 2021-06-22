@@ -37,6 +37,7 @@ import org.eclipse.ditto.connectivity.service.messaging.backoff.RetryTimeoutStra
 import org.eclipse.ditto.connectivity.service.messaging.internal.AbstractWithOrigin;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
@@ -494,7 +495,8 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
     }
 
     @Override
-    protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin) {
+    protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin,
+            final boolean shutdownAfterDisconnect) {
         if (client != null) {
             final CompletionStage<ClientDisconnected> disconnectFuture = getClient().disconnect(true)
                     .handle((aVoid, throwable) -> {
@@ -503,17 +505,13 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
                         } else {
                             logger.debug("Successfully disconnected.");
                         }
-                        return getClientDisconnected(origin);
+                        return new ImmutableClientDisconnected(origin, shutdownAfterDisconnect);
                     });
             Patterns.pipe(disconnectFuture, getContext().getDispatcher()).to(getSelf(), origin);
         } else {
             // client is already disconnected
-            getSelf().tell(getClientDisconnected(origin), origin);
+            getSelf().tell(new ImmutableClientDisconnected(origin, shutdownAfterDisconnect), origin);
         }
-    }
-
-    private static ClientDisconnected getClientDisconnected(@Nullable final ActorRef origin) {
-        return () -> Optional.ofNullable(origin);
     }
 
     @Override
@@ -595,6 +593,11 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
         @Override
         public Optional<ActorRef> getOrigin() {
             return Optional.empty();
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + "[" + super.toString() + "]";
         }
     }
 

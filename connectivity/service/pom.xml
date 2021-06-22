@@ -131,6 +131,7 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
         <dependency>
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

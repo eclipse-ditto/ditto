@@ -16,6 +16,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.time.Instant;
 import java.util.Date;
 
 import javax.annotation.concurrent.Immutable;
@@ -32,6 +33,8 @@ final class JwtTestConstants {
     static final String VALID_JWT_TOKEN;
     static final String UNSIGNED_JWT_TOKEN;
     static final String EXPIRED_JWT_TOKEN;
+    static final String VALID_NBF_AHEAD_OF_TIME_JWT_TOKEN;
+    static final String INVALID_NBF_AHEAD_OF_TIME_JWT_TOKEN;
     static final PublicKey PUBLIC_KEY_2;
 
     static final String KEY_ID = "pFXsMxGhnXJgzg9aO9xYUTYegCP4XsnuGhQEeQaAQrI";
@@ -55,6 +58,8 @@ final class JwtTestConstants {
             VALID_JWT_TOKEN = createJwt();
             UNSIGNED_JWT_TOKEN = createUnsignedJwt();
             EXPIRED_JWT_TOKEN = createExpiredJwt();
+            VALID_NBF_AHEAD_OF_TIME_JWT_TOKEN = createNotBeforeAheadOfTimeJwt(Date.from(Instant.now().plusSeconds(10)));
+            INVALID_NBF_AHEAD_OF_TIME_JWT_TOKEN = createNotBeforeAheadOfTimeJwt(Date.from(Instant.now().plusSeconds(15)));
         } catch (final Exception e) {
             throw new IllegalStateException(e);
         }
@@ -79,7 +84,16 @@ final class JwtTestConstants {
         return Jwts.builder()
                 .setHeaderParam("kid", KEY_ID)
                 .setIssuer(ISSUER)
-                .setExpiration(new Date())
+                .setExpiration(Date.from(Instant.now().minusSeconds(10)))
+                .signWith(PRIVATE_KEY, SignatureAlgorithm.RS256)
+                .compact();
+    }
+
+    private static String createNotBeforeAheadOfTimeJwt(final Date nbf) {
+        return Jwts.builder()
+                .setHeaderParam("kid", KEY_ID)
+                .setIssuer(ISSUER)
+                .setNotBefore(nbf)
                 .signWith(PRIVATE_KEY, SignatureAlgorithm.RS256)
                 .compact();
     }

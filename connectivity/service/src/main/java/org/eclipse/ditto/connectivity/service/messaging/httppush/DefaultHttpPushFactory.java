@@ -98,7 +98,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
             final SSLContext sslContext = connection.getCredentials()
                     .map(credentials -> credentials.accept(sslContextCreator))
                     .orElse(sslContextCreator.withoutClientCertificate());
-            httpsConnectionContext = ConnectionContext.https(sslContext);
+            httpsConnectionContext = ConnectionContext.httpsClient(sslContext);
         } else {
             httpsConnectionContext = null;
         }

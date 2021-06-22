@@ -41,7 +41,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.gateway.service.endpoints.utils.UriEncoding;
+import org.eclipse.ditto.base.service.UriEncoding;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotDeletableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingIdNotExplicitlySettableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingMergeInvalidException;

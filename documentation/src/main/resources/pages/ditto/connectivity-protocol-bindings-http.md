@@ -5,7 +5,7 @@ tags: [protocol, connectivity, rql]
 permalink: connectivity-protocol-bindings-http.html
 ---
 
-Perform HTTP request (with verbs POST, PUT, PATCH) to HTTP endpoints via [targets](#target-format).
+Perform HTTP request (with verbs GET, POST, PUT, PATCH) to HTTP endpoints via [targets](#target-format).
 
 ## Specific connection configuration
 
@@ -22,6 +22,7 @@ A HTTP connection requires the protocol configuration target object to have an `
 This property has the following format: `<http_verb>:<http_path>`
 
 The supported HTTP `<http_verb>` values are:
+* GET
 * POST
 * PUT
 * PATCH
@@ -58,6 +59,13 @@ has READ permission on the thing, which is associated with a message.
   }
 }
 ```
+
+#### Target header mapping
+HTTP 1.1 connections supports specific header mapping.
+
+The following header have a special meaning in that the values are applied directly to the published message:
+* `http.query`: sets the value of this header as query parameter
+* `http.path`: sets the value of this header as the path of the HTTP request
 
 #### Target acknowledgement handling
 
@@ -212,3 +220,8 @@ Here is an example HTTP connection that checks the server certificate and authen
   }
 }
 ```
+
+### HMAC request signing
+
+Ditto supports HMAC request signing for HTTP push connections. Find detailed information on this in 
+[Connectivity API > HMAC request signing](connectivity-hmac-signing.html).
