@@ -16,23 +16,30 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import org.eclipse.ditto.base.model.common.BinaryValidationResult;
+import org.eclipse.ditto.gateway.service.util.config.security.DefaultOAuthConfig;
+import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.common.BinaryValidationResult;
 import org.eclipse.ditto.jwt.model.Audience;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import com.typesafe.config.ConfigFactory;
 
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
@@ -59,15 +66,24 @@ public final class JwtValidatorTest {
     private static final JsonWebToken INVALID_JSON_WEB_TOKEN_WITH_NBF_AHEAD_OF_TIME =
             ImmutableJsonWebToken.fromToken(JwtTestConstants.INVALID_NBF_AHEAD_OF_TIME_JWT_TOKEN);
 
+    private static OAuthConfig oAuthConfig;
+
     @Mock
     private PublicKeyProvider publicKeyProvider;
+
+    @BeforeClass
+    public static void initTestFixture() {
+        oAuthConfig = DefaultOAuthConfig.of(ConfigFactory.parseMap(
+                Map.of("allowedClockSkew", Duration.ofSeconds(10))
+        ));
+    }
 
     @Test
     public void validate() throws ExecutionException, InterruptedException {
         when(publicKeyProvider.getPublicKey(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID)).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(JwtTestConstants.PUBLIC_KEY)));
 
-        final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider);
+        final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider, oAuthConfig);
 
         final BinaryValidationResult jwtValidationResult = underTest.validate(VALID_JSON_WEB_TOKEN).get();
 
@@ -79,7 +95,7 @@ public final class JwtValidatorTest {
         when(publicKeyProvider.getPublicKey(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID)).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(JwtTestConstants.PUBLIC_KEY)));
 
-        final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider);
+        final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider, oAuthConfig);
 
         final BinaryValidationResult jwtValidationResult =
                 underTest.validate(VALID_JSON_WEB_TOKEN_WITH_NBF_AHEAD_OF_TIME).get();
@@ -92,7 +108,7 @@ public final class JwtValidatorTest {
         when(publicKeyProvider.getPublicKey(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID)).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(JwtTestConstants.PUBLIC_KEY)));
 
-        final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider);
+        final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider, oAuthConfig);
 
         final BinaryValidationResult jwtValidationResult =
                 underTest.validate(INVALID_JSON_WEB_TOKEN_WITH_NBF_AHEAD_OF_TIME).get();
@@ -105,7 +121,7 @@ public final class JwtValidatorTest {
         when(publicKeyProvider.getPublicKey(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID)).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(JwtTestConstants.PUBLIC_KEY)));
 
-        final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider);
+        final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider, oAuthConfig);
 
         final BinaryValidationResult jwtValidationResult =
                 underTest.validate(VALID_JSON_WEB_TOKEN_WITHOUT_SIGNATURE).get();
@@ -119,7 +135,7 @@ public final class JwtValidatorTest {
         when(publicKeyProvider.getPublicKey(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID))
                 .thenReturn(CompletableFuture.completedFuture(Optional.of(JwtTestConstants.PUBLIC_KEY)));
 
-        final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider);
+        final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider, oAuthConfig);
 
         final BinaryValidationResult jwtValidationResult = underTest.validate(INVALID_JSON_WEB_TOKEN).get();
 

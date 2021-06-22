@@ -20,6 +20,7 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.base.model.common.BinaryValidationResult;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.internal.utils.jwt.JjwtDeserializer;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.slf4j.Logger;
@@ -36,19 +37,22 @@ public final class DefaultJwtValidator implements JwtValidator {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultJwtValidator.class);
 
     private final PublicKeyProvider publicKeyProvider;
+    private final OAuthConfig oAuthConfig;
 
-    private DefaultJwtValidator(final PublicKeyProvider publicKeyProvider) {
+    private DefaultJwtValidator(final PublicKeyProvider publicKeyProvider, final OAuthConfig oAuthConfig) {
         this.publicKeyProvider = publicKeyProvider;
+        this.oAuthConfig = oAuthConfig;
     }
 
     /**
      * Creates a new {@code JwtValidator} instance.
      *
      * @param publicKeyProvider provider for public keys of jwt issuers.
+     * @param oAuthConfig the OAuth config.
      * @return the instance.
      */
-    public static JwtValidator of(final PublicKeyProvider publicKeyProvider) {
-        return new DefaultJwtValidator(publicKeyProvider);
+    public static JwtValidator of(final PublicKeyProvider publicKeyProvider, final OAuthConfig oAuthConfig) {
+        return new DefaultJwtValidator(publicKeyProvider, oAuthConfig);
     }
 
     @Override
@@ -63,6 +67,7 @@ public final class DefaultJwtValidator implements JwtValidator {
                             final var msgPattern = "Public Key of issuer <{0}> with key ID <{1}> not found!";
                             final var msg = MessageFormat.format(msgPattern, issuer, keyId);
                             final Exception exception = GatewayAuthenticationFailedException.newBuilder(msg).build();
+
                             return BinaryValidationResult.invalid(exception);
                         }));
     }
@@ -73,6 +78,7 @@ public final class DefaultJwtValidator implements JwtValidator {
         } catch (final Exception e) {
             LOGGER.info("Failed to parse/validate JWT due to <{}> with message: <{}>", e.getClass().getSimpleName(),
                     e.getMessage());
+
             return BinaryValidationResult.invalid(e);
         }
     }
@@ -81,7 +87,7 @@ public final class DefaultJwtValidator implements JwtValidator {
         final var jwtParserBuilder = Jwts.parserBuilder();
         jwtParserBuilder.deserializeJsonWith(JjwtDeserializer.getInstance())
                 .setSigningKey(publicKey)
-                .setAllowedClockSkewSeconds(10)
+                .setAllowedClockSkewSeconds(oAuthConfig.getAllowedClockSkew().getSeconds())
                 .build()
                 .parseClaimsJws(jsonWebToken.getToken());
 
