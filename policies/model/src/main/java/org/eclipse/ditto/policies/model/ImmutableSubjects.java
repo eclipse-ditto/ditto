@@ -126,7 +126,7 @@ final class ImmutableSubjects implements Subjects {
     @Override
     public Subjects setSubjects(final Subjects subjects) {
         Subjects result = this;
-        for (Subject subject : subjects) {
+        for (final Subject subject : subjects) {
             result = result.setSubject(subject);
         }
         return result;
