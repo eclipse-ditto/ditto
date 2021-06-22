@@ -35,8 +35,13 @@ public final class ImmutableSubjectsTest {
 
     private static final SubjectId KNOWN_SUBJECT_ID_1 = SubjectId.newInstance(SubjectIssuer.GOOGLE, "myself1");
     private static final SubjectId KNOWN_SUBJECT_ID_2 = SubjectId.newInstance(SubjectIssuer.GOOGLE, "myself2");
+    private static final SubjectId KNOWN_SUBJECT_ID_3 = SubjectId.newInstance(SubjectIssuer.GOOGLE, "myself3");
     private static final Subject SUBJECT_1 = ImmutableSubject.of(KNOWN_SUBJECT_ID_1);
     private static final Subject SUBJECT_2 = ImmutableSubject.of(KNOWN_SUBJECT_ID_2);
+    private static final Subject SUBJECT_3_FOO =
+            ImmutableSubject.of(KNOWN_SUBJECT_ID_3, SubjectType.newInstance("foo"));
+    private static final Subject SUBJECT_3_BAR =
+            ImmutableSubject.of(KNOWN_SUBJECT_ID_3, SubjectType.newInstance("bar"));
 
     private static final String KNOWN_SUBJECT_TYPE = "custom";
     private static final Instant KNOWN_SUBJECT_EXPIRY = Instant.now();
@@ -106,6 +111,28 @@ public final class ImmutableSubjectsTest {
 
         assertThat(underTest).containsOnly(SUBJECT_1);
         assertThat(subjects).containsOnly(SUBJECT_1, SUBJECT_2);
+    }
+
+    @Test
+    public void setSubjectsReturnsNewExtendedObject() {
+        final Collection<Subject> subjectList = Collections.singleton(SUBJECT_1);
+        final Subjects underTest = ImmutableSubjects.of(subjectList);
+
+        final Subjects subjects = underTest.setSubjects(Subjects.newInstance(SUBJECT_2, SUBJECT_3_FOO));
+
+        assertThat(underTest).containsOnly(SUBJECT_1);
+        assertThat(subjects).containsOnly(SUBJECT_1, SUBJECT_2, SUBJECT_3_FOO);
+    }
+
+    @Test
+    public void setSubjectsWithDifferentTypeOverridesExisting() {
+        final Collection<Subject> subjectList = Collections.singleton(SUBJECT_3_FOO);
+        final Subjects underTest = ImmutableSubjects.of(subjectList);
+
+        final Subjects subjects = underTest.setSubjects(Subjects.newInstance(SUBJECT_3_BAR));
+
+        assertThat(underTest).containsOnly(SUBJECT_3_FOO);
+        assertThat(subjects).containsOnly(SUBJECT_3_BAR);
     }
 
     @Test
