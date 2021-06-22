@@ -32,7 +32,6 @@ import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
-import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaConsumerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
@@ -51,7 +50,7 @@ import akka.stream.javadsl.Sink;
 import scala.util.Either;
 
 /**
- * TODO
+ * Actor which streams messages from Kafka.
  */
 final class KafkaConsumerActor extends BaseConsumerActor {
 
