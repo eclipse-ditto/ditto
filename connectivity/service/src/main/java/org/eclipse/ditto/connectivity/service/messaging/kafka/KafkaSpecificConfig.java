@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
-import java.util.HashMap;
+import java.util.Map;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -50,15 +50,14 @@ interface KafkaSpecificConfig {
     boolean isValid(Connection connection);
 
     /**
-     * Apply this Kafka config to the given accumulator of producer properties.
+     * Creates producer properties for this Kafka specific config.
      * <p>
      * This method will only add configuration to the producer properties if the config {@code isApplicable}
      * and {@code isValid}.
      *
-     * @param producerProperties the producer properties to which the Kafka config is appended.
-     * Its class is {@code HashMap} instead of {@code Map} to ensure mutability.
      * @param connection the connection which contains the specific config.
+     * @return the producer properties which contain the Kafka specific config.
      */
-    void apply(HashMap<String, Object> producerProperties, Connection connection);
+    Map<String, String> apply(Connection connection);
 
 }

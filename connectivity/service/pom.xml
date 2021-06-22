@@ -76,8 +76,8 @@
             <artifactId>akka-rabbitmq_${scala.version}</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka-clients</artifactId>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-stream-kafka_${scala.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.mozilla</groupId>
@@ -192,6 +192,11 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
             <artifactId>docker-java-transport-zerodep</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-stream-kafka-testkit_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -257,6 +262,10 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                                     <resource>ditto-service-extension.conf</resource>
+                                </transformer>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>version.conf</resource>
                                 </transformer>
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">

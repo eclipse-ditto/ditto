@@ -12,6 +12,11 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newEntityPlaceholder;
+import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newFeaturePlaceholder;
+import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newPolicyPlaceholder;
+import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newThingPlaceholder;
+
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
@@ -32,6 +37,7 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 
 import akka.actor.ActorSystem;
 
@@ -87,11 +93,20 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     @Override
     protected void validateSource(final Source source, final DittoHeaders dittoHeaders,
             final Supplier<String> sourceDescription) {
+        source.getEnforcement().ifPresent(enforcement -> {
+            validateTemplate(enforcement.getInput(), dittoHeaders, PlaceholderFactory.newHeadersPlaceholder());
+            enforcement.getFilters().forEach(filterTemplate ->
+                    validateTemplate(filterTemplate, dittoHeaders, newThingPlaceholder(), newPolicyPlaceholder(),
+                            newEntityPlaceholder(), newFeaturePlaceholder()));
+        });
+        validateHeaderMapping(source.getHeaderMapping(), dittoHeaders);
 
-        final String message = "Kafka connectivity currently does not provide sources.";
-        throw ConnectionConfigurationInvalidException.newBuilder(message)
-                .dittoHeaders(dittoHeaders)
-                .build();
+        final String placeholderReplacement = UUID.randomUUID().toString();
+        source.getAddresses().forEach(address -> {
+            final String addressWithoutPlaceholders = validateTemplateAndReplace(address, dittoHeaders,
+                    placeholderReplacement, Resolvers.getPlaceholders());
+            validateSourceAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
+        });
     }
 
     @Override
@@ -102,10 +117,16 @@ public final class KafkaValidator extends AbstractProtocolValidator {
         final String addressWithoutPlaceholders = validateTemplateAndReplace(target.getAddress(), dittoHeaders,
                 placeholderReplacement, Resolvers.getPlaceholders());
 
-        validateAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
+        validateTargetAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
+        validateHeaderMapping(target.getHeaderMapping(), dittoHeaders);
     }
 
-    private static void validateAddress(final String address, final DittoHeaders dittoHeaders,
+    private static void validateSourceAddress(final String address, final DittoHeaders dittoHeaders,
+            final String placeholderReplacement) {
+        validateTopic(address, dittoHeaders, placeholderReplacement);
+    }
+
+    private static void validateTargetAddress(final String address, final DittoHeaders dittoHeaders,
             final String placeholderReplacement) {
 
         if (KafkaPublishTarget.containsKey(address)) {

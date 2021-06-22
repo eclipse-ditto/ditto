@@ -14,8 +14,6 @@ package org.eclipse.ditto.connectivity.service.config;
 
 import javax.annotation.concurrent.Immutable;
 
-import com.typesafe.config.Config;
-
 /**
  * Provides configuration settings of the Kafka protocol.
  */
@@ -23,10 +21,17 @@ import com.typesafe.config.Config;
 public interface KafkaConfig {
 
     /**
-     * Returns the Config for producers needed by the Kafka client.
+     * Returns the configuration for Kafka consumer.
      *
-     * @return internal producer configuration needed by the Kafka client.
+     * @return the configuration.
      */
-    Config getInternalProducerConfig();
+    KafkaConsumerConfig getConsumerConfig();
+
+    /**
+     * Returns the configuration for Kafka producer.
+     *
+     * @return the configuration.
+     */
+    KafkaProducerConfig getProducerConfig();
 
 }

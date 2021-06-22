@@ -99,7 +99,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected String getOutboundAddress() {
-        return "PATCH:/the/quick/brown/fox/jumps/over/the/lazy/dog?someQuery=foo";
+        return "PATCH:/the/quick/brown/fox/jumps/over/the/lazy/dog?someQuery=foo&entity={{ entity:id }}";
     }
 
     @Override
@@ -131,6 +131,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
         // uri
         assertThat(request.getUri().host().address()).isEqualTo("8.8.4.4");
+        assertThat(request.getUri().query().get("entity")).contains(TestConstants.Things.THING_ID.toString());
         assertThat(request.getUri().port()).isEqualTo(12345);
 
         // headers
