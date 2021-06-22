@@ -106,6 +106,17 @@ public interface Subjects extends Iterable<Subject>, Jsonifiable.WithFieldSelect
     Subjects setSubject(Subject subject);
 
     /**
+     * Sets the given Subjects to a copy of this Subjects. A previous Subject with the same {@link SubjectId} will be
+     * overwritten.
+     *
+     * @param subjects the Subjects to be set.
+     * @return a copy of this Subjects with {@code subject} set.
+     * @throws NullPointerException if {@code subject} is {@code null}.
+     * @since 2.1.0
+     */
+    Subjects setSubjects(Subjects subjects);
+
+    /**
      * Removes the Subject with the given identifier from a copy of this Subjects.
      *
      * @param subjectIssuerWithId the Subject issuer + Subject ID (separated with a "{@value
