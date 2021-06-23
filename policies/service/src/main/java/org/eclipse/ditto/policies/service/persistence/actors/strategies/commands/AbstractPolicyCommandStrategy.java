@@ -157,7 +157,7 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      * @return the adjusted PolicyEntry or - if not adjusted - the original.
      */
     protected PolicyEntry potentiallyAdjustPolicyEntry(final PolicyEntry policyEntry) {
-        final Subjects adjustedSubjects = potentiallyAdjustSubjects(policyEntry.getSubjects());
+        final var adjustedSubjects = potentiallyAdjustSubjects(policyEntry.getSubjects());
         return PolicyEntry.newInstance(policyEntry.getLabel(), adjustedSubjects, policyEntry.getResources());
     }
 
@@ -196,8 +196,8 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
         final Optional<SubjectExpiry> expiryOptional = subject.getExpiry();
         final Optional<SubjectAnnouncement> announcementOptional = subject.getAnnouncement();
         if (expiryOptional.isPresent() || announcementOptional.isPresent()) {
-            final SubjectExpiry subjectExpiry = expiryOptional.map(this::roundPolicySubjectExpiry).orElse(null);
-            final SubjectAnnouncement subjectAnnouncement =
+            final var subjectExpiry = expiryOptional.map(this::roundPolicySubjectExpiry).orElse(null);
+            final var subjectAnnouncement =
                     announcementOptional.map(this::roundSubjectAnnouncement).orElse(null);
             return Subject.newInstance(subject.getId(), subject.getType(), subjectExpiry, subjectAnnouncement);
         } else {
@@ -290,7 +290,7 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
                 .filter(SubjectExpiry::isExpired)
                 .findFirst()
                 .map(subjectExpiry -> {
-                    final String expiryString = subjectExpiry.getTimestamp().toString();
+                    final var expiryString = subjectExpiry.getTimestamp().toString();
                     return ResultFactory.newErrorResult(
                             SubjectExpiryInvalidException.newBuilderTimestampInThePast(expiryString)
                                     .dittoHeaders(dittoHeaders)
@@ -339,11 +339,12 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
     }
 
     private static Duration roundUpDuration(final Duration duration, final Duration granularity) {
-        final long granularitySeconds = Math.max(1L, granularity.getSeconds());
-        final long durationSeconds = Math.max(granularitySeconds, duration.getSeconds());
-        final long roundedUpSeconds =
-                ((durationSeconds + granularitySeconds - 1L) / granularitySeconds) * granularitySeconds;
-        return Duration.ofSeconds(roundedUpSeconds);
+        final long granularityMillis = Math.max(1L, granularity.toMillis());
+        final long durationMillis = Math.max(granularityMillis, duration.toMillis());
+        final long roundedUpMillis =
+                ((durationMillis + granularityMillis - 1L) / granularityMillis) * granularityMillis;
+
+        return Duration.ofMillis(roundedUpMillis);
     }
 
     private static class PolicyExpiryGranularity {
