@@ -261,6 +261,11 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     }
 
     @Override
+    public boolean isSudo() {
+        return isExpectedBoolean(DittoHeaderDefinition.DITTO_SUDO, Boolean.TRUE);
+    }
+
+    @Override
     public Optional<String> getOrigin() {
         return getStringForDefinition(DittoHeaderDefinition.ORIGIN);
     }
