@@ -34,33 +34,32 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsParameter;
-import org.eclipse.ditto.gateway.service.streaming.Connect;
-import org.eclipse.ditto.gateway.service.streaming.StartStreaming;
-import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
-import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
-import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.rql.parser.RqlPredicateParser;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingFieldSelector;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.gateway.service.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
+import org.eclipse.ditto.gateway.service.streaming.Connect;
+import org.eclipse.ditto.gateway.service.streaming.StartStreaming;
+import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
+import org.eclipse.ditto.gateway.service.streaming.actors.StreamingSession;
+import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
+import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SearchSource;
-import org.eclipse.ditto.internal.utils.search.SearchSourceBuilder;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.rql.parser.RqlPredicateParser;
+import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingFieldSelector;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import akka.NotUsed;
@@ -149,7 +148,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             final StreamingConfig streamingConfig,
             final ActorRef pubSubMediator) {
         checkNotNull(streamingActor, "streamingActor");
-        final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
+        final var queryFilterCriteriaFactory =
                 QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance());
 
         return new ThingsSseRouteBuilder(streamingActor, streamingConfig, queryFilterCriteriaFactory, pubSubMediator);
@@ -236,7 +235,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private Route createSseRoute(final RequestContext ctx, final CompletionStage<DittoHeaders> dittoHeadersStage,
             final Map<String, String> parameters) {
 
-        @Nullable final String filterString = parameters.get(PARAM_FILTER);
+        @Nullable final var filterString = parameters.get(PARAM_FILTER);
         final List<String> namespaces = getNamespaces(parameters.get(PARAM_NAMESPACES));
         final List<ThingId> targetThingIds = getThingIds(parameters.get(ThingsParameter.IDS.toString()));
         @Nullable final ThingFieldSelector fields = getFieldSelector(parameters.get(ThingsParameter.FIELDS.toString()));
@@ -262,16 +261,15 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                         .orElseThrow(() -> new IllegalStateException(
                                                 "Expected correlation-id in SSE DittoHeaders: " + dittoHeaders));
 
-                                final JsonSchemaVersion jsonSchemaVersion = dittoHeaders.getSchemaVersion()
+                                final var jsonSchemaVersion = dittoHeaders.getSchemaVersion()
                                         .orElse(JsonSchemaVersion.LATEST);
                                 sseConnectionSupervisor.supervise(withQueue.getSupervisedStream(),
                                         connectionCorrelationId, dittoHeaders);
-                                final AuthorizationContext authorizationContext =
-                                        dittoHeaders.getAuthorizationContext();
-                                final Connect connect = new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
+                                final var authorizationContext = dittoHeaders.getAuthorizationContext();
+                                final var connect = new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
                                         STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of(),
                                         authorizationContext);
-                                final StartStreaming startStreaming =
+                                final var startStreaming =
                                         StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                                                 authorizationContext)
                                                 .withNamespaces(namespaces)
@@ -316,7 +314,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                 dittoHeadersStage.thenApply(dittoHeaders -> {
                     sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders);
 
-                    final SearchSourceBuilder searchSourceBuilder = SearchSource.newBuilder()
+                    final var searchSourceBuilder = SearchSource.newBuilder()
                             .pubSubMediator(pubSubMediator)
                             .conciergeForwarder(ActorSelection.apply(proxyActor, ""))
                             .filter(parameters.get(PARAM_FILTER))
@@ -378,6 +376,14 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                     final DittoRuntimeException errorToReport = error instanceof DittoRuntimeException
                                             ? ((DittoRuntimeException) error)
                                             : SignalEnrichmentFailedException.newBuilder().build();
+                                    jsonifiable.getSession().map(StreamingSession::getLogger).ifPresent(logger ->
+                                            logger.withCorrelationId(event)
+                                                    .warning("During extra fields retrieval in <SSE> session got " +
+                                                                    "exception <{}>: <{}> - emitting: <{}>",
+                                                            error.getClass().getSimpleName(), error.getMessage(),
+                                                            errorToReport
+                                                    )
+                                    );
                                     return Collections.singletonList(errorToReport.toJson());
                                 })
                         )
@@ -397,7 +403,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
     private static Collection<JsonObject> toNonemptyThingJson(final Thing thing, final ThingEvent<?> event,
             @Nullable final JsonFieldSelector fields) {
-        final JsonSchemaVersion jsonSchemaVersion = event.getDittoHeaders()
+        final var jsonSchemaVersion = event.getDittoHeaders()
                 .getSchemaVersion()
                 .orElse(event.getImplementedSchemaVersion());
         final JsonObject thingJson = null != fields
