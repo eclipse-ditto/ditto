@@ -80,6 +80,15 @@
     "extra": {
       "type": "object",
       "description": "The `extra` object contains the `extraFields` which have optionally been selected to additionally be included."
+    },
+    "revision": {
+      "type": "number",
+      "description": "For events this field contains the revision number of the event."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "For events this field contains the modification timestamp of the event."
     }
   },
   "required": [

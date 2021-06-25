@@ -543,6 +543,30 @@ function mapToDittoProtocolMsg(
       // parsing failed (no JSON document); return null to drop the message
       return null;
     }
+  } else if (contentType === 'application/json') {
+    let parsedJson = JSON.parse(textPayload);
+    // the following variables would be determined from the "parsedJson" and from the "headers":
+    let namespace = "";
+    let name = "";
+    let group = "things";
+    let channel = "twin";
+    let criterion = "commands";
+    let action = "modify";
+    let path = "/attributes";
+    let dittoHeaders = {};
+    let value = {
+      "a": 1
+    };
+    return Ditto.buildDittoProtocolMsg(
+      namespace, 
+      name, 
+      group, 
+      channel, 
+      criterion, 
+      action, 
+      path, 
+      dittoHeaders, 
+      value)
   }
   // no mapping logic matched; return null to drop the message
   return null;
@@ -553,10 +577,11 @@ The result of the function has to be a JavaScript object in [Ditto Protocol](pro
 such JavaScript objects. That's where the helper method `Ditto.buildDittoProtocolMsg` is useful: 
 it explicitly defines which parameters are required for the Ditto Protocol message.
 
-There is another JavaScript function which is helpful when you need to access the external message.
-It is possible to use the `mapToDittoProtocolMsgWrapper` in the incoming payload mapping and access the original
+There is another JavaScript function which is helpful when access to the complete external message is needed.
+It is possible to define the `mapToDittoProtocolMsgWrapper` in the incoming payload mapping and access the original
 `externalMsg`.
 
+This is the default implementation of `mapToDittoProtocolMsgWrapper`, delegating to `mapToDittoProtocolMsg`:
 ```javascript
 /**
  * Maps the passed external message to a Ditto Protocol message.
@@ -639,10 +664,13 @@ The result of the function has to be a JavaScript object or, an array of JavaScr
 `textPayload`, `bytePayload` and `contentType`. That's where the helper method `Ditto.buildExternalMsg` is useful: 
 it explicitly defines which parameters are required for the external message.
 
-There is another JavaScript function which is helpful when you need to access the Ditto protocol message.
-It is possible to use the `mapFromDittoProtocolMsgWrapper` in the outgoing payload mapping and access the
-original `dittoProtocolMsg`.
+There is another JavaScript function which is helpful when access to the complete Ditto protocol message is needed.
+It is possible to define the `mapFromDittoProtocolMsgWrapper` in the outgoing payload mapping and access the
+original `dittoProtocolMsg`.  
+Please refer to the [Ditto Protocol specification](protocol-specification.html#dittoProtocolEnvelope)
+to inspect which JSON fields are available when.
 
+This is the default implementation of `mapFromDittoProtocolMsgWrapper`, delegating to `mapFromDittoProtocolMsg`:
 ```javascript
 /**
  * Maps the passed Ditto Protocol message to an external message.

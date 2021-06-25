@@ -4,7 +4,7 @@ published: true
 permalink: 2021-06-17-hmac-credentials.html
 layout: post
 author: florian_fendt
-tags: [blog, architecture, connectivity, hmac, azure, azure iot hub, azure service bus, azure monitor, aws sns, sns, aws, signing, example]
+tags: [blog, architecture, connectivity]
 hide_sidebar: true
 sidebar: false
 toc: true
