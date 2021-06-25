@@ -75,7 +75,9 @@ final class PropertiesFactory {
                 ConsumerSettings.apply(alpakkaConfig, new StringDeserializer(), new StringDeserializer())
                         .withBootstrapServers(bootstrapServers)
                         .withGroupId(connection.getId().toString())
-                        .withClientId(clientId + "-consumer");
+                        .withClientId(clientId + "-consumer")
+                        .withProperties(getSpecificConfigProperties())
+                        .withProperties(getSecurityProtocolProperties());
 
         // disable auto commit in dry run mode
         return dryRun ? consumerSettings.withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false") :
