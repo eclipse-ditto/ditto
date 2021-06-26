@@ -284,7 +284,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         whenUnhandled(inAnyState()
                 .anyEvent(this::onUnknownEvent));
 
-        connectionContextProvider.registerForConnectivityConfigChanges(connectionId(), getSelf());
+        connectionContextProvider.registerForConnectivityConfigChanges(connectionId(), DittoHeaders.empty(), getSelf());
 
         initialize();
 

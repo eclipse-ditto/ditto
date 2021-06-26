@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.base.model.signals.events.Event;
 
@@ -51,7 +52,8 @@ public interface ConnectivityConfigModifiedBehavior extends Actor {
      * @param connectionId the connection id
      */
     default void registerForConfigChanges(ConnectionId connectionId) {
-        getConnectivityConfigProvider().registerForConnectivityConfigChanges(connectionId, self());
+        getConnectivityConfigProvider()
+                .registerForConnectivityConfigChanges(connectionId, DittoHeaders.empty(), self());
     }
 
     /**

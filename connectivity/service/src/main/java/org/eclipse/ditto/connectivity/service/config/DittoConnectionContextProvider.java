@@ -18,10 +18,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.events.Event;
-import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
-import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorRef;
@@ -41,12 +38,14 @@ public class DittoConnectionContextProvider implements ConnectionContextProvider
     }
 
     @Override
-    public CompletionStage<ConnectionContext> getConnectionContext(final Connection connection, final DittoHeaders dittoHeaders) {
-        return CompletableFuture.completedStage(DittoConnectionContext.of(connection, connectivityConfig));
+    public CompletionStage<ConnectivityConfig> getConnectivityConfig(final ConnectionId connectionId,
+            final DittoHeaders dittoHeaders) {
+        return CompletableFuture.completedStage(connectivityConfig);
     }
 
     @Override
-    public void registerForConnectivityConfigChanges(final ConnectionId connectionId, final ActorRef subscriber) {
+    public void registerForConnectivityConfigChanges(final ConnectionId connectionId,
+            final DittoHeaders dittoHeaders, final ActorRef subscriber) {
         // nothing to do, config changes are not supported by the default implementation
     }
 

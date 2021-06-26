@@ -68,9 +68,13 @@ public final class ConnectionValidator {
     private final Map<ConnectionType, AbstractProtocolValidator> specMap;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
     private final LoggingAdapter loggingAdapter;
+    private final ConnectivityConfig connectivityConfig;
 
-    private ConnectionValidator(LoggingAdapter loggingAdapter, final AbstractProtocolValidator... connectionSpecs) {
+    private ConnectionValidator(LoggingAdapter loggingAdapter,
+            final ConnectivityConfig connectivityConfig,
+            final AbstractProtocolValidator... connectionSpecs) {
         this.loggingAdapter = loggingAdapter;
+        this.connectivityConfig = connectivityConfig;
         final Map<ConnectionType, AbstractProtocolValidator> theSpecMap = Arrays.stream(connectionSpecs)
                 .collect(Collectors.toMap(AbstractProtocolValidator::type, Function.identity()));
         this.specMap = Collections.unmodifiableMap(theSpecMap);
@@ -81,12 +85,13 @@ public final class ConnectionValidator {
      * Create a connection validator from connection specs.
      *
      * @param loggingAdapter a logging adapter
+     * @param connectivityConfig the connectivity config
      * @param connectionSpecs specs of supported connection types.
      * @return a connection validator.
      */
-    public static ConnectionValidator of(LoggingAdapter loggingAdapter,
+    public static ConnectionValidator of(LoggingAdapter loggingAdapter, final ConnectivityConfig connectivityConfig,
             final AbstractProtocolValidator... connectionSpecs) {
-        return new ConnectionValidator(loggingAdapter, connectionSpecs);
+        return new ConnectionValidator(loggingAdapter, connectivityConfig, connectionSpecs);
     }
 
     /**
@@ -97,7 +102,6 @@ public final class ConnectionValidator {
      * @return the set of acknowledgement labels to declare.
      */
     public static Stream<AcknowledgementLabel> getAcknowledgementLabelsToDeclare(final Connection connection) {
-
         final Stream<AcknowledgementLabel> sourceDeclaredAcks =
                 getSourceDeclaredAcknowledgementLabels(connection.getId(), connection.getSources());
         final Stream<AcknowledgementLabel> targetIssuedAcks = getTargetIssuedAcknowledgementLabels(connection);
@@ -180,8 +184,6 @@ public final class ConnectionValidator {
      * @throws java.lang.IllegalStateException if the connection type is not known.
      */
     void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
-        final ConnectivityConfig connectivityConfig = ConnectivityConfig.forActorSystem(actorSystem);
-
         // validate sources and targets
         validateSourcesAndTargets(connection, dittoHeaders, connectivityConfig);
 

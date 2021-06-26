@@ -26,9 +26,9 @@ import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 /**
  * Strategies to handle signals as an existing connection.
  */
-public class ConnectionCreatedStrategies
-        extends
-        AbstractCommandStrategies<ConnectivityCommand<?>, Connection, ConnectionState, ConnectivityEvent<?>> {
+public final class ConnectionCreatedStrategies
+        extends AbstractCommandStrategies<ConnectivityCommand<?>, Connection, ConnectionState, ConnectivityEvent<?>>
+        implements ConnectivityCommandStrategies {
 
     private static final ConnectionCreatedStrategies CREATED_STRATEGIES = newCreatedStrategies();
 

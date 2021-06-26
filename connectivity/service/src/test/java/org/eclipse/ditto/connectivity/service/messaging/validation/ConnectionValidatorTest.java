@@ -115,7 +115,8 @@ public class ConnectionValidatorTest {
                 provided(QueryFilterCriteriaFactory.class,
                         LoggingAdapter.class,
                         DefaultHostValidator.class,
-                        ConnectionContextProvider.class).areAlsoImmutable());
+                        ConnectionContextProvider.class,
+                        ConnectivityConfig.class).areAlsoImmutable());
     }
 
     @Test
@@ -574,7 +575,7 @@ public class ConnectionValidatorTest {
     }
 
     private ConnectionValidator getConnectionValidator() {
-        return ConnectionValidator.of(actorSystem.log(),
+        return ConnectionValidator.of(actorSystem.log(), ConnectivityConfig.forActorSystem(actorSystem),
                 AmqpValidator.newInstance(), HttpPushValidator.newInstance());
     }
 

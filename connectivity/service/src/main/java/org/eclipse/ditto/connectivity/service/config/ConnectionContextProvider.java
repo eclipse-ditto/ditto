@@ -22,6 +22,7 @@ import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
+import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 
 import akka.actor.ActorRef;
 
@@ -32,13 +33,25 @@ import akka.actor.ActorRef;
 public interface ConnectionContextProvider {
 
     /**
+     * Loads a {@link ConnectivityConfig} by a connection ID.
+     *
+     * @param connectionId the connection id for which to load the {@link ConnectivityConfig}
+     * @param dittoHeaders the ditto headers for which to load the {@link ConnectivityConfig}
+     * @return the future connectivity config
+     */
+    CompletionStage<ConnectivityConfig> getConnectivityConfig(ConnectionId connectionId, DittoHeaders dittoHeaders);
+
+    /**
      * Loads a {@link org.eclipse.ditto.connectivity.service.mapping.ConnectionContext} by a connection.
      *
      * @param connection the connection for which to load the connection context.
      * @param dittoHeaders the ditto headers for which to load the connection context.
-     * @return the connectivity context
+     * @return the future connectivity context
      */
-    CompletionStage<ConnectionContext> getConnectionContext(Connection connection, DittoHeaders dittoHeaders);
+    default CompletionStage<ConnectionContext> getConnectionContext(Connection connection, DittoHeaders dittoHeaders) {
+        return getConnectivityConfig(connection.getId(), dittoHeaders)
+                .thenApply(config -> DittoConnectionContext.of(connection, config));
+    }
 
     /**
      * Loads a connection context.
@@ -56,9 +69,11 @@ public interface ConnectionContextProvider {
      * ConnectivityConfig}.
      *
      * @param connectionId the connection id
+     * @param dittoHeaders the ditto headers
      * @param subscriber the subscriber that will receive {@link Event}s
      */
-    void registerForConnectivityConfigChanges(ConnectionId connectionId, ActorRef subscriber);
+    void registerForConnectivityConfigChanges(ConnectionId connectionId, final DittoHeaders dittoHeaders,
+            ActorRef subscriber);
 
     /**
      * Returns {@code true} if the implementation can handle the given {@code event} to generate a modified {@link

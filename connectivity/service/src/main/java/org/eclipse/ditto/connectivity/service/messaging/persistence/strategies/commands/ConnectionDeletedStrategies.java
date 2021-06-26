@@ -15,20 +15,20 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
+import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
+import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractCommandStrategies;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
-import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
-import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 
 /**
  * Strategies to handle signals as a nonexistent connection.
  */
-public class ConnectionDeletedStrategies
-        extends
-        AbstractCommandStrategies<ConnectivityCommand<?>, Connection, ConnectionState, ConnectivityEvent<?>> {
+public final class ConnectionDeletedStrategies
+        extends AbstractCommandStrategies<ConnectivityCommand<?>, Connection, ConnectionState, ConnectivityEvent<?>>
+        implements ConnectivityCommandStrategies {
 
     private static final ConnectionDeletedStrategies DELETED_STRATEGIES = newDeletedStrategies();
 

@@ -19,13 +19,14 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.PingCommandResponse;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -37,8 +38,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.json.JsonValue;
 
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
@@ -410,14 +410,13 @@ public abstract class AbstractShardedPersistenceActor<
     }
 
     private Receive createDeletedBehavior() {
-        final CommandStrategy<? extends C, S, K, E> deleteStrategy = getDeletedStrategy();
-        return handleCleanups.orElse(handleByStrategyReceiveBuilder(deleteStrategy)
+        return handleCleanups.orElse(handleByDeletedStrategyReceiveBuilder()
                 .match(CheckForActivity.class, this::checkForActivity)
                 .matchEquals(Control.TAKE_SNAPSHOT, this::takeSnapshotByInterval)
                 .match(SaveSnapshotSuccess.class, this::saveSnapshotSuccess)
                 .match(SaveSnapshotFailure.class, this::saveSnapshotFailure)
-                .matchAny(this::notAccessible)
-                .build());
+                .build())
+                .orElse(matchAnyWhenDeleted());
     }
 
     /**
@@ -447,10 +446,12 @@ public abstract class AbstractShardedPersistenceActor<
         handleByStrategy(command, getCreatedStrategy());
     }
 
-    private <T extends Command<?>> ReceiveBuilder handleByStrategyReceiveBuilder(
-            final CommandStrategy<T, S, K, E> strategy) {
+    @SuppressWarnings("unchecked")
+    private ReceiveBuilder handleByDeletedStrategyReceiveBuilder() {
+        final var deletedStrategy = (CommandStrategy<C, S, K, E>) getDeletedStrategy();
         return ReceiveBuilder.create()
-                .match(strategy.getMatchingClass(), command -> handleByStrategy(command, strategy));
+                .match(deletedStrategy.getMatchingClass(), deletedStrategy::isDefined,
+                        command -> handleByStrategy(command, (CommandStrategy<C, S, K, E>) getDeletedStrategy()));
     }
 
     private <T extends Command<?>> void handleByStrategy(final T command,
@@ -613,6 +614,17 @@ public abstract class AbstractShardedPersistenceActor<
     protected Receive matchAnyAfterInitialization() {
         return ReceiveBuilder.create()
                 .matchAny(message -> log.warning("Unknown message: {}", message))
+                .build();
+    }
+
+    /**
+     * Default is to reply with a not-accessible exception.
+     *
+     * @return the match-all Receive object.
+     */
+    protected Receive matchAnyWhenDeleted() {
+        return ReceiveBuilder.create()
+                .matchAny(this::notAccessible)
                 .build();
     }
 
