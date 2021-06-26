@@ -434,7 +434,6 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
 
     @Override
     public void onConnectivityConfigModified(final ConnectivityConfig connectivityConfig) {
-        this.connectivityConfig = connectivityConfig;
         final Amqp10Config amqp10Config = connectivityConfig.getConnectionConfig().getAmqp10Config();
         if (hasMessageRateLimiterConfigChanged(amqp10Config)) {
             this.messageRateLimiter = MessageRateLimiter.of(amqp10Config, messageRateLimiter);
@@ -442,6 +441,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         } else {
             log.debug("Relevant config for MessageRateLimiter unchanged, do nothing.");
         }
+        this.connectivityConfig = connectivityConfig;
     }
 
     private boolean hasMessageRateLimiterConfigChanged(final Amqp10Config amqp10Config) {

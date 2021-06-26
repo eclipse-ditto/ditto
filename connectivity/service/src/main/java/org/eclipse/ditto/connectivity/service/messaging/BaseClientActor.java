@@ -358,20 +358,21 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     @Override
     public void onConnectivityConfigModified(final ConnectivityConfig modifiedConfig) {
-        connectionContext = connectionContext.withConnectivityConfig(modifiedConfig);
+        final var modifiedContext = connectionContext.withConnectivityConfig(modifiedConfig);
         if (hasInboundMapperConfigChanged(modifiedConfig)) {
             logger.debug("Config changed for InboundMappingProcessor, recreating it.");
             final var inboundMappingProcessor =
-                    InboundMappingProcessor.of(connectionContext, getContext().getSystem(), protocolAdapter, logger);
+                    InboundMappingProcessor.of(modifiedContext, getContext().getSystem(), protocolAdapter, logger);
             inboundMappingProcessorActor.tell(new ReplaceInboundMappingProcessor(inboundMappingProcessor), getSelf());
         }
         if (hasOutboundMapperConfigChanged(modifiedConfig)) {
             logger.debug("Config changed for OutboundMappingProcessor, recreating it.");
             final var outboundMappingProcessor =
-                    OutboundMappingProcessor.of(connectionContext, getContext().getSystem(), protocolAdapter, logger);
+                    OutboundMappingProcessor.of(modifiedContext, getContext().getSystem(), protocolAdapter, logger);
             outboundMappingProcessorActor.tell(new ReplaceOutboundMappingProcessor(outboundMappingProcessor),
                     getSelf());
         }
+        connectionContext = modifiedContext;
     }
 
     /**
