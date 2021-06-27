@@ -15,40 +15,42 @@ package org.eclipse.ditto.thingsearch.service.starter.actors;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.rql.query.Query;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.thingsearch.model.SearchModelFactory;
-import org.eclipse.ditto.thingsearch.model.SearchResult;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceReport;
-import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
-import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
-import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.rql.query.Query;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceReport;
+import org.eclipse.ditto.thingsearch.model.SearchModelFactory;
+import org.eclipse.ditto.thingsearch.model.SearchResult;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThingsResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
+import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
+import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
+import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
@@ -156,8 +158,8 @@ public final class SearchActor extends AbstractActor {
         executeCount(sudoCountThings, queryParser::parseSudoCountThings, true);
     }
 
-    private <T extends Command> void executeCount(final T countCommand,
-            final Function<T, Query> queryParseFunction,
+    private <T extends Command<?>> void executeCount(final T countCommand,
+            final Function<T, CompletionStage<Query>> queryParseFunction,
             final boolean isSudo) {
         final DittoHeaders dittoHeaders = countCommand.getDittoHeaders();
         log.withCorrelationId(dittoHeaders)
@@ -193,7 +195,8 @@ public final class SearchActor extends AbstractActor {
                 .via(stopTimerAndHandleError(countTimer, countCommand));
 
         Materializer.createMaterializer(this::getContext);
-        Patterns.pipe(replySource.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()), getContext().dispatcher()).to(sender);
+        Patterns.pipe(replySource.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()),
+                getContext().dispatcher()).to(sender);
     }
 
     private void stream(final StreamThings streamThings) {
@@ -223,7 +226,9 @@ public final class SearchActor extends AbstractActor {
         final Source<Object, NotUsed> replySourceWithErrorHandling =
                 sourceRefSource.via(stopTimerAndHandleError(searchTimer, streamThings));
 
-        Patterns.pipe(replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()), getContext().dispatcher())
+        Patterns.pipe(
+                replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()),
+                getContext().dispatcher())
                 .to(sender);
     }
 
@@ -272,7 +277,9 @@ public final class SearchActor extends AbstractActor {
         final Source<Object, ?> replySourceWithErrorHandling =
                 replySource.via(stopTimerAndHandleError(searchTimer, queryThings));
 
-        Patterns.pipe(replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()), getContext().dispatcher())
+        Patterns.pipe(
+                replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()),
+                getContext().dispatcher())
                 .to(sender);
     }
 
@@ -353,11 +360,14 @@ public final class SearchActor extends AbstractActor {
                 .start();
     }
 
-    private static <T> Source<Query, NotUsed> createQuerySource(final Function<T, Query> parser,
+    private static <T> Source<Query, NotUsed> createQuerySource(final Function<T, CompletionStage<Query>> parser,
             final T command) {
 
         try {
-            return Source.single(parser.apply(command));
+            return Source.fromCompletionStage(parser.apply(command))
+                    .recoverWithRetries(1, new PFBuilder<Throwable, Source<Query, NotUsed>>()
+                            .match(CompletionException.class, e -> Source.failed(e.getCause()))
+                            .build());
         } catch (final Throwable e) {
             return Source.failed(e);
         }
