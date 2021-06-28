@@ -691,15 +691,11 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final Adaptable adaptable,
             final ThreadSafeDittoLogger logger) {
 
-        final DittoRuntimeException errorToReport;
-        if (error instanceof DittoRuntimeException) {
-            errorToReport = (DittoRuntimeException) error;
-        } else {
-            errorToReport = SignalEnrichmentFailedException.newBuilder()
-                    .dittoHeaders(adaptable.getDittoHeaders())
-                    .cause(error)
-                    .build();
-        }
+        final var errorToReport = DittoRuntimeException.asDittoRuntimeException(error, t ->
+                SignalEnrichmentFailedException.newBuilder()
+                        .dittoHeaders(adaptable.getDittoHeaders())
+                        .cause(t)
+                        .build());
         logger.withCorrelationId(adaptable.getDittoHeaders())
                 .error("Signal enrichment failed due to: {}", error.getMessage(), errorToReport);
 

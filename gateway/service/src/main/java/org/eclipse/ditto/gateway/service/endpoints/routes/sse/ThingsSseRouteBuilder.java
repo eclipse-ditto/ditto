@@ -373,9 +373,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                                 .orElseGet(Collections::emptyList)
                                 )
                                 .exceptionally(error -> {
-                                    final DittoRuntimeException errorToReport = error instanceof DittoRuntimeException
-                                            ? ((DittoRuntimeException) error)
-                                            : SignalEnrichmentFailedException.newBuilder().build();
+                                    final var errorToReport = DittoRuntimeException.asDittoRuntimeException(error, t ->
+                                                    SignalEnrichmentFailedException.newBuilder().cause(t).build());
                                     jsonifiable.getSession().map(StreamingSession::getLogger).ifPresent(logger ->
                                             logger.withCorrelationId(event)
                                                     .warning("During extra fields retrieval in <SSE> session got " +

@@ -19,36 +19,36 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.rql.query.Query;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.thingsearch.model.SearchModelFactory;
-import org.eclipse.ditto.thingsearch.model.SearchResult;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceReport;
-import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
-import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
-import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.rql.query.Query;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceReport;
+import org.eclipse.ditto.thingsearch.model.SearchModelFactory;
+import org.eclipse.ditto.thingsearch.model.SearchResult;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThingsResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThingsResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
+import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
+import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
+import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
@@ -311,15 +311,13 @@ public final class SearchActor extends AbstractActor {
     }
 
     private DittoRuntimeException asDittoRuntimeException(final Throwable error, final WithDittoHeaders trigger) {
-        if (error instanceof DittoRuntimeException) {
-            return ((DittoRuntimeException) error).setDittoHeaders(trigger.getDittoHeaders());
-        } else {
+        return DittoRuntimeException.asDittoRuntimeException(error, t -> {
             log.error(error, "SearchActor failed to execute <{}>", trigger);
             return GatewayInternalErrorException.newBuilder()
                     .dittoHeaders(trigger.getDittoHeaders())
-                    .cause(error)
+                    .cause(t)
                     .build();
-        }
+        });
     }
 
     private QueryThingsResponse toQueryThingsResponse(final QueryThings queryThings,
