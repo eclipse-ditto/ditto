@@ -366,13 +366,21 @@ public final class ConnectionPersistenceActor
             log.debug("Opening connection <{}> after recovery.", entityId);
             restoreOpenConnection();
         }
-        if (entity != null) {
+        if (entityExistsAsActive()) {
             // Initialize command validator by connectivity config.
             // For deleted connections, only start initiation on first command because the connection ID is not attached
             // to any solution.
             startInitialization(connectionContextProvider, entityId, DittoHeaders.empty(), getSelf());
         }
         super.recoveryCompleted(event);
+    }
+
+    @Override
+    protected void onEntityModified() {
+        // retrieve connectivity config again in case of missed events
+        if (entityExistsAsActive()) {
+            startInitialization(connectionContextProvider, entityId, DittoHeaders.empty(), getSelf());
+        }
     }
 
     @Override
@@ -607,6 +615,11 @@ public final class ConnectionPersistenceActor
         // compute the next prefix according to subscriptionCounter and the currently configured client actor count
         // ignore any "prefix" field from the command
         augmentWithPrefixAndForward(command, entity.getClientCount(), clientActorRouter);
+    }
+
+    private boolean entityExistsAsActive() {
+        return entity != null &&
+                entity.getLifecycle().orElse(ConnectionLifecycle.ACTIVE) == ConnectionLifecycle.ACTIVE;
     }
 
     private void augmentWithPrefixAndForward(final CreateSubscription createSubscription, final int clientCount,

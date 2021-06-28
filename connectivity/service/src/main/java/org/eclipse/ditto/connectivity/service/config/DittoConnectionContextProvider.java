@@ -44,9 +44,10 @@ public class DittoConnectionContextProvider implements ConnectionContextProvider
     }
 
     @Override
-    public void registerForConnectivityConfigChanges(final ConnectionId connectionId,
+    public CompletionStage<Void> registerForConnectivityConfigChanges(final ConnectionId connectionId,
             final DittoHeaders dittoHeaders, final ActorRef subscriber) {
         // nothing to do, config changes are not supported by the default implementation
+        return CompletableFuture.completedStage(null);
     }
 
     @Override

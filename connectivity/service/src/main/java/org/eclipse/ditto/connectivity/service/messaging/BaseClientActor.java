@@ -246,7 +246,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 ConnectionPersistenceActor.getSubscriptionPrefixLength(connection.getClientCount());
 
         // Send init message to allow for unsafe initialization of subclasses.
-        pipeConnectionContextToSelf(connectionContextProvider, connection, getSelf(), getContext().getDispatcher());
+        getSelf().tell(Control.INIT_START, ActorRef.noSender());
     }
 
     @Override
@@ -281,10 +281,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         onTransition(this::onTransition);
 
-        whenUnhandled(inAnyState()
-                .anyEvent(this::onUnknownEvent));
-
-        connectionContextProvider.registerForConnectivityConfigChanges(connectionId(), DittoHeaders.empty(), getSelf());
+        whenUnhandled(inAnyState().anyEvent(this::onUnknownEvent));
 
         initialize();
 
@@ -426,6 +423,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         unstashAll();
 
         return state;
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> startInitialization() {
+        pipeConnectionContextToSelf(connectionContextProvider, connection, getSelf(), getContext().getDispatcher());
+        connectionContextProvider.registerForConnectivityConfigChanges(connectionId(), DittoHeaders.empty(), getSelf());
+        return stay();
     }
 
     /**
@@ -706,7 +709,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inUnknownState() {
         return matchEventEquals(Control.INIT_COMPLETE, (init, baseClientData) -> completeInitialization())
-                .event(ConnectionContext.class, this::startInitialization)
+                .eventEquals(Control.INIT_START, (init, baseClientData) -> startInitialization())
+                .event(ConnectionContext.class, this::initializeByConnectionContext)
                 .event(RuntimeException.class, this::failInitialization)
                 .anyEvent((o, baseClientData) -> {
                     stash();
@@ -856,8 +860,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
-    private FSM.State<BaseClientState, BaseClientData> startInitialization(final ConnectionContext connectionContext,
-            final BaseClientData data) {
+    private FSM.State<BaseClientState, BaseClientData> initializeByConnectionContext(
+            final ConnectionContext connectionContext, final BaseClientData data) {
 
         this.connectionContext = connectionContext;
         init(connectionContext);
@@ -2112,6 +2116,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private enum Control {
+        INIT_START,
         INIT_COMPLETE,
         REFRESH_CLIENT_ACTOR_REFS,
         CONNECT_AFTER_TUNNEL_ESTABLISHED
