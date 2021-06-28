@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.mapping;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.Objects;
 
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -38,7 +40,9 @@ public final class DittoConnectionContext implements ConnectionContext {
      * @return the connection context.
      */
     public static DittoConnectionContext of(final Connection connection, final ConnectivityConfig config) {
-        return new DittoConnectionContext(connection, config);
+        return new DittoConnectionContext(
+                checkNotNull(connection, "connection"),
+                checkNotNull(config, "config"));
     }
 
     @Override
@@ -65,7 +69,7 @@ public final class DittoConnectionContext implements ConnectionContext {
     public String toString() {
         return getClass().getSimpleName() +
                 "[connection=" + connection +
-                ",connectivityConfig=" + connectivityConfig +
+                ", connectivityConfig=" + connectivityConfig +
                 "]";
     }
 

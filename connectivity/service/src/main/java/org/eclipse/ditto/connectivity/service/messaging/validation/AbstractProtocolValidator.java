@@ -146,8 +146,7 @@ public abstract class AbstractProtocolValidator {
      * @param dittoHeaders headers of the command that triggered the connection validation.
      */
     protected void validatePayloadMappings(final Connection connection, final ActorSystem actorSystem,
-            final ConnectivityConfig connectivityConfig,
-            final DittoHeaders dittoHeaders) {
+            final ConnectivityConfig connectivityConfig, final DittoHeaders dittoHeaders) {
         final var connectionContext = DittoConnectionContext.of(connection, connectivityConfig);
         final MessageMapperFactory messageMapperFactory =
                 DefaultMessageMapperFactory.of(connectionContext, actorSystem, actorSystem.log());

@@ -106,4 +106,5 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
     static ConnectivityConfig forActorSystem(final ActorSystem actorSystem) {
         return DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
     }
+
 }

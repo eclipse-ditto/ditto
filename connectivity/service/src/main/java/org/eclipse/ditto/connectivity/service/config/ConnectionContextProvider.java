@@ -48,7 +48,8 @@ public interface ConnectionContextProvider {
      * @param dittoHeaders the ditto headers for which to load the connection context.
      * @return the future connectivity context
      */
-    default CompletionStage<ConnectionContext> getConnectionContext(Connection connection, DittoHeaders dittoHeaders) {
+    default CompletionStage<ConnectionContext> getConnectionContext(final Connection connection,
+            final DittoHeaders dittoHeaders) {
         return getConnectivityConfig(connection.getId(), dittoHeaders)
                 .thenApply(config -> DittoConnectionContext.of(connection, config));
     }
@@ -59,7 +60,7 @@ public interface ConnectionContextProvider {
      * @param connection the connection for which to load the connection context.
      * @return the connection context.
      */
-    default CompletionStage<ConnectionContext> getConnectionContext(Connection connection) {
+    default CompletionStage<ConnectionContext> getConnectionContext(final Connection connection) {
         return getConnectionContext(connection, DittoHeaders.empty());
     }
 
@@ -72,7 +73,7 @@ public interface ConnectionContextProvider {
      * @param dittoHeaders the ditto headers
      * @param subscriber the subscriber that will receive {@link Event}s
      */
-    void registerForConnectivityConfigChanges(ConnectionId connectionId, final DittoHeaders dittoHeaders,
+    void registerForConnectivityConfigChanges(ConnectionId connectionId, DittoHeaders dittoHeaders,
             ActorRef subscriber);
 
     /**
@@ -91,4 +92,5 @@ public interface ConnectionContextProvider {
      * @return Optional of the modified {@link ConnectivityConfig} or an empty Optional.
      */
     Optional<ConnectivityConfig> handleEvent(Event<?> event);
+
 }

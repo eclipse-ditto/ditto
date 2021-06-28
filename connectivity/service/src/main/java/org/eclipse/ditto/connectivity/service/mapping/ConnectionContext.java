@@ -45,4 +45,5 @@ public interface ConnectionContext {
      * @return the new context.
      */
     ConnectionContext withConnection(Connection modifiedConnection);
+
 }
