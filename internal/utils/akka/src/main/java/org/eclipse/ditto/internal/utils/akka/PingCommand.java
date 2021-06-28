@@ -18,15 +18,16 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityIdJsonDeserializer;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityTypeJsonDeserializer;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.id.WithEntityId;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Internal simple "ping" command to be sent to PersistenceActors (identified by the contained {@code entityId})
@@ -84,17 +85,19 @@ public final class PingCommand implements Jsonifiable<JsonObject>, WithEntityId 
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonObject} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} is not valid JSON.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the expected 'PingCommand'
-     * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the
+     * expected 'PingCommand' format.
      */
     public static PingCommand fromJson(final JsonObject jsonObject) {
-        final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE));
-        final EntityId extractedEntityId =
-                EntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
-        final String extractedCorrelationId = jsonObject.getValue(JsonFields.CORRELATION_ID).orElse(null);
-        final JsonValue extractedPayload = jsonObject.getValue(JsonFields.PAYLOAD).orElse(null);
+        return of(deserializeEntityId(jsonObject),
+                jsonObject.getValue(JsonFields.CORRELATION_ID).orElse(null),
+                jsonObject.getValue(JsonFields.PAYLOAD).orElse(null));
+    }
 
-        return of(extractedEntityId, extractedCorrelationId, extractedPayload);
+    private static EntityId deserializeEntityId(final JsonObject jsonObject) {
+        return EntityIdJsonDeserializer.deserializeEntityId(jsonObject,
+                JsonFields.ENTITY_ID,
+                EntityTypeJsonDeserializer.deserializeEntityType(jsonObject, JsonFields.ENTITY_TYPE));
     }
 
     @Override

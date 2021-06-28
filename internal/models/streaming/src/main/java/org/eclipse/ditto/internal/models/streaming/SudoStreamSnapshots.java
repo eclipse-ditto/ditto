@@ -15,13 +15,21 @@ package org.eclipse.ditto.internal.models.streaming;
 import static org.eclipse.ditto.base.model.json.FieldType.REGULAR;
 import static org.eclipse.ditto.base.model.json.JsonSchemaVersion.V_2;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityIdJsonDeserializer;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.base.model.entity.type.EntityTypeJsonDeserializer;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableCommand;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -31,12 +39,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonParsableCommand;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
@@ -44,7 +46,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
  */
 @Immutable
 @AllValuesAreNonnullByDefault
-@JsonParsableCommand(typePrefix = SudoStreamSnapshots.TYPE_PREFIX, name = SudoStreamSnapshots.NAME)
+@JsonParsableCommand(typePrefix = StreamingMessage.TYPE_PREFIX, name = SudoStreamSnapshots.NAME)
 public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapshots> implements StartStreamRequest {
 
     static final String NAME = "SudoStreamSnapshots";
@@ -84,14 +86,20 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SudoStreamSnapshots of(final Integer burst, final Long timeoutMillis, final List<String> fields,
-            final DittoHeaders dittoHeaders, final EntityType entityType) {
+    public static SudoStreamSnapshots of(final Integer burst,
+            final Long timeoutMillis,
+            final Collection<String> fields,
+            final DittoHeaders dittoHeaders,
+            final EntityType entityType) {
 
         final JsonArray snapshotFields = fields.stream()
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray());
 
-        return new SudoStreamSnapshots(burst, timeoutMillis, LowerBound.emptyEntityId(entityType), snapshotFields,
+        return new SudoStreamSnapshots(burst,
+                timeoutMillis,
+                LowerBound.emptyEntityId(entityType),
+                snapshotFields,
                 dittoHeaders);
     }
 
@@ -102,19 +110,21 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
      * @param dittoHeaders the optional command headers of the request.
      * @return the command.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the expected format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the
+     * expected format.
      */
-    public static SudoStreamSnapshots fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
+    public static SudoStreamSnapshots fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new SudoStreamSnapshots(jsonObject.getValueOrThrow(JsonFields.JSON_BURST),
+                jsonObject.getValueOrThrow(JsonFields.JSON_TIMEOUT_MILLIS),
+                deserializeLowerBoundEntityId(jsonObject),
+                jsonObject.getValue(JsonFields.JSON_SNAPSHOT_FIELDS).orElseGet(JsonArray::empty),
+                dittoHeaders);
+    }
 
-        final int burst = jsonObject.getValueOrThrow(JsonFields.JSON_BURST);
-        final long timeoutMillis = jsonObject.getValueOrThrow(JsonFields.JSON_TIMEOUT_MILLIS);
-        final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.JSON_LOWER_BOUND_TYPE));
-        final EntityId lowerBound = EntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.JSON_LOWER_BOUND));
-        final JsonArray snapshotFields =
-                jsonObject.getValue(JsonFields.JSON_SNAPSHOT_FIELDS).orElseGet(JsonArray::empty);
-
-        return new SudoStreamSnapshots(burst, timeoutMillis, lowerBound, snapshotFields, dittoHeaders);
+    private static EntityId deserializeLowerBoundEntityId(final JsonObject jsonObject) {
+        return EntityIdJsonDeserializer.deserializeEntityId(jsonObject,
+                JsonFields.JSON_LOWER_BOUND,
+                EntityTypeJsonDeserializer.deserializeEntityType(jsonObject, JsonFields.JSON_LOWER_BOUND_TYPE));
     }
 
     /**

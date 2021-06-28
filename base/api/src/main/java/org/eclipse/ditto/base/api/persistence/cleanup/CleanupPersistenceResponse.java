@@ -18,18 +18,19 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.base.model.entity.id.EntityIdJsonDeserializer;
+import org.eclipse.ditto.base.model.entity.type.EntityTypeJsonDeserializer;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
  * Response to a {@link CleanupPersistence} command.
@@ -107,14 +108,15 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
      */
     public static CleanupPersistenceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<CleanupPersistenceResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final EntityType entityType =
-                            EntityType.of(jsonObject.getValueOrThrow(CleanupCommandResponse.JsonFields.ENTITY_TYPE));
-                    final String readEntityId = jsonObject.getValueOrThrow(CleanupCommandResponse.JsonFields.ENTITY_ID);
-                    return new CleanupPersistenceResponse(EntityId.of(entityType, readEntityId), httpStatus,
-                            dittoHeaders);
-                }
+                httpStatus -> new CleanupPersistenceResponse(deserializeEntityId(jsonObject), httpStatus, dittoHeaders)
         );
+    }
+
+    private static EntityId deserializeEntityId(final JsonObject jsonObject) {
+        return EntityIdJsonDeserializer.deserializeEntityId(jsonObject,
+                CleanupCommandResponse.JsonFields.ENTITY_ID,
+                EntityTypeJsonDeserializer.deserializeEntityType(jsonObject,
+                        CleanupCommandResponse.JsonFields.ENTITY_TYPE));
     }
 
     @Override

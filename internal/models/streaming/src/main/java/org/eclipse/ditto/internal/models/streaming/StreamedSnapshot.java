@@ -14,12 +14,13 @@ package org.eclipse.ditto.internal.models.streaming;
 
 import java.util.Objects;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityIdJsonDeserializer;
+import org.eclipse.ditto.base.model.entity.type.EntityTypeJsonDeserializer;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Serializable message for streamed snapshots.
@@ -52,10 +53,13 @@ public final class StreamedSnapshot implements StreamingMessage, Jsonifiable<Jso
      * @return the streamed snapshot object.
      */
     public static StreamedSnapshot fromJson(final JsonObject jsonObject) {
-        final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE));
-        final EntityId entityId = EntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
-        final JsonObject snapshot = jsonObject.getValueOrThrow(JsonFields.SNAPSHOT);
-        return new StreamedSnapshot(entityId, snapshot);
+        return new StreamedSnapshot(deserializeEntityId(jsonObject), jsonObject.getValueOrThrow(JsonFields.SNAPSHOT));
+    }
+
+    private static EntityId deserializeEntityId(final JsonObject jsonObject) {
+        return EntityIdJsonDeserializer.deserializeEntityId(jsonObject,
+                JsonFields.ENTITY_ID,
+                EntityTypeJsonDeserializer.deserializeEntityType(jsonObject, JsonFields.ENTITY_TYPE));
     }
 
     /**

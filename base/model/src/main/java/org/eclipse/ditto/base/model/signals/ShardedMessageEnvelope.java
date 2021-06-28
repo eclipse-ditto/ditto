@@ -16,15 +16,16 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityIdJsonDeserializer;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.base.model.entity.type.EntityTypeJsonDeserializer;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * A message envelope for messages to PersistenceActors which do not contain itself an ID. Holds both an ID and the
@@ -101,15 +102,21 @@ public final class ShardedMessageEnvelope
      * @return the ShardedMessageEnvelope.
      */
     public static ShardedMessageEnvelope fromJson(final JsonObject jsonObject) {
-        final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JSON_ID_TYPE));
-        final String extractedId = jsonObject.getValueOrThrow(JSON_ID);
-        final EntityId entityId = EntityId.of(entityType, extractedId);
-        final String extractedType = jsonObject.getValueOrThrow(JSON_TYPE);
-        final JsonObject extractedMessage = jsonObject.getValueOrThrow(JSON_MESSAGE);
-        final JsonObject jsonDittoHeaders = jsonObject.getValueOrThrow(JSON_DITTO_HEADERS);
-        final DittoHeaders extractedDittoHeaders = DittoHeaders.newBuilder(jsonDittoHeaders).build();
+        return of(deserializeEntityId(jsonObject),
+                jsonObject.getValueOrThrow(JSON_TYPE),
+                jsonObject.getValueOrThrow(JSON_MESSAGE),
+                deserializeDittoHeaders(jsonObject));
+    }
 
-        return of(entityId, extractedType, extractedMessage, extractedDittoHeaders);
+    private static EntityId deserializeEntityId(final JsonObject jsonObject) {
+        return EntityIdJsonDeserializer.deserializeEntityId(jsonObject,
+                JSON_ID,
+                EntityTypeJsonDeserializer.deserializeEntityType(jsonObject, JSON_ID_TYPE));
+    }
+
+    private static DittoHeaders deserializeDittoHeaders(final JsonObject jsonObject) {
+        final JsonObject jsonDittoHeaders = jsonObject.getValueOrThrow(JSON_DITTO_HEADERS);
+        return DittoHeaders.newBuilder(jsonDittoHeaders).build();
     }
 
     /**
@@ -117,6 +124,7 @@ public final class ShardedMessageEnvelope
      *
      * @return the ID of the envelope.
      */
+    @Override
     public EntityId getEntityId() {
         return id;
     }
