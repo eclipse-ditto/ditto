@@ -344,6 +344,16 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     }
 
     @Override
+    public Optional<String> getTraceParent() {
+        return getStringForDefinition(DittoHeaderDefinition.W3C_TRACEPARENT);
+    }
+
+    @Override
+    public Optional<String> getTraceState() {
+        return getStringForDefinition(DittoHeaderDefinition.W3C_TRACESTATE);
+    }
+
+    @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
         headers.forEach((key, header) -> {

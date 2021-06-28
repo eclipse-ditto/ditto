@@ -16,6 +16,7 @@ import java.time.Duration;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 
@@ -125,7 +127,14 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
 
     @Override
     protected Contextual<WithDittoHeaders> beforeProcessMessage(final Contextual<WithDittoHeaders> contextual) {
-        return contextual.withTimer(createTimer(contextual.getMessage()));
+        final StartedTimer startedTimer = createTimer(contextual.getMessage());
+        final Contextual<WithDittoHeaders> withTimer = contextual.withTimer(startedTimer);
+        if (contextual.getMessage() instanceof DittoHeadersSettable) {
+            final DittoHeadersSettable<?> message = ((DittoHeadersSettable<?>) contextual.getMessage());
+            return withTimer.withMessage(DittoTracing.propagateContext(startedTimer.getContext(), message));
+        } else {
+            return withTimer;
+        }
     }
 
     private StartedTimer createTimer(final WithDittoHeaders withDittoHeaders) {
@@ -140,6 +149,9 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         if (withDittoHeaders instanceof Command) {
             expiringTimer.tag("category", ((Command<?>) withDittoHeaders).getCategory().name().toLowerCase());
         }
+
+        expiringTimer.withTraceContext(DittoTracing.extractTraceContext(withDittoHeaders));
+
         return expiringTimer.start();
     }
 

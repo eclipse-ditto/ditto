@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
+import kamon.context.Context;
 import kamon.metric.Distribution;
 import kamon.metric.Timer;
 import kamon.tag.TagSet;
@@ -44,6 +45,8 @@ final class PreparedKamonTimer implements PreparedTimer {
     private final Map<String, String> tags;
     private final Duration maximumDuration;
     private final Consumer<StartedTimer> additionalExpirationHandling;
+
+    private Context context = Context.Empty();
 
     private PreparedKamonTimer(final String name) {
         this(name, new HashMap<>(), Duration.ofMinutes(5), startedTimer -> {});
@@ -89,6 +92,12 @@ final class PreparedKamonTimer implements PreparedTimer {
                         "before timeout", timer.getName());
             }
         }
+    }
+
+    @Override
+    public PreparedTimer withTraceContext(final Context context) {
+        this.context = context;
+        return this;
     }
 
     @Override
@@ -161,6 +170,11 @@ final class PreparedKamonTimer implements PreparedTimer {
     }
 
     @Override
+    public Context getTraceContext() {
+        return context;
+    }
+
+    @Override
     public boolean reset() {
         try {
             getSnapshot(true);
@@ -192,6 +206,7 @@ final class PreparedKamonTimer implements PreparedTimer {
         return getClass().getSimpleName() + " [" +
                 "name=" + name +
                 ", tags=" + tags +
+                ", context=" + context +
                 "]";
     }
 }

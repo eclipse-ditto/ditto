@@ -38,6 +38,8 @@ import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.json.JsonValue;
 
 import akka.actor.ActorRef;
@@ -454,15 +456,23 @@ public abstract class AbstractShardedPersistenceActor<
                         command -> handleByStrategy(command, (CommandStrategy<C, S, K, E>) getDeletedStrategy()));
     }
 
-    private <T extends Command<?>> void handleByStrategy(final T command,
-            final CommandStrategy<T, S, K, E> strategy) {
+    private <T extends Command<?>> void handleByStrategy(final T command, final CommandStrategy<T, S, K, E> strategy) {
         log.debug("Handling by strategy: <{}>", command);
+
+        final StartedTrace trace = DittoTracing
+                .trace(command, command.getType())
+                .start();
+        final T tracedCommand = DittoTracing.propagateContext(trace.getContext(), command);
+
         accessCounter++;
         Result<E> result;
         try {
-            result = strategy.apply(getStrategyContext(), entity, getNextRevisionNumber(), command);
+            result = strategy.apply(getStrategyContext(), entity, getNextRevisionNumber(), tracedCommand);
         } catch (final DittoRuntimeException e) {
-            result = ResultFactory.newErrorResult(e, command);
+            trace.fail(e);
+            result = ResultFactory.newErrorResult(e, tracedCommand);
+        } finally {
+            trace.finish();
         }
         result.accept(this);
     }

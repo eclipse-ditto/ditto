@@ -23,7 +23,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
+import kamon.context.Context;
 import kamon.tag.TagSet;
+import kamon.trace.Span;
 
 /**
  * Kamon based implementation of {@link StoppedTimer}.
@@ -36,11 +38,11 @@ final class StoppedKamonTimer implements StoppedTimer {
     private final String name;
     private final Map<String, String> tags;
 
-    private long startTimestamp;
-    private long endTimestamp;
+    private final long startTimestamp;
+    private final long endTimestamp;
 
     private StoppedKamonTimer(final String name, final Map<String, String> tags, final long startTimestamp,
-            final Map<String, StartedTimer> segments, List<OnStopHandler> onStopHandlers) {
+            final Map<String, StartedTimer> segments, List<OnStopHandler> onStopHandlers, final Context context) {
         this.startTimestamp = startTimestamp;
         this.endTimestamp = System.nanoTime();
         this.name = name;
@@ -51,6 +53,9 @@ final class StoppedKamonTimer implements StoppedTimer {
             }
         });
 
+        final Span span = context.get(Span.Key());
+        span.tag(TagSet.from(Map.copyOf(tags))).finishAfter(getDuration());
+
         final long durationNano = getElapsedNano();
         LOGGER.trace("Timer with name <{}> and segment <{}> was stopped after <{}> nanoseconds", name,
                 tags.get(SEGMENT_TAG), durationNano);
@@ -59,9 +64,8 @@ final class StoppedKamonTimer implements StoppedTimer {
     }
 
     static StoppedTimer fromStartedTimer(final StartedTimer startedTimer) {
-
         return new StoppedKamonTimer(startedTimer.getName(), startedTimer.getTags(), startedTimer.getStartTimeStamp(),
-                startedTimer.getSegments(), startedTimer.getOnStopHandlers());
+                startedTimer.getSegments(), startedTimer.getOnStopHandlers(), startedTimer.getContext());
     }
 
     @Override

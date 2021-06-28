@@ -49,6 +49,7 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.TracingTags;
 
 import akka.NotUsed;
@@ -57,6 +58,7 @@ import akka.actor.ActorRef;
 import akka.pattern.Patterns;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
+import kamon.context.Context;
 
 /**
  * Base class for consumer actors that holds common fields and handles the address status.
@@ -125,9 +127,11 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     private void prepareResponseHandler(final AcknowledgeableMessage acknowledgeableMessage,
             final ActorRef responseCollector) {
 
+        final Context context = DittoTracing.extractTraceContext(acknowledgeableMessage.getMessage().getHeaders());
         final StartedTimer timer = DittoMetrics.timer(TIMER_ACK_HANDLING)
                 .tag(TracingTags.CONNECTION_ID, connectionId.toString())
                 .tag(TracingTags.CONNECTION_TYPE, connectionType.getName())
+                .withTraceContext(context)
                 .start();
 
         final Duration askTimeout = acknowledgementConfig.getCollectorFallbackAskTimeout();

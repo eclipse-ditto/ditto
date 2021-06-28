@@ -12,18 +12,26 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
+import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.TracingTags;
+import org.eclipse.ditto.protocol.Adaptable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import kamon.context.Context;
+
 /**
- * This class helps to create {@link DittoMetrics#expiringTimer}s measuring the different segments of a mapping
+ * This class helps to create {@link DittoMetrics#timer}s measuring the different segments of a mapping
  * operation.
  */
 final class MappingTimer {
@@ -47,10 +55,12 @@ final class MappingTimer {
     /**
      * @param connectionId ID of the connection
      * @param connectionType the type of the connection.
+     * @param context the trace context
      * @return a new {@link MappingTimer} instance ready to measure inbound mappings.
      */
-    static MappingTimer inbound(final ConnectionId connectionId, final ConnectionType connectionType) {
-        return new MappingTimer(startNewTimer(connectionId.toString(), connectionType)
+    static MappingTimer inbound(final ConnectionId connectionId, final ConnectionType connectionType,
+            final Context context) {
+        return new MappingTimer(startNewTimer(connectionId.toString(), connectionType, context)
                 .tag(DIRECTION_TAG_NAME, INBOUND));
     }
 
@@ -59,34 +69,72 @@ final class MappingTimer {
      * @param connectionType the type of the connection.
      * @return a new {@link MappingTimer} instance ready to measure outbound mappings.
      */
-    static MappingTimer outbound(final ConnectionId connectionId, final ConnectionType connectionType) {
-        return new MappingTimer(startNewTimer(connectionId.toString(), connectionType)
+    static MappingTimer outbound(final ConnectionId connectionId, final ConnectionType connectionType,
+            final Context context) {
+        return new MappingTimer(startNewTimer(connectionId.toString(), connectionType, context)
                 .tag(DIRECTION_TAG_NAME, OUTBOUND));
     }
 
     /**
-     * Measures the execution of the given runnable.
+     * Measures the overall execution time.
      *
-     * @param runnable the runnable whose execution time to measure
+     * @param <T> the return type
+     * @param supplier the supplier of which the execution time is measured
+     * @return the value returned by the given supplier
      */
-    void overall(final Runnable runnable) {
-        timed(timer, runnable);
-    }
-
     <T> T overall(final Supplier<T> supplier) {
         return timed(timer, supplier);
     }
 
     /**
      * Measures the execution of the given supplier using a separate 'payload' segment and a tag for the given mapper.
+     * The current trace context is attached to each resulting external messages.
      *
      * @param mapper id of the used mapper
      * @param supplier the supplier which is invoked and measured
-     * @param <T> result type of the given supplier
      * @return the result of the supplier
      */
-    <T> T payload(final String mapper, final Supplier<T> supplier) {
-        return timed(timer.startNewSegment(PAYLOAD_SEGMENT_NAME).tag(MAPPER_TAG_NAME, mapper), supplier);
+    List<ExternalMessage> outboundPayload(final String mapper, final Supplier<List<ExternalMessage>> supplier) {
+        final StartedTimer startedTimer = timer.startNewSegment(PAYLOAD_SEGMENT_NAME).tag(MAPPER_TAG_NAME, mapper);
+        return timed(startedTimer, () -> {
+            final List<ExternalMessage> externalMessages = supplier.get();
+            return externalMessages.stream().map(em -> DittoTracing.propagateContext(startedTimer.getContext(), em,
+                    (msg, entry) -> msg.withHeader(entry.getKey(), entry.getValue()))).collect(Collectors.toList());
+        });
+    }
+
+    /**
+     * Measures the execution of the given adaptable supplier using a separate 'payload' segment and a tag for the given
+     * mapper. The current trace context is attached to each resulting adaptables.
+     *
+     * @param mapper the used mapper
+     * @param supplier the supplier of adaptables
+     * @return the list of mapped adaptables
+     */
+    List<Adaptable> inboundPayload(final String mapper, final Supplier<List<Adaptable>> supplier) {
+        final StartedTimer startedTimer = timer.startNewSegment(PAYLOAD_SEGMENT_NAME).tag(MAPPER_TAG_NAME, mapper);
+        return timed(startedTimer, () -> {
+            final List<Adaptable> adaptables = supplier.get();
+            return adaptables.stream()
+                    .map(a -> DittoTracing.propagateContext(startedTimer.getContext(), a))
+                    .collect(Collectors.toList());
+        });
+    }
+
+    /**
+     * Measures the execution of the given signal supplier using a separate protocol segment.
+     * The current trace context is attached to the resulting signal.
+     *
+     * @param supplier the supplier which is invoked and measured
+     * @return the result of the supplier
+     */
+    Signal<?> inboundProtocol(final Supplier<Signal<?>> supplier) {
+        final StartedTimer startedTimer = timer.startNewSegment(PROTOCOL_SEGMENT_NAME);
+        return timed(startedTimer, () -> {
+            final Signal<?> signal = supplier.get();
+            DittoTracing.propagateContext(startedTimer.getContext(), signal);
+            return DittoTracing.propagateContext(startedTimer.getContext(), signal);
+        });
     }
 
     /**
@@ -111,17 +159,8 @@ final class MappingTimer {
         }
     }
 
-    private void timed(final StartedTimer startedTimer, final Runnable runnable) {
-        try {
-            runnable.run();
-            startedTimer.tag(TracingTags.MAPPING_SUCCESS, true).stop();
-        } catch (final Exception ex) {
-            startedTimer.tag(TracingTags.MAPPING_SUCCESS, false).stop();
-            throw ex;
-        }
-    }
-
-    private static StartedTimer startNewTimer(final String connectionId, final ConnectionType connectionType) {
+    private static StartedTimer startNewTimer(final String connectionId, final ConnectionType connectionType,
+            final Context context) {
         return DittoMetrics
                 .timer(TIMER_NAME)
                 .tag(TracingTags.CONNECTION_ID, connectionId)
@@ -130,7 +169,12 @@ final class MappingTimer {
                     LOGGER.warn("Mapping timer expired. This should not happen. Timer: <{}>", expiredTimer);
                     expiredTimer.tag(TracingTags.MAPPING_SUCCESS, false);
                 })
+                .withTraceContext(context)
                 .start();
+    }
+
+    Context getCurrentContext() {
+        return timer.getContext();
     }
 
 }

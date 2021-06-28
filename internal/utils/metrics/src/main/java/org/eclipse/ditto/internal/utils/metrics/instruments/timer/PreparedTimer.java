@@ -19,6 +19,8 @@ import java.util.function.Consumer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.ResettableMetricInstrument;
 import org.eclipse.ditto.internal.utils.metrics.instruments.TaggedMetricInstrument;
 
+import kamon.context.Context;
+
 /**
  * A Timer metric which is prepared to be {@link #start() started}.
  */
@@ -72,4 +74,18 @@ public interface PreparedTimer extends Timer, ResettableMetricInstrument, Tagged
      */
     PreparedTimer onExpiration(final Consumer<StartedTimer> additionalExpirationHandling);
 
+    /**
+     * Associates the provided context with this trace. The context is used to create a new span as a child of the
+     * span given in the context.
+     *
+     * @param context the context to associate with this trace
+     * @return the prepared timer with the context set.
+     */
+    PreparedTimer withTraceContext(final Context context);
+
+    /**
+     * @return the trace context associated with this trace. If no context was associated with this trace {@code
+     * Context.Empty()} is returned.
+     */
+    Context getTraceContext();
 }

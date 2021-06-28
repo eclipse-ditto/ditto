@@ -312,6 +312,19 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      */
     Set<String> getJournalTags();
 
+
+    /**
+     * @return the w3c traceparent header or an empty optional if not available
+     * @since 2.1.0
+     */
+    Optional<String> getTraceParent();
+
+    /**
+     * @return the w3c tracestate header or an empty optional if not available
+     * @since 2.1.0
+     */
+    Optional<String> getTraceState();
+
     /**
      * Return a copy of the headers with the original capitalization of header keys.
      *

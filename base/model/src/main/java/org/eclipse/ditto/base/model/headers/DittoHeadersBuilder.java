@@ -20,7 +20,6 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -30,6 +29,7 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * This interface represents a mutable builder with a fluent API for a {@link org.eclipse.ditto.base.model.headers.DittoHeaders} object or an object of a
@@ -339,6 +339,24 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
      * @return The builder without preconditionHeaders
      */
     B removePreconditionHeaders();
+
+    /**
+     * Sets the traceparent value.
+     *
+     * @param traceparent the w3c traceparent header
+     * @return The builder with w3c traceparent set
+     * @since 2.1.0
+     */
+    B traceparent(@Nullable CharSequence traceparent);
+
+    /**
+     * Sets the tracestate value.
+     *
+     * @param tracestate the w3c tracestate header
+     * @return The builder with w3c tracestate set
+     * @since 2.1.0
+     */
+    B tracestate(@Nullable CharSequence tracestate);
 
     /**
      * Creates a DittoHeaders object containing the key-value-pairs which were put to this builder.

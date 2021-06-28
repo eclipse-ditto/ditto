@@ -17,6 +17,8 @@ import java.util.Map;
 
 import org.eclipse.ditto.internal.utils.metrics.instruments.TaggedMetricInstrument;
 
+import kamon.context.Context;
+
 /**
  * A started Timer metric. New instances are always built as started timers. No manual start is possible/required.
  */
@@ -74,4 +76,9 @@ public interface StartedTimer extends Timer, TaggedMetricInstrument<StartedTimer
      * @return All on stop handlers of this timer.
      */
     List<OnStopHandler> getOnStopHandlers();
+
+    /**
+     * @return the trace context associated with this trace.
+     */
+    Context getContext();
 }

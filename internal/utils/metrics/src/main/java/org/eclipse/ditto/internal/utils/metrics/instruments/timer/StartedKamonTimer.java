@@ -12,8 +12,10 @@
  */
 package org.eclipse.ditto.internal.utils.metrics.instruments.timer;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +23,12 @@ import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import kamon.Kamon;
+import kamon.context.Context;
+import kamon.tag.TagSet;
+import kamon.trace.Span;
+import kamon.trace.SpanBuilder;
 
 /**
  * Kamon based implementation of {@link StartedTimer}.
@@ -35,21 +43,37 @@ final class StartedKamonTimer implements StartedTimer {
     private final List<OnStopHandler> onStopHandlers;
     private final Map<String, StartedTimer> segments;
     private final long startTimestamp;
+    private final Instant startInstant;
+    private final Context context;
 
     @Nullable private StoppedTimer stoppedTimer;
 
-    private StartedKamonTimer(final String name, final Map<String, String> tags) {
+    private StartedKamonTimer(final String name, final Map<String, String> tags, final Context parentContext) {
         this.name = name;
         this.tags = new HashMap<>(tags);
-        this.segments = new HashMap<>();
+        this.segments = new LinkedHashMap<>(); // keeps insertion order
         this.onStopHandlers = new ArrayList<>();
         this.stoppedTimer = null;
         this.startTimestamp = System.nanoTime();
+        this.startInstant = Instant.now();
+
+        if (parentContext != null) {
+            final SpanBuilder spanBuilder = Kamon.spanBuilder(name);
+            final Span parent = parentContext.get(Span.Key());
+            final Span span = spanBuilder
+                    .asChildOf(parent)
+                    .tag(TagSet.from(Map.copyOf(tags)))
+                    .start(startInstant);
+            this.context = Context.of(Span.Key(), span);
+        } else {
+            this.context = Context.Empty();
+        }
+
         if (!this.tags.containsKey(SEGMENT_TAG)) {tag(SEGMENT_TAG, "overall");}
     }
 
     static StartedTimer fromPreparedTimer(final PreparedTimer preparedTimer) {
-        return new StartedKamonTimer(preparedTimer.getName(), preparedTimer.getTags());
+        return new StartedKamonTimer(preparedTimer.getName(), preparedTimer.getTags(), preparedTimer.getTraceContext());
     }
 
     @Override
@@ -110,8 +134,10 @@ final class StartedKamonTimer implements StartedTimer {
     public StartedTimer startNewSegment(final String segmentName) {
         if (isRunning()) {
             final StartedTimer segment = PreparedKamonTimer.newTimer(name)
-                    .tags(this.tags)
+                    .tags(tags)
                     .tag(SEGMENT_TAG, segmentName)
+                    .withTraceContext(segments.values().stream().reduce((a, b) -> b)
+                            .map(StartedTimer::getContext).orElse(getContext()))
                     .start();
             this.segments.put(segmentName, segment);
             return segment;
@@ -148,6 +174,10 @@ final class StartedKamonTimer implements StartedTimer {
         return new ArrayList<>(onStopHandlers);
     }
 
+    @Override
+    public Context getContext() {
+        return context;
+    }
 
     @Override
     public String toString() {
@@ -157,7 +187,10 @@ final class StartedKamonTimer implements StartedTimer {
                 ", onStopHandlers=" + onStopHandlers +
                 ", segments=" + segments +
                 ", startTimestamp=" + startTimestamp +
+                ", startInstant=" + startInstant +
                 ", stoppedTimer=" + stoppedTimer +
+                ", context=" + context +
                 "]";
     }
+
 }

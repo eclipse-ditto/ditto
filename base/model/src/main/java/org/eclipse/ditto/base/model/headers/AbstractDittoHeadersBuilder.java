@@ -30,12 +30,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.json.JsonValueContainer;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -49,6 +43,12 @@ import org.eclipse.ditto.base.model.headers.metadata.MetadataHeader;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.JsonValueContainer;
 
 /**
  * An abstract base implementation for subclasses of {@link org.eclipse.ditto.base.model.headers.DittoHeadersBuilder}. This implementation does already
@@ -505,6 +505,22 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     public S removePreconditionHeaders() {
         headers.remove(DittoHeaderDefinition.IF_MATCH.getKey());
         headers.remove(DittoHeaderDefinition.IF_NONE_MATCH.getKey());
+        return myself;
+    }
+
+    @Override
+    public S traceparent(@Nullable final CharSequence traceparent) {
+        if (traceparent != null) {
+            putCharSequence(DittoHeaderDefinition.W3C_TRACEPARENT, traceparent);
+        }
+        return myself;
+    }
+
+    @Override
+    public S tracestate(@Nullable final CharSequence tracestate) {
+        if (tracestate != null && tracestate.length() > 0) {
+            putCharSequence(DittoHeaderDefinition.W3C_TRACESTATE, tracestate);
+        }
         return myself;
     }
 

@@ -31,6 +31,7 @@ import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.api.ThingTag;
@@ -211,6 +212,7 @@ final class ThingUpdater extends AbstractActor {
                     .tag(ConsistencyLag.TAG_SHOULD_ACK, Boolean.toString(shouldAcknowledge))
                     .onExpiration(startedTimer ->
                             l.warning("Timer measuring consistency lag timed out for event <{}>", thingEvent))
+                    .withTraceContext(DittoTracing.extractTraceContext(thingEvent))
                     .start();
             ConsistencyLag.startS0InUpdater(timer);
             enqueueMetadata(exportMetadataWithSender(shouldAcknowledge, getSender(), timer));

@@ -41,6 +41,9 @@ import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
 
 import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -125,6 +128,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
         final Envelope envelope = delivery.getEnvelope();
         final byte[] body = delivery.getBody();
 
+        StartedTrace trace = Traces.emptyTrace();
         Map<String, String> headers = null;
         try {
             final String correlationId = properties.getCorrelationId();
@@ -134,6 +138,11 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
                                 new String(body, StandardCharsets.UTF_8));
             }
             headers = extractHeadersFromMessage(properties, envelope);
+
+            trace = DittoTracing.trace(DittoTracing.extractTraceContext(headers), "rabbitmq.consume")
+                    .correlationId(correlationId)
+                    .start();
+
             final ExternalMessageBuilder externalMessageBuilder =
                     ExternalMessageFactory.newExternalMessageBuilder(headers);
             final String contentType = properties.getContentType();
@@ -187,6 +196,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             } else {
                 inboundMonitor.failure(e);
             }
+            trace.fail(e);
         } catch (final Exception e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage());
             if (headers != null) {
@@ -194,6 +204,9 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             } else {
                 inboundMonitor.exception(e);
             }
+            trace.fail(e);
+        } finally {
+            trace.finish();
         }
     }
 
