@@ -64,7 +64,7 @@ public final class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<
                     .withTestProbe(getRef())
                     .withFailingSubscribe();
 
-            final Props props = HiveMqtt3ClientActor.props(connection, getRef(), getRef(), clientFactory);
+            final Props props = HiveMqtt3ClientActor.props(connection, getRef(), getRef(), clientFactory, dittoHeaders);
             final ActorRef mqttClientActor = actorSystem.actorOf(props, "mqttClientActor-testSubscribeFails");
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -78,7 +78,7 @@ public final class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<
     @Override
     protected Props createClientActor(final ActorRef proxyActor, final Connection connection) {
         return HiveMqtt3ClientActor.props(connection, proxyActor, proxyActor,
-                mockHiveMqtt3ClientFactory.withTestProbe(proxyActor));
+                mockHiveMqtt3ClientFactory.withTestProbe(proxyActor), dittoHeaders);
     }
 
     @Override
@@ -90,7 +90,7 @@ public final class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<
     protected Props createFailingClientActor(final ActorRef testProbe) {
         return HiveMqtt3ClientActor.props(connection, testProbe, testProbe,
                 mockHiveMqtt3ClientFactory
-                        .withException(new RuntimeException("failed to connect")));
+                        .withException(new RuntimeException("failed to connect")), dittoHeaders);
     }
 
     @Override
@@ -100,7 +100,7 @@ public final class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<
         final MockHiveMqtt3ClientFactory clientFactory = mockHiveMqtt3ClientFactory
                 .withMessages(messages)
                 .withTestProbe(testProbe);
-        return HiveMqtt3ClientActor.props(connection, testProbe, testProbe, clientFactory);
+        return HiveMqtt3ClientActor.props(connection, testProbe, testProbe, clientFactory, dittoHeaders);
     }
 
     @Override

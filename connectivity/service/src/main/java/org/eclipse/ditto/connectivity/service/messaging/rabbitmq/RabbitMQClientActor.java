@@ -90,9 +90,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
     @SuppressWarnings("unused")
     private RabbitMQClientActor(final Connection connection,
             @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor) {
+            final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
 
-        super(connection, proxyActor, connectionActor);
+        super(connection, proxyActor, connectionActor, dittoHeaders);
 
         rabbitConnectionFactoryFactory =
                 ConnectionBasedRabbitConnectionFactoryFactory.getInstance(this::getSshTunnelState);
@@ -107,9 +107,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
      */
     @SuppressWarnings("unused")
     private RabbitMQClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
+            final ActorRef connectionActor, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory,
+            final DittoHeaders dittoHeaders) {
 
-        super(connection, proxyActor, connectionActor);
+        super(connection, proxyActor, connectionActor, dittoHeaders);
         this.rabbitConnectionFactoryFactory = rabbitConnectionFactoryFactory;
         consumedTagsToAddresses = new HashMap<>();
         consumerByAddressWithIndex = new HashMap<>();
@@ -123,13 +124,14 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * @param connection the connection.
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
+     * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor) {
+            final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
 
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), proxyActor,
-                connectionActor);
+                connectionActor, dittoHeaders);
     }
 
     /**
@@ -145,7 +147,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             final ActorRef connectionActor, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory) {
 
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), proxyActor, connectionActor,
-                rabbitConnectionFactoryFactory);
+                rabbitConnectionFactoryFactory, DittoHeaders.empty());
     }
 
     private static Connection validateConnection(final Connection connection) {

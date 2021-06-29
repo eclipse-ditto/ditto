@@ -36,6 +36,7 @@ import org.apache.qpid.jms.JmsConnectionListener;
 import org.apache.qpid.jms.JmsSession;
 import org.apache.qpid.jms.message.JmsInboundMessageDispatch;
 import org.apache.qpid.jms.provider.ProviderFactory;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
@@ -116,9 +117,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private AmqpClientActor(final Connection connection,
             @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor,
-            final Config amqp10configOverride) {
+            final Config amqp10configOverride,
+            final DittoHeaders dittoHeaders) {
 
-        super(connection, proxyActor, connectionActor);
+        super(connection, proxyActor, connectionActor, dittoHeaders);
 
         final Config systemConfig = getContext().getSystem().settings().config();
         final Config mergedConfig = systemConfig.withValue(AMQP_10_CONFIG_PATH,
@@ -144,9 +146,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private AmqpClientActor(final Connection connection,
             final JmsConnectionFactory jmsConnectionFactory,
             @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor) {
+            final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
 
-        super(connection, proxyActor, connectionActor);
+        super(connection, proxyActor, connectionActor, dittoHeaders);
 
         this.jmsConnectionFactory = jmsConnectionFactory;
         connectionListener = new StatusReportingListener(getSelf(), logger, connectionLogger);
@@ -163,13 +165,15 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param actorSystem the actor system.
+     * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor, final ActorSystem actorSystem) {
+            final ActorRef connectionActor, final ActorSystem actorSystem,
+            final DittoHeaders dittoHeaders) {
 
         return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem), proxyActor,
-                connectionActor, ConfigFactory.empty());
+                connectionActor, ConfigFactory.empty(), dittoHeaders);
     }
 
     /**
@@ -181,13 +185,15 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @param amqp10configOverride an override for Amqp10Config values -
      * @param actorSystem the actor system.
      * as Typesafe {@code Config} because this one is serializable in Akka by default.
+     * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor, final Config amqp10configOverride, final ActorSystem actorSystem) {
+            final ActorRef connectionActor, final Config amqp10configOverride, final ActorSystem actorSystem,
+            final DittoHeaders dittoHeaders) {
 
         return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem), proxyActor,
-                connectionActor, amqp10configOverride);
+                connectionActor, amqp10configOverride, dittoHeaders);
     }
 
     /**
@@ -205,7 +211,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final ActorSystem actorSystem) {
 
         return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem),
-                jmsConnectionFactory, proxyActor, connectionActor);
+                jmsConnectionFactory, proxyActor, connectionActor, DittoHeaders.empty());
     }
 
     private static Connection validateConnection(final Connection connection, final ActorSystem actorSystem) {

@@ -238,7 +238,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
                             final String clientId) {
                         return MockKafkaPublisherActor.props(ref, status);
                     }
-                });
+                }, dittoHeaders);
     }
 
     private static Map<String, String> specificConfigWithBootstrapServers(final String... hostAndPort) {

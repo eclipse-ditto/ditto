@@ -78,6 +78,20 @@ public interface ConnectionContextProvider {
             DittoHeaders dittoHeaders, ActorRef subscriber);
 
     /**
+     * Register the given {@code subscriber} for changes to the {@link ConnectivityConfig} of the given connection.
+     * The given {@link ActorRef} will receive {@link Event}s to build the modified
+     * {@link ConnectivityConfig}.
+     *
+     * @param context context of the connection whose config changes are subscribed
+     * @param subscriber the subscriber that will receive {@link org.eclipse.ditto.base.model.signals.events.Event}s
+     * @return a future that succeeds or fails depends on whether registration was successful.
+     */
+    default CompletionStage<Void> registerForConnectivityConfigChanges(final ConnectionContext context,
+            final ActorRef subscriber) {
+        return registerForConnectivityConfigChanges(context.getConnection().getId(), DittoHeaders.empty(), subscriber);
+    }
+
+    /**
      * Returns {@code true} if the implementation can handle the given {@code event} to generate a modified {@link
      * ConnectivityConfig} when passed to {@link #handleEvent(Event)}.
      *

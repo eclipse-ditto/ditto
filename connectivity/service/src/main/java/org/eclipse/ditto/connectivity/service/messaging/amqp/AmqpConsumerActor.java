@@ -168,7 +168,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     @Override
     public void preStart() throws JMSException {
         initMessageConsumer();
-        registerForConfigChanges(connectionId);
+        getConnectivityConfigProvider()
+                .registerForConnectivityConfigChanges(consumerData.getConnectionContext(), getSelf());
     }
 
     @Override

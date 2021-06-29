@@ -810,7 +810,7 @@ public final class ConnectionPersistenceActor
     }
 
     private CompletionStage<Object> startAndAskClientActors(final SignalWithEntityId<?> cmd, final int clientCount) {
-        startClientActorsIfRequired(clientCount);
+        startClientActorsIfRequired(clientCount, cmd.getDittoHeaders());
         final Object msg = consistentHashableEnvelope(cmd, cmd.getEntityId().toString());
         return processClientAskResult(Patterns.ask(clientActorRouter, msg, clientActorAskTimeout));
     }
@@ -946,11 +946,11 @@ public final class ConnectionPersistenceActor
         return ESCALATE_ALWAYS_STRATEGY;
     }
 
-    private void startClientActorsIfRequired(final int clientCount) {
+    private void startClientActorsIfRequired(final int clientCount, final DittoHeaders dittoHeaders) {
         if (entity != null && clientActorRouter == null && clientCount > 0) {
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", entityId, clientCount);
-            final Props props =
-                    propsFactory.getActorPropsForType(entity, proxyActor, getSelf(), getContext().getSystem());
+            final Props props = propsFactory.getActorPropsForType(entity, proxyActor, getSelf(),
+                    getContext().getSystem(), dittoHeaders);
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
                     new ClusterRouterPoolSettings(clientCount, clientActorsPerNode(clientCount), true,
                             Set.of(CLUSTER_ROLE));

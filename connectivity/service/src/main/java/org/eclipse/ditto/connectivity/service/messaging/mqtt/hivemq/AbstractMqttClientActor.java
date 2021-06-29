@@ -26,6 +26,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.Source;
@@ -82,8 +83,8 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
     private final MqttConfig mqttConfig;
 
     AbstractMqttClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor) {
-        super(connection, proxyActor, connectionActor);
+            final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
+        super(connection, proxyActor, connectionActor, dittoHeaders);
         this.connection = connection;
         mqttConfig = connectionContext.getConnectivityConfig().getConnectionConfig().getMqttConfig();
         mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);

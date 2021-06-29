@@ -199,7 +199,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private int childActorCount = 0;
 
     protected BaseClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor) {
+            final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
 
         this.connection = checkNotNull(connection, "connection");
         this.connectionActor = connectionActor;
@@ -246,7 +246,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 ConnectionPersistenceActor.getSubscriptionPrefixLength(connection.getClientCount());
 
         // Send init message to allow for unsafe initialization of subclasses.
-        getSelf().tell(Control.INIT_START, ActorRef.noSender());
+        startInitialization(connection.getId(), dittoHeaders);
     }
 
     @Override
@@ -425,10 +425,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return state;
     }
 
-    private FSM.State<BaseClientState, BaseClientData> startInitialization() {
-        pipeConnectionContextToSelf(connectionContextProvider, connection, getSelf(), getContext().getDispatcher());
-        connectionContextProvider.registerForConnectivityConfigChanges(connectionId(), DittoHeaders.empty(), getSelf());
-        return stay();
+    private void startInitialization(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
+        pipeConnectionContextToSelfAndRegisterForChanges(connectionContextProvider, connection, dittoHeaders, getSelf(),
+                getContext().getDispatcher());
     }
 
     /**
@@ -709,7 +708,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inUnknownState() {
         return matchEventEquals(Control.INIT_COMPLETE, (init, baseClientData) -> completeInitialization())
-                .eventEquals(Control.INIT_START, (init, baseClientData) -> startInitialization())
                 .event(ConnectionContext.class, this::initializeByConnectionContext)
                 .event(RuntimeException.class, this::failInitialization)
                 .anyEvent((o, baseClientData) -> {
@@ -1909,18 +1907,24 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         }
     }
 
-    private static void pipeConnectionContextToSelf(final ConnectionContextProvider connectionContextProvider,
-            final Connection connection, final ActorRef self, final ExecutionContext executionContext) {
+    private static void pipeConnectionContextToSelfAndRegisterForChanges(
+            final ConnectionContextProvider connectionContextProvider,
+            final Connection connection, final DittoHeaders dittoHeaders,
+            final ActorRef self, final ExecutionContext executionContext) {
 
-        final CompletionStage<Object> messageToSelfFuture = connectionContextProvider.getConnectionContext(connection)
-                .<Object>thenApply(x -> x)
-                .exceptionally(throwable -> {
-                    if (throwable instanceof RuntimeException) {
-                        return throwable;
-                    } else {
-                        return new RuntimeException(throwable);
-                    }
-                });
+        final CompletionStage<Object> messageToSelfFuture =
+                connectionContextProvider.getConnectionContext(connection, dittoHeaders)
+                        .thenCompose(context ->
+                                connectionContextProvider.registerForConnectivityConfigChanges(context, self)
+                                        .<Object>thenApply(_void -> context)
+                        )
+                        .exceptionally(throwable -> {
+                            if (throwable instanceof RuntimeException) {
+                                return throwable;
+                            } else {
+                                return new RuntimeException(throwable);
+                            }
+                        });
 
         Patterns.pipe(messageToSelfFuture, executionContext).to(self);
     }
@@ -2116,7 +2120,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private enum Control {
-        INIT_START,
         INIT_COMPLETE,
         REFRESH_CLIENT_ACTOR_REFS,
         CONNECT_AFTER_TUNNEL_ESTABLISHED

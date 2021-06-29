@@ -63,7 +63,8 @@ public final class HiveMqtt5ClientActorTest extends AbstractMqttClientActorTest<
                     .withFailingSubscribe();
 
             final Props props =
-                    HiveMqtt5ClientActor.props(connection, getRef(), clientFactory, mockConnectionActor.ref());
+                    HiveMqtt5ClientActor.props(connection, getRef(), clientFactory, mockConnectionActor.ref(),
+                            dittoHeaders);
             final ActorRef mqttClientActor = actorSystem.actorOf(props, "mqttClientActor-testSubscribeFails");
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -77,7 +78,7 @@ public final class HiveMqtt5ClientActorTest extends AbstractMqttClientActorTest<
     @Override
     protected Props createClientActor(final ActorRef proxyActor, final Connection connection) {
         return HiveMqtt5ClientActor.props(connection, proxyActor,
-                mockHiveMqtt5ClientFactory.withTestProbe(proxyActor), mockConnectionActor.ref());
+                mockHiveMqtt5ClientFactory.withTestProbe(proxyActor), mockConnectionActor.ref(), dittoHeaders);
     }
 
     @Override
@@ -89,7 +90,8 @@ public final class HiveMqtt5ClientActorTest extends AbstractMqttClientActorTest<
     protected Props createFailingClientActor(final ActorRef testProbe) {
         return HiveMqtt5ClientActor.props(connection, testProbe,
                 mockHiveMqtt5ClientFactory
-                        .withException(new RuntimeException("failed to connect")), mockConnectionActor.ref());
+                        .withException(new RuntimeException("failed to connect")), mockConnectionActor.ref(),
+                dittoHeaders);
     }
 
     @Override
@@ -99,7 +101,7 @@ public final class HiveMqtt5ClientActorTest extends AbstractMqttClientActorTest<
         final MockHiveMqtt5ClientFactory clientFactory = mockHiveMqtt5ClientFactory
                 .withMessages(messages)
                 .withTestProbe(testProbe);
-        return HiveMqtt5ClientActor.props(connection, testProbe, clientFactory, mockConnectionActor.ref());
+        return HiveMqtt5ClientActor.props(connection, testProbe, clientFactory, mockConnectionActor.ref(), dittoHeaders);
     }
 
     @Override
