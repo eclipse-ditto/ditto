@@ -160,12 +160,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 .withHeader("ditto-connection-id", connection.getId().toString());
 
         return producerStream.publish(publishTarget, messageWithConnectionIdHeader)
-                .thenApply(callback)
-                .whenComplete((metadata, throwable) -> {
-                    if (throwable != null) {
-                        escalateIfNotRetryable(throwable);
-                    }
-                });
+                .thenApply(callback);
     }
 
     @Override
