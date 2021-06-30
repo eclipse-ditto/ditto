@@ -32,7 +32,6 @@ import java.util.stream.IntStream;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.DisconnectException;
-import org.apache.kafka.common.errors.InvalidTopicException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.awaitility.Awaitility;
@@ -56,7 +55,6 @@ import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaProducerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -64,7 +62,6 @@ import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -302,18 +299,6 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                 assertThat(sender.expectMsgClass(Acknowledgements.class).getHttpStatus())
                         .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
         );
-    }
-
-    @Test
-    @Ignore
-    public void nonRetriableExceptionBecomesClientErrorAcknowledgement() {
-        testSendFailure(new InvalidTopicException(), (sender, parent) -> {
-            assertThat(sender.expectMsgClass(Acknowledgements.class).getHttpStatus())
-                    .isEqualTo(HttpStatus.BAD_REQUEST);
-
-            // expect failure escalation
-            parent.expectMsgClass(ConnectionFailure.class);
-        });
     }
 
     @Override
