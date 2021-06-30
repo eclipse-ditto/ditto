@@ -169,19 +169,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         producerStream.shutdown();
     }
 
-    /**
-     * Check a send exception.
-     * Escalate to parent if it cannot be recovered from.
-     * Called by ProducerCallBack; must be thread-safe.
-     *
-     * @param throwable the exception.
-     */
-    private void escalateIfNotRetryable(final Throwable throwable) {
-        if (!(throwable instanceof RetriableException || throwable.getCause() instanceof RetriableException)) {
-            escalate(throwable, "Got non-retryable exception");
-        }
-    }
-
     private boolean isDryRun() {
         return dryRun;
     }
