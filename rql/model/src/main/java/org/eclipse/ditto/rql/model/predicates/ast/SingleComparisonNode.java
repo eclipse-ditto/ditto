@@ -13,6 +13,8 @@
 package org.eclipse.ditto.rql.model.predicates.ast;
 
 
+import javax.annotation.Nullable;
+
 /**
  * Implements a comparison node like EQ (equals). A comparison node has a name, a property to compare on and a single
  * value to compare for.
@@ -27,7 +29,7 @@ public final class SingleComparisonNode extends ComparisonNode<SingleComparisonN
      * @param comparisonValue the value to compare for.
      */
     public SingleComparisonNode(final Type comparisonType, final String comparisonProperty,
-            final Object comparisonValue) {
+            @Nullable final Object comparisonValue) {
         super(comparisonType, comparisonProperty, comparisonValue);
     }
 

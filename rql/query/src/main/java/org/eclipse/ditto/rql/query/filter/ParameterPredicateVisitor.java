@@ -15,17 +15,14 @@ package org.eclipse.ditto.rql.query.filter;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-import org.eclipse.ditto.rql.query.criteria.Criteria;
-import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
-import org.eclipse.ditto.rql.query.criteria.Predicate;
-import org.eclipse.ditto.rql.query.expression.ExistsFieldExpression;
-import org.eclipse.ditto.rql.query.expression.FieldExpressionFactory;
-import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.rql.model.predicates.ast.ExistsNode;
 import org.eclipse.ditto.rql.model.predicates.ast.LogicalNode;
 import org.eclipse.ditto.rql.model.predicates.ast.MultiComparisonNode;
@@ -33,6 +30,12 @@ import org.eclipse.ditto.rql.model.predicates.ast.Node;
 import org.eclipse.ditto.rql.model.predicates.ast.PredicateVisitor;
 import org.eclipse.ditto.rql.model.predicates.ast.RootNode;
 import org.eclipse.ditto.rql.model.predicates.ast.SingleComparisonNode;
+import org.eclipse.ditto.rql.query.criteria.Criteria;
+import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
+import org.eclipse.ditto.rql.query.criteria.Predicate;
+import org.eclipse.ditto.rql.query.expression.ExistsFieldExpression;
+import org.eclipse.ditto.rql.query.expression.FieldExpressionFactory;
+import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
 
 /**
  * Predicate AST PredicateVisitor. Implements the visitor for AST nodes and creates a search criteria out of it.
@@ -114,7 +117,7 @@ final class ParameterPredicateVisitor implements PredicateVisitor {
         checkNotNull(node, "single comparison node");
         final FilterFieldExpression field = fieldExprFactory.filterBy(node.getComparisonProperty());
         final SingleComparisonNode.Type type = node.getComparisonType();
-        final Object value = node.getComparisonValue();
+        @Nullable final Object value = node.getComparisonValue();
 
         final BiFunction<CriteriaFactory, Object, Predicate> predicateFactory = SINGLE_COMPARISON_NODE_MAPPING.get(type);
         if (predicateFactory == null) {
@@ -130,7 +133,8 @@ final class ParameterPredicateVisitor implements PredicateVisitor {
         checkNotNull(node, "multi comparison node");
         final FilterFieldExpression field = fieldExprFactory.filterBy(node.getComparisonProperty());
         final MultiComparisonNode.Type type = node.getComparisonType();
-        final List<Object> values = node.getComparisonValue();
+        final List<Object> values = node.getComparisonValue() != null ? node.getComparisonValue() :
+                Collections.emptyList();
 
         if (type == MultiComparisonNode.Type.IN) {
             criteria.add(criteriaFactory.fieldCriteria(field, criteriaFactory.in(values)));
