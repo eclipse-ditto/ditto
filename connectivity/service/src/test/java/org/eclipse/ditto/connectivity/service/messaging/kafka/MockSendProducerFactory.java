@@ -80,9 +80,13 @@ final class MockSendProducerFactory implements SendProducerFactory {
     public SendProducer<String, String> newSendProducer() {
         final SendProducer<String, String> producer = mock(SendProducer.class);
         if (blocking) {
-            // always return uncompleted future
             when(producer.sendEnvelope(any(ProducerMessage.Envelope.class)))
-                    .thenReturn(new CompletableFuture<>());
+                    .thenAnswer(invocationOnMock -> {
+                        // simulate slow publishing
+                        Thread.sleep(1000);
+                        // always return uncompleted future
+                        return new CompletableFuture<>();
+                    });
         } else if (exception == null) {
             when(producer.sendEnvelope(any(ProducerMessage.Envelope.class)))
                     .thenAnswer(invocationOnMock -> {
