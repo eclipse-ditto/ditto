@@ -451,6 +451,8 @@ public abstract class AbstractShardedPersistenceActor<
         final var deletedStrategy = (CommandStrategy<C, S, K, E>) getDeletedStrategy();
         return ReceiveBuilder.create()
                 .match(deletedStrategy.getMatchingClass(), deletedStrategy::isDefined,
+                        // get the current deletedStrategy during "matching time" to allow implementing classes
+                        // to update the strategy during runtime
                         command -> handleByStrategy(command, (CommandStrategy<C, S, K, E>) getDeletedStrategy()));
     }
 

@@ -72,7 +72,7 @@ public interface ConnectionContextProvider {
      * @param connectionId the connection id
      * @param dittoHeaders the ditto headers
      * @param subscriber the subscriber that will receive {@link org.eclipse.ditto.base.model.signals.events.Event}s
-     * @return a future that succeeds or fails depends on whether registration was successful.
+     * @return a future that succeeds or fails depending on whether registration was successful.
      */
     CompletionStage<Void> registerForConnectivityConfigChanges(ConnectionId connectionId,
             DittoHeaders dittoHeaders, ActorRef subscriber);
