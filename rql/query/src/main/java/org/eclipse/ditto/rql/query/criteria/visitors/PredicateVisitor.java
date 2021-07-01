@@ -14,6 +14,8 @@ package org.eclipse.ditto.rql.query.criteria.visitors;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.rql.query.criteria.Predicate;
 
 /**
@@ -21,20 +23,20 @@ import org.eclipse.ditto.rql.query.criteria.Predicate;
  */
 public interface PredicateVisitor<T> {
 
-    T visitEq(Object value);
+    T visitEq(@Nullable Object value);
 
-    T visitGe(Object value);
+    T visitGe(@Nullable Object value);
 
-    T visitGt(Object value);
+    T visitGt(@Nullable Object value);
+
+    T visitLe(@Nullable Object value);
+
+    T visitLt(@Nullable Object value);
+
+    T visitNe(@Nullable Object value);
+
+    T visitLike(@Nullable String value);
 
     T visitIn(List<?> values);
-
-    T visitLe(Object value);
-
-    T visitLike(String value);
-
-    T visitLt(Object value);
-
-    T visitNe(Object value);
 
 }

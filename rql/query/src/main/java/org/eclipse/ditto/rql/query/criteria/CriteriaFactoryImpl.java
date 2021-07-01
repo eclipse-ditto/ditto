@@ -16,9 +16,10 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.rql.query.expression.ExistsFieldExpression;
 import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
-
 
 /**
  * Class for creating queries.
@@ -71,37 +72,37 @@ final class CriteriaFactoryImpl implements CriteriaFactory {
     }
 
     @Override
-    public Predicate eq(final Object value) {
+    public Predicate eq(@Nullable final Object value) {
         return new EqPredicateImpl(value);
     }
 
     @Override
-    public Predicate ne(final Object value) {
+    public Predicate ne(@Nullable final Object value) {
         return new NePredicateImpl(value);
     }
 
     @Override
-    public Predicate gt(final Object value) {
+    public Predicate gt(@Nullable final Object value) {
         return new GtPredicateImpl(value);
     }
 
     @Override
-    public Predicate ge(final Object value) {
+    public Predicate ge(@Nullable final Object value) {
         return new GePredicateImpl(value);
     }
 
     @Override
-    public Predicate lt(final Object value) {
+    public Predicate lt(@Nullable final Object value) {
         return new LtPredicateImpl(value);
     }
 
     @Override
-    public Predicate le(final Object value) {
+    public Predicate le(@Nullable final Object value) {
         return new LePredicateImpl(value);
     }
 
     @Override
-    public Predicate like(final Object value) {
+    public Predicate like(@Nullable final Object value) {
         if (value instanceof String) {
             return new LikePredicateImpl(value);
         } else {

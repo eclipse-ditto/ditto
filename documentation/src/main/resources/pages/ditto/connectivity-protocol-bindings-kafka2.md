@@ -31,8 +31,8 @@ The following example shows a valid kafka source:
   "consumerCount": 1,
   "authorizationContext": ["ditto:inbound-auth-subject"],
   "enforcement": {
-    "input": "{{ header:device_id }}",
-    "filters": ["{{ entity:id }}"]
+    "input": "{%raw%}{{ header:device_id }}{%endraw%}",
+    "filters": ["{%raw%}{{ entity:id }}{%endraw%}"]
   },
   "headerMapping": {},
   "payloadMapping": ["Ditto"],

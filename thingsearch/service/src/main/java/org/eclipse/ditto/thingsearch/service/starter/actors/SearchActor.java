@@ -41,7 +41,6 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoRetrieveNamespaceReport;
 import org.eclipse.ditto.thingsearch.model.SearchModelFactory;
-import org.eclipse.ditto.thingsearch.model.SearchResult;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThingsResponse;
@@ -141,7 +140,7 @@ public final class SearchActor extends AbstractActor {
     }
 
     private void namespaceReport(final SudoRetrieveNamespaceReport namespaceReport) {
-        final DittoHeaders dittoHeaders = namespaceReport.getDittoHeaders();
+        final var dittoHeaders = namespaceReport.getDittoHeaders();
         log.withCorrelationId(dittoHeaders)
                 .info("Processing SudoRetrieveNamespaceReport command: {}", namespaceReport);
 
@@ -161,17 +160,13 @@ public final class SearchActor extends AbstractActor {
     private <T extends Command<?>> void executeCount(final T countCommand,
             final Function<T, CompletionStage<Query>> queryParseFunction,
             final boolean isSudo) {
-        final DittoHeaders dittoHeaders = countCommand.getDittoHeaders();
+        final var dittoHeaders = countCommand.getDittoHeaders();
         log.withCorrelationId(dittoHeaders)
                 .info("Processing CountThings command: {}", countCommand);
         final JsonSchemaVersion version = countCommand.getImplementedSchemaVersion();
-
-        final String queryType = "count";
-
+        final var queryType = "count";
         final StartedTimer countTimer = startNewTimer(version, queryType);
-
         final StartedTimer queryParsingTimer = countTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
-
         final ActorRef sender = getSender();
 
         final Source<Object, ?> replySource = createQuerySource(queryParseFunction, countCommand)
@@ -202,18 +197,20 @@ public final class SearchActor extends AbstractActor {
     private void stream(final StreamThings streamThings) {
         final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(streamThings);
         l.info("Processing StreamThings command: {}", streamThings);
+
         final JsonSchemaVersion version = streamThings.getImplementedSchemaVersion();
-        final String queryType = "query"; // same as queryThings
+        final var queryType = "query"; // same as queryThings
         final StartedTimer searchTimer = startNewTimer(version, queryType);
         final StartedTimer queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
         final ActorRef sender = getSender();
         final Set<String> namespaces = streamThings.getNamespaces().orElse(null);
+
         final Source<Optional<ThingsSearchCursor>, NotUsed> cursorSource =
                 ThingsSearchCursor.extractCursor(streamThings);
         final Source<SourceRef<String>, NotUsed> sourceRefSource = cursorSource.flatMapConcat(cursor -> {
             cursor.ifPresent(c -> c.logCursorCorrelationId(l));
             return createQuerySource(queryParser::parse, streamThings).map(parsedQuery -> {
-                final Query query = ThingsSearchCursor.adjust(cursor, parsedQuery, queryParser.getCriteriaFactory());
+                final var query = ThingsSearchCursor.adjust(cursor, parsedQuery, queryParser.getCriteriaFactory());
                 stopTimer(queryParsingTimer);
                 searchTimer.startNewSegment(DATABASE_ACCESS_SEGMENT_NAME); // segment stopped by stopTimerAndHandleError
                 final List<String> subjectIds =
@@ -235,12 +232,11 @@ public final class SearchActor extends AbstractActor {
     private void query(final QueryThings queryThings) {
         final ThreadSafeDittoLoggingAdapter l = log.withCorrelationId(queryThings);
         l.debug("Starting to process QueryThings command: {}", queryThings);
-        final JsonSchemaVersion version = queryThings.getImplementedSchemaVersion();
 
-        final String queryType = "query";
+        final JsonSchemaVersion version = queryThings.getImplementedSchemaVersion();
+        final var queryType = "query";
         final StartedTimer searchTimer = startNewTimer(version, queryType);
         final StartedTimer queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
-
         final ActorRef sender = getSender();
         final Set<String> namespaces = queryThings.getNamespaces().orElse(null);
 
@@ -250,11 +246,11 @@ public final class SearchActor extends AbstractActor {
         final Source<Object, ?> replySource = cursorSource.flatMapConcat(cursor -> {
             cursor.ifPresent(c -> c.logCursorCorrelationId(l));
             final QueryThings command = ThingsSearchCursor.adjust(cursor, queryThings);
-            final DittoHeaders dittoHeaders = command.getDittoHeaders();
+            final var dittoHeaders = command.getDittoHeaders();
             l.info("Processing QueryThings command: {}", queryThings);
             return createQuerySource(queryParser::parse, command)
                     .flatMapConcat(parsedQuery -> {
-                        final Query query =
+                        final var query =
                                 ThingsSearchCursor.adjust(cursor, parsedQuery, queryParser.getCriteriaFactory());
 
                         stopTimer(queryParsingTimer);
@@ -318,22 +314,21 @@ public final class SearchActor extends AbstractActor {
     }
 
     private DittoRuntimeException asDittoRuntimeException(final Throwable error, final WithDittoHeaders trigger) {
-        if (error instanceof DittoRuntimeException) {
-            return ((DittoRuntimeException) error).setDittoHeaders(trigger.getDittoHeaders());
-        } else {
+        return DittoRuntimeException.asDittoRuntimeException(error, t -> {
             log.error(error, "SearchActor failed to execute <{}>", trigger);
             return GatewayInternalErrorException.newBuilder()
                     .dittoHeaders(trigger.getDittoHeaders())
-                    .cause(error)
+                    .message(error.getClass() + ": " + error.getMessage())
+                    .cause(t)
                     .build();
-        }
+        });
     }
 
     private QueryThingsResponse toQueryThingsResponse(final QueryThings queryThings,
             @Nullable ThingsSearchCursor cursor,
             final ResultList<ThingId> thingIds) {
 
-        final DittoHeaders dittoHeaders = queryThings.getDittoHeaders();
+        final var dittoHeaders = queryThings.getDittoHeaders();
         if (thingIds.isEmpty()) {
             return QueryThingsResponse.of(SearchModelFactory.emptySearchResult(), dittoHeaders);
         } else {
@@ -345,8 +340,8 @@ public final class SearchActor extends AbstractActor {
                             .build()
                     )
                     .collect(JsonCollectors.valuesToArray());
-            final SearchResult searchResults = SearchModelFactory.newSearchResult(items, thingIds.nextPageOffset());
-            final SearchResult processedResults =
+            final var searchResults = SearchModelFactory.newSearchResult(items, thingIds.nextPageOffset());
+            final var processedResults =
                     ThingsSearchCursor.processSearchResult(queryThings, cursor, searchResults, thingIds);
 
             return QueryThingsResponse.of(processedResults, dittoHeaders);

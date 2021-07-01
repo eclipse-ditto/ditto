@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.rql.query.criteria;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.rql.query.criteria.visitors.PredicateVisitor;
 
 /**
@@ -19,7 +21,7 @@ import org.eclipse.ditto.rql.query.criteria.visitors.PredicateVisitor;
  */
 final class LePredicateImpl extends AbstractSinglePredicate {
 
-    public LePredicateImpl(final Object value) {
+    public LePredicateImpl(@Nullable final Object value) {
         super(value);
     }
 

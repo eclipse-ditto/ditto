@@ -17,6 +17,8 @@ import static java.util.Objects.requireNonNull;
 import java.util.Collections;
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.rql.query.expression.ExistsFieldExpression;
 import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
 
@@ -100,7 +102,7 @@ public interface CriteriaFactory {
      * @param value the value, may be {@code null}.
      * @return the predicate.
      */
-    Predicate eq(Object value);
+    Predicate eq(@Nullable Object value);
 
     /**
      * Creates a predicate which checks for not equal.
@@ -108,7 +110,7 @@ public interface CriteriaFactory {
      * @param value the value, may be {@code null}.
      * @return the predicate.
      */
-    Predicate ne(Object value);
+    Predicate ne(@Nullable Object value);
 
     /**
      * Creates a predicate which checks greater than.
@@ -116,7 +118,7 @@ public interface CriteriaFactory {
      * @param value the value, may be {@code null}.
      * @return the predicate.
      */
-    Predicate gt(Object value);
+    Predicate gt(@Nullable Object value);
 
     /**
      * Creates a predicate which checks greater than or equals.
@@ -124,7 +126,7 @@ public interface CriteriaFactory {
      * @param value the value, may be {@code null}.
      * @return the predicate.
      */
-    Predicate ge(Object value);
+    Predicate ge(@Nullable Object value);
 
     /**
      * Creates a predicate which checks lower than.
@@ -132,7 +134,7 @@ public interface CriteriaFactory {
      * @param value the value, may be {@code null}.
      * @return the predicate.
      */
-    Predicate lt(Object value);
+    Predicate lt(@Nullable Object value);
 
     /**
      * Creates a predicate which checks lower than or equals.
@@ -140,7 +142,7 @@ public interface CriteriaFactory {
      * @param value the value, may be {@code null}.
      * @return the predicate.
      */
-    Predicate le(Object value);
+    Predicate le(@Nullable Object value);
 
     /**
      * Creates a predicate which checks lower than or equals.
@@ -148,7 +150,7 @@ public interface CriteriaFactory {
      * @param value the value, may be {@code null}.
      * @return the predicate.
      */
-    Predicate like(Object value);
+    Predicate like(@Nullable Object value);
 
     /**
      * The $in predicate selects the documents where the value of a field equals any value in the specified array.

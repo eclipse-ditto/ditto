@@ -68,7 +68,7 @@ interface ClusterMemberRemovedAware extends Actor {
     default void memberRemoved(final ClusterEvent.MemberRemoved memberRemoved) {
         final var address = memberRemoved.member().address();
         if (Cluster.get(context().system()).isTerminated()) {
-            log().info("This instance was terminated from cluster, NOT removing declared acks on removed member <{}>",
+            log().debug("This instance was terminated from cluster, NOT removing declared acks on removed member <{}>",
                     address);
         } else {
             // acksUpdater detected unreachable remote. remove it from local ORMultiMap.

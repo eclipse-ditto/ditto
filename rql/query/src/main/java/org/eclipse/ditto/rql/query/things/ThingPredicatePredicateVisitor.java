@@ -19,6 +19,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.rql.query.criteria.visitors.PredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
@@ -27,6 +29,8 @@ import org.eclipse.ditto.things.model.Thing;
  * A Java {@link Predicate} based PredicateVisitor for evaluating whether {@link Thing}s match a given filter.
  */
 public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Function<String, Predicate<Thing>>> {
+
+    private static final Object NULL_LITERAL = new Object();
 
     private static ThingPredicatePredicateVisitor instance;
 
@@ -60,27 +64,41 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     }
 
     @Override
-    public Function<String, Predicate<Thing>> visitEq(final Object value) {
+    public Function<String, Predicate<Thing>> visitEq(@Nullable final Object value) {
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
                         .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
-                        .map(Comparable.class::cast)
-                        .filter(obj -> compare((Comparable<?>) value, obj) == 0)
+                        .filter(obj -> {
+                            // special NULL handling
+                            if (NULL_LITERAL == obj && null == value) {
+                                return true;
+                            } else if (obj instanceof Comparable && value instanceof Comparable) {
+                                return compare((Comparable<?>) value, (Comparable<?>) obj) == 0;
+                            }
+                            return false;
+                        })
                         .isPresent();
     }
 
     @Override
-    public Function<String, Predicate<Thing>> visitNe(final Object value) {
+    public Function<String, Predicate<Thing>> visitNe(@Nullable final Object value) {
         return fieldName ->
                 thing -> !getThingField(fieldName, thing)
                         .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
-                        .map(Comparable.class::cast)
-                        .filter(obj -> compare((Comparable<?>) value, obj) == 0)
+                        .filter(obj -> {
+                            // special NULL handling
+                            if (NULL_LITERAL == obj && null == value) {
+                                return true;
+                            } else if (obj instanceof Comparable && value instanceof Comparable) {
+                                return compare((Comparable<?>) value, (Comparable<?>) obj) == 0;
+                            }
+                            return false;
+                        })
                         .isPresent();
     }
 
     @Override
-    public Function<String, Predicate<Thing>> visitGe(final Object value) {
+    public Function<String, Predicate<Thing>> visitGe(@Nullable final Object value) {
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
                         .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
@@ -91,7 +109,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     }
 
     @Override
-    public Function<String, Predicate<Thing>> visitGt(final Object value) {
+    public Function<String, Predicate<Thing>> visitGt(@Nullable final Object value) {
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
                         .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
@@ -102,7 +120,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     }
 
     @Override
-    public Function<String, Predicate<Thing>> visitLe(final Object value) {
+    public Function<String, Predicate<Thing>> visitLe(@Nullable final Object value) {
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
                         .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
@@ -113,7 +131,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
     }
 
     @Override
-    public Function<String, Predicate<Thing>> visitLt(final Object value) {
+    public Function<String, Predicate<Thing>> visitLt(@Nullable final Object value) {
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
                         .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
@@ -163,18 +181,19 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
                         .flatMap(ThingPredicatePredicateVisitor::mapJsonValueToJava)
+                        .filter(Comparable.class::isInstance)
                         .map(Comparable.class::cast)
                         .filter(obj -> values.stream().anyMatch(v -> compare((Comparable<?>) v, obj) == 0))
                         .isPresent();
     }
 
     @Override
-    public Function<String, Predicate<Thing>> visitLike(final String value) {
+    public Function<String, Predicate<Thing>> visitLike(@Nullable final String value) {
         return fieldName ->
                 thing -> getThingField(fieldName, thing)
                         .filter(JsonValue::isString)
                         .map(JsonValue::asString)
-                        .filter(str -> Pattern.compile(value).matcher(str).matches())
+                        .filter(str -> null != value && Pattern.compile(value).matcher(str).matches())
                         .isPresent();
     }
 
@@ -190,7 +209,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
         } else if (jsonValue.isBoolean()) {
             result = Optional.of(jsonValue.asBoolean());
         } else if (jsonValue.isNull()) {
-            result = Optional.empty();
+            result = Optional.of(NULL_LITERAL);
         } else if (jsonValue.isNumber()) {
             if (jsonValue.isInt()) {
                 result = Optional.of(jsonValue.asInt());

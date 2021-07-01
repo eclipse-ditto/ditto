@@ -63,7 +63,6 @@ import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
-import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
@@ -240,22 +239,23 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .match(DittoRuntimeException.class, this::publishResponseOrError)
                 .match(Signal.class, this::isSameOrigin, signal ->
                         logger.withCorrelationId(signal)
-                                .debug("Got Signal <{}> in <{}> session, but this was issued by " +
+                                .debug("Got Signal of type <{}> in <{}> session, but this was issued by " +
                                         " this connection itself, not publishing", signal.getType(), type)
                 )
                 .match(Signal.class, signal -> {
                     // check if this session is "allowed" to receive the Signal
                     final var streamingType = determineStreamingType(signal);
-                    @Nullable final StreamingSession session = streamingSessions.get(streamingType);
+                    @Nullable final var session = streamingSessions.get(streamingType);
                     if (null != session && isSessionAllowedToReceiveSignal(signal, session, streamingType)) {
-                        logger.withCorrelationId(signal)
-                                .debug("Got Signal in <{}> session, publishing: {}", type, signal);
+                        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(signal);
+                        l.info("Publishing Signal of type <{}> in <{}> session", signal.getType(), type);
+                        l.debug("Publishing Signal of type <{}> in <{}> session: {}", type, signal.getType(), signal);
 
                         final DittoHeaders sessionHeaders = DittoHeaders.newBuilder()
                                 .authorizationContext(authorizationContext)
                                 .schemaVersion(jsonSchemaVersion)
                                 .build();
-                        final SessionedJsonifiable sessionedJsonifiable =
+                        final var sessionedJsonifiable =
                                 SessionedJsonifiable.signal(signal, sessionHeaders, session);
                         eventAndResponsePublisher.offer(sessionedJsonifiable);
                     }
@@ -284,8 +284,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                         eventAndResponsePublisher.offer(SessionedJsonifiable.error(e));
                         return;
                     }
-                    final StreamingSession session = StreamingSession.of(startStreaming.getNamespaces(), criteria,
-                            startStreaming.getExtraFields().orElse(null), self());
+                    final var session = StreamingSession.of(startStreaming.getNamespaces(), criteria,
+                            startStreaming.getExtraFields().orElse(null), getSelf(), logger);
                     streamingSessions.put(startStreaming.getStreamingType(), session);
 
                     logger.debug("Got 'StartStreaming' message in <{}> session, subscribing for <{}> in Cluster ...",
@@ -293,8 +293,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
                     outstandingSubscriptionAcks.add(startStreaming.getStreamingType());
                     // In Cluster: Subscribe
-                    final ConfirmSubscription subscribeConfirmation =
-                            new ConfirmSubscription(startStreaming.getStreamingType());
+                    final var subscribeConfirmation = new ConfirmSubscription(startStreaming.getStreamingType());
                     final Collection<StreamingType> currentStreamingTypes = streamingSessions.keySet();
                     dittoProtocolSub.subscribe(currentStreamingTypes,
                             authorizationContext.getAuthorizationSubjectIds(),
@@ -305,7 +304,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                             getSelf().tell(subscribeConfirmation, getSelf());
                         } else {
                             logger.error(throwable, "subscription to Ditto pubsub failed: {}", throwable.getMessage());
-                            final DittoRuntimeException dittoRuntimeException = DittoRuntimeException
+                            final var dittoRuntimeException = DittoRuntimeException
                                     .asDittoRuntimeException(throwable,
                                             cause -> GatewayInternalErrorException.newBuilder()
                                                     .dittoHeaders(DittoHeaders.newBuilder()
@@ -326,8 +325,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     streamingSessions.remove(stopStreaming.getStreamingType());
 
                     // In Cluster: Unsubscribe
-                    final ConfirmUnsubscription unsubscribeConfirmation =
-                            new ConfirmUnsubscription(stopStreaming.getStreamingType());
+                    final var unsubscribeConfirmation = new ConfirmUnsubscription(stopStreaming.getStreamingType());
                     final Collection<StreamingType> currentStreamingTypes = streamingSessions.keySet();
                     switch (stopStreaming.getStreamingType()) {
                         case EVENTS:
@@ -409,7 +407,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     private void pubsubFailed(final FatalPubSubException fatalPubSubException) {
-        final DittoRuntimeException exception = fatalPubSubException.asDittoRuntimeException();
+        final var exception = fatalPubSubException.asDittoRuntimeException();
         logger.withCorrelationId(exception).info("pubsubFailed cause=<{}>", exception);
         eventAndResponsePublisher.offer(SessionedJsonifiable.error(exception));
         terminateWebsocketStream();
@@ -455,7 +453,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         final Optional<EntityId> entityIdOptional =
                 WithEntityId.getEntityIdOfType(EntityId.class, signal);
         if (entityIdOptional.isPresent()) {
-            final EntityId entityIdWithType = entityIdOptional.get();
+            final var entityIdWithType = entityIdOptional.get();
             return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
                     entityIdWithType, signal, acknowledgementConfig, declaredAcks::contains);
         } else {
@@ -491,7 +489,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                             forwarder -> forwarder.tell(response, sender),
                             () -> {
                                 // the Acknowledgement / live CommandResponse is meant for someone else:
-                                final String template =
+                                final var template =
                                         "No AcknowledgementForwarderActor found, forwarding to concierge: <{}>";
                                 if (logger.isDebugEnabled()) {
                                     logger.withCorrelationId(response).debug(template, response);
@@ -517,7 +515,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             // recipients of policy announcements are authorized because the affected subjects are the pubsub topics
             return true;
         } else {
-            final DittoHeaders headers = signal.getDittoHeaders();
+            final var headers = signal.getDittoHeaders();
             final boolean isAuthorizedToRead = authorizationContext.isAuthorized(headers.getReadGrantedSubjects(),
                     headers.getReadRevokedSubjects());
             final boolean matchesNamespace = matchesNamespaces(signal, session);
@@ -526,7 +524,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     private void startSessionTimeout(final Instant sessionExpirationTime) {
-        final Duration sessionTimeout = Duration.between(Instant.now(), sessionExpirationTime);
+        final var sessionTimeout = Duration.between(Instant.now(), sessionExpirationTime);
         if (sessionTimeout.isNegative() || sessionTimeout.isZero()) {
             logger.debug("Session expired already. Closing WS.");
             getSelf().tell(Control.SESSION_TERMINATION, ActorRef.noSender());
@@ -541,7 +539,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     private void handleSessionTermination(final Control sessionTermination) {
         logger.info("Stopping WebSocket session for connection with ID <{}>.", connectionCorrelationId);
-        final GatewayWebsocketSessionExpiredException gatewayWebsocketSessionExpiredException =
+        final var gatewayWebsocketSessionExpiredException =
                 GatewayWebsocketSessionExpiredException.newBuilder()
                         .dittoHeaders(DittoHeaders.newBuilder()
                                 .correlationId(connectionCorrelationId)
@@ -555,11 +553,11 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     private void checkAuthorizationContextAndStartSessionTimer(final RefreshSession refreshSession) {
-        final AuthorizationContext newAuthorizationContext = refreshSession.getAuthorizationContext();
+        final var newAuthorizationContext = refreshSession.getAuthorizationContext();
         if (!authorizationContext.equals(newAuthorizationContext)) {
             logger.debug("Authorization Context changed for WebSocket session <{}>. Terminating the session.",
                     connectionCorrelationId);
-            final GatewayWebsocketSessionClosedException gatewayWebsocketSessionClosedException =
+            final var gatewayWebsocketSessionClosedException =
                     GatewayWebsocketSessionClosedException.newBuilder()
                             .dittoHeaders(DittoHeaders.newBuilder()
                                     .correlationId(connectionCorrelationId)
@@ -582,7 +580,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     private void refreshWebSocketSession(final Jwt jwt) {
         final String jwtConnectionCorrelationId = jwt.getConnectionCorrelationId();
-        final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromToken(jwt.toString());
+        final var jsonWebToken = ImmutableJsonWebToken.fromToken(jwt.toString());
         jwtValidator.validate(jsonWebToken).thenAccept(binaryValidationResult -> {
             if (binaryValidationResult.isValid()) {
                 jwtAuthenticationResultProvider.getAuthenticationResult(jsonWebToken, DittoHeaders.empty())
@@ -600,7 +598,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             } else {
                 logger.debug("Received invalid JWT for WebSocket session <{}>. Terminating the session.",
                         connectionCorrelationId);
-                final GatewayWebsocketSessionClosedException gatewayWebsocketSessionClosedException =
+                final var gatewayWebsocketSessionClosedException =
                         GatewayWebsocketSessionClosedException.newBuilderForInvalidToken()
                                 .dittoHeaders(DittoHeaders.newBuilder()
                                         .correlationId(connectionCorrelationId)
@@ -625,7 +623,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .thenAccept(unused -> logger.info("Acknowledgement label declaration successful for labels: <{}>",
                         acknowledgementLabels))
                 .exceptionally(error -> {
-                    final DittoRuntimeException dittoRuntimeException =
+                    final var dittoRuntimeException =
                             DittoRuntimeException.asDittoRuntimeException(error,
                                     cause -> AcknowledgementLabelNotUniqueException.newBuilder().cause(cause).build());
                     logger.info("Acknowledgement label declaration failed for labels: <{}> - cause: {} {}",
@@ -662,7 +660,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {
-        final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
+        final var queryFilterCriteriaFactory =
                 QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance());
 
         return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
@@ -684,13 +682,13 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     private static Optional<DittoHeaderInvalidException> checkForAcksWithoutResponse(final Signal<?> signal) {
-        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        final var dittoHeaders = signal.getDittoHeaders();
         if (!dittoHeaders.isResponseRequired() && !dittoHeaders.getAcknowledgementRequests().isEmpty()) {
-            final String message = String.format("For WebSocket, it is forbidden to request acknowledgements while " +
+            final var message = String.format("For WebSocket, it is forbidden to request acknowledgements while " +
                             "'%s' is set to false.",
                     DittoHeaderDefinition.RESPONSE_REQUIRED.getKey());
             final var invalidHeaderKey = DittoHeaderDefinition.REQUESTED_ACKS.getKey();
-            final String description = String.format("Please set '%s' to [] or '%s' to true.",
+            final var description = String.format("Please set '%s' to [] or '%s' to true.",
                     invalidHeaderKey,
                     DittoHeaderDefinition.RESPONSE_REQUIRED.getKey());
             return Optional.of(DittoHeaderInvalidException.newBuilder()

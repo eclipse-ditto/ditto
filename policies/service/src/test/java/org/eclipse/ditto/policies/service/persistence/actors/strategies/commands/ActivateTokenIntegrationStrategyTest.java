@@ -87,12 +87,12 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
     public void roundUpNotifyBeforeDuration() {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final Instant expiry = Instant.now().plus(Duration.ofDays(1L));
-        final DittoDuration duration = DittoDuration.parseDuration("4s");
-        final DittoDuration roundedUpDuration = DittoDuration.parseDuration("6s");
+        final DittoDuration duration = DittoDuration.parseDuration("2ms");
+        final DittoDuration roundedUpDuration = DittoDuration.parseDuration("5ms");
         final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, LABEL + ":this-is-me");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
 
-        // announcement duration is rounded up if it is not a multiple of the configured granularity (3s)
+        // announcement duration is rounded up if it is not a multiple of the configured granularity (5ms)
         final ActivateTokenIntegration commandToRoundUp =
                 ActivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId),
                         SubjectExpiry.newInstance(expiry), SubjectAnnouncement.of(duration, false), dittoHeaders);
@@ -100,7 +100,7 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
                 applyStrategy(underTest, context, TestConstants.Policy.POLICY, commandToRoundUp));
         assertThat(event.getSubject().getAnnouncement().orElseThrow().getBeforeExpiry()).contains(roundedUpDuration);
 
-        // announcement duration is not rounded up if it is a multiple of the configured granularity (3s)
+        // announcement duration is not rounded up if it is a multiple of the configured granularity (5ms)
         final ActivateTokenIntegration commandToNotRoundUp =
                 ActivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId),
                         SubjectExpiry.newInstance(expiry), SubjectAnnouncement.of(roundedUpDuration, false),

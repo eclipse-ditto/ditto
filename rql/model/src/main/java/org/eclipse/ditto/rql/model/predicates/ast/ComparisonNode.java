@@ -14,6 +14,8 @@ package org.eclipse.ditto.rql.model.predicates.ast;
 
 import static java.util.Objects.requireNonNull;
 
+import javax.annotation.Nullable;
+
 /**
  * Generic comparison node that has a type, a property to compare on and a generic value. Subclasses have to specifiy
  * what type the value can have.
@@ -24,8 +26,8 @@ import static java.util.Objects.requireNonNull;
 abstract class ComparisonNode<T extends Enum<T>, V> implements Node {
 
     private final T comparisonType;
-    private final V comparisonValue;
     private final String comparisonProperty;
+    @Nullable private final V comparisonValue;
 
     /**
      * Constructor. Creates a new comparison node with the given type, property and value.
@@ -34,7 +36,7 @@ abstract class ComparisonNode<T extends Enum<T>, V> implements Node {
      * @param comparisonProperty the property to compare on.
      * @param comparisonValue the value to compare for.
      */
-    ComparisonNode(final T comparisonType, final String comparisonProperty, final V comparisonValue) {
+    ComparisonNode(final T comparisonType, final String comparisonProperty, @Nullable final V comparisonValue) {
         super();
         this.comparisonType = comparisonType;
         this.comparisonProperty = requireNonNull(comparisonProperty);
@@ -64,6 +66,7 @@ abstract class ComparisonNode<T extends Enum<T>, V> implements Node {
      *
      * @return the value to compare for.
      */
+    @Nullable
     public V getComparisonValue() {
         return comparisonValue;
     }
@@ -122,12 +125,9 @@ abstract class ComparisonNode<T extends Enum<T>, V> implements Node {
             return false;
         }
         if (comparisonValue == null) {
-            if (other.comparisonValue != null) {
-                return false;
-            }
-        } else if (!comparisonValue.equals(other.comparisonValue)) {
-            return false;
+            return other.comparisonValue == null;
+        } else {
+            return comparisonValue.equals(other.comparisonValue);
         }
-        return true;
     } // CS:ON equals(Object obj)
 }

@@ -15,6 +15,8 @@ package org.eclipse.ditto.thingsearch.service.persistence.read.criteria.visitors
 import java.util.List;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.rql.query.criteria.Predicate;
 import org.eclipse.ditto.rql.query.criteria.visitors.PredicateVisitor;
@@ -59,17 +61,17 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
     }
 
     @Override
-    public Function<String, Bson> visitEq(final Object value) {
+    public Function<String, Bson> visitEq(@Nullable final Object value) {
         return fieldName -> Filters.eq(fieldName, value);
     }
 
     @Override
-    public Function<String, Bson> visitGe(final Object value) {
+    public Function<String, Bson> visitGe(@Nullable final Object value) {
         return fieldName -> Filters.gte(fieldName, value);
     }
 
     @Override
-    public Function<String, Bson> visitGt(final Object value) {
+    public Function<String, Bson> visitGt(@Nullable final Object value) {
         return fieldName -> Filters.gt(fieldName, value);
     }
 
@@ -79,7 +81,7 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
     }
 
     @Override
-    public Function<String, Bson> visitLe(final Object value) {
+    public Function<String, Bson> visitLe(@Nullable final Object value) {
         return fieldName -> Filters.lte(fieldName, value);
     }
 
