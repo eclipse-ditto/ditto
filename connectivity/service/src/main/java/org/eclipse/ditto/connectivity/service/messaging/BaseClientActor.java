@@ -246,7 +246,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 ConnectionPersistenceActor.getSubscriptionPrefixLength(connection.getClientCount());
 
         // Send init message to allow for unsafe initialization of subclasses.
-        startInitialization(connection.getId(), dittoHeaders);
+        startInitialization(dittoHeaders);
     }
 
     @Override
@@ -425,7 +425,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return state;
     }
 
-    private void startInitialization(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
+    private void startInitialization(final DittoHeaders dittoHeaders) {
         pipeConnectionContextToSelfAndRegisterForChanges(connectionContextProvider, connection, dittoHeaders, getSelf(),
                 getContext().getDispatcher());
     }

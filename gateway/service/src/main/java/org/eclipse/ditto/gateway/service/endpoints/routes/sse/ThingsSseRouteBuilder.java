@@ -34,33 +34,33 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsParameter;
-import org.eclipse.ditto.gateway.service.streaming.Connect;
-import org.eclipse.ditto.gateway.service.streaming.StartStreaming;
-import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
-import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
-import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.rql.parser.RqlPredicateParser;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingFieldSelector;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsParameter;
 import org.eclipse.ditto.gateway.service.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.gateway.service.endpoints.utils.GatewaySignalEnrichmentProvider;
+import org.eclipse.ditto.gateway.service.streaming.Connect;
+import org.eclipse.ditto.gateway.service.streaming.StartStreaming;
+import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
+import org.eclipse.ditto.gateway.service.streaming.actors.SupervisedStream;
+import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SearchSource;
 import org.eclipse.ditto.internal.utils.search.SearchSourceBuilder;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.rql.parser.RqlPredicateParser;
+import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingFieldSelector;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import akka.NotUsed;
@@ -241,10 +241,12 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         final List<ThingId> targetThingIds = getThingIds(parameters.get(ThingsParameter.IDS.toString()));
         @Nullable final ThingFieldSelector fields = getFieldSelector(parameters.get(ThingsParameter.FIELDS.toString()));
         @Nullable final ThingFieldSelector extraFields = getFieldSelector(parameters.get(PARAM_EXTRA_FIELDS));
-        final SignalEnrichmentFacade facade =
-                signalEnrichmentProvider == null ? null : signalEnrichmentProvider.getFacade(ctx.getRequest());
+        final CompletionStage<SignalEnrichmentFacade> facadeStage = signalEnrichmentProvider == null
+                ? CompletableFuture.completedStage(null)
+                : signalEnrichmentProvider.getFacade(ctx.getRequest());
 
-        final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage = dittoHeadersStage.thenCompose(
+
+        final var sseSourceStage = facadeStage.thenCompose(facade -> dittoHeadersStage.thenCompose(
                 dittoHeaders -> sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders).thenApply(unused -> {
                     if (filterString != null) {
                         // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
@@ -300,7 +302,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                             .viaMat(eventSniffer.toAsyncFlow(ctx.getRequest()), Keep.none())
                             .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
                 })
-        );
+        ));
 
         return completeOKWithFuture(sseSourceStage, EventStreamMarshalling.toEventStream());
     }

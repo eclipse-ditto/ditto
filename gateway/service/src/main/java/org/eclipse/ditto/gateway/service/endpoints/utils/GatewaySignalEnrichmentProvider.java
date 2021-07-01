@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.utils;
 
+import java.util.concurrent.CompletionStage;
+
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 
 import akka.http.javadsl.model.HttpRequest;
@@ -33,6 +35,6 @@ public interface GatewaySignalEnrichmentProvider {
      * @param request the HTTP request.
      * @return the signal-enriching facade.
      */
-    SignalEnrichmentFacade getFacade(HttpRequest request);
+    CompletionStage<SignalEnrichmentFacade> getFacade(HttpRequest request);
 
 }

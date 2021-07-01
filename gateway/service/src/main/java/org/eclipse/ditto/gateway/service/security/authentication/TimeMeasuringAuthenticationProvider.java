@@ -16,6 +16,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -23,11 +24,11 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContextType;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.TraceUtils;
 import org.eclipse.ditto.internal.utils.tracing.TracingTags;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationProviderUnavailableException;
 
 import akka.http.javadsl.server.RequestContext;
 
@@ -179,8 +180,8 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
     }
 
     protected CompletableFuture<R> failOnTimeout(
-            final CompletableFuture<R> authenticationResultFuture, final DittoHeaders dittoHeaders) {
-        return AuthenticationResultOrTimeout.of(authenticationResultFuture, dittoHeaders).get()
+            final CompletionStage<R> authenticationResultFuture, final DittoHeaders dittoHeaders) {
+        return AuthenticationResultOrTimeout.of(authenticationResultFuture.toCompletableFuture(), dittoHeaders).get()
                 .exceptionally(e -> toFailedAuthenticationResult(e, dittoHeaders));
     }
 

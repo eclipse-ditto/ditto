@@ -57,7 +57,8 @@ abstract class AbstractJwtAuthenticationProviderTest {
     private static final HttpHeader INVALID_AUTHORIZATION_HEADER =
             HttpHeader.parse("authorization", "Basic " + JwtTestConstants.VALID_JWT_TOKEN);
     protected static final String
-            URI_WITH_ACCESS_TOKEN_PARAMETER = "https://localhost/ws/2?x=5&access_token=" + JwtTestConstants.VALID_JWT_TOKEN;
+            URI_WITH_ACCESS_TOKEN_PARAMETER =
+            "https://localhost/ws/2?x=5&access_token=" + JwtTestConstants.VALID_JWT_TOKEN;
 
     @Rule public final TestName testName = new TestName();
     @Rule public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
@@ -118,10 +119,10 @@ abstract class AbstractJwtAuthenticationProviderTest {
         when(jwtValidator.validate(any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         when(authenticationContextProvider.getAuthenticationResult(any(JsonWebToken.class), any(DittoHeaders.class)))
-                .thenReturn(JwtAuthenticationResult.successful(knownDittoHeaders,
+                .thenReturn(CompletableFuture.completedStage(JwtAuthenticationResult.successful(knownDittoHeaders,
                         AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                                 AuthorizationSubject.newInstance("myAuthSubj")),
-                        ImmutableJsonWebToken.fromToken(JwtTestConstants.VALID_JWT_TOKEN)));
+                        ImmutableJsonWebToken.fromToken(JwtTestConstants.VALID_JWT_TOKEN))));
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
 
         authenticate(getUnderTest(), requestContext, true);
@@ -133,10 +134,10 @@ abstract class AbstractJwtAuthenticationProviderTest {
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         lenient().when(
                 authenticationContextProvider.getAuthenticationResult(any(JsonWebToken.class), any(DittoHeaders.class)))
-                .thenReturn(JwtAuthenticationResult.successful(knownDittoHeaders,
+                .thenReturn(CompletableFuture.completedStage(JwtAuthenticationResult.successful(knownDittoHeaders,
                         AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                                 AuthorizationSubject.newInstance("myAuthSubj")),
-                        ImmutableJsonWebToken.fromToken(JwtTestConstants.VALID_JWT_TOKEN)));
+                        ImmutableJsonWebToken.fromToken(JwtTestConstants.VALID_JWT_TOKEN))));
         final RequestContext requestContext =
                 mockRequestContext(URI_WITH_ACCESS_TOKEN_PARAMETER);
 
@@ -148,7 +149,7 @@ abstract class AbstractJwtAuthenticationProviderTest {
         when(jwtValidator.validate(any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         when(authenticationContextProvider.getAuthenticationResult(any(JsonWebToken.class), any(DittoHeaders.class)))
-                .thenThrow(new RuntimeException("Something happened"));
+                .thenReturn(CompletableFuture.failedFuture(new RuntimeException("Something happened")));
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
 
         final AuthenticationResult authenticationResult =

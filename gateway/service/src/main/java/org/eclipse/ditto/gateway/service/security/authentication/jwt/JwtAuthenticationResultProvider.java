@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 
+import java.util.concurrent.CompletionStage;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 
@@ -30,6 +32,6 @@ public interface JwtAuthenticationResultProvider {
      * @return the authentication result based on the given JSON web token.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    JwtAuthenticationResult getAuthenticationResult(JsonWebToken jwt, DittoHeaders dittoHeaders);
+    CompletionStage<JwtAuthenticationResult> getAuthenticationResult(JsonWebToken jwt, DittoHeaders dittoHeaders);
 
 }

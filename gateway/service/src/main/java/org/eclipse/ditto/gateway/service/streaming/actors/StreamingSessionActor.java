@@ -36,18 +36,17 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
+import org.eclipse.ditto.base.model.namespaces.NamespaceReader;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionClosedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionExpiredException;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtValidator;
-import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
-import org.eclipse.ditto.jwt.model.JsonWebToken;
-import org.eclipse.ditto.base.model.namespaces.NamespaceReader;
-import org.eclipse.ditto.rql.query.criteria.Criteria;
-import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.rql.parser.RqlPredicateParser;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.gateway.service.streaming.Connect;
 import org.eclipse.ditto.gateway.service.streaming.IncomingSignal;
 import org.eclipse.ditto.gateway.service.streaming.InvalidJwt;
@@ -63,20 +62,20 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionClosedException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionExpiredException;
+import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
+import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
+import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.rql.parser.RqlPredicateParser;
+import org.eclipse.ditto.rql.query.criteria.Criteria;
+import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
-import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 import akka.Done;
@@ -586,18 +585,18 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         final JsonWebToken jsonWebToken = ImmutableJsonWebToken.fromToken(jwt.toString());
         jwtValidator.validate(jsonWebToken).thenAccept(binaryValidationResult -> {
             if (binaryValidationResult.isValid()) {
-                try {
-                    final AuthenticationResult authorizationResult =
-                            jwtAuthenticationResultProvider.getAuthenticationResult(jsonWebToken, DittoHeaders.empty());
-
-                    final AuthorizationContext jwtAuthorizationContext = authorizationResult.getAuthorizationContext();
-                    getSelf().tell(new RefreshSession(jwtConnectionCorrelationId, jsonWebToken.getExpirationTime(),
-                            jwtAuthorizationContext), ActorRef.noSender());
-                } catch (final Exception exception) {
-                    logger.info("Got exception when handling refreshed JWT for WebSocket session <{}>: {}",
-                            jwtConnectionCorrelationId, exception.getMessage());
-                    getSelf().tell(InvalidJwt.getInstance(), ActorRef.noSender());
-                }
+                jwtAuthenticationResultProvider.getAuthenticationResult(jsonWebToken, DittoHeaders.empty())
+                        .thenAccept(authorizationResult -> {
+                            final var jwtAuthorizationContext = authorizationResult.getAuthorizationContext();
+                            getSelf().tell(new RefreshSession(jwtConnectionCorrelationId,
+                                    jsonWebToken.getExpirationTime(), jwtAuthorizationContext), ActorRef.noSender());
+                        })
+                        .exceptionally(exception -> {
+                            logger.info("Got exception when handling refreshed JWT for WebSocket session <{}>: {}",
+                                    jwtConnectionCorrelationId, exception.getMessage());
+                            getSelf().tell(InvalidJwt.getInstance(), ActorRef.noSender());
+                            return null;
+                        });
             } else {
                 logger.debug("Received invalid JWT for WebSocket session <{}>. Terminating the session.",
                         connectionCorrelationId);
