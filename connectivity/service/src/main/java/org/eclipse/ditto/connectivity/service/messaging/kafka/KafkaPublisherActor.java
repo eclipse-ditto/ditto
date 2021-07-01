@@ -316,6 +316,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
             sourceQueue = sourcePair.first();
             killSwitch = sourcePair.second()
+                    .async("kafka-producer-dispatcher", config.getParallelism())
                     .via(RestartFlow.onFailuresWithBackoff(restartSettings, () -> {
                         logger.debug("Creating new kafka publish flow.");
                         Optional.ofNullable(sendProducer.getAndSet(producerFactory.newSendProducer()))
