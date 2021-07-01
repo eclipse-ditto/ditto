@@ -316,19 +316,16 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
             sourceQueue = sourcePair.first();
             killSwitch = sourcePair.second()
-                    .async("kafka-producer-dispatcher", config.getParallelism())
+//                    .async("kafka-producer-dispatcher", config.getParallelism())
                     .via(RestartFlow.onFailuresWithBackoff(restartSettings, () -> {
                         logger.debug("Creating new kafka publish flow.");
                         Optional.ofNullable(sendProducer.getAndSet(producerFactory.newSendProducer()))
                                 .ifPresent(SendProducer::close);
-                        return Flow.<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>create()
-                                .flatMapConcat(envelope -> Source.completionStage(
-                                        sendProducer.get()
-                                                .sendEnvelope(envelope)
-                                                .whenComplete(
-                                                        (results, exception) -> handleSendResult(results,
-                                                                exception,
-                                                                envelope.passThrough()))));
+                        return Flow.fromFunction(envelope -> sendProducer.get()
+                                .sendEnvelope(envelope)
+                                .whenComplete((results, exception) -> handleSendResult(results,
+                                        exception,
+                                        envelope.passThrough())));
                     }))
                     .viaMat(KillSwitches.single(), Keep.right())
                     .toMat(Sink.ignore(), Keep.left())
