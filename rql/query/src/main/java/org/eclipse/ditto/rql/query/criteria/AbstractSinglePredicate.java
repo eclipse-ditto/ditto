@@ -15,19 +15,21 @@ package org.eclipse.ditto.rql.query.criteria;
 
 import java.util.Objects;
 
+import javax.annotation.Nullable;
+
 /**
  * Abstract base class for single-valued MongoDB predicate implementations.
  */
 abstract class AbstractSinglePredicate implements Predicate {
 
-    private final Object value;
+    @Nullable private final Object value;
 
     /**
      * Create a new predicate with the given value.
      *
      * @param value the value, may be {@code null}
      */
-    AbstractSinglePredicate(final Object value) {
+    AbstractSinglePredicate(@Nullable final Object value) {
         this.value = value;
     }
 
@@ -37,6 +39,7 @@ abstract class AbstractSinglePredicate implements Predicate {
      *
      * @return the value this Predicate encapsulated.
      */
+    @Nullable
     public Object getValue() {
         return value;
     }

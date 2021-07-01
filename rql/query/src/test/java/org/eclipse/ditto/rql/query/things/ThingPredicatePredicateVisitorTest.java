@@ -53,6 +53,24 @@ public final class ThingPredicatePredicateVisitorTest {
     }
 
     @Test
+    public void matchingNullEq() {
+        doTest(sut.visitEq(null), JsonValue.nullLiteral())
+                .isTrue();
+    }
+
+    @Test
+    public void matchingNullEq2() {
+        doTest(sut.visitEq(null), JsonValue.of("yes"))
+                .isFalse();
+    }
+
+    @Test
+    public void matchingNullEq3() {
+        doTest(sut.visitEq("yes"), JsonValue.nullLiteral())
+                .isFalse();
+    }
+
+    @Test
     public void nonMatchingStringEq() {
         doTest(sut.visitEq("no"), JsonValue.of("yes"))
                 .isFalse();
@@ -61,6 +79,18 @@ public final class ThingPredicatePredicateVisitorTest {
     @Test
     public void matchingStringNe() {
         doTest(sut.visitNe("yes"), JsonValue.of("no"))
+                .isTrue();
+    }
+
+    @Test
+    public void matchingNullNe() {
+        doTest(sut.visitNe("yes"), JsonValue.nullLiteral())
+                .isTrue();
+    }
+
+    @Test
+    public void matchingNullNe2() {
+        doTest(sut.visitNe(null), JsonValue.of("yes"))
                 .isTrue();
     }
 
@@ -75,6 +105,12 @@ public final class ThingPredicatePredicateVisitorTest {
         // the sut already works on regex Pattern - the translation from "*" to ".*" is done in LikePredicateImpl
         doTest(sut.visitLike("this-is.*"), JsonValue.of("this-is-the-content"))
                 .isTrue();
+    }
+
+    @Test
+    public void matchingNullLike() {
+        doTest(sut.visitLike(null), JsonValue.of("yes"))
+                .isFalse();
     }
 
     @Test
@@ -139,6 +175,24 @@ public final class ThingPredicatePredicateVisitorTest {
     }
 
     @Test
+    public void matchingBooleanNullGe() {
+        doTest(sut.visitGe(null), JsonValue.of(true))
+                .isFalse();
+    }
+
+    @Test
+    public void matchingStringNullGe() {
+        doTest(sut.visitGe(null), JsonValue.of("string"))
+                .isFalse();
+    }
+
+    @Test
+    public void matchingIntegerNullGe() {
+        doTest(sut.visitGe(null), JsonValue.of(42))
+                .isFalse();
+    }
+
+    @Test
     public void matchingBooleanGe() {
         doTest(sut.visitGe(true), JsonValue.of(true))
                 .isTrue();
@@ -147,6 +201,24 @@ public final class ThingPredicatePredicateVisitorTest {
     @Test
     public void nonMatchingBooleanGt() {
         doTest(sut.visitGt(true), JsonValue.of(true))
+                .isFalse();
+    }
+
+    @Test
+    public void matchingBooleanNullLe() {
+        doTest(sut.visitLe(null), JsonValue.of(true))
+                .isFalse();
+    }
+
+    @Test
+    public void matchingStringNullLe() {
+        doTest(sut.visitLe(null), JsonValue.of("string"))
+                .isFalse();
+    }
+
+    @Test
+    public void matchingIntegerNullLe() {
+        doTest(sut.visitLe(null), JsonValue.of(42))
                 .isFalse();
     }
 

@@ -18,12 +18,13 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
 
 import akka.actor.ActorRef;
@@ -37,21 +38,25 @@ public final class StreamingSession {
     private final Predicate<Thing> thingPredicate;
     @Nullable private final ThingFieldSelector extraFields;
     private final ActorRef streamingSessionActor;
+    private final ThreadSafeDittoLoggingAdapter logger;
 
     private StreamingSession(final List<String> namespaces, @Nullable final Criteria eventFilterCriteria,
-            @Nullable final ThingFieldSelector extraFields, final ActorRef streamingSessionActor) {
+            @Nullable final ThingFieldSelector extraFields, final ActorRef streamingSessionActor,
+            final ThreadSafeDittoLoggingAdapter logger) {
         this.namespaces = namespaces;
         thingPredicate = eventFilterCriteria == null
                 ? thing -> true
                 : ThingPredicateVisitor.apply(eventFilterCriteria);
         this.extraFields = extraFields;
         this.streamingSessionActor = streamingSessionActor;
+        this.logger = logger;
     }
 
     static StreamingSession of(final List<String> namespaces, @Nullable final Criteria eventFilterCriteria,
-            @Nullable final ThingFieldSelector extraFields, final ActorRef streamingSessionActor) {
+            @Nullable final ThingFieldSelector extraFields, final ActorRef streamingSessionActor,
+            final ThreadSafeDittoLoggingAdapter logger) {
 
-        return new StreamingSession(namespaces, eventFilterCriteria, extraFields, streamingSessionActor);
+        return new StreamingSession(namespaces, eventFilterCriteria, extraFields, streamingSessionActor, logger);
     }
 
     /**
@@ -93,6 +98,13 @@ public final class StreamingSession {
 
     public ActorRef getStreamingSessionActor() {
         return streamingSessionActor;
+    }
+
+    /**
+     * @return the underlying logger of this session.
+     */
+    public ThreadSafeDittoLoggingAdapter getLogger() {
+        return logger;
     }
 
 }
