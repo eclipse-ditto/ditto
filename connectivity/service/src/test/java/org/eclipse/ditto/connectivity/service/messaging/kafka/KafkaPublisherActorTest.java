@@ -62,6 +62,7 @@ import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -156,6 +157,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     }
 
     @Test
+    @Ignore
     public void testMessageDroppedOnQueueOverflow() {
         new TestKit(actorSystem) {{
 
