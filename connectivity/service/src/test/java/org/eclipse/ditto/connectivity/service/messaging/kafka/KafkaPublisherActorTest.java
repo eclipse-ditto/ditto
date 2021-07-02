@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.base.model.common.HttpStatus.SERVICE_UNAVAILABLE;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -24,7 +25,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.UUID;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
@@ -32,13 +32,13 @@ import java.util.stream.IntStream;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.DisconnectException;
-import org.apache.kafka.common.errors.InvalidTopicException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
@@ -55,10 +55,9 @@ import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaProducerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
@@ -163,21 +162,46 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
             // use blocking producer to simulate overflowing queue
             mockSendProducerFactory = MockSendProducerFactory.getBlockingInstance(TARGET_TOPIC, published);
 
-            final OutboundSignal.MultiMapped multiMapped =
-                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(getMockOutboundSignal()), getRef());
 
             final Props props = getPublisherActorProps();
             final ActorRef publisherActor = childActorOf(props);
 
             publisherCreated(this, publisherActor);
 
-            IntStream.range(0, kafkaConfig.getQueueSize() * 2).forEach(i -> publisherActor.tell(multiMapped, getRef()));
+            IntStream.range(0, kafkaConfig.getQueueSize() * 2)
+                    .forEach(i -> {
+                        final OutboundSignal.Mapped signal = getMockOutboundSignalWithAutoAck("aight",
+                                DittoHeaderDefinition.CORRELATION_ID.getKey(), "msg" + i);
+                        final OutboundSignal.MultiMapped multiMapped =
+                                OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(
+                                        signal), getRef());
 
-            final ImmutableConnectionFailure failure = expectMsgClass(ImmutableConnectionFailure.class);
-            assertThat(failure.getFailure().cause()).isInstanceOf(CompletionException.class);
-            assertThat(failure.getFailure().cause().getCause()).isInstanceOf(MessageSendingFailedException.class);
-            assertThat(failure.getFailure().cause().getCause()).isInstanceOf(MessageSendingFailedException.class);
+                        publisherActor.tell(multiMapped, getRef());
+                    });
+
+            final List<Acknowledgements> acknowledgements = receiveWhile(Duration.ofSeconds(3),
+                    o -> Optional.of(o)
+                            .filter(msg -> msg instanceof Acknowledgements)
+                            .map(acks -> (Acknowledgements) acks)
+                            .orElseThrow());
+
+            assertThat(acknowledgements).isNotEmpty();
+            assertThat(acknowledgements).allSatisfy(acks -> containsOverflowError(acks));
         }};
+    }
+
+    private boolean containsOverflowError(final Object msg) {
+        assertThat(msg).isNotNull();
+        assertThat(msg).isInstanceOf(Acknowledgements.class);
+        final Acknowledgements acks = (Acknowledgements) msg;
+        assertThat(acks.getFailedAcknowledgements()).hasSize(1);
+        final Acknowledgement ack = acks.stream().findAny().orElseThrow();
+        assertThat(ack.getHttpStatus()).isEqualTo(SERVICE_UNAVAILABLE);
+        final MessageSendingFailedException messageSendingFailedException =
+                ack.getEntity().map(JsonValue::asObject).map(o -> MessageSendingFailedException.fromJson(o,
+                        ack.getDittoHeaders())).orElseThrow();
+        assertThat(messageSendingFailedException.getMessage()).contains("There are too many uncommitted messages");
+        return true;
     }
 
     @Test
@@ -187,7 +211,8 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
             mockSendProducerFactory = MockSendProducerFactory.getSlowStartInstance(TARGET_TOPIC, published);
 
             final OutboundSignal.MultiMapped multiMapped =
-                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(getMockOutboundSignal()), getRef());
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(getMockOutboundSignalWithAutoAck("ack")),
+                            getRef());
 
             final Props props = getPublisherActorProps();
             final ActorRef publisherActor = childActorOf(props);
@@ -197,10 +222,11 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
             // publish #messages twice the size of the queue to make sure the queue does overflow
             IntStream.range(0, kafkaConfig.getQueueSize() * 2).forEach(i -> publisherActor.tell(multiMapped, getRef()));
 
-            //
-            fishForMessage(Duration.ofSeconds(5), "message drop", o -> o instanceof ConnectionFailure);
+            // wait for the first rejected message
+            fishForMessage(Duration.ofSeconds(5), "message drop", o -> containsOverflowError(o));
 
             Awaitility.await("all queued messages are published")
+                    // expect at least the messages that fit into the queue
                     .until(() -> published.size() > kafkaConfig.getQueueSize());
         }};
     }
@@ -245,7 +271,8 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                 publisherCreated(this, publisherActor);
                 publisherActor.tell(multiMappedSignal, getRef());
 
-                final Acknowledgements acknowledgements = expectMsgClass(Acknowledgements.class);
+                final Acknowledgements acknowledgements = expectMsgClass(Duration.ofSeconds(5),
+                        Acknowledgements.class);
 
                 assertThat(acknowledgements)
                         .hasSize(1)
@@ -272,17 +299,6 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                 assertThat(sender.expectMsgClass(Acknowledgements.class).getHttpStatus())
                         .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
         );
-    }
-
-    @Test
-    public void nonRetriableExceptionBecomesClientErrorAcknowledgement() {
-        testSendFailure(new InvalidTopicException(), (sender, parent) -> {
-            assertThat(sender.expectMsgClass(Acknowledgements.class).getHttpStatus())
-                    .isEqualTo(HttpStatus.BAD_REQUEST);
-
-            // expect failure escalation
-            parent.expectMsgClass(ConnectionFailure.class);
-        });
     }
 
     @Override

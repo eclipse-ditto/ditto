@@ -315,7 +315,15 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @since 2.0.0
      */
     EVENT_JOURNAL_TAGS("ditto-event-journal-tags", JsonArray.class,
-            false, false, HeaderValueValidators.getJsonArrayValidator());
+            false, false, HeaderValueValidators.getJsonArrayValidator()),
+
+    /**
+     * Internal header which may be set to ignore some preventions in the service. Can only be used in piggy-back
+     * commands issued by the OPs of the service.
+     *
+     * @since 2.1.0
+     */
+    DITTO_SUDO("ditto-sudo", boolean.class, false, false, HeaderValueValidators.getBooleanValidator());
 
     /**
      * Map to speed up lookup of header definition by key.

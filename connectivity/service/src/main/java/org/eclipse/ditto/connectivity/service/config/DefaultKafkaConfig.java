@@ -20,7 +20,6 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 /**
  * This class is the default implementation of {@link KafkaConfig}.
@@ -29,20 +28,13 @@ import com.typesafe.config.ConfigFactory;
 public final class DefaultKafkaConfig implements KafkaConfig {
 
     private static final String KAFKA_PATH = "kafka";
-    private static final String CONSUMER_PATH = "consumer";
-    private static final String PRODUCER_PATH = "producer";
 
     private final KafkaConsumerConfig consumerConfig;
     private final KafkaProducerConfig producerConfig;
 
     private DefaultKafkaConfig(final ScopedConfig kafkaScopedConfig) {
-        consumerConfig = KafkaConsumerConfig.of(kafkaScopedConfig.hasPath(CONSUMER_PATH)
-                ? kafkaScopedConfig.getConfig(CONSUMER_PATH)
-                : ConfigFactory.empty());
-
-        producerConfig = KafkaProducerConfig.of(kafkaScopedConfig.hasPath(PRODUCER_PATH)
-                ? kafkaScopedConfig.getConfig(PRODUCER_PATH)
-                : ConfigFactory.empty());
+        consumerConfig = KafkaConsumerConfig.of(kafkaScopedConfig);
+        producerConfig = KafkaProducerConfig.of(kafkaScopedConfig);
     }
 
     /**
