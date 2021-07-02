@@ -83,9 +83,26 @@ public interface ScopedConfig extends Config, WithConfigPath {
      * @throws DittoConfigError if the Duration at the config path is negative.
      */
     default Duration getNonNegativeDurationOrThrow(final WithConfigPath withConfigPath) {
-        final Duration result = getDuration(withConfigPath.getConfigPath());
+        final var result = getDuration(withConfigPath.getConfigPath());
         if (result.isNegative()) {
-            final String msgPattern = "The duration at <{0}> must not be negative but it was <{1}>!";
+            final var msgPattern = "The duration at <{0}> must not be negative but it was <{1}>!";
+            throw new DittoConfigError(MessageFormat.format(msgPattern, withConfigPath.getConfigPath(), result));
+        }
+        return result;
+    }
+
+    /**
+     * Same as {@link #getDuration(String)} but with the guarantee that the returned Duration is non-negative
+     * and non-zero.
+     *
+     * @param withConfigPath provides the config path to get the Duration value for.
+     * @return the duration.
+     * @throws DittoConfigError if the Duration at the config path is negative or zero.
+     */
+    default Duration getNonNegativeAndNonZeroDurationOrThrow(final WithConfigPath withConfigPath) {
+        final var result = getDuration(withConfigPath.getConfigPath());
+        if (result.isNegative() && result.isZero()) {
+            final var msgPattern = "The duration at <{0}> must not be negative and not zero but it was <{1}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, withConfigPath.getConfigPath(), result));
         }
         return result;
@@ -99,9 +116,25 @@ public interface ScopedConfig extends Config, WithConfigPath {
      * @throws DittoConfigError if the int value at the config path is zero or negative.
      */
     default int getPositiveIntOrThrow(final WithConfigPath withConfigPath) {
-        final int result = getInt(withConfigPath.getConfigPath());
+        final var result = getInt(withConfigPath.getConfigPath());
         if (1 > result) {
-            final String msgPattern = "The int value at <{0}> must be positive but it was <{1}>!";
+            final var msgPattern = "The int value at <{0}> must be positive but it was <{1}>!";
+            throw new DittoConfigError(MessageFormat.format(msgPattern, withConfigPath.getConfigPath(), result));
+        }
+        return result;
+    }
+
+    /**
+     * Same as {@link #getInt(String)} but with the guarantee that the returned value is not negative.
+     *
+     * @param withConfigPath provides the config path to get the int value for.
+     * @return the int value.
+     * @throws DittoConfigError if the int value at the config path is negative.
+     */
+    default int getGreaterZeroIntOrThrow(final WithConfigPath withConfigPath) {
+        final var result = getInt(withConfigPath.getConfigPath());
+        if (result < 0) {
+            final var msgPattern = "The int value at <{0}> must be greater zero but it was <{1}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, withConfigPath.getConfigPath(), result));
         }
         return result;
