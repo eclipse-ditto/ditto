@@ -191,11 +191,12 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * Indicates whether this command is flagged as sudo command which should ignore some preventions.
      *
      * @return True if the command is flagged as sudo command, otherwise false.
+     * @since 2.1.0
      */
     boolean isSudo();
 
     /**
-     * Returns the id of the orignating session (e.g. WebSocket, AMQP, ...)
+     * Returns the id of the originating session (e.g. WebSocket, AMQP, ...)
      *
      * @return the "origin" value.
      */
