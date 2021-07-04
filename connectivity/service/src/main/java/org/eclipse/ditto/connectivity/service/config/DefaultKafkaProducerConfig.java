@@ -17,6 +17,8 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+
 import com.typesafe.config.Config;
 
 /**
@@ -25,11 +27,7 @@ import com.typesafe.config.Config;
 @Immutable
 public final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
 
-    private static final String QUEUE_SIZE_PATH = "queue-size";
-    private static final String PARALLELISM_PATH = "parallelism";
-    private static final String MIN_BACKOFF_PATH = "min-backoff";
-    private static final String MAX_BACKOFF_PATH = "max-backoff";
-    private static final String RANDOM_FACTOR_PATH = "random-factor";
+    private static final String CONFIG_PATH = "producer";
     private static final String ALPAKKA_PATH = "alpakka";
 
     private final int queueSize;
@@ -40,11 +38,11 @@ public final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
     private final Config alpakkaConfig;
 
     private DefaultKafkaProducerConfig(final Config kafkaProducerScopedConfig) {
-        queueSize = kafkaProducerScopedConfig.getInt(QUEUE_SIZE_PATH);
-        parallelism = kafkaProducerScopedConfig.getInt(PARALLELISM_PATH);
-        minBackoff = kafkaProducerScopedConfig.getDuration(MIN_BACKOFF_PATH);
-        maxBackoff = kafkaProducerScopedConfig.getDuration(MAX_BACKOFF_PATH);
-        randomFactor = kafkaProducerScopedConfig.getDouble(RANDOM_FACTOR_PATH);
+        queueSize = kafkaProducerScopedConfig.getInt(ConfigValue.QUEUE_SIZE.getConfigPath());
+        parallelism = kafkaProducerScopedConfig.getInt(ConfigValue.PARALLELISM.getConfigPath());
+        minBackoff = kafkaProducerScopedConfig.getDuration(ConfigValue.MIN_BACKOFF.getConfigPath());
+        maxBackoff = kafkaProducerScopedConfig.getDuration(ConfigValue.MAX_BACKOFF.getConfigPath());
+        randomFactor = kafkaProducerScopedConfig.getDouble(ConfigValue.RANDOM_FACTOR.getConfigPath());
         alpakkaConfig = kafkaProducerScopedConfig.getConfig(ALPAKKA_PATH);
     }
 
@@ -56,7 +54,9 @@ public final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultKafkaProducerConfig of(final Config config) {
-        return new DefaultKafkaProducerConfig(config);
+        return new DefaultKafkaProducerConfig(
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values())
+        );
     }
 
     @Override

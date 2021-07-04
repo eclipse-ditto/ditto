@@ -1178,10 +1178,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // All these method calls are NOT thread-safe. Do NOT inline.
         final CompletionStage<Status.Status> publisherReady = startPublisherActor();
         final CompletionStage<Status.Status> consumersReady = startConsumerActors(clientConnected);
-        final CompletionStage<Void> pubsubReady = subscribeAndDeclareAcknowledgementLabels();
+        final boolean isDryRun = isDryRun();
 
-        return publisherReady.thenCompose(unused -> consumersReady)
-                .thenCompose(unused -> pubsubReady)
+        return publisherReady
+                .thenCompose(unused -> consumersReady)
+                .thenCompose(unused -> subscribeAndDeclareAcknowledgementLabels(isDryRun))
                 .thenApply(unused -> InitializationResult.success())
                 .exceptionally(InitializationResult::failed);
     }
@@ -1300,14 +1301,21 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         dittoProtocolSub.removeSubscriber(getSelf());
         if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
             if (reconnectTimeoutStrategy.canReconnect()) {
-                final Duration nextBackoff = reconnectTimeoutStrategy.getNextBackoff();
-                final var errorMessage =
-                        String.format("Connection failed due to: {0}. Will reconnect after %s.", nextBackoff);
-                connectionLogger.failure(errorMessage, event.getFailureDescription());
-                logger.info("Connection failed: {}. Reconnect after {}.", event, nextBackoff);
-                return goToConnecting(nextBackoff).using(data.resetSession()
-                        .setConnectionStatus(ConnectivityStatus.FAILED)
-                        .setConnectionStatusDetails(event.getFailureDescription()));
+                if (ConnectivityStatus.FAILED.equals(data.getConnectionStatus())) {
+                    connectionLogger.failure("Connection failed due to: {0}. Reconnect was already triggered.",
+                            event.getFailureDescription());
+                    logger.info("Connection failed: {}. Reconnect was already triggered.", event);
+                    return stay();
+                } else {
+                    final Duration nextBackoff = reconnectTimeoutStrategy.getNextBackoff();
+                    final var errorMessage =
+                            String.format("Connection failed due to: {0}. Will reconnect after %s.", nextBackoff);
+                    connectionLogger.failure(errorMessage, event.getFailureDescription());
+                    logger.info("Connection failed: {}. Reconnect after {}.", event, nextBackoff);
+                    return goToConnecting(nextBackoff).using(data.resetSession()
+                            .setConnectionStatus(ConnectivityStatus.FAILED)
+                            .setConnectionStatusDetails(event.getFailureDescription()));
+                }
             } else {
                 connectionLogger.failure(
                         "Connection failed due to: {0}. Reached maximum tries and thus will no longer try to reconnect.",
@@ -1828,10 +1836,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     /**
      * Subscribe for signals. NOT thread-safe due to querying actor state.
      *
+     * @param isDryRun whether this is a dry run
      * @return a future that completes when subscription and ack label declaration succeed and fails when either fails.
      */
-    private CompletionStage<Void> subscribeAndDeclareAcknowledgementLabels() {
-        if (isDryRun()) {
+    private CompletionStage<Void> subscribeAndDeclareAcknowledgementLabels(final boolean isDryRun) {
+        if (isDryRun) {
             // no point writing to the distributed data in a dry run - this actor will stop right away
             return CompletableFuture.completedFuture(null);
         } else {
