@@ -55,7 +55,8 @@ final class ModifyConnectionStrategy extends AbstractConnectivityCommandStrategy
             @Nullable final Metadata metadata) {
 
         final Connection connection = command.getConnection().toBuilder().lifecycle(ACTIVE).build();
-        if (entity != null && entity.getConnectionType() != connection.getConnectionType()) {
+        if (entity != null && entity.getConnectionType() != connection.getConnectionType() &&
+                !command.getDittoHeaders().isSudo()) {
             return ResultFactory.newErrorResult(
                     ConnectionConfigurationInvalidException
                             .newBuilder("ConnectionType <" + connection.getConnectionType().getName() +

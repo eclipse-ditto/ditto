@@ -13,30 +13,32 @@
 package org.eclipse.ditto.connectivity.service.messaging;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
-import org.eclipse.ditto.connectivity.model.HeaderMapping;
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.HeaderMapping;
+import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
@@ -174,9 +176,12 @@ public abstract class AbstractPublisherActorTest {
         return getMockOutboundSignal(decorateTarget(createTestTarget()), extraHeaders);
     }
 
-    protected OutboundSignal.Mapped getMockOutboundSignalWithAutoAck(final CharSequence ack) {
-        return getMockOutboundSignal(decorateTarget(createTestTarget(ack)), "requested-acks",
-                JsonArray.of(JsonValue.of(ack.toString())).toString());
+    protected OutboundSignal.Mapped getMockOutboundSignalWithAutoAck(final CharSequence ack,
+            final String... extraHeaders) {
+        final String[] extra = Stream.concat(Arrays.stream(extraHeaders), Stream.of("requested-acks",
+                JsonArray.of(JsonValue.of(ack.toString())).toString()))
+                .toArray(String[]::new);
+        return getMockOutboundSignal(decorateTarget(createTestTarget(ack)), extra);
     }
 
     protected OutboundSignal.Mapped getMockOutboundSignal(final Target target,

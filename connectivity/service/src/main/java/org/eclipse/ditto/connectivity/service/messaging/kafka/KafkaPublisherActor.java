@@ -160,31 +160,13 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 .withHeader("ditto-connection-id", connection.getId().toString());
 
         return producerStream.publish(publishTarget, messageWithConnectionIdHeader)
-                .thenApply(callback)
-                .whenComplete((metadata, throwable) -> {
-                    if (throwable != null) {
-                        escalateIfNotRetryable(throwable);
-                    }
-                });
+                .thenApply(callback);
     }
 
     @Override
     public void postStop() throws Exception {
         super.postStop();
         producerStream.shutdown();
-    }
-
-    /**
-     * Check a send exception.
-     * Escalate to parent if it cannot be recovered from.
-     * Called by ProducerCallBack; must be thread-safe.
-     *
-     * @param throwable the exception.
-     */
-    private void escalateIfNotRetryable(final Throwable throwable) {
-        if (!(throwable instanceof RetriableException || throwable.getCause() instanceof RetriableException)) {
-            escalate(throwable, "Got non-retryable exception");
-        }
     }
 
     private boolean isDryRun() {
@@ -334,18 +316,16 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
             sourceQueue = sourcePair.first();
             killSwitch = sourcePair.second()
+//                    .async("kafka-producer-dispatcher", config.getParallelism())
                     .via(RestartFlow.onFailuresWithBackoff(restartSettings, () -> {
                         logger.debug("Creating new kafka publish flow.");
                         Optional.ofNullable(sendProducer.getAndSet(producerFactory.newSendProducer()))
                                 .ifPresent(SendProducer::close);
-                        return Flow.<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>create()
-                                .flatMapConcat(envelope -> Source.completionStage(
-                                        sendProducer.get()
-                                                .sendEnvelope(envelope)
-                                                .whenComplete(
-                                                        (results, exception) -> handleSendResult(results,
-                                                                exception,
-                                                                envelope.passThrough()))));
+                        return Flow.fromFunction(envelope -> sendProducer.get()
+                                .sendEnvelope(envelope)
+                                .whenComplete((results, exception) -> handleSendResult(results,
+                                        exception,
+                                        envelope.passThrough())));
                     }))
                     .viaMat(KillSwitches.single(), Keep.right())
                     .toMat(Sink.ignore(), Keep.left())

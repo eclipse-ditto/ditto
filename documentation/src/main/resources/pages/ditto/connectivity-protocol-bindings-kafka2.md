@@ -115,6 +115,7 @@ The specific configuration properties contain the following keys:
 * `debugEnabled`: determines whether for acknowledgements 
   [automatically issued by Kafka targets](#target-acknowledgement-handling) additional debug information should be 
   included as payload or not - default: `false`
+* `groupId`: The consumer group ID to be used by the kafka consumer. If not defined the group ID will be equal to the connection ID.
 
 
 ## Establishing connecting to an Apache Kafka endpoint

@@ -16,6 +16,8 @@ import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+
 import com.typesafe.config.Config;
 
 /**
@@ -65,6 +67,38 @@ public interface KafkaProducerConfig {
      */
     static KafkaProducerConfig of(final Config config) {
         return DefaultKafkaProducerConfig.of(config);
+    }
+
+    enum ConfigValue implements KnownConfigValue {
+
+        QUEUE_SIZE("queue-size", 100),
+
+        PARALLELISM("parallelism", 10),
+
+        MIN_BACKOFF("min-backoff", Duration.ofSeconds(3)),
+
+        MAX_BACKOFF("max-backoff", Duration.ofSeconds(30)),
+
+        RANDOM_FACTOR("random-factor", 0.2);
+
+        private final String path;
+        private final Object defaultValue;
+
+        ConfigValue(final String thePath, final Object theDefaultValue) {
+            path = thePath;
+            defaultValue = theDefaultValue;
+        }
+
+
+        @Override
+        public Object getDefaultValue() {
+            return defaultValue;
+        }
+
+        @Override
+        public String getConfigPath() {
+            return path;
+        }
     }
 
 }

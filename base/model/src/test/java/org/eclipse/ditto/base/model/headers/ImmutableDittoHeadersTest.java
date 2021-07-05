@@ -31,13 +31,6 @@ import java.util.stream.Collectors;
 
 import org.assertj.core.util.Lists;
 import org.assertj.core.util.Maps;
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
@@ -52,6 +45,13 @@ import org.eclipse.ditto.base.model.headers.metadata.MetadataHeader;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -107,6 +107,7 @@ public final class ImmutableDittoHeadersTest {
     private static final boolean KNOWN_IS_WEAK_ACK = false;
     private static final boolean KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY = true;
     private static final List<String> KNOWN_JOURNAL_TAGS = Lists.list("tag-a", "tag-b");
+    private static final boolean KNOWN_IS_SUDO = true;
 
 
     static {
@@ -164,6 +165,7 @@ public final class ImmutableDittoHeadersTest {
                         String.valueOf(KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY))
                 .putHeader(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
                         charSequencesToJsonArray(KNOWN_JOURNAL_TAGS).toString())
+                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), String.valueOf(KNOWN_IS_SUDO))
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -296,6 +298,31 @@ public final class ImmutableDittoHeadersTest {
     }
 
     @Test
+    public void isSudoIsFalseOnMissingHeader() {
+        final DittoHeaders underTest = DittoHeaders.empty();
+
+        assertThat(underTest.isSudo()).isFalse();
+    }
+
+    @Test
+    public void isSudoIsFalseWhenFalse() {
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "false")
+                .build();
+
+        assertThat(underTest.isSudo()).isFalse();
+    }
+
+    @Test
+    public void isSudoIsTrueWhenTrue() {
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), "true")
+                .build();
+
+        assertThat(underTest.isSudo()).isTrue();
+    }
+
+    @Test
     public void getRequestedAckLabelsReturnsExpected() {
         final DittoHeaders underTest = DittoHeaders.newBuilder()
                 .acknowledgementRequests(KNOWN_ACK_REQUESTS)
@@ -382,6 +409,7 @@ public final class ImmutableDittoHeadersTest {
                         KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY)
                 .set(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
                         charSequencesToJsonArray(KNOWN_JOURNAL_TAGS))
+                .set(DittoHeaderDefinition.DITTO_SUDO.getKey(), KNOWN_IS_SUDO)
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -605,6 +633,7 @@ public final class ImmutableDittoHeadersTest {
                 String.valueOf(KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY));
         result.put(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
                 charSequencesToJsonArray(KNOWN_JOURNAL_TAGS).toString());
+        result.put(DittoHeaderDefinition.DITTO_SUDO.getKey(), String.valueOf(KNOWN_IS_SUDO));
 
         return result;
     }
