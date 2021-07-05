@@ -38,7 +38,7 @@ public final class DefaultMetricsConfig implements MetricsConfig {
         systemMetricEnabled = metricsScopedConfig.getBoolean(MetricsConfigValue.SYSTEM_METRICS_ENABLED.getConfigPath());
         prometheusEnabled = metricsScopedConfig.getBoolean(MetricsConfigValue.PROMETHEUS_ENABLED.getConfigPath());
         prometheusHostname = metricsScopedConfig.getString(MetricsConfigValue.PROMETHEUS_HOSTNAME.getConfigPath());
-        prometheusPort = metricsScopedConfig.getPositiveIntOrThrow(MetricsConfigValue.PROMETHEUS_PORT);
+        prometheusPort = metricsScopedConfig.getNonNegativeIntOrThrow(MetricsConfigValue.PROMETHEUS_PORT);
     }
 
     /**

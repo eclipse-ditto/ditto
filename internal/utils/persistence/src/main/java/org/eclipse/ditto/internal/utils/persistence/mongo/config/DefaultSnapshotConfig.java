@@ -35,7 +35,7 @@ public final class DefaultSnapshotConfig implements SnapshotConfig {
 
     private DefaultSnapshotConfig(final ScopedConfig config) {
         interval = config.getNonNegativeAndNonZeroDurationOrThrow(SnapshotConfigValue.INTERVAL);
-        threshold = config.getNonNegativeIntOrThrow((SnapshotConfigValue.THRESHOLD));
+        threshold = config.getNonNegativeLongOrThrow((SnapshotConfigValue.THRESHOLD));
     }
 
     /**

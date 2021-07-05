@@ -37,7 +37,7 @@ public final class DefaultHttpConfig implements HttpConfig, WithConfigPath {
 
     private DefaultHttpConfig(final ConfigWithFallback config) {
         hostname = config.getString(HttpConfigValue.HOSTNAME.getConfigPath());
-        port = config.getPositiveIntOrThrow(HttpConfigValue.PORT);
+        port = config.getNonNegativeIntOrThrow(HttpConfigValue.PORT);
         coordinatedShutdownTimeout =
                 config.getNonNegativeAndNonZeroDurationOrThrow(HttpConfigValue.COORDINATED_SHUTDOWN_TIMEOUT);
     }
