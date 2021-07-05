@@ -44,7 +44,7 @@ public final class DefaultMqttConfig implements MqttConfig {
 
     private DefaultMqttConfig(final ScopedConfig config) {
         sourceBufferSize = config.getNonNegativeIntOrThrow(MqttConfigValue.SOURCE_BUFFER_SIZE);
-        eventLoopThreads = config.getPositiveIntOrThrow(MqttConfigValue.EVENT_LOOP_THREADS);
+        eventLoopThreads = config.getNonNegativeIntOrThrow(MqttConfigValue.EVENT_LOOP_THREADS);
         cleanSession = config.getBoolean(MqttConfigValue.CLEAN_SESSION.getConfigPath());
         reconnectForRedelivery = config.getBoolean(MqttConfigValue.RECONNECT_FOR_REDELIVERY.getConfigPath());
         reconnectForRedeliveryDelay =
