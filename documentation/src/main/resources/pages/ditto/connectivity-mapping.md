@@ -64,7 +64,7 @@ The following message mappers are included in the Ditto codebase:
 | [Ditto](#ditto-mapper) | Assumes that inbound/outbound messages are already in [Ditto Protocol](protocol-overview.html) (JSON) format. | ✓ | ✓ |
 | [JavaScript](#javascript-mapper) | Converts arbitrary messages from and to the [Ditto Protocol](protocol-overview.html) format using **custom** JavaScript code executed by Ditto. | ✓ | ✓ |
 | [Normalized](#normalized-mapper) | Transforms the payload of events to a normalized view. |  | ✓ |
-| [ConnectionStatus](#connectionstatus-mapper) | This mapper handles messages containing `creation-time` and `ttd` headers by updating a feature of the targeted thing with [definition](basic-feature.html#feature-definition) [ConnectionStatus](https://vorto.eclipse.org/#/details/org.eclipse.ditto:ConnectionStatus:1.0.0). | ✓ |  |
+| [ConnectionStatus](#connectionstatus-mapper) | This mapper handles messages containing `creation-time` and `ttd` headers by updating a feature of the targeted thing with [definition](basic-feature.html#feature-definition) [ConnectionStatus](https://github.com/eclipse/vorto/tree/development/models/org.eclipse.ditto-ConnectionStatus-1.0.0.fbmodel). | ✓ |  |
 | [RawMessage](#rawmessage-mapper) | For outgoing message commands and responses, this mapper extracts the payload for publishing directly into the channel. For incoming messages, this mapper wraps them in a configured message command or response envelope. | ✓ | ✓ |
 | [implicitThingCreation](#implicitthingcreation-mapper) | This mapper handles messages for which a Thing should be created automatically based on a defined template. | ✓ |  |
 | [implicitStandaloneThingCreation](#implicitstandalonethingcreation-mapper) | This mapper handles messages for which a Thing should be created automatically based on a defined template. | ✓ |  |
@@ -144,7 +144,7 @@ The `_context` field contains the original message content excluding the `value`
 ### ConnectionStatus mapper
 This mapper transforms the information from the `ttd` and `creation-time` message headers 
 (see Eclipse Hono [device notifications](https://www.eclipse.org/hono/docs/concepts/device-notifications/)) into a 
-ModifyFeature command that complies with the [Vorto functionblock](https://vorto.eclipse.org/#/details/org.eclipse.ditto:ConnectionStatus:1.0.0) `{%raw%}org.eclipse.ditto:ConnectionStatus{%endraw%}`. 
+ModifyFeature command that complies with the [Vorto functionblock](https://github.com/eclipse/vorto/tree/development/models/org.eclipse.ditto-ConnectionStatus-1.0.0.fbmodel) `{%raw%}org.eclipse.ditto:ConnectionStatus{%endraw%}`. 
  
 The connectivity state of the device is then represented in a Feature.<br/>
 It is mostly used in conjunction with another mapper that transforms the payload e.g.:<br/>
