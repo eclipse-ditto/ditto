@@ -36,8 +36,8 @@ public final class DefaultConnectionPoolConfig implements MongoDbConfig.Connecti
     private final boolean jmxListenerEnabled;
 
     private DefaultConnectionPoolConfig(final ScopedConfig config) {
-        minSize = config.getGreaterZeroIntOrThrow(ConnectionPoolConfigValue.MIN_SIZE);
-        maxSize = config.getGreaterZeroIntOrThrow(ConnectionPoolConfigValue.MAX_SIZE);
+        minSize = config.getNonNegativeIntOrThrow(ConnectionPoolConfigValue.MIN_SIZE);
+        maxSize = config.getNonNegativeIntOrThrow(ConnectionPoolConfigValue.MAX_SIZE);
         maxWaitTime = config.getNonNegativeDurationOrThrow(ConnectionPoolConfigValue.MAX_WAIT_TIME);
         jmxListenerEnabled = config.getBoolean(ConnectionPoolConfigValue.JMX_LISTENER_ENABLED.getConfigPath());
     }

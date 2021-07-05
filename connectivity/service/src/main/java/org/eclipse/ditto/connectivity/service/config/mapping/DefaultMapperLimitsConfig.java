@@ -37,12 +37,12 @@ public class DefaultMapperLimitsConfig implements MapperLimitsConfig {
 
     private DefaultMapperLimitsConfig(final ScopedConfig config) {
 
-        maxSourceMappers = config.getGreaterZeroIntOrThrow(MapperLimitsConfigValue.MAX_SOURCE_MAPPERS);
+        maxSourceMappers = config.getNonNegativeIntOrThrow(MapperLimitsConfigValue.MAX_SOURCE_MAPPERS);
         maxMappedInboundMessages =
-                config.getGreaterZeroIntOrThrow(MapperLimitsConfigValue.MAX_MAPPED_INBOUND_MESSAGE);
-        maxTargetMappers = config.getGreaterZeroIntOrThrow(MapperLimitsConfigValue.MAX_TARGET_MAPPERS);
+                config.getNonNegativeIntOrThrow(MapperLimitsConfigValue.MAX_MAPPED_INBOUND_MESSAGE);
+        maxTargetMappers = config.getNonNegativeIntOrThrow(MapperLimitsConfigValue.MAX_TARGET_MAPPERS);
         maxMappedOutboundMessages =
-                config.getGreaterZeroIntOrThrow(MapperLimitsConfigValue.MAX_MAPPED_OUTBOUND_MESSAGE);
+                config.getNonNegativeIntOrThrow(MapperLimitsConfigValue.MAX_MAPPED_OUTBOUND_MESSAGE);
     }
 
     /**

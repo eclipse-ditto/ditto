@@ -147,9 +147,9 @@ public interface ScopedConfig extends Config, WithConfigPath {
      * @return the int value.
      * @throws DittoConfigError if the int value at the config path is less equal zero.
      */
-    default int getGreaterZeroIntOrThrow(final WithConfigPath withConfigPath) {
+    default int getNonNegativeIntOrThrow(final WithConfigPath withConfigPath) {
         final var result = getInt(withConfigPath.getConfigPath());
-        if (0 >= result) {
+        if (0 > result) {
             final var msgPattern = "The int value at <{0}> must be greater zero but it was <{1}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, withConfigPath.getConfigPath(), result));
         }
@@ -163,9 +163,9 @@ public interface ScopedConfig extends Config, WithConfigPath {
      * @return the int value.
      * @throws DittoConfigError if the long value at the config path is less equal zero.
      */
-    default long getGreaterZeroLongOrThrow(final WithConfigPath withConfigPath) {
+    default long getNonNegativeLongOrThrow(final WithConfigPath withConfigPath) {
         final var result = getLong(withConfigPath.getConfigPath());
-        if (0 >= result) {
+        if (0 > result) {
             final var msgPattern = "The long value at <{0}> must be greater zero but it was <{1}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, withConfigPath.getConfigPath(), result));
         }
@@ -179,9 +179,9 @@ public interface ScopedConfig extends Config, WithConfigPath {
      * @return the int value.
      * @throws DittoConfigError if the double value at the config path is less equal zero.
      */
-    default double getGreaterZeroDoubleOrThrow(final WithConfigPath withConfigPath) {
+    default double getNonNegativeDoubleOrThrow(final WithConfigPath withConfigPath) {
         final var result = getDouble(withConfigPath.getConfigPath());
-        if (0.0 >= result) {
+        if (0.0 > result) {
             final var msgPattern = "The double value at <{0}> must be greater zero but it was <{1}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, withConfigPath.getConfigPath(), result));
         }
@@ -195,9 +195,9 @@ public interface ScopedConfig extends Config, WithConfigPath {
      * @return the int value.
      * @throws DittoConfigError if the bytes value at the config path is less equal zero.
      */
-    default long getGreaterZeroBytesOrThrow(final WithConfigPath withConfigPath) {
+    default long getNonNegativeBytesOrThrow(final WithConfigPath withConfigPath) {
         final var result = getBytes(withConfigPath.getConfigPath());
-        if (0L >= result) {
+        if (0L > result) {
             final var msgPattern = "The bytes value at <{0}> must be greater zero but it was <{1}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, withConfigPath.getConfigPath(), result));
         }

@@ -51,7 +51,7 @@ public final class DefaultAmqp10Config implements Amqp10Config, WithStringMapDec
 
     private DefaultAmqp10Config(final ScopedConfig config) {
         consumerRateLimitEnabled = config.getBoolean(Amqp10ConfigValue.CONSUMER_RATE_LIMIT_ENABLED.getConfigPath());
-        consumerMaxInFlight = config.getGreaterZeroIntOrThrow(Amqp10ConfigValue.CONSUMER_MAX_IN_FLIGHT);
+        consumerMaxInFlight = config.getNonNegativeIntOrThrow(Amqp10ConfigValue.CONSUMER_MAX_IN_FLIGHT);
         consumerRedeliveryExpectationTimeout =
                 config.getNonNegativeAndNonZeroDurationOrThrow(Amqp10ConfigValue.CONSUMER_REDELIVERY_EXPECTATION_TIMEOUT);
         producerCacheSize = config.getPositiveIntOrThrow(Amqp10ConfigValue.PRODUCER_CACHE_SIZE);
@@ -61,13 +61,13 @@ public final class DefaultAmqp10Config implements Amqp10Config, WithStringMapDec
         consumerThrottlingConfig = ThrottlingConfig.of(config.hasPath(CONSUMER_PATH)
                 ? config.getConfig(CONSUMER_PATH)
                 : ConfigFactory.empty());
-        maxQueueSize = config.getGreaterZeroIntOrThrow(Amqp10ConfigValue.MAX_QUEUE_SIZE);
-        messagePublishingParallelism = config.getGreaterZeroIntOrThrow(Amqp10ConfigValue.MESSAGE_PUBLISHING_PARALLELISM);
+        maxQueueSize = config.getNonNegativeIntOrThrow(Amqp10ConfigValue.MAX_QUEUE_SIZE);
+        messagePublishingParallelism = config.getNonNegativeIntOrThrow(Amqp10ConfigValue.MESSAGE_PUBLISHING_PARALLELISM);
         globalConnectTimeout = config.getNonNegativeDurationOrThrow(Amqp10ConfigValue.GLOBAL_CONNECT_TIMEOUT);
         globalSendTimeout = config.getNonNegativeDurationOrThrow(Amqp10ConfigValue.GLOBAL_SEND_TIMEOUT);
         globalRequestTimeout = config.getNonNegativeDurationOrThrow(Amqp10ConfigValue.GLOBAL_REQUEST_TIMEOUT);
         globalPrefetchPolicyAllCount =
-                config.getGreaterZeroIntOrThrow(Amqp10ConfigValue.GLOBAL_PREFETCH_POLICY_ALL_COUNT);
+                config.getNonNegativeIntOrThrow(Amqp10ConfigValue.GLOBAL_PREFETCH_POLICY_ALL_COUNT);
         hmacAlgorithms = asStringMap(config, HttpPushConfig.ConfigValue.HMAC_ALGORITHMS.getConfigPath());
     }
 

@@ -38,7 +38,7 @@ public final class DefaultStreamConfig implements StreamConfig {
     private final DefaultStreamCacheConfig streamCacheConfig;
 
     private DefaultStreamConfig(final ConfigWithFallback streamScopedConfig) {
-        maxArraySize = streamScopedConfig.getGreaterZeroIntOrThrow(StreamConfigValue.MAX_ARRAY_SIZE);
+        maxArraySize = streamScopedConfig.getNonNegativeIntOrThrow(StreamConfigValue.MAX_ARRAY_SIZE);
         writeInterval = streamScopedConfig.getNonNegativeAndNonZeroDurationOrThrow(StreamConfigValue.WRITE_INTERVAL);
         askTimeout = streamScopedConfig.getNonNegativeDurationOrThrow(StreamConfigValue.ASK_TIMEOUT);
         retrievalConfig = DefaultStreamStageConfig.getInstance(streamScopedConfig, RETRIEVAL_CONFIG_PATH);

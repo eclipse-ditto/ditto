@@ -73,8 +73,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         kafkaConfig = DefaultKafkaConfig.of(config);
         httpPushConfig = DefaultHttpPushConfig.of(config);
         activityCheckConfig = DefaultActivityCheckConfig.of(config);
-        maxNumberOfTargets = config.getGreaterZeroIntOrThrow(ConnectionConfigValue.MAX_TARGET_NUMBER);
-        maxNumberOfSources = config.getGreaterZeroIntOrThrow(ConnectionConfigValue.MAX_SOURCE_NUMBER);
+        maxNumberOfTargets = config.getNonNegativeIntOrThrow(ConnectionConfigValue.MAX_TARGET_NUMBER);
+        maxNumberOfSources = config.getNonNegativeIntOrThrow(ConnectionConfigValue.MAX_SOURCE_NUMBER);
         ackLabelDeclareInterval =
                 config.getNonNegativeAndNonZeroDurationOrThrow(ConnectionConfigValue.ACK_LABEL_DECLARE_INTERVAL);
         allClientActorsOnOneNode =

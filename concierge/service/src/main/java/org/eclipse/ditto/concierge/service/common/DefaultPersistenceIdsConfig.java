@@ -42,7 +42,7 @@ final class DefaultPersistenceIdsConfig implements PersistenceIdsConfig {
         streamIdleTimeout = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.STREAM_IDLE_TIMEOUT);
         minBackoff = config.getNonNegativeDurationOrThrow(ConfigValue.MIN_BACKOFF);
         maxBackoff = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.MAX_BACKOFF);
-        maxRestarts = config.getGreaterZeroIntOrThrow(ConfigValue.MAX_RESTARTS);
+        maxRestarts = config.getNonNegativeIntOrThrow(ConfigValue.MAX_RESTARTS);
         recovery = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.RECOVERY);
     }
 

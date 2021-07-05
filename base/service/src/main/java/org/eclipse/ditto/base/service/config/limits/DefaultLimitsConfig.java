@@ -42,11 +42,11 @@ public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
     private final int thingsSearchMaxPageSize;
 
     private DefaultLimitsConfig(final ConfigWithFallback config) {
-        headersMaxSize = config.getGreaterZeroBytesOrThrow(LimitsConfigValue.HEADERS_MAX_SIZE);
+        headersMaxSize = config.getNonNegativeBytesOrThrow(LimitsConfigValue.HEADERS_MAX_SIZE);
         authSubjectsMaxSize = config.getPositiveIntOrThrow(LimitsConfigValue.AUTH_SUBJECTS_MAX_SIZE);
-        thingsMaxSize = config.getGreaterZeroBytesOrThrow(LimitsConfigValue.THINGS_MAX_SIZE);
-        policiesMaxSize = config.getGreaterZeroBytesOrThrow(LimitsConfigValue.POLICIES_MAX_SIZE);
-        messagesMaxSize = config.getGreaterZeroBytesOrThrow(LimitsConfigValue.MESSAGES_MAX_SIZE);
+        thingsMaxSize = config.getNonNegativeBytesOrThrow(LimitsConfigValue.THINGS_MAX_SIZE);
+        policiesMaxSize = config.getNonNegativeBytesOrThrow(LimitsConfigValue.POLICIES_MAX_SIZE);
+        messagesMaxSize = config.getNonNegativeBytesOrThrow(LimitsConfigValue.MESSAGES_MAX_SIZE);
         thingsSearchDefaultPageSize = config.getPositiveIntOrThrow(LimitsConfigValue.THINGS_SEARCH_DEFAULT_PAGE_SIZE);
         thingsSearchMaxPageSize = config.getPositiveIntOrThrow(LimitsConfigValue.THINGS_SEARCH_MAX_PAGE_SIZE);
     }

@@ -38,7 +38,7 @@ public final class DefaultJavaScriptConfig implements JavaScriptConfig {
         maxScriptSizeBytes = config.getPositiveIntOrThrow(JavaScriptConfigValue.MAX_SCRIPT_SIZE_BYTES);
         maxScriptExecutionTime =
                 config.getNonNegativeAndNonZeroDurationOrThrow(JavaScriptConfigValue.MAX_SCRIPT_EXECUTION_TIME);
-        maxScriptStackDepth = config.getGreaterZeroIntOrThrow(JavaScriptConfigValue.MAX_SCRIPT_STACK_DEPTH);
+        maxScriptStackDepth = config.getNonNegativeIntOrThrow(JavaScriptConfigValue.MAX_SCRIPT_STACK_DEPTH);
     }
 
     /**

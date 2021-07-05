@@ -38,9 +38,9 @@ public final class DefaultMappingConfig implements MappingConfig {
     private final MapperLimitsConfig mapperLimitsConfig;
 
     private DefaultMappingConfig(final ScopedConfig config) {
-        bufferSize = config.getGreaterZeroIntOrThrow(MappingConfigValue.BUFFER_SIZE);
-        parallelism = config.getGreaterZeroIntOrThrow(MappingConfigValue.PARALLELISM);
-        maxPoolSize = config.getGreaterZeroIntOrThrow(MappingConfigValue.MAX_POOL_SIZE);
+        bufferSize = config.getNonNegativeIntOrThrow(MappingConfigValue.BUFFER_SIZE);
+        parallelism = config.getNonNegativeIntOrThrow(MappingConfigValue.PARALLELISM);
+        maxPoolSize = config.getNonNegativeIntOrThrow(MappingConfigValue.MAX_POOL_SIZE);
         mapperLimitsConfig = DefaultMapperLimitsConfig.of(config);
         javaScriptConfig = DefaultJavaScriptConfig.of(config);
     }

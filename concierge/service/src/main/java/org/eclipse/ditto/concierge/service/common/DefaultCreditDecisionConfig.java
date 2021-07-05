@@ -38,9 +38,9 @@ final class DefaultCreditDecisionConfig implements CreditDecisionConfig {
         this.interval = conf.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.INTERVAL);
         this.metricReportTimeout = conf.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.METRIC_REPORT_TIMEOUT);
         this.timerThreshold = conf.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.TIMER_THRESHOLD);
-        this.creditPerBatch = conf.getGreaterZeroIntOrThrow(ConfigValue.CREDIT_PER_BATCH);
-        creditForRequests = conf.getGreaterZeroIntOrThrow(ConfigValue.CREDIT_FOR_REQUESTS);
-        maxPendingRequests = conf.getGreaterZeroIntOrThrow(ConfigValue.MAX_PENDING_REQUESTS);
+        this.creditPerBatch = conf.getNonNegativeIntOrThrow(ConfigValue.CREDIT_PER_BATCH);
+        creditForRequests = conf.getNonNegativeIntOrThrow(ConfigValue.CREDIT_FOR_REQUESTS);
+        maxPendingRequests = conf.getNonNegativeIntOrThrow(ConfigValue.MAX_PENDING_REQUESTS);
     }
 
     static CreditDecisionConfig of(final Config config) {

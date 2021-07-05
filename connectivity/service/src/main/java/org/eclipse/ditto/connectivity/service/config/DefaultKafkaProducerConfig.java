@@ -39,11 +39,11 @@ public final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
     private final Config alpakkaConfig;
 
     private DefaultKafkaProducerConfig(final ScopedConfig kafkaProducerScopedConfig) {
-        queueSize = kafkaProducerScopedConfig.getGreaterZeroIntOrThrow(ConfigValue.QUEUE_SIZE);
-        parallelism = kafkaProducerScopedConfig.getGreaterZeroIntOrThrow(ConfigValue.PARALLELISM);
+        queueSize = kafkaProducerScopedConfig.getNonNegativeIntOrThrow(ConfigValue.QUEUE_SIZE);
+        parallelism = kafkaProducerScopedConfig.getNonNegativeIntOrThrow(ConfigValue.PARALLELISM);
         minBackoff = kafkaProducerScopedConfig.getNonNegativeDurationOrThrow(ConfigValue.MIN_BACKOFF);
         maxBackoff = kafkaProducerScopedConfig.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.MAX_BACKOFF);
-        randomFactor = kafkaProducerScopedConfig.getGreaterZeroDoubleOrThrow(ConfigValue.RANDOM_FACTOR);
+        randomFactor = kafkaProducerScopedConfig.getNonNegativeDoubleOrThrow(ConfigValue.RANDOM_FACTOR);
         alpakkaConfig = kafkaProducerScopedConfig.getConfig(ALPAKKA_PATH);
     }
 

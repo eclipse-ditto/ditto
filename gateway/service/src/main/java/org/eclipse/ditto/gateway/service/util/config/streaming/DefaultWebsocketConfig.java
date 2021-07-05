@@ -39,7 +39,7 @@ final class DefaultWebsocketConfig implements WebsocketConfig {
         publisherBackpressureBufferSize =
                 scopedConfig.getPositiveIntOrThrow(WebsocketConfigValue.PUBLISHER_BACKPRESSURE_BUFFER_SIZE);
         throttlingRejectionFactor =
-                scopedConfig.getGreaterZeroDoubleOrThrow(WebsocketConfigValue.THROTTLING_REJECTION_FACTOR);
+                scopedConfig.getNonNegativeDoubleOrThrow(WebsocketConfigValue.THROTTLING_REJECTION_FACTOR);
         throttlingConfig = ThrottlingConfig.of(scopedConfig);
     }
 

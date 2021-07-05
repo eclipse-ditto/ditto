@@ -34,9 +34,9 @@ public final class DefaultConnectionIdsRetrievalConfig implements ConnectionIdsR
 
     private DefaultConnectionIdsRetrievalConfig(final ScopedConfig config) {
         readJournalBatchSize =
-                config.getGreaterZeroIntOrThrow(ConnectionIdsRetrievalConfigValue.READ_JOURNAL_BATCH_SIZE);
+                config.getNonNegativeIntOrThrow(ConnectionIdsRetrievalConfigValue.READ_JOURNAL_BATCH_SIZE);
         readSnapshotBatchSize =
-                config.getGreaterZeroIntOrThrow(ConnectionIdsRetrievalConfigValue.READ_SNAPSHOT_BATCH_SIZE);
+                config.getNonNegativeIntOrThrow(ConnectionIdsRetrievalConfigValue.READ_SNAPSHOT_BATCH_SIZE);
     }
 
     /**

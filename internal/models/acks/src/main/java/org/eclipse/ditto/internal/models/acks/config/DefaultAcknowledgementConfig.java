@@ -46,7 +46,7 @@ public final class DefaultAcknowledgementConfig implements AcknowledgementConfig
         collectorFallbackAskTimeout =
                 config.getNonNegativeAndNonZeroDurationOrThrow(AcknowledgementConfigValue.COLLECTOR_FALLBACK_ASK_TIMEOUT);
         issuedMaxBytes =
-                config.getGreaterZeroIntOrThrow(AcknowledgementConfigValue.ISSUED_MAX_BYTES);
+                config.getNonNegativeIntOrThrow(AcknowledgementConfigValue.ISSUED_MAX_BYTES);
     }
 
     /**

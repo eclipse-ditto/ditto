@@ -39,7 +39,7 @@ final class DefaultHttpPushConfig implements HttpPushConfig, WithStringMapDecodi
     private final Map<String, String> hmacAlgorithms;
 
     private DefaultHttpPushConfig(final ScopedConfig config) {
-        maxQueueSize = config.getGreaterZeroIntOrThrow(ConfigValue.MAX_QUEUE_SIZE);
+        maxQueueSize = config.getNonNegativeIntOrThrow(ConfigValue.MAX_QUEUE_SIZE);
         requestTimeout = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.REQUEST_TIMEOUT);
         httpProxyConfig = DefaultHttpProxyConfig.ofProxy(config);
         hmacAlgorithms = asStringMap(config, ConfigValue.HMAC_ALGORITHMS.getConfigPath());

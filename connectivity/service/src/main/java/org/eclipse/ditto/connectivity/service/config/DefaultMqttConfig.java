@@ -43,7 +43,7 @@ public final class DefaultMqttConfig implements MqttConfig {
     private final BackOffConfig reconnectBackOffConfig;
 
     private DefaultMqttConfig(final ScopedConfig config) {
-        sourceBufferSize = config.getGreaterZeroIntOrThrow(MqttConfigValue.SOURCE_BUFFER_SIZE);
+        sourceBufferSize = config.getNonNegativeIntOrThrow(MqttConfigValue.SOURCE_BUFFER_SIZE);
         eventLoopThreads = config.getPositiveIntOrThrow(MqttConfigValue.EVENT_LOOP_THREADS);
         cleanSession = config.getBoolean(MqttConfigValue.CLEAN_SESSION.getConfigPath());
         reconnectForRedelivery = config.getBoolean(MqttConfigValue.RECONNECT_FOR_REDELIVERY.getConfigPath());
