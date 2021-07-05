@@ -34,8 +34,8 @@ public final class DefaultTimeoutConfig implements MongoDbConfig.CircuitBreakerC
     private final Duration reset;
 
     private DefaultTimeoutConfig(final ScopedConfig config) {
-        call = config.getDuration(TimeoutConfigValue.CALL.getConfigPath());
-        reset = config.getDuration(TimeoutConfigValue.RESET.getConfigPath());
+        call = config.getNonNegativeAndNonZeroDurationOrThrow(TimeoutConfigValue.CALL);
+        reset = config.getNonNegativeAndNonZeroDurationOrThrow(TimeoutConfigValue.RESET);
     }
 
     /**

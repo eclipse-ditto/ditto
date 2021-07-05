@@ -150,4 +150,5 @@ public interface PersistenceCleanupConfig extends BackgroundStreamingConfig {
             return defaultValue;
         }
     }
+
 }

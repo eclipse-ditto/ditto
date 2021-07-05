@@ -58,9 +58,10 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final boolean allClientActorsOnOneNode;
 
     private DefaultConnectionConfig(final ConfigWithFallback config) {
-        clientActorAskTimeout = config.getDuration(ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath());
-        clientActorRestartsBeforeEscalation = config.getInt(ConnectionConfigValue.CLIENT_ACTOR_RESTARTS_BEFORE_ESCALATION
-                .getConfigPath());
+        clientActorAskTimeout =
+                config.getNonNegativeAndNonZeroDurationOrThrow(ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT);
+        clientActorRestartsBeforeEscalation =
+                config.getPositiveIntOrThrow(ConnectionConfigValue.CLIENT_ACTOR_RESTARTS_BEFORE_ESCALATION);
         allowedHostnames = fromCommaSeparatedString(config, ConnectionConfigValue.ALLOWED_HOSTNAMES);
         blockedHostnames = fromCommaSeparatedString(config, ConnectionConfigValue.BLOCKED_HOSTNAMES);
         supervisorConfig = DefaultSupervisorConfig.of(config);
@@ -72,12 +73,14 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         kafkaConfig = DefaultKafkaConfig.of(config);
         httpPushConfig = DefaultHttpPushConfig.of(config);
         activityCheckConfig = DefaultActivityCheckConfig.of(config);
-        maxNumberOfTargets = config.getInt(ConnectionConfigValue.MAX_TARGET_NUMBER.getConfigPath());
-        maxNumberOfSources = config.getInt(ConnectionConfigValue.MAX_SOURCE_NUMBER.getConfigPath());
-        ackLabelDeclareInterval = config.getDuration(ConnectionConfigValue.ACK_LABEL_DECLARE_INTERVAL.getConfigPath());
+        maxNumberOfTargets = config.getGreaterZeroIntOrThrow(ConnectionConfigValue.MAX_TARGET_NUMBER);
+        maxNumberOfSources = config.getGreaterZeroIntOrThrow(ConnectionConfigValue.MAX_SOURCE_NUMBER);
+        ackLabelDeclareInterval =
+                config.getNonNegativeAndNonZeroDurationOrThrow(ConnectionConfigValue.ACK_LABEL_DECLARE_INTERVAL);
         allClientActorsOnOneNode =
                 config.getBoolean(ConnectionConfigValue.ALL_CLIENT_ACTORS_ON_ONE_NODE.getConfigPath());
-        priorityUpdateInterval = config.getDuration(ConnectionConfigValue.PRIORITY_UPDATE_INTERVAL.getConfigPath());
+        priorityUpdateInterval =
+                config.getNonNegativeAndNonZeroDurationOrThrow(ConnectionConfigValue.PRIORITY_UPDATE_INTERVAL);
     }
 
     /**

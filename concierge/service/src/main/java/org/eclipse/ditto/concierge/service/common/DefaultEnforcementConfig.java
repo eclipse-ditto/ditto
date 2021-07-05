@@ -34,8 +34,8 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
     private final boolean globalLiveResponseDispatching;
 
     private DefaultEnforcementConfig(final ConfigWithFallback configWithFallback) {
-        askTimeout = configWithFallback.getDuration(EnforcementConfigValue.ASK_TIMEOUT.getConfigPath());
-        bufferSize = configWithFallback.getInt(EnforcementConfigValue.BUFFER_SIZE.getConfigPath());
+        askTimeout = configWithFallback.getNonNegativeAndNonZeroDurationOrThrow(EnforcementConfigValue.ASK_TIMEOUT);
+        bufferSize = configWithFallback.getPositiveIntOrThrow(EnforcementConfigValue.BUFFER_SIZE);
         globalLiveResponseDispatching =
                 configWithFallback.getBoolean(EnforcementConfigValue.GLOBAL_LIVE_RESPONSE_DISPATCHING.getConfigPath());
     }

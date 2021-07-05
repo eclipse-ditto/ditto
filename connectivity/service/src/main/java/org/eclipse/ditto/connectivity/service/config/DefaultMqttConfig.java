@@ -43,16 +43,15 @@ public final class DefaultMqttConfig implements MqttConfig {
     private final BackOffConfig reconnectBackOffConfig;
 
     private DefaultMqttConfig(final ScopedConfig config) {
-        sourceBufferSize = config.getInt(MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath());
-        eventLoopThreads = config.getInt(MqttConfigValue.EVENT_LOOP_THREADS.getConfigPath());
+        sourceBufferSize = config.getGreaterZeroIntOrThrow(MqttConfigValue.SOURCE_BUFFER_SIZE);
+        eventLoopThreads = config.getPositiveIntOrThrow(MqttConfigValue.EVENT_LOOP_THREADS);
         cleanSession = config.getBoolean(MqttConfigValue.CLEAN_SESSION.getConfigPath());
         reconnectForRedelivery = config.getBoolean(MqttConfigValue.RECONNECT_FOR_REDELIVERY.getConfigPath());
         reconnectForRedeliveryDelay =
-                config.getDuration(MqttConfigValue.RECONNECT_FOR_REDELIVERY_DELAY.getConfigPath());
+                config.getNonNegativeDurationOrThrow(MqttConfigValue.RECONNECT_FOR_REDELIVERY_DELAY);
         useSeparateClientForPublisher = config.getBoolean(MqttConfigValue.SEPARATE_PUBLISHER_CLIENT.getConfigPath());
         reconnectMinTimeoutForMqttBrokerInitiatedDisconnect =
-                config.getDuration(MqttConfigValue.RECONNECT_MIN_TIMEOUT_FOR_MQTT_BROKER_INITIATED_DISCONNECT
-                        .getConfigPath());
+                config.getNonNegativeDurationOrThrow(MqttConfigValue.RECONNECT_MIN_TIMEOUT_FOR_MQTT_BROKER_INITIATED_DISCONNECT);
         reconnectBackOffConfig = DefaultBackOffConfig.of(config.hasPath(RECONNECT_PATH)
                 ? config.getConfig(RECONNECT_PATH)
                 : ConfigFactory.parseString("backoff" + "={}"));

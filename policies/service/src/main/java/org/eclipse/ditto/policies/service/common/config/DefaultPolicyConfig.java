@@ -48,9 +48,10 @@ public final class DefaultPolicyConfig implements PolicyConfig {
         activityCheckConfig = DefaultActivityCheckConfig.of(scopedConfig);
         snapshotConfig = DefaultSnapshotConfig.of(scopedConfig);
         policySubjectExpiryGranularity =
-                scopedConfig.getDuration(PolicyConfigValue.SUBJECT_EXPIRY_GRANULARITY.getConfigPath());
+                scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(PolicyConfigValue.SUBJECT_EXPIRY_GRANULARITY);
         policySubjectDeletionAnnouncementGranularity =
-                scopedConfig.getDuration(PolicyConfigValue.SUBJECT_DELETION_ANNOUNCEMENT_GRANULARITY.getConfigPath());
+                scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(
+                        PolicyConfigValue.SUBJECT_DELETION_ANNOUNCEMENT_GRANULARITY);
         subjectIdResolver = scopedConfig.getString(PolicyConfigValue.SUBJECT_ID_RESOLVER.getConfigPath());
     }
 

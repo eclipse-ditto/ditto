@@ -12,14 +12,12 @@
  */
 package org.eclipse.ditto.internal.utils.persistence.mongo.config;
 
-import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -36,17 +34,8 @@ public final class DefaultSnapshotConfig implements SnapshotConfig {
     private final long threshold;
 
     private DefaultSnapshotConfig(final ScopedConfig config) {
-        interval = config.getDuration(SnapshotConfigValue.INTERVAL.getConfigPath());
-        threshold = getThreshold(config);
-    }
-
-    private static long getThreshold(final ScopedConfig config) {
-        final long result = config.getLong(SnapshotConfigValue.THRESHOLD.getConfigPath());
-        if (1 > result) {
-            final String msgPattern = "The snapshot threshold must be positive but it was <{0}>!";
-            throw new DittoConfigError(MessageFormat.format(msgPattern, result));
-        }
-        return result;
+        interval = config.getNonNegativeAndNonZeroDurationOrThrow(SnapshotConfigValue.INTERVAL);
+        threshold = config.getPositiveLongOrThrow(SnapshotConfigValue.THRESHOLD);
     }
 
     /**

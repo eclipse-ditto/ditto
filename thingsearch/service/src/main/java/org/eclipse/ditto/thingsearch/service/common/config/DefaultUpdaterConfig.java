@@ -41,7 +41,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     private DefaultUpdaterConfig(final ConfigWithFallback updaterScopedConfig) {
         maxIdleTime = updaterScopedConfig.getNonNegativeDurationOrThrow(UpdaterConfigValue.MAX_IDLE_TIME);
         shardingStatePollInterval =
-                updaterScopedConfig.getDuration(UpdaterConfigValue.SHARDING_STATE_POLL_INTERVAL.getConfigPath());
+                updaterScopedConfig.getNonNegativeDurationOrThrow(UpdaterConfigValue.SHARDING_STATE_POLL_INTERVAL);
         eventProcessingActive =
                 updaterScopedConfig.getBoolean(UpdaterConfigValue.EVENT_PROCESSING_ACTIVE.getConfigPath());
         backgroundSyncConfig = DefaultBackgroundSyncConfig.fromUpdaterConfig(updaterScopedConfig);

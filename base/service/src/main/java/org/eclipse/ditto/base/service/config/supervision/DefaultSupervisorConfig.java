@@ -62,6 +62,7 @@ public final class DefaultSupervisorConfig implements SupervisorConfig {
             return false;
         }
         final DefaultSupervisorConfig that = (DefaultSupervisorConfig) o;
+
         return Objects.equals(exponentialBackOffConfig, that.exponentialBackOffConfig);
     }
 

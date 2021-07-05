@@ -34,8 +34,10 @@ public final class DefaultActivityCheckConfig implements ActivityCheckConfig {
     private final Duration deletedInterval;
 
     private DefaultActivityCheckConfig(final ScopedConfig scopedConfig) {
-        inactiveInterval = scopedConfig.getDuration(ActivityCheckConfigValue.INACTIVE_INTERVAL.getConfigPath());
-        deletedInterval = scopedConfig.getDuration(ActivityCheckConfigValue.DELETED_INTERVAL.getConfigPath());
+        inactiveInterval =
+                scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(ActivityCheckConfigValue.INACTIVE_INTERVAL);
+        deletedInterval =
+                scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(ActivityCheckConfigValue.DELETED_INTERVAL);
     }
 
     /**

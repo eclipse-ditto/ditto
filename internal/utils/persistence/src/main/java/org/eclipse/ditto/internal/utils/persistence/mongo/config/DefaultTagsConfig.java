@@ -30,8 +30,8 @@ public final class DefaultTagsConfig implements TagsConfig {
 
     private final int streamingCacheSize;
 
-    private DefaultTagsConfig(final Config config) {
-        streamingCacheSize = config.getInt(TagsConfigValue.STREAMING_CACHE_SIZE.getConfigPath());
+    private DefaultTagsConfig(final ConfigWithFallback config) {
+        streamingCacheSize = config.getPositiveIntOrThrow(TagsConfigValue.STREAMING_CACHE_SIZE);
     }
 
     /**

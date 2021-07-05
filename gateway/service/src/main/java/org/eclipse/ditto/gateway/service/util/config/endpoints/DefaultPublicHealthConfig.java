@@ -33,7 +33,7 @@ public final class DefaultPublicHealthConfig implements PublicHealthConfig {
     private final Duration cacheTimeout;
 
     private DefaultPublicHealthConfig(final ScopedConfig scopedConfig) {
-        cacheTimeout = scopedConfig.getDuration(PublicHealthConfigValue.CACHE_TIMEOUT.getConfigPath());
+        cacheTimeout = scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(PublicHealthConfigValue.CACHE_TIMEOUT);
     }
 
     /**

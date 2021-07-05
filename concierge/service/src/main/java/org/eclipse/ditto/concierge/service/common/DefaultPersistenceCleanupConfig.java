@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.Objects;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -34,14 +35,14 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
     private final PersistenceIdsConfig persistenceIdsConfig;
     private final Config config;
 
-    private DefaultPersistenceCleanupConfig(final Config config) {
+    private DefaultPersistenceCleanupConfig(final ScopedConfig config) {
         this.enabled = config.getBoolean(ConfigValue.ENABLED.getConfigPath());
-        this.quietPeriod = config.getDuration(ConfigValue.QUIET_PERIOD.getConfigPath());
-        this.cleanupTimeout = config.getDuration(ConfigValue.CLEANUP_TIMEOUT.getConfigPath());
-        this.parallelism = config.getInt(ConfigValue.PARALLELISM.getConfigPath());
-        this.keptCreditDecisions = config.getInt(ConfigValue.KEEP_CREDIT_DECISIONS.getConfigPath());
-        this.keptActions = config.getInt(ConfigValue.KEEP_ACTIONS.getConfigPath());
-        this.keptEvents = config.getInt(ConfigValue.KEEP_EVENTS.getConfigPath());
+        this.quietPeriod = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.QUIET_PERIOD);
+        this.cleanupTimeout = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.CLEANUP_TIMEOUT);
+        this.parallelism = config.getGreaterZeroIntOrThrow(ConfigValue.PARALLELISM);
+        this.keptCreditDecisions = config.getPositiveIntOrThrow(ConfigValue.KEEP_CREDIT_DECISIONS);
+        this.keptActions = config.getPositiveIntOrThrow(ConfigValue.KEEP_ACTIONS);
+        this.keptEvents = config.getPositiveIntOrThrow(ConfigValue.KEEP_EVENTS);
         this.creditDecisionConfig = DefaultCreditDecisionConfig.of(config);
         this.persistenceIdsConfig = DefaultPersistenceIdsConfig.of(config);
         this.config = config;
@@ -53,7 +54,8 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
     }
 
     static PersistenceCleanupConfig updated(final Config extractedConfig) {
-        return new DefaultPersistenceCleanupConfig(extractedConfig);
+        return new DefaultPersistenceCleanupConfig(
+                ConfigWithFallback.newInstance(extractedConfig, CONFIG_PATH, ConfigValue.values()));
     }
 
     @Override
@@ -145,4 +147,5 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
                 ", persistenceIdsConfig" + persistenceIdsConfig +
                 "]";
     }
+
 }

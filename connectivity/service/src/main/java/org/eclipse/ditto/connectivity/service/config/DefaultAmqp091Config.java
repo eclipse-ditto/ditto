@@ -34,7 +34,7 @@ public final class DefaultAmqp091Config implements Amqp091Config {
     private final Duration publisherPendingAckTTL;
 
     private DefaultAmqp091Config(final ScopedConfig config) {
-        publisherPendingAckTTL = config.getDuration(ConfigValue.PUBLISHER_PENDING_ACK_TTL.getConfigPath());
+        publisherPendingAckTTL = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.PUBLISHER_PENDING_ACK_TTL);
     }
 
     /**

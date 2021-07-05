@@ -33,7 +33,7 @@ public final class DefaultCircuitBreakerConfig implements MongoDbConfig.CircuitB
     private final TimeoutConfig timeoutConfig;
 
     private DefaultCircuitBreakerConfig(final ScopedConfig config) {
-        maxFailures = config.getInt(CircuitBreakerConfigValue.MAX_FAILURES.getConfigPath());
+        maxFailures = config.getPositiveIntOrThrow(CircuitBreakerConfigValue.MAX_FAILURES);
         timeoutConfig = DefaultTimeoutConfig.of(config);
     }
 

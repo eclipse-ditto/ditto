@@ -33,9 +33,10 @@ public final class DefaultConnectionIdsRetrievalConfig implements ConnectionIdsR
     private final int readSnapshotBatchSize;
 
     private DefaultConnectionIdsRetrievalConfig(final ScopedConfig config) {
-        readJournalBatchSize = config.getInt(ConnectionIdsRetrievalConfigValue.READ_JOURNAL_BATCH_SIZE.getConfigPath());
+        readJournalBatchSize =
+                config.getGreaterZeroIntOrThrow(ConnectionIdsRetrievalConfigValue.READ_JOURNAL_BATCH_SIZE);
         readSnapshotBatchSize =
-                config.getInt(ConnectionIdsRetrievalConfigValue.READ_SNAPSHOT_BATCH_SIZE.getConfigPath());
+                config.getGreaterZeroIntOrThrow(ConnectionIdsRetrievalConfigValue.READ_SNAPSHOT_BATCH_SIZE);
     }
 
     /**
@@ -46,7 +47,7 @@ public final class DefaultConnectionIdsRetrievalConfig implements ConnectionIdsR
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultConnectionIdsRetrievalConfig of(final Config config) {
-        final ConfigWithFallback reconnectScopedConfig =
+        final var reconnectScopedConfig =
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, ConnectionIdsRetrievalConfigValue.values());
 
         return new DefaultConnectionIdsRetrievalConfig(reconnectScopedConfig);
@@ -82,4 +83,5 @@ public final class DefaultConnectionIdsRetrievalConfig implements ConnectionIdsR
                 ", readSnapshotBatchSize=" + readSnapshotBatchSize +
                 "]";
     }
+
 }

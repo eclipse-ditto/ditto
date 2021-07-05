@@ -44,19 +44,21 @@ public final class DefaultClientConfig implements ClientConfig {
     private final Duration clientActorRefsNotificationDelay;
 
     private DefaultClientConfig(final ScopedConfig config) {
-        initTimeout = config.getDuration(ClientConfigValue.INIT_TIMEOUT.getConfigPath());
-        connectingMinTimeout = config.getDuration(ClientConfigValue.CONNECTING_MIN_TIMEOUT.getConfigPath());
-        connectingMaxTimeout = config.getDuration(ClientConfigValue.CONNECTING_MAX_TIMEOUT.getConfigPath());
-        disconnectingMaxTimeout = config.getDuration(ClientConfigValue.DISCONNECTING_MAX_TIMEOUT.getConfigPath());
-        disconnectAnnouncementTimeout = config.getDuration(
-                ClientConfigValue.DISCONNECT_ANNOUNCEMENT_TIMEOUT.getConfigPath());
-        subscriptionManagerTimeout = config.getDuration(ClientConfigValue.SUBSCRIPTION_MANAGER_TIMEOUT.getConfigPath());
-        connectingMaxTries = config.getInt(ClientConfigValue.CONNECTING_MAX_TRIES.getConfigPath());
-        testingTimeout = config.getDuration(ClientConfigValue.TESTING_TIMEOUT.getConfigPath());
-        minBackoff = config.getDuration(ClientConfigValue.MIN_BACKOFF.getConfigPath());
-        maxBackoff = config.getDuration(ClientConfigValue.MAX_BACKOFF.getConfigPath());
+        initTimeout = config.getNonNegativeDurationOrThrow(ClientConfigValue.INIT_TIMEOUT);
+        connectingMinTimeout = config.getNonNegativeDurationOrThrow(ClientConfigValue.CONNECTING_MIN_TIMEOUT);
+        connectingMaxTimeout = config.getNonNegativeAndNonZeroDurationOrThrow(ClientConfigValue.CONNECTING_MAX_TIMEOUT);
+        disconnectingMaxTimeout =
+                config.getNonNegativeAndNonZeroDurationOrThrow(ClientConfigValue.DISCONNECTING_MAX_TIMEOUT);
+        disconnectAnnouncementTimeout = config.getNonNegativeDurationOrThrow(
+                ClientConfigValue.DISCONNECT_ANNOUNCEMENT_TIMEOUT);
+        subscriptionManagerTimeout =
+                config.getNonNegativeDurationOrThrow(ClientConfigValue.SUBSCRIPTION_MANAGER_TIMEOUT);
+        connectingMaxTries = config.getPositiveIntOrThrow(ClientConfigValue.CONNECTING_MAX_TRIES);
+        testingTimeout = config.getNonNegativeAndNonZeroDurationOrThrow(ClientConfigValue.TESTING_TIMEOUT);
+        minBackoff = config.getNonNegativeDurationOrThrow(ClientConfigValue.MIN_BACKOFF);
+        maxBackoff = config.getNonNegativeAndNonZeroDurationOrThrow(ClientConfigValue.MAX_BACKOFF);
         clientActorRefsNotificationDelay =
-                config.getDuration(ClientConfigValue.CLIENT_ACTOR_REFS_NOTIFICATION_DELAY.getConfigPath());
+                config.getNonNegativeDurationOrThrow(ClientConfigValue.CLIENT_ACTOR_REFS_NOTIFICATION_DELAY);
     }
 
     /**

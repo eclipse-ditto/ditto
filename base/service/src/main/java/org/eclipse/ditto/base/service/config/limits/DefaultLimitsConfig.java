@@ -42,13 +42,13 @@ public final class DefaultLimitsConfig implements LimitsConfig, WithConfigPath {
     private final int thingsSearchMaxPageSize;
 
     private DefaultLimitsConfig(final ConfigWithFallback config) {
-        headersMaxSize = config.getBytes(LimitsConfigValue.HEADERS_MAX_SIZE.getConfigPath());
-        authSubjectsMaxSize = config.getInt(LimitsConfigValue.AUTH_SUBJECTS_MAX_SIZE.getConfigPath());
-        thingsMaxSize = config.getBytes(LimitsConfigValue.THINGS_MAX_SIZE.getConfigPath());
-        policiesMaxSize = config.getBytes(LimitsConfigValue.POLICIES_MAX_SIZE.getConfigPath());
-        messagesMaxSize = config.getBytes(LimitsConfigValue.MESSAGES_MAX_SIZE.getConfigPath());
-        thingsSearchDefaultPageSize = config.getInt(LimitsConfigValue.THINGS_SEARCH_DEFAULT_PAGE_SIZE.getConfigPath());
-        thingsSearchMaxPageSize = config.getInt(LimitsConfigValue.THINGS_SEARCH_MAX_PAGE_SIZE.getConfigPath());
+        headersMaxSize = config.getGreaterZeroBytesOrThrow(LimitsConfigValue.HEADERS_MAX_SIZE);
+        authSubjectsMaxSize = config.getPositiveIntOrThrow(LimitsConfigValue.AUTH_SUBJECTS_MAX_SIZE);
+        thingsMaxSize = config.getGreaterZeroBytesOrThrow(LimitsConfigValue.THINGS_MAX_SIZE);
+        policiesMaxSize = config.getGreaterZeroBytesOrThrow(LimitsConfigValue.POLICIES_MAX_SIZE);
+        messagesMaxSize = config.getGreaterZeroBytesOrThrow(LimitsConfigValue.MESSAGES_MAX_SIZE);
+        thingsSearchDefaultPageSize = config.getPositiveIntOrThrow(LimitsConfigValue.THINGS_SEARCH_DEFAULT_PAGE_SIZE);
+        thingsSearchMaxPageSize = config.getPositiveIntOrThrow(LimitsConfigValue.THINGS_SEARCH_MAX_PAGE_SIZE);
     }
 
     /**

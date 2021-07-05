@@ -40,7 +40,7 @@ public final class DefaultStreamCacheConfig implements StreamCacheConfig {
             final DefaultCacheConfig genericCacheConfig) {
 
         dispatcherName = streamCacheScopedConfig.getString(StreamCacheConfigValue.DISPATCHER_NAME.getConfigPath());
-        retryDelay = streamCacheScopedConfig.getDuration(StreamCacheConfigValue.RETRY_DELAY.getConfigPath());
+        retryDelay = streamCacheScopedConfig.getNonNegativeDurationOrThrow(StreamCacheConfigValue.RETRY_DELAY);
         this.genericCacheConfig = genericCacheConfig;
     }
 

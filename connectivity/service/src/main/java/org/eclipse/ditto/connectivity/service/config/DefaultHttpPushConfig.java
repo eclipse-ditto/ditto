@@ -21,7 +21,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.service.config.http.DefaultHttpProxyConfig;
 import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -40,11 +39,8 @@ final class DefaultHttpPushConfig implements HttpPushConfig, WithStringMapDecodi
     private final Map<String, String> hmacAlgorithms;
 
     private DefaultHttpPushConfig(final ScopedConfig config) {
-        maxQueueSize = config.getInt(ConfigValue.MAX_QUEUE_SIZE.getConfigPath());
-        requestTimeout = config.getDuration(ConfigValue.REQUEST_TIMEOUT.getConfigPath());
-        if (requestTimeout.isNegative() || requestTimeout.isZero()) {
-            throw new DittoConfigError("Request timeout must be greater than 0");
-        }
+        maxQueueSize = config.getGreaterZeroIntOrThrow(ConfigValue.MAX_QUEUE_SIZE);
+        requestTimeout = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.REQUEST_TIMEOUT);
         httpProxyConfig = DefaultHttpProxyConfig.ofProxy(config);
         hmacAlgorithms = asStringMap(config, ConfigValue.HMAC_ALGORITHMS.getConfigPath());
     }

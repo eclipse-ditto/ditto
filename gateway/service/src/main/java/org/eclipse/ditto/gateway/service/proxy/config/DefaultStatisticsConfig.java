@@ -39,9 +39,9 @@ final class DefaultStatisticsConfig implements StatisticsConfig, WithConfigPath 
     private final List<StatisticsShardConfig> shards;
 
     private DefaultStatisticsConfig(final ScopedConfig scopedConfig) {
-        askTimeout = scopedConfig.getDuration(ConfigValues.ASK_TIMEOUT.getConfigPath());
-        updateInterval = scopedConfig.getDuration(ConfigValues.UPDATE_INTERVAL.getConfigPath());
-        detailsExpireAfter = scopedConfig.getDuration(ConfigValues.DETAILS_EXPIRE_AFTER.getConfigPath());
+        askTimeout = scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(ConfigValues.ASK_TIMEOUT);
+        updateInterval = scopedConfig.getNonNegativeDurationOrThrow(ConfigValues.UPDATE_INTERVAL);
+        detailsExpireAfter = scopedConfig.getNonNegativeDurationOrThrow(ConfigValues.DETAILS_EXPIRE_AFTER);
         shards = scopedConfig.getConfigList(ConfigValues.SHARDS.getConfigPath())
                 .stream()
                 .map(DefaultStatisticsShardConfig::of)
