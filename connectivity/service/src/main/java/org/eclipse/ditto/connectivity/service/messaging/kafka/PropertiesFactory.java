@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -36,8 +37,18 @@ import akka.kafka.ProducerSettings;
  */
 final class PropertiesFactory {
 
-    private static final Collection<KafkaSpecificConfig> SPECIFIC_CONFIGS =
+    private static final Collection<KafkaSpecificConfig> COMMON_SPECIFIC_CONFIGS =
             List.of(KafkaAuthenticationSpecificConfig.getInstance(), KafkaBootstrapServerSpecificConfig.getInstance());
+
+    private static final Collection<KafkaSpecificConfig> CONSUMER_SPECIFIC_CONFIGS;
+    private static final Collection<KafkaSpecificConfig> PRODUCER_SPECIFIC_CONFIGS;
+
+    static {
+        final List<KafkaSpecificConfig> consumerSpecificConfigs = new ArrayList<>(COMMON_SPECIFIC_CONFIGS);
+        consumerSpecificConfigs.add(KafkaConsumerGroupSpecificConfig.getInstance());
+        CONSUMER_SPECIFIC_CONFIGS = List.copyOf(consumerSpecificConfigs);
+        PRODUCER_SPECIFIC_CONFIGS = List.copyOf(COMMON_SPECIFIC_CONFIGS);
+    }
 
     private final Connection connection;
     private final KafkaConfig config;
@@ -75,7 +86,9 @@ final class PropertiesFactory {
                 ConsumerSettings.apply(alpakkaConfig, new StringDeserializer(), new StringDeserializer())
                         .withBootstrapServers(bootstrapServers)
                         .withGroupId(connection.getId().toString())
-                        .withClientId(clientId + "-consumer");
+                        .withClientId(clientId + "-consumer")
+                        .withProperties(getConsumerSpecificConfigProperties())
+                        .withProperties(getSecurityProtocolProperties());
 
         // disable auto commit in dry run mode
         return dryRun ? consumerSettings.withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false") :
@@ -87,7 +100,7 @@ final class PropertiesFactory {
         return ProducerSettings.apply(alpakkaConfig, new StringSerializer(), new StringSerializer())
                 .withBootstrapServers(bootstrapServers)
                 .withProperties(getClientIdProperties())
-                .withProperties(getSpecificConfigProperties())
+                .withProperties(getProducerSpecificConfigProperties())
                 .withProperties(getSecurityProtocolProperties());
     }
 
@@ -95,9 +108,17 @@ final class PropertiesFactory {
         return Map.of(CommonClientConfigs.CLIENT_ID_CONFIG, clientId + "-producer");
     }
 
-    private Map<String, String> getSpecificConfigProperties() {
+    private Map<String, String> getConsumerSpecificConfigProperties() {
         final Map<String, String> properties = new HashMap<>();
-        for (final KafkaSpecificConfig specificConfig : SPECIFIC_CONFIGS) {
+        for (final KafkaSpecificConfig specificConfig : CONSUMER_SPECIFIC_CONFIGS) {
+            properties.putAll(specificConfig.apply(connection));
+        }
+        return properties;
+    }
+
+    private Map<String, String> getProducerSpecificConfigProperties() {
+        final Map<String, String> properties = new HashMap<>();
+        for (final KafkaSpecificConfig specificConfig : PRODUCER_SPECIFIC_CONFIGS) {
             properties.putAll(specificConfig.apply(connection));
         }
         return properties;

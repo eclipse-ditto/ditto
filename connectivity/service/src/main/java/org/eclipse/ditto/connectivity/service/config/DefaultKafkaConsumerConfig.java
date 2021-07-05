@@ -27,16 +27,15 @@ import com.typesafe.config.ConfigFactory;
 @Immutable
 public final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
 
+    private static final String CONFIG_PATH = "consumer";
     private static final String ALPAKKA_PATH = "alpakka";
 
     private final ThrottlingConfig throttlingConfig;
     private final Config alpakkaConfig;
 
     private DefaultKafkaConsumerConfig(final Config kafkaConsumerScopedConfig) {
-        throttlingConfig = ThrottlingConfig.of(kafkaConsumerScopedConfig.hasPath(ThrottlingConfig.CONFIG_PATH)
-                ? kafkaConsumerScopedConfig.getConfig(ThrottlingConfig.CONFIG_PATH)
-                : ConfigFactory.empty());
-        alpakkaConfig = kafkaConsumerScopedConfig.getConfig(ALPAKKA_PATH);
+        throttlingConfig = ThrottlingConfig.of(kafkaConsumerScopedConfig);
+        alpakkaConfig = getConfigOrEmpty(kafkaConsumerScopedConfig, ALPAKKA_PATH);
     }
 
     /**
@@ -47,7 +46,11 @@ public final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultKafkaConsumerConfig of(final Config config) {
-        return new DefaultKafkaConsumerConfig(config);
+        return new DefaultKafkaConsumerConfig(getConfigOrEmpty(config, CONFIG_PATH));
+    }
+
+    private static Config getConfigOrEmpty(final Config config, final String configKey) {
+        return config.hasPath(configKey) ? config.getConfig(configKey) : ConfigFactory.empty();
     }
 
     @Override
