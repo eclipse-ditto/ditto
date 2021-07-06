@@ -36,7 +36,7 @@ public final class DefaultTunnelConfig implements TunnelConfig {
     private final boolean socketKeepalive;
 
     private DefaultTunnelConfig(final ScopedConfig config) {
-        workers = config.getPositiveIntOrThrow(TunnelConfigValue.WORKERS);
+        workers = config.getNonNegativeIntOrThrow(TunnelConfigValue.WORKERS);
         heartbeatInterval = config.getNonNegativeAndNonZeroDurationOrThrow(TunnelConfigValue.HEARTBEAT_INTERVAL);
         idleTimeout = config.getNonNegativeDurationOrThrow(TunnelConfigValue.IDLE_TIMEOUT);
         socketKeepalive = config.getBoolean(TunnelConfigValue.SOCKET_KEEPALIVE.getConfigPath());
