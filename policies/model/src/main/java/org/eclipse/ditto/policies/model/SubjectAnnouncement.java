@@ -12,16 +12,20 @@
  */
 package org.eclipse.ditto.policies.model;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.common.DittoDuration;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.common.DittoDuration;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Represents announcement settings of a {@link Subject}.
@@ -40,7 +44,25 @@ public interface SubjectAnnouncement extends Jsonifiable<JsonObject> {
      * @return the new {@link SubjectAnnouncement}.
      */
     static SubjectAnnouncement of(@Nullable final DittoDuration beforeExpiry, final boolean whenDeleted) {
-        return new ImmutableSubjectAnnouncement(beforeExpiry, whenDeleted);
+        return new ImmutableSubjectAnnouncement(beforeExpiry, whenDeleted, Collections.emptyList(),
+                null);
+    }
+
+    /**
+     * Returns a new {@link SubjectAnnouncement} with the given configuration.
+     *
+     * @param beforeExpiry duration before expiry when an announcement should be sent, or null if no announcement should
+     * be sent.
+     * @param whenDeleted whether an announcement should be sent when the subject is deleted.
+     * @param requestedAcksBeforeExpiry acknowledgement requests for subject deletion announcements before expiry.
+     * @param requestedAcksTimeout timeout of acknowledgement requests.
+     * @return the new {@link SubjectAnnouncement}.
+     */
+    static SubjectAnnouncement of(@Nullable final DittoDuration beforeExpiry, final boolean whenDeleted,
+            final List<AcknowledgementRequest> requestedAcksBeforeExpiry,
+            @Nullable DittoDuration requestedAcksTimeout) {
+        return new ImmutableSubjectAnnouncement(beforeExpiry, whenDeleted, requestedAcksBeforeExpiry,
+                requestedAcksTimeout);
     }
 
     /**
@@ -70,6 +92,28 @@ public interface SubjectAnnouncement extends Jsonifiable<JsonObject> {
     boolean isWhenDeleted();
 
     /**
+     * Returns acknowledgement requests to fulfill for subject deletion announcements before expiry.
+     *
+     * @return the acknowledgement requests.
+     */
+    List<AcknowledgementRequest> getRequestedAcksBeforeExpiry();
+
+    /**
+     * Returns timeout of acknowledgement requests.
+     *
+     * @return the timeout.
+     */
+    Optional<DittoDuration> getRequestedAcksTimeout();
+
+    /**
+     * Returns a copy of this object with the field {@code beforeExpiry} replaced.
+     *
+     * @param beforeExpiry the new value.
+     * @return the copy.
+     */
+    SubjectAnnouncement setBeforeExpiry(@Nullable DittoDuration beforeExpiry);
+
+    /**
      * Fields of the JSON representation of a {@code SubjectAnnouncement} object.
      */
     final class JsonFields {
@@ -85,6 +129,18 @@ public interface SubjectAnnouncement extends Jsonifiable<JsonObject> {
          */
         public static final JsonFieldDefinition<Boolean> WHEN_DELETED =
                 JsonFactory.newBooleanFieldDefinition("whenDeleted");
+
+        /**
+         * Field to store requested acknowledgements for announcements before expiry.
+         */
+        public static final JsonFieldDefinition<JsonArray> REQUESTED_ACKS_BEFORE_EXPIRY =
+                JsonFactory.newJsonArrayFieldDefinition("requestedAcks/beforeExpiry");
+
+        /**
+         * Field to store timeout waiting for requested acknowledgements.
+         */
+        public static final JsonFieldDefinition<String> REQUESTED_ACKS_TIMEOUT =
+                JsonFactory.newStringFieldDefinition("requestedAcks/timeout");
 
         private JsonFields() {}
     }

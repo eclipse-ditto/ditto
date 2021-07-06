@@ -18,9 +18,11 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
+import java.util.Collections;
 
-import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.DittoDuration;
+import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -71,7 +73,11 @@ public final class ImmutableSubjectTest {
         final Subject subject = ImmutableSubject.of(SubjectId.newInstance(SubjectIssuer.GOOGLE, "myself"),
                 SubjectType.newInstance(KNOWN_SUBJECT_TYPE),
                 SubjectExpiry.newInstance(KNOWN_SUBJECT_EXPIRY_STR),
-                SubjectAnnouncement.of(DittoDuration.parseDuration("5m"), true));
+                SubjectAnnouncement.of(DittoDuration.parseDuration("5m"), true,
+                        Collections.singletonList(
+                                AcknowledgementRequest.parseAcknowledgementRequest("integration:connection")),
+                        DittoDuration.parseDuration("10s")
+                ));
 
         final Subject subject1 = ImmutableSubject.fromJson(SubjectIssuer.GOOGLE + ":myself",
                 KNOWN_SUBJECT_JSON);
@@ -122,7 +128,8 @@ public final class ImmutableSubjectTest {
     @Test
     public void createSubjectWithIssuerSuccess() {
         final Subject underTest =
-                Subject.newInstance(TestConstants.Policy.SUBJECT_ISSUER, TestConstants.Policy.SUBJECT_ID_SUBJECT, TestConstants.Policy.SUBJECT_TYPE);
+                Subject.newInstance(TestConstants.Policy.SUBJECT_ISSUER, TestConstants.Policy.SUBJECT_ID_SUBJECT,
+                        TestConstants.Policy.SUBJECT_TYPE);
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getId()).isEqualTo(TestConstants.Policy.SUBJECT_ID);
@@ -132,7 +139,8 @@ public final class ImmutableSubjectTest {
     @Test
     public void subjectWithIssuerEqualsSubjectAndIssuer() {
         final Subject subjectAndIssuer =
-                Subject.newInstance(TestConstants.Policy.SUBJECT_ISSUER, TestConstants.Policy.SUBJECT_ID_SUBJECT, TestConstants.Policy.SUBJECT_TYPE);
+                Subject.newInstance(TestConstants.Policy.SUBJECT_ISSUER, TestConstants.Policy.SUBJECT_ID_SUBJECT,
+                        TestConstants.Policy.SUBJECT_TYPE);
         final Subject subjectWithIssuer = Subject.newInstance(
                 TestConstants.Policy.SUBJECT_ID, TestConstants.Policy.SUBJECT_TYPE);
 

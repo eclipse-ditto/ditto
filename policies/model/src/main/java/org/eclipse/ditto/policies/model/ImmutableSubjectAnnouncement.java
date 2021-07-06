@@ -13,17 +13,25 @@
 package org.eclipse.ditto.policies.model;
 
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.common.DittoDuration;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.base.model.common.DittoDuration;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Immutable implementation of {@link SubjectAnnouncement}.
@@ -39,27 +47,41 @@ final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
     @Nullable
     private final DittoDuration beforeExpiry;
     private final boolean whenDeleted;
+    private final List<AcknowledgementRequest> requestedAcksBeforeExpiry;
+    @Nullable private final DittoDuration requestedAcksTimeout;
 
-    ImmutableSubjectAnnouncement(@Nullable final DittoDuration beforeExpiry, final boolean whenDeleted) {
+    ImmutableSubjectAnnouncement(@Nullable final DittoDuration beforeExpiry, final boolean whenDeleted,
+            final List<AcknowledgementRequest> requestedAcksBeforeExpiry,
+            @Nullable final DittoDuration requestedAcksTimeout) {
         this.beforeExpiry = beforeExpiry;
         this.whenDeleted = whenDeleted;
+        this.requestedAcksBeforeExpiry = Collections.unmodifiableList(new ArrayList<>(requestedAcksBeforeExpiry));
+        this.requestedAcksTimeout = requestedAcksTimeout;
     }
 
     static ImmutableSubjectAnnouncement fromJson(final JsonObject jsonObject) {
         final Optional<String> beforeExpiryString = jsonObject.getValue(JsonFields.BEFORE_EXPIRY);
         final boolean whenDeleted = jsonObject.getValue(JsonFields.WHEN_DELETED).orElse(false);
+        final List<AcknowledgementRequest> requestedAcksBeforeExpiry =
+                jsonObject.getValue(JsonFields.REQUESTED_ACKS_BEFORE_EXPIRY)
+                        .map(ImmutableSubjectAnnouncement::deserializeRequestedAcks)
+                        .orElse(Collections.emptyList());
+        final DittoDuration requestedAcksTimeout = jsonObject.getValue(JsonFields.REQUESTED_ACKS_TIMEOUT)
+                .map(DittoDuration::parseDuration)
+                .orElse(null);
         if (beforeExpiryString.isPresent()) {
             try {
                 final DittoDuration beforeExpiry = DittoDuration.parseDuration(beforeExpiryString.get());
                 if (!BEFORE_EXPIRY_DURATION_UNITS.contains(beforeExpiry.getChronoUnit())) {
                     throw SubjectAnnouncementInvalidException.newBuilder(beforeExpiryString.get()).build();
                 }
-                return new ImmutableSubjectAnnouncement(beforeExpiry, whenDeleted);
+                return new ImmutableSubjectAnnouncement(beforeExpiry, whenDeleted, requestedAcksBeforeExpiry,
+                        requestedAcksTimeout);
             } catch (final IllegalArgumentException e) {
                 throw SubjectAnnouncementInvalidException.newBuilder(beforeExpiryString.get()).build();
             }
         } else {
-            return new ImmutableSubjectAnnouncement(null, whenDeleted);
+            return new ImmutableSubjectAnnouncement(null, whenDeleted, requestedAcksBeforeExpiry, requestedAcksTimeout);
         }
     }
 
@@ -74,12 +96,34 @@ final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
     }
 
     @Override
+    public List<AcknowledgementRequest> getRequestedAcksBeforeExpiry() {
+        return requestedAcksBeforeExpiry;
+    }
+
+    @Override
+    public Optional<DittoDuration> getRequestedAcksTimeout() {
+        return Optional.ofNullable(requestedAcksTimeout);
+    }
+
+    @Override
+    public SubjectAnnouncement setBeforeExpiry(@Nullable final DittoDuration beforeExpiry) {
+        return new ImmutableSubjectAnnouncement(beforeExpiry, whenDeleted, requestedAcksBeforeExpiry,
+                requestedAcksTimeout);
+    }
+
+    @Override
     public JsonObject toJson() {
         final JsonObjectBuilder builder = JsonObject.newBuilder();
         if (beforeExpiry != null) {
             builder.set(JsonFields.BEFORE_EXPIRY, beforeExpiry.toString());
         }
         builder.set(JsonFields.WHEN_DELETED, whenDeleted);
+        if (!requestedAcksBeforeExpiry.isEmpty()) {
+            builder.set(JsonFields.REQUESTED_ACKS_BEFORE_EXPIRY, serializeRequestedAcks(requestedAcksBeforeExpiry));
+        }
+        if (requestedAcksTimeout != null) {
+            builder.set(JsonFields.REQUESTED_ACKS_TIMEOUT, requestedAcksTimeout.toString());
+        }
         return builder.build();
     }
 
@@ -87,7 +131,9 @@ final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
     public boolean equals(final Object other) {
         if (other instanceof ImmutableSubjectAnnouncement) {
             final ImmutableSubjectAnnouncement that = (ImmutableSubjectAnnouncement) other;
-            return Objects.equals(beforeExpiry, that.beforeExpiry) && whenDeleted == that.whenDeleted;
+            return Objects.equals(beforeExpiry, that.beforeExpiry) && whenDeleted == that.whenDeleted &&
+                    Objects.equals(requestedAcksBeforeExpiry, that.requestedAcksBeforeExpiry) &&
+                    Objects.equals(requestedAcksTimeout, that.requestedAcksTimeout);
         } else {
             return false;
         }
@@ -95,7 +141,7 @@ final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
 
     @Override
     public int hashCode() {
-        return Objects.hash(beforeExpiry, whenDeleted);
+        return Objects.hash(beforeExpiry, whenDeleted, requestedAcksBeforeExpiry, requestedAcksTimeout);
     }
 
     @Override
@@ -103,6 +149,21 @@ final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
         return getClass().getSimpleName() +
                 "[beforeExpiry=" + beforeExpiry +
                 ", whenDeleted=" + whenDeleted +
+                ", requestedAcksBeforeExpiry=" + requestedAcksBeforeExpiry +
+                ", requestedAcksTimeout" + requestedAcksTimeout +
                 "]";
+    }
+
+    private static List<AcknowledgementRequest> deserializeRequestedAcks(final JsonArray jsonArray) {
+        return jsonArray.stream()
+                .map(value -> AcknowledgementRequest.parseAcknowledgementRequest(value.asString()))
+                .collect(Collectors.toList());
+    }
+
+    private static JsonArray serializeRequestedAcks(final List<AcknowledgementRequest> requestedAcks) {
+        return requestedAcks.stream()
+                .map(AcknowledgementRequest::getLabel)
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray());
     }
 }

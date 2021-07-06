@@ -260,7 +260,7 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
             final var roundedUpDuration =
                     roundUpDuration(dittoDuration.getDuration(), policyDeletionAnnouncementGranularity);
             final var roundedUpDittoDuration = dittoDuration.setAmount(roundedUpDuration);
-            return SubjectAnnouncement.of(roundedUpDittoDuration, subjectAnnouncement.isWhenDeleted());
+            return subjectAnnouncement.setBeforeExpiry(roundedUpDittoDuration);
         } else {
             return subjectAnnouncement;
         }
