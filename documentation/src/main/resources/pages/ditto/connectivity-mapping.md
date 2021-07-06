@@ -66,8 +66,7 @@ The following message mappers are included in the Ditto codebase:
 | [Normalized](#normalized-mapper) | Transforms the payload of events to a normalized view. |  | ✓ |
 | [ConnectionStatus](#connectionstatus-mapper) | This mapper handles messages containing `creation-time` and `ttd` headers by updating a feature of the targeted thing with [definition](basic-feature.html#feature-definition) [ConnectionStatus](https://github.com/eclipse/vorto/tree/development/models/org.eclipse.ditto-ConnectionStatus-1.0.0.fbmodel). | ✓ |  |
 | [RawMessage](#rawmessage-mapper) | For outgoing message commands and responses, this mapper extracts the payload for publishing directly into the channel. For incoming messages, this mapper wraps them in a configured message command or response envelope. | ✓ | ✓ |
-| [implicitThingCreation](#implicitthingcreation-mapper) | This mapper handles messages for which a Thing should be created automatically based on a defined template. | ✓ |  |
-| [implicitStandaloneThingCreation](#implicitstandalonethingcreation-mapper) | This mapper handles messages for which a Thing should be created automatically based on a defined template. | ✓ |  |
+| [ImplicitThingCreation](#implicitthingcreation-mapper) | This mapper handles messages for which a Thing should be created automatically based on a defined template. | ✓ |  |
 
 ### Ditto mapper
 
@@ -251,10 +250,8 @@ Example configuration:
 
 This mapper implicitly creates a new thing for an incoming message. 
  
-The created thing contains the values defined in the template, configured in the `mappingDefinitions` `options`.
+The created thing contains the values defined in the template, configured in the `mappingDefinitions` `options`. </br>
 
-In this case we assume that a gateway device will register the attached edge devices, thus the device will communicate via the gateway.
- 
 #### Configuration options
 
 * `thing` (required): The values of the thing that is created implicitly. It can either contain fixed values
@@ -267,31 +264,6 @@ In this case we assume that a gateway device will register the attached edge dev
    "thingId": "{%raw%}{{ header:device_id }}{%endraw%}",
    "attributes": {
      "CreatedBy": "ImplicitThingCreation"
-   }
-  }
- }
- ```
-
-### ImplicitStandaloneThingCreation mapper
-
-This mapper implicitly creates a new thing for an incoming message. 
- 
-The created thing contains the values defined in the template, configured in the `mappingDefinitions` `options`.
-
-In this case we assume that a standalone device needs to be registered.
- 
-#### Configuration options
-
-* `thing` (required): The values of the thing that is created implicitly. It can either contain fixed values
- or header placeholders (e.g. `{%raw%}{{ header:device_id }}{%endraw%}`).
- 
- Example of a template defined in  `options`:
- ```json
- {
-   "thing": {
-   "thingId": "{%raw%}{{ header:device_id }}{%endraw%}",
-   "attributes": {
-     "CreatedBy": "ImplicitStandaloneThingCreation"
    }
   }
  }
