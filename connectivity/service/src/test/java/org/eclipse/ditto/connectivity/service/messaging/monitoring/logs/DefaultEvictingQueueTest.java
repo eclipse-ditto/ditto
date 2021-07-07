@@ -17,8 +17,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.junit.Test;
@@ -43,8 +45,27 @@ public final class DefaultEvictingQueueTest {
         queue.addAll(remainingStrings);
 
         assertThat(queue)
-                .containsOnlyElementsOf(remainingStrings)
+                .hasSameElementsAs(remainingStrings)
                 .hasSize(remainingStrings.size());
+        assertThat(queue.stream().count())
+                .isEqualTo(remainingStrings.size());
+    }
+
+    @Test
+    public void verifyEvictionUnderHighLoad() throws InterruptedException {
+        final EvictingQueue<String> queue = DefaultEvictingQueue.withCapacity(CAPACITY);
+
+        final CountDownLatch latch = new CountDownLatch(100000);
+
+        IntStream.range(0, 100000).parallel().forEach(i -> {
+            queue.add(Integer.toString(i));
+            latch.countDown();
+        });
+
+        latch.await();
+
+        assertThat(queue.size()).isEqualTo(CAPACITY);
+        assertThat(queue.stream().count()).isEqualTo(CAPACITY);
     }
 
     private List<String> createRandomStrings(final int n) {
