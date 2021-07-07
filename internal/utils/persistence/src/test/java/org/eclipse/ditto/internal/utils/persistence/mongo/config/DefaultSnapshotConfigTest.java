@@ -76,6 +76,6 @@ public final class DefaultSnapshotConfigTest {
                 .isEqualTo(Duration.ofDays(100L));
         softly.assertThat(underTest.getThreshold())
                 .as(SnapshotConfig.SnapshotConfigValue.THRESHOLD.getConfigPath())
-                .isEqualTo(1);
+                .isEqualTo(2);
     }
 }
