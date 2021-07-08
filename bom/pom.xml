@@ -55,7 +55,7 @@
         <newmotion-akka-rabbitmq.version>5.1.2</newmotion-akka-rabbitmq.version>
         <amqp-client.version>5.7.3</amqp-client.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
-        <netty-bom.version>4.1.59.Final</netty-bom.version>
+        <netty-bom.version>4.1.65.Final</netty-bom.version>
         <cloundevents.version>2.0.0</cloundevents.version>
 
         <slf4j.version>1.7.30</slf4j.version>
