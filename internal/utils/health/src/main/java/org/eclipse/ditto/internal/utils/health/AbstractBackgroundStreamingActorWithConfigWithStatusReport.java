@@ -164,10 +164,10 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
 
     @Override
     public Config setConfig(final Config config) {
-        final C previousConfig = this.config;
+        final var previousConfig = this.config;
         // TODO Ditto issue #439: replace ConfigWithFallback - it breaks AbstractConfigValue.withFallback!
         // Workaround: re-parse my config
-        final Config fallback = ConfigFactory.parseString(getConfig().root().render(ConfigRenderOptions.concise()));
+        final var fallback = ConfigFactory.parseString(getConfig().root().render(ConfigRenderOptions.concise()));
         try {
             this.config = parseConfig(config.withFallback(fallback));
         } catch (final DittoConfigError | ConfigException e) {
@@ -180,7 +180,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
     }
 
     private Receive sleeping() {
-        final ReceiveBuilder sleepingReceiveBuilder = ReceiveBuilder.create();
+        final var sleepingReceiveBuilder = ReceiveBuilder.create();
         preEnhanceSleepingBehavior(sleepingReceiveBuilder);
         return sleepingReceiveBuilder.match(WokeUp.class, this::wokeUp)
                 .match(Event.class, this::addCustomEventToLog)
@@ -193,7 +193,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
     }
 
     private Receive streaming() {
-        final ReceiveBuilder streamingReceiveBuilder = ReceiveBuilder.create();
+        final var streamingReceiveBuilder = ReceiveBuilder.create();
         preEnhanceStreamingBehavior(streamingReceiveBuilder);
         return streamingReceiveBuilder
                 .match(StreamTerminated.class, this::streamTerminated)
@@ -255,11 +255,13 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
 
         if (config.isEnabled()) {
             final Duration wakeUpDelay = config.getQuietPeriod();
-            final String message = String.format("Restarting in <%s>.", wakeUpDelay);
+            final var message = String.format("Restarting in <%s>.", wakeUpDelay);
+            log.info(message);
             scheduleWakeUp(wakeUpDelay);
             getSender().tell(ShutdownResponse.of(message, shutdown.getDittoHeaders()), getSelf());
         } else {
-            final String message = "Not restarting stream because I am disabled.";
+            final var message = "Not restarting stream because I am disabled.";
+            log.info(message);
             getSender().tell(ShutdownResponse.of(message, shutdown.getDittoHeaders()), getSelf());
         }
     }
@@ -280,7 +282,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
 
         materializedValues.second()
                 .<Void>handle((result, error) -> {
-                    final String description = String.format("Stream terminated. Result=<%s> Error=<%s>",
+                    final var description = String.format("Stream terminated. Result=<%s> Error=<%s>",
                             result, error);
                     if (error != null) {
                         log.error(error, description);

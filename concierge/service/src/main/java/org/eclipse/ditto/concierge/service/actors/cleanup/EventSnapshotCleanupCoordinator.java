@@ -21,32 +21,32 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.concierge.service.actors.ShardRegions;
 import org.eclipse.ditto.concierge.service.actors.cleanup.credits.CreditDecisionSource;
 import org.eclipse.ditto.concierge.service.actors.cleanup.messages.CreditDecision;
 import org.eclipse.ditto.concierge.service.actors.cleanup.persistenceids.PersistenceIdSource;
 import org.eclipse.ditto.concierge.service.common.PersistenceCleanupConfig;
+import org.eclipse.ditto.connectivity.api.ConnectionTag;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
+import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.internal.utils.akka.controlflow.Transistor;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.health.AbstractBackgroundStreamingActorWithConfigWithStatusReport;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.connectivity.api.ConnectionTag;
 import org.eclipse.ditto.policies.api.PolicyTag;
-import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.things.api.ThingTag;
-import org.eclipse.ditto.internal.utils.akka.controlflow.Transistor;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.health.AbstractBackgroundStreamingActorWithConfigWithStatusReport;
-import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
-import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
-import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 
 import com.typesafe.config.Config;
@@ -185,13 +185,16 @@ public final class EventSnapshotCleanupCoordinator
         enqueue(actions, cleanupResponse, config.getKeptActions());
     }
 
-    private void onCreditDecision(final CreditDecision creditDecision) {
-        enqueue(creditDecisions, creditDecision, config.getKeptCreditDecisions());
-        // reset credit for requests if credit decision is positive
-        if (creditDecision.getCredit() > 0) {
-            creditForRequests = config.getCreditDecisionConfig().getCreditForRequests();
-            flushPendingRequests();
-        }
+    private static JsonObject renderAction(final Pair<Instant, CleanupPersistenceResponse> element) {
+        final var response = element.second();
+        final var headers = response.getDittoHeaders();
+        final var status = response.getHttpStatus();
+        final var start = headers.getOrDefault(START, "unknown");
+        final var message = getResponseMessage(response);
+        final var tagLine = String.format("%d start=%s <%s>", status.getCode(), start, message);
+        return JsonObject.newBuilder()
+                .set(element.first().toString(), tagLine)
+                .build();
     }
 
     private void flushPendingRequests() {
@@ -203,26 +206,23 @@ public final class EventSnapshotCleanupCoordinator
         }
     }
 
-    private void onThingSnapshotTaken(final ThingSnapshotTaken event) {
-        if (creditForRequests > 0) {
-            --creditForRequests;
-            cleanUpThingByRequest(event.getEntityId());
-        } else if (pendingRequests.size() < config.getCreditDecisionConfig().getMaxPendingRequests()) {
-            pendingRequests.add(event.getEntityId());
-        } else {
-            log.info("Dropping <{}> because cache is full.", event);
-        }
+    private static JsonObject renderCreditDecision(final Pair<Instant, CreditDecision> element) {
+        return JsonObject.newBuilder()
+                .set(element.first().toString(), element.second().toString())
+                .build();
     }
 
-    private void cleanUpThingByRequest(final ThingId thingId) {
-        final ThingTag thingTag = ThingTag.of(thingId, 0);
-        askShardRegionForCleanup(shardRegions.things(), ThingCommand.RESOURCE_TYPE, thingTag)
-                .thenAccept(response -> {
-                    final var withRequestedHeader = response.setDittoHeaders(response.getDittoHeaders().toBuilder()
-                            .putHeader(REQUESTED_MESSAGE_HEADER, "true")
-                            .build());
-                    getSelf().tell(withRequestedHeader, ActorRef.noSender());
-                });
+    private void onThingSnapshotTaken(final ThingSnapshotTaken event) {
+        if (config.isEnabled()) {
+            if (creditForRequests > 0) {
+                --creditForRequests;
+                cleanUpThingByRequest(event.getEntityId());
+            } else if (pendingRequests.size() < config.getCreditDecisionConfig().getMaxPendingRequests()) {
+                pendingRequests.add(event.getEntityId());
+            } else {
+                log.info("Dropping <{}> because cache is full.", event);
+            }
+        }
     }
 
     private <T> Flow<T, T, NotUsed> reportToSelf() {
@@ -265,6 +265,28 @@ public final class EventSnapshotCleanupCoordinator
         return PersistenceIdSource.create(config.getPersistenceIdsConfig(), pubSubMediator);
     }
 
+    private void onCreditDecision(final CreditDecision creditDecision) {
+        if (config.isEnabled()) {
+            enqueue(creditDecisions, creditDecision, config.getKeptCreditDecisions());
+            // reset credit for requests if credit decision is positive
+            if (creditDecision.getCredit() > 0) {
+                creditForRequests = config.getCreditDecisionConfig().getCreditForRequests();
+                flushPendingRequests();
+            }
+        }
+    }
+
+    private void cleanUpThingByRequest(final ThingId thingId) {
+        final var thingTag = ThingTag.of(thingId, 0);
+        askShardRegionForCleanup(shardRegions.things(), ThingCommand.RESOURCE_TYPE, thingTag)
+                .thenAccept(response -> {
+                    final var withRequestedHeader = response.setDittoHeaders(response.getDittoHeaders().toBuilder()
+                            .putHeader(REQUESTED_MESSAGE_HEADER, "true")
+                            .build());
+                    getSelf().tell(withRequestedHeader, ActorRef.noSender());
+                });
+    }
+
     @Override
     protected Source<CleanupPersistenceResponse, NotUsed> getSource() {
 
@@ -282,7 +304,7 @@ public final class EventSnapshotCleanupCoordinator
                         .matchAny(e -> {
                             final String errorMessage = "Unexpected entity ID type: " + e;
                             log.error(errorMessage);
-                            final CleanupPersistenceResponse failureResponse =
+                            final var failureResponse =
                                     CleanupPersistenceResponse.failure(e.getEntityId(),
                                             DittoHeaders.newBuilder().putHeader(ERROR_MESSAGE_HEADER, errorMessage)
                                                     .build());
@@ -296,33 +318,6 @@ public final class EventSnapshotCleanupCoordinator
                 .log(EventSnapshotCleanupCoordinator.class.getSimpleName(), log);
     }
 
-    private CompletionStage<CleanupPersistenceResponse> askShardRegionForCleanup(final ActorRef shardRegion,
-            final String resourceType, final EntityIdWithRevision<?> tag) {
-
-        final EntityId id = tag.getEntityId();
-        final CleanupPersistence cleanupPersistence = getCleanupCommand(id);
-        return Patterns.ask(shardRegion, cleanupPersistence, config.getCleanupTimeout())
-                .handle((result, error) -> {
-                    if (result instanceof CleanupPersistenceResponse) {
-                        final CleanupPersistenceResponse response = ((CleanupPersistenceResponse) result);
-                        final DittoHeaders headers =
-                                cleanupPersistence.getDittoHeaders()
-                                        .toBuilder()
-                                        .putHeaders(response.getDittoHeaders())
-                                        .build();
-                        return response.setDittoHeaders(headers);
-                    } else {
-                        final String errorMessage =
-                                String.format("Unexpected response from shard <%s>: result=<%s> error=<%s>",
-                                        resourceType, result, error);
-                        return CleanupPersistenceResponse.failure(id,
-                                cleanupPersistence.getDittoHeaders().toBuilder()
-                                        .putHeader(ERROR_MESSAGE_HEADER, errorMessage)
-                                        .build());
-                    }
-                });
-    }
-
     @Override
     protected void postEnhanceStatusReport(final JsonObjectBuilder statusReportBuilder) {
         statusReportBuilder.set(JSON_CREDIT_DECISIONS, creditDecisions.stream()
@@ -334,22 +329,31 @@ public final class EventSnapshotCleanupCoordinator
                 .build();
     }
 
-    private static JsonObject renderCreditDecision(final Pair<Instant, CreditDecision> element) {
-        return JsonObject.newBuilder()
-                .set(element.first().toString(), element.second().toString())
-                .build();
-    }
+    private CompletionStage<CleanupPersistenceResponse> askShardRegionForCleanup(final ActorRef shardRegion,
+            final String resourceType, final EntityIdWithRevision<?> tag) {
 
-    private static JsonObject renderAction(final Pair<Instant, CleanupPersistenceResponse> element) {
-        final var response = element.second();
-        final var headers = response.getDittoHeaders();
-        final var status = response.getHttpStatus();
-        final var start = headers.getOrDefault(START, "unknown");
-        final var message = getResponseMessage(response);
-        final String tagLine = String.format("%d start=%s <%s>", status.getCode(), start, message);
-        return JsonObject.newBuilder()
-                .set(element.first().toString(), tagLine)
-                .build();
+        final EntityId id = tag.getEntityId();
+        final var cleanupPersistence = getCleanupCommand(id);
+        return Patterns.ask(shardRegion, cleanupPersistence, config.getCleanupTimeout())
+                .handle((result, error) -> {
+                    if (result instanceof CleanupPersistenceResponse) {
+                        final CleanupPersistenceResponse response = ((CleanupPersistenceResponse) result);
+                        final DittoHeaders headers =
+                                cleanupPersistence.getDittoHeaders()
+                                        .toBuilder()
+                                        .putHeaders(response.getDittoHeaders())
+                                        .build();
+                        return response.setDittoHeaders(headers);
+                    } else {
+                        final var errorMessage =
+                                String.format("Unexpected response from shard <%s>: result=<%s> error=<%s>",
+                                        resourceType, result, error);
+                        return CleanupPersistenceResponse.failure(id,
+                                cleanupPersistence.getDittoHeaders().toBuilder()
+                                        .putHeader(ERROR_MESSAGE_HEADER, errorMessage)
+                                        .build());
+                    }
+                });
     }
 
     private static String getResponseMessage(final CleanupPersistenceResponse response) {
@@ -373,4 +377,5 @@ public final class EventSnapshotCleanupCoordinator
                 .build();
         return CleanupPersistence.of(id, headers);
     }
+
 }

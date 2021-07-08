@@ -16,13 +16,13 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
-import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
 
 import akka.actor.ActorRef;
 import akka.persistence.AbstractPersistentActorWithTimers;
@@ -117,13 +117,13 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
     private EntityId extractEntityIdFromPersistenceId(final String persistenceId) {
         final int indexOfSeparator = persistenceId.indexOf(':');
         if (indexOfSeparator < 0) {
-            final String message =
+            final var message =
                     String.format("Persistence ID <%s> wasn't prefixed with an entity type.", persistenceId);
             log.error(message);
             throw new IllegalArgumentException(message);
         }
-        final String id = persistenceId.substring(indexOfSeparator + 1);
-        final EntityType type = EntityType.of(persistenceId.substring(0, indexOfSeparator));
+        final var id = persistenceId.substring(indexOfSeparator + 1);
+        final var type = EntityType.of(persistenceId.substring(0, indexOfSeparator));
         return EntityId.of(type, id);
     }
 
@@ -191,7 +191,7 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
         final long maxSnapSeqNoToDelete = latestSnapshotSequenceNumber - 1;
         log.info("Starting cleanup for '{}', deleting snapshots to sequence number {} and events to {}.",
                 persistenceId(), maxSnapSeqNoToDelete, maxEventSeqNoToDelete);
-        final SnapshotSelectionCriteria deletionCriteria =
+        final var deletionCriteria =
                 SnapshotSelectionCriteria.create(maxSnapSeqNoToDelete, Long.MAX_VALUE);
         deleteMessages(maxEventSeqNoToDelete);
         deleteSnapshots(deletionCriteria);

@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.Objects;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -55,7 +56,7 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
 
     static PersistenceCleanupConfig updated(final Config extractedConfig) {
         return new DefaultPersistenceCleanupConfig(
-                ConfigWithFallback.newInstance(extractedConfig, CONFIG_PATH, ConfigValue.values()));
+                ConfigWithFallback.newInstance(extractedConfig, new KnownConfigValue[0]));
     }
 
     @Override

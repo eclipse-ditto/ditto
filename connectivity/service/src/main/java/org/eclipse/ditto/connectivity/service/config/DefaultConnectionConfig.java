@@ -97,7 +97,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
 
     private Collection<String> fromCommaSeparatedString(final ConfigWithFallback config,
             final ConnectionConfigValue configValue) {
-        final String commaSeparated = config.getString(configValue.getConfigPath());
+        final var commaSeparated = config.getString(configValue.getConfigPath());
+
         return List.of(commaSeparated.split(","));
     }
 
