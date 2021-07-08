@@ -47,10 +47,14 @@ public final class StreamedSnapshot implements StreamingMessage, Jsonifiable<Jso
     }
 
     /**
-     * Deserialize a streamed snapshot from JSON.
+     * Deserializes a {@code StreamedSnapshot} from the specified {@link JsonObject} argument.
      *
-     * @param jsonObject the JSON representation of the streamed snapshot.
-     * @return the streamed snapshot object.
+     * @param jsonObject the JSON object to be deserialized.
+     * @return the deserialized {@code StreamedSnapshot}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain all required
+     * fields.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} was not in the expected format.
      */
     public static StreamedSnapshot fromJson(final JsonObject jsonObject) {
         return new StreamedSnapshot(deserializeEntityId(jsonObject), jsonObject.getValueOrThrow(JsonFields.SNAPSHOT));

@@ -14,6 +14,7 @@ package org.eclipse.ditto.base.model.signals;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.Objects;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -26,6 +27,7 @@ import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
 
 /**
  * A message envelope for messages to PersistenceActors which do not contain itself an ID. Holds both an ID and the
@@ -98,8 +100,12 @@ public final class ShardedMessageEnvelope
     /**
      * Returns a new {@code ShardedMessageEnvelope} parsed from the specified {@code jsonObject}.
      *
-     * @param jsonObject the JSON object.
-     * @return the ShardedMessageEnvelope.
+     * @param jsonObject the JSON object to be deserialized.
+     * @return the deserialized {@code ShardedMessageEnvelope}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain all required
+     * fields.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} was not in the expected format.
      */
     public static ShardedMessageEnvelope fromJson(final JsonObject jsonObject) {
         return of(deserializeEntityId(jsonObject),
@@ -115,8 +121,19 @@ public final class ShardedMessageEnvelope
     }
 
     private static DittoHeaders deserializeDittoHeaders(final JsonObject jsonObject) {
-        final JsonObject jsonDittoHeaders = jsonObject.getValueOrThrow(JSON_DITTO_HEADERS);
-        return DittoHeaders.newBuilder(jsonDittoHeaders).build();
+        final JsonFieldDefinition<JsonObject> fieldDefinition = JSON_DITTO_HEADERS;
+        final JsonObject jsonDittoHeaders = jsonObject.getValueOrThrow(fieldDefinition);
+        try {
+            return DittoHeaders.newBuilder(jsonDittoHeaders).build();
+        } catch (final RuntimeException e) {
+            throw JsonParseException.newBuilder()
+                    .message(MessageFormat.format("Failed to deserialize value of key <{0}> as {1}: {2}",
+                            fieldDefinition.getPointer(),
+                            DittoHeaders.class.getSimpleName(),
+                            e.getMessage()))
+                    .cause(e)
+                    .build();
+        }
     }
 
     /**

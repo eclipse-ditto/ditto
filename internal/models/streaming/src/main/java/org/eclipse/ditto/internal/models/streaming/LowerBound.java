@@ -37,11 +37,22 @@ public final class LowerBound extends AbstractEntityIdWithRevision<EntityId> {
      * @return the empty lower bound entity ID.
      * @throws NullPointerException if {@code entityType} is {@code null}.
      * @see #emptyEntityId(EntityType)
+     * @since 2.1.0
      */
     public static LowerBound empty(final EntityType entityType) {
         return new LowerBound(emptyEntityId(entityType), 0L);
     }
 
+    /**
+     * Deserializes a {@code LowerBound} from the specified {@link JsonObject} argument.
+     *
+     * @param jsonObject the JSON object to be deserialized.
+     * @return the deserialized {@code LowerBound}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain all required
+     * fields.
+     * @throws org.eclipse.ditto.json.JsonParseException if the {@code jsonObject} was not in the expected format.
+     */
     public static LowerBound fromJson(final JsonObject jsonObject) {
         return new LowerBound(deserializeEntityId(jsonObject), jsonObject.getValueOrThrow(JsonFields.REVISION));
     }

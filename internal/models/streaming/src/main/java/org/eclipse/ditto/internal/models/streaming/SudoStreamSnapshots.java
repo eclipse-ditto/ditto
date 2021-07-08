@@ -104,14 +104,14 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
     }
 
     /**
-     * Creates a new {@code SudoStreamSnapshots} from a JSON object.
+     * Deserializes a {@code SudoStreamSnapshots} from the specified {@link JsonObject} argument.
      *
-     * @param jsonObject the JSON representation of the command.
-     * @param dittoHeaders the optional command headers of the request.
-     * @return the command.
+     * @param jsonObject the JSON object to be deserialized.
+     * @return the deserialized {@code SudoStreamSnapshots}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the
-     * expected format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain all required
+     * fields.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} was not in the expected format.
      */
     public static SudoStreamSnapshots fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new SudoStreamSnapshots(jsonObject.getValueOrThrow(JsonFields.JSON_BURST),

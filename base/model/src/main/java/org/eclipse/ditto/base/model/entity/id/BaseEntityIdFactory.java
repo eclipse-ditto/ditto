@@ -15,6 +15,7 @@ package org.eclipse.ditto.base.model.entity.id;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -53,7 +54,7 @@ abstract class BaseEntityIdFactory<T extends EntityId> {
     protected BaseEntityIdFactory(final Class<T> entityIdBaseType) {
         this.entityIdBaseType = ConditionChecker.checkNotNull(entityIdBaseType, "entityIdBaseType");
         logger = Logger.getLogger(getClass().getName());
-        staticFactoryMethods = getStaticFactoryMethodsForEntityIdBaseType();
+        staticFactoryMethods = Collections.unmodifiableMap(getStaticFactoryMethodsForEntityIdBaseType());
     }
 
     @SuppressWarnings("unchecked")

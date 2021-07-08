@@ -40,7 +40,6 @@ public abstract class EntityIdInvalidException extends DittoRuntimeException {
      * @param cause the cause of the exception for later retrieval with {@link #getCause()}.
      * @param href a link to a resource which provides further information about the exception.
      * @throws NullPointerException if {@code errorCode} or {@code dittoHeaders} is {@code null}.
-     * @since 2.0.0
      */
     protected EntityIdInvalidException(final String errorCode,
             final DittoHeaders dittoHeaders,
