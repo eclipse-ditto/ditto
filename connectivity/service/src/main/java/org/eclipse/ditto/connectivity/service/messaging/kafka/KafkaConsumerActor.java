@@ -207,7 +207,6 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         }
 
         private void forwardExternalMessage(final ExternalMessage value) {
-            inboundMonitor.success(value);
             forwardToMappingActor(value,
                     () -> {
                         // TODO: kafka source - Implement acks
