@@ -18,6 +18,7 @@ import java.util.Iterator;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -34,10 +35,13 @@ final class DefaultEvictingQueue<E> extends AbstractQueue<E> implements Evicting
 
     private final int capacity;
     private final Queue<E> elements;
+    // keep track of queue size manually, because calling queue.size() is expensive
+    private final AtomicInteger size;
 
     private DefaultEvictingQueue(final int capacity) {
         this.capacity = capacity;
-        this.elements = new ConcurrentLinkedQueue<>();
+        elements = new ConcurrentLinkedQueue<>();
+        size = new AtomicInteger();
     }
 
     /**
@@ -58,15 +62,19 @@ final class DefaultEvictingQueue<E> extends AbstractQueue<E> implements Evicting
 
     @Override
     public boolean offer(@Nullable final E e) {
-        if (capacity == elements.size()) {
-            elements.poll();
+        if (size.getAndIncrement() >= capacity) {
+            poll();
         }
         return elements.offer(e);
     }
 
     @Override
     public E poll() {
-        return elements.poll();
+        final E pollResult = elements.poll();
+        if (pollResult != null) {
+            size.decrementAndGet();
+        }
+        return pollResult;
     }
 
     @Override
@@ -76,7 +84,7 @@ final class DefaultEvictingQueue<E> extends AbstractQueue<E> implements Evicting
 
     @Override
     public int size() {
-        return elements.size();
+        return size.get();
     }
 
     @Override
@@ -89,12 +97,13 @@ final class DefaultEvictingQueue<E> extends AbstractQueue<E> implements Evicting
         }
         final DefaultEvictingQueue<?> that = (DefaultEvictingQueue<?>) o;
         return capacity == that.capacity &&
-                Objects.equals(elements, that.elements);
+                Objects.equals(elements, that.elements) &&
+                Objects.equals(size, that.size);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(capacity, elements);
+        return Objects.hash(capacity, elements, size);
     }
 
     @Override
@@ -102,6 +111,7 @@ final class DefaultEvictingQueue<E> extends AbstractQueue<E> implements Evicting
         return getClass().getSimpleName() + " [" +
                 "capacity=" + capacity +
                 ", elements=" + elements +
+                ", size=" + size +
                 "]";
     }
 
