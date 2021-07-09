@@ -19,15 +19,11 @@ import java.util.regex.Pattern;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.api.placeholders.ConnectionIdPlaceholder;
 import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.internal.models.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.internal.models.placeholders.PlaceholderResolver;
 
 /**
  * Allows to configure a consumer group ID via the specific config of a connection.
