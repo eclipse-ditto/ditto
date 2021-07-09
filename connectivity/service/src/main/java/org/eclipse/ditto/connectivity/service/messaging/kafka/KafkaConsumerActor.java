@@ -28,6 +28,8 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
@@ -37,7 +39,9 @@ import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 
+import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.kafka.ConsumerSettings;
@@ -82,7 +86,8 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                 Materializer.createMaterializer(this::getContext));
     }
 
-    static Props props(final Connection connection, final KafkaConsumerConfig kafkaConfig, final PropertiesFactory factory,
+    static Props props(final Connection connection, final KafkaConsumerConfig kafkaConfig,
+            final PropertiesFactory factory,
             final String sourceAddress, final ActorRef inboundMappingProcess, final Source source,
             final boolean dryRun) {
         return Props.create(KafkaConsumerActor.class, connection, kafkaConfig, factory, sourceAddress,
@@ -248,6 +253,28 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                 stop();
             }
             kafkaStream = runnableKafkaStream.run(materializer);
+            kafkaStream.isShutdown().whenComplete(this::handleStreamCompletion);
+        }
+
+        private void handleStreamCompletion(@Nullable final Done done, @Nullable final Throwable throwable) {
+            final ConnectivityStatus status;
+            if (null == throwable) {
+                status = ConnectivityStatus.CLOSED;
+            } else {
+                status = ConnectivityStatus.FAILED;
+                if (throwable instanceof DittoRuntimeException) {
+                    forwardDittoRuntimeException((DittoRuntimeException) throwable);
+                } else {
+                    inboundMonitor.exception("Got unexpected error on stream completion <{0]>." +
+                            "This is an internal error. Please contact the service team", throwable);
+                }
+            }
+            final ResourceStatus statusUpdate = ConnectivityModelFactory.newStatusUpdate(
+                    InstanceIdentifierSupplier.getInstance().get(),
+                    status,
+                    sourceAddress,
+                    "Consumer closed", Instant.now());
+            handleAddressStatus(statusUpdate);
         }
 
         private void stop() {
