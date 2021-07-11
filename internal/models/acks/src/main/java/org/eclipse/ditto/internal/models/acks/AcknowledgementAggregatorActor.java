@@ -22,6 +22,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
@@ -69,7 +70,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     private final Duration timeout;
 
     @SuppressWarnings("unused")
-    private AcknowledgementAggregatorActor(final ThingId thingId,
+    private AcknowledgementAggregatorActor(final EntityId entityId,
             final DittoHeaders dittoHeaders,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
@@ -87,7 +88,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         getContext().setReceiveTimeout(timeout);
 
         final Set<AcknowledgementRequest> acknowledgementRequests = requestCommandHeaders.getAcknowledgementRequests();
-        ackregator = AcknowledgementAggregator.getInstance(thingId, correlationId, timeout, headerTranslator);
+        ackregator = AcknowledgementAggregator.getInstance(entityId, correlationId, timeout, headerTranslator);
         ackregator.addAcknowledgementRequests(acknowledgementRequests);
         log.withCorrelationId(correlationId)
                 .info("Starting to wait for all requested acknowledgements <{}> for a maximum duration of <{}>.",
@@ -97,7 +98,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this AcknowledgementAggregatorActor.
      *
-     * @param thingId the thing ID of the originating signal.
+     * @param entityId the thing ID of the originating signal.
      * @param dittoHeaders the ditto headers of the originating signal.
      * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
      * @param headerTranslator translates headers from external sources or to external sources.
@@ -107,12 +108,12 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
      * @throws org.eclipse.ditto.base.model.acks.AcknowledgementRequestParseException if a contained acknowledgement
      * request could not be parsed.
      */
-    static Props props(final ThingId thingId,
+    static Props props(final EntityId entityId,
             final DittoHeaders dittoHeaders,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer) {
-        return Props.create(AcknowledgementAggregatorActor.class, thingId, dittoHeaders,
+        return Props.create(AcknowledgementAggregatorActor.class, entityId, dittoHeaders,
                 acknowledgementConfig, headerTranslator, responseSignalConsumer);
     }
 

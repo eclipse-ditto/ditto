@@ -26,6 +26,7 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.acks.AbstractCommandAckRequestSetter;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -141,23 +142,23 @@ public final class AcknowledgementAggregatorActorStarter {
     /**
      * Start an acknowledgement aggregator actor for a signal with acknowledgement requests.
      *
-     * @param thingId the ThingId of the originating signal signal.
+     * @param entityId the entity ID of the originating signal signal.
      * @param dittoHeaders The headers of the originating signal. Must have nonempty acknowledgement requests.
      * @param responseSignalConsumer consumer of the aggregated response or error.
      * @param forwarderStartedFunction what to do after the aggregator actor started.
      * @param <T> type of results.
      * @return the result.
      */
-    public <T> T doStart(final ThingId thingId,
+    public <T> T doStart(final EntityId entityId,
             final DittoHeaders dittoHeaders,
             final Consumer<Object> responseSignalConsumer,
             final Function<ActorRef, T> forwarderStartedFunction) {
-        return forwarderStartedFunction.apply(startAckAggregatorActor(thingId, dittoHeaders, responseSignalConsumer));
+        return forwarderStartedFunction.apply(startAckAggregatorActor(entityId, dittoHeaders, responseSignalConsumer));
     }
 
-    private ActorRef startAckAggregatorActor(final ThingId thingId, final DittoHeaders dittoHeaders,
+    private ActorRef startAckAggregatorActor(final EntityId entityId, final DittoHeaders dittoHeaders,
             final Consumer<Object> responseSignalConsumer) {
-        final Props props = AcknowledgementAggregatorActor.props(thingId, dittoHeaders, acknowledgementConfig, headerTranslator,
+        final Props props = AcknowledgementAggregatorActor.props(entityId, dittoHeaders, acknowledgementConfig, headerTranslator,
                 responseSignalConsumer);
         final String actorName = getNextActorName(dittoHeaders);
         return actorContext.actorOf(props, actorName);

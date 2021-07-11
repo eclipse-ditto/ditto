@@ -12,10 +12,12 @@
  */
 package org.eclipse.ditto.policies.service.starter;
 
+import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.internal.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionComplete;
 
 public final class PoliciesServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
@@ -24,7 +26,10 @@ public final class PoliciesServiceGlobalEventRegistryTest extends GlobalEventReg
 
                 // added due to ditto-model-placeholders
                 ThingDeleted.class,
-                EmptyEvent.class
+                EmptyEvent.class,
+
+                ConnectionDeleted.class,
+                SubscriptionComplete.class
         );
     }
 

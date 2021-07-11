@@ -462,7 +462,6 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         }
     }
 
-    // NOT thread-safe unless eventAndResponsePublisher is made thread-safe by bounding concurrent offers from above
     private Object publishResponseOrError(final Object responseOrError) {
         if (responseOrError instanceof CommandResponse<?>) {
             final CommandResponse<?> response = (CommandResponse<?>) responseOrError;
