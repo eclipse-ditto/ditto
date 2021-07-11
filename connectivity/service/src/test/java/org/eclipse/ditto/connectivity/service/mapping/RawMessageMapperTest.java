@@ -22,32 +22,30 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.connectivity.service.config.mapping.DefaultMappingConfig;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageBuilder;
 import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageFormatInvalidException;
 import org.eclipse.ditto.messages.model.MessagesModelFactory;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessageResponse;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.typesafe.config.ConfigFactory;
 
 /**
  * Tests {@link RawMessageMapper}.
@@ -58,10 +56,13 @@ public final class RawMessageMapperTest {
     private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
 
     private MessageMapper underTest;
+    private ConnectionContext connectionContext;
 
     @Before
     public void setUp() {
         underTest = new RawMessageMapper();
+        connectionContext =
+                DittoConnectionContext.of(TestConstants.createConnection(), TestConstants.CONNECTIVITY_CONFIG);
     }
 
     @Test
@@ -139,7 +140,8 @@ public final class RawMessageMapperTest {
 
     @Test
     public void mapFromNonMessageCommand() {
-        final Signal<?> signal = ThingDeleted.of(ThingId.of("thing:id"), 25L, Instant.EPOCH, DittoHeaders.empty(), null);
+        final Signal<?> signal =
+                ThingDeleted.of(ThingId.of("thing:id"), 25L, Instant.EPOCH, DittoHeaders.empty(), null);
         final Adaptable adaptable = ADAPTER.toAdaptable(signal);
         final List<ExternalMessage> actualExternalMessages = underTest.map(adaptable);
         final List<ExternalMessage> expectedExternalMessages = new DittoMessageMapper().map(adaptable);
@@ -225,7 +227,7 @@ public final class RawMessageMapperTest {
                 "ditto-message-thing-id", "thing:id"
         );
         final String payload = "lorem ipsum dolor sit amet";
-        underTest.configure(DefaultMappingConfig.of(ConfigFactory.empty()),
+        underTest.configure(connectionContext,
                 DefaultMessageMapperConfiguration.of("RawMessage",
                         Map.of("incomingMessageHeaders", JsonObject.newBuilder()
                                 .set("content-type", "text/plain")
@@ -251,7 +253,7 @@ public final class RawMessageMapperTest {
                 "ditto-message-thing-id", "thing:id"
         );
         final String payload = "lorem ipsum dolor sit amet";
-        underTest.configure(DefaultMappingConfig.of(ConfigFactory.empty()),
+        underTest.configure(connectionContext,
                 DefaultMessageMapperConfiguration.of("RawMessage",
                         Map.of("incomingMessageHeaders", JsonObject.newBuilder()
                                 .set("content-type", "application/octet-stream")

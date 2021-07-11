@@ -43,7 +43,7 @@ import akka.japi.Creator;
 public class MockClientActor extends AbstractActor {
 
     public static final ClientActorPropsFactory mockClientActorPropsFactory =
-            (connection, connectionActor, proxyActor, actorSystem) -> MockClientActor.props();
+            (connection, connectionActor, proxyActor, actorSystem, dittoHeaders) -> MockClientActor.props();
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     @Nullable private final ActorRef delegate;

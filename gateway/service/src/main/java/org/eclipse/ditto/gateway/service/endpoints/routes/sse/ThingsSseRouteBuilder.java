@@ -240,10 +240,12 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         final List<ThingId> targetThingIds = getThingIds(parameters.get(ThingsParameter.IDS.toString()));
         @Nullable final ThingFieldSelector fields = getFieldSelector(parameters.get(ThingsParameter.FIELDS.toString()));
         @Nullable final ThingFieldSelector extraFields = getFieldSelector(parameters.get(PARAM_EXTRA_FIELDS));
-        final SignalEnrichmentFacade facade =
-                signalEnrichmentProvider == null ? null : signalEnrichmentProvider.getFacade(ctx.getRequest());
+        final CompletionStage<SignalEnrichmentFacade> facadeStage = signalEnrichmentProvider == null
+                ? CompletableFuture.completedStage(null)
+                : signalEnrichmentProvider.getFacade(ctx.getRequest());
 
-        final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage = dittoHeadersStage.thenCompose(
+
+        final var sseSourceStage = facadeStage.thenCompose(facade -> dittoHeadersStage.thenCompose(
                 dittoHeaders -> sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders).thenApply(unused -> {
                     if (filterString != null) {
                         // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
@@ -298,7 +300,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                             .viaMat(eventSniffer.toAsyncFlow(ctx.getRequest()), Keep.none())
                             .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
                 })
-        );
+        ));
 
         return completeOKWithFuture(sseSourceStage, EventStreamMarshalling.toEventStream());
     }
@@ -374,7 +376,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                 )
                                 .exceptionally(error -> {
                                     final var errorToReport = DittoRuntimeException.asDittoRuntimeException(error, t ->
-                                                    SignalEnrichmentFailedException.newBuilder().cause(t).build());
+                                            SignalEnrichmentFailedException.newBuilder().cause(t).build());
                                     jsonifiable.getSession().map(StreamingSession::getLogger).ifPresent(logger ->
                                             logger.withCorrelationId(event)
                                                     .warning("During extra fields retrieval in <SSE> session got " +

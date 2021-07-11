@@ -49,12 +49,13 @@ public abstract class AbstractMessageMapper implements MessageMapper {
     }
 
     @Override
-    public final void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+    public final void configure(final ConnectionContext connectionContext,
+            final MessageMapperConfiguration configuration) {
         this.id = configuration.getId();
         this.incomingConditions = configuration.getIncomingConditions();
         this.outgoingConditions = configuration.getOutgoingConditions();
         this.contentTypeBlocklist = configuration.getContentTypeBlocklist();
-        doConfigure(mappingConfig, configuration);
+        doConfigure(connectionContext.getConnectivityConfig().getMappingConfig(), configuration);
     }
 
     /**

@@ -26,25 +26,24 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.api.OutboundSignal;
+import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
-import org.eclipse.ditto.connectivity.api.OutboundSignal;
-import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
@@ -77,9 +76,8 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
      * Initializes a new command processor with mappers defined in mapping mappingContext.
      * The dynamic access is needed to instantiate message mappers for an actor system.
      *
-     * @param connection the connection that the processor works for.
+     * @param connectionContext the context of the connection that the processor works for.
      * @param actorSystem the dynamic access used for message mapper instantiation.
-     * @param connectivityConfig the configuration settings of the Connectivity service.
      * @param protocolAdapter the ProtocolAdapter to be used.
      * @param logger the logging adapter to be used for log statements.
      * @return the processor instance.
@@ -88,15 +86,14 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
      * @throws org.eclipse.ditto.connectivity.model.MessageMapperConfigurationFailedException if the configuration of
      * one of the {@code mappingContext} failed for a mapper specific reason.
      */
-    public static OutboundMappingProcessor of(final Connection connection,
+    public static OutboundMappingProcessor of(final ConnectionContext connectionContext,
             final ActorSystem actorSystem,
-            final ConnectivityConfig connectivityConfig,
             final ProtocolAdapter protocolAdapter,
             final ThreadSafeDittoLoggingAdapter logger) {
 
         final ActorSelection deadLetterSelection = actorSystem.actorSelection(actorSystem.deadLetters().path());
-        return of(OutboundMappingSettings.of(connection, actorSystem, deadLetterSelection, connectivityConfig,
-                protocolAdapter, logger));
+        return of(OutboundMappingSettings.of(connectionContext, actorSystem, deadLetterSelection, protocolAdapter,
+                logger));
     }
 
     /**

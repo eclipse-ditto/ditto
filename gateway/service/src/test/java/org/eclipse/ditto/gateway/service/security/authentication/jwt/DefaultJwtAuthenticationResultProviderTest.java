@@ -55,7 +55,8 @@ public final class DefaultJwtAuthenticationResultProviderTest {
         when(authorizationSubjectsProvider.getAuthorizationSubjects(jsonWebToken)).thenReturn(
                 Collections.singletonList(myTestSubj));
 
-        final AuthenticationResult authorizationResult = underTest.getAuthenticationResult(jsonWebToken, DittoHeaders.empty());
+        final AuthenticationResult authorizationResult =
+                underTest.getAuthenticationResult(jsonWebToken, DittoHeaders.empty()).toCompletableFuture().join();
 
         assertThat(authorizationResult.getAuthorizationContext().getAuthorizationSubjects())
                 .containsExactly(myTestSubj);

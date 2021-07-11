@@ -15,6 +15,8 @@ package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -52,11 +54,12 @@ public final class DefaultJwtAuthenticationResultProvider implements JwtAuthenti
     }
 
     @Override
-    public JwtAuthenticationResult getAuthenticationResult(final JsonWebToken jwt, final DittoHeaders dittoHeaders) {
+    public CompletionStage<JwtAuthenticationResult> getAuthenticationResult(final JsonWebToken jwt,
+            final DittoHeaders dittoHeaders) {
         final List<AuthorizationSubject> authSubjects = authSubjectsProvider.getAuthorizationSubjects(jwt);
-        return JwtAuthenticationResult.successful(dittoHeaders,
+        return CompletableFuture.completedStage(JwtAuthenticationResult.successful(dittoHeaders,
                 AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.JWT, authSubjects),
-                jwt);
+                jwt));
     }
 
 }

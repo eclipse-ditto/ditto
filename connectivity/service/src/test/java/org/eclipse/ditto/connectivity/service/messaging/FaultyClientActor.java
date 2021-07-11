@@ -30,7 +30,7 @@ import akka.event.DiagnosticLoggingAdapter;
 public class FaultyClientActor extends AbstractActor {
 
     static final ClientActorPropsFactory faultyClientActorPropsFactory =
-            (connection, connectionActor, proxyActor, actorSystem) -> FaultyClientActor.props(true, false);
+            (connection, connectionActor, proxyActor, actorSystem, dittoHeaders) -> FaultyClientActor.props(true, false);
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final boolean allowClose;

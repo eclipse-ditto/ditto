@@ -12,8 +12,11 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.utils;
 
-import org.eclipse.ditto.gateway.service.util.config.streaming.GatewaySignalEnrichmentConfig;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+
 import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
+import org.eclipse.ditto.gateway.service.util.config.streaming.GatewaySignalEnrichmentConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.ByRoundTripSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 
@@ -44,8 +47,8 @@ public final class GatewayByRoundTripSignalEnrichmentProvider implements Gateway
     }
 
     @Override
-    public SignalEnrichmentFacade getFacade(final HttpRequest request) {
-        return getByRoundTripSignalEnrichmentFacade();
+    public CompletionStage<SignalEnrichmentFacade> getFacade(final HttpRequest request) {
+        return CompletableFuture.completedStage(getByRoundTripSignalEnrichmentFacade());
     }
 
     /**

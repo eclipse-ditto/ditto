@@ -27,6 +27,7 @@ import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 import org.eclipse.ditto.internal.models.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.internal.models.placeholders.Placeholder;
@@ -62,13 +63,14 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
     }
 
     @Override
-    public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
+    public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem,
+            final ConnectivityConfig connectivityConfig) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "MQTT 3.1.1");
         validateClientCount(connection, dittoHeaders);
         validateAddresses(connection, dittoHeaders);
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
-        validatePayloadMappings(connection, actorSystem, dittoHeaders);
+        validatePayloadMappings(connection, actorSystem, connectivityConfig, dittoHeaders);
         validateSpecificConfig(connection, dittoHeaders);
     }
 

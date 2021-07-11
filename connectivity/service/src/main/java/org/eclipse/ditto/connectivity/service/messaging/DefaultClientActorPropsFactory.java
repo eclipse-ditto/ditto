@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpClientActor;
@@ -49,29 +50,30 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
 
     @Override
     public Props getActorPropsForType(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor, final ActorSystem actorSystem) {
+            final ActorRef connectionActor, final ActorSystem actorSystem,
+            final DittoHeaders dittoHeaders) {
         final ConnectionType connectionType = connection.getConnectionType();
 
         final Props result;
         switch (connectionType) {
             case AMQP_091:
-                result = RabbitMQClientActor.props(connection, proxyActor, connectionActor);
+                result = RabbitMQClientActor.props(connection, proxyActor, connectionActor, dittoHeaders);
                 break;
             case AMQP_10:
-                result = AmqpClientActor.props(connection, proxyActor, connectionActor, actorSystem);
+                result = AmqpClientActor.props(connection, proxyActor, connectionActor, actorSystem, dittoHeaders);
                 break;
             case MQTT:
-                result = HiveMqtt3ClientActor.props(connection, proxyActor, connectionActor);
+                result = HiveMqtt3ClientActor.props(connection, proxyActor, connectionActor, dittoHeaders);
                 break;
             case MQTT_5:
-                result = HiveMqtt5ClientActor.props(connection, proxyActor, connectionActor);
+                result = HiveMqtt5ClientActor.props(connection, proxyActor, connectionActor, dittoHeaders);
                 break;
             case KAFKA:
                 result = KafkaClientActor.props(connection, proxyActor, connectionActor,
-                        DefaultKafkaPublisherActorFactory.getInstance());
+                        DefaultKafkaPublisherActorFactory.getInstance(), dittoHeaders);
                 break;
             case HTTP_PUSH:
-                result = HttpPushClientActor.props(connection, connectionActor);
+                result = HttpPushClientActor.props(connection, connectionActor, dittoHeaders);
                 break;
             default:
                 throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");

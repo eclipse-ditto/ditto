@@ -36,6 +36,7 @@ import org.apache.qpid.jms.JmsConnectionListener;
 import org.apache.qpid.jms.JmsSession;
 import org.apache.qpid.jms.message.JmsInboundMessageDispatch;
 import org.apache.qpid.jms.provider.ProviderFactory;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
@@ -43,8 +44,10 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
+import org.eclipse.ditto.connectivity.service.config.ClientConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConnectionFailureStatusReport;
@@ -114,9 +117,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private AmqpClientActor(final Connection connection,
             @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor,
-            final Config amqp10configOverride) {
+            final Config amqp10configOverride,
+            final DittoHeaders dittoHeaders) {
 
-        super(connection, proxyActor, connectionActor);
+        super(connection, proxyActor, connectionActor, dittoHeaders);
 
         final Config systemConfig = getContext().getSystem().settings().config();
         final Config mergedConfig = systemConfig.withValue(AMQP_10_CONFIG_PATH,
@@ -142,9 +146,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private AmqpClientActor(final Connection connection,
             final JmsConnectionFactory jmsConnectionFactory,
             @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor) {
+            final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
 
-        super(connection, proxyActor, connectionActor);
+        super(connection, proxyActor, connectionActor, dittoHeaders);
 
         this.jmsConnectionFactory = jmsConnectionFactory;
         connectionListener = new StatusReportingListener(getSelf(), logger, connectionLogger);
@@ -161,13 +165,15 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param actorSystem the actor system.
+     * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor, final ActorSystem actorSystem) {
+            final ActorRef connectionActor, final ActorSystem actorSystem,
+            final DittoHeaders dittoHeaders) {
 
         return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem), proxyActor,
-                connectionActor, ConfigFactory.empty());
+                connectionActor, ConfigFactory.empty(), dittoHeaders);
     }
 
     /**
@@ -179,13 +185,15 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @param amqp10configOverride an override for Amqp10Config values -
      * @param actorSystem the actor system.
      * as Typesafe {@code Config} because this one is serializable in Akka by default.
+     * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor, final Config amqp10configOverride, final ActorSystem actorSystem) {
+            final ActorRef connectionActor, final Config amqp10configOverride, final ActorSystem actorSystem,
+            final DittoHeaders dittoHeaders) {
 
         return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem), proxyActor,
-                connectionActor, amqp10configOverride);
+                connectionActor, amqp10configOverride, dittoHeaders);
     }
 
     /**
@@ -203,7 +211,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final ActorSystem actorSystem) {
 
         return Props.create(AmqpClientActor.class, validateConnection(connection, actorSystem),
-                jmsConnectionFactory, proxyActor, connectionActor);
+                jmsConnectionFactory, proxyActor, connectionActor, DittoHeaders.empty());
     }
 
     private static Connection validateConnection(final Connection connection, final ActorSystem actorSystem) {
@@ -255,6 +263,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     protected CompletionStage<Status.Status> doTestConnection(final TestConnection testConnectionCommand) {
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         final Connection connectionToBeTested = testConnectionCommand.getConnection();
+        final ClientConfig clientConfig = connectionContext.getConnectivityConfig().getClientConfig();
         return Patterns.ask(getTestConnectionHandler(connectionToBeTested),
                 jmsConnect(getSender(), connectionToBeTested), clientConfig.getTestingTimeout())
                 // compose the disconnect because otherwise the actor hierarchy might be stopped too fast
@@ -327,9 +336,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         stopChildActor(amqpPublisherActor);
         if (null != jmsSession) {
-            final Props props =
-                    AmqpPublisherActor.props(connection(), jmsSession, connectivityConfig.getConnectionConfig(),
-                            getDefaultClientId());
+            final Props props = AmqpPublisherActor.props(connection(), jmsSession,
+                    connectionContext.getConnectivityConfig().getConnectionConfig(), getDefaultClientId());
             amqpPublisherActor = startChildActorConflictFree(AmqpPublisherActor.ACTOR_NAME_PREFIX, props);
             Patterns.ask(amqpPublisherActor, AmqpPublisherActor.INITIALIZE, clientAskTimeout)
                     .whenComplete((result, error) -> {
@@ -456,30 +464,32 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     private ActorRef getTestConnectionHandler(final Connection connection) {
         if (testConnectionHandler == null) {
-            testConnectionHandler = startConnectionHandlingActor("test", connection);
+            testConnectionHandler = startConnectionHandlingActor("test", connectionContext.withConnection(connection));
         }
         return testConnectionHandler;
     }
 
     private ActorRef getConnectConnectionHandler(final Connection connection) {
         if (connectConnectionHandler == null) {
-            connectConnectionHandler = startConnectionHandlingActor("connect", connection);
+            connectConnectionHandler =
+                    startConnectionHandlingActor("connect", connectionContext.withConnection(connection));
         }
         return connectConnectionHandler;
     }
 
     private ActorRef getDisconnectConnectionHandler(final Connection connection) {
         if (disconnectConnectionHandler == null) {
-            disconnectConnectionHandler = startConnectionHandlingActor("disconnect", connection);
+            disconnectConnectionHandler =
+                    startConnectionHandlingActor("disconnect", connectionContext.withConnection(connection));
         }
         return disconnectConnectionHandler;
     }
 
-    private ActorRef startConnectionHandlingActor(final String suffix, final Connection connection) {
+    private ActorRef startConnectionHandlingActor(final String suffix, final ConnectionContext connectionContext) {
         final String namePrefix =
                 JMSConnectionHandlingActor.ACTOR_NAME_PREFIX + escapeActorName(connectionId() + "-" + suffix);
         final Props props =
-                JMSConnectionHandlingActor.propsWithOwnDispatcher(connection, this, jmsConnectionFactory,
+                JMSConnectionHandlingActor.propsWithOwnDispatcher(connectionContext, this, jmsConnectionFactory,
                         connectionLogger);
         return startChildActorConflictFree(namePrefix, props);
     }

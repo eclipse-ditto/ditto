@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -80,9 +81,28 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
     private static final String POLICY_ID = "policyId";
     private static final String POLICY_ID_CONFIGURATION_PROPERTY = THING_TEMPLATE + "/" + POLICY_ID;
 
+    private final Function<Map<String, String>, ExpressionResolver> resolverFactory;
+
     private String thingTemplate;
     private Map<String, String> commandHeaders;
     private boolean allowPolicyLockout;
+
+    /**
+     * Default constructor that supports headers placeholders in mapped headers and templates.
+     */
+    @SuppressWarnings("unused")
+    public ImplicitThingCreationMessageMapper() {
+        this(ImplicitThingCreationMessageMapper::getHeadersExpressionResolver);
+    }
+
+    /**
+     * Constructor with customizable expression resolver.
+     *
+     * @param resolverFactory the creator of expression resolver.
+     */
+    public ImplicitThingCreationMessageMapper(final Function<Map<String, String>, ExpressionResolver> resolverFactory) {
+        this.resolverFactory = resolverFactory;
+    }
 
     @Override
     protected void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
@@ -150,7 +170,7 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         LOGGER.withCorrelationId(message.getInternalHeaders()).debug("Received ExternalMessage: {}", message);
 
         final Map<String, String> externalHeaders = message.getHeaders();
-        final ExpressionResolver expressionResolver = getExpressionResolver(externalHeaders);
+        final ExpressionResolver expressionResolver = resolverFactory.apply(externalHeaders);
 
         final String resolvedTemplate;
         if (Placeholders.containsAnyPlaceholder(thingTemplate)) {
@@ -179,7 +199,7 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         return Collections.singletonList(adaptableWithModifiedHeaders);
     }
 
-    private static ExpressionResolver getExpressionResolver(final Map<String, String> headers) {
+    private static ExpressionResolver getHeadersExpressionResolver(final Map<String, String> headers) {
         return PlaceholderFactory.newExpressionResolver(
                 PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, headers));
     }
@@ -199,9 +219,9 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom, dittoHeaders);
     }
 
-    private static Map<String, String> resolveCommandHeaders(final ExternalMessage externalMessage,
+    private Map<String, String> resolveCommandHeaders(final ExternalMessage externalMessage,
             final Map<String, String> errorResponseHeaders) {
-        final ExpressionResolver resolver = getExpressionResolver(externalMessage.getHeaders());
+        final ExpressionResolver resolver = resolverFactory.apply(externalMessage.getHeaders());
         final Map<String, String> resolvedHeaders = new HashMap<>();
         errorResponseHeaders.forEach((key, value) ->
                 resolver.resolve(value).toOptional().ifPresent(resolvedHeaderValue ->

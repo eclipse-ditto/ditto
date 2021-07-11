@@ -21,19 +21,21 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.ConnectionType;
-import org.eclipse.ditto.connectivity.model.PayloadMapping;
-import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
-import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
-import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.MappedInboundExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.ConnectionType;
+import org.eclipse.ditto.connectivity.model.PayloadMapping;
+import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
+import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
+import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
+import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -112,8 +114,9 @@ public final class InboundMappingProcessorActorTest {
         final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
         Mockito.doAnswer(inv -> logger).when(logger).withCorrelationId(Mockito.<CharSequence>any());
         Mockito.doAnswer(inv -> logger).when(logger).withCorrelationId(Mockito.<DittoHeaders>any());
-        return InboundMappingProcessor.of(ConnectionId.of("connectionId"),
-                ConnectionType.MQTT,
+        final Connection connection =
+                TestConstants.createConnection(ConnectionId.of("connectionId"), ConnectionType.MQTT);
+        return InboundMappingProcessor.of(DittoConnectionContext.of(connection, TestConstants.CONNECTIVITY_CONFIG),
                 registry,
                 logger,
                 Mockito.mock(ProtocolAdapter.class),

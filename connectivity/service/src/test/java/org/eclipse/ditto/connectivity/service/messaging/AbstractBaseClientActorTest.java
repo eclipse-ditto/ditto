@@ -66,6 +66,7 @@ import akka.testkit.javadsl.TestKit;
  */
 public abstract class AbstractBaseClientActorTest {
 
+    protected final DittoHeaders dittoHeaders = DittoHeaders.empty();
     private ServerBinding binding;
 
     @After
@@ -162,7 +163,8 @@ public abstract class AbstractBaseClientActorTest {
                     .build();
             final ActorRef underTest = watch(actorSystem.actorOf(
                     DefaultClientActorPropsFactory.getInstance()
-                            .getActorPropsForType(insecureConnection, getRef(), getRef(), actorSystem)
+                            .getActorPropsForType(insecureConnection, getRef(), getRef(), actorSystem,
+                                    DittoHeaders.empty())
             ));
             underTest.tell(TestConnection.of(insecureConnection, DittoHeaders.empty()), getRef());
 
