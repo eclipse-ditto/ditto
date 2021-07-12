@@ -159,7 +159,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             runnableKafkaStream = Consumer.plainSource(consumerSettings, Subscriptions.topics(sourceAddress))
                     .throttle(kafkaConfig.getThrottlingConfig().getLimit(),
                             kafkaConfig.getThrottlingConfig().getInterval())
-                    .filter(record -> isNotDryRun(record, dryRun))
+                    .filter(consumerRecord -> isNotDryRun(consumerRecord, dryRun))
                     .filter(consumerRecord -> consumerRecord.value() != null)
                     .filter(this::isNotExpired)
                     .map(kafkaMessageTransformer::transform)
@@ -265,7 +265,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                 if (throwable instanceof DittoRuntimeException) {
                     forwardDittoRuntimeException((DittoRuntimeException) throwable);
                 } else {
-                    inboundMonitor.exception("Got unexpected error on stream completion <{0]>." +
+                    inboundMonitor.exception("Got unexpected error on stream completion <{0}>." +
                             "This is an internal error. Please contact the service team", throwable);
                 }
             }
