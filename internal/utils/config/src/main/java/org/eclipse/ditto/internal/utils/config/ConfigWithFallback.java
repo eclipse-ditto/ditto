@@ -106,7 +106,7 @@ public final class ConfigWithFallback implements ScopedConfig, ConfigMergeable {
         validateArgument(originalConfig, "original Config");
         validateArgument(fallBackValues, "fall-back values");
 
-        Config baseConfig = originalConfig;
+        var baseConfig = originalConfig;
         if (0 < fallBackValues.length) {
             baseConfig = baseConfig.withFallback(arrayToConfig(fallBackValues));
         }

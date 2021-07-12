@@ -35,8 +35,8 @@ public final class DefaultTimeoutConfig implements TimeoutConfig {
     private final Duration maxTimeout;
 
     private DefaultTimeoutConfig(final ScopedConfig config) {
-        minTimeout = config.getDuration(TimeoutConfigValue.MIN_TIMEOUT.getConfigPath());
-        maxTimeout = config.getDuration(TimeoutConfigValue.MAX_TIMEOUT.getConfigPath());
+        minTimeout = config.getNonNegativeDurationOrThrow(TimeoutConfigValue.MIN_TIMEOUT);
+        maxTimeout = config.getNonNegativeAndNonZeroDurationOrThrow(TimeoutConfigValue.MAX_TIMEOUT);
     }
 
     /**

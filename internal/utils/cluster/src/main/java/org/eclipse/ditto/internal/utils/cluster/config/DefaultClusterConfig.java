@@ -33,7 +33,7 @@ public final class DefaultClusterConfig implements ClusterConfig {
     private final List<String> clusterStatusRolesBlocklist;
 
     private DefaultClusterConfig(final ConfigWithFallback config) {
-        numberOfShards = config.getInt(ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath());
+        numberOfShards = config.getPositiveIntOrThrow(ClusterConfigValue.NUMBER_OF_SHARDS);
         clusterStatusRolesBlocklist = Collections.unmodifiableList(
                 new ArrayList<>(
                         config.getStringList(ClusterConfigValue.CLUSTER_STATUS_ROLES_BLOCKLIST.getConfigPath())));
@@ -86,4 +86,5 @@ public final class DefaultClusterConfig implements ClusterConfig {
                 ", clusterStatusRolesBlocklist=" + clusterStatusRolesBlocklist +
                 "]";
     }
+
 }

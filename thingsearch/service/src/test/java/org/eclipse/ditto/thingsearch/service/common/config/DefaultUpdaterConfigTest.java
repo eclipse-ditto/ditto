@@ -59,9 +59,6 @@ public final class DefaultUpdaterConfigTest {
     public void gettersReturnDefaultValuesIfNotConfigured() {
         final DefaultUpdaterConfig underTest = DefaultUpdaterConfig.of(ConfigFactory.empty());
 
-        softly.assertThat(underTest.getMaxBulkSize())
-                .as(UpdaterConfigValue.MAX_BULK_SIZE.getConfigPath())
-                .isEqualTo(UpdaterConfigValue.MAX_BULK_SIZE.getDefaultValue());
         softly.assertThat(underTest.isEventProcessingActive())
                 .as(UpdaterConfigValue.EVENT_PROCESSING_ACTIVE.getConfigPath())
                 .isEqualTo(UpdaterConfigValue.EVENT_PROCESSING_ACTIVE.getDefaultValue());
@@ -75,9 +72,6 @@ public final class DefaultUpdaterConfigTest {
         final DefaultUpdaterConfig underTest = DefaultUpdaterConfig.of(updaterTestConfig);
         final Config updaterScopedRawConfig = updaterTestConfig.getConfig(DefaultUpdaterConfig.CONFIG_PATH);
 
-        softly.assertThat(underTest.getMaxBulkSize())
-                .as(UpdaterConfigValue.MAX_BULK_SIZE.getConfigPath())
-                .isEqualTo(updaterScopedRawConfig.getInt(UpdaterConfigValue.MAX_BULK_SIZE.getConfigPath()));
         softly.assertThat(underTest.isEventProcessingActive())
                 .as(UpdaterConfigValue.EVENT_PROCESSING_ACTIVE.getConfigPath())
                 .isEqualTo(

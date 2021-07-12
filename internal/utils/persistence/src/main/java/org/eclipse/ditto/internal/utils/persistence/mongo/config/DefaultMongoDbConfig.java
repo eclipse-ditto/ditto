@@ -42,9 +42,9 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
     private final DefaultMonitoringConfig monitoringConfig;
 
     private DefaultMongoDbConfig(final ConfigWithFallback config) {
-        maxQueryTime = config.getDuration(MongoDbConfigValue.MAX_QUERY_TIME.getConfigPath());
+        maxQueryTime = config.getNonNegativeAndNonZeroDurationOrThrow(MongoDbConfigValue.MAX_QUERY_TIME);
         optionsConfig = DefaultOptionsConfig.of(config);
-        final String configuredUri = config.getString(MongoDbConfigValue.URI.getConfigPath());
+        final var configuredUri = config.getString(MongoDbConfigValue.URI.getConfigPath());
         final Map<String, Object> configuredExtraUriOptions = optionsConfig.extraUriOptions();
 
         final String sslKey = OptionsConfig.OptionsConfigValue.SSL_ENABLED.getConfigPath();
@@ -69,7 +69,8 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultMongoDbConfig of(final Config config) {
-        final ConfigWithFallback configWithFallback = appendFallbackValues(config);
+        final var configWithFallback = appendFallbackValues(config);
+
         return new DefaultMongoDbConfig(configWithFallback);
     }
 
@@ -79,7 +80,8 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
 
     private static String determineMongoDbUri(final String configuredMongoUri,
             final Map<String, Object> extraUriOptions) {
-        final MongoDbUriSupplier mongoDbUriSupplier = MongoDbUriSupplier.of(configuredMongoUri, extraUriOptions);
+        final var mongoDbUriSupplier = MongoDbUriSupplier.of(configuredMongoUri, extraUriOptions);
+
         return mongoDbUriSupplier.get();
     }
 

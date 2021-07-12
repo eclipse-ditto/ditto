@@ -38,12 +38,12 @@ public final class DefaultMonitoringLoggerConfig implements MonitoringLoggerConf
     private final Duration loggingActiveCheckInterval;
 
     private DefaultMonitoringLoggerConfig(final ConfigWithFallback config) {
-        successCapacity = config.getInt(MonitoringLoggerConfigValue.SUCCESS_CAPACITY.getConfigPath());
-        failureCapacity = config.getInt(MonitoringLoggerConfigValue.FAILURE_CAPACITY.getConfigPath());
-        maxLogSizeInBytes = config.getLong(MonitoringLoggerConfigValue.MAX_LOG_SIZE_BYTES.getConfigPath());
-        logDuration = config.getDuration(MonitoringLoggerConfigValue.LOG_DURATION.getConfigPath());
+        successCapacity = config.getNonNegativeIntOrThrow(MonitoringLoggerConfigValue.SUCCESS_CAPACITY);
+        failureCapacity = config.getNonNegativeIntOrThrow(MonitoringLoggerConfigValue.FAILURE_CAPACITY);
+        maxLogSizeInBytes = config.getNonNegativeLongOrThrow(MonitoringLoggerConfigValue.MAX_LOG_SIZE_BYTES);
+        logDuration = config.getNonNegativeAndNonZeroDurationOrThrow(MonitoringLoggerConfigValue.LOG_DURATION);
         loggingActiveCheckInterval =
-                config.getDuration(MonitoringLoggerConfigValue.LOGGING_ACTIVE_CHECK_INTERVAL.getConfigPath());
+                config.getNonNegativeAndNonZeroDurationOrThrow(MonitoringLoggerConfigValue.LOGGING_ACTIVE_CHECK_INTERVAL);
     }
 
     /**

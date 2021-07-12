@@ -17,21 +17,21 @@ import java.util.Deque;
 import java.util.List;
 import java.util.function.Function;
 
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.models.streaming.LowerBound;
+import org.eclipse.ditto.internal.utils.akka.controlflow.ResumeSource;
+import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.internal.utils.health.AbstractBackgroundStreamingActorWithConfigWithStatusReport;
+import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.BackgroundSyncConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultBackgroundSyncConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.BackgroundSyncStream;
-import org.eclipse.ditto.internal.utils.akka.controlflow.ResumeSource;
-import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
-import org.eclipse.ditto.internal.utils.health.AbstractBackgroundStreamingActorWithConfigWithStatusReport;
-import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
 
 import com.typesafe.config.Config;
 
@@ -99,9 +99,9 @@ public final class BackgroundSyncActor
             final ActorRef policiesShardRegion,
             final ActorRef thingsUpdater) {
 
-        final ThingsMetadataSource thingsMetadataSource =
+        final var thingsMetadataSource =
                 ThingsMetadataSource.of(pubSubMediator, config.getThrottleThroughput(), config.getIdleTimeout());
-        final BackgroundSyncStream backgroundSyncStream =
+        final var backgroundSyncStream =
                 BackgroundSyncStream.of(policiesShardRegion, config.getPolicyAskTimeout(),
                         config.getToleranceWindow(), config.getThrottleThroughput(), config.getThrottlePeriod());
 
@@ -159,8 +159,8 @@ public final class BackgroundSyncActor
     protected StatusDetailMessage.Level getMostSevereLevelFromEvents(final Deque<Pair<Instant, Event>> events) {
         // ignore status detail message after the second "StreamTerminated" so that only the ongoing sync and
         // the last completed sync count
-        StatusDetailMessage.Level level = StatusDetailMessage.Level.DEFAULT;
-        int terminationCount = 0;
+        var level = StatusDetailMessage.Level.DEFAULT;
+        var terminationCount = 0;
         for (final var pair : events) {
             final var event = pair.second();
             final var eventLevel = event.level();
@@ -203,7 +203,7 @@ public final class BackgroundSyncActor
     }
 
     private void handleInconsistency(final Metadata metadata) {
-        final ThingId thingId = metadata.getThingId();
+        final var thingId = metadata.getThingId();
         thingsUpdater.tell(UpdateThing.of(thingId, DittoHeaders.empty()), ActorRef.noSender());
         if (isInconsistentAgain(metadata)) {
             getSelf().tell(SyncEvent.inconsistencyAgain(metadata), ActorRef.noSender());

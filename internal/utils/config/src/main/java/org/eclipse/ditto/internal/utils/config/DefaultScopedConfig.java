@@ -100,7 +100,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return originalConfig.getConfig(configPath);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get nested Config at <{0}>!";
+            final var msgPattern = "Failed to get nested Config at <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, configPath), e);
         }
     }
@@ -211,7 +211,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getIsNull(path);
         } catch (final ConfigException.Missing e) {
-            final String msgPattern = "Failed to check whether the value at path <{0}> is null!";
+            final var msgPattern = "Failed to check whether the value at path <{0}> is null!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -221,7 +221,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getBoolean(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get boolean value for path <{0}>!";
+            final var msgPattern = "Failed to get boolean value for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -231,7 +231,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getNumber(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get Number for path <{0}>!";
+            final var msgPattern = "Failed to get Number for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -241,7 +241,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return tryToGetIntValue(path);
         } catch(final ConfigException.Missing | ConfigException.WrongType | NumberFormatException e) {
-            final String msgPattern = "Failed to get int value for path <{0}>!";
+            final var msgPattern = "Failed to get int value for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -250,7 +250,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getInt(path);
         } catch (final ConfigException.WrongType e) {
-            final ConfigValue configValue = config.getValue(path);
+            final var configValue = config.getValue(path);
             if (ConfigValueType.STRING == configValue.valueType()) {
                 return Integer.parseInt(String.valueOf(configValue.unwrapped()));
             }
@@ -263,7 +263,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return tryToGetLongValue(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType | NumberFormatException e) {
-            final String msgPattern = "Failed to get long value for path <{0}>!";
+            final var msgPattern = "Failed to get long value for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -272,7 +272,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getLong(path);
         } catch (final ConfigException.WrongType e) {
-            final ConfigValue configValue = config.getValue(path);
+            final var configValue = config.getValue(path);
             if (ConfigValueType.STRING == configValue.valueType()) {
                 return Long.parseLong(String.valueOf(configValue.unwrapped()));
             }
@@ -285,7 +285,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return tryToGetDoubleValue(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType | NumberFormatException e) {
-            final String msgPattern = "Failed to get double value for path <{0}>!";
+            final var msgPattern = "Failed to get double value for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -294,7 +294,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getDouble(path);
         } catch (final ConfigException.WrongType e) {
-            final ConfigValue configValue = config.getValue(path);
+            final var configValue = config.getValue(path);
             if (ConfigValueType.STRING == configValue.valueType()) {
                 return Double.parseDouble(String.valueOf(configValue.unwrapped()));
             }
@@ -307,7 +307,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getString(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get String value for path <{0}>!";
+            final var msgPattern = "Failed to get String value for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -317,7 +317,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getEnum(enumClass, path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get Enum for path <{0}>!";
+            final var msgPattern = "Failed to get Enum for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -327,7 +327,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getObject(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get ConfigObject for path <{0}>!";
+            final var msgPattern = "Failed to get ConfigObject for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -337,7 +337,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getConfig(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get Config for path <{0}>!";
+            final var msgPattern = "Failed to get Config for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -347,7 +347,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getAnyRef(path);
         } catch (final ConfigException.Missing e) {
-            final String msgPattern = "Failed to get the unwrapped Java object for path <{0}>!";
+            final var msgPattern = "Failed to get the unwrapped Java object for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -357,7 +357,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getValue(path);
         } catch (final ConfigException.Missing e) {
-            final String msgPattern = "Failed to get ConfigValue for path <{0}>!";
+            final var msgPattern = "Failed to get ConfigValue for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -367,7 +367,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getBytes(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get long value for path <{0}>!";
+            final var msgPattern = "Failed to get long value for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -377,7 +377,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getMemorySize(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get memory size for path <{0}>!";
+            final var msgPattern = "Failed to get memory size for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -399,7 +399,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getDuration(path, unit);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get duration as long value for path <{0}>!";
+            final var msgPattern = "Failed to get duration as long value for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -409,7 +409,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getDuration(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get Duration value for path <{0}>!";
+            final var msgPattern = "Failed to get Duration value for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -419,7 +419,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getPeriod(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType | ConfigException.BadValue e) {
-            final String msgPattern = "Failed to get Period for path <{0}>!";
+            final var msgPattern = "Failed to get Period for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -429,7 +429,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getTemporal(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType | ConfigException.BadValue e) {
-            final String msgPattern = "Failed to get TemporalAmount for path <{0}>!";
+            final var msgPattern = "Failed to get TemporalAmount for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -439,7 +439,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getList(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get ConfigList for path <{0}>!";
+            final var msgPattern = "Failed to get ConfigList for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -449,7 +449,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getBooleanList(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get List of boolean values for path <{0}>!";
+            final var msgPattern = "Failed to get List of boolean values for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -459,7 +459,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getNumberList(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get List of Numbers for path <{0}>!";
+            final var msgPattern = "Failed to get List of Numbers for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -469,7 +469,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getIntList(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get List of int values for path <{0}>!";
+            final var msgPattern = "Failed to get List of int values for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -479,7 +479,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getLongList(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get List of long values for path <{0}>!";
+            final var msgPattern = "Failed to get List of long values for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -489,7 +489,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getDoubleList(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get List of double values for path <{0}>!";
+            final var msgPattern = "Failed to get List of double values for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -499,7 +499,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getStringList(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get List of String values for path <{0}>!";
+            final var msgPattern = "Failed to get List of String values for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -509,7 +509,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getEnumList(enumClass, path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get List of Enums for path <{0}>!";
+            final var msgPattern = "Failed to get List of Enums for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -519,7 +519,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getObjectList(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get List of ConfigObjects for path <{0}>!";
+            final var msgPattern = "Failed to get List of ConfigObjects for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -529,7 +529,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getConfigList(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get List of Configs for path <{0}>!";
+            final var msgPattern = "Failed to get List of Configs for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -539,7 +539,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getAnyRefList(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get List with elements of any kind for path <{0}>!";
+            final var msgPattern = "Failed to get List with elements of any kind for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -549,7 +549,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getBytesList(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get List of byte sizes for path <{0}>!";
+            final var msgPattern = "Failed to get List of byte sizes for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -559,7 +559,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getMemorySizeList(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get List of memory sizes for path <{0}>!";
+            final var msgPattern = "Failed to get List of memory sizes for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -581,7 +581,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getDurationList(path, unit);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get List of duration long values for path <{0}>!";
+            final var msgPattern = "Failed to get List of duration long values for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }
@@ -591,7 +591,7 @@ public final class DefaultScopedConfig implements ScopedConfig {
         try {
             return config.getDurationList(path);
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
-            final String msgPattern = "Failed to get List of Durations for path <{0}>!";
+            final var msgPattern = "Failed to get List of Durations for path <{0}>!";
             throw new DittoConfigError(MessageFormat.format(msgPattern, appendToConfigPath(path)), e);
         }
     }

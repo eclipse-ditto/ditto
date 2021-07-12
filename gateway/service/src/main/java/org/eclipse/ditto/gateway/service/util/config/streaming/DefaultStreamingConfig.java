@@ -40,10 +40,10 @@ public final class DefaultStreamingConfig implements StreamingConfig {
 
     private DefaultStreamingConfig(final ScopedConfig scopedConfig) {
         sessionCounterScrapeInterval =
-                scopedConfig.getDuration(StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL.getConfigPath());
-        parallelism = scopedConfig.getInt(StreamingConfigValue.PARALLELISM.getConfigPath());
+                scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(StreamingConfigValue.SESSION_COUNTER_SCRAPE_INTERVAL);
+        parallelism = scopedConfig.getPositiveIntOrThrow(StreamingConfigValue.PARALLELISM);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(scopedConfig);
-        searchIdleTimeout = scopedConfig.getDuration(StreamingConfigValue.SEARCH_IDLE_TIMEOUT.getConfigPath());
+        searchIdleTimeout = scopedConfig.getNonNegativeDurationOrThrow(StreamingConfigValue.SEARCH_IDLE_TIMEOUT);
         websocketConfig = DefaultWebsocketConfig.of(scopedConfig);
         sseConfig = DefaultSseConfig.of(scopedConfig);
         signalEnrichmentConfig = DefaultGatewaySignalEnrichmentConfig.of(scopedConfig);

@@ -14,19 +14,11 @@ package org.eclipse.ditto.thingsearch.service.updater.actors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.service.actors.StartChildActor;
-import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
-import org.eclipse.ditto.thingsearch.service.common.util.RootSupervisorStrategyFactory;
-import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
-import org.eclipse.ditto.thingsearch.service.persistence.write.ThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.thingsearch.service.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ChangeQueueActor;
-import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdaterStream;
 import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
@@ -35,16 +27,19 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.monitoring.KamonCommandListener;
 import org.eclipse.ditto.internal.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.internal.utils.pubsub.ThingEventPubSubFactory;
-import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
+import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
+import org.eclipse.ditto.thingsearch.service.common.util.RootSupervisorStrategyFactory;
+import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
+import org.eclipse.ditto.thingsearch.service.persistence.write.impl.MongoThingsSearchUpdaterPersistence;
+import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ChangeQueueActor;
+import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdaterStream;
 
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
@@ -89,24 +84,24 @@ public final class SearchUpdaterRootActor extends AbstractActor {
             final ThingsSearchPersistence thingsSearchPersistence,
             final TimestampPersistence backgroundSyncPersistence) {
 
-        final ClusterConfig clusterConfig = searchConfig.getClusterConfig();
+        final var clusterConfig = searchConfig.getClusterConfig();
         final int numberOfShards = clusterConfig.getNumberOfShards();
 
-        final ActorSystem actorSystem = getContext().getSystem();
+        final var actorSystem = getContext().getSystem();
 
-        final MongoDbConfig mongoDbConfig = searchConfig.getMongoDbConfig();
+        final var mongoDbConfig = searchConfig.getMongoDbConfig();
         dittoMongoClient = MongoClientWrapper.getBuilder(mongoDbConfig)
                 .addCommandListener(getCommandListenerOrNull(mongoDbConfig.getMonitoringConfig()))
                 .addConnectionPoolListener(getConnectionPoolListenerOrNull(mongoDbConfig.getMonitoringConfig()))
                 .build();
 
-        final ShardRegionFactory shardRegionFactory = ShardRegionFactory.getInstance(actorSystem);
-        final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
+        final var shardRegionFactory = ShardRegionFactory.getInstance(actorSystem);
+        final var blockedNamespaces = BlockedNamespaces.of(actorSystem);
         final ActorRef changeQueueActor = startChildActor(ChangeQueueActor.ACTOR_NAME, ChangeQueueActor.props());
 
-        final Props thingUpdaterProps = ThingUpdater.props(pubSubMediator, changeQueueActor);
+        final var thingUpdaterProps = ThingUpdater.props(pubSubMediator, changeQueueActor);
 
-        final UpdaterConfig updaterConfig = searchConfig.getUpdaterConfig();
+        final var updaterConfig = searchConfig.getUpdaterConfig();
         if (!updaterConfig.isEventProcessingActive()) {
             log.warning("Event processing is disabled!");
         }
@@ -116,21 +111,21 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final ActorRef updaterShard =
                 shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps, CLUSTER_ROLE);
 
-        final SearchUpdaterStream searchUpdaterStream =
+        final var searchUpdaterStream =
                 SearchUpdaterStream.of(updaterConfig, actorSystem, thingsShard, policiesShard, updaterShard,
                         changeQueueActor, dittoMongoClient.getDefaultDatabase(), blockedNamespaces);
         updaterStreamKillSwitch = searchUpdaterStream.start(getContext(), false);
         updaterStreamWithAcknowledgementsKillSwitch = searchUpdaterStream.start(getContext(), true);
 
-        final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
+        final var searchUpdaterPersistence =
                 MongoThingsSearchUpdaterPersistence.of(dittoMongoClient.getDefaultDatabase());
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
-        final DistributedSub thingEventSub =
+        final var thingEventSub =
                 ThingEventPubSubFactory.shardIdOnly(getContext(), numberOfShards, DistributedAcks.empty())
                         .startDistributedSub();
-        final Props thingsUpdaterProps =
+        final var thingsUpdaterProps =
                 ThingsUpdater.props(thingEventSub, updaterShard, updaterConfig, blockedNamespaces,
                         pubSubMediator);
 
@@ -139,13 +134,13 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 NewEventForwarder.props(thingEventSub, updaterShard, blockedNamespaces));
 
         // start policy event forwarder
-        final Props policyEventForwarderProps =
+        final var policyEventForwarderProps =
                 PolicyEventForwarder.props(pubSubMediator, thingsUpdaterActor, blockedNamespaces,
                         searchUpdaterPersistence);
         startChildActor(PolicyEventForwarder.ACTOR_NAME, policyEventForwarderProps);
 
         // start background sync actor as cluster singleton
-        final Props backgroundSyncActorProps = BackgroundSyncActor.props(
+        final var backgroundSyncActorProps = BackgroundSyncActor.props(
                 updaterConfig.getBackgroundSyncConfig(),
                 pubSubMediator,
                 thingsSearchPersistence,

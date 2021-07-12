@@ -84,4 +84,5 @@ public final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
                 ", alpakkaConfig=" + alpakkaConfig +
                 "]";
     }
+
 }

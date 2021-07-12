@@ -18,6 +18,7 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -33,13 +34,13 @@ final class DefaultCreditDecisionConfig implements CreditDecisionConfig {
     private final int creditForRequests;
     private final int maxPendingRequests;
 
-    private DefaultCreditDecisionConfig(final Config conf) {
-        this.interval = conf.getDuration(ConfigValue.INTERVAL.getConfigPath());
-        this.metricReportTimeout = conf.getDuration(ConfigValue.METRIC_REPORT_TIMEOUT.getConfigPath());
-        this.timerThreshold = conf.getDuration(ConfigValue.TIMER_THRESHOLD.getConfigPath());
-        this.creditPerBatch = conf.getInt(ConfigValue.CREDIT_PER_BATCH.getConfigPath());
-        creditForRequests = conf.getInt(ConfigValue.CREDIT_FOR_REQUESTS.getConfigPath());
-        maxPendingRequests = conf.getInt(ConfigValue.MAX_PENDING_REQUESTS.getConfigPath());
+    private DefaultCreditDecisionConfig(final ScopedConfig conf) {
+        this.interval = conf.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.INTERVAL);
+        this.metricReportTimeout = conf.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.METRIC_REPORT_TIMEOUT);
+        this.timerThreshold = conf.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.TIMER_THRESHOLD);
+        this.creditPerBatch = conf.getNonNegativeIntOrThrow(ConfigValue.CREDIT_PER_BATCH);
+        creditForRequests = conf.getNonNegativeIntOrThrow(ConfigValue.CREDIT_FOR_REQUESTS);
+        maxPendingRequests = conf.getNonNegativeIntOrThrow(ConfigValue.MAX_PENDING_REQUESTS);
     }
 
     static CreditDecisionConfig of(final Config config) {
@@ -109,4 +110,5 @@ final class DefaultCreditDecisionConfig implements CreditDecisionConfig {
                 ", maxPendingRequests" + maxPendingRequests +
                 "]";
     }
+
 }

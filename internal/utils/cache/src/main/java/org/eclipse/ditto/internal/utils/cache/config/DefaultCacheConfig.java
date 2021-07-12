@@ -35,10 +35,10 @@ public final class DefaultCacheConfig implements CacheConfig {
     private final Duration expireAfterCreate;
 
     private DefaultCacheConfig(final ConfigWithFallback configWithFallback) {
-        maximumSize = configWithFallback.getLong(CacheConfigValue.MAXIMUM_SIZE.getConfigPath());
-        expireAfterWrite = configWithFallback.getDuration(CacheConfigValue.EXPIRE_AFTER_WRITE.getConfigPath());
-        expireAfterAccess = configWithFallback.getDuration(CacheConfigValue.EXPIRE_AFTER_ACCESS.getConfigPath());
-        expireAfterCreate = configWithFallback.getDuration(CacheConfigValue.EXPIRE_AFTER_CREATE.getConfigPath());
+        maximumSize = configWithFallback.getPositiveLongOrThrow(CacheConfigValue.MAXIMUM_SIZE);
+        expireAfterWrite = configWithFallback.getNonNegativeDurationOrThrow(CacheConfigValue.EXPIRE_AFTER_WRITE);
+        expireAfterAccess = configWithFallback.getNonNegativeDurationOrThrow(CacheConfigValue.EXPIRE_AFTER_ACCESS);
+        expireAfterCreate = configWithFallback.getNonNegativeDurationOrThrow(CacheConfigValue.EXPIRE_AFTER_CREATE);
     }
 
     /**

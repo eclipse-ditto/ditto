@@ -48,7 +48,7 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
 
     private DefaultOptionsConfig(final ScopedConfig config) {
         sslEnabled = config.getBoolean(OptionsConfigValue.SSL_ENABLED.getConfigPath());
-        final String readPreferenceString = config.getString(OptionsConfigValue.READ_PREFERENCE.getConfigPath());
+        final var readPreferenceString = config.getString(OptionsConfigValue.READ_PREFERENCE.getConfigPath());
         readPreference = ReadPreference.ofReadPreference(readPreferenceString)
                 .orElseThrow(() -> {
                     final String msg =
@@ -56,7 +56,7 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
                                     readPreferenceString);
                     return new DittoConfigError(msg);
                 });
-        final String readConcernString = config.getString(OptionsConfigValue.READ_CONCERN.getConfigPath());
+        final var readConcernString = config.getString(OptionsConfigValue.READ_CONCERN.getConfigPath());
         readConcern = ReadConcern.ofReadConcern(readConcernString)
                 .orElseThrow(() -> {
                     final String msg =
@@ -64,7 +64,7 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
                                     readConcernString);
                     return new DittoConfigError(msg);
                 });
-        final String writeConcernString = config.getString(OptionsConfigValue.WRITE_CONCERN.getConfigPath());
+        final var writeConcernString = config.getString(OptionsConfigValue.WRITE_CONCERN.getConfigPath());
         writeConcern = Optional.ofNullable(WriteConcern.valueOf(writeConcernString)).orElseThrow(() -> {
             final String msg =
                     MessageFormat.format("Could not parse a WriteConcern from configured string <{0}>",

@@ -48,9 +48,10 @@ public final class DefaultPolicyConfig implements PolicyConfig {
         activityCheckConfig = DefaultActivityCheckConfig.of(scopedConfig);
         snapshotConfig = DefaultSnapshotConfig.of(scopedConfig);
         policySubjectExpiryGranularity =
-                scopedConfig.getDuration(PolicyConfigValue.SUBJECT_EXPIRY_GRANULARITY.getConfigPath());
+                scopedConfig.getNonNegativeDurationOrThrow(PolicyConfigValue.SUBJECT_EXPIRY_GRANULARITY);
         policySubjectDeletionAnnouncementGranularity =
-                scopedConfig.getDuration(PolicyConfigValue.SUBJECT_DELETION_ANNOUNCEMENT_GRANULARITY.getConfigPath());
+                scopedConfig.getNonNegativeDurationOrThrow(
+                        PolicyConfigValue.SUBJECT_DELETION_ANNOUNCEMENT_GRANULARITY);
         subjectIdResolver = scopedConfig.getString(PolicyConfigValue.SUBJECT_ID_RESOLVER.getConfigPath());
     }
 
@@ -62,8 +63,9 @@ public final class DefaultPolicyConfig implements PolicyConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultPolicyConfig of(final Config config) {
-        final ConfigWithFallback mappingScopedConfig =
+        final var mappingScopedConfig =
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, PolicyConfigValue.values());
+
         return new DefaultPolicyConfig(mappingScopedConfig);
     }
 

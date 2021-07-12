@@ -49,7 +49,6 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
         serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
         mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
-
         enforcementConfig = DefaultEnforcementConfig.of(serviceSpecificConfig);
         cachesConfig = DefaultCachesConfig.of(serviceSpecificConfig);
         thingsAggregatorConfig = DefaultThingsAggregatorConfig.of(serviceSpecificConfig);

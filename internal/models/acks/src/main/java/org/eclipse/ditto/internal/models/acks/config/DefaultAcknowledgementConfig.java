@@ -40,13 +40,13 @@ public final class DefaultAcknowledgementConfig implements AcknowledgementConfig
 
     private DefaultAcknowledgementConfig(final ScopedConfig config) {
         forwarderFallbackTimeout =
-                config.getDuration(AcknowledgementConfigValue.FORWARDER_FALLBACK_TIMEOUT.getConfigPath());
+                config.getNonNegativeAndNonZeroDurationOrThrow(AcknowledgementConfigValue.FORWARDER_FALLBACK_TIMEOUT);
         collectorFallbackLifetime =
-                config.getDuration(AcknowledgementConfigValue.COLLECTOR_FALLBACK_LIFETIME.getConfigPath());
+                config.getNonNegativeAndNonZeroDurationOrThrow(AcknowledgementConfigValue.COLLECTOR_FALLBACK_LIFETIME);
         collectorFallbackAskTimeout =
-                config.getDuration(AcknowledgementConfigValue.COLLECTOR_FALLBACK_ASK_TIMEOUT.getConfigPath());
+                config.getNonNegativeAndNonZeroDurationOrThrow(AcknowledgementConfigValue.COLLECTOR_FALLBACK_ASK_TIMEOUT);
         issuedMaxBytes =
-                config.getInt(AcknowledgementConfigValue.ISSUED_MAX_BYTES.getConfigPath());
+                config.getNonNegativeIntOrThrow(AcknowledgementConfigValue.ISSUED_MAX_BYTES);
     }
 
     /**

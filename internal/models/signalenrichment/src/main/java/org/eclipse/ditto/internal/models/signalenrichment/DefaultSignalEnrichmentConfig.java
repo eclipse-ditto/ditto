@@ -90,4 +90,5 @@ public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConf
                 ", config=" + config +
                 "]";
     }
+
 }

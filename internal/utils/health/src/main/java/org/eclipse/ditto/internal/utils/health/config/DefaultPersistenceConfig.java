@@ -36,7 +36,7 @@ public final class DefaultPersistenceConfig implements PersistenceConfig {
 
     private DefaultPersistenceConfig(final ScopedConfig scopedConfig) {
         enabled = scopedConfig.getBoolean(PersistenceConfigValue.ENABLED.getConfigPath());
-        timeout = scopedConfig.getDuration(PersistenceConfigValue.TIMEOUT.getConfigPath());
+        timeout = scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(PersistenceConfigValue.TIMEOUT);
         metricsReporterConfig = DefaultMetricsReporterConfig.of(scopedConfig);
     }
 
@@ -95,4 +95,5 @@ public final class DefaultPersistenceConfig implements PersistenceConfig {
                 ", metricsReporterConfig=" + metricsReporterConfig +
                 "]";
     }
+
 }

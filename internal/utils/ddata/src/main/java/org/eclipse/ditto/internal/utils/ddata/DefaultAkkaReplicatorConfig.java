@@ -78,9 +78,9 @@ class DefaultAkkaReplicatorConfig implements AkkaReplicatorConfig {
 
         // TODO Ditto issue #439: replace ConfigWithFallback - it breaks AbstractConfigValue.withFallback!
         // Workaround: re-parse my config
-        final ConfigWithFallback configWithFallback = ConfigWithFallback.newInstance(config, CONFIG_PATH,
+        final var configWithFallback = ConfigWithFallback.newInstance(config, CONFIG_PATH,
                 AkkaReplicatorConfigValue.values());
-        final Config fallback =
+        final var fallback =
                 ConfigFactory.parseString(configWithFallback.root().render(ConfigRenderOptions.concise()));
 
         return new DefaultAkkaReplicatorConfig(ConfigFactory.parseMap(specificConfig)

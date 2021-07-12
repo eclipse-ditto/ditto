@@ -25,14 +25,6 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 public interface MqttConfig {
 
     /**
-     * Returns the maximum number of buffered messages for each MQTT source.
-     *
-     * @return the buffer size.
-     */
-    int getSourceBufferSize();
-
-
-    /**
      * Returns the number of threads to use for the underlying event loop of the MQTT client.
      * When configured to {@code 0}, the size is determined based on {@code the available processor cores * 2}.
      *
@@ -95,11 +87,6 @@ public interface MqttConfig {
      * {@code MqttConfig}.
      */
     enum MqttConfigValue implements KnownConfigValue {
-
-        /**
-         * The maximum number of buffered messages for each MQTT source.
-         */
-        SOURCE_BUFFER_SIZE("source-buffer-size", 8),
 
         /**
          * The number of threads to use for the underlying event loop of the MQTT client.

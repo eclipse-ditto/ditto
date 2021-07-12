@@ -62,10 +62,10 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
     private static DevopsAuthenticationMethod getDevopsAuthenticationMethod(final ConfigWithFallback configWithFallback,
             final DevOpsConfigValue devOpsConfigValue) {
 
-        final String methodName = configWithFallback.getString(devOpsConfigValue.getConfigPath());
+        final var methodName = configWithFallback.getString(devOpsConfigValue.getConfigPath());
         return DevopsAuthenticationMethod.fromMethodName(methodName)
                 .orElseThrow(() -> {
-                    final String message =
+                    final var message =
                             String.format("Could not find devops authentication method with name <%s>", methodName);
                     return new DittoConfigError(message);
                 });
