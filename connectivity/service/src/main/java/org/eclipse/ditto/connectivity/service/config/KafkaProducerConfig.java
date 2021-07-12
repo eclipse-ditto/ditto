@@ -52,6 +52,16 @@ public interface KafkaProducerConfig {
     double getRandomFactor();
 
     /**
+     * @return maximum restarts count before failing the producer stream.
+     */
+    int getMaxRestartsCount();
+
+    /**
+     * @return duration during within maximum restarts may happen before failing the producer stream.
+     */
+    Duration getMaxRestartsWithin();
+
+    /**
      * Returns the Config for producers needed by the Kafka client.
      *
      * @return consumer configuration needed by the Kafka client.
@@ -79,7 +89,11 @@ public interface KafkaProducerConfig {
 
         MAX_BACKOFF("max-backoff", Duration.ofSeconds(30)),
 
-        RANDOM_FACTOR("random-factor", 0.2);
+        RANDOM_FACTOR("random-factor", 0.2),
+
+        MAX_RESTARTS_COUNT("max-restarts-count", 5),
+
+        MAX_RESTARTS_WITHIN("max-restarts-within", Duration.ofMinutes(5));
 
         private final String path;
         private final Object defaultValue;

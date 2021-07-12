@@ -306,8 +306,9 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         private KafkaProducerStream(final KafkaProducerConfig config, final Materializer materializer,
                 final SendProducerFactory producerFactory) {
 
-            final RestartSettings restartSettings = RestartSettings.create(config.getMinBackoff(),
-                    config.getMaxBackoff(), config.getRandomFactor());
+            final RestartSettings restartSettings =
+                    RestartSettings.create(config.getMinBackoff(),config.getMaxBackoff(), config.getRandomFactor())
+                            .withMaxRestarts(config.getMaxRestartsCount(), config.getMaxRestartsWithin());
 
             final Pair<SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>, Source<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>, NotUsed>>
                     sourcePair =

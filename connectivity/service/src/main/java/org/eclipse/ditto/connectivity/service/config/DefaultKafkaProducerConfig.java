@@ -35,6 +35,8 @@ public final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
     private final Duration minBackoff;
     private final Duration maxBackoff;
     private final double randomFactor;
+    private final int maxRestartsCount;
+    private final Duration maxRestartsWithin;
     private final Config alpakkaConfig;
 
     private DefaultKafkaProducerConfig(final Config kafkaProducerScopedConfig) {
@@ -43,6 +45,8 @@ public final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
         minBackoff = kafkaProducerScopedConfig.getDuration(ConfigValue.MIN_BACKOFF.getConfigPath());
         maxBackoff = kafkaProducerScopedConfig.getDuration(ConfigValue.MAX_BACKOFF.getConfigPath());
         randomFactor = kafkaProducerScopedConfig.getDouble(ConfigValue.RANDOM_FACTOR.getConfigPath());
+        maxRestartsCount = kafkaProducerScopedConfig.getInt(ConfigValue.MAX_RESTARTS_COUNT.getConfigPath());
+        maxRestartsWithin = kafkaProducerScopedConfig.getDuration(ConfigValue.MAX_RESTARTS_WITHIN.getConfigPath());
         alpakkaConfig = kafkaProducerScopedConfig.getConfig(ALPAKKA_PATH);
     }
 
@@ -85,6 +89,16 @@ public final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
     }
 
     @Override
+    public int getMaxRestartsCount() {
+        return maxRestartsCount;
+    }
+
+    @Override
+    public Duration getMaxRestartsWithin() {
+        return maxRestartsWithin;
+    }
+
+    @Override
     public Config getAlpakkaConfig() {
         return alpakkaConfig;
     }
@@ -99,12 +113,15 @@ public final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
                 Objects.equals(minBackoff, that.minBackoff) &&
                 Objects.equals(maxBackoff, that.maxBackoff) &&
                 Objects.equals(randomFactor, that.randomFactor) &&
+                Objects.equals(maxRestartsCount, that.maxRestartsCount) &&
+                Objects.equals(maxRestartsWithin, that.maxRestartsWithin) &&
                 Objects.equals(alpakkaConfig, that.alpakkaConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(queueSize, parallelism, minBackoff, maxBackoff, randomFactor, alpakkaConfig);
+        return Objects.hash(queueSize, parallelism, minBackoff, maxBackoff, maxRestartsCount, maxRestartsWithin,
+                randomFactor, alpakkaConfig);
     }
 
     @Override
@@ -115,6 +132,8 @@ public final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
                 ", minBackoff=" + minBackoff +
                 ", maxBackoff=" + maxBackoff +
                 ", randomFactor=" + randomFactor +
+                ", maxRestartsCount=" + maxRestartsCount +
+                ", maxRestartsWithin=" + maxRestartsWithin +
                 ", alpakkaConfig=" + alpakkaConfig +
                 "]";
     }
