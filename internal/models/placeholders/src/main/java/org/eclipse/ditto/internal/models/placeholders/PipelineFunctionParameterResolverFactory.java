@@ -38,6 +38,9 @@ final class PipelineFunctionParameterResolverFactory {
     private static final ParameterResolver TRIPLE_STRING_OR_PLACEHOLDER_PARAMETER_RESOLVER =
             new ParameterResolver(3, true);
 
+    private static final ParameterResolver DOUBLE_OR_TRIPLE_STRING_OR_PLACEHOLDER_PARAMETER_RESOLVER =
+            new ParameterResolver(2, 1, true);
+
 
     /**
      * Get a parameter resolver that validates for empty parameters.
@@ -90,6 +93,19 @@ final class PipelineFunctionParameterResolverFactory {
         return TRIPLE_STRING_OR_PLACEHOLDER_PARAMETER_RESOLVER;
     }
 
+    /**
+     * Get a parameter resolver that resolves 2 or 3 parameters that each could be either a string constant or a placeholder.
+     * <p>
+     * E.g.
+     * <ul>
+     * <li>("value", 'otherValue', 'optionalThirdValue')</li>
+     * <li>("value", 'otherValue')</li>
+     * </ul>
+     */
+    static ParameterResolver forDoubleOrTripleStringOrPlaceholderParameter() {
+        return DOUBLE_OR_TRIPLE_STRING_OR_PLACEHOLDER_PARAMETER_RESOLVER;
+    }
+
     private PipelineFunctionParameterResolverFactory() {
         throw new AssertionError();
     }
@@ -129,24 +145,49 @@ final class PipelineFunctionParameterResolverFactory {
         private static final String CLOSED_PARENTHESIS = "\\)";
 
         private final Pattern pattern;
-        private final int numberOfParameters;
+        private final int requiredParameters;
+        private final int optionalParameters;
 
         private ParameterResolver(final int numberOfParameters, final boolean allowPlaceholders) {
+            this(numberOfParameters, 0, allowPlaceholders);
+        }
 
-            this.numberOfParameters = numberOfParameters;
+        private ParameterResolver(final int requiredParameters, final int optionalParameters, final boolean allowPlaceholders) {
+
+            this.requiredParameters = requiredParameters;
+            this.optionalParameters = optionalParameters;
+
             final StringBuilder patternBuilder = new StringBuilder(OPEN_PARENTHESIS);
 
-            for (int parameterIndex = 0; parameterIndex < numberOfParameters; parameterIndex++) {
-                if (parameterIndex > 0) {
-                    patternBuilder.append(PARAMETER_SEPARATOR);
-                }
-                final String parameterPattern = buildParameterPattern(parameterIndex, allowPlaceholders);
-                patternBuilder.append(parameterPattern);
-            }
+            patternBuilder.append(buildParameterPatterns(0, requiredParameters, allowPlaceholders, false));
+            patternBuilder.append(buildParameterPatterns(requiredParameters, optionalParameters, allowPlaceholders, true));
 
             patternBuilder.append(CLOSED_PARENTHESIS);
 
             pattern = Pattern.compile(patternBuilder.toString());
+        }
+
+        private static String buildParameterPatterns(final int startIndex, final int amount,
+                final boolean allowPlaceholders, final boolean optionalParameters) {
+            final StringBuilder parameters = new StringBuilder();
+            for (int parameterIndex = startIndex; parameterIndex < startIndex + amount; parameterIndex++) {
+                final StringBuilder singleParam = new StringBuilder();
+                if (optionalParameters) {
+                    singleParam.append("(?:");
+                }
+
+                if (parameterIndex > 0) {
+                    singleParam.append(PARAMETER_SEPARATOR);
+                }
+                final String parameterPattern = buildParameterPattern(parameterIndex, allowPlaceholders);
+                singleParam.append(parameterPattern);
+
+                if (optionalParameters) {
+                    singleParam.append(")?");
+                }
+                parameters.append(singleParam);
+            }
+            return parameters.toString();
         }
 
         private static String buildParameterPattern(final int parameterIndex, final boolean allowPlaceholders) {
@@ -201,21 +242,32 @@ final class PipelineFunctionParameterResolverFactory {
             final Matcher matcher = this.pattern.matcher(paramsIncludingParentheses);
 
             if (matcher.matches()) {
-                final ArrayList<PipelineElement> parameters = new ArrayList<>(numberOfParameters);
-                for (int parameterIndex = 0; parameterIndex < numberOfParameters; parameterIndex++) {
-                    final PipelineElement resolvedParameter =
-                            apply(matcher, parameterIndex, resolver).orElseThrow(() -> {
-                                throw PlaceholderFunctionSignatureInvalidException.newBuilder(
-                                        paramsIncludingParentheses,
-                                        pipelineFunction).build();
-                            });
-                    parameters.add(parameterIndex, resolvedParameter);
-                }
+                final ArrayList<PipelineElement> parameters = new ArrayList<>(requiredParameters);
+                parameters.addAll(extractParameters(matcher, resolver, paramsIncludingParentheses, pipelineFunction,
+                        0, requiredParameters, false));
+                parameters.addAll(extractParameters(matcher, resolver, paramsIncludingParentheses, pipelineFunction,
+                        requiredParameters, optionalParameters, true));
                 return parameters;
             }
 
             throw PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, pipelineFunction)
                     .build();
+        }
+
+        private List<PipelineElement> extractParameters(final Matcher matcher, final ExpressionResolver resolver,
+                final String paramsIncludingParentheses, final PipelineFunction pipelineFunction,
+                final int startIndex, final int amount, final boolean optional) {
+            final List<PipelineElement> parameters = new ArrayList<>(amount);
+            for (int parameterIndex = startIndex; parameterIndex < startIndex + amount; parameterIndex++) {
+                final Optional<PipelineElement> applied = apply(matcher, parameterIndex, resolver);
+                if (!optional && applied.isEmpty()) {
+                    throw PlaceholderFunctionSignatureInvalidException.newBuilder(
+                            paramsIncludingParentheses,
+                            pipelineFunction).build();
+                }
+                applied.ifPresent(parameters::add);
+            }
+            return parameters;
         }
 
     }

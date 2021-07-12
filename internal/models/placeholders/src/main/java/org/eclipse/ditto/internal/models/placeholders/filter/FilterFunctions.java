@@ -37,7 +37,13 @@ public enum FilterFunctions implements FilterFunction {
      * the second parameter, where {@code ?} matches a character and {@code *} matches 0 or more characters.
      * Consult the documentation about the RQL expression {@code like} for pattern examples.
      */
-    LIKE(new LikeFunction());
+    LIKE(new LikeFunction()),
+
+    /**
+     * The {@code 'exists'} function keeps the value if passed parameter is not empty.
+     * Consult the documentation about the RQL expression {@code exists} for pattern examples.
+     */
+    EXISTS(new ExistsFunction());
 
     private final FilterFunction rqlFunction;
 

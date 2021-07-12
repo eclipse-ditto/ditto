@@ -18,9 +18,8 @@ import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceh
 import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newThingPlaceholder;
 
 import java.text.MessageFormat;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -35,6 +34,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
@@ -53,13 +53,11 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     private static final String INVALID_TOPIC_FORMAT = "The provided topic ''{0}'' is not valid: {1}";
     private static final String NOT_EMPTY_FORMAT = "The provided {0} in your target address may not be empty.";
 
-    private static final Collection<String> ACCEPTED_SCHEMES =
-            Collections.unmodifiableList(Arrays.asList("tcp", "ssl"));
-    private static final Collection<String> SECURE_SCHEMES = Collections.singletonList("ssl");
+    private static final Collection<String> ACCEPTED_SCHEMES = List.of("tcp", "ssl");
+    private static final Collection<String> SECURE_SCHEMES = List.of("ssl");
 
-    private static final Collection<KafkaSpecificConfig> SPECIFIC_CONFIGS = Collections.unmodifiableList(
-            Arrays.asList(KafkaAuthenticationSpecificConfig.getInstance(),
-                    KafkaBootstrapServerSpecificConfig.getInstance()));
+    private static final Collection<KafkaSpecificConfig> SPECIFIC_CONFIGS =
+            List.of(KafkaAuthenticationSpecificConfig.getInstance(), KafkaBootstrapServerSpecificConfig.getInstance());
 
     private static final KafkaValidator INSTANCE = new KafkaValidator();
 
@@ -82,11 +80,12 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     }
 
     @Override
-    public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
+    public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem,
+            final ConnectivityConfig connectivityConfig) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "Kafka 2.1.1");
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
-        validatePayloadMappings(connection, actorSystem, dittoHeaders);
+        validatePayloadMappings(connection, actorSystem, connectivityConfig, dittoHeaders);
         validateSpecificConfigs(connection, dittoHeaders);
     }
 

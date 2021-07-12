@@ -21,32 +21,32 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.concierge.service.actors.ShardRegions;
 import org.eclipse.ditto.concierge.service.actors.cleanup.credits.CreditDecisionSource;
 import org.eclipse.ditto.concierge.service.actors.cleanup.messages.CreditDecision;
 import org.eclipse.ditto.concierge.service.actors.cleanup.persistenceids.PersistenceIdSource;
 import org.eclipse.ditto.concierge.service.common.PersistenceCleanupConfig;
+import org.eclipse.ditto.connectivity.api.ConnectionTag;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
+import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.internal.utils.akka.controlflow.Transistor;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.health.AbstractBackgroundStreamingActorWithConfigWithStatusReport;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.connectivity.api.ConnectionTag;
 import org.eclipse.ditto.policies.api.PolicyTag;
-import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.things.api.ThingTag;
-import org.eclipse.ditto.internal.utils.akka.controlflow.Transistor;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.health.AbstractBackgroundStreamingActorWithConfigWithStatusReport;
-import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
-import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistenceResponse;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
-import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 
 import com.typesafe.config.Config;
@@ -359,7 +359,9 @@ public final class EventSnapshotCleanupCoordinator
             messageBuilder.append("requested by ");
         }
 
-        messageBuilder.append(response.getEntityId().toString());
+        messageBuilder.append(response.getEntityId().getEntityType());
+        messageBuilder.append("#");
+        messageBuilder.append(response.getEntityId());
         if (dittoHeaders.containsKey(ERROR_MESSAGE_HEADER)) {
             messageBuilder.append(": ").append(dittoHeaders.get(ERROR_MESSAGE_HEADER));
         }

@@ -22,29 +22,30 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
-import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
-import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.ConnectionType;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.MappingContext;
-import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.MappedInboundExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.MappingContext;
+import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
+import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
+import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
+import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
+import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.protocol.DittoProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -128,10 +129,14 @@ public final class InboundMappingProcessorTest {
 
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
+        final Connection connection = TestConstants.createConnection()
+                .toBuilder()
+                .payloadMappingDefinition(payloadMappingDefinition)
+                .build();
+        final ConnectionContext connectionContext = DittoConnectionContext.of(connection, connectivityConfig);
 
-        underTest = InboundMappingProcessor.of(ConnectionId.of("theConnection"), ConnectionType.AMQP_10,
-                payloadMappingDefinition, actorSystem,
-                connectivityConfig, protocolAdapterProvider.getProtocolAdapter(null), logger);
+        underTest = InboundMappingProcessor.of(connectionContext, actorSystem,
+                protocolAdapterProvider.getProtocolAdapter(null), logger);
     }
 
     @Test

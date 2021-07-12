@@ -13,6 +13,8 @@
 package org.eclipse.ditto.thingsearch.service.persistence.query;
 
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.rql.query.Query;
@@ -76,27 +78,28 @@ public final class QueryParser {
     /**
      * Parses a search command into a query.
      *
-     * @param command the search command.
+     * @param commandToValidate the search command.
      * @return the query.
      */
-    public Query parse(final ThingSearchQueryCommand<?> command) {
-        final Criteria criteria = parseCriteria(command);
-        queryCriteriaValidator.validateCommand(command);
-        if (command instanceof QueryThings) {
-            final QueryThings queryThings = (QueryThings) command;
-            final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(criteria);
-            queryThings.getOptions()
-                    .map(optionStrings -> String.join(",", optionStrings))
-                    .ifPresent(options -> setOptions(options, queryBuilder, command.getDittoHeaders()));
-            return queryBuilder.build();
-        } else if (command instanceof StreamThings) {
-            final StreamThings streamThings = (StreamThings) command;
-            final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(criteria);
-            streamThings.getSort().ifPresent(sort -> setOptions(sort, queryBuilder, command.getDittoHeaders()));
-            return queryBuilder.build();
-        } else {
-            return queryBuilderFactory.newUnlimitedBuilder(criteria).build();
-        }
+    public CompletionStage<Query> parse(final ThingSearchQueryCommand<?> commandToValidate) {
+        final Criteria criteria = parseCriteria(commandToValidate);
+        return queryCriteriaValidator.validateCommand(commandToValidate).thenApply(command -> {
+            if (command instanceof QueryThings) {
+                final QueryThings queryThings = (QueryThings) command;
+                final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(criteria);
+                queryThings.getOptions()
+                        .map(optionStrings -> String.join(",", optionStrings))
+                        .ifPresent(options -> setOptions(options, queryBuilder, command.getDittoHeaders()));
+                return queryBuilder.build();
+            } else if (command instanceof StreamThings) {
+                final StreamThings streamThings = (StreamThings) command;
+                final QueryBuilder queryBuilder = queryBuilderFactory.newUnlimitedBuilder(criteria);
+                streamThings.getSort().ifPresent(sort -> setOptions(sort, queryBuilder, command.getDittoHeaders()));
+                return queryBuilder.build();
+            } else {
+                return queryBuilderFactory.newUnlimitedBuilder(criteria).build();
+            }
+        });
     }
 
     private Criteria parseCriteria(final ThingSearchQueryCommand<?> command) {
@@ -116,11 +119,11 @@ public final class QueryParser {
      * @param sudoCountThings the command.
      * @return the query.
      */
-    public Query parseSudoCountThings(final SudoCountThings sudoCountThings) {
+    public CompletionStage<Query> parseSudoCountThings(final SudoCountThings sudoCountThings) {
         final DittoHeaders headers = sudoCountThings.getDittoHeaders();
         final String filters = sudoCountThings.getFilter().orElse(null);
         final Criteria criteria = queryFilterCriteriaFactory.filterCriteria(filters, headers);
-        return queryBuilderFactory.newUnlimitedBuilder(criteria).build();
+        return CompletableFuture.completedStage(queryBuilderFactory.newUnlimitedBuilder(criteria).build());
     }
 
     /**

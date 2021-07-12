@@ -17,10 +17,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
-import org.eclipse.ditto.connectivity.service.mapping.javascript.JavaScriptMessageMapperFactory;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
+import org.eclipse.ditto.connectivity.service.mapping.javascript.JavaScriptMessageMapperFactory;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 
@@ -81,7 +81,7 @@ public class SimpleMapTextPayloadToDitto implements MapToDittoProtocolScenario {
     public MessageMapper getMessageMapper() {
         final MessageMapper javaScriptRhinoMapperPlain =
                 JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
-        javaScriptRhinoMapperPlain.configure(MAPPING_CONFIG,
+        javaScriptRhinoMapperPlain.configure(CONNECTION_CONTEXT,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("text", Collections.emptyMap())
                         .incomingScript(MAPPING_INCOMING_PLAIN)

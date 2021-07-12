@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
  * Fools the fast-failing mechanism of BaseClientActor so that MqttClientActor can be tested.
  * BaseClientActor does not attempt to connect if the host address of the connection URI is not reachable.
  */
-final class MqttServerRule extends ExternalResource {
+public final class MqttServerRule extends ExternalResource {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MqttServerRule.class);
 
@@ -36,7 +36,7 @@ final class MqttServerRule extends ExternalResource {
     @Nullable
     private ServerSocket serverSocket;
 
-    MqttServerRule(final int port) {
+    public MqttServerRule(final int port) {
         LOGGER.info("Starting server at port {}", port);
         this.port = port;
     }

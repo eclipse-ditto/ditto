@@ -21,15 +21,15 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
-import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.connectivity.service.mapping.PayloadMapper;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
 
 /**
  * Implementation of {@link org.eclipse.ditto.connectivity.service.mapping.MessageMapper} that delegates to
@@ -63,7 +63,7 @@ public final class AddHeaderMessageMapper implements MessageMapper {
     }
 
     @Override
-    public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+    public void configure(final ConnectionContext connectionContext, final MessageMapperConfiguration configuration) {
         // ignore
     }
 

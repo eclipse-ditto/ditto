@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.config;
 
 import java.net.URI;
 import java.text.MessageFormat;
+import java.util.List;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -25,24 +26,25 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
 
-@JsonParsableException(errorCode = ConnectivityConfigProviderFailedException.ERROR_CODE)
-public final class ConnectivityConfigProviderFailedException extends DittoRuntimeException {
+@JsonParsableException(errorCode = ConnectionContextProviderMissingException.ERROR_CODE)
+public final class ConnectionContextProviderMissingException extends DittoRuntimeException {
 
-    public static final String ERROR_CODE = "connectivity.config.provider.failed";
-    private static final String MESSAGE_TEMPLATE = "Failed to instantiate <{0}>.";
+    public static final String ERROR_CODE = "connectivity.config.provider.missing";
+    private static final String MESSAGE_TEMPLATE =
+            "Failed to find a suitable ConnectionContextProvider implementation in candidates: <{0}>.";
 
-    private ConnectivityConfigProviderFailedException(
+    private ConnectionContextProviderMissingException(
             final DittoHeaders dittoHeaders, @Nullable final String message,
             @Nullable final String description, @Nullable final Throwable cause,
             @Nullable final URI href) {
         super(ERROR_CODE, HttpStatus.INTERNAL_SERVER_ERROR, dittoHeaders, message, description, cause, href);
     }
 
-    public static Builder newBuilder(final Class<? extends ConnectivityConfigProvider> failedConfigProvider) {
-        return new Builder(MessageFormat.format(MESSAGE_TEMPLATE, failedConfigProvider.getName()));
+    public static Builder newBuilder(final List<Class<? extends ConnectionContextProvider>> candidates) {
+        return new Builder(MessageFormat.format(MESSAGE_TEMPLATE, candidates));
     }
 
-    public static ConnectivityConfigProviderFailedException fromJson(final JsonObject jsonObject,
+    public static ConnectionContextProviderMissingException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
@@ -59,22 +61,22 @@ public final class ConnectivityConfigProviderFailedException extends DittoRuntim
     }
 
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<ConnectivityConfigProviderFailedException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<ConnectionContextProviderMissingException> {
 
-        private Builder() {}
+        private Builder() { }
 
         private Builder(final String message) {
             message(message);
         }
 
         @Override
-        protected ConnectivityConfigProviderFailedException doBuild(final DittoHeaders dittoHeaders,
+        protected ConnectionContextProviderMissingException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
 
-            return new ConnectivityConfigProviderFailedException(dittoHeaders, message, description, cause, href);
+            return new ConnectionContextProviderMissingException(dittoHeaders, message, description, cause, href);
         }
 
     }

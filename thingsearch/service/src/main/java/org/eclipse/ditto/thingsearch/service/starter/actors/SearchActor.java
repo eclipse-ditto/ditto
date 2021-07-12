@@ -15,6 +15,8 @@ package org.eclipse.ditto.thingsearch.service.starter.actors;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -155,8 +157,8 @@ public final class SearchActor extends AbstractActor {
         executeCount(sudoCountThings, queryParser::parseSudoCountThings, true);
     }
 
-    private <T extends Command> void executeCount(final T countCommand,
-            final Function<T, Query> queryParseFunction,
+    private <T extends Command<?>> void executeCount(final T countCommand,
+            final Function<T, CompletionStage<Query>> queryParseFunction,
             final boolean isSudo) {
         final var dittoHeaders = countCommand.getDittoHeaders();
         log.withCorrelationId(dittoHeaders)
@@ -188,7 +190,8 @@ public final class SearchActor extends AbstractActor {
                 .via(stopTimerAndHandleError(countTimer, countCommand));
 
         Materializer.createMaterializer(this::getContext);
-        Patterns.pipe(replySource.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()), getContext().dispatcher()).to(sender);
+        Patterns.pipe(replySource.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()),
+                getContext().dispatcher()).to(sender);
     }
 
     private void stream(final StreamThings streamThings) {
@@ -220,7 +223,9 @@ public final class SearchActor extends AbstractActor {
         final Source<Object, NotUsed> replySourceWithErrorHandling =
                 sourceRefSource.via(stopTimerAndHandleError(searchTimer, streamThings));
 
-        Patterns.pipe(replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()), getContext().dispatcher())
+        Patterns.pipe(
+                replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()),
+                getContext().dispatcher())
                 .to(sender);
     }
 
@@ -268,7 +273,9 @@ public final class SearchActor extends AbstractActor {
         final Source<Object, ?> replySourceWithErrorHandling =
                 replySource.via(stopTimerAndHandleError(searchTimer, queryThings));
 
-        Patterns.pipe(replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()), getContext().dispatcher())
+        Patterns.pipe(
+                replySourceWithErrorHandling.runWith(Sink.head(), SystemMaterializer.get(getSystem()).materializer()),
+                getContext().dispatcher())
                 .to(sender);
     }
 
@@ -348,11 +355,14 @@ public final class SearchActor extends AbstractActor {
                 .start();
     }
 
-    private static <T> Source<Query, NotUsed> createQuerySource(final Function<T, Query> parser,
+    private static <T> Source<Query, NotUsed> createQuerySource(final Function<T, CompletionStage<Query>> parser,
             final T command) {
 
         try {
-            return Source.single(parser.apply(command));
+            return Source.fromCompletionStage(parser.apply(command))
+                    .recoverWithRetries(1, new PFBuilder<Throwable, Source<Query, NotUsed>>()
+                            .match(CompletionException.class, e -> Source.failed(e.getCause()))
+                            .build());
         } catch (final Throwable e) {
             return Source.failed(e);
         }

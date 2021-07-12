@@ -30,10 +30,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectivityCachingSignalEnrichmentProvider;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -41,6 +37,12 @@ import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
@@ -51,20 +53,20 @@ import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
 import org.eclipse.ditto.connectivity.model.SourceBuilder;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.JsonifiableAdaptable;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
-import org.eclipse.ditto.connectivity.api.OutboundSignal;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectivityCachingSignalEnrichmentProvider;
+import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.internal.models.placeholders.Placeholder;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.protocol.JsonifiableAdaptable;
+import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeResponse;
@@ -239,7 +241,8 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                     assertThat(headers).contains(AddHeaderMessageMapper.OUTBOUND_HEADER);
                 }
             } else {
-                final OutboundSignal errorResponse = expectMsgClass(BaseClientActor.PublishMappedMessage.class).getOutboundSignal();
+                final OutboundSignal errorResponse =
+                        expectMsgClass(BaseClientActor.PublishMappedMessage.class).getOutboundSignal();
                 assertThat(errorResponse.getSource()).isInstanceOf(ThingErrorResponse.class);
                 final ThingErrorResponse response = (ThingErrorResponse) errorResponse.getSource();
                 verifyErrorResponse.accept(response);
@@ -332,13 +335,11 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
-        final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(CONNECTION_ID,
-                CONNECTION.getConnectionType(),
-                payloadMappingDefinition,
-                actorSystem,
-                TestConstants.CONNECTIVITY_CONFIG,
-                protocolAdapter,
-                logger);
+        final ConnectionContext connectionContext = DittoConnectionContext.of(
+                CONNECTION.toBuilder().payloadMappingDefinition(payloadMappingDefinition).build(),
+                TestConstants.CONNECTIVITY_CONFIG);
+        final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(connectionContext,
+                actorSystem, protocolAdapter, logger);
         final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,
                 protocolAdapter.headerTranslator(), ActorSelection.apply(proxyActor, ""), connectionActorProbe.ref(),
                 outboundMappingProcessorActor);
@@ -360,9 +361,8 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         final ThreadSafeDittoLoggingAdapter logger = mockLoggingAdapter();
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         final OutboundMappingProcessor outboundMappingProcessor =
-                OutboundMappingProcessor.of(CONNECTION,
-                        actorSystem,
-                        TestConstants.CONNECTIVITY_CONFIG, protocolAdapter, logger);
+                OutboundMappingProcessor.of(DittoConnectionContext.of(CONNECTION, TestConstants.CONNECTIVITY_CONFIG),
+                        actorSystem, protocolAdapter, logger);
 
         final Props props = OutboundMappingProcessorActor.props(kit.getRef(), outboundMappingProcessor, CONNECTION, 99);
         return actorSystem.actorOf(props);

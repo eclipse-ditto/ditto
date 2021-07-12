@@ -32,6 +32,8 @@ import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -52,8 +54,6 @@ import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.PayloadBuilder;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
-import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 
@@ -176,7 +176,7 @@ public final class RawMessageMapper extends AbstractMessageMapper {
 
     @Override
     protected void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
-        dittoMessageMapper.configure(mappingConfig, configuration);
+        dittoMessageMapper.doConfigure(mappingConfig, configuration);
         fallbackOutgoingContentType = configuration.findProperty(OUTGOING_CONTENT_TYPE_KEY)
                 .map(ContentType::of)
                 .orElse(fallbackOutgoingContentType);

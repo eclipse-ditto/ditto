@@ -29,6 +29,7 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -44,10 +45,12 @@ abstract class AbstractMqttValidatorTest {
     protected static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
 
     protected static ActorSystem actorSystem;
+    protected static ConnectivityConfig connectivityConfig;
 
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
+        connectivityConfig = ConnectivityConfig.forActorSystem(actorSystem);
     }
 
     @AfterClass

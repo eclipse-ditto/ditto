@@ -17,6 +17,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
 
 import akka.actor.ActorSystem;
@@ -47,12 +48,13 @@ public final class Mqtt5Validator extends AbstractMqttValidator {
     }
 
     @Override
-    public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
+    public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem,
+            final ConnectivityConfig connectivityConfig) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "MQTT 5");
         validateAddresses(connection, dittoHeaders);
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
-        validatePayloadMappings(connection, actorSystem, dittoHeaders);
+        validatePayloadMappings(connection, actorSystem, connectivityConfig, dittoHeaders);
         validateSpecificConfig(connection, dittoHeaders);
     }
 

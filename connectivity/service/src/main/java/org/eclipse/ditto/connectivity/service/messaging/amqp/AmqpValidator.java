@@ -17,9 +17,8 @@ import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceh
 import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newPolicyPlaceholder;
 import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newThingPlaceholder;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
@@ -29,9 +28,10 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 
 import akka.actor.ActorSystem;
 
@@ -41,9 +41,8 @@ import akka.actor.ActorSystem;
 @Immutable
 public final class AmqpValidator extends AbstractProtocolValidator {
 
-    private static final Collection<String> ACCEPTED_SCHEMES =
-            Collections.unmodifiableList(Arrays.asList("amqp", "amqps"));
-    private static final Collection<String> SECURE_SCHEMES = Collections.singletonList("amqps");
+    private static final Collection<String> ACCEPTED_SCHEMES = List.of("amqp", "amqps");
+    private static final Collection<String> SECURE_SCHEMES = List.of("amqps");
 
     /**
      * Create a new {@code AmqpConnectionSpec}.
@@ -80,10 +79,11 @@ public final class AmqpValidator extends AbstractProtocolValidator {
     }
 
     @Override
-    public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
+    public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem,
+            final ConnectivityConfig connectivityConfig) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "AMQP 1.0");
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
-        validatePayloadMappings(connection, actorSystem, dittoHeaders);
+        validatePayloadMappings(connection, actorSystem, connectivityConfig, dittoHeaders);
     }
 }

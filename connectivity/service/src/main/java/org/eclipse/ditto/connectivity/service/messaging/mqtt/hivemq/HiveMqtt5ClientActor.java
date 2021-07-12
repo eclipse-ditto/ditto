@@ -18,6 +18,7 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
@@ -47,16 +48,17 @@ public final class HiveMqtt5ClientActor
     private HiveMqtt5ClientActor(final Connection connection,
             final ActorRef proxyActor,
             final ActorRef connectionActor,
-            final HiveMqtt5ClientFactory clientFactory) {
+            final HiveMqtt5ClientFactory clientFactory,
+            final DittoHeaders dittoHeaders) {
 
-        super(connection, proxyActor, connectionActor);
+        super(connection, proxyActor, connectionActor, dittoHeaders);
         this.clientFactory = clientFactory;
     }
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private HiveMqtt5ClientActor(final Connection connection, final ActorRef proxyActor,
-            final ActorRef connectionActor) {
-        super(connection, proxyActor, connectionActor);
+            final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
+        super(connection, proxyActor, connectionActor, dittoHeaders);
         this.clientFactory = DefaultHiveMqtt5ClientFactory.getInstance(this::getSshTunnelState);
     }
 
@@ -72,11 +74,14 @@ public final class HiveMqtt5ClientActor
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param clientFactory factory used to create required mqtt clients
      * @param connectionActor the parent connection actor
+     * @param dittoHeaders headers of the command that caused this actor to be created
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, final ActorRef proxyActor,
-            final HiveMqtt5ClientFactory clientFactory, final ActorRef connectionActor) {
-        return Props.create(HiveMqtt5ClientActor.class, connection, proxyActor, connectionActor, clientFactory);
+            final HiveMqtt5ClientFactory clientFactory, final ActorRef connectionActor,
+            final DittoHeaders dittoHeaders) {
+        return Props.create(HiveMqtt5ClientActor.class, connection, proxyActor, connectionActor, clientFactory,
+                dittoHeaders);
     }
 
     /**
@@ -85,11 +90,12 @@ public final class HiveMqtt5ClientActor
      * @param connection the connection.
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the parent connection actor.
+     * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor) {
-        return Props.create(HiveMqtt5ClientActor.class, connection, proxyActor, connectionActor);
+            final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
+        return Props.create(HiveMqtt5ClientActor.class, connection, proxyActor, connectionActor, dittoHeaders);
     }
 
     @Override

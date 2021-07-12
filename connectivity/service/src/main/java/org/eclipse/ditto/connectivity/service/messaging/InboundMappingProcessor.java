@@ -29,25 +29,24 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.MappedInboundExternalMessage;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
-import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperFactory;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
-import org.eclipse.ditto.things.model.ThingConstants;
+import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
-import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.MappedInboundExternalMessage;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.things.model.ThingConstants;
 
 import akka.actor.ActorSystem;
 
@@ -77,11 +76,8 @@ public final class InboundMappingProcessor
      * Initializes a new command processor with mappers defined in mapping mappingContext.
      * The dynamic access is needed to instantiate message mappers for an actor system.
      *
-     * @param connectionId the connection that the processor works for.
-     * @param connectionType the type of the connection that the processor works for.
-     * @param mappingDefinition the configured mappings used by this processor
+     * @param connectionContext the context of the connection that the processor works for.
      * @param actorSystem the dynamic access used for message mapper instantiation.
-     * @param connectivityConfig the configuration settings of the Connectivity service.
      * @param protocolAdapter the ProtocolAdapter to be used.
      * @param logger the logging adapter to be used for log statements.
      * @return the processor instance.
@@ -90,20 +86,19 @@ public final class InboundMappingProcessor
      * @throws org.eclipse.ditto.connectivity.model.MessageMapperConfigurationFailedException if the configuration of
      * one of the {@code mappingContext} failed for a mapper specific reason.
      */
-    public static InboundMappingProcessor of(final ConnectionId connectionId,
-            final ConnectionType connectionType,
-            final PayloadMappingDefinition mappingDefinition,
+    public static InboundMappingProcessor of(final ConnectionContext connectionContext,
             final ActorSystem actorSystem,
-            final ConnectivityConfig connectivityConfig,
             final ProtocolAdapter protocolAdapter,
             final ThreadSafeDittoLoggingAdapter logger) {
 
+        final var connectionId = connectionContext.getConnection().getId();
+        final var mappingDefinition = connectionContext.getConnection().getPayloadMappingDefinition();
+        final var connectivityConfig = connectionContext.getConnectivityConfig();
         final ThreadSafeDittoLoggingAdapter loggerWithConnectionId =
                 logger.withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
 
         final MessageMapperFactory messageMapperFactory =
-                DefaultMessageMapperFactory.of(connectionId, actorSystem, connectivityConfig.getMappingConfig(),
-                        loggerWithConnectionId);
+                DefaultMessageMapperFactory.of(connectionContext, actorSystem, loggerWithConnectionId);
         final MessageMapperRegistry registry =
                 messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingDefinition);
 
@@ -111,13 +106,14 @@ public final class InboundMappingProcessor
         final DittoHeadersSizeChecker dittoHeadersSizeChecker =
                 DittoHeadersSizeChecker.of(limitsConfig.getHeadersMaxSize(), limitsConfig.getAuthSubjectsMaxCount());
 
-        return of(connectionId, connectionType, registry, loggerWithConnectionId, protocolAdapter,
-                dittoHeadersSizeChecker);
+        return of(connectionContext, registry, loggerWithConnectionId, protocolAdapter, dittoHeadersSizeChecker);
     }
 
-    static InboundMappingProcessor of(final ConnectionId connectionId, final ConnectionType connectionType,
+    static InboundMappingProcessor of(final ConnectionContext connectionContext,
             final MessageMapperRegistry registry, final ThreadSafeDittoLoggingAdapter logger,
             final ProtocolAdapter adapter, final DittoHeadersSizeChecker sizeChecker) {
+        final var connectionId = connectionContext.getConnection().getId();
+        final var connectionType = connectionContext.getConnection().getConnectionType();
         return new InboundMappingProcessor(connectionId, connectionType, registry, logger, adapter, sizeChecker);
     }
 

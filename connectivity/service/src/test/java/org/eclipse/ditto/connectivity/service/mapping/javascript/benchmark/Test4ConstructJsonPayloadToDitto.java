@@ -93,7 +93,7 @@ public class Test4ConstructJsonPayloadToDitto implements MapToDittoProtocolScena
     public MessageMapper getMessageMapper() {
         final MessageMapper javaScriptRhinoMapperPlain =
                 JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
-        javaScriptRhinoMapperPlain.configure(MAPPING_CONFIG,
+        javaScriptRhinoMapperPlain.configure(CONNECTION_CONTEXT,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("construct", Collections.emptyMap())
                         .incomingScript(MAPPING_INCOMING_PLAIN)

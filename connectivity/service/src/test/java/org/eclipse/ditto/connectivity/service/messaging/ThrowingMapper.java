@@ -16,12 +16,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
-import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
 
 final class ThrowingMapper implements MessageMapper {
 
@@ -42,7 +42,7 @@ final class ThrowingMapper implements MessageMapper {
     }
 
     @Override
-    public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
+    public void configure(final ConnectionContext connectionContext, final MessageMapperConfiguration configuration) {
         // nothing to configure
     }
 

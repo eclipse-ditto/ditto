@@ -45,7 +45,6 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalE
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.base.model.signals.events.Event;
-import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.gateway.service.streaming.Connect;
@@ -583,18 +582,18 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         final var jsonWebToken = ImmutableJsonWebToken.fromToken(jwt.toString());
         jwtValidator.validate(jsonWebToken).thenAccept(binaryValidationResult -> {
             if (binaryValidationResult.isValid()) {
-                try {
-                    final AuthenticationResult authorizationResult =
-                            jwtAuthenticationResultProvider.getAuthenticationResult(jsonWebToken, DittoHeaders.empty());
-
-                    final var jwtAuthorizationContext = authorizationResult.getAuthorizationContext();
-                    getSelf().tell(new RefreshSession(jwtConnectionCorrelationId, jsonWebToken.getExpirationTime(),
-                            jwtAuthorizationContext), ActorRef.noSender());
-                } catch (final Exception exception) {
-                    logger.info("Got exception when handling refreshed JWT for WebSocket session <{}>: {}",
-                            jwtConnectionCorrelationId, exception.getMessage());
-                    getSelf().tell(InvalidJwt.getInstance(), ActorRef.noSender());
-                }
+                jwtAuthenticationResultProvider.getAuthenticationResult(jsonWebToken, DittoHeaders.empty())
+                        .thenAccept(authorizationResult -> {
+                            final var jwtAuthorizationContext = authorizationResult.getAuthorizationContext();
+                            getSelf().tell(new RefreshSession(jwtConnectionCorrelationId,
+                                    jsonWebToken.getExpirationTime(), jwtAuthorizationContext), ActorRef.noSender());
+                        })
+                        .exceptionally(exception -> {
+                            logger.info("Got exception when handling refreshed JWT for WebSocket session <{}>: {}",
+                                    jwtConnectionCorrelationId, exception.getMessage());
+                            getSelf().tell(InvalidJwt.getInstance(), ActorRef.noSender());
+                            return null;
+                        });
             } else {
                 logger.debug("Received invalid JWT for WebSocket session <{}>. Terminating the session.",
                         connectionCorrelationId);

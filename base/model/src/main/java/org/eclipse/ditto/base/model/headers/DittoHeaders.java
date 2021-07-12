@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import javax.annotation.Nonnull;
+
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
@@ -35,7 +37,7 @@ import org.eclipse.ditto.json.JsonObject;
  *
  * <em>Implementations of this interface are required to be immutable.</em>
  */
-public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, String> {
+public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, String>, WithManifest {
 
     /**
      * Returns an empty {@code DittoHeaders} object.
@@ -318,4 +320,11 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @since 2.0.0
      */
     Map<String, String> asCaseSensitiveMap();
+
+    @Override
+    @Nonnull
+    default String getManifest() {
+        // subclasses are serialized as DittoHeaders
+        return DittoHeaders.class.getSimpleName();
+    }
 }

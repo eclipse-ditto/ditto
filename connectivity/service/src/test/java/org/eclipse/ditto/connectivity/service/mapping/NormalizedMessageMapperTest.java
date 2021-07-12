@@ -18,31 +18,34 @@ import java.time.Instant;
 import java.util.Map;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.connectivity.service.config.mapping.DefaultMappingConfig;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageHeaders;
+import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessage;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessage;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
 import org.eclipse.ditto.things.model.signals.events.AttributeDeleted;
@@ -56,6 +59,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
@@ -66,9 +70,16 @@ public final class NormalizedMessageMapperTest {
     private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
 
     private MessageMapper underTest;
+    private ConnectionContext connectionContext;
 
     @Before
     public void setUp() {
+        final Config config = ConfigFactory.load("mapping-test")
+                .atKey("ditto.connectivity.mapping")
+                .withFallback(ConfigFactory.load("test"));
+        final ConnectivityConfig connectivityConfig =
+                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(config));
+        connectionContext = DittoConnectionContext.of(TestConstants.createConnection(), connectivityConfig);
         underTest = new NormalizedMessageMapper();
     }
 
@@ -299,7 +310,7 @@ public final class NormalizedMessageMapperTest {
 
         final Map<String, JsonValue> options = Map.of(NormalizedMessageMapper.FIELDS, JsonValue.of(
                 "_modified,_context/topic,_context/headers/content-type,nonexistent/json/pointer"));
-        underTest.configure(DefaultMappingConfig.of(ConfigFactory.load("mapping-test")),
+        underTest.configure(connectionContext,
                 DefaultMessageMapperConfiguration.of("normalizer", options, Map.of(), Map.of()));
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event);
@@ -331,9 +342,8 @@ public final class NormalizedMessageMapperTest {
         final Map<String, JsonValue> options = Map.of(NormalizedMessageMapper.FIELDS, JsonValue.of(
                 "thingId,policyId,attributes,features,_modified,_revision,_context(topic,path)," +
                         "_context/headers/correlation-id"));
-        underTest.configure(DefaultMappingConfig.of(ConfigFactory.load("mapping-test")),
-                DefaultMessageMapperConfiguration.of("normalizer",
-                        options, Map.of(), Map.of()));
+        underTest.configure(connectionContext,
+                DefaultMessageMapperConfiguration.of("normalizer", options, Map.of(), Map.of()));
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event);
 
@@ -361,9 +371,8 @@ public final class NormalizedMessageMapperTest {
 
         final Map<String, JsonValue> options = Map.of(NormalizedMessageMapper.FIELDS, JsonValue.of(
                 "thingId,policyId,attributes/foo,features,_modified,_revision"));
-        underTest.configure(DefaultMappingConfig.of(ConfigFactory.load("mapping-test")),
-                DefaultMessageMapperConfiguration.of("normalizer",
-                        options, Map.of(), Map.of()));
+        underTest.configure(connectionContext,
+                DefaultMessageMapperConfiguration.of("normalizer", options, Map.of(), Map.of()));
 
         final Thing thing = ThingsModelFactory.newThingBuilder()
                 .setId(thingId)

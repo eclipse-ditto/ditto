@@ -26,16 +26,15 @@ import org.eclipse.ditto.connectivity.model.ConnectionUriInvalidException;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProvider;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProviderFactory;
-import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.DefaultMessageMapperFactory;
+import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperFactory;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
+import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.internal.models.placeholders.Placeholder;
 import org.eclipse.ditto.internal.models.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 
 import akka.actor.ActorSystem;
 
@@ -57,9 +56,11 @@ public abstract class AbstractProtocolValidator {
      * @param connection the connection to check for errors.
      * @param dittoHeaders headers of the command that triggered the connection validation.
      * @param actorSystem the ActorSystem to use for retrieving config.
+     * @param connectivityConfig the connectivity config.
      * @throws DittoRuntimeException if the connection has errors.
      */
-    public abstract void validate(Connection connection, DittoHeaders dittoHeaders, ActorSystem actorSystem);
+    public abstract void validate(Connection connection, DittoHeaders dittoHeaders, ActorSystem actorSystem,
+            final ConnectivityConfig connectivityConfig);
 
     /**
      * Check whether the URI scheme of the connection belongs to an accepted scheme.
@@ -141,16 +142,14 @@ public abstract class AbstractProtocolValidator {
      *
      * @param connection the connection to check the MappingContext in.
      * @param actorSystem the ActorSystem to use for retrieving config.
+     * @param connectivityConfig the connectivity config.
      * @param dittoHeaders headers of the command that triggered the connection validation.
      */
     protected void validatePayloadMappings(final Connection connection, final ActorSystem actorSystem,
-            final DittoHeaders dittoHeaders) {
-        final ConnectivityConfigProvider connectivityConfigProvider =
-                ConnectivityConfigProviderFactory.getInstance(actorSystem);
-        final MappingConfig mappingConfig =
-                connectivityConfigProvider.getConnectivityConfig(connection.getId()).getMappingConfig();
+            final ConnectivityConfig connectivityConfig, final DittoHeaders dittoHeaders) {
+        final var connectionContext = DittoConnectionContext.of(connection, connectivityConfig);
         final MessageMapperFactory messageMapperFactory =
-                DefaultMessageMapperFactory.of(connection.getId(), actorSystem, mappingConfig, actorSystem.log());
+                DefaultMessageMapperFactory.of(connectionContext, actorSystem, actorSystem.log());
 
         try {
             final MessageMapperRegistry messageMapperRegistry =

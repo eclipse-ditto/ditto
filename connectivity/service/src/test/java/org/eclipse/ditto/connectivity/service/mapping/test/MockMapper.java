@@ -21,13 +21,13 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
-import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.connectivity.service.mapping.PayloadMapper;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
 
 @PayloadMapper(alias = "test")
 public final class MockMapper implements MessageMapper {
@@ -49,7 +49,7 @@ public final class MockMapper implements MessageMapper {
     }
 
     @Override
-    public void configure(@Nonnull final MappingConfig mappingConfig,
+    public void configure(@Nonnull final ConnectionContext connectionContext,
             @Nonnull final MessageMapperConfiguration configuration) {
 
         configuration.findProperty(OPT_IS_VALID).map(Boolean::valueOf).filter(Boolean.TRUE::equals).orElseThrow

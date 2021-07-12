@@ -21,28 +21,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.eclipse.ditto.connectivity.service.config.mapping.DefaultMappingConfig;
-import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.DefinitionIdentifier;
 import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-
-import com.typesafe.config.ConfigFactory;
 
 /**
  * Tests {@link ConnectionStatusMessageMapper}.
@@ -56,7 +53,7 @@ public class ConnectionStatusMessageMapperTest {
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final String EXPECTED_READY_UNTIL_IN_DISTANT_FUTURE = "9999-12-31T23:59:59Z";
 
-    private static MappingConfig mappingConfig;
+    private static ConnectionContext connectionContext;
 
     private Map<String, String> validHeader;
     private Map<String, JsonValue> validConfigProps;
@@ -66,7 +63,8 @@ public class ConnectionStatusMessageMapperTest {
 
     @Before
     public void setUp() {
-        mappingConfig = DefaultMappingConfig.of(ConfigFactory.empty());
+        connectionContext =
+                DittoConnectionContext.of(TestConstants.createConnection(), TestConstants.CONNECTIVITY_CONFIG);
         underTest = new ConnectionStatusMessageMapper();
 
         validConfigProps = Map.of(ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID,
@@ -87,7 +85,7 @@ public class ConnectionStatusMessageMapperTest {
     @Test
     public void doForwardMapWithValidUseCase() {
         // GIVEN
-        underTest.configure(mappingConfig, validMapperConfig);
+        underTest.configure(connectionContext, validMapperConfig);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
 
         // WHEN
@@ -109,7 +107,7 @@ public class ConnectionStatusMessageMapperTest {
     @Test
     public void emittedCommandShouldExplicitlyRequestNoAcknowledgements() {
         // GIVEN
-        underTest.configure(mappingConfig, validMapperConfig);
+        underTest.configure(connectionContext, validMapperConfig);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
 
         // WHEN
@@ -127,7 +125,7 @@ public class ConnectionStatusMessageMapperTest {
     @Test
     public void doForwardMapWithValidUseCaseTtdZero() {
         // GIVEN
-        underTest.configure(mappingConfig, validMapperConfig);
+        underTest.configure(connectionContext, validMapperConfig);
         validHeader.put(ConnectionStatusMessageMapper.HEADER_HONO_TTD, "0");
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
 
@@ -147,7 +145,7 @@ public class ConnectionStatusMessageMapperTest {
     @Test
     public void doForwardMapWithValidUseCaseTtdMinusOne() {
         // GIVEN
-        underTest.configure(mappingConfig, validMapperConfig);
+        underTest.configure(connectionContext, validMapperConfig);
         validHeader.put(ConnectionStatusMessageMapper.HEADER_HONO_TTD, "-1");
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
 
@@ -170,7 +168,7 @@ public class ConnectionStatusMessageMapperTest {
     @Test
     public void doForwardMapWithMissingHeaderTTD() {
         // GIVEN
-        underTest.configure(mappingConfig, validMapperConfig);
+        underTest.configure(connectionContext, validMapperConfig);
         final Map<String, String> invalidHeader = validHeader;
         invalidHeader.remove(ConnectionStatusMessageMapper.HEADER_HONO_TTD);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(invalidHeader).build();
@@ -182,7 +180,7 @@ public class ConnectionStatusMessageMapperTest {
 
     @Test
     public void doForwardMapWithMissingHeaderCreationTime() {
-        underTest.configure(mappingConfig, validMapperConfig);
+        underTest.configure(connectionContext, validMapperConfig);
         final Map<String, String> invalidHeader = validHeader;
         invalidHeader.remove(ConnectionStatusMessageMapper.HEADER_HONO_CREATION_TIME);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(invalidHeader).build();
@@ -193,10 +191,11 @@ public class ConnectionStatusMessageMapperTest {
     @Test
     public void doForwardMapWithMissingHeader() {
         final Map<String, JsonValue> props =
-                Map.of(ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID, JsonValue.of("{{ header:thing-id }}"));
+                Map.of(ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID,
+                        JsonValue.of("{{ header:thing-id }}"));
         final MessageMapperConfiguration thingIdWithPlaceholder
                 = DefaultMessageMapperConfiguration.of("placeholder", props, validConditions, validConditions);
-        underTest.configure(mappingConfig, thingIdWithPlaceholder);
+        underTest.configure(connectionContext, thingIdWithPlaceholder);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
         assertThat(mappingResult).isEmpty();
@@ -204,7 +203,7 @@ public class ConnectionStatusMessageMapperTest {
 
     @Test
     public void doForwardMapWithInvalidHeaderTTD() {
-        underTest.configure(mappingConfig, validMapperConfig);
+        underTest.configure(connectionContext, validMapperConfig);
         final Map<String, String> invalidHeader = validHeader;
         invalidHeader.replace(ConnectionStatusMessageMapper.HEADER_HONO_TTD, "Invalid Value");
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(invalidHeader).build();
@@ -214,7 +213,7 @@ public class ConnectionStatusMessageMapperTest {
 
     @Test
     public void doForwardMapWithInvalidHeaderCreationTime() {
-        underTest.configure(mappingConfig, validMapperConfig);
+        underTest.configure(connectionContext, validMapperConfig);
         final Map<String, String> invalidHeader = validHeader;
         invalidHeader.replace(ConnectionStatusMessageMapper.HEADER_HONO_CREATION_TIME, "Invalid Value");
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(invalidHeader).build();
@@ -224,7 +223,7 @@ public class ConnectionStatusMessageMapperTest {
 
     @Test
     public void doForwardMapWithInvalidTTDValue() {
-        underTest.configure(mappingConfig, validMapperConfig);
+        underTest.configure(connectionContext, validMapperConfig);
         final Map<String, String> invalidHeader = validHeader;
         final String invalidTTDValue = "-5625";
         invalidHeader.replace(ConnectionStatusMessageMapper.HEADER_HONO_TTD, invalidTTDValue);
@@ -236,7 +235,7 @@ public class ConnectionStatusMessageMapperTest {
     //Validate mapping context options
     @Test
     public void doForwardMappingContextWithoutFeatureId() {
-        underTest.configure(mappingConfig, validMapperConfig);
+        underTest.configure(connectionContext, validMapperConfig);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
         assertThat(mappingResult.get(0).getPayload().getPath().getFeatureId())
@@ -247,10 +246,11 @@ public class ConnectionStatusMessageMapperTest {
     public void doForwardMappingContextWithIndividualFeatureId() {
         final String individualFeatureId = "individualFeatureId";
         final Map<String, JsonValue> props = new HashMap<>(validConfigProps);
-        props.put(ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_FEATURE_ID, JsonValue.of(individualFeatureId));
+        props.put(ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_FEATURE_ID,
+                JsonValue.of(individualFeatureId));
         final MessageMapperConfiguration individualFeatureIdConfig
                 = DefaultMessageMapperConfiguration.of("placeholder", props, validConditions, validConditions);
-        underTest.configure(mappingConfig, individualFeatureIdConfig);
+        underTest.configure(connectionContext, individualFeatureIdConfig);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
         assertThat(mappingResult.get(0).getPayload().getPath().getFeatureId())
@@ -260,7 +260,7 @@ public class ConnectionStatusMessageMapperTest {
     @Test
     public void doForwardMappingContextWithoutThingId() {
         exception.expect(MessageMapperConfigurationInvalidException.class);
-        underTest.configure(mappingConfig,
+        underTest.configure(connectionContext,
                 DefaultMessageMapperConfiguration.of("valid", Collections.emptyMap(), validConditions,
                         validConditions));
     }
@@ -269,19 +269,21 @@ public class ConnectionStatusMessageMapperTest {
     public void doForwardMappingContextWithWrongThingId() {
         exception.expect(DittoRuntimeException.class);
         final Map<String, JsonValue> props =
-                Map.of(ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID, JsonValue.of("Invalid Value"));
+                Map.of(ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID,
+                        JsonValue.of("Invalid Value"));
         final MessageMapperConfiguration wrongThingId
                 = DefaultMessageMapperConfiguration.of("invalidThingId", props, validConditions, validConditions);
-        underTest.configure(mappingConfig, wrongThingId);
+        underTest.configure(connectionContext, wrongThingId);
     }
 
     @Test
     public void doForwardMappingContextWithThingIdMapping() {
         final Map<String, JsonValue> props =
-                Map.of(ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID, JsonValue.of("{{ header:device_id }}"));
+                Map.of(ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID,
+                        JsonValue.of("{{ header:device_id }}"));
         final MessageMapperConfiguration thingIdWithPlaceholder
                 = DefaultMessageMapperConfiguration.of("placeholder", props, validConditions, validConditions);
-        underTest.configure(mappingConfig, thingIdWithPlaceholder);
+        underTest.configure(connectionContext, thingIdWithPlaceholder);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
         assertThat(mappingResult.get(0).getTopicPath().getEntityName())
@@ -291,10 +293,11 @@ public class ConnectionStatusMessageMapperTest {
     @Test
     public void doForwardMappingContextWithWrongThingIdMapping() {
         final Map<String, JsonValue> props =
-                Map.of(ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID, JsonValue.of("{{ header:device_id }}"));
+                Map.of(ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID,
+                        JsonValue.of("{{ header:device_id }}"));
         final MessageMapperConfiguration thingIdWithPlaceholder
                 = DefaultMessageMapperConfiguration.of("placeholder", props, validConditions, validConditions);
-        underTest.configure(mappingConfig, thingIdWithPlaceholder);
+        underTest.configure(connectionContext, thingIdWithPlaceholder);
         final Map<String, String> invalidHeader = validHeader;
         invalidHeader.replace(HEADER_HONO_DEVICE_ID, "Invalid Value");
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();

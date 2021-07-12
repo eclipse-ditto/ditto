@@ -332,7 +332,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            proxyActor, (a, b, c, d) -> MockClientActor.props(probe.ref(), gossipProbe.ref()));
+                            proxyActor, (a, b, c, d, dittoHeaders) -> MockClientActor.props(probe.ref(), gossipProbe.ref()));
             watch(underTest);
 
             // create closed connection
@@ -638,7 +638,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId,
                             actorSystem,
-                            proxyActor, (connection, proxyActor, connectionActor, actorSystem) -> {
+                            proxyActor, (connection, proxyActor, connectionActor, actorSystem, dittoHeaders) -> {
                                 latestConnection.set(connection);
                                 return MockClientActor.props(mockClientProbe.ref());
                             },
@@ -816,7 +816,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final Props connectionActorProps =
                     ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
                             proxyActor,
-                            (connection, proxyActor, connectionActor, actorSystem) -> {
+                            (connection, proxyActor, connectionActor, actorSystem, dittoHeaders) -> {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
                             }, null, UsageBasedPriorityProvider::getInstance);
@@ -1113,7 +1113,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe clientActorsProbe = TestProbe.apply("clientActors", actorSystem);
             final TestProbe proxyActorProbe = TestProbe.apply("proxyActor", actorSystem);
             // Mock the client actors so that they forward all signals to clientActorsProbe with their own reference
-            final ClientActorPropsFactory propsFactory = (a, b, connectionActor, aS) ->
+            final ClientActorPropsFactory propsFactory = (a, b, connectionActor, aS, dittoHeaders) ->
                     Props.create(AbstractActor.class, () -> new AbstractActor() {
                         @Override
                         public Receive createReceive() {
@@ -1231,7 +1231,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
         @Override
         public Props getActorPropsForType(final Connection connection, @Nullable final ActorRef proxyActor,
-                final ActorRef connectionActor, final ActorSystem system) {
+                final ActorRef connectionActor, final ActorSystem system,
+                final DittoHeaders dittoHeaders) {
             return Props.create(FailingActor.class, FailingActor::new);
         }
 
@@ -1270,7 +1271,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     private ClientActorPropsFactory mockClientActorPropsFactory(final ActorRef actorRef) {
-        return (connection, concierge, connectionActor, actorSystem) -> MockClientActor.props(actorRef);
+        return (connection, concierge, connectionActor, actorSystem, dittoHeaders) -> MockClientActor.props(actorRef);
     }
 
     private void startSecondActorSystemAndJoinCluster() throws Exception {

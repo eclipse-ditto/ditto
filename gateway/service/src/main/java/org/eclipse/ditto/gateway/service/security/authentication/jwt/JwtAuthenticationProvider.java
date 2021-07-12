@@ -16,6 +16,9 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -23,13 +26,13 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContextType;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.jwt.model.JsonWebToken;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.TimeMeasuringAuthenticationProvider;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.jwt.model.JsonWebToken;
 
 import akka.http.javadsl.server.RequestContext;
 
@@ -118,7 +121,7 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
                             jwtExtractor.buildMissingJwtException(dittoHeaders)));
         }
 
-        final CompletableFuture<AuthenticationResult> authenticationResultFuture =
+        final CompletionStage<AuthenticationResult> authenticationResultFuture =
                 getAuthenticationResult(jwtOptional.get(), dittoHeaders)
                         .exceptionally(throwable -> toFailedAuthenticationResult(throwable, dittoHeaders));
 
@@ -126,28 +129,31 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
     }
 
     @SuppressWarnings("ConstantConditions")
-    private CompletableFuture<AuthenticationResult> getAuthenticationResult(final JsonWebToken jwt,
+    private CompletionStage<AuthenticationResult> getAuthenticationResult(final JsonWebToken jwt,
             final DittoHeaders dittoHeaders) {
 
         return jwtValidator.validate(jwt)
-                .thenApply(validationResult -> {
+                .thenCompose(validationResult -> {
                     if (!validationResult.isValid()) {
                         final Throwable reasonForInvalidity = validationResult.getReasonForInvalidity();
                         LOGGER.withCorrelationId(dittoHeaders).debug("The JWT is invalid.", reasonForInvalidity);
                         final DittoRuntimeException reasonForFailure =
                                 buildJwtUnauthorizedException(dittoHeaders, reasonForInvalidity);
-                        return DefaultAuthenticationResult.failed(dittoHeaders, reasonForFailure);
+                        return CompletableFuture.completedStage(
+                                DefaultAuthenticationResult.failed(dittoHeaders, reasonForFailure));
                     }
-
-                    final AuthenticationResult authenticationResult = tryToGetAuthenticationResult(jwt, dittoHeaders);
+                    return tryToGetAuthenticationResult(jwt, dittoHeaders);
+                })
+                .thenApply(authenticationResult -> {
                     LOGGER.withCorrelationId(dittoHeaders).info("Completed JWT authentication successfully.");
                     return authenticationResult;
                 });
     }
 
     private static DittoRuntimeException buildJwtUnauthorizedException(final DittoHeaders dittoHeaders,
-            final Throwable cause) {
+            final Throwable error) {
 
+        final var cause = error instanceof CompletionException ? error.getCause() : error;
         return GatewayAuthenticationFailedException.newBuilder("The JWT could not be verified.")
                 .description(cause.getMessage())
                 .dittoHeaders(dittoHeaders)
@@ -155,12 +161,12 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
                 .build();
     }
 
-    private AuthenticationResult tryToGetAuthenticationResult(final JsonWebToken jwt, final DittoHeaders dittoHeaders) {
-        try {
-            return jwtAuthResultProvider.getAuthenticationResult(jwt, dittoHeaders);
-        } catch (final Exception e) {
-            throw buildJwtUnauthorizedException(dittoHeaders, e);
-        }
+    private CompletionStage<AuthenticationResult> tryToGetAuthenticationResult(final JsonWebToken jwt,
+            final DittoHeaders dittoHeaders) {
+        return jwtAuthResultProvider.getAuthenticationResult(jwt, dittoHeaders)
+                .<CompletionStage<AuthenticationResult>>thenApply(CompletableFuture::completedStage)
+                .exceptionally(e -> CompletableFuture.failedStage(buildJwtUnauthorizedException(dittoHeaders, e)))
+                .thenCompose(Function.identity());
     }
 
     /**

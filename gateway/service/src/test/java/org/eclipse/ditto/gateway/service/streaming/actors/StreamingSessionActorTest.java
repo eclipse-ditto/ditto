@@ -40,13 +40,14 @@ import org.eclipse.ditto.base.model.common.BinaryValidationResult;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionClosedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtValidator;
-import org.eclipse.ditto.jwt.model.JsonWebToken;
-import org.eclipse.ditto.jwt.model.JwtInvalidException;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.gateway.service.streaming.Connect;
 import org.eclipse.ditto.gateway.service.streaming.IncomingSignal;
 import org.eclipse.ditto.gateway.service.streaming.Jwt;
@@ -56,11 +57,10 @@ import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionClosedException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionExpiredException;
+import org.eclipse.ditto.jwt.model.JsonWebToken;
+import org.eclipse.ditto.jwt.model.JwtInvalidException;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.After;
 import org.junit.Rule;
@@ -251,11 +251,11 @@ public final class StreamingSessionActorTest {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(any(), any()))
-                .thenReturn(JwtAuthenticationResult.successful(
+                .thenReturn(CompletableFuture.completedStage(JwtAuthenticationResult.successful(
                         DittoHeaders.empty(),
                         AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                                 AuthorizationSubject.newInstance("new:auth-subject")),
-                        mock(JsonWebToken.class)));
+                        mock(JsonWebToken.class))));
 
         new TestKit(actorSystem) {{
             final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
@@ -275,8 +275,9 @@ public final class StreamingSessionActorTest {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(any(), any()))
-                .thenReturn(JwtAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext,
-                        mock(JsonWebToken.class)));
+                .thenReturn(CompletableFuture.completedStage(
+                        JwtAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext,
+                                mock(JsonWebToken.class))));
 
         new TestKit(actorSystem) {{
             final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
@@ -295,8 +296,9 @@ public final class StreamingSessionActorTest {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(any(), any()))
-                .thenReturn(JwtAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext,
-                        mock(JsonWebToken.class)));
+                .thenReturn(CompletableFuture.completedStage(
+                        JwtAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext,
+                                mock(JsonWebToken.class))));
 
         new TestKit(actorSystem) {{
             final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
@@ -317,8 +319,9 @@ public final class StreamingSessionActorTest {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(any(), any()))
-                .thenReturn(JwtAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext,
-                        mock(JsonWebToken.class)));
+                .thenReturn(CompletableFuture.completedStage(
+                        JwtAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext,
+                                mock(JsonWebToken.class))));
 
         new TestKit(actorSystem) {{
             final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
