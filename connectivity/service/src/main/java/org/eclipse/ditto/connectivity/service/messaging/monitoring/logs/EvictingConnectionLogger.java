@@ -31,6 +31,8 @@ import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 
 /**
  * Implementation of {@link ConnectionLogger} that
@@ -112,10 +114,13 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     @Override
     public void success(final ConnectionMonitor.InfoProvider infoProvider, final String message,
             final Object... messageArguments) {
-
+        final StartedTimer logTimer = DittoMetrics.timer("connection_log").start();
         final String formattedMessage = formatMessage(infoProvider, message, messageArguments);
+        logTimer.startNewSegment("message_prepared");
         logTraceWithCorrelationId(infoProvider.getCorrelationId(), "success", infoProvider, formattedMessage);
+        logTimer.startNewSegment("message_internally_logged");
         successLogs.add(getLogEntry(infoProvider, formattedMessage, LogLevel.SUCCESS));
+        logTimer.stop();
     }
 
     @Override
