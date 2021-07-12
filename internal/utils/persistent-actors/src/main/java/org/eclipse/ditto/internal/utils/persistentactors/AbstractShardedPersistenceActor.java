@@ -88,7 +88,6 @@ public abstract class AbstractShardedPersistenceActor<
      * The entity ID.
      */
     protected final I entityId;
-    protected boolean alwaysAlive = false;
 
     private long accessCounter = 0L;
 
@@ -218,7 +217,6 @@ public abstract class AbstractShardedPersistenceActor<
      */
     protected void recoveryCompleted(final RecoveryCompleted event) {
         // override to introduce additional logging and other side effects
-        alwaysAlive = isEntityAlwaysAlive();
         becomeCreatedOrDeletedHandler();
     }
 
@@ -383,7 +381,7 @@ public abstract class AbstractShardedPersistenceActor<
             takeSnapshot("the entity is deleted and has no up-to-date snapshot");
         } else if (accessCounter > message.accessCounter) {
             log.debug("Entity <{}> was accessed since last activity check, preventing Actor shutdown.", entityId);
-        } else if (isEntityActive() && alwaysAlive) {
+        } else if (isEntityActive() && isEntityAlwaysAlive()) {
             log.debug("Entity <{}> is active and marked as 'always-alive', preventing Actor shutdown.", entityId);
         } else {
             // safe to shutdown after a period of inactivity if:
@@ -649,13 +647,6 @@ public abstract class AbstractShardedPersistenceActor<
 
         private CheckForActivity(final long accessCounter) {
             this.accessCounter = accessCounter;
-        }
-
-        /**
-         * @return Access counter at the previous activity check.
-         */
-        public long getAccessCounter() {
-            return accessCounter;
         }
     }
 

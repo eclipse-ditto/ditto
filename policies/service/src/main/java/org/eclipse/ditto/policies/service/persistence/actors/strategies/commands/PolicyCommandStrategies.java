@@ -65,6 +65,7 @@ public final class PolicyCommandStrategies
         addStrategy(new RetrieveSubjectsStrategy(policyConfig));
         addStrategy(new RetrieveSubjectStrategy(policyConfig));
         addStrategy(new DeleteSubjectStrategy(policyConfig));
+        addStrategy(new DeleteExpiredSubjectStrategy(policyConfig));
 
         // Resources
         addStrategy(new ModifyResourcesStrategy(policyConfig));

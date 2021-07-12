@@ -79,6 +79,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     private final DeleteExpiredSubject deleteExpiredSubject;
     private final Duration persistenceTimeout;
+    private final ActorRef commandForwarder;
 
     private Duration nextBackOff = Duration.ofMillis(500);
     private boolean deleted = false;
@@ -87,7 +88,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
 
     private SubjectExpiryActor(final PolicyId policyId, final Subject subject, final Duration gracePeriod,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
-            final AcknowledgementConfig acknowledgementConfig) {
+            final AcknowledgementConfig acknowledgementConfig, final ActorRef commandForwarder) {
         this.policyId = policyId;
         this.subject = subject;
         this.gracePeriod = gracePeriod;
@@ -95,6 +96,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         deleteAt = subject.getExpiry().map(SubjectExpiry::getTimestamp).orElseGet(Instant::now);
         ackregatorStarter =
                 AcknowledgementAggregatorActorStarter.of(getContext(), acknowledgementConfig, HeaderTranslator.empty());
+        this.commandForwarder = commandForwarder;
         deleteExpiredSubject =
                 DeleteExpiredSubject.of(policyId, subject, DittoHeaders.newBuilder().responseRequired(false).build());
         persistenceTimeout = acknowledgementConfig.getForwarderFallbackTimeout();
@@ -108,14 +110,15 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
      * @param gracePeriod How long overdue acknowledgements are tolerated.
      * @param policyAnnouncementPub Ditto pubsub API to publish policy announcements.
      * @param acknowledgementConfig The acknowledgement config.
+     * @param forwarder Actor to forward policy commands to.
      * @return The Props object.
      */
     public static Props props(final PolicyId policyId, final Subject subject, final Duration gracePeriod,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
-            final AcknowledgementConfig acknowledgementConfig) {
+            final AcknowledgementConfig acknowledgementConfig, final ActorRef forwarder) {
 
         return Props.create(SubjectExpiryActor.class, policyId, subject, gracePeriod, policyAnnouncementPub,
-                acknowledgementConfig);
+                acknowledgementConfig, forwarder);
     }
 
     @Override
@@ -261,7 +264,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
             return stop();
         } else {
             // retry deletion
-            getContext().getParent().tell(deleteExpiredSubject, ActorRef.noSender());
+            commandForwarder.tell(deleteExpiredSubject, ActorRef.noSender());
             return goTo(DELETED);
         }
     }
@@ -300,7 +303,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         } else {
             // outside of grace period; delete
             l.error("Grace period past for subject <{}>. Deleting.", subject);
-            getContext().getParent().tell(deleteExpiredSubject, ActorRef.noSender());
+            commandForwarder.tell(deleteExpiredSubject, ActorRef.noSender());
             return goTo(DELETED);
         }
     }
@@ -340,7 +343,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     }
 
     private void doDelete() {
-        getContext().getParent().tell(deleteExpiredSubject, ActorRef.noSender());
+        commandForwarder.tell(deleteExpiredSubject, ActorRef.noSender());
         cancelTimer(Message.DELETE.name());
     }
 

@@ -110,7 +110,8 @@ public final class SubjectExpiryActorTest {
                     null
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
@@ -144,7 +145,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
@@ -181,7 +183,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
@@ -227,7 +230,9 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ZERO, policiesPub, config);
+            final Props props =
+                    SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4).negated(), policiesPub, config,
+                            getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
@@ -253,7 +258,8 @@ public final class SubjectExpiryActorTest {
                     Duration.ofSeconds(30)
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             final var deleteCommand = expectMsgClass(Duration.ofSeconds(30), DeleteExpiredSubject.class);
@@ -279,7 +285,8 @@ public final class SubjectExpiryActorTest {
                     Duration.ofSeconds(30)
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             final var deleteCommand = expectMsgClass(Duration.ofSeconds(30), DeleteExpiredSubject.class);
@@ -315,7 +322,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             final var deleteCommand = expectMsgClass(Duration.ofSeconds(30), DeleteExpiredSubject.class);
@@ -353,7 +361,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             expectMsgClass(Duration.ofSeconds(30), DeleteExpiredSubject.class);
@@ -387,7 +396,8 @@ public final class SubjectExpiryActorTest {
             );
 
             final Props props =
-                    SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4).negated(), policiesPub, config);
+                    SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4).negated(), policiesPub, config,
+                            getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             expectMsgClass(Duration.ofSeconds(30), DeleteExpiredSubject.class);
@@ -410,7 +420,8 @@ public final class SubjectExpiryActorTest {
                     Duration.ofSeconds(30)
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
@@ -441,7 +452,8 @@ public final class SubjectExpiryActorTest {
                     Duration.ofSeconds(30)
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
@@ -463,7 +475,8 @@ public final class SubjectExpiryActorTest {
                     Duration.ofSeconds(30)
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000)).publishWithAcks(any(), any(), any());
@@ -488,7 +501,8 @@ public final class SubjectExpiryActorTest {
             );
 
             final Props props =
-                    SubjectExpiryActor.props(policyId, subject, Duration.ofSeconds(1).negated(), policiesPub, config);
+                    SubjectExpiryActor.props(policyId, subject, Duration.ofSeconds(1).negated(), policiesPub, config,
+                            getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
@@ -524,7 +538,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
@@ -560,7 +575,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
@@ -588,7 +604,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
@@ -616,7 +633,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
@@ -644,7 +662,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
@@ -681,7 +700,8 @@ public final class SubjectExpiryActorTest {
             );
 
             final Props props =
-                    SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4).negated(), policiesPub, config);
+                    SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4).negated(), policiesPub, config,
+                            getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
@@ -710,7 +730,8 @@ public final class SubjectExpiryActorTest {
                     Duration.ofSeconds(30)
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
@@ -741,7 +762,8 @@ public final class SubjectExpiryActorTest {
                     Duration.ofSeconds(30)
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
@@ -762,7 +784,8 @@ public final class SubjectExpiryActorTest {
                     Duration.ofSeconds(30)
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000)).publishWithAcks(any(), any(), any());
@@ -783,7 +806,8 @@ public final class SubjectExpiryActorTest {
             );
 
             final Props props =
-                    SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4).negated(), policiesPub, config);
+                    SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4).negated(), policiesPub, config,
+                            getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000)).publishWithAcks(any(), any(), any());
@@ -807,7 +831,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
@@ -843,7 +868,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
@@ -871,7 +897,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
@@ -899,7 +926,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
@@ -927,7 +955,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
@@ -964,7 +993,8 @@ public final class SubjectExpiryActorTest {
             );
 
             final Props props =
-                    SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4).negated(), policiesPub, config);
+                    SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4).negated(), policiesPub, config,
+                            getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
@@ -992,7 +1022,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
@@ -1029,7 +1060,8 @@ public final class SubjectExpiryActorTest {
             );
 
             final Props props =
-                    SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4).negated(), policiesPub, config);
+                    SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4).negated(), policiesPub, config,
+                            getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
@@ -1058,7 +1090,8 @@ public final class SubjectExpiryActorTest {
             );
 
             final Props props =
-                    SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4).negated(), policiesPub, config);
+                    SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4).negated(), policiesPub, config,
+                            getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
@@ -1096,7 +1129,8 @@ public final class SubjectExpiryActorTest {
             );
 
             final Props props =
-                    SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4).negated(), policiesPub, config);
+                    SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4).negated(), policiesPub, config,
+                            getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
@@ -1133,7 +1167,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))
@@ -1169,7 +1204,8 @@ public final class SubjectExpiryActorTest {
                     "connection:ack"
             );
 
-            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config);
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub, config,
+                    getTestActor());
             final ActorRef underTest = watch(childActorOf(props));
 
             verify(policiesPub, timeout(30_000))

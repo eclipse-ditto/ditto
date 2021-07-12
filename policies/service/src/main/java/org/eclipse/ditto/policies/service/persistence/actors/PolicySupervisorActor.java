@@ -14,21 +14,26 @@ package org.eclipse.ditto.policies.service.persistence.actors;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
+import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyUnavailableException;
+import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
+import org.eclipse.ditto.policies.service.persistence.actors.announcements.PolicyAnnouncementManager;
+
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
@@ -45,14 +50,18 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
 
     private final ActorRef pubSubMediator;
     private final SnapshotAdapter<Policy> snapshotAdapter;
-    private final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub;
+    private final ActorRef announcementManager;
 
-    @SuppressWarnings("unused")
     private PolicySupervisorActor(final ActorRef pubSubMediator, final SnapshotAdapter<Policy> snapshotAdapter,
             DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub) {
         this.pubSubMediator = pubSubMediator;
         this.snapshotAdapter = snapshotAdapter;
-        this.policyAnnouncementPub = policyAnnouncementPub;
+        final var props = getAnnouncementManagerProps(policyAnnouncementPub);
+        if (props != null) {
+            announcementManager = getContext().actorOf(props, "am");
+        } else {
+            announcementManager = getContext().getSystem().deadLetters();
+        }
     }
 
     /**
@@ -80,7 +89,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
 
     @Override
     protected Props getPersistenceActorProps(final PolicyId entityId) {
-        return PolicyPersistenceActor.props(entityId, snapshotAdapter, pubSubMediator, policyAnnouncementPub);
+        return PolicyPersistenceActor.props(entityId, snapshotAdapter, pubSubMediator, announcementManager);
     }
 
     @Override
@@ -100,6 +109,21 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
     protected DittoRuntimeExceptionBuilder<?> getUnavailableExceptionBuilder(@Nullable final PolicyId entityId) {
         final PolicyId policyId = entityId != null ? entityId : PolicyId.of("UNKNOWN:ID");
         return PolicyUnavailableException.newBuilder(policyId);
+    }
+
+    @Nullable
+    private Props getAnnouncementManagerProps(final DistributedPub<PolicyAnnouncement<?>> pub) {
+        try {
+            final PolicyId policyId = getEntityId();
+            // TODO: use values from actor system config
+            final var gracePeriod = Duration.ofHours(4);
+            final var config = DefaultAcknowledgementConfig.of(ConfigFactory.empty());
+            return PolicyAnnouncementManager.props(policyId, gracePeriod, pub, config, getSelf());
+        } catch (final Exception e) {
+            log.error(e, "Failed to determine entity ID; becoming corrupted.");
+            becomeCorrupted();
+            return null;
+        }
     }
 
 }
