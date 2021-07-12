@@ -40,7 +40,7 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
         this.enabled = config.getBoolean(ConfigValue.ENABLED.getConfigPath());
         this.quietPeriod = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.QUIET_PERIOD);
         this.cleanupTimeout = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.CLEANUP_TIMEOUT);
-        this.parallelism = config.getNonNegativeIntOrThrow(ConfigValue.PARALLELISM);
+        this.parallelism = config.getPositiveIntOrThrow(ConfigValue.PARALLELISM);
         this.keptCreditDecisions = config.getPositiveIntOrThrow(ConfigValue.KEEP_CREDIT_DECISIONS);
         this.keptActions = config.getPositiveIntOrThrow(ConfigValue.KEEP_ACTIONS);
         this.keptEvents = config.getPositiveIntOrThrow(ConfigValue.KEEP_EVENTS);

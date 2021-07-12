@@ -114,12 +114,6 @@ public final class DefaultConnectionConfigTest {
                         .as(SnapshotConfig.SnapshotConfigValue.THRESHOLD.getConfigPath())
                         .isEqualTo(20));
 
-        softly.assertThat(underTest.getMqttConfig())
-                .as("mqttConfig")
-                .satisfies(mqttConfig -> softly.assertThat(mqttConfig.getSourceBufferSize())
-                        .as(MqttConfig.MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath())
-                        .isEqualTo(7));
-
         softly.assertThat(underTest.getHttpPushConfig())
                 .as("httpPushConfig")
                 .satisfies(httpPushConfig -> softly.assertThat(httpPushConfig.getMaxQueueSize())

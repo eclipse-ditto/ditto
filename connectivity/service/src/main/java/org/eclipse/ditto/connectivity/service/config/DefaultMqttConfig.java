@@ -33,7 +33,6 @@ public final class DefaultMqttConfig implements MqttConfig {
     private static final String CONFIG_PATH = "mqtt";
     private static final String RECONNECT_PATH = "reconnect";
 
-    private final int sourceBufferSize;
     private final int eventLoopThreads;
     private final boolean cleanSession;
     private final boolean reconnectForRedelivery;
@@ -43,7 +42,6 @@ public final class DefaultMqttConfig implements MqttConfig {
     private final BackOffConfig reconnectBackOffConfig;
 
     private DefaultMqttConfig(final ScopedConfig config) {
-        sourceBufferSize = config.getNonNegativeIntOrThrow(MqttConfigValue.SOURCE_BUFFER_SIZE);
         eventLoopThreads = config.getNonNegativeIntOrThrow(MqttConfigValue.EVENT_LOOP_THREADS);
         cleanSession = config.getBoolean(MqttConfigValue.CLEAN_SESSION.getConfigPath());
         reconnectForRedelivery = config.getBoolean(MqttConfigValue.RECONNECT_FOR_REDELIVERY.getConfigPath());
@@ -66,11 +64,6 @@ public final class DefaultMqttConfig implements MqttConfig {
      */
     public static DefaultMqttConfig of(final Config config) {
         return new DefaultMqttConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, MqttConfigValue.values()));
-    }
-
-    @Override
-    public int getSourceBufferSize() {
-        return sourceBufferSize;
     }
 
     @Override
@@ -117,8 +110,7 @@ public final class DefaultMqttConfig implements MqttConfig {
             return false;
         }
         final DefaultMqttConfig that = (DefaultMqttConfig) o;
-        return Objects.equals(sourceBufferSize, that.sourceBufferSize) &&
-                Objects.equals(eventLoopThreads, that.eventLoopThreads) &&
+        return Objects.equals(eventLoopThreads, that.eventLoopThreads) &&
                 Objects.equals(cleanSession, that.cleanSession) &&
                 Objects.equals(reconnectForRedelivery, that.reconnectForRedelivery) &&
                 Objects.equals(reconnectForRedeliveryDelay, that.reconnectForRedeliveryDelay) &&
@@ -130,7 +122,7 @@ public final class DefaultMqttConfig implements MqttConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(sourceBufferSize, eventLoopThreads, cleanSession, reconnectForRedelivery,
+        return Objects.hash(eventLoopThreads, cleanSession, reconnectForRedelivery,
                 reconnectForRedeliveryDelay, useSeparateClientForPublisher,
                 reconnectMinTimeoutForMqttBrokerInitiatedDisconnect, reconnectBackOffConfig);
     }
@@ -138,8 +130,7 @@ public final class DefaultMqttConfig implements MqttConfig {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "sourceBufferSize=" + sourceBufferSize +
-                ", eventLoopThreads=" + eventLoopThreads +
+                "eventLoopThreads=" + eventLoopThreads +
                 ", cleanSession=" + cleanSession +
                 ", reconnectForRedelivery=" + reconnectForRedelivery +
                 ", reconnectForRedeliveryDelay=" + reconnectForRedeliveryDelay +

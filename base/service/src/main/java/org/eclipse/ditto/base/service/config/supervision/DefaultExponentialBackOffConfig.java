@@ -36,9 +36,9 @@ public final class DefaultExponentialBackOffConfig implements ExponentialBackOff
     private final Duration corruptedReceiveTimeout;
 
     private DefaultExponentialBackOffConfig(final ScopedConfig config) {
-        min = config.getNonNegativeAndNonZeroDurationOrThrow(ExponentialBackOffConfigValue.MIN);
+        min = config.getNonNegativeDurationOrThrow(ExponentialBackOffConfigValue.MIN);
         max = config.getNonNegativeDurationOrThrow(ExponentialBackOffConfigValue.MAX);
-        randomFactor = config.getNonNegativeDoubleOrThrow(ExponentialBackOffConfigValue.RANDOM_FACTOR);
+        randomFactor = config.getPositiveDoubleOrThrow(ExponentialBackOffConfigValue.RANDOM_FACTOR);
         corruptedReceiveTimeout =
                 config.getNonNegativeDurationOrThrow(ExponentialBackOffConfigValue.CORRUPTED_RECEIVE_TIMEOUT);
     }
