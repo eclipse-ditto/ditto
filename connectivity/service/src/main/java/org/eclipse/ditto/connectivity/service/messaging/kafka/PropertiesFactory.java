@@ -93,7 +93,6 @@ final class PropertiesFactory {
                         .withClientId(clientId + "-consumer")
                         .withProperties(getConsumerSpecificConfigProperties())
                         .withProperties(getSecurityProtocolProperties())
-                        .withConsumerFactory(settings -> new KafkaConsumer<>(settings.getProperties()))
                         .withConnectionChecker(connectionCheckerSettings);
 
         // disable auto commit in dry run mode
