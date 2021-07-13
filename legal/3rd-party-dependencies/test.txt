@@ -8,8 +8,9 @@ com.google.guava:guava:jar:19.0:test
 commons-io:commons-io:jar:2.6:test
 commons-lang:commons-lang:jar:2.6:test
 com.typesafe.akka:akka-http-testkit_2.13:jar:10.2.4:test
-com.typesafe.akka:akka-stream-testkit_2.13:jar:2.6.13:test
-com.typesafe.akka:akka-testkit_2.13:jar:2.6.13:test
+com.typesafe.akka:akka-stream-kafka-testkit_2.13:jar:2.1.0:test
+com.typesafe.akka:akka-stream-testkit_2.13:jar:2.6.14:test
+com.typesafe.akka:akka-testkit_2.13:jar:2.6.14:test
 com.vaadin.external.google:android-json:jar:0.0.20131108.vaadin1:test
 junit:junit:jar:4.13.2:test
 net.bytebuddy:byte-buddy-agent:jar:1.9.10:test

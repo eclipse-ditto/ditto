@@ -19,11 +19,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
-import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.protocol.Adaptable;
 
 /**
  * Defines a message mapper which maps a {@link ExternalMessage} to a {@link Adaptable} and vice versa.
@@ -45,7 +44,7 @@ public interface MessageMapper {
     /**
      * Returns a blocklist of content-types which shall not be handled by this message mapper.
      * Is determined from the passed in {@code MessageMapperConfiguration} in
-     * {@link #configure(org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig, MessageMapperConfiguration)}.
+     * {@link #configure(ConnectionContext, MessageMapperConfiguration)}.
      *
      * @return a blocklist of content-types which shall not be handled by this message mapper.
      */
@@ -54,13 +53,13 @@ public interface MessageMapper {
     /**
      * Applies configuration for this MessageMapper.
      *
-     * @param mappingConfig the config scoped to the mapping section "ditto.connectivity.mapping".
+     * @param connectionContext the connection and its contextual information including its connectivity config.
      * @param configuration the configuration to apply.
      * @throws MessageMapperConfigurationInvalidException if configuration is invalid.
      * @throws org.eclipse.ditto.connectivity.model.MessageMapperConfigurationFailedException if the configuration
      * failed for a mapper specific reason.
      */
-    void configure(MappingConfig mappingConfig, MessageMapperConfiguration configuration);
+    void configure(ConnectionContext connectionContext, MessageMapperConfiguration configuration);
 
     /**
      * Maps an {@link ExternalMessage} to an {@link Adaptable}
@@ -91,16 +90,16 @@ public interface MessageMapper {
 
     /**
      * Returns the conditions to be checked before mapping incoming messages.
-     * @return the conditions.
      *
+     * @return the conditions.
      * @since 1.3.0
      */
     Map<String, String> getIncomingConditions();
 
     /**
      * Returns the conditions to be checked before mapping outgoing messages.
-     * @return the conditions.
      *
+     * @return the conditions.
      * @since 1.3.0
      */
     Map<String, String> getOutgoingConditions();

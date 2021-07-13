@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.base.model.signals.events.Event;
 
 import akka.actor.AbstractActor;
@@ -46,19 +45,10 @@ public interface ConnectivityConfigModifiedBehavior extends Actor {
     }
 
     /**
-     * Registers this actor for changes to connectivity config.
-     *
-     * @param connectionId the connection id
+     * @return a {@link ConnectionContextProvider} required to register this actor for config changes
      */
-    default void registerForConfigChanges(ConnectionId connectionId) {
-        getConnectivityConfigProvider().registerForConnectivityConfigChanges(connectionId, self());
-    }
-
-    /**
-     * @return a {@link ConnectivityConfigProvider} required to register this actor for config changes
-     */
-    default ConnectivityConfigProvider getConnectivityConfigProvider() {
-        return ConnectivityConfigProviderFactory.getInstance(context().system());
+    default ConnectionContextProvider getConnectivityConfigProvider() {
+        return ConnectionContextProviderFactory.getInstance(context().system());
     }
 
     /**

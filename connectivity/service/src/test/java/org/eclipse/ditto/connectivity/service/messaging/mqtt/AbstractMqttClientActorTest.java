@@ -77,7 +77,6 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMqttClientActorTest.class);
     protected static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
     protected static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
-    private static final TestConstants.FreePort FREE_PORT = new TestConstants.FreePort();
     private static final Target TARGET = ConnectivityModelFactory.newTargetBuilder()
             .address("target")
             .authorizationContext(AUTHORIZATION_CONTEXT)
@@ -116,8 +115,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
     private String serverHost;
     protected Connection connection;
 
-    @ClassRule
-    public static final MqttServerRule MQTT_SERVER = new MqttServerRule(FREE_PORT.getPort());
+    protected abstract TestConstants.FreePort getFreePort();
 
     @After
     public void tearDown() {
@@ -131,7 +129,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         mockConnectionActor = TestProbe.apply("connectionActor", actorSystem);
         connectionId = TestConstants.createRandomConnectionId();
-        serverHost = "tcp://localhost:" + FREE_PORT.getPort();
+        serverHost = "tcp://localhost:" + getFreePort().getPort();
         connection = ConnectivityModelFactory.newConnectionBuilder(connectionId, connectionType,
                 ConnectivityStatus.CLOSED, serverHost)
                 .sources(singletonList(MQTT_SOURCE))

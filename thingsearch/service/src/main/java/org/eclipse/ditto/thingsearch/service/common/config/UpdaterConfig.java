@@ -32,13 +32,6 @@ public interface UpdaterConfig {
     Duration getMaxIdleTime();
 
     /**
-     * Returns the amount of write operations to perform in one bulk.
-     *
-     * @return the max bulk size.
-     */
-    int getMaxBulkSize();
-
-    /**
      * Returns how often things-updater polls local sharding state and how often the new-event-forwarder polls
      * cluster state.
      *
@@ -77,11 +70,6 @@ public interface UpdaterConfig {
          * Determines the lifetime of an idling ThingUpdater.
          */
         MAX_IDLE_TIME("max-idle-time", Duration.ofHours(25L)),
-
-        /**
-         * Determines how many write operations to perform in one bulk.
-         */
-        MAX_BULK_SIZE("max-bulk-size", Integer.MAX_VALUE),
 
         /**
          * How often sharding state is polled. The intervening events are lost after shard rebalancing

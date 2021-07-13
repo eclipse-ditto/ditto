@@ -15,7 +15,6 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,6 +28,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
 
 import akka.actor.ActorSystem;
@@ -43,7 +43,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
     private static final String HTTPS = "https";
     private static final String HTTP = "http";
     private static final Collection<String> ACCEPTED_SCHEMES = List.of(HTTP, HTTPS);
-    private static final Collection<String> SECURE_SCHEMES = Collections.singletonList(HTTPS);
+    private static final Collection<String> SECURE_SCHEMES = List.of(HTTPS);
 
     private static final Collection<HttpMethod> SUPPORTED_METHODS =
             List.of(HttpMethods.PUT, HttpMethods.PATCH, HttpMethods.POST, HttpMethods.GET);
@@ -67,11 +67,12 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
     }
 
     @Override
-    public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
+    public void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem,
+            final ConnectivityConfig connectivityConfig) {
         validateUriScheme(connection, dittoHeaders, ACCEPTED_SCHEMES, SECURE_SCHEMES, "HTTP");
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
-        validatePayloadMappings(connection, actorSystem, dittoHeaders);
+        validatePayloadMappings(connection, actorSystem, connectivityConfig, dittoHeaders);
         validateParallelism(connection.getSpecificConfig(), dittoHeaders);
     }
 

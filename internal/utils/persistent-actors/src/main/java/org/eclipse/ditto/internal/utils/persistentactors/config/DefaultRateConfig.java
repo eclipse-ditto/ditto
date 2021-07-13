@@ -18,7 +18,6 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -33,9 +32,9 @@ public final class DefaultRateConfig implements RateConfig {
     private final Duration frequency;
     private final int entityAmount;
 
-    private DefaultRateConfig(final ScopedConfig config) {
-        frequency = config.getDuration(RateConfigValue.FREQUENCY.getConfigPath());
-        entityAmount = config.getInt(RateConfigValue.ENTITIES.getConfigPath());
+    private DefaultRateConfig(final ConfigWithFallback config) {
+        frequency = config.getNonNegativeAndNonZeroDurationOrThrow(RateConfigValue.FREQUENCY);
+        entityAmount = config.getPositiveIntOrThrow(RateConfigValue.ENTITIES);
     }
 
     /**

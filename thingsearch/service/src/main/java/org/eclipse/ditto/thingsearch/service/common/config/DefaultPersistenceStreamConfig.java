@@ -44,8 +44,8 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
             final DefaultStreamStageConfig defaultStreamStageConfig) {
 
         maxBulkSize = persistenceStreamScopedConfig.getInt(PersistenceStreamConfigValue.MAX_BULK_SIZE.getConfigPath());
-        ackDelay = persistenceStreamScopedConfig.getDuration(PersistenceStreamConfigValue.ACK_DELAY.getConfigPath());
-        final String writeConcernString = persistenceStreamScopedConfig.getString(
+        ackDelay = persistenceStreamScopedConfig.getNonNegativeDurationOrThrow(PersistenceStreamConfigValue.ACK_DELAY);
+        final var writeConcernString = persistenceStreamScopedConfig.getString(
                 PersistenceStreamConfigValue.WITH_ACKS_WRITE_CONCERN.getConfigPath());
         withAcknowledgementsWriteConcern = Optional.ofNullable(WriteConcern.valueOf(writeConcernString))
                 .orElseThrow(() -> {

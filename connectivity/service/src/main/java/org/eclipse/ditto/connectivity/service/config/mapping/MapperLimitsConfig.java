@@ -83,7 +83,7 @@ public interface MapperLimitsConfig {
         private final String path;
         private final Object defaultValue;
 
-        private MapperLimitsConfigValue(final String thePath, final Object theDefaultValue) {
+        MapperLimitsConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

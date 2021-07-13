@@ -48,7 +48,6 @@ import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigProvider;
 import org.eclipse.ditto.connectivity.service.config.mapping.MapperLimitsConfig;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
@@ -68,14 +67,14 @@ public final class ConnectionValidator {
 
     private final Map<ConnectionType, AbstractProtocolValidator> specMap;
     private final QueryFilterCriteriaFactory queryFilterCriteriaFactory;
-    private final ConnectivityConfigProvider connectivityConfigProvider;
     private final LoggingAdapter loggingAdapter;
+    private final ConnectivityConfig connectivityConfig;
 
-    private ConnectionValidator(
-            final ConnectivityConfigProvider connectivityConfigProvider,
-            LoggingAdapter loggingAdapter, final AbstractProtocolValidator... connectionSpecs) {
-        this.connectivityConfigProvider = connectivityConfigProvider;
+    private ConnectionValidator(LoggingAdapter loggingAdapter,
+            final ConnectivityConfig connectivityConfig,
+            final AbstractProtocolValidator... connectionSpecs) {
         this.loggingAdapter = loggingAdapter;
+        this.connectivityConfig = connectivityConfig;
         final Map<ConnectionType, AbstractProtocolValidator> theSpecMap = Arrays.stream(connectionSpecs)
                 .collect(Collectors.toMap(AbstractProtocolValidator::type, Function.identity()));
         this.specMap = Collections.unmodifiableMap(theSpecMap);
@@ -85,14 +84,14 @@ public final class ConnectionValidator {
     /**
      * Create a connection validator from connection specs.
      *
-     * @param configProvider the connectivity config provider
      * @param loggingAdapter a logging adapter
+     * @param connectivityConfig the connectivity config
      * @param connectionSpecs specs of supported connection types.
      * @return a connection validator.
      */
-    public static ConnectionValidator of(final ConnectivityConfigProvider configProvider,
-            LoggingAdapter loggingAdapter, final AbstractProtocolValidator... connectionSpecs) {
-        return new ConnectionValidator(configProvider, loggingAdapter, connectionSpecs);
+    public static ConnectionValidator of(LoggingAdapter loggingAdapter, final ConnectivityConfig connectivityConfig,
+            final AbstractProtocolValidator... connectionSpecs) {
+        return new ConnectionValidator(loggingAdapter, connectivityConfig, connectionSpecs);
     }
 
     /**
@@ -103,7 +102,6 @@ public final class ConnectionValidator {
      * @return the set of acknowledgement labels to declare.
      */
     public static Stream<AcknowledgementLabel> getAcknowledgementLabelsToDeclare(final Connection connection) {
-
         final Stream<AcknowledgementLabel> sourceDeclaredAcks =
                 getSourceDeclaredAcknowledgementLabels(connection.getId(), connection.getSources());
         final Stream<AcknowledgementLabel> targetIssuedAcks = getTargetIssuedAcknowledgementLabels(connection);
@@ -186,9 +184,6 @@ public final class ConnectionValidator {
      * @throws java.lang.IllegalStateException if the connection type is not known.
      */
     void validate(final Connection connection, final DittoHeaders dittoHeaders, final ActorSystem actorSystem) {
-        final ConnectivityConfig connectivityConfig =
-                connectivityConfigProvider.getConnectivityConfig(connection.getId(), dittoHeaders);
-
         // validate sources and targets
         validateSourcesAndTargets(connection, dittoHeaders, connectivityConfig);
 
@@ -226,7 +221,7 @@ public final class ConnectionValidator {
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
         if (spec != null) {
             // throw error at validation site for clarity of stack trace
-            spec.validate(connection, dittoHeaders, actorSystem);
+            spec.validate(connection, dittoHeaders, actorSystem, connectivityConfig);
         } else {
             throw new IllegalStateException("Unknown connection type: " + connection);
         }

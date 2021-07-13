@@ -21,14 +21,13 @@ import java.util.Objects;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.connectivity.service.config.mapping.MapperLimitsConfig;
-import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
-import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
+import org.eclipse.ditto.connectivity.service.config.mapping.MapperLimitsConfig;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.protocol.Adaptable;
 
 /**
  * Enforce message size limits on a {@link MessageMapper} and adds random correlation IDs should they not be present
@@ -88,11 +87,12 @@ final class WrappingMessageMapper implements MessageMapper {
     }
 
     @Override
-    public void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
-        final MapperLimitsConfig mapperLimitsConfig = mappingConfig.getMapperLimitsConfig();
+    public void configure(final ConnectionContext connectionContext, final MessageMapperConfiguration configuration) {
+        final MapperLimitsConfig mapperLimitsConfig =
+                connectionContext.getConnectivityConfig().getMappingConfig().getMapperLimitsConfig();
         inboundMessageLimit = mapperLimitsConfig.getMaxMappedInboundMessages();
         outboundMessageLimit = mapperLimitsConfig.getMaxMappedOutboundMessages();
-        delegate.configure(mappingConfig, configuration);
+        delegate.configure(connectionContext, configuration);
     }
 
     @Override

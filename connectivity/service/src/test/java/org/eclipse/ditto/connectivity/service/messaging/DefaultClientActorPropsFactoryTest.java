@@ -21,6 +21,7 @@ import static org.eclipse.ditto.connectivity.model.ConnectionType.MQTT_5;
 
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
@@ -109,14 +110,14 @@ public final class DefaultClientActorPropsFactoryTest extends WithMockServers {
 
     private void actorPropsIsSerializable(final ConnectionType connectionType) {
         final Props props = underTest.getActorPropsForType(randomConnection(connectionType), actorSystem.deadLetters(),
-                actorSystem.deadLetters(), actorSystem);
+                actorSystem.deadLetters(), actorSystem, DittoHeaders.empty());
         final Object objectToSerialize = wrapForSerialization(props);
         serializeAndDeserialize(objectToSerialize);
     }
 
     private void actorPropsIsSerializableAndEqualDeserializedObject(final ConnectionType connectionType) {
         final Props props = underTest.getActorPropsForType(randomConnection(connectionType), actorSystem.deadLetters(),
-                actorSystem.deadLetters(), actorSystem);
+                actorSystem.deadLetters(), actorSystem, DittoHeaders.empty());
         final Object objectToSerialize = wrapForSerialization(props);
         final Object deserializedObject = serializeAndDeserialize(objectToSerialize);
 

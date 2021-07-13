@@ -37,7 +37,7 @@ public final class DefaultCachesConfig implements CachesConfig {
     private final CacheConfig enforcerCacheConfig;
 
     private DefaultCachesConfig(final ScopedConfig config) {
-        askTimeout = config.getDuration(CachesConfigValue.ASK_TIMEOUT.getConfigPath());
+        askTimeout = config.getNonNegativeAndNonZeroDurationOrThrow(CachesConfigValue.ASK_TIMEOUT);
         idCacheConfig = DefaultCacheConfig.of(config, "id");
         enforcerCacheConfig = DefaultCacheConfig.of(config, "enforcer");
     }

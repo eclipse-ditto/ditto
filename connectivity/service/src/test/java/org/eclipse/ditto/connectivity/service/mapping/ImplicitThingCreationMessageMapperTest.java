@@ -24,33 +24,30 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.ditto.connectivity.service.config.mapping.DefaultMappingConfig;
-import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConflictException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.typesafe.config.ConfigFactory;
 
 /**
  * Unit test for {@link ImplicitThingCreationMessageMapper}.
@@ -111,19 +108,20 @@ public final class ImplicitThingCreationMessageMapperTest {
     public static final String GATEWAY_ID = "headerNamespace:headerGatewayId";
     public static final String DEVICE_ID = "headerNamespace:headerDeviceId";
 
-    private static MappingConfig mappingConfig;
+    private static ConnectionContext connectionContext;
     private MessageMapper underTest;
 
     @Before
     public void setUp() {
-        mappingConfig = DefaultMappingConfig.of(ConfigFactory.empty());
+        connectionContext =
+                DittoConnectionContext.of(TestConstants.createConnection(), TestConstants.CONNECTIVITY_CONFIG);
         underTest = new ImplicitThingCreationMessageMapper();
     }
 
     @Test
     public void doForwardMappingContextWithCommandHeaderPlaceholder() {
         final Map<String, String> headers = createValidHeaders();
-        underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
+        underTest.configure(connectionContext, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
 
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
@@ -146,7 +144,7 @@ public final class ImplicitThingCreationMessageMapperTest {
     @Test
     public void doForwardMappingContextWithDeviceIdPlaceholder() {
         final Map<String, String> headers = createValidHeaders();
-        underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
+        underTest.configure(connectionContext, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
 
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
@@ -167,7 +165,7 @@ public final class ImplicitThingCreationMessageMapperTest {
     @Test
     public void doForwardMappingContextWithPolicyPlaceholder() {
         final Map<String, String> headers = createValidHeaders();
-        underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE_WITH_POLICY, COMMAND_HEADERS));
+        underTest.configure(connectionContext, createMapperConfig(THING_TEMPLATE_WITH_POLICY, COMMAND_HEADERS));
 
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
@@ -187,7 +185,7 @@ public final class ImplicitThingCreationMessageMapperTest {
 
     @Test
     public void doForwardMappingTwice() {
-        underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE_WITH_POLICY, COMMAND_HEADERS));
+        underTest.configure(connectionContext, createMapperConfig(THING_TEMPLATE_WITH_POLICY, COMMAND_HEADERS));
 
         final Map<String, String> headers1 = new HashMap<>();
         headers1.put(HEADER_HONO_DEVICE_ID, "headerNamespace:headerDeviceId1");
@@ -232,7 +230,8 @@ public final class ImplicitThingCreationMessageMapperTest {
     @Test
     public void doForwardWithoutPlaceholders() {
         final Map<String, String> headers = createValidHeaders();
-        underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE_WITHOUT_PLACEHOLDERS, COMMAND_HEADERS));
+        underTest.configure(connectionContext,
+                createMapperConfig(THING_TEMPLATE_WITHOUT_PLACEHOLDERS, COMMAND_HEADERS));
 
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
@@ -253,7 +252,7 @@ public final class ImplicitThingCreationMessageMapperTest {
                 COMMAND_HEADERS);
 
         assertThatExceptionOfType(MessageMapperConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.configure(mappingConfig, invalidMapperConfig));
+                .isThrownBy(() -> underTest.configure(connectionContext, invalidMapperConfig));
     }
 
     @Test
@@ -272,12 +271,12 @@ public final class ImplicitThingCreationMessageMapperTest {
                 COMMAND_HEADERS);
 
         assertThatExceptionOfType(MessageMapperConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.configure(mappingConfig, invalidMapperConfig));
+                .isThrownBy(() -> underTest.configure(connectionContext, invalidMapperConfig));
     }
 
     @Test
     public void throwErrorIfHeaderForPlaceholderIsMissing() {
-        underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
+        underTest.configure(connectionContext, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
 
         final Map<String, String> missingEntityHeader = new HashMap<>();
         missingEntityHeader.put(HEADER_HONO_DEVICE_ID, DEVICE_ID);
@@ -291,7 +290,7 @@ public final class ImplicitThingCreationMessageMapperTest {
 
     @Test
     public void throwExceptionOnErrorResponse() {
-        underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
+        underTest.configure(connectionContext, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
         final ThingConflictException conflictException =
                 ThingConflictException.newBuilder(ThingId.generateRandom()).build();
         final Signal<?> thingErrorResponse = ThingErrorResponse.of(conflictException);
@@ -302,7 +301,7 @@ public final class ImplicitThingCreationMessageMapperTest {
 
     @Test
     public void regularCommandResponsesAreNotMapped() {
-        underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
+        underTest.configure(connectionContext, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
         final Signal<?> thingResponse =
                 CreateThingResponse.of(Thing.newBuilder().setId(ThingId.generateRandom()).build(),
                         DittoHeaders.empty());

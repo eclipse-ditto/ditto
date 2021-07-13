@@ -18,7 +18,6 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -37,11 +36,11 @@ public final class DefaultPingConfig implements PingConfig {
     private final int readJournalBatchSize;
     private final StreamingOrder streamingOrder;
 
-    private DefaultPingConfig(final ScopedConfig config, final RateConfig theRateConfig) {
+    private DefaultPingConfig(final ConfigWithFallback config, final RateConfig theRateConfig) {
         journalTag = config.getString(PingConfigValue.JOURNAL_TAG.getConfigPath());
-        initialDelay = config.getDuration(PingConfigValue.INITIAL_DELAY.getConfigPath());
-        interval = config.getDuration(PingConfigValue.INTERVAL.getConfigPath());
-        readJournalBatchSize = config.getInt(PingConfigValue.READ_JOURNAL_BATCH_SIZE.getConfigPath());
+        initialDelay = config.getNonNegativeDurationOrThrow(PingConfigValue.INITIAL_DELAY);
+        interval = config.getNonNegativeAndNonZeroDurationOrThrow(PingConfigValue.INTERVAL);
+        readJournalBatchSize = config.getPositiveIntOrThrow(PingConfigValue.READ_JOURNAL_BATCH_SIZE);
         streamingOrder = config.getEnum(StreamingOrder.class, PingConfigValue.STREAMING_ORDER.getConfigPath());
         rateConfig = theRateConfig;
     }
@@ -54,7 +53,7 @@ public final class DefaultPingConfig implements PingConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultPingConfig of(final Config config) {
-        final ConfigWithFallback reconnectScopedConfig =
+        final var reconnectScopedConfig =
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, PingConfigValue.values());
 
         return new DefaultPingConfig(reconnectScopedConfig, DefaultRateConfig.of(reconnectScopedConfig));

@@ -19,11 +19,10 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperFactory;
@@ -33,10 +32,10 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.SignalFilter;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
@@ -81,13 +80,14 @@ final class OutboundMappingSettings {
         this.proxyActor = proxyActor;
     }
 
-    static OutboundMappingSettings of(final Connection connection,
+    static OutboundMappingSettings of(final ConnectionContext connectionContext,
             final ActorSystem actorSystem,
             final ActorSelection proxyActor,
-            final ConnectivityConfig connectivityConfig,
             final ProtocolAdapter protocolAdapter,
             final ThreadSafeDittoLoggingAdapter logger) {
 
+        final var connection = connectionContext.getConnection();
+        final var connectivityConfig = connectionContext.getConnectivityConfig();
         final ConnectionId connectionId = connection.getId();
         final ConnectionType connectionType = connection.getConnectionType();
         final PayloadMappingDefinition mappingDefinition = connection.getPayloadMappingDefinition();
@@ -104,8 +104,7 @@ final class OutboundMappingSettings {
                 logger.withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
 
         final MessageMapperFactory messageMapperFactory =
-                DefaultMessageMapperFactory.of(connectionId, actorSystem, connectivityConfig.getMappingConfig(),
-                        loggerWithConnectionId);
+                DefaultMessageMapperFactory.of(connectionContext, actorSystem, loggerWithConnectionId);
         final MessageMapperRegistry registry =
                 messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingDefinition);
 

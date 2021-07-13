@@ -29,9 +29,9 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.typesafe.config.Config;
@@ -67,6 +67,7 @@ public final class DefaultOAuthConfig implements OAuthConfig {
     private static Map<SubjectIssuer, SubjectIssuerConfig> loadIssuers(final ConfigWithFallback config,
             final KnownConfigValue configValue) {
         final ConfigObject issuersConfig = config.getObject(configValue.getConfigPath());
+
         return issuersConfig.entrySet().stream().collect(SubjectIssuerCollector.toSubjectIssuerMap());
     }
 

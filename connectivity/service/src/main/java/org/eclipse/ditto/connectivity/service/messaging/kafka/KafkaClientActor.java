@@ -30,7 +30,6 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
-import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
@@ -64,12 +63,13 @@ public final class KafkaClientActor extends BaseClientActor {
     private KafkaClientActor(final Connection connection,
             @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor,
-            final KafkaPublisherActorFactory publisherActorFactory) {
+            final KafkaPublisherActorFactory publisherActorFactory,
+            final DittoHeaders dittoHeaders) {
 
-        super(connection, proxyActor, connectionActor);
-        kafkaConsumerActors = new ArrayList<>();
-        final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
+        super(connection, proxyActor, connectionActor, dittoHeaders);
+        final ConnectionConfig connectionConfig = connectionContext.getConnectivityConfig().getConnectionConfig();
         kafkaConfig = connectionConfig.getKafkaConfig();
+        kafkaConsumerActors = new ArrayList<>();
         propertiesFactory = PropertiesFactory.newInstance(connection, kafkaConfig, getClientId(connection.getId()));
         this.publisherActorFactory = publisherActorFactory;
         pendingStatusReportsFromStreams = new HashSet<>();
@@ -82,15 +82,17 @@ public final class KafkaClientActor extends BaseClientActor {
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param factory factory for creating a kafka publisher actor.
+     * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection,
             @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor,
-            final KafkaPublisherActorFactory factory) {
+            final KafkaPublisherActorFactory factory,
+            final DittoHeaders dittoHeaders) {
 
         return Props.create(KafkaClientActor.class, validateConnection(connection), proxyActor, connectionActor,
-                factory);
+                factory, dittoHeaders);
     }
 
     private static Connection validateConnection(final Connection connection) {

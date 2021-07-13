@@ -34,8 +34,8 @@ public final class DefaultClaimMessageConfig implements MessageConfig {
     private final Duration maxTimeout;
 
     private DefaultClaimMessageConfig(final ScopedConfig scopedConfig) {
-        defaultTimeout = scopedConfig.getDuration(MessageConfigValue.DEFAULT_TIMEOUT.getConfigPath());
-        maxTimeout = scopedConfig.getDuration(MessageConfigValue.MAX_TIMEOUT.getConfigPath());
+        defaultTimeout = scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(MessageConfigValue.DEFAULT_TIMEOUT);
+        maxTimeout = scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(MessageConfigValue.MAX_TIMEOUT);
     }
 
     /**

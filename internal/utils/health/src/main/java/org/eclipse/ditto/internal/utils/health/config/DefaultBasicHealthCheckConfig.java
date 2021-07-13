@@ -36,7 +36,7 @@ public final class DefaultBasicHealthCheckConfig implements BasicHealthCheckConf
 
     private DefaultBasicHealthCheckConfig(final ScopedConfig scopedConfig) {
         enabled = scopedConfig.getBoolean(HealthCheckConfigValue.ENABLED.getConfigPath());
-        interval = scopedConfig.getDuration(HealthCheckConfigValue.INTERVAL.getConfigPath());
+        interval = scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(HealthCheckConfigValue.INTERVAL);
     }
 
     /**

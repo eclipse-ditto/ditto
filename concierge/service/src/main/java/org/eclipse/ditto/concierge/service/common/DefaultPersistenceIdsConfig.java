@@ -19,6 +19,7 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -35,14 +36,14 @@ final class DefaultPersistenceIdsConfig implements PersistenceIdsConfig {
     private final int maxRestarts;
     private final Duration recovery;
 
-    private DefaultPersistenceIdsConfig(final Config config) {
-        burst = config.getInt(ConfigValue.BURST.getConfigPath());
-        streamRequestTimeout = config.getDuration(ConfigValue.STREAM_REQUEST_TIMEOUT.getConfigPath());
-        streamIdleTimeout = config.getDuration(ConfigValue.STREAM_IDLE_TIMEOUT.getConfigPath());
-        minBackoff = config.getDuration(ConfigValue.MIN_BACKOFF.getConfigPath());
-        maxBackoff = config.getDuration(ConfigValue.MAX_BACKOFF.getConfigPath());
-        maxRestarts = config.getInt(ConfigValue.MAX_RESTARTS.getConfigPath());
-        recovery = config.getDuration(ConfigValue.RECOVERY.getConfigPath());
+    private DefaultPersistenceIdsConfig(final ScopedConfig config) {
+        burst = config.getPositiveIntOrThrow(ConfigValue.BURST);
+        streamRequestTimeout = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.STREAM_REQUEST_TIMEOUT);
+        streamIdleTimeout = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.STREAM_IDLE_TIMEOUT);
+        minBackoff = config.getNonNegativeDurationOrThrow(ConfigValue.MIN_BACKOFF);
+        maxBackoff = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.MAX_BACKOFF);
+        maxRestarts = config.getNonNegativeIntOrThrow(ConfigValue.MAX_RESTARTS);
+        recovery = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.RECOVERY);
     }
 
     static PersistenceIdsConfig of(final Config config) {
@@ -117,4 +118,5 @@ final class DefaultPersistenceIdsConfig implements PersistenceIdsConfig {
                 ", recovery" + recovery +
                 "]";
     }
+
 }

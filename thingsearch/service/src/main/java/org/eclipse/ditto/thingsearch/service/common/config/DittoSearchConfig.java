@@ -58,10 +58,11 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
         mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
 
-        final ConfigWithFallback configWithFallback =
+        final var configWithFallback =
                 ConfigWithFallback.newInstance(dittoScopedConfig, CONFIG_PATH, SearchConfigValue.values());
         mongoHintsByNamespace = configWithFallback.getStringOrNull(SearchConfigValue.MONGO_HINTS_BY_NAMESPACE);
-        queryCriteriaValidator = configWithFallback.getStringOrNull(SearchConfigValue.QUERY_CRITERIA_VALIDATOR);
+        queryCriteriaValidator =
+                configWithFallback.getString(SearchConfigValue.QUERY_CRITERIA_VALIDATOR.getConfigPath());
         updaterConfig = DefaultUpdaterConfig.of(configWithFallback);
         indexInitializationConfig = DefaultIndexInitializationConfig.of(configWithFallback);
     }

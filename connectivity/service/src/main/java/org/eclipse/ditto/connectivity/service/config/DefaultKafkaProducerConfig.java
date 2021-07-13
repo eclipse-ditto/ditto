@@ -59,8 +59,7 @@ public final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
      */
     public static DefaultKafkaProducerConfig of(final Config config) {
         return new DefaultKafkaProducerConfig(
-                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values())
-        );
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));
     }
 
     @Override
@@ -137,4 +136,5 @@ public final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
                 ", alpakkaConfig=" + alpakkaConfig +
                 "]";
     }
+
 }

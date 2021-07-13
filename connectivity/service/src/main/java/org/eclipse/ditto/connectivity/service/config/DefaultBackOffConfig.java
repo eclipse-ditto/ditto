@@ -54,13 +54,6 @@ public final class DefaultBackOffConfig implements BackOffConfig {
 
 
     @Override
-    public String toString() {
-        return getClass().getSimpleName() + " [" +
-                "timeoutConfig=" + timeoutConfig +
-                "]";
-    }
-
-    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
@@ -75,6 +68,13 @@ public final class DefaultBackOffConfig implements BackOffConfig {
     @Override
     public int hashCode() {
         return Objects.hash(timeoutConfig);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "timeoutConfig=" + timeoutConfig +
+                "]";
     }
 
 }

@@ -250,6 +250,10 @@ To put it in a nutshell, Ditto reports:
     * processed messages
     * mapping times
 
+Have a look at the 
+[example Grafana dashboards](https://github.com/eclipse/ditto/tree/master/deployment/operations/grafana-dashboards)
+and build and share new ones back to the Ditto community.
+
 ## DevOps commands
 
 The "DevOps commands" API allows Ditto operators to make changes to a running installation without restarts.

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.utils;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
 import org.eclipse.ditto.gateway.service.util.config.streaming.GatewaySignalEnrichmentConfig;
@@ -51,8 +53,8 @@ public final class GatewayCachingSignalEnrichmentProvider implements GatewaySign
     }
 
     @Override
-    public SignalEnrichmentFacade getFacade(final HttpRequest request) {
-        return cachingSignalEnrichmentFacade;
+    public CompletionStage<SignalEnrichmentFacade> getFacade(final HttpRequest request) {
+        return CompletableFuture.completedStage(cachingSignalEnrichmentFacade);
     }
 
 }

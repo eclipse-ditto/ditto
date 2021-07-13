@@ -38,8 +38,8 @@ public final class DefaultGatewaySignalEnrichmentConfig implements GatewaySignal
     private final CacheConfig cacheConfig;
 
     private DefaultGatewaySignalEnrichmentConfig(final ConfigWithFallback configWithFallback) {
-        this.askTimeout = configWithFallback.getDuration(
-                CachingSignalEnrichmentFacadeConfigValue.ASK_TIMEOUT.getConfigPath());
+        this.askTimeout = configWithFallback.getNonNegativeAndNonZeroDurationOrThrow(
+                CachingSignalEnrichmentFacadeConfigValue.ASK_TIMEOUT);
         cacheConfig = DefaultCacheConfig.of(configWithFallback, CACHE_CONFIG_PATH);
         cachingEnabled =
                 configWithFallback.getBoolean(CachingSignalEnrichmentFacadeConfigValue.CACHING_ENABLED.getConfigPath());
@@ -111,4 +111,5 @@ public final class DefaultGatewaySignalEnrichmentConfig implements GatewaySignal
                 ", cachingEnabled" + cachingEnabled +
                 "]";
     }
+
 }

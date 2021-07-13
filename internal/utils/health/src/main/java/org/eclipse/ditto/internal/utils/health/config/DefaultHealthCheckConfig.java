@@ -44,7 +44,7 @@ public final class DefaultHealthCheckConfig implements HealthCheckConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultHealthCheckConfig of(final Config config) {
-        final DefaultBasicHealthCheckConfig basicHealthCheckConfig = DefaultBasicHealthCheckConfig.of(config);
+        final var basicHealthCheckConfig = DefaultBasicHealthCheckConfig.of(config);
 
         final String healthCheckConfigPath = basicHealthCheckConfig.getConfigPath();
         final PersistenceConfig persistenceConfig;

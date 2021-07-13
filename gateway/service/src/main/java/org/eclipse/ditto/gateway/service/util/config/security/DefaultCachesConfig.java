@@ -44,7 +44,8 @@ public final class DefaultCachesConfig implements CachesConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultCachesConfig of(final Config config) {
-        final DefaultScopedConfig cacheScopedConfig = DefaultScopedConfig.newInstance(config, CONFIG_PATH);
+        final var cacheScopedConfig = DefaultScopedConfig.newInstance(config, CONFIG_PATH);
+
         return new DefaultCachesConfig(DefaultCacheConfig.of(cacheScopedConfig, "publickeys"));
     }
 

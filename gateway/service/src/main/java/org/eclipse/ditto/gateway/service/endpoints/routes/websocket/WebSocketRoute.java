@@ -273,14 +273,15 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final ProtocolAdapter adapter,
             final HttpRequest request) {
 
-        @Nullable final SignalEnrichmentFacade signalEnrichmentFacade =
-                signalEnrichmentProvider == null ? null : signalEnrichmentProvider.getFacade(request);
+        final CompletionStage<SignalEnrichmentFacade> signalEnrichmentFacadeStage = signalEnrichmentProvider == null
+                ? CompletableFuture.completedStage(null)
+                : signalEnrichmentProvider.getFacade(request);
 
         final AuthorizationContext authContext = dittoHeaders.getAuthorizationContext();
         final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(connectionCorrelationId);
         logger.info("Creating WebSocket for connection authContext: <{}>", authContext);
 
-        return retrieveWebsocketConfig()
+        return signalEnrichmentFacadeStage.thenCompose(signalEnrichmentFacade -> retrieveWebsocketConfig()
                 .thenApply(overwriteWebSocketConfig(dittoHeaders))
                 .thenApply(websocketConfig -> {
                     final Pair<Connect, Flow<DittoRuntimeException, Message, NotUsed>> outgoing =
@@ -294,7 +295,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                                     websocketConfig, outgoing.first(), logger);
 
                     return upgradeToWebSocket.handleMessagesWith(incoming.via(outgoing.second()));
-                });
+                }));
     }
 
     private java.util.function.Function<WebsocketConfig, WebsocketConfig> overwriteWebSocketConfig(
@@ -700,13 +701,11 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 .error("Signal enrichment failed due to: {}", error.getMessage(), errorToReport);
 
         final JsonifiableAdaptable errorAdaptable =
-                ProtocolFactory.wrapAsJsonifiableAdaptable(adapter.toAdaptable((Signal<?>)
-                        ThingErrorResponse.of(
-                                ThingId.of(adaptable.getTopicPath().getNamespace(), adaptable.getTopicPath().getEntityName()),
-                                errorToReport,
-                                adaptable.getDittoHeaders()
-                        )
-                ));
+                ProtocolFactory.wrapAsJsonifiableAdaptable(adapter.toAdaptable(ThingErrorResponse.of(
+                        ThingId.of(adaptable.getTopicPath().getNamespace(), adaptable.getTopicPath().getEntityName()),
+                        errorToReport,
+                        adaptable.getDittoHeaders()
+                )));
         return Collections.singletonList(errorAdaptable.toJsonString());
     }
 
@@ -740,16 +739,20 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final String protocolMessage;
         switch (streamingType) {
             case EVENTS:
-                protocolMessage = subscribed ? ProtocolMessageType.START_SEND_EVENTS.toString() : ProtocolMessageType.STOP_SEND_EVENTS.toString();
+                protocolMessage = subscribed ? ProtocolMessageType.START_SEND_EVENTS.toString() :
+                        ProtocolMessageType.STOP_SEND_EVENTS.toString();
                 break;
             case MESSAGES:
-                protocolMessage = subscribed ? ProtocolMessageType.START_SEND_MESSAGES.toString() : ProtocolMessageType.STOP_SEND_MESSAGES.toString();
+                protocolMessage = subscribed ? ProtocolMessageType.START_SEND_MESSAGES.toString() :
+                        ProtocolMessageType.STOP_SEND_MESSAGES.toString();
                 break;
             case LIVE_COMMANDS:
-                protocolMessage = subscribed ? ProtocolMessageType.START_SEND_LIVE_COMMANDS.toString() : ProtocolMessageType.STOP_SEND_LIVE_COMMANDS.toString();
+                protocolMessage = subscribed ? ProtocolMessageType.START_SEND_LIVE_COMMANDS.toString() :
+                        ProtocolMessageType.STOP_SEND_LIVE_COMMANDS.toString();
                 break;
             case LIVE_EVENTS:
-                protocolMessage = subscribed ? ProtocolMessageType.START_SEND_LIVE_EVENTS.toString() : ProtocolMessageType.STOP_SEND_LIVE_EVENTS.toString();
+                protocolMessage = subscribed ? ProtocolMessageType.START_SEND_LIVE_EVENTS.toString() :
+                        ProtocolMessageType.STOP_SEND_LIVE_EVENTS.toString();
                 break;
             case POLICY_ANNOUNCEMENTS:
                 protocolMessage = subscribed

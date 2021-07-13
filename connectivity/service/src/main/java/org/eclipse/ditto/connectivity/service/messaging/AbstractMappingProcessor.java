@@ -18,6 +18,7 @@ import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
@@ -78,9 +79,8 @@ abstract class AbstractMappingProcessor<I, O> {
         final String templatePattern = "'{{' fn:default(''true'') | {0} '}}'";
         for (final String condition : conditions) {
             final String template = MessageFormat.format(templatePattern, condition);
-            final String resolvedCondition =
-                    PlaceholderFilter.applyOrElseDelete(template, resolver).orElse("false");
-            conditionBool &= Boolean.parseBoolean(resolvedCondition);
+            final Optional<String> resolvedCondition = PlaceholderFilter.applyOrElseDelete(template, resolver);
+            conditionBool &= resolvedCondition.isPresent();
         }
         return conditionBool;
     }

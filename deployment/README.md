@@ -8,3 +8,9 @@ In order to deploy/start Ditto, you have the following options:
 - [starting via OpenShift](openshift/README.md)
 - [starting via Kubernetes and Helm](helm/README.md)
 - [starting via Microsoft Azure](azure/README.md)
+
+### Operating
+
+The [operations/](operations) folder contains helpers for operating Eclipse Ditto, like
+e.g. [Grafana dashboards](operations/grafana-dashboards) to be used together with a configured
+Prometheus scraping Ditto's `/metrics` HTTP endpoints.

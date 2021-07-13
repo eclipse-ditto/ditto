@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,7 +54,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final PipelineFunctionParameterResolverFactory.SingleParameterResolver parameterResolver =
                 PipelineFunctionParameterResolverFactory.forStringOrPlaceholderParameter();
 
-        final String params = "(\'" + KNOWN_VALUE + "\')";
+        final String params = "('" + KNOWN_VALUE + "')";
         assertThat(parameterResolver.apply(params, expressionResolver, DUMMY)).contains(KNOWN_VALUE);
 
         verifyNoInteractions(expressionResolver);
@@ -65,7 +66,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
                 PipelineFunctionParameterResolverFactory.forStringOrPlaceholderParameter();
 
         final String paramsDoubleQuoted = "(\"" + KNOWN_VALUE + "\", \"otherValue\")";
-        final String paramsSingleQuoted = "(\'" + KNOWN_VALUE + "\', \'otherValue\')";
+        final String paramsSingleQuoted = "('" + KNOWN_VALUE + "', 'otherValue')";
         final String paramsPlaceholders = "(" + KNOWN_PLACEHOLDER + ", topic:full)";
 
         assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class)
@@ -98,7 +99,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
                 PipelineFunctionParameterResolverFactory.forStringOrPlaceholderParameter();
 
         final String value = "   " + KNOWN_VALUE + "      ";
-        final String stringSingle = "(\'" + value + "\')";
+        final String stringSingle = "('" + value + "')";
         final String stringDouble = "(\"" + value + "\")";
 
         assertThat(parameterResolver.apply(stringSingle, expressionResolver, DUMMY)).contains(value);
@@ -110,7 +111,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final PipelineFunctionParameterResolverFactory.SingleParameterResolver parameterResolver =
                 PipelineFunctionParameterResolverFactory.forStringOrPlaceholderParameter();
 
-        final String stringSingle = "(   \'" + KNOWN_VALUE + "\'   )";
+        final String stringSingle = "(   '" + KNOWN_VALUE + "'   )";
         final String stringDouble = "(   \"" + KNOWN_VALUE + "\"   )";
         final String stringPlaceholder = "(    " + KNOWN_PLACEHOLDER + "   )";
 
@@ -155,7 +156,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
 
         final PipelineFunctionParameterResolverFactory.SingleParameterResolver stringResolver =
                 PipelineFunctionParameterResolverFactory.forStringParameter();
-        final String stringSingle = "(\'" + KNOWN_VALUE + "\')";
+        final String stringSingle = "('" + KNOWN_VALUE + "')";
         final String stringDouble = "(\"" + KNOWN_VALUE + "\")";
         final String stringPlaceholder = "(" + KNOWN_PLACEHOLDER + ")";
 
@@ -181,7 +182,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
 
         assertThat(noParamResolver.test("(thing:id)")).isFalse();
         assertThat(noParamResolver.test("(\"val\")")).isFalse();
-        assertThat(noParamResolver.test("(\'val\')")).isFalse();
+        assertThat(noParamResolver.test("('val')")).isFalse();
     }
 
     @Test
@@ -189,6 +190,11 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver =
                 PipelineFunctionParameterResolverFactory.forTripleStringOrPlaceholderParameter();
 
+        resolvesThreeParametersInDoubleQuotedString(parameterResolver);
+    }
+
+    private void resolvesThreeParametersInDoubleQuotedString(
+            final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver) {
         final String firstParameter = KNOWN_VALUE + 1;
         final String secondParameter = KNOWN_VALUE + 2;
         final String thirdParameter = KNOWN_VALUE + 3;
@@ -209,6 +215,11 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver =
                 PipelineFunctionParameterResolverFactory.forTripleStringOrPlaceholderParameter();
 
+        resolvesThreeParametersInMixOfDoubleAndSingleQuotedString(parameterResolver);
+    }
+
+    private void resolvesThreeParametersInMixOfDoubleAndSingleQuotedString(
+            final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver) {
         final String firstParameter = KNOWN_VALUE + 1;
         final String secondParameter = KNOWN_VALUE + 2;
         final String thirdParameter = KNOWN_VALUE + 3;
@@ -229,6 +240,11 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver =
                 PipelineFunctionParameterResolverFactory.forTripleStringOrPlaceholderParameter();
 
+        resolvesThreeParametersInMixOfDoubleAndSingleQuotedStringParametersAndPlaceHolders(parameterResolver);
+    }
+
+    private void resolvesThreeParametersInMixOfDoubleAndSingleQuotedStringParametersAndPlaceHolders(
+            final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver) {
         final String firstParameter = KNOWN_VALUE + 1;
         final String secondParameter = KNOWN_VALUE + 2;
         final String thirdParameter = KNOWN_VALUE + 3;
@@ -251,12 +267,7 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver =
                 PipelineFunctionParameterResolverFactory.forTripleStringOrPlaceholderParameter();
 
-        final String parametersList = "(\"" + KNOWN_VALUE + "\", \"" + KNOWN_VALUE + "\")";
-
-        assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class)
-                .isThrownBy(() -> parameterResolver.apply(parametersList, expressionResolver, DUMMY));
-
-        verifyNoInteractions(expressionResolver);
+        failsForNumberOfParameters(parameterResolver, 2);
     }
 
     @Test
@@ -264,10 +275,119 @@ public class PipelineFunctionParameterResolverFactoryTest {
         final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver =
                 PipelineFunctionParameterResolverFactory.forTripleStringOrPlaceholderParameter();
 
-        final String parametersList = "(\"One\", \"Two\", \"Three\", \"Fail\")";
+        failsForNumberOfParameters(parameterResolver, 4);
+    }
+
+    @Test
+    public void doubleOrTripleParameterResolverAcceptsThreeDoubleQuotedStringParameters() {
+        final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver =
+                PipelineFunctionParameterResolverFactory.forDoubleOrTripleStringOrPlaceholderParameter();
+
+        resolvesThreeParametersInDoubleQuotedString(parameterResolver);
+    }
+
+    @Test
+    public void doubleOrTripleParameterResolverAcceptsTwoDoubleQuotedStringParameters() {
+        final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver =
+                PipelineFunctionParameterResolverFactory.forDoubleOrTripleStringOrPlaceholderParameter();
+
+        final String firstParameter = KNOWN_VALUE + 1;
+        final String secondParameter = KNOWN_VALUE + 2;
+        final String parameters =
+                "(\"" + firstParameter + "\", \"" + secondParameter + "\")";
+
+        final List<PipelineElement> resolvedParameters = parameterResolver.apply(parameters, expressionResolver, DUMMY);
+
+        assertThat(resolvedParameters.get(0)).contains(firstParameter);
+        assertThat(resolvedParameters.get(1)).contains(secondParameter);
+
+        verifyNoInteractions(expressionResolver);
+    }
+
+    @Test
+    public void doubleOrTripleParameterResolverAcceptsMixOfDoubleQuotedAndSingleQuotedStringParameters() {
+        final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver =
+                PipelineFunctionParameterResolverFactory.forDoubleOrTripleStringOrPlaceholderParameter();
+
+        resolvesThreeParametersInMixOfDoubleAndSingleQuotedString(parameterResolver);
+    }
+
+    @Test
+    public void doubleOrTripleParameterResolverAcceptsMixOfDoubleQuotedAndSingleQuotedStringParametersWithoutOptional() {
+        final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver =
+                PipelineFunctionParameterResolverFactory.forDoubleOrTripleStringOrPlaceholderParameter();
+
+        final String firstParameter = KNOWN_VALUE + 1;
+        final String secondParameter = KNOWN_VALUE + 2;
+        final String parameters =
+                "(\"" + firstParameter + "\", '" + secondParameter + "')";
+
+        final List<PipelineElement> resolvedParameters = parameterResolver.apply(parameters, expressionResolver, DUMMY);
+
+        assertThat(resolvedParameters.get(0)).contains(firstParameter);
+        assertThat(resolvedParameters.get(1)).contains(secondParameter);
+
+        verifyNoInteractions(expressionResolver);
+    }
+
+    @Test
+    public void doubleOrTripleParameterResolverAcceptsMixOfDoubleQuotedAndSingleQuotedStringParametersAndPlaceholders() {
+        final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver =
+                PipelineFunctionParameterResolverFactory.forDoubleOrTripleStringOrPlaceholderParameter();
+
+        resolvesThreeParametersInMixOfDoubleAndSingleQuotedStringParametersAndPlaceHolders(parameterResolver);
+    }
+
+    @Test
+    public void doubleOrTripleParameterResolverAcceptsMixOfDoubleQuotedAndSingleQuotedStringParametersAndPlaceholdersWithoutOptional() {
+        final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver =
+                PipelineFunctionParameterResolverFactory.forDoubleOrTripleStringOrPlaceholderParameter();
+
+        final String firstParameter = KNOWN_VALUE + 1;
+        final String secondParameter = KNOWN_VALUE + 2;
+        final String parameters =
+                "(" + KNOWN_PLACEHOLDER + ", '" + secondParameter + "')";
+        when(expressionResolver.resolveAsPipelineElement(KNOWN_PLACEHOLDER))
+                .thenReturn(PipelineElement.resolved(firstParameter));
+
+        final List<PipelineElement> resolvedParameters = parameterResolver.apply(parameters, expressionResolver, DUMMY);
+
+        assertThat(resolvedParameters.get(0)).contains(firstParameter);
+        assertThat(resolvedParameters.get(1)).contains(secondParameter);
+
+        verify(expressionResolver).resolveAsPipelineElement(KNOWN_PLACEHOLDER);
+    }
+
+    @Test
+    public void doubleOrTripleParameterResolverFailsIfLessParametersAreGiven() {
+        final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver =
+                PipelineFunctionParameterResolverFactory.forDoubleOrTripleStringOrPlaceholderParameter();
+
+        failsForNumberOfParameters(parameterResolver, 1);
+    }
+
+    @Test
+    public void doubleOrTripleParameterResolverFailsIfMoreParametersAreGiven() {
+        final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver =
+                PipelineFunctionParameterResolverFactory.forDoubleOrTripleStringOrPlaceholderParameter();
+
+        failsForNumberOfParameters(parameterResolver, 4);
+    }
+
+    private void failsForNumberOfParameters(
+            final PipelineFunctionParameterResolverFactory.ParameterResolver parameterResolver,
+            final int parameters) {
+        final StringBuilder parametersList = new StringBuilder("(");
+        Stream.iterate(0, i -> i + 1)
+                .limit(parameters)
+                // add , as prefix for each but first param
+                .map(index -> index == 0 ? "" : ",")
+                .map(parametersList::append)
+                .forEach(unused -> parametersList.append("\"" + KNOWN_VALUE + "\""));
+        parametersList.append(")");
 
         assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class)
-                .isThrownBy(() -> parameterResolver.apply(parametersList, expressionResolver, DUMMY));
+                .isThrownBy(() -> parameterResolver.apply(parametersList.toString(), expressionResolver, DUMMY));
 
         verifyNoInteractions(expressionResolver);
     }

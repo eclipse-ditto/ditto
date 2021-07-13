@@ -42,4 +42,6 @@ public @interface PayloadMapper {
      * {@link org.eclipse.ditto.connectivity.model.MappingContext#getOptionsAsJson()}.
      */
     boolean requiresMandatoryConfiguration() default false;
+
+    int priority() default 0;
 }

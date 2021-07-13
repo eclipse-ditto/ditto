@@ -32,6 +32,10 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.AcknowledgementRequestTimeoutException;
+import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionSignalIdEnforcementFailedException;
@@ -41,15 +45,12 @@ import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.AcknowledgementRequestTimeoutException;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
@@ -79,7 +80,8 @@ public abstract class AbstractConsumerActorTest<M> {
     private static final Connection CONNECTION = TestConstants.createConnection();
     private static final ConnectionId CONNECTION_ID = CONNECTION.getId();
     private static final FiniteDuration ONE_SECOND = FiniteDuration.apply(1, TimeUnit.SECONDS);
-    protected static final Map.Entry<String, String> REPLY_TO_HEADER = TestConstants.header("reply-to", "reply-to-address");
+    protected static final Map.Entry<String, String> REPLY_TO_HEADER =
+            TestConstants.header("reply-to", "reply-to-address");
     protected static final Enforcement ENFORCEMENT =
             ConnectivityModelFactory.newEnforcement("{{ header:device_id }}", "{{ thing:id }}");
 
@@ -366,18 +368,12 @@ public abstract class AbstractConsumerActorTest<M> {
         when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
                 .thenReturn(logger);
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
-        final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(CONNECTION_ID,
-                CONNECTION.getConnectionType(),
-                payloadMappingDefinition,
-                actorSystem,
-                connectivityConfig,
-                protocolAdapter,
-                logger);
-        final OutboundMappingProcessor outboundMappingProcessor = OutboundMappingProcessor.of(CONNECTION,
-                actorSystem,
-                connectivityConfig,
-                protocolAdapter,
-                logger);
+        final var connection = CONNECTION.toBuilder().payloadMappingDefinition(payloadMappingDefinition).build();
+        final var connectionContext = DittoConnectionContext.of(connection, connectivityConfig);
+        final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(connectionContext,
+                actorSystem, protocolAdapter, logger);
+        final OutboundMappingProcessor outboundMappingProcessor = OutboundMappingProcessor.of(connectionContext,
+                actorSystem, protocolAdapter, logger);
         final Props props = OutboundMappingProcessorActor.props(clientActor, outboundMappingProcessor, CONNECTION, 43);
         final ActorRef outboundProcessorActor = actorSystem.actorOf(props,
                 OutboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());

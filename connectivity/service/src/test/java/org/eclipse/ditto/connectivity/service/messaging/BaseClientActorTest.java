@@ -625,7 +625,7 @@ public final class BaseClientActorTest {
                 final ActorRef publisherActor,
                 final BaseClientActor delegate) {
 
-            super(connection, proxyActor, connectionActor);
+            super(connection, proxyActor, connectionActor, DittoHeaders.empty());
             this.publisherActor = publisherActor;
             this.delegate = delegate;
         }
