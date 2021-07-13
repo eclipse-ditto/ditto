@@ -64,6 +64,7 @@ public final class Publisher extends AbstractActor {
 
     private final Counter messageCounter = DittoMetrics.counter("pubsub-published-messages");
     private final Counter topicCounter = DittoMetrics.counter("pubsub-published-topics");
+    private final Counter subscribersCounter = DittoMetrics.counter("pubsub-subscribers");
     private final Map<Key<?>, PublisherIndex<Long>> publisherIndexes = new HashMap<>();
 
     private PublisherIndex<Long> publisherIndex = PublisherIndex.empty();
@@ -174,6 +175,7 @@ public final class Publisher extends AbstractActor {
             l.debug("Publishing PublishSignal to subscribers: <{}>",
                     subscribers.stream().map(Pair::first).collect(Collectors.toList()));
         }
+        subscribersCounter.increment(subscribers.size());
         subscribers.forEach(pair -> pair.first().tell(pair.second(), sender));
         return subscribers;
     }
