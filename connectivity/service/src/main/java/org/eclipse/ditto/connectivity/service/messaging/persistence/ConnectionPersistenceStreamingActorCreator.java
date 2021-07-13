@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.api.ConnectionTag;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DefaultPersistenceStreamingActor;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
@@ -38,10 +38,9 @@ public final class ConnectionPersistenceStreamingActorCreator {
     /**
      * Creates Akka configuration object Props for this PersistenceQueriesActor.
      *
-     * @param streamingCacheSize the size of the streaming cache.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final int streamingCacheSize) {
+    public static Props props() {
         return DefaultPersistenceStreamingActor.props(ConnectionTag.class,
                 ConnectionPersistenceStreamingActorCreator::createElement,
                 ConnectionPersistenceStreamingActorCreator::createPidWithSeqNr);
