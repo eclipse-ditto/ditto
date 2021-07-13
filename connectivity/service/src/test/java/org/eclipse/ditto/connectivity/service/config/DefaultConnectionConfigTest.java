@@ -52,7 +52,7 @@ public final class DefaultConnectionConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultConnectionConfig.class,
                 areImmutable(),
-                assumingFields("blockedHostnames", "allowedHostnames")
+                assumingFields("allowedHostnames", "blockedHostnames", "blockedSubnets")
                         .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
                 provided(DefaultSupervisorConfig.class,
                         SnapshotConfig.class,
@@ -91,6 +91,10 @@ public final class DefaultConnectionConfigTest {
         softly.assertThat(underTest.getBlockedHostnames())
                 .as(ConnectionConfig.ConnectionConfigValue.BLOCKED_HOSTNAMES.getConfigPath())
                 .containsExactly("localhost");
+
+        softly.assertThat(underTest.getBlockedSubnets())
+                .as(ConnectionConfig.ConnectionConfigValue.BLOCKED_SUBNETS.getConfigPath())
+                .containsExactly("11.1.0.0/16");
 
         softly.assertThat(underTest.getSupervisorConfig())
                 .as("supervisorConfig")

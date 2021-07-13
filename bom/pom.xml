@@ -57,6 +57,7 @@
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <netty-bom.version>4.1.65.Final</netty-bom.version>
         <cloundevents.version>2.0.0</cloundevents.version>
+        <commons-net.version>3.8.0</commons-net.version>
 
         <slf4j.version>1.7.30</slf4j.version>
         <logback.version>1.2.3</logback.version>
@@ -255,6 +256,12 @@
                 <groupId>io.cloudevents</groupId>
                 <artifactId>cloudevents-http-basic</artifactId>
                 <version>${cloundevents.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-net</groupId>
+                <artifactId>commons-net</artifactId>
+                <version>${commons-net.version}</version>
             </dependency>
 
             <!-- ### Indirect "runtime" dependencies we want to pin to a common version -->

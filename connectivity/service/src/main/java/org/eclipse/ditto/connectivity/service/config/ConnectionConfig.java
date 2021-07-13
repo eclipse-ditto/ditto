@@ -58,6 +58,11 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     Collection<String> getBlockedHostnames();
 
     /**
+     * @return the list of blocked subnets to which outgoing connections are prevented.
+     */
+    Collection<String> getBlockedSubnets();
+
+    /**
      * Returns the config of the connection snapshotting behaviour.
      *
      * @return the config.
@@ -173,6 +178,11 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
          * A comma separated list of blocked hostnames to which no http requests will be sent out.
          */
         BLOCKED_HOSTNAMES("blocked-hostnames", ""),
+
+        /**
+         * A comma separated list of blocked subnets to which no http requests will be sent out.
+         */
+        BLOCKED_SUBNETS("blocked-subnets", ""),
 
         /**
          * The limitation number of sources within a connection.

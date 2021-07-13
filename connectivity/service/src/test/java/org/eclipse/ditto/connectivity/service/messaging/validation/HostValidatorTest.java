@@ -48,6 +48,7 @@ public class HostValidatorTest {
         loggingAdapter = mock(LoggingAdapter.class);
 
         when(connectionConfig.getBlockedHostnames()).thenReturn(List.of("localhost"));
+        when(connectionConfig.getBlockedSubnets()).thenReturn(List.of("11.1.0.0/16","169.254.0.0/16"));
     }
 
     @Test
@@ -56,7 +57,7 @@ public class HostValidatorTest {
         final HostValidator underTest =
                 getHostValidatorWithAllowlist("0.0.0.0", "8.8.8.8", "[::1]", "192.168.0.1", "224.0.1.1");
 
-        // check if allowlist works for fixed (not configured) blocked ips
+        // check if allow-list works for fixed (not configured) blocked ips
         assertValid(underTest.validateHost("0.0.0.0"));
         assertValid(underTest.validateHost("8.8.8.8"));
         assertValid(underTest.validateHost("[::1]"));
@@ -68,7 +69,9 @@ public class HostValidatorTest {
     public void expectValidationFailsForInvalidHost() {
         final HostValidator underTest = getHostValidatorWithAllowlist();
         final HostValidationResult validationResult = underTest.validateHost("ditto");
+
         assertThat(validationResult).extracting(HostValidationResult::isValid).isEqualTo(false);
+
         final ConnectionConfigurationInvalidException exception = validationResult.toException(DITTO_HEADERS);
         assertThat(exception.getDittoHeaders()).isEqualTo(DITTO_HEADERS);
         assertThat(exception.getMessage()).contains("The configured host 'ditto' is invalid");
@@ -80,6 +83,7 @@ public class HostValidatorTest {
         final HostValidator underTest =
                 getHostValidatorWithCustomResolver(HostValidatorTest::resolveHost, eclipseOrg);
         final HostValidationResult validationResult = underTest.validateHost(eclipseOrg);
+
         assertThat(validationResult.isValid()).isTrue();
     }
 
@@ -87,6 +91,7 @@ public class HostValidatorTest {
     public void expectConfiguredBlockedHostIsBlocked() {
         final HostValidator underTest = getHostValidatorWithCustomResolver(HostValidatorTest::resolveHost);
         final HostValidationResult validationResult = underTest.validateHost("eclipse.org");
+
         assertThat(validationResult.isValid()).isFalse();
         assertThat(validationResult.toException(DITTO_HEADERS).getDittoHeaders()).isEqualTo(DITTO_HEADERS);
     }
@@ -96,7 +101,7 @@ public class HostValidatorTest {
         // test if a host that resolves to blocked address (hardcoded e.g. loopback, not configured) is blocked
         final String theHost = "eclipse.org";
 
-        // required because empty blocklist disables verification
+        // required because empty block-list disables verification
         when(connectionConfig.getBlockedHostnames()).thenReturn(List.of("dummy.org"));
 
         // eclipse.org resolves to loopback which is blocked
@@ -106,7 +111,18 @@ public class HostValidatorTest {
         final HostValidator underTest = getHostValidatorWithCustomResolver(resolveToLoopback);
 
         final HostValidationResult validationResult = underTest.validateHost(theHost);
+
         assertThat(validationResult.isValid()).isFalse();
+    }
+
+    @Test
+    public void expectIpsInBlockedSubnetsAreBlocked() {
+        final HostValidator underTest = getHostValidatorWithAllowlist();
+
+        assertThat(underTest.validateHost("11.1.0.1").isValid()).isFalse();
+        assertThat(underTest.validateHost("11.1.255.254").isValid()).isFalse();
+        assertThat(underTest.validateHost("169.254.0.1").isValid()).isFalse();
+        assertThat(underTest.validateHost("169.254.255.254").isValid()).isFalse();
     }
 
     private static InetAddress[] resolveHost(final String host, byte... address) throws UnknownHostException {
@@ -134,4 +150,5 @@ public class HostValidatorTest {
     private void assertValid(final HostValidationResult result) {
         assertThat(result.isValid()).isTrue();
     }
+
 }
