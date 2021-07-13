@@ -410,7 +410,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     private DittoHeaders getAnnouncementHeaders() {
         final DittoHeadersBuilder<?, ?> builder = DittoHeaders.newBuilder().randomCorrelationId();
         subject.getAnnouncement().ifPresent(subjectAnnouncement -> {
-            builder.acknowledgementRequests(subjectAnnouncement.getRequestedAcksBeforeExpiry());
+            builder.acknowledgementRequests(subjectAnnouncement.getRequestedAcksLabels());
             subjectAnnouncement.getRequestedAcksTimeout().ifPresent(builder::timeout);
         });
         return builder.build();

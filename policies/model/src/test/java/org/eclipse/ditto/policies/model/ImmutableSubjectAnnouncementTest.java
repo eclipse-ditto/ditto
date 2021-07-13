@@ -45,7 +45,7 @@ public final class ImmutableSubjectAnnouncementTest {
     static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(SubjectAnnouncement.JsonFields.BEFORE_EXPIRY, BEFORE_EXPIRY_STRING)
             .set(SubjectAnnouncement.JsonFields.WHEN_DELETED, true)
-            .set(SubjectAnnouncement.JsonFields.REQUESTED_ACKS_BEFORE_EXPIRY, REQUESTED_ACKS)
+            .set(SubjectAnnouncement.JsonFields.REQUESTED_ACKS_LABELS, REQUESTED_ACKS)
             .set(SubjectAnnouncement.JsonFields.REQUESTED_ACKS_TIMEOUT, ACKS_TIMEOUT.toString())
             .build();
 
