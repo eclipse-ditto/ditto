@@ -942,12 +942,18 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final var captor = ArgumentCaptor.forClass(SubjectDeletionAnnouncement.class);
                 verify(policyAnnouncementPub, timeout(5000).times(2))
                         .publishWithAcks(captor.capture(), any(), any());
-                final SubjectDeletionAnnouncement announcement1 = captor.getAllValues().get(0);
-                final SubjectDeletionAnnouncement announcement2 = captor.getAllValues().get(1);
-                Assertions.assertThat(announcement1.getSubjectIds()).containsExactly(subject1.getId());
-                Assertions.assertThat(announcement1.getDeleteAt()).isAfterOrEqualTo(subjectExpiry1.getTimestamp());
-                Assertions.assertThat(announcement2.getSubjectIds()).containsExactly(subject2.getId());
-                Assertions.assertThat(announcement2.getDeleteAt()).isAfterOrEqualTo(subjectExpiry2.getTimestamp());
+                for (final var announcement : captor.getAllValues()) {
+                    if (announcement.getSubjectIds().contains(subject1.getId())) {
+                        Assertions.assertThat(announcement.getDeleteAt())
+                                .isAfterOrEqualTo(subjectExpiry1.getTimestamp());
+                    } else if (announcement.getSubjectIds().contains(subject2.getId())) {
+                        Assertions.assertThat(announcement.getDeleteAt())
+                                .isAfterOrEqualTo(subjectExpiry2.getTimestamp());
+                    } else {
+                        throw new AssertionError("Expect subject deletion announcement for subject1 " +
+                                "or subject2, got: " + announcement);
+                    }
+                }
 
                 // THEN: announcements are published no more than once while the actor is alive.
                 verifyNoMoreInteractions(policyAnnouncementPub);
