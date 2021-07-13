@@ -18,6 +18,7 @@ import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
@@ -28,6 +29,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Enforcement;
@@ -36,6 +38,7 @@ import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.config.KafkaConsumerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -49,7 +52,6 @@ import akka.kafka.Subscriptions;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.RunnableGraph;
 import akka.stream.javadsl.Sink;
 import scala.util.Either;
 
@@ -144,9 +146,10 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
     private final class KafkaConsumerStream {
 
-        private final RunnableGraph<Consumer.Control> runnableKafkaStream;
+        private final akka.stream.javadsl.Source<Either<ExternalMessage, DittoRuntimeException>, Consumer.Control>
+                runnableKafkaStream;
         private final Materializer materializer;
-        @Nullable private Consumer.Control kafkaStream;
+        @Nullable private Consumer.Control consumerControl;
 
         private KafkaConsumerStream(
                 final KafkaConsumerConfig kafkaConfig,
@@ -164,8 +167,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                     .filter(this::isNotExpired)
                     .map(kafkaMessageTransformer::transform)
                     .divertTo(this.externalMessageSink(), this::isExternalMessage)
-                    .divertTo(this.dittoRuntimeExceptionSink(), this::isDittoRuntimeException)
-                    .to(this.unexpectedMessageSink());
+                    .divertTo(this.dittoRuntimeExceptionSink(), this::isDittoRuntimeException);
         }
 
         private Sink<Either<ExternalMessage, DittoRuntimeException>, ?> externalMessageSink() {
@@ -240,7 +242,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             forwardToMappingActor(value);
         }
 
-        private Sink<Either<ExternalMessage, DittoRuntimeException>, ?> unexpectedMessageSink() {
+        private Sink<Either<ExternalMessage, DittoRuntimeException>, CompletionStage<Done>> unexpectedMessageSink() {
             return Sink.foreach(either -> inboundMonitor.exception(
                     "Got unexpected transformation result <{0}>. This is an internal error. " +
                             "Please contact the service team.", either
@@ -248,11 +250,16 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         }
 
         private void start() throws IllegalStateException {
-            if (kafkaStream != null) {
+            if (consumerControl != null) {
                 stop();
             }
-            kafkaStream = runnableKafkaStream.run(materializer);
-            kafkaStream.isShutdown().whenComplete(this::handleStreamCompletion);
+            runnableKafkaStream
+                    .mapMaterializedValue(cc -> {
+                        consumerControl = cc;
+                        return cc;
+                    })
+                    .runWith(unexpectedMessageSink(), materializer)
+                    .whenComplete(this::handleStreamCompletion);
         }
 
         private void handleStreamCompletion(@Nullable final Done done, @Nullable final Throwable throwable) {
@@ -260,13 +267,15 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             if (null == throwable) {
                 status = ConnectivityStatus.CLOSED;
             } else {
+                log.debug("Consumer failed with error! {}", throwable.getMessage());
                 status = ConnectivityStatus.FAILED;
-                if (throwable instanceof DittoRuntimeException) {
-                    forwardDittoRuntimeException((DittoRuntimeException) throwable);
-                } else {
-                    inboundMonitor.exception("Got unexpected error on stream completion <{0}>." +
-                            "This is an internal error. Please contact the service team", throwable);
-                }
+                final ConnectivityInternalErrorException exception = ConnectivityInternalErrorException.newBuilder()
+                        .cause(throwable)
+                        .message(throwable.getMessage())
+                        .description("Unexpected consumer failure.")
+                        .build();
+                inboundMonitor.exception(exception);
+                escalate(exception);
             }
             final ResourceStatus statusUpdate = ConnectivityModelFactory.newStatusUpdate(
                     InstanceIdentifierSupplier.getInstance().get(),
@@ -276,11 +285,17 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             handleAddressStatus(statusUpdate);
         }
 
+        private void escalate(final DittoRuntimeException dittoRuntimeException) {
+            final ActorRef self = getContext().getSelf();
+            getContext().getParent()
+                    .tell(new ImmutableConnectionFailure(self, dittoRuntimeException, null), self);
+        }
+
         private void stop() {
-            if (kafkaStream != null) {
+            if (consumerControl != null) {
                 // TODO use drainAndShutdown?
-                kafkaStream.shutdown();
-                kafkaStream = null;
+                consumerControl.shutdown();
+                consumerControl = null;
             }
         }
 
