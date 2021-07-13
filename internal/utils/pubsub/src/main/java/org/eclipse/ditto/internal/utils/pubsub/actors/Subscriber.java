@@ -62,6 +62,7 @@ public final class Subscriber<T extends SignalWithEntityId<?>> extends AbstractA
 
     private final Counter truePositiveCounter = DittoMetrics.counter("pubsub-true-positive");
     private final Counter falsePositiveCounter = DittoMetrics.counter("pubsub-false-positive");
+    private final Counter receivedMessagesCounter = DittoMetrics.counter("pubsub-received-messages");
     private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private PublisherIndex<String> publisherIndex = PublisherIndex.empty();
@@ -132,6 +133,7 @@ public final class Subscriber<T extends SignalWithEntityId<?>> extends AbstractA
     }
 
     private void broadcastToLocalSubscribers(final PublishSignal command) {
+        receivedMessagesCounter.increment();
         final T message = messageClass.cast(command.getSignal());
         final Collection<String> topics = topicExtractor.getTopics(message);
         final Set<ActorRef> localSubscribers =
