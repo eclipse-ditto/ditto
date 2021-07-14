@@ -51,6 +51,7 @@ public class HostValidatorTest {
 
         when(connectionConfig.getBlockedHostnames()).thenReturn(List.of("localhost"));
         when(connectionConfig.getBlockedSubnets()).thenReturn(List.of("11.1.0.0/16","169.254.0.0/16"));
+        when(connectionConfig.getBlockedHostRegex()).thenReturn("");
     }
 
     @Test
