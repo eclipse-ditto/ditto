@@ -24,8 +24,10 @@ import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -36,7 +38,6 @@ import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.thingsearch.service.common.config.StreamCacheConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.EnforcedThingMapper;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
@@ -49,8 +50,8 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.actor.Scheduler;
 import akka.dispatch.MessageDispatcher;
-import akka.pattern.Patterns;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
@@ -65,21 +66,27 @@ final class EnforcementFlow {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final ActorRef thingsShardRegion;
     private final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache;
-    private final Duration thingsTimeout;
+    private final AskWithRetryConfig askWithRetryConfig;
     private final Duration cacheRetryDelay;
     private final int maxArraySize;
+    private final MessageDispatcher cacheDispatcher;
+    private final Scheduler scheduler;
 
     private EnforcementFlow(final ActorRef thingsShardRegion,
             final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
-            final Duration thingsTimeout,
+            final AskWithRetryConfig askWithRetryConfig,
             final Duration cacheRetryDelay,
-            final int maxArraySize) {
+            final int maxArraySize,
+            final MessageDispatcher cacheDispatcher,
+            final Scheduler scheduler) {
 
         this.thingsShardRegion = thingsShardRegion;
         this.policyEnforcerCache = policyEnforcerCache;
-        this.thingsTimeout = thingsTimeout;
+        this.askWithRetryConfig = askWithRetryConfig;
         this.cacheRetryDelay = cacheRetryDelay;
         this.maxArraySize = maxArraySize;
+        this.cacheDispatcher = cacheDispatcher;
+        this.scheduler = scheduler;
     }
 
     /**
@@ -89,25 +96,27 @@ final class EnforcementFlow {
      * @param thingsShardRegion the shard region to retrieve things from.
      * @param policiesShardRegion the shard region to retrieve policies from.
      * @param cacheDispatcher dispatcher for the enforcer cache.
+     * @param scheduler the scheduler to use for retrying timed out asks for the policy enforcer cache loader.
      * @return an EnforcementFlow object.
      */
     public static EnforcementFlow of(final StreamConfig updaterStreamConfig,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
-            final MessageDispatcher cacheDispatcher) {
+            final MessageDispatcher cacheDispatcher,
+            final Scheduler scheduler) {
 
-        final Duration askTimeout = updaterStreamConfig.getAskTimeout();
-        final StreamCacheConfig streamCacheConfig = updaterStreamConfig.getCacheConfig();
+        final var askWithRetryConfig = updaterStreamConfig.getAskWithRetryConfig();
+        final var streamCacheConfig = updaterStreamConfig.getCacheConfig();
 
         final AsyncCacheLoader<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
-                new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
+                new PolicyEnforcerCacheLoader(askWithRetryConfig, scheduler, policiesShardRegion);
         final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, streamCacheConfig,
-                        EnforcementFlow.class.getCanonicalName() + ".cache", cacheDispatcher)
+                        "things-search_enforcementflow_enforcer_cache_policy", cacheDispatcher)
                         .projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
 
-        return new EnforcementFlow(thingsShardRegion, policyEnforcerCache, askTimeout,
-                streamCacheConfig.getRetryDelay(), updaterStreamConfig.getMaxArraySize());
+        return new EnforcementFlow(thingsShardRegion, policyEnforcerCache, askWithRetryConfig,
+                streamCacheConfig.getRetryDelay(), updaterStreamConfig.getMaxArraySize(), cacheDispatcher, scheduler);
     }
 
     private static CacheKey getPolicyCacheKey(final PolicyId policyId) {
@@ -189,20 +198,16 @@ final class EnforcementFlow {
     }
 
     private Source<SudoRetrieveThingResponse, NotUsed> sudoRetrieveThing(final Map.Entry<ThingId, Metadata> entry) {
-        final ThingId thingId = entry.getKey();
+        final var thingId = entry.getKey();
         ConsistencyLag.startS3RetrieveThing(entry.getValue());
-        final SudoRetrieveThing command =
-                SudoRetrieveThing.withOriginalSchemaVersion(thingId, DittoHeaders.empty());
+        final var command = SudoRetrieveThing.withOriginalSchemaVersion(thingId, DittoHeaders.empty());
         final CompletionStage<Source<SudoRetrieveThingResponse, NotUsed>> responseFuture =
-                // using default thread-pool for asking Things shard region
-                Patterns.ask(thingsShardRegion, command, thingsTimeout)
-                        .handle((response, error) -> {
+                AskWithRetry.askWithRetry(thingsShardRegion, command, askWithRetryConfig, scheduler, cacheDispatcher,
+                        response -> {
                             if (response instanceof SudoRetrieveThingResponse) {
                                 return Source.single((SudoRetrieveThingResponse) response);
                             } else {
-                                if (error != null) {
-                                    log.error("Failed command <{}>", command, error);
-                                } else if (!(response instanceof ThingNotAccessibleException)) {
+                                if (!(response instanceof ThingNotAccessibleException)) {
                                     log.error("Unexpected response for <{}>: <{}>", command, response);
                                 }
                                 return Source.empty();

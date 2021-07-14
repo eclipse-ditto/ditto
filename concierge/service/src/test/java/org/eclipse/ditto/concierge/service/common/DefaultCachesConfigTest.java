@@ -19,6 +19,7 @@ import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -59,18 +60,18 @@ public final class DefaultCachesConfigTest {
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultCachesConfig underTest = DefaultCachesConfig.of(ConfigFactory.empty());
 
-        softly.assertThat(underTest.getAskTimeout())
+        softly.assertThat(underTest.getAskWithRetryConfig().getAskTimeout())
                 .as("getAskTimeout")
-                .isEqualTo(CachesConfig.CachesConfigValue.ASK_TIMEOUT.getDefaultValue());
+                .isEqualTo(AskWithRetryConfig.AskWithRetryConfigValue.ASK_TIMEOUT.getDefaultValue());
     }
 
     @Test
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultCachesConfig underTest = DefaultCachesConfig.of(cachesTestConf);
 
-        softly.assertThat(underTest.getAskTimeout())
-                .as(CachesConfig.CachesConfigValue.ASK_TIMEOUT.getConfigPath())
-                .isEqualTo(Duration.ofSeconds(30L));
+        softly.assertThat(underTest.getAskWithRetryConfig().getAskTimeout())
+                .as(AskWithRetryConfig.AskWithRetryConfigValue.ASK_TIMEOUT.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(34L));
 
         softly.assertThat(underTest.getEnforcerCacheConfig())
                 .as("enforcerCacheConfig")

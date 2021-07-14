@@ -17,11 +17,11 @@ import java.time.Duration;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.concierge.service.common.ConciergeConfig;
 import org.eclipse.ditto.concierge.service.common.DittoConciergeConfig;
 import org.eclipse.ditto.concierge.service.common.EnforcementConfig;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
@@ -33,8 +33,8 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
@@ -57,10 +57,8 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
 
     private final EnforcementConfig enforcementConfig;
 
-    @Nullable
-    private final Cache<CacheKey, Entry<CacheKey>> thingIdCache;
-    @Nullable
-    private final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache;
+    @Nullable private final Cache<CacheKey, Entry<CacheKey>> thingIdCache;
+    @Nullable private final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache;
 
 
     /**
@@ -86,9 +84,9 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         this.thingIdCache = thingIdCache;
         this.policyEnforcerCache = policyEnforcerCache;
 
-        contextual = Contextual.forActor(getSelf(), getContext().getSystem().deadLetters(),
-                pubSubMediator, conciergeForwarder, enforcementConfig.getAskTimeout(), logger,
-                createResponseReceiverCache(conciergeConfig)
+        contextual = Contextual.forActor(getSelf(), getContext().getSystem(),
+                pubSubMediator, conciergeForwarder, enforcementConfig.getAskWithRetryConfig(),
+                logger, createResponseReceiverCache(conciergeConfig)
         );
 
         // register for sending messages via pub/sub to this enforcer
@@ -104,7 +102,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         receiveBuilder
                 .match(PolicyTag.class, policyTag -> {
                     logger.debug("Received <{}> -> Invalidating caches...", policyTag);
-                    final CacheKey entityId = CacheKey.of(policyTag.getEntityId());
+                    final var entityId = CacheKey.of(policyTag.getEntityId());
                     invalidateCaches(entityId);
                 })
                 .match(InvalidateCacheEntry.class, invalidateCacheEntry -> {

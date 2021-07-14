@@ -12,32 +12,34 @@
  */
 package org.eclipse.ditto.concierge.service.enforcement.placeholders.references;
 
-import java.time.Duration;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.akka.logging.AutoCloseableSlf4jLogger;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayPlaceholderReferenceNotSupportedException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayPlaceholderReferenceUnknownFieldException;
+import org.eclipse.ditto.internal.utils.akka.logging.AutoCloseableSlf4jLogger;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 
 import akka.actor.ActorRef;
-import akka.pattern.Patterns;
+import akka.actor.Scheduler;
 
 /**
  * Responsible for resolving a policy id of a referenced entity.
@@ -47,16 +49,20 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(PolicyIdReferencePlaceholderResolver.class);
 
-    private final Duration retrieveEntityTimeoutDuration;
     private final ActorRef conciergeForwarderActor;
+    private final AskWithRetryConfig askWithRetryConfig;
+    private final Scheduler scheduler;
+    private final Executor executor;
     private final Map<ReferencePlaceholder.ReferencedEntityType, ResolveEntityReferenceStrategy>
             supportedEntityTypesToActionMap = new EnumMap<>(ReferencePlaceholder.ReferencedEntityType.class);
     private final Set<CharSequence> supportedEntityTypeNames;
 
     private PolicyIdReferencePlaceholderResolver(final ActorRef conciergeForwarderActor,
-            final Duration retrieveEntityTimeoutDuration) {
+            final AskWithRetryConfig askWithRetryConfig, final Scheduler scheduler, final Executor executor) {
         this.conciergeForwarderActor = conciergeForwarderActor;
-        this.retrieveEntityTimeoutDuration = retrieveEntityTimeoutDuration;
+        this.askWithRetryConfig = askWithRetryConfig;
+        this.scheduler = scheduler;
+        this.executor = executor;
         initializeSupportedEntityTypeReferences();
         this.supportedEntityTypeNames =
                 this.supportedEntityTypesToActionMap.keySet().stream().map(Enum::name).collect(Collectors.toSet());
@@ -79,7 +85,7 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
     public CompletionStage<String> resolve(final ReferencePlaceholder referencePlaceholder,
             final DittoHeaders dittoHeaders) {
 
-        final ResolveEntityReferenceStrategy resolveEntityReferenceStrategy =
+        final var resolveEntityReferenceStrategy =
                 supportedEntityTypesToActionMap.get(referencePlaceholder.getReferencedEntityType());
 
         try (final AutoCloseableSlf4jLogger logger = LOGGER.setCorrelationId(dittoHeaders)) {
@@ -97,13 +103,15 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
     private CompletionStage<String> handlePolicyIdReference(final ReferencePlaceholder referencePlaceholder,
             final DittoHeaders dittoHeaders) {
 
-        final ThingId thingId = ThingId.of(referencePlaceholder.getReferencedEntityId());
-        final RetrieveThing retrieveThingCommand = RetrieveThing.getBuilder(thingId, dittoHeaders)
+        final var thingId = ThingId.of(referencePlaceholder.getReferencedEntityId());
+        final var retrieveThingCommand = RetrieveThing.getBuilder(thingId, dittoHeaders)
                 .withSelectedFields(referencePlaceholder.getReferencedField().toFieldSelector())
                 .build();
 
-        return Patterns.ask(conciergeForwarderActor, retrieveThingCommand, retrieveEntityTimeoutDuration)
-                .thenApply(response -> handleRetrieveThingResponse(response, referencePlaceholder, dittoHeaders));
+        return AskWithRetry.askWithRetry(conciergeForwarderActor, retrieveThingCommand, askWithRetryConfig, scheduler,
+                executor,
+                response -> handleRetrieveThingResponse(response, referencePlaceholder, dittoHeaders)
+        );
     }
 
     private static String handleRetrieveThingResponse(final Object response,
@@ -160,10 +168,22 @@ public final class PolicyIdReferencePlaceholderResolver implements ReferencePlac
                 .build();
     }
 
+    /**
+     * Creates a new {@link PolicyIdReferencePlaceholderResolver} responsible for resolving a policy id of a referenced
+     * entity.
+     *
+     * @param conciergeForwarderActor the ActorRef of the {@code ConciergeForwarderActor} which to ask for "retrieve"
+     * commands.
+     * @param askWithRetryConfig the configuration for the "ask with retry" pattern applied when asking for retrieves.
+     * @param scheduler the scheduler to use for the "ask with retry" for retries.
+     * @param executor the executor to use for the "ask with retry" for retries.
+     * @return the created PolicyIdReferencePlaceholderResolver instance.
+     */
     public static PolicyIdReferencePlaceholderResolver of(final ActorRef conciergeForwarderActor,
-            final Duration retrieveEntityTimeoutDuration) {
+            final AskWithRetryConfig askWithRetryConfig, final Scheduler scheduler, final Executor executor) {
 
-        return new PolicyIdReferencePlaceholderResolver(conciergeForwarderActor, retrieveEntityTimeoutDuration);
+        return new PolicyIdReferencePlaceholderResolver(conciergeForwarderActor, askWithRetryConfig, scheduler,
+                executor);
     }
 
     interface ResolveEntityReferenceStrategy {
