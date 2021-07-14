@@ -96,6 +96,10 @@ public final class DefaultConnectionConfigTest {
                 .as(ConnectionConfig.ConnectionConfigValue.BLOCKED_SUBNETS.getConfigPath())
                 .containsExactly("11.1.0.0/16");
 
+        softly.assertThat(underTest.getBlockedHostRegex())
+                .as(ConnectionConfig.ConnectionConfigValue.BLOCKED_HOST_REGEX.getConfigPath())
+                .isEqualTo("^.*\\.svc.cluster.local$");
+
         softly.assertThat(underTest.getSupervisorConfig())
                 .as("supervisorConfig")
                 .satisfies(supervisorConfig -> softly.assertThat(supervisorConfig.getExponentialBackOffConfig())

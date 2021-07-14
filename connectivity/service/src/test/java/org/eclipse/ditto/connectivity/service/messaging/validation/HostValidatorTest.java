@@ -14,6 +14,8 @@ package org.eclipse.ditto.connectivity.service.messaging.validation;
 
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -84,7 +86,7 @@ public class HostValidatorTest {
                 getHostValidatorWithCustomResolver(HostValidatorTest::resolveHost, eclipseOrg);
         final HostValidationResult validationResult = underTest.validateHost(eclipseOrg);
 
-        assertThat(validationResult.isValid()).isTrue();
+        assertTrue(validationResult.isValid());
     }
 
     @Test
@@ -92,7 +94,7 @@ public class HostValidatorTest {
         final HostValidator underTest = getHostValidatorWithCustomResolver(HostValidatorTest::resolveHost);
         final HostValidationResult validationResult = underTest.validateHost("eclipse.org");
 
-        assertThat(validationResult.isValid()).isFalse();
+        assertFalse(validationResult.isValid());
         assertThat(validationResult.toException(DITTO_HEADERS).getDittoHeaders()).isEqualTo(DITTO_HEADERS);
     }
 
@@ -112,17 +114,24 @@ public class HostValidatorTest {
 
         final HostValidationResult validationResult = underTest.validateHost(theHost);
 
-        assertThat(validationResult.isValid()).isFalse();
+        assertFalse(validationResult.isValid());
     }
 
     @Test
     public void expectIpsInBlockedSubnetsAreBlocked() {
         final HostValidator underTest = getHostValidatorWithAllowlist();
 
-        assertThat(underTest.validateHost("11.1.0.1").isValid()).isFalse();
-        assertThat(underTest.validateHost("11.1.255.254").isValid()).isFalse();
-        assertThat(underTest.validateHost("169.254.0.1").isValid()).isFalse();
-        assertThat(underTest.validateHost("169.254.255.254").isValid()).isFalse();
+        assertFalse(underTest.validateHost("11.1.0.1").isValid());
+        assertFalse(underTest.validateHost("11.1.255.254").isValid());
+        assertFalse(underTest.validateHost("169.254.0.1").isValid());
+        assertFalse(underTest.validateHost("169.254.255.254").isValid());
+    }
+
+    @Test
+    public void expectKubernetesClusterDNSIsBlocked() {
+        final HostValidator underTest = getHostValidatorWithBlockedRegexPattern();
+
+        assertFalse(underTest.validateHost("gateway.things.svc.cluster.local").isValid());
     }
 
     private static InetAddress[] resolveHost(final String host, byte... address) throws UnknownHostException {
@@ -147,8 +156,13 @@ public class HostValidatorTest {
         return new DefaultHostValidator(connectivityConfig, loggingAdapter, resolver);
     }
 
+    private HostValidator getHostValidatorWithBlockedRegexPattern() {
+        when(connectionConfig.getBlockedHostRegex()).thenReturn("^.*\\.svc.cluster.local$");
+        return new DefaultHostValidator(connectivityConfig, loggingAdapter);
+    }
+
     private void assertValid(final HostValidationResult result) {
-        assertThat(result.isValid()).isTrue();
+        assertTrue(result.isValid());
     }
 
 }

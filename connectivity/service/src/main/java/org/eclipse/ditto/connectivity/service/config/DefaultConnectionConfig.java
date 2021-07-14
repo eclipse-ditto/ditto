@@ -43,6 +43,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final Collection<String> allowedHostnames;
     private final Collection<String> blockedHostnames;
     private final Collection<String> blockedSubnets;
+    private final String blockedHostRegex;
     private final SupervisorConfig supervisorConfig;
     private final SnapshotConfig snapshotConfig;
     private final DefaultAcknowledgementConfig acknowledgementConfig;
@@ -66,6 +67,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         allowedHostnames = fromCommaSeparatedString(config, ConnectionConfigValue.ALLOWED_HOSTNAMES);
         blockedHostnames = fromCommaSeparatedString(config, ConnectionConfigValue.BLOCKED_HOSTNAMES);
         blockedSubnets = fromCommaSeparatedString(config, ConnectionConfigValue.BLOCKED_SUBNETS);
+        blockedHostRegex = config.getString(ConnectionConfigValue.BLOCKED_HOST_REGEX.getConfigPath());
         supervisorConfig = DefaultSupervisorConfig.of(config);
         snapshotConfig = DefaultSnapshotConfig.of(config);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(config);
@@ -127,6 +129,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     @Override
     public Collection<String> getBlockedSubnets() {
         return blockedSubnets;
+    }
+
+    @Override
+    public String getBlockedHostRegex() {
+        return blockedHostRegex;
     }
 
     @Override
@@ -213,6 +220,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(allowedHostnames, that.allowedHostnames) &&
                 Objects.equals(blockedHostnames, that.blockedHostnames) &&
                 Objects.equals(blockedSubnets, that.blockedSubnets) &&
+                Objects.equals(blockedHostRegex, that.blockedHostRegex) &&
                 Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
                 Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
@@ -232,9 +240,10 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     @Override
     public int hashCode() {
         return Objects.hash(clientActorAskTimeout, clientActorRestartsBeforeEscalation, allowedHostnames,
-                blockedHostnames, blockedSubnets, supervisorConfig, snapshotConfig, acknowledgementConfig, maxNumberOfTargets,
-                maxNumberOfSources, activityCheckConfig, amqp10Config, amqp091Config, mqttConfig, kafkaConfig,
-                httpPushConfig, ackLabelDeclareInterval, priorityUpdateInterval, allClientActorsOnOneNode);
+                blockedHostnames, blockedSubnets, blockedHostRegex, supervisorConfig, snapshotConfig,
+                acknowledgementConfig, maxNumberOfTargets, maxNumberOfSources, activityCheckConfig, amqp10Config,
+                amqp091Config, mqttConfig, kafkaConfig, httpPushConfig, ackLabelDeclareInterval, priorityUpdateInterval,
+                allClientActorsOnOneNode);
     }
 
     @Override
@@ -245,6 +254,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", allowedHostnames=" + allowedHostnames +
                 ", blockedHostnames=" + blockedHostnames +
                 ", blockedSubnets=" + blockedSubnets +
+                ", blockedHostRegex=" + blockedHostRegex +
                 ", supervisorConfig=" + supervisorConfig +
                 ", snapshotConfig=" + snapshotConfig +
                 ", acknowledgementConfig=" + acknowledgementConfig +
