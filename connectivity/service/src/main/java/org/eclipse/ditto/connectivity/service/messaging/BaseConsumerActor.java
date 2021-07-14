@@ -244,7 +244,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
     protected DittoHeaders enrichHeadersWithReplyInformation(final DittoHeaders headers) {
         return source.getReplyTarget()
-                .map(replyTarget -> headers.toBuilder()
+                .<DittoHeaders>map(replyTarget -> headers.toBuilder()
                         .replyTarget(source.getIndex())
                         .expectedResponseTypes(replyTarget.getExpectedResponseTypes())
                         .build())
