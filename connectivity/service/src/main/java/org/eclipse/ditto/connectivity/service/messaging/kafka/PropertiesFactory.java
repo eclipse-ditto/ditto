@@ -22,7 +22,6 @@ import java.util.Map;
 
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -48,6 +47,7 @@ final class PropertiesFactory {
     static {
         final List<KafkaSpecificConfig> consumerSpecificConfigs = new ArrayList<>(COMMON_SPECIFIC_CONFIGS);
         consumerSpecificConfigs.add(KafkaConsumerGroupSpecificConfig.getInstance());
+        consumerSpecificConfigs.add(KafkaConsumerOffsetResetSpecificConfig.getInstance());
         CONSUMER_SPECIFIC_CONFIGS = List.copyOf(consumerSpecificConfigs);
         PRODUCER_SPECIFIC_CONFIGS = List.copyOf(COMMON_SPECIFIC_CONFIGS);
     }
