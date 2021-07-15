@@ -75,6 +75,40 @@ When providing an `"expiry"` for a Policy subject, this timestamp is rounded up:
 Once an expired subject is deleted, it will immediately no longer have access to the resources protected by the policy
 it was deleted from.
 
+### Subject Deletion Announcements
+
+To get notified when your subject is deleted, set the `announcement` field in your subject.
+```json
+{
+  "type": "my-subject",
+  "expiry": "2099-12-31T23:59:59Z",
+  "announcement": {
+    "beforeExpiry": "1h",
+    "whenDeleted": true,
+    "requestedAcks": {
+      "labels": ["my-announcement-receiver"],
+      "timeout": "10s"
+    }
+  }
+}
+```
+
+Here are the meanings of the fields of `announcement`.
+- `beforeExpiry`: The duration before expiration of the subject when a
+  [subject deletion announcement](protocol-examples-policies-announcement-subjectDeletion.html)
+  is published if no previous subject deletion announcement was acknowledged.
+- `whenDeleted`: Whether a
+  [subject deletion announcement](protocol-examples-policies-announcement-subjectDeletion.html)
+  is published if no previous subject deletion announcement was acknowledged.
+- `requestedAcks`: Settings for at-least-once delivery of announcements via
+  [acknowledgements](basic-acknowledgements.html).
+  - `labels`: Declared acknowledgement labels of the websocket or connectivity channel from which the acknowledgement
+    is expected.
+  - `timeout`: How long to wait for acknowledgements before retrying the publication of announcements.
+
+The subject deletion announcements are published to any websocket or connection that has subscribed for policy
+announcements and has the relevant subject ID in its authorization context.
+
 ## Actions
 
 Policy actions are available via Ditto's [HTTP API](httpapi-overview.html) and can be invoked for certain 

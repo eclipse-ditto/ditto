@@ -33,7 +33,7 @@ Announcement indicating that the connection is being opened.
 | **path**  | `/`     |
 | **value** |  `JsonObject` containing<br/>* `openedAt` timestamp (as ISO-8601 `string`)|
 
-**Example:** [Announcement for subject deletion](protocol-examples-connections-announcement-opened.html)
+**Example:** [Announcement for connection opened](protocol-examples-connections-announcement-opened.html)
 
 ### ConnectionClosedAnnouncement
 
@@ -45,4 +45,4 @@ Announcement indicating that the connection is being closed gracefully.
 | **path**  | `/`     |
 | **value** |  `JsonObject` containing<br/>* `closedAt` timestamp (as ISO-8601 `string`)|
 
-**Example:** [Announcement for subject deletion](protocol-examples-connections-announcement-closed.html)
+**Example:** [Announcement for connection closed](protocol-examples-connections-announcement-closed.html)

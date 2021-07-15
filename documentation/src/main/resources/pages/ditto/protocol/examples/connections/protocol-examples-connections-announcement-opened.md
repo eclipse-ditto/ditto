@@ -1,5 +1,5 @@
 ---
-title: ConnectionClosedAnnouncement
+title: ConnectionOpenedAnnouncement
 keywords: examples, connection, connectivity, announcement, opened
 search: exclude
 permalink: protocol-examples-connections-announcement-opened.html

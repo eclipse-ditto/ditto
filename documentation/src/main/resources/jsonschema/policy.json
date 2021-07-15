@@ -36,6 +36,26 @@
                     "type": "string",
                     "description": "The optional expiry timestamp (formatted in ISO-8601) indicates how long this subject should be considered before it is automatically deleted from the Policy.",
                     "format": "date-time"
+                  },
+                  "requestedAcks": {
+                    "title": "RequestedAcks",
+                    "type": "object",
+                    "description": "Settings to enable at-least-once delivery for policy announcements.",
+                    "properties": {
+                      "labels": {
+                        "type": "array",
+                        "description": "Acknowledgement labels to request when an announcement is published.",
+                        "items": {
+                          "type": "string"
+                        },
+                        "example": ["my-connection:my-issued-acknowledgement"]
+                      },
+                      "timeout": {
+                        "type": "string",
+                        "description": "How long to wait for requested announcements before retrying publication of an announcement.",
+                        "example": "60s"
+                      }
+                    }
                   }
                 },
                 "required": [
@@ -76,19 +96,22 @@
                   }
                 },
                 "required": [
-                  "grant", "revoke"
+                  "grant",
+                  "revoke"
                 ]
               }
             }
           },
           "required": [
-            "subjects", "resources"
+            "subjects",
+            "resources"
           ]
         }
       }
     }
   },
   "required": [
-    "policyId", "entries"
+    "policyId",
+    "entries"
   ]
 }

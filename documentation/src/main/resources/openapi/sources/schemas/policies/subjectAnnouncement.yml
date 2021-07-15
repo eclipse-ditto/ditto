@@ -19,6 +19,21 @@ properties:
   whenDeleted:
     type: boolean
     description: Whether an announcement should be made when this subject is deleted.
+  requestedAcks:
+    type: object
+    description: Settings to enable at-least-once delivery for policy announcements.
+    properties:
+      labels:
+        type: array
+        description: Acknowledgement labels to request when an announcement is published.
+        items:
+          type: string
+      timeout:
+        type: string
+        description: How long to wait for requested announcements before retrying publication of an announcement.
+    example:
+      labels: ["my-connection-id:my-issued-acknowledgement"]
+      timeout: "5s"
 example:
   beforeExpiry: "5m"
   whenDeleted: true
