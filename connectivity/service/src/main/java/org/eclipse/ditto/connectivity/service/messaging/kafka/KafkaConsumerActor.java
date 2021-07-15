@@ -18,6 +18,7 @@ import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -293,8 +294,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
         private void stop() {
             if (consumerControl != null) {
-                // TODO use drainAndShutdown?
-                consumerControl.shutdown();
+                consumerControl.drainAndShutdown(new CompletableFuture<>(), materializer.executionContext());
                 consumerControl = null;
             }
         }
