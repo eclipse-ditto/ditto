@@ -57,7 +57,10 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     private static final Collection<String> SECURE_SCHEMES = List.of("ssl");
 
     private static final Collection<KafkaSpecificConfig> SPECIFIC_CONFIGS =
-            List.of(KafkaAuthenticationSpecificConfig.getInstance(), KafkaBootstrapServerSpecificConfig.getInstance());
+            List.of(KafkaAuthenticationSpecificConfig.getInstance(),
+                    KafkaBootstrapServerSpecificConfig.getInstance(),
+                    KafkaConsumerGroupSpecificConfig.getInstance(),
+                    KafkaConsumerOffsetResetSpecificConfig.getInstance());
 
     private static final KafkaValidator INSTANCE = new KafkaValidator();
 

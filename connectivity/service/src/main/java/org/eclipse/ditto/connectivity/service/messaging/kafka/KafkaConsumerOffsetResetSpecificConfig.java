@@ -60,7 +60,9 @@ final class KafkaConsumerOffsetResetSpecificConfig implements KafkaSpecificConfi
 
     @Override
     public boolean isValid(final Connection connection) {
-        return getOffsetResetFromSpecificConfig(connection).isPresent();
+        return getOffsetResetValueFromSpecificConfig(connection)
+                .map(s -> OffsetReset.forNameIgnoreCase(s).isPresent())
+                .orElse(true); // If no value configured this config is valid.
     }
 
     @Override
@@ -71,8 +73,12 @@ final class KafkaConsumerOffsetResetSpecificConfig implements KafkaSpecificConfi
     }
 
     private Optional<OffsetReset> getOffsetResetFromSpecificConfig(final Connection connection) {
-        return Optional.ofNullable(connection.getSpecificConfig().get(SPECIFIC_CONFIG_CONSUMER_OFFSET_KEY))
+        return getOffsetResetValueFromSpecificConfig(connection)
                 .flatMap(OffsetReset::forNameIgnoreCase);
+    }
+
+    private Optional<String> getOffsetResetValueFromSpecificConfig(final Connection connection) {
+        return Optional.ofNullable(connection.getSpecificConfig().get(SPECIFIC_CONFIG_CONSUMER_OFFSET_KEY));
     }
 
     private enum OffsetReset {
