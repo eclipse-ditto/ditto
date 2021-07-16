@@ -37,7 +37,6 @@ import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.backoff.RetryTimeoutStrategy;
 import org.eclipse.ditto.connectivity.service.messaging.internal.AbstractWithOrigin;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
@@ -493,21 +492,23 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
     @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin,
             final boolean shutdownAfterDisconnect) {
-        if (client != null) {
-            final CompletionStage<ClientDisconnected> disconnectFuture = getClient().disconnect(true)
-                    .handle((aVoid, throwable) -> {
-                        if (null != throwable) {
-                            logger.info("Error while disconnecting: {}", throwable);
-                        } else {
-                            logger.debug("Successfully disconnected.");
-                        }
-                        return new ImmutableClientDisconnected(origin, shutdownAfterDisconnect);
-                    });
-            Patterns.pipe(disconnectFuture, getContext().getDispatcher()).to(getSelf(), origin);
-        } else {
-            // client is already disconnected
-            getSelf().tell(new ImmutableClientDisconnected(origin, shutdownAfterDisconnect), origin);
-        }
+        final var publisherDisconnectFuture = publisherClient != null
+                ? publisherClient.disconnect(true)
+                : CompletableFuture.completedStage(null);
+        final var consumerDisconnectFuture = client != null
+                ? client.disconnect(true)
+                : CompletableFuture.completedStage(null);
+        final var disconnectFuture =
+                publisherDisconnectFuture.thenCombine(consumerDisconnectFuture, (void1, void2) -> null)
+                        .handle((aVoid, throwable) -> {
+                            if (null != throwable) {
+                                logger.info("Error while disconnecting: {}", throwable);
+                            } else {
+                                logger.debug("Successfully disconnected.");
+                            }
+                            return new ImmutableClientDisconnected(origin, shutdownAfterDisconnect);
+                        });
+        Patterns.pipe(disconnectFuture, getContext().getDispatcher()).to(getSelf(), origin);
     }
 
     @Override
@@ -537,7 +538,10 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
         if (clientToDisconnect != null) {
             try {
                 logger.info("Disconnecting mqtt <{}> client, ignoring any errors.", name);
-                clientToDisconnect.disconnect(false).toCompletableFuture().join();
+                clientToDisconnect.disconnect(true).exceptionally(error -> {
+                    logger.error(error, "Failed to disconnect client <{}>", clientToDisconnect.mqttClient);
+                    return null;
+                });
             } catch (final Exception e) {
                 logger.debug("Disconnecting client failed, it was probably already closed: {}", e);
             }
