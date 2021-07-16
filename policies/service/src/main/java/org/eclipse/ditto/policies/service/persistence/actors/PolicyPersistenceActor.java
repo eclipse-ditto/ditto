@@ -74,10 +74,24 @@ public final class PolicyPersistenceActor
     private final PolicyConfig policyConfig;
     private final ActorRef announcementManager;
 
-    PolicyPersistenceActor(final PolicyId policyId,
+    @SuppressWarnings("unused")
+    private PolicyPersistenceActor(final PolicyId policyId,
+            final SnapshotAdapter<Policy> snapshotAdapter,
+            final ActorRef pubSubMediator,
+            final ActorRef announcementManager,
+            final PolicyConfig policyConfig) {
+        super(policyId, snapshotAdapter);
+        this.pubSubMediator = pubSubMediator;
+        this.announcementManager = announcementManager;
+        this.policyConfig = policyConfig;
+    }
+
+    @SuppressWarnings("unused")
+    private PolicyPersistenceActor(final PolicyId policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager) {
+        // not possible to call other constructor because "getContext()" is not available as argument of "this()"
         super(policyId, snapshotAdapter);
         this.pubSubMediator = pubSubMediator;
         this.announcementManager = announcementManager;
@@ -94,9 +108,20 @@ public final class PolicyPersistenceActor
      * @param snapshotAdapter the adapter to serialize Policy snapshots.
      * @param pubSubMediator the PubSub mediator actor.
      * @param announcementManager manager of policy announcements.
+     * @param policyConfig the policy config.
      * @return the Akka configuration Props object
      */
     public static Props props(final PolicyId policyId,
+            final SnapshotAdapter<Policy> snapshotAdapter,
+            final ActorRef pubSubMediator,
+            final ActorRef announcementManager,
+            final PolicyConfig policyConfig) {
+
+        return Props.create(PolicyPersistenceActor.class, policyId, snapshotAdapter, pubSubMediator,
+                announcementManager, policyConfig);
+    }
+
+    static Props propsForTests(final PolicyId policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator,
             final ActorRef announcementManager) {

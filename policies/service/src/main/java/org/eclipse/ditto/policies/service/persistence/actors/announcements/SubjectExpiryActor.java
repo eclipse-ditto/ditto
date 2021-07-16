@@ -32,7 +32,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
-import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -88,18 +87,18 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
 
     private SubjectExpiryActor(final PolicyId policyId, final Subject subject, final Duration gracePeriod,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
-            final AcknowledgementConfig acknowledgementConfig, final ActorRef commandForwarder) {
+            final Duration maxTimeout, final ActorRef commandForwarder) {
         this.policyId = policyId;
         this.subject = subject;
         this.gracePeriod = gracePeriod;
         this.policyAnnouncementPub = policyAnnouncementPub;
         deleteAt = subject.getExpiry().map(SubjectExpiry::getTimestamp).orElseGet(Instant::now);
         ackregatorStarter =
-                AcknowledgementAggregatorActorStarter.of(getContext(), acknowledgementConfig, HeaderTranslator.empty());
+                AcknowledgementAggregatorActorStarter.of(getContext(), maxTimeout, HeaderTranslator.empty());
         this.commandForwarder = commandForwarder;
         deleteExpiredSubject =
                 DeleteExpiredSubject.of(policyId, subject, DittoHeaders.newBuilder().responseRequired(false).build());
-        persistenceTimeout = acknowledgementConfig.getForwarderFallbackTimeout();
+        persistenceTimeout = maxTimeout;
     }
 
     /**
@@ -109,16 +108,16 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
      * @param subject The subject.
      * @param gracePeriod How long overdue acknowledgements are tolerated.
      * @param policyAnnouncementPub Ditto pubsub API to publish policy announcements.
-     * @param acknowledgementConfig The acknowledgement config.
+     * @param maxTimeout The maximum timeout.
      * @param forwarder Actor to forward policy commands to.
      * @return The Props object.
      */
     public static Props props(final PolicyId policyId, final Subject subject, final Duration gracePeriod,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
-            final AcknowledgementConfig acknowledgementConfig, final ActorRef forwarder) {
+            final Duration maxTimeout, final ActorRef forwarder) {
 
         return Props.create(SubjectExpiryActor.class, policyId, subject, gracePeriod, policyAnnouncementPub,
-                acknowledgementConfig, forwarder);
+                maxTimeout, forwarder);
     }
 
     @Override
@@ -133,11 +132,15 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
             return stay();
         }));
 
+        onTransition((from, to) -> log.debug("StateTransition <{}> to <{}>", from, to));
+
         if (subject.getAnnouncement().flatMap(SubjectAnnouncement::getBeforeExpiry).isPresent()) {
+            log.debug("Starting in <{}>", TO_ANNOUNCE);
             startWith(TO_ANNOUNCE, NULL);
             final Instant now = Instant.now();
             scheduleAnnouncement(now, getAnnouncementInstant().orElse(now));
         } else {
+            log.debug("Starting in <{}>", TO_DELETE);
             startWith(TO_DELETE, NULL);
             subject.getExpiry().ifPresent(this::scheduleDeleteExpiredSubject);
         }
@@ -171,10 +174,12 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     }
 
     private State<SubjectExpiryState, NotUsed> delete(final Message delete, final NotUsed notUsed) {
+        log.debug("Got DELETE in TO_DELETE");
         return scheduleDeleteExpiredSubjectIfNeeded();
     }
 
     private State<SubjectExpiryState, NotUsed> announce(final Message announce, final NotUsed notUsed) {
+        log.debug("Got ANNOUNCE in TO_ANNOUNCE");
         cancelTimer(Message.ANNOUNCE.name());
         if (!(deleted && shouldAnnounceWhenDeleted())) {
             final Instant now = Instant.now();
@@ -230,22 +235,26 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
 
     private State<SubjectExpiryState, NotUsed> subjectDeletedInToAnnounce(final Message subjectDeleted,
             final NotUsed notUsed) {
+        log.debug("Got SUBJECT_DELETED in TO_ANNOUNCE");
         return processSubjectDeletedAndCheckForAnnouncement(stay());
     }
 
     private State<SubjectExpiryState, NotUsed> subjectDeletedInToAcknowledge(final Message subjectDeleted,
             final NotUsed notUsed) {
+        log.debug("Got SUBJECT_DELETED in TO_ACKNOWLEDGE");
         setDeleteAt();
         return stay(); // no need to schedule whenDeleted announcements because announcement and backoff already active
     }
 
     private State<SubjectExpiryState, NotUsed> subjectDeletedInToDelete(final Message subjectDeleted,
             final NotUsed notUsed) {
+        log.debug("Got SUBJECT_DELETED in TO_DELETE");
         return processSubjectDeletedAndCheckForAnnouncement(stop());
     }
 
     private State<SubjectExpiryState, NotUsed> subjectDeletedInDeleted(final Message subjectDeleted,
             final NotUsed notUsed) {
+        log.debug("Got SUBJECT_DELETED in DELETED");
         return processSubjectDeletedAndCheckForAnnouncement(stop());
     }
 
@@ -256,6 +265,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
             log.error("Timeout in DELETED with subject already deleted. This should not happen.");
             return stop();
         }
+        log.debug("Timeout in DELETED");
         final boolean shouldAnnounce = shouldAnnounceWhenDeleted();
         final boolean inGracePeriod = isInGracePeriod(Instant.now().plus(nextBackOff));
         if (acknowledged || !shouldAnnounce || !inGracePeriod) {
@@ -270,6 +280,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     }
 
     private State<SubjectExpiryState, NotUsed> acknowledged(final Message acknowledged, final NotUsed notUsed) {
+        log.debug("Got ACKNOWLEDGED in TO_ACKNOWLEDGE");
         this.acknowledged = true;
         return scheduleDeleteExpiredSubjectIfNeeded();
     }

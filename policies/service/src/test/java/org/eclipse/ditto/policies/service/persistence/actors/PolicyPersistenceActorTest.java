@@ -46,7 +46,6 @@ import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
@@ -125,8 +124,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.AbstractActor;
 import akka.actor.Actor;
@@ -1362,7 +1359,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final var box = new AtomicReference<ActorRef>();
                 final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
                 final Props props =
-                        PolicyPersistenceActor.props(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator,
+                        PolicyPersistenceActor.propsForTests(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator,
                                 announcementManager);
                 final Cluster cluster = Cluster.get(actorSystem);
                 cluster.join(cluster.selfAddress());
@@ -1606,7 +1603,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final var box = new AtomicReference<ActorRef>();
                 final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
                 final Props persistentActorProps =
-                        PolicyPersistenceActor.props(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator,
+                        PolicyPersistenceActor.propsForTests(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator,
                                 announcementManager);
 
                 final TestProbe errorsProbe = TestProbe.apply(actorSystem);
@@ -1723,7 +1720,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         final var box = new AtomicReference<ActorRef>();
         final SnapshotAdapter<Policy> snapshotAdapter = new PolicyMongoSnapshotAdapter();
         final ActorRef announcementManager = createAnnouncementManager(policyId, box::get);
-        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator,
+        final Props props = PolicyPersistenceActor.propsForTests(policyId, snapshotAdapter, pubSubMediator,
                 announcementManager);
         final var persistenceActor = testKit.watch(testKit.childActorOf(props));
         box.set(persistenceActor);
@@ -1758,9 +1755,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
     private ActorRef createAnnouncementManager(final PolicyId policyId, final Supplier<ActorRef> box) {
         final var gracePeriod = Duration.ofHours(4);
-        final var config = DefaultAcknowledgementConfig.of(ConfigFactory.empty());
-        final var props = PolicyAnnouncementManager.props(policyId, gracePeriod, policyAnnouncementPub, config,
-                startForwarder(box));
+        final var maxTimeout = Duration.ofMinutes(1);
+        final var props = PolicyAnnouncementManager.props(policyId, gracePeriod, policyAnnouncementPub,
+                maxTimeout, startForwarder(box));
         return actorSystem.actorOf(props);
     }
 

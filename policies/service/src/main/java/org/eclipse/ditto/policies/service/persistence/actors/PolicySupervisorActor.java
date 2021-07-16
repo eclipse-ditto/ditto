@@ -14,14 +14,12 @@ package org.eclipse.ditto.policies.service.persistence.actors;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
@@ -31,9 +29,9 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyUnavailableException;
 import org.eclipse.ditto.policies.service.common.config.DittoPoliciesConfig;
+import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.policies.service.persistence.actors.announcements.PolicyAnnouncementManager;
-
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
@@ -51,12 +49,19 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
     private final ActorRef pubSubMediator;
     private final SnapshotAdapter<Policy> snapshotAdapter;
     private final ActorRef announcementManager;
+    private final PolicyConfig policyConfig;
 
     private PolicySupervisorActor(final ActorRef pubSubMediator, final SnapshotAdapter<Policy> snapshotAdapter,
             DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub) {
         this.pubSubMediator = pubSubMediator;
         this.snapshotAdapter = snapshotAdapter;
-        final var props = getAnnouncementManagerProps(policyAnnouncementPub);
+        final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
+                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+        );
+        policyConfig = policiesConfig.getPolicyConfig();
+
+        final var props =
+                getAnnouncementManagerProps(policyAnnouncementPub, policyConfig.getPolicyAnnouncementConfig());
         if (props != null) {
             announcementManager = getContext().actorOf(props, "am");
         } else {
@@ -89,7 +94,8 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
 
     @Override
     protected Props getPersistenceActorProps(final PolicyId entityId) {
-        return PolicyPersistenceActor.props(entityId, snapshotAdapter, pubSubMediator, announcementManager);
+        return PolicyPersistenceActor.props(entityId, snapshotAdapter, pubSubMediator, announcementManager,
+                policyConfig);
     }
 
     @Override
@@ -112,13 +118,13 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
     }
 
     @Nullable
-    private Props getAnnouncementManagerProps(final DistributedPub<PolicyAnnouncement<?>> pub) {
+    private Props getAnnouncementManagerProps(final DistributedPub<PolicyAnnouncement<?>> pub,
+            final PolicyAnnouncementConfig policyAnnouncementConfig) {
         try {
             final PolicyId policyId = getEntityId();
-            // TODO: use values from actor system config
-            final var gracePeriod = Duration.ofHours(4);
-            final var config = DefaultAcknowledgementConfig.of(ConfigFactory.empty());
-            return PolicyAnnouncementManager.props(policyId, gracePeriod, pub, config, getSelf());
+            final var gracePeriod = policyAnnouncementConfig.getGracePeriod();
+            final var maxTimeout = policyAnnouncementConfig.getMaxTimeout();
+            return PolicyAnnouncementManager.props(policyId, gracePeriod, pub, maxTimeout, getSelf());
         } catch (final Exception e) {
             log.error(e, "Failed to determine entity ID; becoming corrupted.");
             becomeCorrupted();

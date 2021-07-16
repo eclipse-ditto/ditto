@@ -54,20 +54,20 @@ import scala.PartialFunction;
 public final class AcknowledgementAggregatorActorStarter {
 
     protected final ActorContext actorContext;
-    protected final AcknowledgementConfig acknowledgementConfig;
+    protected final Duration maxTimeout;
     protected final HeaderTranslator headerTranslator;
     protected final PartialFunction<Signal<?>, Signal<?>> ackRequestSetter;
 
     private int childCounter = 0;
 
     private AcknowledgementAggregatorActorStarter(final ActorContext context,
-            final AcknowledgementConfig acknowledgementConfig,
+            final Duration maxTimeout,
             final HeaderTranslator headerTranslator,
             final PartialFunction<Signal<?>, Signal<?>> ackRequestSetter) {
 
         actorContext = checkNotNull(context, "context");
         this.ackRequestSetter = ackRequestSetter;
-        this.acknowledgementConfig = checkNotNull(acknowledgementConfig, "acknowledgementConfig");
+        this.maxTimeout = checkNotNull(maxTimeout, "maxTimeout");
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
     }
 
@@ -86,7 +86,26 @@ public final class AcknowledgementAggregatorActorStarter {
             final HeaderTranslator headerTranslator,
             final AbstractCommandAckRequestSetter<?>... ackRequestSetters) {
 
-        return new AcknowledgementAggregatorActorStarter(context, acknowledgementConfig,
+        return new AcknowledgementAggregatorActorStarter(context, acknowledgementConfig.getForwarderFallbackTimeout(),
+                headerTranslator, buildAckRequestSetter(ackRequestSetters));
+    }
+
+    /**
+     * Returns an instance of {@code AcknowledgementAggregatorActorStarter}.
+     *
+     * @param context the context to start the aggregator actor in.
+     * @param maxTimeout maximum timeout of the acknowledgement aggregator actor.
+     * @param headerTranslator translates headers from external sources or to external sources.
+     * response over a channel to the user.
+     * @return a means to start an acknowledgement forwarder actor.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static AcknowledgementAggregatorActorStarter of(final ActorContext context,
+            final Duration maxTimeout,
+            final HeaderTranslator headerTranslator,
+            final AbstractCommandAckRequestSetter<?>... ackRequestSetters) {
+
+        return new AcknowledgementAggregatorActorStarter(context, maxTimeout,
                 headerTranslator, buildAckRequestSetter(ackRequestSetters));
     }
 
@@ -158,7 +177,7 @@ public final class AcknowledgementAggregatorActorStarter {
 
     private ActorRef startAckAggregatorActor(final EntityId entityId, final DittoHeaders dittoHeaders,
             final Consumer<Object> responseSignalConsumer) {
-        final Props props = AcknowledgementAggregatorActor.props(entityId, dittoHeaders, acknowledgementConfig, headerTranslator,
+        final Props props = AcknowledgementAggregatorActor.props(entityId, dittoHeaders, maxTimeout, headerTranslator,
                 responseSignalConsumer);
         final String actorName = getNextActorName(dittoHeaders);
         return actorContext.actorOf(props, actorName);

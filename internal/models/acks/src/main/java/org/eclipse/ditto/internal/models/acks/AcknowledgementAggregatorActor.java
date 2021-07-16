@@ -22,29 +22,29 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.WithThingId;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
-import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
+import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.WithThingId;
+import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 
@@ -69,10 +69,9 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     private final Consumer<Object> responseSignalConsumer;
     private final Duration timeout;
 
-    @SuppressWarnings("unused")
     private AcknowledgementAggregatorActor(final EntityId entityId,
             final DittoHeaders dittoHeaders,
-            final AcknowledgementConfig acknowledgementConfig,
+            final Duration maxTimeout,
             final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer) {
 
@@ -84,7 +83,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
                         getSelf().path().name()
                 );
 
-        timeout = requestCommandHeaders.getTimeout().orElseGet(acknowledgementConfig::getForwarderFallbackTimeout);
+        timeout = getTimeout(requestCommandHeaders, maxTimeout);
         getContext().setReceiveTimeout(timeout);
 
         final Set<AcknowledgementRequest> acknowledgementRequests = requestCommandHeaders.getAcknowledgementRequests();
@@ -114,7 +113,29 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
             final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer) {
         return Props.create(AcknowledgementAggregatorActor.class, entityId, dittoHeaders,
-                acknowledgementConfig, headerTranslator, responseSignalConsumer);
+                acknowledgementConfig.getForwarderFallbackTimeout(), headerTranslator, responseSignalConsumer);
+    }
+
+    /**
+     * Creates Akka configuration object Props for this AcknowledgementAggregatorActor.
+     *
+     * @param entityId the thing ID of the originating signal.
+     * @param dittoHeaders the ditto headers of the originating signal.
+     * @param maxTimeout the maximum timeout of acknowledgement aggregation.
+     * @param headerTranslator translates headers from external sources or to external sources.
+     * @param responseSignalConsumer a consumer which is invoked with the response signal, e.g. in order to send the
+     * response over a channel to the user.
+     * @return the Akka configuration Props object.
+     * @throws org.eclipse.ditto.base.model.acks.AcknowledgementRequestParseException if a contained acknowledgement
+     * request could not be parsed.
+     */
+    static Props props(final EntityId entityId,
+            final DittoHeaders dittoHeaders,
+            final Duration maxTimeout,
+            final HeaderTranslator headerTranslator,
+            final Consumer<Object> responseSignalConsumer) {
+        return Props.create(AcknowledgementAggregatorActor.class, entityId, dittoHeaders, maxTimeout,
+                headerTranslator, responseSignalConsumer);
     }
 
     @Override
@@ -292,6 +313,12 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
                             return TWIN_PERSISTED.equals(label) ||
                                     LIVE_RESPONSE.equals(label);
                         });
+    }
+
+    private static Duration getTimeout(final DittoHeaders headers, final Duration maxTimeout) {
+        return headers.getTimeout()
+                .filter(timeout -> timeout.minus(maxTimeout).isNegative())
+                .orElse(maxTimeout);
     }
 
 }

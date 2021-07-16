@@ -20,7 +20,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
@@ -48,19 +47,19 @@ public final class PolicyAnnouncementManager extends AbstractActor {
     private final PolicyId policyId;
     private final Duration gracePeriod;
     private final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub;
-    private final AcknowledgementConfig acknowledgementConfig;
+    private final Duration maxTimeout;
     private final Map<Subject, ActorRef> subjectExpiryActors;
     private final Map<ActorRef, Subject> activeSubjects;
     private final ActorRef commandForwarder;
 
     private PolicyAnnouncementManager(final PolicyId policyId, final Duration gracePeriod,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
-            final AcknowledgementConfig acknowledgementConfig,
+            final Duration maxTimeout,
             final ActorRef commandForwarder) {
         this.policyId = policyId;
         this.gracePeriod = gracePeriod;
         this.policyAnnouncementPub = policyAnnouncementPub;
-        this.acknowledgementConfig = acknowledgementConfig;
+        this.maxTimeout = maxTimeout;
         this.commandForwarder = commandForwarder;
         this.subjectExpiryActors = new HashMap<>();
         this.activeSubjects = new HashMap<>();
@@ -72,14 +71,14 @@ public final class PolicyAnnouncementManager extends AbstractActor {
      * @param policyId The policy ID.
      * @param gracePeriod How long overdue acknowledgements are tolerated.
      * @param policyAnnouncementPub Ditto pubsub API to publish policy announcements.
-     * @param config The acknowledgement config.
+     * @param maxTimeout The maximum timeout for acknowledgements.
      * @param forwarder Actor to forward policy commands to.
      * @return The Props object.
      */
     public static Props props(final PolicyId policyId, final Duration gracePeriod,
-            final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub, final AcknowledgementConfig config,
+            final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub, final Duration maxTimeout,
             final ActorRef forwarder) {
-        return Props.create(PolicyAnnouncementManager.class, policyId, gracePeriod, policyAnnouncementPub, config,
+        return Props.create(PolicyAnnouncementManager.class, policyId, gracePeriod, policyAnnouncementPub, maxTimeout,
                 forwarder);
     }
 
@@ -93,17 +92,21 @@ public final class PolicyAnnouncementManager extends AbstractActor {
 
     private void onPolicyModified(final Policy policy) {
         final var subjects = getSubjectsWithExpiryOrAnnouncements(policy);
-        for (final var newSubject : setDifference(subjects, subjectExpiryActors.keySet())) {
+        final var newSubjects = setDifference(subjects, subjectExpiryActors.keySet());
+        final var deletedSubjects = setDifference(subjectExpiryActors.keySet(), subjects);
+        log.debug("OnPolicyModified policy=<{}> newSubjects=<{}> deletedSubjects=<{}>", policy, newSubjects,
+                deletedSubjects);
+        for (final var newSubject : newSubjects) {
             startChild(newSubject);
         }
-        for (final var deletedSubject : setDifference(subjectExpiryActors.keySet(), subjects)) {
+        for (final var deletedSubject : deletedSubjects) {
             sendSubjectDeleted(deletedSubject);
         }
     }
 
     private void startChild(final Subject subject) {
         final var props =
-                SubjectExpiryActor.props(policyId, subject, gracePeriod, policyAnnouncementPub, acknowledgementConfig,
+                SubjectExpiryActor.props(policyId, subject, gracePeriod, policyAnnouncementPub, maxTimeout,
                         commandForwarder);
 
         final var child = getContext().actorOf(props);
@@ -113,14 +116,23 @@ public final class PolicyAnnouncementManager extends AbstractActor {
     }
 
     private void onChildTerminated(final Terminated terminated) {
-        final var removedSubject = activeSubjects.remove(terminated.actor());
+        final var terminatedActor = terminated.actor();
+        final var removedSubject = activeSubjects.remove(terminatedActor);
         if (removedSubject != null) {
-            subjectExpiryActors.remove(removedSubject);
+            final var child = subjectExpiryActors.remove(removedSubject);
+            log.debug("OnChildTerminated: Removed terminated child <{}>", child);
+        } else {
+            log.debug("OnChildTerminated: Child not found: <{}>", terminatedActor);
         }
     }
 
     private void sendSubjectDeleted(final Subject subject) {
-        subjectExpiryActors.get(subject).tell(SubjectExpiryActor.Message.SUBJECT_DELETED, ActorRef.noSender());
+        final var child = subjectExpiryActors.get(subject);
+        if (child != null) {
+            child.tell(SubjectExpiryActor.Message.SUBJECT_DELETED, ActorRef.noSender());
+        } else {
+            log.error("Attempting to notify nonexistent child for deleted subject <{}>", subject);
+        }
     }
 
     private Set<Subject> getSubjectsWithExpiryOrAnnouncements(final Policy policy) {
