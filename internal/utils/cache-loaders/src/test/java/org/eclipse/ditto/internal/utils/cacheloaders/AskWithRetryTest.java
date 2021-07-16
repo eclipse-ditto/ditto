@@ -368,7 +368,7 @@ public final class AskWithRetryTest {
             expectNoMessage(DEFAULT_NO_MESSAGE_EXPECTATION_DURATION);
 
             assertThat(retryStage)
-                    .failsWithin(askTimeout)
+                    .failsWithin(askTimeout.multipliedBy(3))
                     .withThrowableOfType(ExecutionException.class)
                     .withCauseInstanceOf(ThingNotAccessibleException.class);
         }};
