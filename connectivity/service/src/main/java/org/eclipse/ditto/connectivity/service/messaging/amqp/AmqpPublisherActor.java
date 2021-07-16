@@ -49,6 +49,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.GenericTarget;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
@@ -240,14 +241,14 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         for (final Target target : targets) {
             // only targets with static addresses should stay open
             if (!Placeholders.containsAnyPlaceholder(target.getAddress())) {
-                createTargetProducer(toPublishTarget(target.getAddress()).getJmsDestination());
+                createTargetProducer(toPublishTarget(target).getJmsDestination());
             }
         }
     }
 
     @Override
-    protected AmqpTarget toPublishTarget(final String address) {
-        return AmqpTarget.fromTargetAddress(address);
+    protected AmqpTarget toPublishTarget(final GenericTarget target) {
+        return AmqpTarget.fromTargetAddress(target.getAddress());
     }
 
     // create a target producer. the previous incarnation, if any, must be closed.

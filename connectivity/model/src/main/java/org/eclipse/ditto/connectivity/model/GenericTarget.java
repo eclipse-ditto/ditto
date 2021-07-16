@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.model;
 
+import java.util.Optional;
+
 /**
  * Super type of targets and reply-targets that provides enough information to send 1 message.
  *
@@ -33,4 +35,16 @@ public interface GenericTarget {
      */
     HeaderMapping getHeaderMapping();
 
+    /**
+     * @return the optional qos value of this target - only applicable for certain {@link ConnectionType}s.
+     */
+    Optional<Integer> getQos();
+
+    /**
+     * Create a copy of this object with the target address replaced.
+     *
+     * @param newAddress new value for the address field.
+     * @return a copy of this object retaining the class and all other fields.
+     */
+    GenericTarget withAddress(final String newAddress);
 }
