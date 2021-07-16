@@ -14,6 +14,7 @@ package org.eclipse.ditto.internal.utils.cacheloaders;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
@@ -38,7 +39,6 @@ import scala.compat.java8.FutureConverters;
 
 /**
  * Helper/Pattern class providing a "ask with retry" pattern based on a provided {@link AskWithRetryConfig}.
- * TODO TJ add unit test
  */
 public final class AskWithRetry {
 
@@ -89,16 +89,16 @@ public final class AskWithRetry {
         }
 
         final int retryAttempts = config.getRetryAttempts();
-        final CompletionStage<AskResult<A>> askHandle =
-                getAskHandle(actorToAsk, message, dittoHeaders, responseMapper, config.getAskTimeout());
+        final Callable<CompletionStage<AskResult<A>>> askHandleCallable = () ->
+                createAskHandle(actorToAsk, message, dittoHeaders, responseMapper, config.getAskTimeout());
 
-        final CompletionStage<AskResult<A>> retryStage;
+        final CompletionStage<AskResult<A>> stage;
         if (retryAttempts == 0) {
-            retryStage = askHandle;
+            stage = createAskHandle(actorToAsk, message, dittoHeaders, responseMapper, config.getAskTimeout());
         } else {
             switch (config.getRetryStrategy()) {
                 case BACKOFF_DELAY:
-                    retryStage = Patterns.retry(() -> askHandle,
+                    stage = Patterns.retry(askHandleCallable,
                             retryAttempts,
                             config.getBackoffDelayMin(),
                             config.getBackoffDelayMax(),
@@ -108,7 +108,7 @@ public final class AskWithRetry {
                     );
                     break;
                 case FIXED_DELAY:
-                    retryStage = Patterns.retry(() -> askHandle,
+                    stage = Patterns.retry(askHandleCallable,
                             retryAttempts,
                             config.getFixedDelay(),
                             scheduler,
@@ -116,21 +116,21 @@ public final class AskWithRetry {
                     );
                     break;
                 case NO_DELAY:
-                    retryStage = Patterns.retry(() -> askHandle,
+                    stage = Patterns.retry(askHandleCallable,
                             retryAttempts,
                             FutureConverters.fromExecutor(executor)
                     );
                     break;
                 case OFF:
                 default:
-                    retryStage = askHandle;
+                    stage = createAskHandle(actorToAsk, message, dittoHeaders, responseMapper, config.getAskTimeout());
             }
         }
 
-        return retryStage.handle(handleRetryResult(dittoHeaders));
+        return stage.handle(handleRetryResult(dittoHeaders));
     }
 
-    private static <M, A> CompletionStage<AskResult<A>> getAskHandle(final ActorRef actorToAsk,
+    private static <M, A> CompletionStage<AskResult<A>> createAskHandle(final ActorRef actorToAsk,
             final M message,
             @Nullable final DittoHeaders dittoHeaders,
             final Function<Object, A> responseMapper,
@@ -156,7 +156,11 @@ public final class AskWithRetry {
                         // all non-known RuntimeException should be handled by the "Patterns.retry" with a retry:
                         throw new UnknownAskRuntimeException(throwable);
                     } else {
-                        return new AskSuccess<>(responseMapper.apply(response));
+                        try {
+                            return new AskSuccess<>(responseMapper.apply(response));
+                        } catch (final DittoRuntimeException dre) {
+                            return new AskFailure<>(dre);
+                        }
                     }
                 });
     }

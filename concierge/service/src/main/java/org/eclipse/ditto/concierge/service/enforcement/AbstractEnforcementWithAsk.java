@@ -92,7 +92,7 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
             final Scheduler scheduler,
             final Executor executor) {
 
-        return AskWithRetry.askWithRetry(actorToAsk, commandWithReadSubjects,
+        return AskWithRetry.askWithRetry(actorToAsk, wrapBeforeAsk(commandWithReadSubjects),
                 getAskWithRetryConfig(), scheduler, executor,
                 response -> {
                     if (responseClass.isAssignableFrom(response.getClass())) {

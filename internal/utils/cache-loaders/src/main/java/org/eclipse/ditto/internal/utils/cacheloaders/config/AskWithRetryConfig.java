@@ -72,7 +72,7 @@ public interface AskWithRetryConfig {
 
     /**
      * Gets the random factor to apply when using {@link #getBackoffDelayMin()} and {@link #getBackoffDelayMax()} for
-     * calculating the next backoff delay.
+     * calculating the next backoff delay. Must be between {@code 0.0} and {@code 1.0}.
      *
      * @return a random factor to apply for backoff delays.
      */
@@ -118,9 +118,10 @@ public interface AskWithRetryConfig {
         BACKOFF_DELAY_MAX("backoff-delay.max", Duration.ofSeconds(10)),
 
         /**
-         * The random factor to apply when calculating the next backoff delay.
+         * The random factor to apply when calculating the next backoff delay, must be between
+         * {@code 0.0} and {@code 1.0}.
          */
-        BACKOFF_DELAY_RANDOM_FACTOR("backoff-delay.random-factor", 1.0);
+        BACKOFF_DELAY_RANDOM_FACTOR("backoff-delay.random-factor", 0.5);
 
         private final String path;
         private final Object defaultValue;
