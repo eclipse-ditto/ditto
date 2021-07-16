@@ -33,7 +33,7 @@ final class DefaultThrottlingConfig implements ThrottlingConfig {
 
     private DefaultThrottlingConfig(final ScopedConfig config) {
         interval = config.getNonNegativeDurationOrThrow(ConfigValue.INTERVAL);
-        limit = config.getPositiveIntOrThrow(ConfigValue.LIMIT);
+        limit = config.getNonNegativeIntOrThrow(ConfigValue.LIMIT);
     }
 
     static DefaultThrottlingConfig of(final Config config) {
