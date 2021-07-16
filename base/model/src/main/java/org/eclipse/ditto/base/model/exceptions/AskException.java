@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.cacheloaders;
+package org.eclipse.ditto.base.model.exceptions;
 
 import java.net.URI;
 
@@ -19,8 +19,6 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.json.JsonObject;
@@ -38,7 +36,8 @@ public final class AskException extends DittoRuntimeException {
     public static final String ERROR_CODE = "ask.error";
 
     private static final String DEFAULT_MESSAGE = "There was an internal timeout.";
-    private static final String DEFAULT_DESCRIPTION = "Please retry the performed action in order to improve resiliency.";
+    private static final String DEFAULT_DESCRIPTION =
+            "Please retry the performed action in order to improve resiliency.";
 
     private static final long serialVersionUID = 2957834627823947143L;
 

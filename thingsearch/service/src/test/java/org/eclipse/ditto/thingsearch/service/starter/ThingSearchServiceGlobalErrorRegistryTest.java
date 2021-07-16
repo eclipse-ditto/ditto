@@ -14,6 +14,7 @@ package org.eclipse.ditto.thingsearch.service.starter;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException;
+import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.base.model.signals.JsonTypeNotParsableException;
@@ -23,7 +24,6 @@ import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMis
 import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownException;
-import org.eclipse.ditto.internal.utils.cacheloaders.AskException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;

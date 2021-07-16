@@ -14,6 +14,7 @@ package org.eclipse.ditto.concierge.service.starter;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException;
+import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.base.model.signals.JsonTypeNotParsableException;
@@ -26,7 +27,6 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.PathUnknownExcep
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.internal.models.placeholders.PlaceholderFunctionSignatureInvalidException;
-import org.eclipse.ditto.internal.utils.cacheloaders.AskException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;

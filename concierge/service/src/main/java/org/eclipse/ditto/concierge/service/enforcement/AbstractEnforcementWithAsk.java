@@ -15,11 +15,11 @@ package org.eclipse.ditto.concierge.service.enforcement;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
+import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
-import org.eclipse.ditto.internal.utils.cacheloaders.AskException;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 
@@ -99,6 +99,8 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
                         return (R) response;
                     } else if (response instanceof ErrorResponse) {
                         throw ((ErrorResponse<?>) response).getDittoRuntimeException();
+                    } else if (response instanceof AskException) {
+                        throw handleAskTimeoutForCommand(commandWithReadSubjects, (Throwable) response);
                     } else if (response instanceof AskTimeoutException) {
                         throw handleAskTimeoutForCommand(commandWithReadSubjects, (Throwable) response);
                     } else {
@@ -106,14 +108,15 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
                     }
                 }
         ).exceptionally(throwable -> {
-            if (throwable instanceof AskException) {
+            final DittoRuntimeException dre = DittoRuntimeException.asDittoRuntimeException(throwable, cause ->
+                    AskException.newBuilder()
+                            .dittoHeaders(commandWithReadSubjects.getDittoHeaders())
+                            .cause(cause)
+                            .build());
+            if (dre instanceof AskException) {
                 throw handleAskTimeoutForCommand(commandWithReadSubjects, throwable);
-            } else if (throwable instanceof RuntimeException) {
-                throw (RuntimeException) throwable;
             } else {
-                throw AskException.newBuilder()
-                        .dittoHeaders(commandWithReadSubjects.getDittoHeaders())
-                        .cause(throwable).build();
+                throw dre;
             }
         });
     }
