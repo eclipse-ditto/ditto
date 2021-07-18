@@ -148,8 +148,8 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
     @Override
     public void postStop() {
         logger.info("actor stopped, stopping clients");
-        safelyDisconnectClient(client, CONSUMER);
-        safelyDisconnectClient(publisherClient, PUBLISHER);
+        safelyDisconnectClient(client, CONSUMER, true);
+        safelyDisconnectClient(publisherClient, PUBLISHER, true);
         super.postStop();
     }
 
@@ -201,7 +201,7 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
             final BaseClientData data) {
 
         final ClientWithCancelSwitch oldClient = getClient();
-        safelyDisconnectClient(oldClient, CONSUMER);
+        safelyDisconnectClient(oldClient, CONSUMER, false);
         return stay();
     }
 
@@ -387,7 +387,8 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
                     }
                     stopCommandConsumers(testSubscriptions);
                     stopChildActor(publisherActor);
-                    safelyDisconnectClient(new ClientWithCancelSwitch(testClient, new AtomicBoolean(false)), "test");
+                    safelyDisconnectClient(new ClientWithCancelSwitch(testClient, new AtomicBoolean(false)), "test",
+                            true);
                     return status;
                 });
     }
@@ -515,8 +516,8 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
     protected void cleanupResourcesForConnection() {
         stopCommandConsumers(subscriptionHandler);
         stopChildActor(publisherActor);
-        safelyDisconnectClient(client, CONSUMER);
-        safelyDisconnectClient(publisherClient, PUBLISHER);
+        safelyDisconnectClient(client, CONSUMER, true);
+        safelyDisconnectClient(publisherClient, PUBLISHER, true);
         resetClientAndSubscriptionHandler();
     }
 
@@ -532,13 +533,14 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
      *
      * @param clientToDisconnect the client to disconnect
      * @param name a name describing the client's purpose
+     * @param prevenntAutomaticReconnect whether automatic reconnect should be disabled.
      */
     private void safelyDisconnectClient(@Nullable final ClientWithCancelSwitch clientToDisconnect,
-            final String name) {
+            final String name, final boolean prevenntAutomaticReconnect) {
         if (clientToDisconnect != null) {
             try {
                 logger.info("Disconnecting mqtt <{}> client, ignoring any errors.", name);
-                clientToDisconnect.disconnect(true).exceptionally(error -> {
+                clientToDisconnect.disconnect(prevenntAutomaticReconnect).exceptionally(error -> {
                     logger.error(error, "Failed to disconnect client <{}>", clientToDisconnect.mqttClient);
                     return null;
                 });
