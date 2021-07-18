@@ -62,13 +62,15 @@ final class DefaultEvictingQueue<E> extends AbstractQueue<E> implements Evicting
 
     @Override
     public boolean offer(@Nullable final E e) {
+        final var result = elements.offer(e);
         if (size.getAndIncrement() >= capacity) {
             poll();
         }
-        return elements.offer(e);
+        return result;
     }
 
     @Override
+    @Nullable
     public E poll() {
         final E pollResult = elements.poll();
         if (pollResult != null) {
