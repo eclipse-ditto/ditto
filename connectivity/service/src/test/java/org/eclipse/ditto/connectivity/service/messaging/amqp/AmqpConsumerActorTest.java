@@ -15,6 +15,8 @@ package org.eclipse.ditto.connectivity.service.messaging.amqp;
 import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.header;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -63,6 +65,7 @@ import org.eclipse.ditto.connectivity.service.messaging.InboundDispatchingActor;
 import org.eclipse.ditto.connectivity.service.messaging.InboundMappingProcessor;
 import org.eclipse.ditto.connectivity.service.messaging.InboundMappingProcessorActor;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -275,13 +278,13 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
             mappings.put("test", mappingContext);
         }
         final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
-        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
+        Mockito.when(logger.withCorrelationId(any(DittoHeaders.class)))
                 .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
+        Mockito.when(logger.withCorrelationId(any(WithDittoHeaders.class)))
                 .thenReturn(logger);
-        Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
+        Mockito.when(logger.withMdcEntry(any(CharSequence.class), Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         final ConnectionContext connectionContext =
@@ -347,6 +350,29 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
             assertThat(command.getDittoHeaders().get("JMSXDeliveryCount")).isNull();
             assertThat(((ModifyFeatureProperty) command).getPropertyPointer()).isEqualTo(JsonPointer.of("/x"));
             assertThat(((ModifyFeatureProperty) command).getPropertyValue()).isEqualTo(JsonValue.of(42));
+        }};
+    }
+
+    @Test
+    public void closedMessageConsumerFailConnection() throws JMSException {
+        new TestKit(actorSystem) {{
+
+            final var messageConsumer = Mockito.mock(MessageConsumer.class);
+            final var source = Mockito.mock(Source.class);
+
+            final var error =
+                    new IllegalStateException("The MessageConsumer was closed due to an unrecoverable error.");
+            doThrow(error).when(messageConsumer).setMessageListener(any());
+
+            final ActorRef underTest = watch(childActorOf(
+                    AmqpConsumerActor.props(CONNECTION,
+                            consumerData("foo123", messageConsumer, source),
+                            actorSystem.deadLetters(),
+                            getRef())));
+
+            final var failure = expectMsgClass(ConnectionFailure.class);
+            assertThat(failure.getFailure().cause()).isEqualTo(error);
+            expectTerminated(underTest);
         }};
     }
 
