@@ -73,6 +73,9 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class SubjectExpiryActorTest {
 
+    private static final SubjectId SUBJECT_DITTO_DITTO = SubjectId.newInstance("ditto:ditto");
+    private static final String ACK_LABEL_CONNECTION_ACK = "connection:ack";
+
     private final ActorSystem system = ActorSystem.create();
     private final PolicyId policyId = PolicyId.of("policy:id");
     private final Duration maxTimeout = Duration.ofMinutes(1);
@@ -120,7 +123,7 @@ public final class SubjectExpiryActorTest {
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
             final var subjectDeletionAnnouncement = (SubjectDeletionAnnouncement) announcement;
             assertThat(subjectDeletionAnnouncement.getSubjectIds())
-                    .containsExactly(SubjectId.newInstance("ditto:ditto"));
+                    .containsExactly(SUBJECT_DITTO_DITTO);
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests()).isEmpty();
 
             expectTerminated(underTest);
@@ -139,7 +142,7 @@ public final class SubjectExpiryActorTest {
                     null,
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -154,15 +157,15 @@ public final class SubjectExpiryActorTest {
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId, HttpStatus.OK,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId, HttpStatus.OK,
                     announcement.getDittoHeaders()), getTestActor());
 
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
             final var subjectDeletionAnnouncement = (SubjectDeletionAnnouncement) announcement;
             assertThat(subjectDeletionAnnouncement.getSubjectIds())
-                    .containsExactly(SubjectId.newInstance("ditto:ditto"));
+                    .containsExactly(SUBJECT_DITTO_DITTO);
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests())
-                    .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest("connection:ack"));
+                    .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest(ACK_LABEL_CONNECTION_ACK));
 
             expectTerminated(underTest);
             expectNoMessage();
@@ -178,7 +181,7 @@ public final class SubjectExpiryActorTest {
                     null,
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -193,7 +196,7 @@ public final class SubjectExpiryActorTest {
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     announcement.getDittoHeaders()), getTestActor());
 
@@ -202,15 +205,15 @@ public final class SubjectExpiryActorTest {
             announcement = announcementCaptor.getValue();
             sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId, HttpStatus.OK,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId, HttpStatus.OK,
                     announcement.getDittoHeaders()), getTestActor());
 
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
             final var subjectDeletionAnnouncement = (SubjectDeletionAnnouncement) announcement;
             assertThat(subjectDeletionAnnouncement.getSubjectIds())
-                    .containsExactly(SubjectId.newInstance("ditto:ditto"));
+                    .containsExactly(SUBJECT_DITTO_DITTO);
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests())
-                    .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest("connection:ack"));
+                    .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest(ACK_LABEL_CONNECTION_ACK));
 
             expectTerminated(underTest);
             expectNoMessage();
@@ -226,7 +229,7 @@ public final class SubjectExpiryActorTest {
                     null,
                     true,
                     Duration.ofMillis(1),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props =
@@ -301,7 +304,7 @@ public final class SubjectExpiryActorTest {
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
             final var subjectDeletionAnnouncement = (SubjectDeletionAnnouncement) announcement;
             assertThat(subjectDeletionAnnouncement.getSubjectIds())
-                    .containsExactly(SubjectId.newInstance("ditto:ditto"));
+                    .containsExactly(SUBJECT_DITTO_DITTO);
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests())
                     .isEmpty();
 
@@ -320,7 +323,7 @@ public final class SubjectExpiryActorTest {
                     null,
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -337,15 +340,15 @@ public final class SubjectExpiryActorTest {
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId, HttpStatus.OK,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId, HttpStatus.OK,
                     announcement.getDittoHeaders()), getTestActor());
 
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
             final var subjectDeletionAnnouncement = (SubjectDeletionAnnouncement) announcement;
             assertThat(subjectDeletionAnnouncement.getSubjectIds())
-                    .containsExactly(SubjectId.newInstance("ditto:ditto"));
+                    .containsExactly(SUBJECT_DITTO_DITTO);
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests())
-                    .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest("connection:ack"));
+                    .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest(ACK_LABEL_CONNECTION_ACK));
 
             expectTerminated(underTest);
             expectNoMessage();
@@ -360,7 +363,7 @@ public final class SubjectExpiryActorTest {
                     null,
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -379,7 +382,7 @@ public final class SubjectExpiryActorTest {
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId, HttpStatus.OK,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId, HttpStatus.OK,
                     announcement.getDittoHeaders()), getTestActor());
 
             expectTerminated(underTest);
@@ -395,7 +398,7 @@ public final class SubjectExpiryActorTest {
                     null,
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props =
@@ -435,7 +438,7 @@ public final class SubjectExpiryActorTest {
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
             final var subjectDeletionAnnouncement = (SubjectDeletionAnnouncement) announcement;
             assertThat(subjectDeletionAnnouncement.getSubjectIds())
-                    .containsExactly(SubjectId.newInstance("ditto:ditto"));
+                    .containsExactly(SUBJECT_DITTO_DITTO);
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests())
                     .isEmpty();
 
@@ -519,7 +522,7 @@ public final class SubjectExpiryActorTest {
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
             final var subjectDeletionAnnouncement = (SubjectDeletionAnnouncement) announcement;
             assertThat(subjectDeletionAnnouncement.getSubjectIds())
-                    .containsExactly(SubjectId.newInstance("ditto:ditto"));
+                    .containsExactly(SUBJECT_DITTO_DITTO);
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests())
                     .isEmpty();
 
@@ -542,7 +545,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     false,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -555,15 +558,15 @@ public final class SubjectExpiryActorTest {
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId, HttpStatus.OK,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId, HttpStatus.OK,
                     announcement.getDittoHeaders()), getTestActor());
 
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
             final var subjectDeletionAnnouncement = (SubjectDeletionAnnouncement) announcement;
             assertThat(subjectDeletionAnnouncement.getSubjectIds())
-                    .containsExactly(SubjectId.newInstance("ditto:ditto"));
+                    .containsExactly(SUBJECT_DITTO_DITTO);
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests())
-                    .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest("connection:ack"));
+                    .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest(ACK_LABEL_CONNECTION_ACK));
 
             final var deleteCommand = expectMsgClass(DeleteExpiredSubject.class);
             assertThat(deleteCommand.getSubject()).isEqualTo(subject);
@@ -580,7 +583,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     false,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -595,7 +598,7 @@ public final class SubjectExpiryActorTest {
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId, HttpStatus.OK,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId, HttpStatus.OK,
                     announcement.getDittoHeaders()), getTestActor());
 
             expectTerminated(underTest);
@@ -610,7 +613,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     false,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -625,7 +628,7 @@ public final class SubjectExpiryActorTest {
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId, HttpStatus.OK,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId, HttpStatus.OK,
                     announcement.getDittoHeaders()), getTestActor());
 
             expectTerminated(underTest);
@@ -640,7 +643,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(9000),
                     false,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -653,7 +656,7 @@ public final class SubjectExpiryActorTest {
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId, HttpStatus.OK,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId, HttpStatus.OK,
                     announcement.getDittoHeaders()), getTestActor());
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
@@ -670,7 +673,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(1500),
                     false,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -683,7 +686,7 @@ public final class SubjectExpiryActorTest {
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.INTERNAL_SERVER_ERROR, announcement.getDittoHeaders()), getTestActor());
 
             verify(policiesPub, timeout(30_000).times(2))
@@ -691,7 +694,7 @@ public final class SubjectExpiryActorTest {
             announcement = announcementCaptor.getValue();
             sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.OK, announcement.getDittoHeaders()), getTestActor());
 
             expectMsgClass(DeleteExpiredSubject.class);
@@ -708,7 +711,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(1500),
                     false,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props =
@@ -721,7 +724,7 @@ public final class SubjectExpiryActorTest {
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.INTERNAL_SERVER_ERROR, announcement.getDittoHeaders()), getTestActor());
 
             expectMsgClass(DeleteExpiredSubject.class);
@@ -754,7 +757,7 @@ public final class SubjectExpiryActorTest {
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
             final var subjectDeletionAnnouncement = (SubjectDeletionAnnouncement) announcement;
             assertThat(subjectDeletionAnnouncement.getSubjectIds())
-                    .containsExactly(SubjectId.newInstance("ditto:ditto"));
+                    .containsExactly(SUBJECT_DITTO_DITTO);
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests())
                     .isEmpty();
 
@@ -843,7 +846,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -856,15 +859,15 @@ public final class SubjectExpiryActorTest {
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId, HttpStatus.OK,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId, HttpStatus.OK,
                     announcement.getDittoHeaders()), getTestActor());
 
             assertThat(announcement).isInstanceOf(SubjectDeletionAnnouncement.class);
             final var subjectDeletionAnnouncement = (SubjectDeletionAnnouncement) announcement;
             assertThat(subjectDeletionAnnouncement.getSubjectIds())
-                    .containsExactly(SubjectId.newInstance("ditto:ditto"));
+                    .containsExactly(SUBJECT_DITTO_DITTO);
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests())
-                    .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest("connection:ack"));
+                    .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest(ACK_LABEL_CONNECTION_ACK));
 
             final var deleteCommand = expectMsgClass(DeleteExpiredSubject.class);
             assertThat(deleteCommand.getSubject()).isEqualTo(subject);
@@ -881,7 +884,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -896,7 +899,7 @@ public final class SubjectExpiryActorTest {
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId, HttpStatus.OK,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId, HttpStatus.OK,
                     announcement.getDittoHeaders()), getTestActor());
 
             expectTerminated(underTest);
@@ -911,7 +914,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -926,7 +929,7 @@ public final class SubjectExpiryActorTest {
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId, HttpStatus.OK,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId, HttpStatus.OK,
                     announcement.getDittoHeaders()), getTestActor());
 
             expectTerminated(underTest);
@@ -941,7 +944,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(9500),
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -954,7 +957,7 @@ public final class SubjectExpiryActorTest {
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId, HttpStatus.OK,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId, HttpStatus.OK,
                     announcement.getDittoHeaders()), getTestActor());
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
@@ -971,7 +974,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -986,7 +989,7 @@ public final class SubjectExpiryActorTest {
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.REQUEST_TIMEOUT, announcement.getDittoHeaders()), getTestActor());
 
             verify(policiesPub, timeout(30_000).times(2))
@@ -994,7 +997,7 @@ public final class SubjectExpiryActorTest {
             announcement = announcementCaptor.getValue();
             sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId, HttpStatus.OK,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId, HttpStatus.OK,
                     announcement.getDittoHeaders()), getTestActor());
 
             expectTerminated(underTest);
@@ -1009,7 +1012,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props =
@@ -1024,7 +1027,7 @@ public final class SubjectExpiryActorTest {
             final var announcement = announcementCaptor.getValue();
             final var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.REQUEST_TIMEOUT, announcement.getDittoHeaders()), getTestActor());
 
             expectTerminated(underTest);
@@ -1039,7 +1042,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -1054,7 +1057,7 @@ public final class SubjectExpiryActorTest {
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.INTERNAL_SERVER_ERROR, announcement.getDittoHeaders()), getTestActor());
 
             verify(policiesPub, timeout(30_000).times(2))
@@ -1062,7 +1065,7 @@ public final class SubjectExpiryActorTest {
             announcement = announcementCaptor.getValue();
             sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.OK, announcement.getDittoHeaders()), getTestActor());
 
             expectTerminated(underTest);
@@ -1077,7 +1080,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props =
@@ -1092,7 +1095,7 @@ public final class SubjectExpiryActorTest {
 
             underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.INTERNAL_SERVER_ERROR, announcement.getDittoHeaders()), getTestActor());
 
             expectTerminated(underTest);
@@ -1107,7 +1110,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(9500),
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props =
@@ -1120,7 +1123,7 @@ public final class SubjectExpiryActorTest {
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.INTERNAL_SERVER_ERROR, announcement.getDittoHeaders()), getTestActor());
 
             expectMsgClass(DeleteExpiredSubject.class);
@@ -1131,7 +1134,7 @@ public final class SubjectExpiryActorTest {
             announcement = announcementCaptor.getValue();
             sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.OK, announcement.getDittoHeaders()), getTestActor());
 
             expectTerminated(underTest);
@@ -1146,7 +1149,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(9500),
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props =
@@ -1159,7 +1162,7 @@ public final class SubjectExpiryActorTest {
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.INTERNAL_SERVER_ERROR, announcement.getDittoHeaders()), getTestActor());
 
             expectMsgClass(DeleteExpiredSubject.class);
@@ -1170,7 +1173,7 @@ public final class SubjectExpiryActorTest {
             announcement = announcementCaptor.getValue();
             sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.REQUEST_TIMEOUT, announcement.getDittoHeaders()), getTestActor());
 
             expectTerminated(underTest);
@@ -1185,7 +1188,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -1198,7 +1201,7 @@ public final class SubjectExpiryActorTest {
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.REQUEST_TIMEOUT, announcement.getDittoHeaders()), getTestActor());
 
             verify(policiesPub, timeout(30_000).times(2))
@@ -1206,7 +1209,7 @@ public final class SubjectExpiryActorTest {
             announcement = announcementCaptor.getValue();
             sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.OK, announcement.getDittoHeaders()), getTestActor());
 
             expectMsgClass(DeleteExpiredSubject.class);
@@ -1223,7 +1226,7 @@ public final class SubjectExpiryActorTest {
                     Duration.ofMillis(500),
                     true,
                     Duration.ofSeconds(30),
-                    "connection:ack"
+                    ACK_LABEL_CONNECTION_ACK
             );
 
             final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
@@ -1236,7 +1239,7 @@ public final class SubjectExpiryActorTest {
             var announcement = announcementCaptor.getValue();
             var sender = senderCaptor.getValue();
 
-            sender.tell(Acknowledgement.of(AcknowledgementLabel.of("connection:ack"), policyId,
+            sender.tell(Acknowledgement.of(AcknowledgementLabel.of(ACK_LABEL_CONNECTION_ACK), policyId,
                     HttpStatus.OK, announcement.getDittoHeaders()), getTestActor());
 
             expectMsgClass(DeleteExpiredSubject.class);
@@ -1252,7 +1255,7 @@ public final class SubjectExpiryActorTest {
             final boolean whenDeleted,
             @Nullable final Duration ackTimeout,
             final String... ackLabels) {
-        return Subject.newInstance(SubjectId.newInstance("ditto:ditto"),
+        return Subject.newInstance(SUBJECT_DITTO_DITTO,
                 SubjectType.UNKNOWN,
                 expiry != null ? PoliciesModelFactory.newSubjectExpiry(expiry) : null,
                 SubjectAnnouncement.of(
