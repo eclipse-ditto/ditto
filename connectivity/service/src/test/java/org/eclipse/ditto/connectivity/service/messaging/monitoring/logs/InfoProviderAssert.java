@@ -38,7 +38,7 @@ class InfoProviderAssert extends AbstractAssert<InfoProviderAssert, ConnectionMo
 
     InfoProviderAssert hasThingId(@Nullable final CharSequence thingId) {
         isNotNull();
-        Assertions.assertThat((CharSequence) actual.getThingId()).isEqualTo(thingId);
+        Assertions.assertThat((CharSequence) actual.getEntityId()).isEqualTo(thingId);
         return this;
     }
 

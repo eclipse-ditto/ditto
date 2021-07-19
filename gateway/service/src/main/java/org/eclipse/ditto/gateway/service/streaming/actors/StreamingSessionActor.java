@@ -71,7 +71,6 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
@@ -423,12 +422,12 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
         return ackregatorStarter.preprocess(signal,
                 (s, shouldStart) -> {
-                    final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, s);
-                    if (shouldStart && thingIdOptional.isPresent()) {
+                    final Optional<EntityId> entityIdOptional = WithEntityId.getEntityIdOfType(EntityId.class, s);
+                    if (shouldStart && entityIdOptional.isPresent()) {
                         // websocket-specific header check: acks requested with response-required=false are forbidden
                         final Optional<DittoHeaderInvalidException> headerInvalid = checkForAcksWithoutResponse(s);
                         return headerInvalid.map(this::publishResponseOrError)
-                                .orElseGet(() -> ackregatorStarter.doStart(thingIdOptional.get(), s.getDittoHeaders(),
+                                .orElseGet(() -> ackregatorStarter.doStart(entityIdOptional.get(), s.getDittoHeaders(),
                                         this::publishResponseOrError,
                                         ackregator -> forwardToCommandRouterAndReturnDone(s, ackregator)));
                     } else {

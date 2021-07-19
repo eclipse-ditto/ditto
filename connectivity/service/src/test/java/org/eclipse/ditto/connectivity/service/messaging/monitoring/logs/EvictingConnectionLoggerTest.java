@@ -28,8 +28,11 @@ import javax.annotation.Nullable;
 
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.LogCategory;
 import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.LogLevel;
@@ -37,8 +40,6 @@ import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.junit.Test;
 
@@ -467,19 +468,19 @@ public final class EvictingConnectionLoggerTest {
             return this;
         }
 
-        private LogEntryAssert hasThingId(@Nullable final ThingId thingId) {
-            if (null == thingId) {
-                return hasNoThingId();
+        private LogEntryAssert hasEntityId(@Nullable final EntityId entityId) {
+            if (null == entityId) {
+                return hasNoEntityId();
             }
 
             isNotNull();
-            assertThat(actual.getThingId()).contains(thingId);
+            assertThat(actual.getEntityId()).contains(entityId);
             return this;
         }
 
-        private LogEntryAssert hasNoThingId() {
+        private LogEntryAssert hasNoEntityId() {
             isNotNull();
-            assertThat(actual.getThingId()).isEmpty();
+            assertThat(actual.getEntityId()).isEmpty();
             return this;
         }
 
@@ -496,7 +497,7 @@ public final class EvictingConnectionLoggerTest {
         }
 
         private LogEntryAssert hasInfo(final ConnectionMonitor.InfoProvider info) {
-            return hasThingId(info.getThingId())
+            return hasEntityId(info.getEntityId())
                     .hasTimestamp(info.getTimestamp())
                     .hasCorrelationId(info.getCorrelationId());
         }

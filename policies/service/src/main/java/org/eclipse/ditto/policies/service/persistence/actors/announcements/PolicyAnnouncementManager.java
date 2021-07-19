@@ -52,6 +52,7 @@ public final class PolicyAnnouncementManager extends AbstractActor {
     private final Map<ActorRef, Subject> activeSubjects;
     private final ActorRef commandForwarder;
 
+    @SuppressWarnings("unused")
     private PolicyAnnouncementManager(final PolicyId policyId, final Duration gracePeriod,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             final Duration maxTimeout,
@@ -68,11 +69,11 @@ public final class PolicyAnnouncementManager extends AbstractActor {
     /**
      * Create the Props object for this actor.
      *
-     * @param policyId The policy ID.
-     * @param gracePeriod How long overdue acknowledgements are tolerated.
+     * @param policyId the policy ID.
+     * @param gracePeriod how long overdue acknowledgements are tolerated.
      * @param policyAnnouncementPub Ditto pubsub API to publish policy announcements.
-     * @param maxTimeout The maximum timeout for acknowledgements.
-     * @param forwarder Actor to forward policy commands to.
+     * @param maxTimeout the maximum timeout for acknowledgements.
+     * @param forwarder actor to forward policy commands to.
      * @return The Props object.
      */
     public static Props props(final PolicyId policyId, final Duration gracePeriod,
@@ -85,6 +86,7 @@ public final class PolicyAnnouncementManager extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
+                // PolicyPersistenceActor sends the Policy when recovered and whenever the Policy is modified:
                 .match(Policy.class, this::onPolicyModified)
                 .match(Terminated.class, this::onChildTerminated)
                 .build();
@@ -92,8 +94,8 @@ public final class PolicyAnnouncementManager extends AbstractActor {
 
     private void onPolicyModified(final Policy policy) {
         final var subjects = getSubjectsWithExpiryOrAnnouncements(policy);
-        final var newSubjects = setDifference(subjects, subjectExpiryActors.keySet());
-        final var deletedSubjects = setDifference(subjectExpiryActors.keySet(), subjects);
+        final var newSubjects = calculateDifference(subjects, subjectExpiryActors.keySet());
+        final var deletedSubjects = calculateDifference(subjectExpiryActors.keySet(), subjects);
         log.debug("OnPolicyModified policy=<{}> newSubjects=<{}> deletedSubjects=<{}>", policy, newSubjects,
                 deletedSubjects);
         for (final var newSubject : newSubjects) {
@@ -147,7 +149,7 @@ public final class PolicyAnnouncementManager extends AbstractActor {
         }
     }
 
-    private static List<Subject> setDifference(final Set<Subject> minuend, final Set<Subject> subtrahend) {
+    private static List<Subject> calculateDifference(final Set<Subject> minuend, final Set<Subject> subtrahend) {
         return minuend.stream()
                 .filter(subject -> !subtrahend.contains(subject))
                 .collect(Collectors.toList());

@@ -58,9 +58,10 @@ public interface SubjectAnnouncement extends Jsonifiable<JsonObject> {
      * @param requestedAcksTimeout timeout of acknowledgement requests.
      * @return the new {@link SubjectAnnouncement}.
      */
-    static SubjectAnnouncement of(@Nullable final DittoDuration beforeExpiry, final boolean whenDeleted,
+    static SubjectAnnouncement of(@Nullable final DittoDuration beforeExpiry,
+            final boolean whenDeleted,
             final List<AcknowledgementRequest> requestedAcksLabels,
-            @Nullable DittoDuration requestedAcksTimeout) {
+            @Nullable final DittoDuration requestedAcksTimeout) {
         return new ImmutableSubjectAnnouncement(beforeExpiry, whenDeleted, requestedAcksLabels,
                 requestedAcksTimeout);
     }
@@ -95,6 +96,7 @@ public interface SubjectAnnouncement extends Jsonifiable<JsonObject> {
      * Returns acknowledgement requests to fulfill for subject deletion announcements before expiry.
      *
      * @return the acknowledgement requests.
+     * @since 2.1.0
      */
     List<AcknowledgementRequest> getRequestedAcksLabels();
 
@@ -102,6 +104,7 @@ public interface SubjectAnnouncement extends Jsonifiable<JsonObject> {
      * Returns timeout of acknowledgement requests.
      *
      * @return the timeout.
+     * @since 2.1.0
      */
     Optional<DittoDuration> getRequestedAcksTimeout();
 
@@ -110,6 +113,7 @@ public interface SubjectAnnouncement extends Jsonifiable<JsonObject> {
      *
      * @param beforeExpiry the new value.
      * @return the copy.
+     * @since 2.1.0
      */
     SubjectAnnouncement setBeforeExpiry(@Nullable DittoDuration beforeExpiry);
 
@@ -132,12 +136,14 @@ public interface SubjectAnnouncement extends Jsonifiable<JsonObject> {
 
         /**
          * Field to store requested acknowledgements for announcements before expiry.
+         * @since 2.1.0
          */
         public static final JsonFieldDefinition<JsonArray> REQUESTED_ACKS_LABELS =
                 JsonFactory.newJsonArrayFieldDefinition("requestedAcks/labels");
 
         /**
          * Field to store timeout waiting for requested acknowledgements.
+         * @since 2.1.0
          */
         public static final JsonFieldDefinition<String> REQUESTED_ACKS_TIMEOUT =
                 JsonFactory.newStringFieldDefinition("requestedAcks/timeout");

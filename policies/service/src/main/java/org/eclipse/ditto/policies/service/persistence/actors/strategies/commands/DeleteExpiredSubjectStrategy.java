@@ -75,7 +75,10 @@ final class DeleteExpiredSubjectStrategy extends AbstractPolicyCommandStrategy<D
 
         final Collection<SubjectId> subjectIdCollection = List.of(subject.getId());
         final Map<Label, Collection<SubjectId>> subjectIdsToDelete = nonNullPolicy.stream()
-                .filter(entry -> entry.getSubjects().getSubject(subject.getId()).filter(subject::equals).isPresent())
+                .filter(entry -> entry.getSubjects()
+                        .getSubject(subject.getId())
+                        .filter(subject::equals) // only if all fields of the subject are equal, the subject of "other" policyEntries are deleted as well
+                        .isPresent())
                 .map(PolicyEntry::getLabel)
                 .collect(Collectors.toMap(Function.identity(), label -> subjectIdCollection));
 

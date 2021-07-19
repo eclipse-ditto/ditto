@@ -31,16 +31,16 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.ImmutableLogEntry;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.LogCategory;
 import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.LogLevel;
 import org.eclipse.ditto.connectivity.model.LogType;
-import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionTimeoutException;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogsResponse;
+import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -155,11 +155,12 @@ public final class RetrieveConnectionLogsAggregatorActorTest {
         boolean maxSizeReached = false;
         while (!maxSizeReached) {
             final LogEntry logEntry =
-                    ImmutableLogEntry.getBuilder(correlationId(), Instant.now(), LogCategory.TARGET, LogType.DROPPED,
+                    ConnectivityModelFactory.newLogEntryBuilder(correlationId(), Instant.now(), LogCategory.TARGET,
+                            LogType.DROPPED,
                             LogLevel.SUCCESS,
                             "Some example message that can be logged repeatedly just to create a big log.")
                             .address("some/address")
-                            .thingId(ThingId.generateRandom())
+                            .entityId(ThingId.generateRandom())
                             .build();
 
             final int newSize = currentSize + logEntry.toJsonString().length();

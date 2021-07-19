@@ -97,7 +97,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this AcknowledgementAggregatorActor.
      *
-     * @param entityId the thing ID of the originating signal.
+     * @param entityId the entity ID of the originating signal.
      * @param dittoHeaders the ditto headers of the originating signal.
      * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
      * @param headerTranslator translates headers from external sources or to external sources.
@@ -119,7 +119,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     /**
      * Creates Akka configuration object Props for this AcknowledgementAggregatorActor.
      *
-     * @param entityId the thing ID of the originating signal.
+     * @param entityId the entity ID of the originating signal.
      * @param dittoHeaders the ditto headers of the originating signal.
      * @param maxTimeout the maximum timeout of acknowledgement aggregation.
      * @param headerTranslator translates headers from external sources or to external sources.

@@ -32,8 +32,8 @@ import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -69,7 +69,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
 
     private static final NotUsed NULL = NotUsed.getInstance();
 
-    private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final PolicyId policyId;
     private final Subject subject;
@@ -85,6 +85,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     private boolean acknowledged = false;
     private Instant deleteAt;
 
+    @SuppressWarnings("unused")
     private SubjectExpiryActor(final PolicyId policyId, final Subject subject, final Duration gracePeriod,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             final Duration maxTimeout, final ActorRef commandForwarder) {
@@ -104,12 +105,12 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     /**
      * Create the Props object for this actor.
      *
-     * @param policyId The policy ID.
-     * @param subject The subject.
-     * @param gracePeriod How long overdue acknowledgements are tolerated.
+     * @param policyId the policy ID.
+     * @param subject the subject.
+     * @param gracePeriod how long overdue acknowledgements are tolerated.
      * @param policyAnnouncementPub Ditto pubsub API to publish policy announcements.
-     * @param maxTimeout The maximum timeout.
-     * @param forwarder Actor to forward policy commands to.
+     * @param maxTimeout the maximum timeout.
+     * @param forwarder actor to forward policy commands to.
      * @return The Props object.
      */
     public static Props props(final PolicyId policyId, final Subject subject, final Duration gracePeriod,
@@ -204,11 +205,13 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     private State<SubjectExpiryState, NotUsed> exceptionInToAcknowledge(final DittoRuntimeException exception,
             final NotUsed notUsed) {
         final var l = log.withCorrelationId(exception);
-        l.error(exception, "Got exception waiting for acknowledgements.");
+        l.info("Got exception waiting for acknowledgements: <{}: {}>", exception.getClass().getSimpleName(),
+                exception.getMessage());
         if (requiresRedelivery(exception.getHttpStatus())) {
             return retryAnnouncementAfterBackOff(l);
         } else {
-            log.error("Exception unrecoverable, giving up: <{}>", exception);
+            l.warning("Exception unrecoverable, giving up: <{}: {}>", exception.getClass().getSimpleName(),
+                    exception.getMessage());
             return scheduleDeleteExpiredSubjectIfNeeded();
         }
     }
@@ -298,7 +301,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         }
     }
 
-    private State<SubjectExpiryState, NotUsed> retryAnnouncementAfterBackOff(final ThreadSafeDittoLoggingAdapter l) {
+    private State<SubjectExpiryState, NotUsed> retryAnnouncementAfterBackOff(final DittoDiagnosticLoggingAdapter l) {
         // back off && retry
         final Instant now = Instant.now();
         nextBackOff = increaseBackOff(nextBackOff);
@@ -309,11 +312,12 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
             return goTo(TO_ANNOUNCE);
         } else if (deleted) {
             // subject already deleted; give up
+            // log as error as this must not happen without a downtime of the service < gracePeriod
             l.error("Grace period past for deleted subject <{}>. Giving up.", subject);
             return stop();
         } else {
             // outside of grace period; delete
-            l.error("Grace period past for subject <{}>. Deleting.", subject);
+            l.info("Grace period past for subject <{}>. Deleting.", subject);
             commandForwarder.tell(deleteExpiredSubject, ActorRef.noSender());
             return goTo(DELETED);
         }

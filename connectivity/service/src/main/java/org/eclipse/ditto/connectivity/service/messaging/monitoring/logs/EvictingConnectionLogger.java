@@ -255,7 +255,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
         return ConnectivityModelFactory.newLogEntryBuilder(infoProvider.getCorrelationId(), infoProvider.getTimestamp(),
                 category, type, logLevel, message)
                 .address(address)
-                .thingId(infoProvider.getThingId())
+                .entityId(infoProvider.getEntityId())
                 .build();
     }
 
@@ -266,8 +266,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
 
         if (LOGGER.isTraceEnabled()) {
             LOGGER.withCorrelationId(correlationId)
-                    .trace("Saving {} log at <{}> for thing <{}> with message: {}", level, infoProvider.getTimestamp(),
-                            infoProvider.getThingId(), message);
+                    .trace("Saving {} log at <{}> for entity <{}> with message: {}", level, infoProvider.getTimestamp(),
+                            infoProvider.getEntityId(), message);
         }
     }
 

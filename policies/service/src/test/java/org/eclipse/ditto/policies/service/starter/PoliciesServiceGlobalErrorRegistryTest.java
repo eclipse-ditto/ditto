@@ -61,10 +61,13 @@ public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorReg
                 // added due to ditto-model-placeholders
                 PlaceholderFunctionUnknownException.class,
 
+                // connectivity-model is pulled in as transitive dependency of ditto-protocol, pulled in by ditto-internal-model-acks:
+                // acks are used in Policies enabling "at least once" for policy announcements
                 ConnectionIdInvalidException.class,
+                ConnectionConflictException.class,
                 UnknownTopicPathException.class,
                 UnknownChannelException.class,
-                ConnectionConflictException.class,
+
                 InvalidOptionException.class
         );
     }

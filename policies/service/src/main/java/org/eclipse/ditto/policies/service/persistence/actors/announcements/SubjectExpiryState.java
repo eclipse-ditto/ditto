@@ -15,7 +15,7 @@ package org.eclipse.ditto.policies.service.persistence.actors.announcements;
 /**
  * State of subject expiry actor.
  */
-public enum SubjectExpiryState {
+enum SubjectExpiryState {
 
     /**
      * Waiting to send an announcement in the future.

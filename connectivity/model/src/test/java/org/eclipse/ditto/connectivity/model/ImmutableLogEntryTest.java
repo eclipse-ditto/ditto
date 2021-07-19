@@ -21,6 +21,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Instant;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
@@ -109,7 +110,7 @@ public class ImmutableLogEntryTest {
         final LogEntry logEntry = ImmutableLogEntry.getBuilder(CORRELATION_ID, TIMESTAMP, CATEGORY, TYPE, LEVEL,
                 MESSAGE, ADDRESS, null)
                 .build();
-        assertThat(logEntry.getThingId()).isEmpty();
+        assertThat(logEntry.getEntityId()).isEmpty();
     }
 
     @Test
@@ -127,11 +128,12 @@ public class ImmutableLogEntryTest {
     public void jsonWithMissingThingIdAndAddress() {
         final JsonObject json = getLogEntryJson()
                 .remove(LogEntry.JsonFields.ADDRESS.getPointer().toString())
-                .remove(LogEntry.JsonFields.THING_ID.getPointer().toString());
+                .remove(LogEntry.JsonFields.THING_ID.getPointer().toString())
+                .remove(LogEntry.JsonFields.ENTITY_ID.getPointer().toString());
         final LogEntry logEntry = ImmutableLogEntry.fromJson(json);
 
         assertThat(logEntry.getAddress()).isEmpty();
-        assertThat(logEntry.getThingId()).isEmpty();
+        assertThat(logEntry.getEntityId()).isEmpty();
     }
 
     @Test
@@ -146,7 +148,7 @@ public class ImmutableLogEntryTest {
                 .logLevel(LEVEL)
                 .message(MESSAGE)
                 .address(ADDRESS)
-                .thingId(THING_ID)
+                .entityId(THING_ID)
                 .build();
         assertThat(builtEntry).isEqualTo(LOG_ENTRY);
     }
@@ -182,7 +184,7 @@ public class ImmutableLogEntryTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableLogEntry.class, areImmutable(),
-                provided(LogType.class, ThingId.class).areAlsoImmutable());
+                provided(LogType.class, EntityId.class).areAlsoImmutable());
     }
 
     private static JsonObject getLogEntryJson() {
@@ -195,6 +197,7 @@ public class ImmutableLogEntryTest {
                 .set(LogEntry.JsonFields.LEVEL, LEVEL.getLevel())
                 .set(LogEntry.JsonFields.ADDRESS, ADDRESS)
                 .set(LogEntry.JsonFields.THING_ID, THING_ID.toString())
+                .set(LogEntry.JsonFields.ENTITY_ID, THING_ID.toString())
                 .build();
     }
 

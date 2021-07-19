@@ -56,9 +56,12 @@ public final class PoliciesServiceGlobalCommandResponseRegistryTest extends Glob
                 PurgeEntitiesResponse.class,
                 Acknowledgement.class,
 
+                // connectivity-model is pulled in as transitive dependency of ditto-protocol, pulled in by ditto-internal-model-acks:
+                // acks are used in Policies enabling "at least once" for policy announcements
                 RetrieveConnectionResponse.class,
                 ModifyConnectionResponse.class,
                 ConnectivityErrorResponse.class,
+
                 QueryThingsResponse.class,
                 SearchErrorResponse.class
         );

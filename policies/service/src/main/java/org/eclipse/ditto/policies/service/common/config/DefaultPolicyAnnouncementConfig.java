@@ -74,7 +74,7 @@ final class DefaultPolicyAnnouncementConfig implements PolicyAnnouncementConfig 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", gracePeriod=" + gracePeriod +
+                "gracePeriod=" + gracePeriod +
                 ", maxTimeout=" + maxTimeout +
                 "]";
     }
