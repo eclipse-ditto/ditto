@@ -40,8 +40,10 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -55,9 +57,9 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
     private final Channel channel = Mockito.mock(Channel.class);
 
     @Override
-    protected Props getConsumerActorProps(final ActorRef mappingActor,
+    protected Props getConsumerActorProps(final Sink<Object, NotUsed> inboundMappingSink,
             final Set<AcknowledgementRequest> acknowledgementRequests) {
-        return RabbitMQConsumerActor.props("rmq-consumer", mappingActor,
+        return RabbitMQConsumerActor.props("rmq-consumer", inboundMappingSink,
                 ConnectivityModelFactory.newSourceBuilder()
                         .address("rmq-consumer")
                         .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
@@ -74,8 +76,9 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
     }
 
     @Override
-    protected Props getConsumerActorProps(final ActorRef mappingActor, final PayloadMapping payloadMapping) {
-        return RabbitMQConsumerActor.props("rmq-consumer", mappingActor,
+    protected Props getConsumerActorProps(final Sink<Object, NotUsed> inboundMappingSink,
+            final PayloadMapping payloadMapping) {
+        return RabbitMQConsumerActor.props("rmq-consumer", inboundMappingSink,
                 ConnectivityModelFactory.newSourceBuilder()
                         .address("rmq-consumer")
                         .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)

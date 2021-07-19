@@ -33,7 +33,6 @@ import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.junit.After;
@@ -41,9 +40,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.Props;
+import akka.stream.Materializer;
+import akka.stream.OverflowStrategy;
+import akka.stream.javadsl.Sink;
+import akka.stream.scaladsl.Source;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -69,9 +72,15 @@ public final class InboundMappingProcessorActorTest {
             // GIVEN: InboundMappingProcessorActor is constructed with a processor that throws an exception always.
             final TestProbe inboundDispatcher = TestProbe.apply("inboundDispatcher", system);
             final InboundMappingProcessor throwingProcessor = createThrowingProcessor();
-            final Props props = InboundMappingProcessorActor.props(throwingProcessor, HeaderTranslator.empty(),
-                    TestConstants.createConnection(), 1, inboundDispatcher.ref());
-            final ActorRef underTest = system.actorOf(props);
+            final Sink<Object, NotUsed> inboundMappingSink = InboundMappingSink.createSink(throwingProcessor,
+                    TestConstants.createRandomConnectionId(),
+                    1,
+                    inboundDispatcher.ref(),
+                    TestConstants.MAPPING_CONFIG,
+                    system.dispatchers().defaultGlobalDispatcher());
+            final ActorRef underTest = Source.actorRef(1, OverflowStrategy.dropNew())
+                    .to(inboundMappingSink)
+                    .run(Materializer.createMaterializer(system));
 
             // WHEN: InboundMappingProcessorActor receives a text message.
             final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(Map.of())
@@ -80,7 +89,10 @@ public final class InboundMappingProcessorActorTest {
                     // attach non-null payload mapping to avoid using the default mapper
                     .withPayloadMapping(Mockito.mock(PayloadMapping.class))
                     .build();
-            underTest.tell(message, getRef());
+            underTest.tell(
+                    new InboundMappingSink.ExternalMessageWithSender(message, getRef()),
+                    ActorRef.noSender()
+            );
 
             // THEN: InboundDispatchingActor receives 1 error outcome with the exception thrown.
             final InboundMappingOutcomes outcomes = inboundDispatcher.expectMsgClass(InboundMappingOutcomes.class);

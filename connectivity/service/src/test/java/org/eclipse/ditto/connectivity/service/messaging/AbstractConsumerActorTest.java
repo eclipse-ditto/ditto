@@ -66,10 +66,12 @@ import org.mockito.Mockito;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.stream.javadsl.Sink;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
@@ -215,8 +217,9 @@ public abstract class AbstractConsumerActorTest<M> {
             final TestProbe concierge = TestProbe.apply(actorSystem);
             final TestProbe clientActor = TestProbe.apply(actorSystem);
 
-            final ActorRef mappingActor = setupMessageMappingProcessorActor(clientActor.ref(), concierge.ref());
-            final ActorRef underTest = childActorOf(getConsumerActorProps(mappingActor, Collections.emptySet()));
+            final Sink<Object, NotUsed> inboundMappingSink =
+                    setupInboundMappingSink(clientActor.ref(), concierge.ref());
+            final ActorRef underTest = childActorOf(getConsumerActorProps(inboundMappingSink, Collections.emptySet()));
 
             underTest.tell(getInboundMessage(payload, TestConstants.header("device_id", TestConstants.Things.THING_ID)),
                     sender.ref());
@@ -289,9 +292,10 @@ public abstract class AbstractConsumerActorTest<M> {
         );
     }
 
-    protected abstract Props getConsumerActorProps(final ActorRef mappingActor, final PayloadMapping payloadMapping);
+    protected abstract Props getConsumerActorProps(final Sink<Object, NotUsed> inboundMappingSink,
+            final PayloadMapping payloadMapping);
 
-    protected abstract Props getConsumerActorProps(final ActorRef mappingActor,
+    protected abstract Props getConsumerActorProps(final Sink<Object, NotUsed> inboundMappingSink,
             final Set<AcknowledgementRequest> acknowledgementRequests);
 
     protected abstract M getInboundMessage(final String payload, final Map.Entry<String, Object> header);
@@ -320,9 +324,10 @@ public abstract class AbstractConsumerActorTest<M> {
             final TestProbe proxyActor = TestProbe.apply(actorSystem);
             final TestProbe clientActor = TestProbe.apply(actorSystem);
 
-            final ActorRef mappingActor = setupMessageMappingProcessorActor(clientActor.ref(), proxyActor.ref());
+            final Sink<Object, NotUsed> inboundMappingSink =
+                    setupInboundMappingSink(clientActor.ref(), proxyActor.ref());
 
-            final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(mappingActor, payloadMapping));
+            final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(inboundMappingSink, payloadMapping));
 
             underTest.tell(getInboundMessage(TestConstants.modifyThing(), header), sender.ref());
 
@@ -348,7 +353,7 @@ public abstract class AbstractConsumerActorTest<M> {
         }};
     }
 
-    private ActorRef setupMessageMappingProcessorActor(final ActorRef clientActor, final ActorRef proxyActor) {
+    private Sink<Object, NotUsed> setupInboundMappingSink(final ActorRef clientActor, final ActorRef proxyActor) {
         final Map<String, MappingContext> mappings = new HashMap<>();
         mappings.put("ditto", DittoMessageMapper.CONTEXT);
         mappings.put("faulty", FaultyMessageMapper.CONTEXT);
@@ -382,12 +387,10 @@ public abstract class AbstractConsumerActorTest<M> {
                 outboundProcessorActor);
         final ActorRef inboundDispatchingActor = actorSystem.actorOf(inboundDispatchingActorProps,
                 InboundDispatchingActor.ACTOR_NAME + "-" + name.getMethodName());
-        final Props messageMappingProcessorProps =
-                InboundMappingProcessorActor.props(inboundMappingProcessor, protocolAdapter.headerTranslator(),
-                        CONNECTION, 99, inboundDispatchingActor);
 
-        return actorSystem.actorOf(messageMappingProcessorProps,
-                InboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
+        return InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99,
+                inboundDispatchingActor, connectivityConfig.getMappingConfig(),
+                actorSystem.dispatchers().defaultGlobalDispatcher());
     }
 
 }

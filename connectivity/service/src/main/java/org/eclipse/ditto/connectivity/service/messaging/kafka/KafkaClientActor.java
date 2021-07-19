@@ -211,7 +211,7 @@ public final class KafkaClientActor extends BaseClientActor {
     private void startKafkaConsumer(final ConsumerData consumerData, final boolean dryRun) {
         final Props consumerActorProps =
                 KafkaConsumerActor.props(connection(), kafkaConfig.getConsumerConfig(), propertiesFactory,
-                        consumerData.getAddress(), getInboundMappingProcessorActor(), consumerData.getSource(), dryRun);
+                        consumerData.getAddress(), getInboundMappingSink(), consumerData.getSource(), dryRun);
         final ActorRef consumerActor =
                 startChildActorConflictFree(consumerData.getActorNamePrefix(), consumerActorProps);
         kafkaConsumerActors.add(consumerActor);

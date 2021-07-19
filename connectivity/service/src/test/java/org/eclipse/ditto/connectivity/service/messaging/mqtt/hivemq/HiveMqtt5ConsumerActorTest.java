@@ -43,8 +43,10 @@ import com.hivemq.client.internal.mqtt.message.publish.MqttPublish;
 import com.hivemq.client.mqtt.mqtt5.datatypes.Mqtt5UserProperties;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -72,9 +74,9 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
             MqttSpecificConfig.fromConnection(CONNECTION, CONNECTION_CONFIG.getMqttConfig());
 
     @Override
-    protected Props getConsumerActorProps(final ActorRef mappingActor,
+    protected Props getConsumerActorProps(final Sink<Object, NotUsed> inboundMappingSink,
             final Set<AcknowledgementRequest> acknowledgementRequests) {
-        return HiveMqtt5ConsumerActor.props(CONNECTION, mappingActor, ConnectivityModelFactory.newSourceBuilder()
+        return HiveMqtt5ConsumerActor.props(CONNECTION, inboundMappingSink, ConnectivityModelFactory.newSourceBuilder()
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .enforcement(ENFORCEMENT)
                 .headerMapping(MQTT5_HEADER_MAPPING)
@@ -104,8 +106,9 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
     }
 
     @Override
-    protected Props getConsumerActorProps(final ActorRef mappingActor, final PayloadMapping payloadMapping) {
-        return HiveMqtt5ConsumerActor.props(CONNECTION, mappingActor, ConnectivityModelFactory.newSourceBuilder()
+    protected Props getConsumerActorProps(final Sink<Object, NotUsed> inboundMappingSink,
+            final PayloadMapping payloadMapping) {
+        return HiveMqtt5ConsumerActor.props(CONNECTION, inboundMappingSink, ConnectivityModelFactory.newSourceBuilder()
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .enforcement(ENFORCEMENT)
                 .headerMapping(MQTT5_HEADER_MAPPING)

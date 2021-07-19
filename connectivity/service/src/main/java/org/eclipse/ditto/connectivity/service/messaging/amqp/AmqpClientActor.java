@@ -73,6 +73,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.Done;
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.FSM;
@@ -80,6 +81,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
+import akka.stream.javadsl.Sink;
 
 /**
  * Actor which manages a connection to an AMQP 1.0 server using the Qpid JMS client.
@@ -435,7 +437,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private void startCommandConsumers(final List<ConsumerData> consumers, final ActorRef jmsActor) {
         if (isConsuming()) {
             stopCommandConsumers();
-            consumers.forEach(consumer -> startCommandConsumer(consumer, getInboundMappingProcessorActor(), jmsActor));
+            consumers.forEach(consumer -> startCommandConsumer(consumer, getInboundMappingSink(), jmsActor));
             connectionLogger.success("Subscriptions {0} initialized successfully.", consumers);
             logger.info("Subscribed Connection <{}> to sources: {}", connectionId(), consumers);
         } else {
@@ -443,10 +445,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
     }
 
-    private void startCommandConsumer(final ConsumerData consumer, final ActorRef inboundMappingProcessor,
+    private void startCommandConsumer(final ConsumerData consumer, final Sink<Object, NotUsed> inboundMappingSink,
             final ActorRef jmsActor) {
         final String namePrefix = consumer.getActorNamePrefix();
-        final Props props = AmqpConsumerActor.props(connection(), consumer, inboundMappingProcessor, jmsActor);
+        final Props props = AmqpConsumerActor.props(connection(), consumer, inboundMappingSink, jmsActor);
 
         final ActorRef child = startChildActorConflictFree(namePrefix, props);
         consumerByNamePrefix.put(namePrefix, child);

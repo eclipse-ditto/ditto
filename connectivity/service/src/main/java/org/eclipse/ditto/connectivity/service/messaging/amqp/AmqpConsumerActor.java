@@ -59,6 +59,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
+import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConsumerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
@@ -69,16 +70,18 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
+import akka.stream.javadsl.Sink;
 
 /**
  * Actor which receives message from an AMQP source and forwards them to a {@code MessageMappingProcessorActor}.
  */
-final class AmqpConsumerActor extends BaseConsumerActor implements MessageListener,
+final class AmqpConsumerActor extends LegacyBaseConsumerActor implements MessageListener,
         MessageRateLimiterBehavior<String>, ConnectivityConfigModifiedBehavior {
 
     /**
@@ -100,12 +103,13 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     private MessageConsumer messageConsumer;
     private ConnectivityConfig connectivityConfig;
 
+
     @SuppressWarnings("unused")
     private AmqpConsumerActor(final Connection connection, final ConsumerData consumerData,
-            final ActorRef inboundMappingProcessor, final ActorRef jmsActor) {
+            final Sink<Object, NotUsed> inboundMappingSink, final ActorRef jmsActor) {
         super(connection,
                 checkNotNull(consumerData, "consumerData").getAddress(),
-                inboundMappingProcessor,
+                inboundMappingSink,
                 consumerData.getSource());
 
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
@@ -133,14 +137,14 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      *
      * @param connection the connection
      * @param consumerData the consumer data.
-     * @param inboundMappingProcessor the message mapping processor where received messages are forwarded to
+     * @param inboundMappingSink the message mapping sink where received messages are forwarded to
      * @param jmsActor reference of the {@code JMSConnectionHandlingActor).
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection, final ConsumerData consumerData,
-            final ActorRef inboundMappingProcessor, final ActorRef jmsActor) {
+            final Sink<Object, NotUsed> inboundMappingSink, final ActorRef jmsActor) {
 
-        return Props.create(AmqpConsumerActor.class, connection, consumerData, inboundMappingProcessor, jmsActor);
+        return Props.create(AmqpConsumerActor.class, connection, consumerData, inboundMappingSink, jmsActor);
     }
 
     @Override

@@ -39,6 +39,7 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.CharsetDeterminer;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
@@ -48,6 +49,7 @@ import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.GenericTarget;
@@ -261,7 +263,37 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     }
 
     private Acknowledgements appendConnectionId(final Acknowledgements acknowledgements) {
-        return InboundMappingProcessorActor.appendConnectionIdToAcknowledgements(acknowledgements, connection.getId());
+        return appendConnectionIdToAcknowledgements(acknowledgements, connection.getId());
+    }
+
+    private static Acknowledgements appendConnectionIdToAcknowledgements(final Acknowledgements acknowledgements,
+            final ConnectionId connectionId) {
+        final List<Acknowledgement> acksList = acknowledgements.stream()
+                .map(ack -> appendConnectionIdToAcknowledgementOrResponse(ack, connectionId))
+                .collect(Collectors.toList());
+        // Uses EntityId and StatusCode from input acknowledges expecting these were set when Acknowledgements was created
+        return Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getHttpStatus(),
+                acknowledgements.getDittoHeaders());
+    }
+
+
+    /**
+     * Appends the ConnectionId to the processed {@code commandResponse} payload.
+     *
+     * @param commandResponse the CommandResponse (or Acknowledgement as subtype) to append the ConnectionId to
+     * @param connectionId the ConnectionId to append to the CommandResponse's DittoHeader
+     * @param <T> the type of the CommandResponse
+     * @return the CommandResponse with appended ConnectionId.
+     */
+    private static <T extends CommandResponse<T>> T appendConnectionIdToAcknowledgementOrResponse(
+            final T commandResponse,
+            final ConnectionId connectionId) {
+
+        final DittoHeaders newHeaders = commandResponse.getDittoHeaders()
+                .toBuilder()
+                .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId.toString())
+                .build();
+        return commandResponse.setDittoHeaders(newHeaders);
     }
 
     private int computeMaxAckPayloadBytesForSignal(final OutboundSignal.MultiMapped multiMapped) {

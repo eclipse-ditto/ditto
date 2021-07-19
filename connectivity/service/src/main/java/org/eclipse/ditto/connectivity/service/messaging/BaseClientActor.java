@@ -91,6 +91,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectionContextProvider;
 import org.eclipse.ditto.connectivity.service.config.ConnectionContextProviderFactory;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
+import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
@@ -109,6 +110,7 @@ import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionVal
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
@@ -121,6 +123,7 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.WithSubscriptionId;
 
 import akka.Done;
+import akka.NotUsed;
 import akka.actor.AbstractFSMWithStash;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -133,11 +136,13 @@ import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.pubsub.DistributedPubSub;
+import akka.dispatch.MessageDispatcher;
 import akka.japi.Pair;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
 import akka.stream.Materializer;
+import akka.stream.javadsl.Sink;
 import scala.concurrent.ExecutionContext;
 
 /**
@@ -151,8 +156,12 @@ import scala.concurrent.ExecutionContext;
 public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientState, BaseClientData> implements
         ConnectivityConfigModifiedBehavior {
 
+    /**
+     * The name of the dispatcher that will be used for async mapping.
+     */
+    private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
+
     private static final Set<String> NO_ADDRESS_REPORTING_CHILD_NAMES = Set.of(
-            InboundMappingProcessorActor.ACTOR_NAME,
             InboundDispatchingActor.ACTOR_NAME,
             OutboundMappingProcessorActor.ACTOR_NAME,
             OutboundDispatchingActor.ACTOR_NAME
@@ -189,7 +198,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ConnectionContextProvider connectionContextProvider;
     protected ConnectionContext connectionContext;
 
-    private ActorRef inboundMappingProcessorActor;
+    private Sink<Object, NotUsed> inboundMappingSink;
     private ActorRef outboundDispatchingActor;
     private ActorRef outboundMappingProcessorActor;
     private ActorRef subscriptionManager;
@@ -308,8 +317,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         final ActorRef inboundDispatcher =
                 startInboundDispatchingActor(connection, protocolAdapter, outboundMappingProcessorActor);
-        inboundMappingProcessorActor =
-                startInboundMappingProcessorActor(connectionContext, protocolAdapter, inboundDispatcher);
+        inboundMappingSink = getInboundMappingSink(connectionContext, protocolAdapter, inboundDispatcher);
         subscriptionManager = startSubscriptionManager(proxyActorSelection,
                 connectionContext.getConnectivityConfig().getClientConfig());
 
@@ -360,7 +368,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             logger.debug("Config changed for InboundMappingProcessor, recreating it.");
             final var inboundMappingProcessor =
                     InboundMappingProcessor.of(modifiedContext, getContext().getSystem(), protocolAdapter, logger);
-            inboundMappingProcessorActor.tell(new ReplaceInboundMappingProcessor(inboundMappingProcessor), getSelf());
+            akka.stream.javadsl.Source.<Object>single(new ReplaceInboundMappingProcessor(inboundMappingProcessor))
+                    .to(getInboundMappingSink())
+                    .run(Materializer.createMaterializer(context().system()));
         }
         if (hasOutboundMapperConfigChanged(modifiedConfig)) {
             logger.debug("Config changed for OutboundMappingProcessor, recreating it.");
@@ -529,10 +539,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     /**
-     * @return the {@link InboundMappingProcessorActor}.
+     * @return the inbound mapping sink defined by {@link InboundMappingSink}.
      */
-    protected final ActorRef getInboundMappingProcessorActor() {
-        return inboundMappingProcessorActor;
+    protected final Sink<Object, NotUsed> getInboundMappingSink() {
+        return inboundMappingSink;
     }
 
     /**
@@ -1661,7 +1671,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * Starts the {@link InboundDispatchingActor} responsible for signal de-multiplexing and acknowledgement
      * aggregation.
      *
-     * @return the ref to the started {@link InboundMappingProcessorActor}
+     * @return the ref to the started {@link InboundDispatchingActor}
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
     private ActorRef startInboundDispatchingActor(final Connection connection,
@@ -1676,15 +1686,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     /**
-     * Starts the {@link InboundMappingProcessorActor} responsible for payload transformation/mapping as child actor.
+     * Gets the {@link InboundMappingSink} responsible for payload transformation/mapping.
      *
      * @param connectionContext the connection.
      * @param protocolAdapter the protocol adapter.
      * @param inboundDispatchingActor the actor to hand mapping outcomes to.
-     * @return the ref to the started {@link InboundMappingProcessorActor}
+     * @return the Sink.
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
-    private ActorRef startInboundMappingProcessorActor(final ConnectionContext connectionContext,
+    private Sink<Object, NotUsed> getInboundMappingSink(final ConnectionContext connectionContext,
             final ProtocolAdapter protocolAdapter,
             final ActorRef inboundDispatchingActor) {
 
@@ -1703,11 +1713,17 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final int processorPoolSize = connectionContext.getConnection().getProcessorPoolSize();
         logger.debug("Starting inbound mapping processor actors with pool size of <{}>.", processorPoolSize);
 
-        final Props inboundMappingProcessorActorProps =
-                InboundMappingProcessorActor.props(inboundMappingProcessor, protocolAdapter.headerTranslator(),
-                        connectionContext.getConnection(), processorPoolSize, inboundDispatchingActor);
-
-        return getContext().actorOf(inboundMappingProcessorActorProps, InboundMappingProcessorActor.ACTOR_NAME);
+        final var dittoScoped = DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
+        final var connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
+        final var mappingConfig = connectivityConfig.getMappingConfig();
+        final MessageDispatcher messageMappingProcessorDispatcher =
+                getContext().system().dispatchers().lookup(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
+        return InboundMappingSink.createSink(inboundMappingProcessor,
+                connectionContext.getConnection().getId(),
+                processorPoolSize,
+                inboundDispatchingActor,
+                mappingConfig,
+                messageMappingProcessorDispatcher);
     }
 
     /**
@@ -2135,8 +2151,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     /**
-     * Message sent to {@link InboundMappingProcessorActor} instructing it to replace the current
-     * {@link InboundMappingProcessor}.
+     * Message sent to {@link InboundMappingSink} instructing it to replace the current {@link InboundMappingProcessor}.
      */
     static final class ReplaceInboundMappingProcessor {
 
