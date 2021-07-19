@@ -37,11 +37,12 @@ public final class PolicyAnnouncementPubSubFactory extends AbstractPubSubFactory
     /**
      * Create a pubsub factory for thing events ignoring shard ID topics.
      *
-     * @param actorRefFactory the factory with which to create the sub-supervisor actor.l
+     * @param actorRefFactory the factory with which to create the sub-supervisor actor.
      * @param system the actor system.
      * @return the thing event pub-sub factory.
      */
     public static PolicyAnnouncementPubSubFactory of(final ActorRefFactory actorRefFactory, final ActorSystem system) {
         return new PolicyAnnouncementPubSubFactory(actorRefFactory, system);
     }
+
 }

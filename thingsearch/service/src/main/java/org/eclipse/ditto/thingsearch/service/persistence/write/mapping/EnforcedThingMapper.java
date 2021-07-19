@@ -29,17 +29,17 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.ResourceKey;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.policies.api.Permission;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 
 /**
  * Map Thing with Enforcer to Document.
@@ -88,7 +88,7 @@ public final class EnforcedThingMapper {
      * @param enforcer the policy-enforcer of the Thing.
      * @param policyRevision revision of the policy for an policy enforcer.
      * @param maxArraySize only arrays smaller than this are indexed.
-     * @param oldMetadata the meatadata that triggered the search update, possibly containing sender information.
+     * @param oldMetadata the metadata that triggered the search update, possibly containing sender information.
      * @return BSON document to write into the search index.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
      */
@@ -99,10 +99,10 @@ public final class EnforcedThingMapper {
             @Nullable final Metadata oldMetadata) {
 
         final String extractedThing = thing.getValueOrThrow(Thing.JsonFields.ID);
-        final ThingId thingId = ThingId.of(extractedThing);
+        final var thingId = ThingId.of(extractedThing);
         final long thingRevision = thing.getValueOrThrow(Thing.JsonFields.REVISION);
-        final PolicyId nullablePolicyId = thing.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of).orElse(null);
-        final Metadata metadata = Metadata.of(thingId, thingRevision, nullablePolicyId, policyRevision,
+        final var nullablePolicyId = thing.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of).orElse(null);
+        final var metadata = Metadata.of(thingId, thingRevision, nullablePolicyId, policyRevision,
                 Optional.ofNullable(oldMetadata).flatMap(Metadata::getModified).orElse(null),
                 Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(Collections.emptyList()),
                 Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(Collections.emptyList()));
@@ -189,4 +189,5 @@ public final class EnforcedThingMapper {
                     .collect(JsonCollectors.fieldsToObject());
         }
     }
+
 }

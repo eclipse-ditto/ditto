@@ -36,7 +36,6 @@ import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.thingsearch.service.common.config.StreamCacheConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.EnforcedThingMapper;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
@@ -97,7 +96,7 @@ final class EnforcementFlow {
             final MessageDispatcher cacheDispatcher) {
 
         final Duration askTimeout = updaterStreamConfig.getAskTimeout();
-        final StreamCacheConfig streamCacheConfig = updaterStreamConfig.getCacheConfig();
+        final var streamCacheConfig = updaterStreamConfig.getCacheConfig();
 
         final AsyncCacheLoader<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
@@ -189,9 +188,9 @@ final class EnforcementFlow {
     }
 
     private Source<SudoRetrieveThingResponse, NotUsed> sudoRetrieveThing(final Map.Entry<ThingId, Metadata> entry) {
-        final ThingId thingId = entry.getKey();
+        final var thingId = entry.getKey();
         ConsistencyLag.startS3RetrieveThing(entry.getValue());
-        final SudoRetrieveThing command =
+        final var command =
                 SudoRetrieveThing.withOriginalSchemaVersion(thingId, DittoHeaders.empty());
         final CompletionStage<Source<SudoRetrieveThingResponse, NotUsed>> responseFuture =
                 // using default thread-pool for asking Things shard region
