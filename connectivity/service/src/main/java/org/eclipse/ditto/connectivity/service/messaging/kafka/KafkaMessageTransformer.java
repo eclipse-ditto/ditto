@@ -80,11 +80,10 @@ final class KafkaMessageTransformer {
                 .getOrDefault(DittoHeaderDefinition.CORRELATION_ID.getKey(), UUID.randomUUID().toString());
         try {
             final DittoLogger correlationIdScopedLogger = LOGGER.withCorrelationId(correlationId);
-            if (correlationIdScopedLogger.isDebugEnabled()) {
-                correlationIdScopedLogger.debug(
-                        "Transforming incoming kafka message <{}> with headers <{}> for thing with ID <{}>.",
-                        value, messageHeaders, key);
-            }
+            correlationIdScopedLogger.debug(
+                    "Transforming incoming kafka message <{}> with headers <{}> and key <{}>.",
+                    value, messageHeaders, key
+            );
 
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(messageHeaders)
                     .withTextAndBytes(value, value == null ? null : value.getBytes())
