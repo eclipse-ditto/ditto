@@ -13,9 +13,9 @@
 package org.eclipse.ditto.connectivity.service.messaging;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -31,12 +31,15 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Status;
 import akka.dispatch.MessageDispatcher;
+import akka.japi.function.Function;
+import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
+import scala.PartialFunction;
 
 /**
  * This class creates a Sink which is responsible for inbound payload mapping.
- * The instance of this class holds the "state" of the sink (see {@link #inboundMappingProcessor}).
+ * The instance of this class holds the "state" of the sink (see {@link #initialInboundMappingProcessor}).
  */
 public final class InboundMappingSink {
 
@@ -45,9 +48,9 @@ public final class InboundMappingSink {
     private final int processorPoolSize;
     private final MessageDispatcher messageMappingProcessorDispatcher;
     private final ActorRef inboundDispatchingActor;
-    private final AtomicReference<InboundMappingProcessor> inboundMappingProcessor;
+    private final InboundMappingProcessor initialInboundMappingProcessor;
 
-    private InboundMappingSink(final InboundMappingProcessor inboundMappingProcessor,
+    private InboundMappingSink(final InboundMappingProcessor initialInboundMappingProcessor,
             final ConnectionId connectionId,
             final int processorPoolSize,
             final ActorRef inboundDispatchingActor,
@@ -55,7 +58,7 @@ public final class InboundMappingSink {
             final MessageDispatcher messageMappingProcessorDispatcher) {
 
         this.messageMappingProcessorDispatcher = messageMappingProcessorDispatcher;
-        this.inboundMappingProcessor = new AtomicReference<>(inboundMappingProcessor);
+        this.initialInboundMappingProcessor = initialInboundMappingProcessor;
         this.inboundDispatchingActor = inboundDispatchingActor;
 
         logger = DittoLoggerFactory.getThreadSafeLogger(InboundMappingSink.class)
@@ -97,9 +100,9 @@ public final class InboundMappingSink {
     private Sink<Object, NotUsed> getSink() {
         return Flow.create()
                 .divertTo(logStatusFailure(), Status.Failure.class::isInstance)
-                .divertTo(replaceInboundMappingProcessor(), ReplaceInboundMappingProcessor.class::isInstance)
                 .divertTo(handleDittoRuntimeException(), DittoRuntimeException.class::isInstance)
-                .divertTo(mapMessage(), ExternalMessageWithSender.class::isInstance)
+                .divertTo(mapMessage(),
+                        x -> x instanceof ExternalMessageWithSender || x instanceof ReplaceInboundMappingProcessor)
                 .to(Sink.foreach(message -> logger.warn("Received unknown message <{}>.", message)));
     }
 
@@ -109,27 +112,19 @@ public final class InboundMappingSink {
                         f.cause().getClass().getSimpleName(), f.cause().getMessage())));
     }
 
-    private Sink<Object, NotUsed> replaceInboundMappingProcessor() {
-        return Flow.fromFunction(ReplaceInboundMappingProcessor.class::cast)
-                .to(Sink.foreach(replaceProcessor -> {
-                    logger.info("Replacing the InboundMappingProcessor with a modified one.");
-                    this.inboundMappingProcessor.set(replaceProcessor.getInboundMappingProcessor());
-                }));
-    }
-
     private Sink<Object, NotUsed> handleDittoRuntimeException() {
         return Flow.fromFunction(DittoRuntimeException.class::cast)
                 .to(Sink.foreach(this::handleDittoRuntimeException));
     }
 
     private Sink<Object, NotUsed> mapMessage() {
-        final Flow<ExternalMessageWithSender, Optional<InboundMappingOutcomes>, ?> flow =
-                Flow.<ExternalMessageWithSender>create()
+        final Flow<MappingContext, Optional<InboundMappingOutcomes>, ?> flow =
+                Flow.<MappingContext>create()
                         // parallelize potentially CPU-intensive payload mapping on this actor's dispatcher
-                        .mapAsync(processorPoolSize, externalMessage -> CompletableFuture.supplyAsync(
+                        .mapAsync(processorPoolSize, mappingContext -> CompletableFuture.supplyAsync(
                                 () -> {
-                                    logger.debug("Received inbound Message to map: {}", externalMessage);
-                                    return mapInboundMessage(externalMessage);
+                                    logger.debug("Received inbound Message to map: {}", mappingContext);
+                                    return mapInboundMessage(mappingContext.message, mappingContext.mappingProcessor);
                                 },
                                 messageMappingProcessorDispatcher)
                         )
@@ -141,9 +136,10 @@ public final class InboundMappingSink {
                         inboundDispatchingActor.tell(outcomes, outcomes.getSender())
                 ));
 
-        final Sink<ExternalMessageWithSender, ?> mappingSink = flow.to(sink);
+        final Sink<MappingContext, ?> mappingSink = flow.to(sink);
 
-        return Flow.fromFunction(ExternalMessageWithSender.class::cast)
+        return Flow.create()
+                .statefulMapConcat(StatefulExternalMessageHandler::new)
                 .to(mappingSink);
     }
 
@@ -160,14 +156,15 @@ public final class InboundMappingSink {
         inboundDispatchingActor.tell(dittoRuntimeException, ActorRef.noSender());
     }
 
-    private Optional<InboundMappingOutcomes> mapInboundMessage(final ExternalMessageWithSender withSender) {
+    private Optional<InboundMappingOutcomes> mapInboundMessage(final ExternalMessageWithSender withSender,
+            final InboundMappingProcessor inboundMappingProcessor) {
         final var externalMessage = withSender.externalMessage;
         final String correlationId =
                 externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         logger.withCorrelationId(correlationId)
                 .debug("Handling ExternalMessage: {}", externalMessage);
         try {
-            return Optional.of(mapExternalMessageToSignal(withSender, externalMessage));
+            return Optional.of(mapExternalMessageToSignal(withSender, externalMessage, inboundMappingProcessor));
         } catch (final Exception e) {
             final var outcomes =
                     InboundMappingOutcomes.of(withSender.externalMessage, e, withSender.sender);
@@ -179,8 +176,8 @@ public final class InboundMappingSink {
     }
 
     private InboundMappingOutcomes mapExternalMessageToSignal(final ExternalMessageWithSender withSender,
-            final ExternalMessage externalMessage) {
-        return InboundMappingOutcomes.of(inboundMappingProcessor.get().process(withSender.externalMessage),
+            final ExternalMessage externalMessage, final InboundMappingProcessor inboundMappingProcessor) {
+        return InboundMappingOutcomes.of(inboundMappingProcessor.process(withSender.externalMessage),
                 externalMessage, withSender.sender);
     }
 
@@ -192,6 +189,45 @@ public final class InboundMappingSink {
         ExternalMessageWithSender(final ExternalMessage externalMessage, final ActorRef sender) {
             this.externalMessage = externalMessage;
             this.sender = sender;
+        }
+
+    }
+
+    private final class StatefulExternalMessageHandler implements Function<Object, Iterable<MappingContext>> {
+
+        private transient InboundMappingProcessor inboundMappingProcessor = initialInboundMappingProcessor;
+        private final transient PartialFunction<Object, Iterable<MappingContext>> matcher =
+                new PFBuilder<Object, Iterable<MappingContext>>()
+                        .match(ReplaceInboundMappingProcessor.class, replaceInboundMappingProcessor -> {
+                            logger.info("Replacing the InboundMappingProcessor with a modified one.");
+                            inboundMappingProcessor = replaceInboundMappingProcessor.getInboundMappingProcessor();
+                            return List.of();
+                        })
+                        .match(ExternalMessageWithSender.class,
+                                message -> List.of(new MappingContext(message, inboundMappingProcessor)))
+                        .matchAny(streamingElement -> {
+                            logger.warn("Received unknown message <{}>.", streamingElement);
+                            return List.of();
+                        })
+                        .build();
+
+        @Override
+        public Iterable<MappingContext> apply(final Object streamingElement) {
+            return matcher.apply(streamingElement);
+        }
+
+    }
+
+    private static final class MappingContext {
+
+        private final ExternalMessageWithSender message;
+        private final InboundMappingProcessor mappingProcessor;
+
+        private MappingContext(
+                final ExternalMessageWithSender message,
+                final InboundMappingProcessor mappingProcessor) {
+            this.message = message;
+            this.mappingProcessor = mappingProcessor;
         }
 
     }
