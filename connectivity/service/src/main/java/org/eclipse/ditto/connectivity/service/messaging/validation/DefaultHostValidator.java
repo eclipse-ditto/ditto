@@ -124,7 +124,7 @@ final class DefaultHostValidator implements HostValidator {
                     }
                 }
             }
-        } catch (UnknownHostException e) {
+        } catch (final UnknownHostException e) {
             final var reason = String.format("The configured host '%s' is invalid: %s", host, e.getMessage());
             return HostValidationResult.invalid(host, reason);
         }
@@ -148,8 +148,8 @@ final class DefaultHostValidator implements HostValidator {
                     try {
                         return Stream.of(resolver.resolve(host));
                     } catch (final UnknownHostException e) {
-                        log.warning("Could not resolve hostname during building blocked hostnames set: <{}>",
-                                host);
+                        log.warning("Could not resolve hostname during building blocked hostnames set: <{}> - " +
+                                        "Exception: <{}: {}>", host, e.getClass().getSimpleName(), e.getMessage());
                         return Stream.empty();
                     }
                 })
@@ -172,7 +172,7 @@ final class DefaultHostValidator implements HostValidator {
                     try {
                         return Stream.of(new SubnetUtils(blockedSubnet).getInfo());
                     } catch (final IllegalArgumentException e) {
-                        log.warning("Could not create subnet info during building blocked subnets set: <{}>",
+                        log.error(e, "Could not create subnet info during building blocked subnets set: <{}>",
                                 blockedSubnet);
                         return Stream.empty();
                     }
