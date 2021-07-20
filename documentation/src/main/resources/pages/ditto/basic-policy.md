@@ -57,7 +57,7 @@ The subject can be one of the following ones:
 
 ### Expiring Policy subjects
 
-When a Policy subject contains an `"expiry"` timestamp (formatted as ISO-8601 string), this subject will get 
+When a Policy subject contains an `"expiry"` timestamp (formatted as ISO-8601 string), this subject will be 
 automatically deleted once this timestamp was reached.
 
 When providing an `"expiry"` for a Policy subject, this timestamp is rounded up:
@@ -77,7 +77,7 @@ it was deleted from.
 
 ### Subject deletion announcements
 
-To get notified when a subject is deleted, the `"announcement"` object can be configured accordingly.
+To get notified when a subject is deleted, the `"announcement"` object can be configured in the respective subject section.
 ```json
 {
   "type": "my-subject",
@@ -102,16 +102,17 @@ Here are the meanings of the fields of `"announcement"`:
   * `"s"`: for seconds
   * `"m"`: for minutes
   * `"h"`: for hours
-* `"whenDeleted"`: Whether a
+* `"whenDeleted"`: Boolean value to describe whether a
   [subject deletion announcement](protocol-examples-policies-announcement-subjectDeletion.html)
   should be published whenever a subject is manually deleted (e.g. via overwrite of a policy entry) from a policy, 
   if no previous subject deletion announcement was acknowledged.
 * `"requestedAcks"`: Settings for at-least-once delivery of announcements via
   [acknowledgements](basic-acknowledgements.html):
-  * `"labels"`: [Requested acknowledgement labels](basic-acknowledgements.html#requesting-acks) of the websocket or 
-    connectivity channel from which the [issued acknowledgement](basic-acknowledgements.html#issuing-acknowledgements) 
-    is expected.
-  * `"timeout"`: How long to wait for acknowledgements before retrying the publication of announcements.
+  * `"labels"`: Array of [Requested acknowledgement labels](basic-acknowledgements.html#requesting-acks) of the 
+    websocket or connectivity channel from which the 
+    [issued acknowledgement](basic-acknowledgements.html#issuing-acknowledgements) is expected.
+  * `"timeout"`: Time in minutes (1m), seconds (60s), or milliseconds (600ms) how long to wait for acknowledgements 
+    before retrying to publish a timed out announcement.
 
 The subject deletion announcements are published to any websocket or connection that has subscribed for policy
 announcements and was [authenticated](basic-auth.html#authenticated-subjects) with the relevant subject ID.
