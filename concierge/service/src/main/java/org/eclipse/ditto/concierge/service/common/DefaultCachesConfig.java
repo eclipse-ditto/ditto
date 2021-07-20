@@ -20,7 +20,7 @@ import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
-import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -52,7 +52,7 @@ public final class DefaultCachesConfig implements CachesConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultCachesConfig of(final Config config) {
-        return new DefaultCachesConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, CachesConfigValue.values()));
+        return new DefaultCachesConfig(DefaultScopedConfig.newInstance(config, CONFIG_PATH));
     }
 
     @Override
