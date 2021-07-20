@@ -16,7 +16,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
-import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
  * Provides configuration settings of the caches of Concierge.
@@ -44,33 +43,5 @@ public interface CachesConfig {
      * @return the config.
      */
     CacheConfig getEnforcerCacheConfig();
-
-    /**
-     * An enumeration of the known config path expressions and their associated default values for
-     * {@code CachesConfig}.
-     */
-    enum CachesConfigValue implements KnownConfigValue {
-
-        ;
-
-        private final String path;
-        private final Object defaultValue;
-
-        CachesConfigValue(final String thePath, final Object theDefaultValue) {
-            path = thePath;
-            defaultValue = theDefaultValue;
-        }
-
-        @Override
-        public String getConfigPath() {
-            return path;
-        }
-
-        @Override
-        public Object getDefaultValue() {
-            return defaultValue;
-        }
-
-    }
 
 }

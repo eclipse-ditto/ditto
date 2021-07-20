@@ -69,18 +69,17 @@ public final class AskWithRetry {
      * @param scheduler the scheduler to use for retrying the ask.
      * @param executor the executor to use for retrying the ask.
      * @param responseMapper a function converting the response of the asked message.
-     * @param <M> the type of the message to ask
-     * @param <A> the type of the answer
+     * @param <M> the type of the message to ask.
+     * @param <A> the type of the answer.
      * @return a CompletionStage which is completed by applying the passed in {@code responseMapper} function on the
-     * response of the asked message or which is completed exceptionally with the Exception
+     * response of the asked message or which is completed exceptionally with the Exception.
      */
     public static <M, A> CompletionStage<A> askWithRetry(final ActorRef actorToAsk,
             final M message,
             final AskWithRetryConfig config,
             final Scheduler scheduler,
             final Executor executor,
-            final Function<Object, A> responseMapper
-    ) {
+            final Function<Object, A> responseMapper) {
 
         final DittoHeaders dittoHeaders;
         if (message instanceof WithDittoHeaders) {
@@ -190,8 +189,7 @@ public final class AskWithRetry {
                 if (askResult.getDittoRuntimeException().isPresent()) {
                     throw askResult.getDittoRuntimeException().get();
                 } else {
-                    return askResult.getAnswer()
-                            .orElse(null);
+                    return askResult.getAnswer().orElse(null);
                 }
             }
         };
@@ -248,4 +246,5 @@ public final class AskWithRetry {
             super(cause);
         }
     }
+
 }
