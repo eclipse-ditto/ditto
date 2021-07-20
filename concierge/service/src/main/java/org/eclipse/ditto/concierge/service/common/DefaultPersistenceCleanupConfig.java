@@ -34,7 +34,7 @@ final class DefaultPersistenceCleanupConfig implements PersistenceCleanupConfig 
     private final int keptEvents;
     private final CreditDecisionConfig creditDecisionConfig;
     private final PersistenceIdsConfig persistenceIdsConfig;
-    private final Config config;
+    private final ScopedConfig config;
 
     private DefaultPersistenceCleanupConfig(final ScopedConfig config) {
         this.enabled = config.getBoolean(ConfigValue.ENABLED.getConfigPath());

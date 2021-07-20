@@ -16,6 +16,7 @@ import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
@@ -39,11 +40,12 @@ public interface StreamConfig {
     Duration getWriteInterval();
 
     /**
-     * Returns the timeout for messages to Things shard.
+     * Returns the configuration for the used "ask with retry" pattern in the search updater for retrieval of things and
+     * policies.
      *
-     * @return the timeout.
+     * @return the "ask with retry" pattern config for retrieval of things and policies.
      */
-    Duration getAskTimeout();
+    AskWithRetryConfig getAskWithRetryConfig();
 
     /**
      * Returns the configuration settings for the retrieval of things and policy-enforcers.
@@ -79,17 +81,12 @@ public interface StreamConfig {
         /**
          * The minimal delay between event dumps.
          */
-        WRITE_INTERVAL("write-interval", Duration.ofSeconds(1L)),
-
-        /**
-         * The timeout for messages to Things shard.
-         */
-        ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(30L));
+        WRITE_INTERVAL("write-interval", Duration.ofSeconds(1L));
 
         private final String configPath;
         private final Object defaultValue;
 
-        private StreamConfigValue(final String configPath, final Object defaultValue) {
+        StreamConfigValue(final String configPath, final Object defaultValue) {
             this.configPath = configPath;
             this.defaultValue = defaultValue;
         }

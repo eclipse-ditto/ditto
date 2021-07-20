@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -58,9 +59,9 @@ public final class DefaultEnforcementConfigTest {
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultEnforcementConfig underTest = DefaultEnforcementConfig.of(ConfigFactory.empty());
 
-        softly.assertThat(underTest.getAskTimeout())
-                .as(EnforcementConfig.EnforcementConfigValue.ASK_TIMEOUT.getConfigPath())
-                .isEqualTo(EnforcementConfig.EnforcementConfigValue.ASK_TIMEOUT.getDefaultValue());
+        softly.assertThat(underTest.getAskWithRetryConfig().getAskTimeout())
+                .as(AskWithRetryConfig.AskWithRetryConfigValue.ASK_TIMEOUT.getConfigPath())
+                .isEqualTo(AskWithRetryConfig.AskWithRetryConfigValue.ASK_TIMEOUT.getDefaultValue());
         softly.assertThat(underTest.getBufferSize())
                 .as(EnforcementConfig.EnforcementConfigValue.BUFFER_SIZE.getConfigPath())
                 .isEqualTo(EnforcementConfig.EnforcementConfigValue.BUFFER_SIZE.getDefaultValue());
@@ -70,9 +71,9 @@ public final class DefaultEnforcementConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultEnforcementConfig underTest = DefaultEnforcementConfig.of(enforcementTestConf);
 
-        softly.assertThat(underTest.getAskTimeout())
-                .as(EnforcementConfig.EnforcementConfigValue.ASK_TIMEOUT.getConfigPath())
-                .isEqualTo(Duration.ofSeconds(30L));
+        softly.assertThat(underTest.getAskWithRetryConfig().getAskTimeout())
+                .as(AskWithRetryConfig.AskWithRetryConfigValue.ASK_TIMEOUT.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(33L));
         softly.assertThat(underTest.getBufferSize())
                 .as(EnforcementConfig.EnforcementConfigValue.BUFFER_SIZE.getConfigPath())
                 .isEqualTo(1337);

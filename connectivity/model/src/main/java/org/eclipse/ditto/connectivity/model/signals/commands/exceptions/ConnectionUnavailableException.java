@@ -19,7 +19,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
@@ -27,6 +26,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown if a {@link org.eclipse.ditto.connectivity.model.Connection} exists but is not available at the moment.
@@ -43,7 +43,8 @@ public final class ConnectionUnavailableException extends DittoRuntimeException 
     private static final String MESSAGE_TEMPLATE =
             "The Connection with ID ''{0}'' is not available, please try again later.";
 
-    private static final String DEFAULT_DESCRIPTION = "The requested Connection is temporarily not available.";
+    private static final String DEFAULT_DESCRIPTION = "The requested Connection is temporarily not available, " +
+            "please retry the performed action in order to improve resiliency.";
 
     private static final long serialVersionUID = 9075301177869840493L;
 
