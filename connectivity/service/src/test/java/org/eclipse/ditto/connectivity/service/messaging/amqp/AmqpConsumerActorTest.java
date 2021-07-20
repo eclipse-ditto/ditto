@@ -61,6 +61,7 @@ import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.javascript.JavaScriptMessageMapperFactory;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorWithAcknowledgementsTest;
 import org.eclipse.ditto.connectivity.service.messaging.InboundDispatchingActor;
 import org.eclipse.ditto.connectivity.service.messaging.InboundMappingProcessor;
 import org.eclipse.ditto.connectivity.service.messaging.InboundMappingSink;
@@ -87,7 +88,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests the AMQP {@link AmqpConsumerActor}.
  */
-public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMessage> {
+public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknowledgementsTest<JmsMessage> {
 
     private static final Connection CONNECTION = TestConstants.createConnectionWithAcknowledgements();
     private static final ConnectionId CONNECTION_ID = CONNECTION.getId();

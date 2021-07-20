@@ -13,28 +13,16 @@
 package org.eclipse.ditto.connectivity.service.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel.TWIN_PERSISTED;
 import static org.mockito.Mockito.when;
 
-import java.time.Duration;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
-import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
-import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
-import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.AcknowledgementRequestTimeoutException;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -51,10 +39,7 @@ import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderExcep
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
-import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -125,115 +110,6 @@ public abstract class AbstractConsumerActorTest<M> {
     }
 
     @Test
-    public void testPositiveSourceAcknowledgementSettlement() throws Exception {
-        testSourceAcknowledgementSettlement(true, true, modifyThing ->
-                        ModifyThingResponse.modified(modifyThing.getEntityId(), modifyThing.getDittoHeaders()),
-                TestConstants.MODIFY_THING_WITH_ACK, publishMappedMessage ->
-                        Assertions.assertThat(publishMappedMessage.getOutboundSignal()
-                                .first()
-                                .getExternalMessage()
-                                .getInternalHeaders()
-                                .getAcknowledgementRequests()
-                                .stream()
-                                .map(AcknowledgementRequest::getLabel)
-                                .collect(Collectors.toList())
-                        ).containsExactly(TWIN_PERSISTED)
-        );
-    }
-
-    @Test
-    public void testNegativeSourceAcknowledgementSettlementDueToError() throws Exception {
-        testSourceAcknowledgementSettlement(false, false, modifyThing ->
-                ThingNotAccessibleException.newBuilder(modifyThing.getEntityId())
-                        .dittoHeaders(modifyThing.getDittoHeaders())
-                        .build(), TestConstants.MODIFY_THING_WITH_ACK, publishMappedMessage ->
-                Assertions.assertThat(publishMappedMessage.getOutboundSignal()
-                        .first()
-                        .getExternalMessage()
-                        .getInternalHeaders()
-                        .getAcknowledgementRequests()
-                        .stream()
-                        .map(AcknowledgementRequest::getLabel)
-                        .collect(Collectors.toList())
-                ).containsExactly(TWIN_PERSISTED)
-        );
-    }
-
-    @Test
-    public void testNegativeSourceAcknowledgementSettlementDueToNAck() throws Exception {
-        testSourceAcknowledgementSettlement(false, false, modifyThing ->
-                        Acknowledgement.of(AcknowledgementLabel.of("twin-persisted"), modifyThing.getEntityId(),
-                                HttpStatus.BAD_REQUEST, modifyThing.getDittoHeaders()),
-                TestConstants.MODIFY_THING_WITH_ACK,
-                publishMappedMessage -> {}
-        );
-    }
-
-    @Test
-    public void testNegativeSourceAcknowledgementSettlementDueToTimeout() throws Exception {
-        testSourceAcknowledgementSettlement(false, true, modifyThing ->
-                AcknowledgementRequestTimeoutException.newBuilder(Duration.ofSeconds(1L))
-                        .dittoHeaders(modifyThing.getDittoHeaders())
-                        .build(), TestConstants.MODIFY_THING_WITH_ACK, publishMappedMessage ->
-                Assertions.assertThat(publishMappedMessage.getOutboundSignal()
-                        .first()
-                        .getExternalMessage()
-                        .getInternalHeaders()
-                        .getAcknowledgementRequests()
-                        .stream()
-                        .map(AcknowledgementRequest::getLabel)
-                        .collect(Collectors.toList())
-                ).containsExactly(TWIN_PERSISTED)
-        );
-    }
-
-    @Test
-    public void testNegativeSourceAcknowledgementSettlementDueToServerError() throws Exception {
-        testSourceAcknowledgementSettlement(false, true, modifyThing ->
-                        ThingUnavailableException.newBuilder(modifyThing.getEntityId())
-                                .dittoHeaders(modifyThing.getDittoHeaders())
-                                .build(), TestConstants.MODIFY_THING_WITH_ACK,
-                publishMappedMessage -> Assertions.assertThat(publishMappedMessage.getOutboundSignal()
-                        .first()
-                        .getExternalMessage()
-                        .getInternalHeaders()
-                        .getAcknowledgementRequests()
-                        .stream()
-                        .map(AcknowledgementRequest::getLabel)
-                        .collect(Collectors.toList())
-                ).containsExactly(TWIN_PERSISTED)
-        );
-    }
-
-    private void testSourceAcknowledgementSettlement(final boolean isSuccessExpected,
-            final boolean shouldRedeliver,
-            final Function<ModifyThing, Object> responseCreator,
-            final String payload,
-            final Consumer<BaseClientActor.PublishMappedMessage> messageConsumer)
-            throws Exception {
-
-        new TestKit(actorSystem) {{
-            final TestProbe sender = TestProbe.apply(actorSystem);
-            final TestProbe concierge = TestProbe.apply(actorSystem);
-            final TestProbe clientActor = TestProbe.apply(actorSystem);
-
-            final Sink<Object, NotUsed> inboundMappingSink =
-                    setupInboundMappingSink(clientActor.ref(), concierge.ref());
-            final ActorRef underTest = childActorOf(getConsumerActorProps(inboundMappingSink, Collections.emptySet()));
-
-            underTest.tell(getInboundMessage(payload, TestConstants.header("device_id", TestConstants.Things.THING_ID)),
-                    sender.ref());
-
-            final ModifyThing modifyThing = concierge.expectMsgClass(ModifyThing.class);
-            assertThat((CharSequence) modifyThing.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
-            concierge.reply(responseCreator.apply(modifyThing));
-
-            messageConsumer.accept(clientActor.expectMsgClass(BaseClientActor.PublishMappedMessage.class));
-            verifyMessageSettlement(this, isSuccessExpected, shouldRedeliver);
-        }};
-    }
-
-    @Test
     public void testInboundMessageWithMultipleMappingsOneFailingSucceeds() {
         testInboundMessage(TestConstants.header("device_id", TestConstants.Things.THING_ID), 1, 1,
                 s -> {}, o -> {}, ConnectivityModelFactory.newPayloadMapping("faulty", "ditto"));
@@ -295,14 +171,11 @@ public abstract class AbstractConsumerActorTest<M> {
     protected abstract Props getConsumerActorProps(final Sink<Object, NotUsed> inboundMappingSink,
             final PayloadMapping payloadMapping);
 
-    protected abstract Props getConsumerActorProps(final Sink<Object, NotUsed> inboundMappingSink,
-            final Set<AcknowledgementRequest> acknowledgementRequests);
-
     protected abstract M getInboundMessage(final String payload, final Map.Entry<String, Object> header);
 
-    protected abstract void verifyMessageSettlement(final TestKit testKit,
-            boolean isSuccessExpected, final boolean shouldRedeliver)
-            throws Exception;
+    protected void consumeMessage(final ActorRef consumerActor, final M inboundMessage, final ActorRef sender) {
+        consumerActor.tell(inboundMessage, sender);
+    }
 
     protected void testInboundMessage(final Map.Entry<String, Object> header,
             final boolean isForwardedToConcierge,
@@ -329,7 +202,7 @@ public abstract class AbstractConsumerActorTest<M> {
 
             final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(inboundMappingSink, payloadMapping));
 
-            underTest.tell(getInboundMessage(TestConstants.modifyThing(), header), sender.ref());
+            consumeMessage(underTest, getInboundMessage(TestConstants.modifyThing(), header), sender.ref());
 
             if (forwardedToConcierge >= 0) {
                 for (int i = 0; i < forwardedToConcierge; i++) {
@@ -350,10 +223,17 @@ public abstract class AbstractConsumerActorTest<M> {
             } else {
                 clientActor.expectNoMessage(ONE_SECOND);
             }
+
+            stopConsumerActor(underTest);
         }};
     }
 
-    private Sink<Object, NotUsed> setupInboundMappingSink(final ActorRef clientActor, final ActorRef proxyActor) {
+    protected void stopConsumerActor(final ActorRef underTest) {
+        // implement in subclasses if required
+    }
+
+
+    protected Sink<Object, NotUsed> setupInboundMappingSink(final ActorRef clientActor, final ActorRef proxyActor) {
         final Map<String, MappingContext> mappings = new HashMap<>();
         mappings.put("ditto", DittoMessageMapper.CONTEXT);
         mappings.put("faulty", FaultyMessageMapper.CONTEXT);

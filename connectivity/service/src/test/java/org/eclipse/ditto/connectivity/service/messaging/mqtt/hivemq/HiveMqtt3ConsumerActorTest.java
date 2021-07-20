@@ -31,9 +31,9 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
-import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorWithAcknowledgementsTest;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.junit.Ignore;
 
 import com.hivemq.client.internal.mqtt.message.publish.MqttPublish;
@@ -50,7 +50,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Unit test for {@link HiveMqtt3ConsumerActor}.
  */
-public final class HiveMqtt3ConsumerActorTest extends AbstractConsumerActorTest<Mqtt3Publish> {
+public final class HiveMqtt3ConsumerActorTest extends AbstractConsumerActorWithAcknowledgementsTest<Mqtt3Publish> {
 
     final CountDownLatch confirmLatch = new CountDownLatch(1);
 

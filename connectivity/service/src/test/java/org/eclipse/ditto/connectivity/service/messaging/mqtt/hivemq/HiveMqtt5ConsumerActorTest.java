@@ -34,9 +34,9 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
-import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorWithAcknowledgementsTest;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 
 import com.hivemq.client.internal.checkpoint.Confirmable;
 import com.hivemq.client.internal.mqtt.message.publish.MqttPublish;
@@ -52,7 +52,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Unit test for {@link HiveMqtt5ConsumerActor}.
  */
-public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<Mqtt5Publish> {
+public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorWithAcknowledgementsTest<Mqtt5Publish> {
 
     private static final HeaderMapping MQTT5_HEADER_MAPPING;
 

@@ -31,7 +31,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
-import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorWithAcknowledgementsTest;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.mockito.Mockito;
 
@@ -49,7 +49,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Unit test for {@link RabbitMQConsumerActor}.
  */
-public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<Delivery> {
+public final class RabbitMQConsumerActorTest extends AbstractConsumerActorWithAcknowledgementsTest<Delivery> {
 
     private static final Connection CONNECTION = TestConstants.createConnection();
     private static final Envelope ENVELOPE = new Envelope(1, false, "inbound", "ditto");

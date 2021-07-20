@@ -50,8 +50,6 @@ import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.kafka.ConsumerSettings;
-import akka.kafka.Subscriptions;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
@@ -72,14 +70,14 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
     @SuppressWarnings("unused")
     private KafkaConsumerActor(final Connection connection,
-            final KafkaConsumerConfig kafkaConfig, final PropertiesFactory propertiesFactory,
+            final KafkaConsumerConfig kafkaConfig,
+            final KafkaConsumerSourceSupplier sourceSupplier,
             final String sourceAddress, final Sink<Object, NotUsed> inboundMappingSink,
             final Source source, final boolean dryRun) {
         super(connection, sourceAddress, inboundMappingSink, source);
 
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
-        final ConsumerSettings<String, String> consumerSettings = propertiesFactory.getConsumerSettings(dryRun);
         final Enforcement enforcement = source.getEnforcement().orElse(null);
         final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory =
                 enforcement != null
@@ -87,15 +85,15 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                         : input -> null;
         final KafkaMessageTransformer kafkaMessageTransformer =
                 new KafkaMessageTransformer(source, sourceAddress, headerEnforcementFilterFactory, inboundMonitor);
-        kafkaStream = new KafkaConsumerStream(kafkaConfig, consumerSettings, kafkaMessageTransformer, dryRun,
+        kafkaStream = new KafkaConsumerStream(kafkaConfig, sourceSupplier, kafkaMessageTransformer, dryRun,
                 Materializer.createMaterializer(this::getContext));
     }
 
     static Props props(final Connection connection, final KafkaConsumerConfig kafkaConfig,
-            final PropertiesFactory factory,
-            final String sourceAddress, final Sink<Object, NotUsed> inboundMappingSink, final Source source,
+            final KafkaConsumerSourceSupplier sourceSupplier, final String sourceAddress,
+            final Sink<Object, NotUsed> inboundMappingSink, final Source source,
             final boolean dryRun) {
-        return Props.create(KafkaConsumerActor.class, connection, kafkaConfig, factory, sourceAddress,
+        return Props.create(KafkaConsumerActor.class, connection, kafkaConfig, sourceSupplier, sourceAddress,
                 inboundMappingSink, source, dryRun);
     }
 
@@ -156,13 +154,13 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
         private KafkaConsumerStream(
                 final KafkaConsumerConfig kafkaConfig,
-                final ConsumerSettings<String, String> consumerSettings,
+                final KafkaConsumerSourceSupplier sourceSupplier,
                 final KafkaMessageTransformer kafkaMessageTransformer,
                 final boolean dryRun,
                 final Materializer materializer) {
 
             this.materializer = materializer;
-            runnableKafkaStream = Consumer.plainSource(consumerSettings, Subscriptions.topics(sourceAddress))
+            runnableKafkaStream = sourceSupplier.get()
                     .throttle(kafkaConfig.getThrottlingConfig().getLimit(),
                             kafkaConfig.getThrottlingConfig().getInterval())
                     .filter(consumerRecord -> isNotDryRun(consumerRecord, dryRun))

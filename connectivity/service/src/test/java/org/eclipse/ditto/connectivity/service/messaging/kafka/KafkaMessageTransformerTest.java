@@ -15,6 +15,9 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory.newEnforcementFilterFactory;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
+import static org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaHeader.KAFKA_KEY;
+import static org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaHeader.KAFKA_TIMESTAMP;
+import static org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaHeader.KAFKA_TOPIC;
 import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -49,6 +52,7 @@ import scala.util.Either;
 
 public final class KafkaMessageTransformerTest {
 
+    private static final long TIMESTAMP = System.currentTimeMillis();
     private KafkaMessageTransformer underTest;
     private ConnectionMonitor inboundMonitor;
 
@@ -84,6 +88,8 @@ public final class KafkaMessageTransformerTest {
         when(consumerRecord.headers()).thenReturn(headers);
         when(consumerRecord.key()).thenReturn("someKey");
         when(consumerRecord.value()).thenReturn("someValue");
+        when(consumerRecord.topic()).thenReturn("someTopic");
+        when(consumerRecord.timestamp()).thenReturn(TIMESTAMP);
         final Either<ExternalMessage, DittoRuntimeException> transformResult = underTest.transform(consumerRecord);
 
         assertThat(transformResult).isNotNull();
@@ -94,6 +100,9 @@ public final class KafkaMessageTransformerTest {
         assertThat(externalMessage.getTextPayload()).contains("someValue");
         assertThat(externalMessage.getBytePayload()).contains(
                 ByteBuffer.wrap("someValue".getBytes(StandardCharsets.UTF_8)));
+        assertThat(externalMessage.getHeaders().get(KAFKA_TOPIC.getName())).isEqualTo("someTopic");
+        assertThat(externalMessage.getHeaders().get(KAFKA_KEY.getName())).isEqualTo("someKey");
+        assertThat(externalMessage.getHeaders().get(KAFKA_TIMESTAMP.getName())).isEqualTo(Long.toString(TIMESTAMP));
     }
 
     @Test
