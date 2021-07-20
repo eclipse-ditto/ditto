@@ -75,9 +75,9 @@ When providing an `"expiry"` for a Policy subject, this timestamp is rounded up:
 Once an expired subject is deleted, it will immediately no longer have access to the resources protected by the policy
 it was deleted from.
 
-### Subject Deletion Announcements
+### Subject deletion announcements
 
-To get notified when your subject is deleted, set the `announcement` field in your subject.
+To get notified when a subject is deleted, the `"announcement"` object can be configured accordingly.
 ```json
 {
   "type": "my-subject",
@@ -86,28 +86,36 @@ To get notified when your subject is deleted, set the `announcement` field in yo
     "beforeExpiry": "1h",
     "whenDeleted": true,
     "requestedAcks": {
-      "labels": ["my-announcement-receiver"],
+      "labels": ["my-connection:my-issued-acknowledgement"],
       "timeout": "10s"
     }
   }
 }
 ```
 
-Here are the meanings of the fields of `announcement`.
-- `beforeExpiry`: The duration before expiration of the subject when a
+Here are the meanings of the fields of `"announcement"`:
+* `"beforeExpiry"`: The duration before expiration of the subject when a
   [subject deletion announcement](protocol-examples-policies-announcement-subjectDeletion.html)
-  is published if no previous subject deletion announcement was acknowledged.
-- `whenDeleted`: Whether a
+  should be published if no previous subject deletion announcement was acknowledged.  
+  Supported unit suffixes: 
+  * `"ms"`: for milliseconds
+  * `"s"`: for seconds
+  * `"m"`: for minutes
+  * `"h"`: for hours
+* `"whenDeleted"`: Whether a
   [subject deletion announcement](protocol-examples-policies-announcement-subjectDeletion.html)
-  is published if no previous subject deletion announcement was acknowledged.
-- `requestedAcks`: Settings for at-least-once delivery of announcements via
-  [acknowledgements](basic-acknowledgements.html).
-  - `labels`: Declared acknowledgement labels of the websocket or connectivity channel from which the acknowledgement
+  should be published whenever a subject is manually deleted (e.g. via overwrite of a policy entry) from a policy, 
+  if no previous subject deletion announcement was acknowledged.
+* `"requestedAcks"`: Settings for at-least-once delivery of announcements via
+  [acknowledgements](basic-acknowledgements.html):
+  * `"labels"`: [Requested acknowledgement labels](basic-acknowledgements.html#requesting-acks) of the websocket or 
+    connectivity channel from which the [issued acknowledgement](basic-acknowledgements.html#issuing-acknowledgements) 
     is expected.
-  - `timeout`: How long to wait for acknowledgements before retrying the publication of announcements.
+  * `"timeout"`: How long to wait for acknowledgements before retrying the publication of announcements.
 
 The subject deletion announcements are published to any websocket or connection that has subscribed for policy
-announcements and has the relevant subject ID in its authorization context.
+announcements and was [authenticated](basic-auth.html#authenticated-subjects) with the relevant subject ID.
+
 
 ## Actions
 
