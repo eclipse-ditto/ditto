@@ -59,7 +59,8 @@ final class JwtTestConstants {
             UNSIGNED_JWT_TOKEN = createUnsignedJwt();
             EXPIRED_JWT_TOKEN = createExpiredJwt();
             VALID_NBF_AHEAD_OF_TIME_JWT_TOKEN = createNotBeforeAheadOfTimeJwt(Date.from(Instant.now().plusSeconds(10)));
-            INVALID_NBF_AHEAD_OF_TIME_JWT_TOKEN = createNotBeforeAheadOfTimeJwt(Date.from(Instant.now().plusSeconds(15)));
+            INVALID_NBF_AHEAD_OF_TIME_JWT_TOKEN =
+                    createNotBeforeAheadOfTimeJwt(Date.from(Instant.now().plusSeconds(30)));
         } catch (final Exception e) {
             throw new IllegalStateException(e);
         }
