@@ -17,6 +17,8 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.service.config.supervision.DefaultExponentialBackOffConfig;
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
@@ -32,10 +34,12 @@ final class DefaultPolicyAnnouncementConfig implements PolicyAnnouncementConfig 
 
     private final Duration gracePeriod;
     private final Duration maxTimeout;
+    private final ExponentialBackOffConfig exponentialBackOffConfig;
 
     private DefaultPolicyAnnouncementConfig(final ScopedConfig scopedConfig) {
         gracePeriod = scopedConfig.getDuration(ConfigValue.GRACE_PERIOD.getConfigPath());
         maxTimeout = scopedConfig.getDuration(ConfigValue.MAX_TIMEOUT.getConfigPath());
+        exponentialBackOffConfig = DefaultExponentialBackOffConfig.of(scopedConfig);
     }
 
     static DefaultPolicyAnnouncementConfig of(final Config config) {
@@ -55,6 +59,11 @@ final class DefaultPolicyAnnouncementConfig implements PolicyAnnouncementConfig 
     }
 
     @Override
+    public ExponentialBackOffConfig getExponentialBackOffConfig() {
+        return exponentialBackOffConfig;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -63,12 +72,14 @@ final class DefaultPolicyAnnouncementConfig implements PolicyAnnouncementConfig 
             return false;
         }
         final DefaultPolicyAnnouncementConfig that = (DefaultPolicyAnnouncementConfig) o;
-        return Objects.equals(gracePeriod, that.gracePeriod) && Objects.equals(maxTimeout, that.maxTimeout);
+        return Objects.equals(gracePeriod, that.gracePeriod) &&
+                Objects.equals(maxTimeout, that.maxTimeout) &&
+                Objects.equals(exponentialBackOffConfig, that.exponentialBackOffConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(gracePeriod, maxTimeout);
+        return Objects.hash(gracePeriod, maxTimeout, exponentialBackOffConfig);
     }
 
     @Override
@@ -76,6 +87,7 @@ final class DefaultPolicyAnnouncementConfig implements PolicyAnnouncementConfig 
         return getClass().getSimpleName() + " [" +
                 "gracePeriod=" + gracePeriod +
                 ", maxTimeout=" + maxTimeout +
+                ", exponentialBackOffConfig" + exponentialBackOffConfig +
                 "]";
     }
 

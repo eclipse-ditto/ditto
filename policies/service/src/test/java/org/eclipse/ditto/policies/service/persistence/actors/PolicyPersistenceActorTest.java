@@ -115,6 +115,7 @@ import org.eclipse.ditto.policies.model.signals.events.PolicyEntryCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
 import org.eclipse.ditto.policies.model.signals.events.SubjectCreated;
 import org.eclipse.ditto.policies.model.signals.events.SubjectDeleted;
+import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig;
 import org.eclipse.ditto.policies.service.persistence.TestConstants;
 import org.eclipse.ditto.policies.service.persistence.actors.announcements.PolicyAnnouncementManager;
 import org.eclipse.ditto.policies.service.persistence.serializer.PolicyMongoSnapshotAdapter;
@@ -124,6 +125,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.AbstractActor;
 import akka.actor.Actor;
@@ -1754,10 +1757,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     private ActorRef createAnnouncementManager(final PolicyId policyId, final Supplier<ActorRef> box) {
-        final var gracePeriod = Duration.ofHours(4);
-        final var maxTimeout = Duration.ofMinutes(1);
-        final var props = PolicyAnnouncementManager.props(policyId, gracePeriod, policyAnnouncementPub,
-                maxTimeout, startForwarder(box));
+        final var props = PolicyAnnouncementManager.props(policyId, policyAnnouncementPub, startForwarder(box),
+                PolicyAnnouncementConfig.of(ConfigFactory.empty()));
         return actorSystem.actorOf(props);
     }
 

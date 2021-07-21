@@ -123,9 +123,7 @@ public final class PolicySupervisorActor extends AbstractPersistenceSupervisor<P
             final PolicyAnnouncementConfig policyAnnouncementConfig) {
         try {
             final PolicyId policyId = getEntityId();
-            final var gracePeriod = policyAnnouncementConfig.getGracePeriod();
-            final var maxTimeout = policyAnnouncementConfig.getMaxTimeout();
-            return PolicyAnnouncementManager.props(policyId, gracePeriod, pub, maxTimeout, getSelf());
+            return PolicyAnnouncementManager.props(policyId, pub, getSelf(), policyAnnouncementConfig);
         } catch (final Exception e) {
             log.error(e, "Failed to determine entity ID; becoming corrupted.");
             becomeCorrupted();

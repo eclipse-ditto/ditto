@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.policies.service.persistence.actors.announcements;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +29,7 @@ import org.eclipse.ditto.policies.model.PolicyLifecycle;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.Subjects;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
+import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -45,42 +45,39 @@ public final class PolicyAnnouncementManager extends AbstractActor {
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final PolicyId policyId;
-    private final Duration gracePeriod;
     private final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub;
-    private final Duration maxTimeout;
     private final Map<Subject, ActorRef> subjectExpiryActors;
     private final Map<ActorRef, Subject> activeSubjects;
     private final ActorRef commandForwarder;
+    private final PolicyAnnouncementConfig config;
 
     @SuppressWarnings("unused")
-    private PolicyAnnouncementManager(final PolicyId policyId, final Duration gracePeriod,
+    private PolicyAnnouncementManager(final PolicyId policyId,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
-            final Duration maxTimeout,
-            final ActorRef commandForwarder) {
+            final ActorRef commandForwarder,
+            final PolicyAnnouncementConfig config) {
         this.policyId = policyId;
-        this.gracePeriod = gracePeriod;
         this.policyAnnouncementPub = policyAnnouncementPub;
-        this.maxTimeout = maxTimeout;
         this.commandForwarder = commandForwarder;
         this.subjectExpiryActors = new HashMap<>();
         this.activeSubjects = new HashMap<>();
+        this.config = config;
     }
 
     /**
      * Create the Props object for this actor.
      *
      * @param policyId the policy ID.
-     * @param gracePeriod how long overdue acknowledgements are tolerated.
      * @param policyAnnouncementPub Ditto pubsub API to publish policy announcements.
-     * @param maxTimeout the maximum timeout for acknowledgements.
      * @param forwarder actor to forward policy commands to.
+     * @param config config containing
      * @return The Props object.
      */
-    public static Props props(final PolicyId policyId, final Duration gracePeriod,
-            final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub, final Duration maxTimeout,
-            final ActorRef forwarder) {
-        return Props.create(PolicyAnnouncementManager.class, policyId, gracePeriod, policyAnnouncementPub, maxTimeout,
-                forwarder);
+    public static Props props(final PolicyId policyId,
+            final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
+            final ActorRef forwarder,
+            final PolicyAnnouncementConfig config) {
+        return Props.create(PolicyAnnouncementManager.class, policyId, policyAnnouncementPub, forwarder, config);
     }
 
     @Override
@@ -108,8 +105,8 @@ public final class PolicyAnnouncementManager extends AbstractActor {
 
     private void startChild(final Subject subject) {
         final var props =
-                SubjectExpiryActor.props(policyId, subject, gracePeriod, policyAnnouncementPub, maxTimeout,
-                        commandForwarder);
+                SubjectExpiryActor.props(policyId, subject, config.getGracePeriod(), policyAnnouncementPub,
+                        config.getMaxTimeout(), commandForwarder, config.getExponentialBackOffConfig());
 
         final var child = getContext().actorOf(props);
         getContext().watch(child);

@@ -16,6 +16,7 @@ import java.time.Duration;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 import com.typesafe.config.Config;
@@ -40,6 +41,13 @@ public interface PolicyAnnouncementConfig {
      * @return the maximum timeout.
      */
     Duration getMaxTimeout();
+
+    /**
+     * Returns the config for the exponential back-off strategy of announcement redelivery.
+     *
+     * @return the config.
+     */
+    ExponentialBackOffConfig getExponentialBackOffConfig();
 
     /**
      * Returns an instance of the policy announcement config based on the settings of the specified Config.

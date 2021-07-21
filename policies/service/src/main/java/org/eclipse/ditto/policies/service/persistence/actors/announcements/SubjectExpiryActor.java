@@ -31,6 +31,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -80,26 +81,37 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     private final Duration persistenceTimeout;
     private final ActorRef commandForwarder;
 
-    private Duration nextBackOff = Duration.ofMillis(500);
-    private boolean deleted = false;
-    private boolean acknowledged = false;
+    private final Duration maxBackOff;
+    private final double backOffRandomFactor;
+
+    private Duration nextBackOff;
+    private boolean deleted;
     private Instant deleteAt;
+    private boolean acknowledged;
 
     @SuppressWarnings("unused")
     private SubjectExpiryActor(final PolicyId policyId, final Subject subject, final Duration gracePeriod,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
-            final Duration maxTimeout, final ActorRef commandForwarder) {
+            final Duration maxTimeout, final ActorRef commandForwarder, final ExponentialBackOffConfig backOffConfig) {
         this.policyId = policyId;
         this.subject = subject;
         this.gracePeriod = gracePeriod;
         this.policyAnnouncementPub = policyAnnouncementPub;
-        deleteAt = subject.getExpiry().map(SubjectExpiry::getTimestamp).orElseGet(Instant::now);
+
         ackregatorStarter =
                 AcknowledgementAggregatorActorStarter.of(getContext(), maxTimeout, HeaderTranslator.empty());
         this.commandForwarder = commandForwarder;
         deleteExpiredSubject =
                 DeleteExpiredSubject.of(policyId, subject, DittoHeaders.newBuilder().responseRequired(false).build());
         persistenceTimeout = maxTimeout;
+
+        maxBackOff = backOffConfig.getMax();
+        backOffRandomFactor = Math.max(0.0, backOffConfig.getRandomFactor());
+
+        nextBackOff = backOffConfig.getMin();
+        deleted = false;
+        deleteAt = subject.getExpiry().map(SubjectExpiry::getTimestamp).orElseGet(Instant::now);
+        acknowledged = false;
     }
 
     /**
@@ -114,11 +126,11 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
      * @return The Props object.
      */
     public static Props props(final PolicyId policyId, final Subject subject, final Duration gracePeriod,
-            final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
-            final Duration maxTimeout, final ActorRef forwarder) {
+            final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub, final Duration maxTimeout,
+            final ActorRef forwarder, final ExponentialBackOffConfig backOffConfig) {
 
         return Props.create(SubjectExpiryActor.class, policyId, subject, gracePeriod, policyAnnouncementPub,
-                maxTimeout, forwarder);
+                maxTimeout, forwarder, backOffConfig);
     }
 
     @Override
@@ -454,10 +466,17 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         return status.isServerError();
     }
 
-    private static Duration increaseBackOff(final Duration requestedBackOff) {
-        final Duration backOff = MAX_BACKOFF.minus(requestedBackOff).isNegative() ? MAX_BACKOFF : requestedBackOff;
-        final double factor = 0.5 + 0.5 * Random$.MODULE$.nextFloat();
-        return backOff.plus(Duration.ofMillis((long) (backOff.toMillis() * factor)));
+    private Duration increaseBackOff(final Duration requestedBackOff) {
+        final Duration backOff = maxBackOff.minus(requestedBackOff).isNegative() ? maxBackOff : requestedBackOff;
+        final double factor = 0.5 + 0.5 * backOffRandomFactor * Random$.MODULE$.nextFloat();
+        final Duration result = backOff.plus(Duration.ofMillis((long) (backOff.toMillis() * factor)));
+        if (result.isNegative() || result.minus(requestedBackOff).isNegative() ||
+                maxBackOff.minus(result).isNegative()) {
+            // use maxBackOff if next backoff exceeds it or overflows
+            return maxBackOff;
+        } else {
+            return result;
+        }
     }
 
     /**

@@ -12,12 +12,14 @@
  */
 package org.eclipse.ditto.policies.service.common.config;
 
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,7 +46,8 @@ public final class DefaultPolicyAnnouncementConfigTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultPolicyAnnouncementConfig.class, areImmutable());
+        assertInstancesOf(DefaultPolicyAnnouncementConfig.class, areImmutable(),
+                provided(ExponentialBackOffConfig.class).isAlsoImmutable());
     }
 
     @Test
@@ -79,6 +82,18 @@ public final class DefaultPolicyAnnouncementConfigTest {
         softly.assertThat(underTest.getMaxTimeout())
                 .as(PolicyAnnouncementConfig.ConfigValue.MAX_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(5678));
+
+        softly.assertThat(underTest.getExponentialBackOffConfig().getMin())
+                .as("exponential-backoff.min")
+                .isEqualTo(Duration.ofSeconds(9));
+
+        softly.assertThat(underTest.getExponentialBackOffConfig().getMax())
+                .as("exponential-backoff.max")
+                .isEqualTo(Duration.ofSeconds(10));
+
+        softly.assertThat(underTest.getExponentialBackOffConfig().getRandomFactor())
+                .as("exponential-backoff.random-factor")
+                .isEqualTo(11.0);
     }
 
 }
