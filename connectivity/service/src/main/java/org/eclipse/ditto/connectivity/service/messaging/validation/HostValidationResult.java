@@ -56,8 +56,7 @@ final class HostValidationResult {
      * @return the {@link HostValidationResult} for the blocked host
      */
     static HostValidationResult blocked(final String host, final String reason) {
-        final var exceptionMessage = String.format("The configured host '%s' may not be used for the " +
-                "connection because %s", host, reason);
+        final var exceptionMessage = String.format("the host is blocked: %s", reason);
         return new HostValidationResult(false, host, exceptionMessage);
     }
 
