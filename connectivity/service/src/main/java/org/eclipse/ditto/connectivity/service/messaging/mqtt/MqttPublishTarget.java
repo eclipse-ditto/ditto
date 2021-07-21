@@ -70,4 +70,5 @@ public final class MqttPublishTarget implements PublishTarget {
                 ", qos=" + qos +
                 "]";
     }
+
 }

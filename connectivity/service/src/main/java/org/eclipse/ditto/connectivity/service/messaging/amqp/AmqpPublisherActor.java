@@ -357,6 +357,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                             .dittoHeaders(message.getInternalHeaders())
                             .build();
             resultFuture.completeExceptionally(sendFailedException);
+
             return resultFuture;
         };
     }

@@ -37,6 +37,7 @@ public interface GenericTarget {
 
     /**
      * @return the optional qos value of this target - only applicable for certain {@link ConnectionType}s.
+     * @since 2.1.0
      */
     Optional<Integer> getQos();
 
@@ -45,6 +46,7 @@ public interface GenericTarget {
      *
      * @param newAddress new value for the address field.
      * @return a copy of this object retaining the class and all other fields.
+     * @since 2.1.0
      */
     GenericTarget withAddress(final String newAddress);
 }
