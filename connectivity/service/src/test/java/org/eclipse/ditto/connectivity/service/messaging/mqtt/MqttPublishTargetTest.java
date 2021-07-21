@@ -38,17 +38,17 @@ public class MqttPublishTargetTest {
 
     @Test
     public void test() {
-        assertThat(MqttPublishTarget.of(TOPIC).getTopic()).isEqualTo(TOPIC);
+        assertThat(MqttPublishTarget.of(TOPIC, 0).getTopic()).isEqualTo(TOPIC);
     }
 
     @Test(expected = NullPointerException.class)
     public void testNull() {
-        MqttPublishTarget.of(null);
+        MqttPublishTarget.of(null, 0);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testEmpty() {
-        MqttPublishTarget.of("");
+        MqttPublishTarget.of("", 0);
     }
 
 }
