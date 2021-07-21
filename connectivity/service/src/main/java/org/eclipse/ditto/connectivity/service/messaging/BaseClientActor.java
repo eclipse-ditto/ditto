@@ -143,6 +143,7 @@ import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
 import akka.stream.Materializer;
+import akka.stream.javadsl.MergeHub;
 import akka.stream.javadsl.Sink;
 import scala.concurrent.ExecutionContext;
 
@@ -193,6 +194,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ProtocolAdapter protocolAdapter;
     private final ConnectivityCounterRegistry connectionCounterRegistry;
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
+    private final Materializer materializer;
     protected final ConnectionLogger connectionLogger;
 
     private final ConnectionContextProvider connectionContextProvider;
@@ -209,7 +211,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     protected BaseClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
-
+        materializer = Materializer.createMaterializer(getContext().getSystem());
         this.connection = checkNotNull(connection, "connection");
         this.connectionActor = connectionActor;
         // this is retrieve via the extension for each baseClientActor in order to not pass it as constructor arg
@@ -370,7 +372,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     InboundMappingProcessor.of(modifiedContext, getContext().getSystem(), protocolAdapter, logger);
             akka.stream.javadsl.Source.<Object>single(new ReplaceInboundMappingProcessor(inboundMappingProcessor))
                     .to(getInboundMappingSink())
-                    .run(Materializer.createMaterializer(context().system()));
+                    .run(materializer);
         }
         if (hasOutboundMapperConfigChanged(modifiedConfig)) {
             logger.debug("Config changed for OutboundMappingProcessor, recreating it.");
@@ -1716,13 +1718,17 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final var mappingConfig = connectivityConfig.getMappingConfig();
         final MessageDispatcher messageMappingProcessorDispatcher =
                 getContext().system().dispatchers().lookup(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
-        return InboundMappingSink.createSink(inboundMappingProcessor,
+        final Sink<Object, NotUsed> sink = InboundMappingSink.createSink(inboundMappingProcessor,
                 connectionContext.getConnection().getId(),
                 processorPoolSize,
                 inboundDispatchingSink,
                 mappingConfig,
                 getThrottlingConfig().orElse(null),
                 messageMappingProcessorDispatcher);
+        return MergeHub.of(Object.class)
+                .map(Object.class::cast)
+                .to(sink)
+                .run(materializer);
     }
 
     protected Optional<ThrottlingConfig> getThrottlingConfig() {
