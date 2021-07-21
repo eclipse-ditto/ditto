@@ -189,13 +189,15 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
         */
         final long maxEventSeqNoToDelete = Math.min(latestSnapshotSequenceNumber, minSequenceNumberToKeep);
         final long maxSnapSeqNoToDelete = latestSnapshotSequenceNumber - 1;
-        log.info("Starting cleanup for '{}', deleting snapshots to sequence number {} and events to {}.",
-                persistenceId(), maxSnapSeqNoToDelete, maxEventSeqNoToDelete);
-        final var deletionCriteria =
-                SnapshotSelectionCriteria.create(maxSnapSeqNoToDelete, Long.MAX_VALUE);
-        deleteMessages(maxEventSeqNoToDelete);
-        deleteSnapshots(deletionCriteria);
-        lastCleanupExecutedAtSequenceNumber = latestSnapshotSequenceNumber;
+        if (maxEventSeqNoToDelete > 0 && maxSnapSeqNoToDelete > 0) {
+            log.info("Starting cleanup for '{}', deleting snapshots to sequence number {} and events to {}.",
+                    persistenceId(), maxSnapSeqNoToDelete, maxEventSeqNoToDelete);
+            final var deletionCriteria =
+                    SnapshotSelectionCriteria.create(maxSnapSeqNoToDelete, Long.MAX_VALUE);
+            deleteMessages(maxEventSeqNoToDelete);
+            deleteSnapshots(deletionCriteria);
+            lastCleanupExecutedAtSequenceNumber = latestSnapshotSequenceNumber;
+        }
     }
 
     private void finishCleanup() {

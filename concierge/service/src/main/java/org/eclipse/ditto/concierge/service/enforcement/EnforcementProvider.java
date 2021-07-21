@@ -14,7 +14,6 @@ package org.eclipse.ditto.concierge.service.enforcement;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -89,7 +88,7 @@ public interface EnforcementProvider<T extends Signal<?>> {
 
 
         if (message instanceof WithEntityId) {
-            final EntityId entityId = ((WithEntityId) message).getEntityId();
+            final var entityId = ((WithEntityId) message).getEntityId();
             return Optional.of(EnforcementTask.of(entityId, changesAuthorization,
                     () -> preEnforcer.withErrorHandlingAsync(contextual,
                             contextual.setMessage(null).withReceiver(null),

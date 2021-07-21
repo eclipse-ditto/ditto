@@ -12,12 +12,10 @@
  */
 package org.eclipse.ditto.concierge.service.common;
 
-import java.time.Duration;
-
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
-import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 
 /**
  * Provides configuration settings of the caches of Concierge.
@@ -26,11 +24,11 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 public interface CachesConfig {
 
     /**
-     * Returns the duration to wait for entity shard regions.
+     * Returns the configuration for the used "ask with retry" pattern in the concierge caches to load things+policies.
      *
-     * @return the internal ask timeout duration.
+     * @return the "ask with retry" pattern config for retrieval of things and policies.
      */
-    Duration getAskTimeout();
+    AskWithRetryConfig getAskWithRetryConfig();
 
     /**
      * Returns the config of the ID cache.
@@ -45,36 +43,5 @@ public interface CachesConfig {
      * @return the config.
      */
     CacheConfig getEnforcerCacheConfig();
-
-    /**
-     * An enumeration of the known config path expressions and their associated default values for
-     * {@code CachesConfig}.
-     */
-    enum CachesConfigValue implements KnownConfigValue {
-
-        /**
-         * The duration to wait for entity shard regions.
-         */
-        ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10L));
-
-        private final String path;
-        private final Object defaultValue;
-
-        CachesConfigValue(final String thePath, final Object theDefaultValue) {
-            path = thePath;
-            defaultValue = theDefaultValue;
-        }
-
-        @Override
-        public String getConfigPath() {
-            return path;
-        }
-
-        @Override
-        public Object getDefaultValue() {
-            return defaultValue;
-        }
-
-    }
 
 }

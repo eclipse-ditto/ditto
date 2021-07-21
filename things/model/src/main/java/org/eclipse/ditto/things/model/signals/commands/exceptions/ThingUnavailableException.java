@@ -19,12 +19,12 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingException;
 import org.eclipse.ditto.things.model.ThingId;
 
@@ -43,7 +43,8 @@ public final class ThingUnavailableException extends DittoRuntimeException imple
     private static final String MESSAGE_TEMPLATE =
             "The Thing with ID ''{0}'' is not available, please try again later.";
 
-    private static final String DEFAULT_DESCRIPTION = "The requested Thing is temporarily not available.";
+    private static final String DEFAULT_DESCRIPTION = "The requested Thing is temporarily not available, " +
+            "please retry the performed action in order to improve resiliency.";
 
     private static final long serialVersionUID = 1987286804137290070L;
 

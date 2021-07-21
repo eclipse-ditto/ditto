@@ -15,7 +15,6 @@ package org.eclipse.ditto.concierge.service.enforcement;
 import static org.eclipse.ditto.base.model.json.JsonSchemaVersion.V_2;
 import static org.eclipse.ditto.policies.model.SubjectIssuer.GOOGLE;
 
-import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -28,13 +27,9 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.concierge.service.common.CachesConfig;
 import org.eclipse.ditto.concierge.service.common.DefaultCachesConfig;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.things.model.Feature;
-import org.eclipse.ditto.things.model.ThingBuilder;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
@@ -42,13 +37,18 @@ import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.ThingEnforcementIdCacheLoader;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.ThingBuilder;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
@@ -148,16 +148,16 @@ public final class TestSetup {
                 conciergeForwarder = new TestProbe(system, createUniqueName()).ref();
             }
 
-            final Duration askTimeout = CACHES_CONFIG.getAskTimeout();
+            final AskWithRetryConfig askWithRetryConfig = CACHES_CONFIG.getAskWithRetryConfig();
 
             final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
-                    new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
+                    new PolicyEnforcerCacheLoader(askWithRetryConfig, system.getScheduler(), policiesShardRegion);
             final Cache<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCache =
                     CaffeineCache.of(Caffeine.newBuilder(), policyEnforcerCacheLoader);
             final Cache<CacheKey, Entry<Enforcer>> projectedEnforcerCache =
                     policyEnforcerCache.projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
             final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =
-                    new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegion);
+                    new ThingEnforcementIdCacheLoader(askWithRetryConfig, system.getScheduler(), thingsShardRegion);
             final Cache<CacheKey, Entry<CacheKey>> thingIdCache =
                     CaffeineCache.of(Caffeine.newBuilder(), thingEnforcementIdCacheLoader);
 
