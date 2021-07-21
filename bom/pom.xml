@@ -43,7 +43,7 @@
         <akka-management.version>1.0.10</akka-management.version>
         <akka-stream-kafka.version>2.1.0</akka-stream-kafka.version>
         <hivemq-mqtt-client.version>1.2.2</hivemq-mqtt-client.version>
-        <sshd.version>2.6.0</sshd.version>
+        <sshd.version>2.7.0</sshd.version>
         <eddsa.version>0.3.0</eddsa.version>
 
         <!-- Keep these version consistent with akka-persistence-mongo.version's build.sbt -->
