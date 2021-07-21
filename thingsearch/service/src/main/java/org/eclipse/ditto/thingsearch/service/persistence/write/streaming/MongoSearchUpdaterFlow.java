@@ -30,17 +30,9 @@ import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
-import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
-import akka.stream.FanInShape2;
-import akka.stream.FlowShape;
-import akka.stream.Graph;
-import akka.stream.UniformFanOutShape;
-import akka.stream.javadsl.Broadcast;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Source;
-import akka.stream.javadsl.Zip;
 
 /**
  * Flow mapping write models to write results via the search persistence.
@@ -104,7 +96,7 @@ final class MongoSearchUpdaterFlow {
                         .flatMapMerge(parallelism, writeModels ->
                                 executeBulkWrite(shouldAcknowledge, writeModels).async(DISPATCHER_NAME, parallelism));
 
-        return Flow.fromGraph(assembleFlows(batchFlow, writeFlow, createStartTimerFlow(), createStopTimerFlow()));
+        return batchFlow.via(writeFlow);
     }
 
     private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,
@@ -123,6 +115,8 @@ final class MongoSearchUpdaterFlow {
             theCollection = this.collection;
         }
 
+        final var bulkWriteTimer = startBulkWriteTimer(writeModels);
+
         return Source.fromPublisher(theCollection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))
                 .map(bulkWriteResult -> WriteResultAndErrors.success(abstractWriteModels, bulkWriteResult))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<WriteResultAndErrors, NotUsed>>()
@@ -135,55 +129,24 @@ final class MongoSearchUpdaterFlow {
                         .build()
                 )
                 .map(resultAndErrors -> {
+                    stopBulkWriteTimer(bulkWriteTimer);
                     abstractWriteModels.forEach(writeModel ->
                             ConsistencyLag.startS6Acknowledge(writeModel.getMetadata()));
                     return resultAndErrors;
                 });
     }
 
-    private static <T> Flow<List<T>, StartedTimer, NotUsed> createStartTimerFlow() {
-        return Flow.fromFunction(writeModels -> {
-            DittoMetrics.histogram(COUNT_THING_BULK_UPDATES_PER_BULK).record((long) writeModels.size());
-            return DittoMetrics.timer(TRACE_THING_BULK_UPDATE).tag(UPDATE_TYPE_TAG, "bulkUpdate").start();
-        });
+    private static StartedTimer startBulkWriteTimer(final List<?> writeModels) {
+        DittoMetrics.histogram(COUNT_THING_BULK_UPDATES_PER_BULK).record((long) writeModels.size());
+        return DittoMetrics.timer(TRACE_THING_BULK_UPDATE).tag(UPDATE_TYPE_TAG, "bulkUpdate").start();
     }
 
-    private static <T> Flow<Pair<T, StartedTimer>, T, NotUsed> createStopTimerFlow() {
-        return Flow.fromFunction(pair -> {
-            try {
-                pair.second().stop();
-            } catch (final IllegalStateException e) {
-                // it is okay if the timer stopped already; simply return the result.
-            }
-            return pair.first();
-        });
+    private static void stopBulkWriteTimer(final StartedTimer timer) {
+        try {
+            timer.stop();
+        } catch (final IllegalStateException e) {
+            // it is okay if the timer stopped already; simply return the result.
+        }
     }
 
-    @SuppressWarnings("unchecked") // java 8 can't handle graph DSL types
-    private static <A, B, C, D> Graph<FlowShape<A, C>, NotUsed> assembleFlows(
-            final Flow<A, B, NotUsed> stage1Flow,
-            final Flow<B, C, NotUsed> stage2Flow,
-            final Flow<B, D, NotUsed> startTimerFlow,
-            final Flow<Pair<C, D>, C, NotUsed> resultProcessorFlow) {
-
-        return GraphDSL.create(builder -> {
-            final FlowShape<A, B> stage1 = builder.add(stage1Flow);
-            final FlowShape<B, C> stage2 = builder.add(stage2Flow);
-            final FlowShape<B, D> sideChannel = builder.add(startTimerFlow);
-            final FlowShape<Pair<C, D>, C> resultProcessor = builder.add(resultProcessorFlow);
-
-            final UniformFanOutShape<B, B> broadcast = builder.add(Broadcast.create(2));
-            final FanInShape2<C, D, Pair<C, D>> zip = builder.add(Zip.create());
-
-            builder.from(stage1.out()).toInlet(broadcast.in());
-            // its important that outlet 0 is connected to the timers, to guarantee that the timer is started first
-            builder.from(broadcast.out(0)).toInlet(sideChannel.in());
-            builder.from(broadcast.out(1)).toInlet(stage2.in());
-            builder.from(stage2.out()).toInlet(zip.in0());
-            builder.from(sideChannel.out()).toInlet(zip.in1());
-            builder.from(zip.out()).toInlet(resultProcessor.in());
-
-            return FlowShape.of(stage1.in(), resultProcessor.out());
-        });
-    }
 }
