@@ -23,7 +23,6 @@ import java.net.Socket;
 import java.util.concurrent.CompletableFuture;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLServerSocket;
 
@@ -205,7 +204,10 @@ public abstract class AbstractSSLContextTest {
                         .getSocketFactory()
                         .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
-            assertThatExceptionOfType(SSLException.class).isThrownBy(() -> underTest.getOutputStream().write(234));
+            // for JDK 11 < 11.0.12, an SSLException is expected:
+            // for JDK 11 >= 11.0.12, an SocketException is expected:
+            // both are IOExceptions:
+            assertThatExceptionOfType(IOException.class).isThrownBy(() -> underTest.getOutputStream().write(234));
         }
     }
 
