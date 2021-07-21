@@ -14,34 +14,30 @@ package org.eclipse.ditto.policies.service.starter;
 
 import static org.eclipse.ditto.policies.api.PoliciesMessagingConstants.CLUSTER_ROLE;
 
-import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
-import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
-import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
-import org.eclipse.ditto.policies.service.persistence.actors.PoliciesPersistenceStreamingActorCreator;
-import org.eclipse.ditto.policies.service.persistence.actors.PolicyPersistenceOperationsActor;
-import org.eclipse.ditto.policies.service.persistence.actors.PolicySupervisorActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
-import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.TagsConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.PolicyAnnouncementPubSubFactory;
+import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
-import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
+import org.eclipse.ditto.policies.service.common.config.PoliciesConfig;
+import org.eclipse.ditto.policies.service.persistence.actors.PoliciesPersistenceStreamingActorCreator;
+import org.eclipse.ditto.policies.service.persistence.actors.PolicyPersistenceOperationsActor;
+import org.eclipse.ditto.policies.service.persistence.actors.PolicySupervisorActor;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
@@ -68,30 +64,29 @@ public final class PoliciesRootActor extends DittoRootActor {
             final SnapshotAdapter<Policy> snapshotAdapter,
             final ActorRef pubSubMediator) {
 
-        final ActorSystem actorSystem = getContext().system();
+        final var actorSystem = getContext().system();
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(actorSystem).withRole(CLUSTER_ROLE);
 
         final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub =
                 PolicyAnnouncementPubSubFactory.of(getContext(), actorSystem).startDistributedPub();
 
-        final Props policySupervisorProps =
+        final var policySupervisorProps =
                 PolicySupervisorActor.props(pubSubMediator, snapshotAdapter, policyAnnouncementPub);
 
-        final TagsConfig tagsConfig = policiesConfig.getTagsConfig();
         final ActorRef persistenceStreamingActor = startChildActor(PoliciesPersistenceStreamingActorCreator.ACTOR_NAME,
-                PoliciesPersistenceStreamingActorCreator.props(tagsConfig.getStreamingCacheSize()));
+                PoliciesPersistenceStreamingActorCreator.props());
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
         pubSubMediator.tell(DistPubSubAccess.put(persistenceStreamingActor), getSelf());
 
-        final ClusterConfig clusterConfig = policiesConfig.getClusterConfig();
+        final var clusterConfig = policiesConfig.getClusterConfig();
         final ActorRef policiesShardRegion = ClusterSharding.get(actorSystem)
                 .start(PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps, shardingSettings,
                         ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
 
         startClusterSingletonActor(PersistencePingActor.props(policiesShardRegion,
-                        policiesConfig.getPingConfig(), MongoReadJournal.newInstance(actorSystem)),
+                policiesConfig.getPingConfig(), MongoReadJournal.newInstance(actorSystem)),
                 PersistencePingActor.ACTOR_NAME);
 
         startChildActor(PolicyPersistenceOperationsActor.ACTOR_NAME,
@@ -101,15 +96,15 @@ public final class PoliciesRootActor extends DittoRootActor {
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(policiesShardRegion,
                 PoliciesMessagingConstants.SHARD_REGION, log);
 
-        final HealthCheckConfig healthCheckConfig = policiesConfig.getHealthCheckConfig();
-        final HealthCheckingActorOptions.Builder hcBuilder =
+        final var healthCheckConfig = policiesConfig.getHealthCheckConfig();
+        final var hcBuilder =
                 HealthCheckingActorOptions.getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval());
         if (healthCheckConfig.getPersistenceConfig().isEnabled()) {
             hcBuilder.enablePersistenceCheck();
         }
 
-        final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
-        final Props healthCheckingActorProps = DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
+        final var healthCheckingActorOptions = hcBuilder.build();
+        final var healthCheckingActorProps = DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
                 MongoHealthChecker.props()
         );
         final ActorRef healthCheckingActor =

@@ -18,7 +18,12 @@ import javax.annotation.Nullable;
 import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
+import org.eclipse.ditto.concierge.api.actors.ConciergeEnforcerClusterRouterFactory;
+import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
+import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.service.config.ConnectionIdsRetrievalConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
@@ -29,9 +34,6 @@ import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPe
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPriorityProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.UsageBasedPriorityProvider;
-import org.eclipse.ditto.concierge.api.actors.ConciergeEnforcerClusterRouterFactory;
-import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
-import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
@@ -45,8 +47,6 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -96,7 +96,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
         final ActorRef persistenceStreamingActor =
                 startChildActor(ConnectionPersistenceStreamingActorCreator.ACTOR_NAME,
-                        ConnectionPersistenceStreamingActorCreator.props(0));
+                        ConnectionPersistenceStreamingActorCreator.props());
         pubSubMediator.tell(DistPubSubAccess.put(persistenceStreamingActor), getSelf());
 
         // start DittoProtocolSub extension, even if not passed to connections via reference

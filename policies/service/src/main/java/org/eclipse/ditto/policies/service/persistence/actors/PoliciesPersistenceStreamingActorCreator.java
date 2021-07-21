@@ -14,11 +14,11 @@ package org.eclipse.ditto.policies.service.persistence.actors;
 
 import java.util.regex.Pattern;
 
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DefaultPersistenceStreamingActor;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
+import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.model.PolicyId;
 
 import akka.actor.Props;
 
@@ -41,10 +41,9 @@ public final class PoliciesPersistenceStreamingActorCreator {
     /**
      * Creates Akka configuration object Props for this PersistenceQueriesActor.
      *
-     * @param streamingCacheSize the size of the streaming cache.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final int streamingCacheSize) {
+    public static Props props() {
         return DefaultPersistenceStreamingActor.props(PolicyTag.class,
                 PoliciesPersistenceStreamingActorCreator::createElement,
                 PoliciesPersistenceStreamingActorCreator::createPidWithSeqNr);

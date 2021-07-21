@@ -46,7 +46,7 @@ final class HostValidationResult {
      * @return the {@link HostValidationResult} for the invalid host
      */
     static HostValidationResult invalid(final String host, final String reason) {
-        final String errorMessage = String.format("The configured host '%s' is invalid: %s", host, reason);
+        final var errorMessage = String.format("The configured host '%s' is invalid: %s", host, reason);
         return new HostValidationResult(false, host, errorMessage);
     }
 
@@ -56,7 +56,7 @@ final class HostValidationResult {
      * @return the {@link HostValidationResult} for the blocked host
      */
     static HostValidationResult blocked(final String host, final String reason) {
-        final String exceptionMessage = String.format("The configured host '%s' may not be used for the " +
+        final var exceptionMessage = String.format("The configured host '%s' may not be used for the " +
                 "connection because %s", host, reason);
         return new HostValidationResult(false, host, exceptionMessage);
     }
@@ -83,7 +83,7 @@ final class HostValidationResult {
      * @return the appropriate {@link org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException}
      */
     ConnectionConfigurationInvalidException toException(final DittoHeaders dittoHeaders) {
-        final String errorMessage = String.format("The configured host '%s' may not be used for the " +
+        final var errorMessage = String.format("The configured host '%s' may not be used for the " +
                 "connection because %s", host, message);
         return ConnectionConfigurationInvalidException.newBuilder(errorMessage)
                 .description("It is a blocked or otherwise forbidden hostname which may not be used.")
