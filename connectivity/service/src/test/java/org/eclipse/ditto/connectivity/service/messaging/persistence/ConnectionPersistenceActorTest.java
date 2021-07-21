@@ -75,6 +75,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatusResponse;
+import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.connectivity.service.messaging.MockClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
@@ -97,6 +98,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
+import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -302,10 +304,11 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void deleteConnectionUpdatesSubscriptionsAndClosesConnection() {
         new TestKit(actorSystem) {{
             final TestProbe clientActorMock = TestProbe.apply(actorSystem);
+            final TestProbe pubSubTestProbe = TestProbe.apply("mock-pubSub-mediator", actorSystem);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(
                     connectionId, actorSystem, proxyActor,
                     mockClientActorPropsFactory(clientActorMock.ref()),
-                    pubSubMediator
+                    pubSubTestProbe.ref()
             );
             watch(underTest);
 
@@ -646,7 +649,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
             // create connection
             underTest.tell(createConnection, commandSender.ref());
-            mockClientProbe.expectMsg(enableConnectionLogs);
+            mockClientProbe.expectMsg(FiniteDuration.create(5, TimeUnit.SECONDS), enableConnectionLogs);
             mockClientProbe.expectMsg(FiniteDuration.create(5, TimeUnit.SECONDS), openConnection);
             commandSender.expectMsg(createConnectionResponse);
 
@@ -815,7 +818,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final Props connectionActorProps =
                     ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
-                            proxyActor,
+                            proxyActor, pubSubMediator,
                             (connection, proxyActor, connectionActor, actorSystem, dittoHeaders) -> {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
@@ -841,6 +844,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final Props connectionActorProps =
                     ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
                             proxyActor,
+                            pubSubMediator,
                             mockClientActorPropsFactory,
                             (command, connection) -> {
                                 throw ConnectionUnavailableException.newBuilder(connectionId)
@@ -1112,6 +1116,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe gossipProbe = TestProbe.apply("gossip", actorSystem);
             final TestProbe clientActorsProbe = TestProbe.apply("clientActors", actorSystem);
             final TestProbe proxyActorProbe = TestProbe.apply("proxyActor", actorSystem);
+            final TestProbe pubSubMediatorProbe = TestProbe.apply("pubSubMediator", actorSystem);
             // Mock the client actors so that they forward all signals to clientActorsProbe with their own reference
             final ClientActorPropsFactory propsFactory = (a, b, connectionActor, aS, dittoHeaders) ->
                     Props.create(AbstractActor.class, () -> new AbstractActor() {
@@ -1132,7 +1137,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                     });
             final Props connectionActorProps = Props.create(ConnectionPersistenceActor.class, () ->
                     new ConnectionPersistenceActor(myConnectionId, proxyActorProbe.ref(),
-                            propsFactory, null,
+                            pubSubMediatorProbe.ref(), propsFactory, null,
                             UsageBasedPriorityProvider::getInstance,
                             Trilean.TRUE
                     ));
@@ -1177,7 +1182,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                     CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation());
 
             final ActorRef underTest = childActorOf(Props.create(ConnectionPersistenceActor.class,
-                    () -> new ConnectionPersistenceActor(connectionId, proxyActor,
+                    () -> new ConnectionPersistenceActor(connectionId, proxyActor, pubSubMediator,
                             failingClientActors, null,
                             UsageBasedPriorityProvider::getInstance,
                             Trilean.FALSE
@@ -1200,7 +1205,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                     1 + CONNECTION_CONFIG.getClientActorRestartsBeforeEscalation());
 
             final ActorRef underTest = childActorOf(Props.create(ConnectionPersistenceActor.class,
-                    () -> new ConnectionPersistenceActor(connectionId, proxyActor,
+                    () -> new ConnectionPersistenceActor(connectionId, proxyActor, pubSubMediator,
                             failingClientActors, null,
                             UsageBasedPriorityProvider::getInstance,
                             Trilean.FALSE
@@ -1213,6 +1218,35 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             expectTerminated(underTest);
             assertThat(failingClientActors.isActorSuccessfullyInitialized()).isFalse();
         }};
+    }
+
+    @Test
+    public void deleteConnectionCommandEmitsEvent() {
+        new TestKit(actorSystem) {{
+            final TestProbe clientActorMock = TestProbe.apply(actorSystem);
+            final TestProbe pubSubTestProbe = TestProbe.apply("mock-pubSub-mediator", actorSystem);
+            final ActorRef underTest = TestConstants.createConnectionSupervisorActor(
+                    connectionId, actorSystem, proxyActor,
+                    mockClientActorPropsFactory(clientActorMock.ref()),
+                    pubSubTestProbe.ref()
+            );
+            watch(underTest);
+
+            // create connection
+            underTest.tell(createConnection, getRef());
+            expectMsg(createConnectionResponse);
+            pubSubTestProbe.expectMsgClass(DistributedPubSubMediator.Subscribe.class);
+
+            // delete connection
+            underTest.tell(deleteConnection, getRef());
+            expectMsg(deleteConnectionResponse);
+
+            final DistributedPubSubMediator.Publish publish =
+                    pubSubTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+            assertThat(publish.topic()).isEqualTo(ConnectionDeleted.TYPE);
+            expectTerminated(underTest);
+        }};
+
     }
 
     /**

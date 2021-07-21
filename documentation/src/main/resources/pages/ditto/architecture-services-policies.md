@@ -12,16 +12,16 @@ The "policies" service takes care of persisting [Policies](basic-policy.html).
 The model of the policies service is defined around the entity `Policy`:
 
 
-* [Policy model](https://github.com/eclipse/ditto/tree/master/model/policies/src/main/java/org/eclipse/ditto/model/policies)
+* [Policy model](https://github.com/eclipse/ditto/tree/master/policies/model/src/main/java/org/eclipse/ditto/policies/model)
 
 ## Signals
 
 Other services can communicate with the policies service via:
 
 
-* [commands](https://github.com/eclipse/ditto/tree/master/signals/commands/policies/src/main/java/org/eclipse/ditto/signals/commands/policies):
+* [commands](https://github.com/eclipse/ditto/tree/master/policies/model/src/main/java/org/eclipse/ditto/policies/model/signals/commands):
   containing commands and command responses which are processed by this service
-* [events](https://github.com/eclipse/ditto/tree/master/signals/events/policies/src/main/java/org/eclipse/ditto/signals/events/policies):
+* [events](https://github.com/eclipse/ditto/tree/master/policies/model/src/main/java/org/eclipse/ditto/policies/model/signals/events):
   containing events which are emitted when entities managed by this service were modified
 
 ## Persistence
