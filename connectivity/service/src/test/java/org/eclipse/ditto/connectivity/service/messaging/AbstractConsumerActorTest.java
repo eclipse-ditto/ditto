@@ -40,9 +40,8 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -79,19 +78,15 @@ public abstract class AbstractConsumerActorTest<M> {
     @Rule
     public TestName name = new TestName();
 
-    @BeforeClass
-    public static void setUp() {
-        actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
-        protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
-    }
-
     @Before
     public void init() {
+        actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
+        protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
         connectionActorProbe = TestProbe.apply("connectionActor", actorSystem);
     }
 
-    @AfterClass
-    public static void tearDown() {
+    @After
+    public void tearDown() {
         if (actorSystem != null) {
             TestConstants.disableLogging(actorSystem);
             TestKit.shutdownActorSystem(actorSystem);
@@ -262,14 +257,14 @@ public abstract class AbstractConsumerActorTest<M> {
         final Props props = OutboundMappingProcessorActor.props(clientActor, outboundMappingProcessor, CONNECTION, 43);
         final ActorRef outboundProcessorActor = actorSystem.actorOf(props,
                 OutboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
-        final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,
-                protocolAdapter.headerTranslator(), ActorSelection.apply(proxyActor, ""), connectionActorProbe.ref(),
-                outboundProcessorActor);
-        final ActorRef inboundDispatchingActor = actorSystem.actorOf(inboundDispatchingActorProps,
-                InboundDispatchingActor.ACTOR_NAME + "-" + name.getMethodName());
+
+        final Sink<Object, NotUsed> inboundDispatchingSink =
+                InboundDispatchingSink.createSink(CONNECTION, protocolAdapter.headerTranslator(),
+                        ActorSelection.apply(proxyActor, ""), connectionActorProbe.ref(), outboundProcessorActor,
+                        TestProbe.apply(actorSystem).ref(), actorSystem, actorSystem.settings().config());
 
         return InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99,
-                inboundDispatchingActor, connectivityConfig.getMappingConfig(),
+                inboundDispatchingSink, connectivityConfig.getMappingConfig(),
                 actorSystem.dispatchers().defaultGlobalDispatcher());
     }
 

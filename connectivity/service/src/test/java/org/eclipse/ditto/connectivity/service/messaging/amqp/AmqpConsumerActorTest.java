@@ -47,8 +47,6 @@ import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
@@ -62,7 +60,7 @@ import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.javascript.JavaScriptMessageMapperFactory;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorWithAcknowledgementsTest;
-import org.eclipse.ditto.connectivity.service.messaging.InboundDispatchingActor;
+import org.eclipse.ditto.connectivity.service.messaging.InboundDispatchingSink;
 import org.eclipse.ditto.connectivity.service.messaging.InboundMappingProcessor;
 import org.eclipse.ditto.connectivity.service.messaging.InboundMappingSink;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
@@ -304,14 +302,14 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                 AbstractConsumerActorTest.actorSystem,
                 protocolAdapter,
                 logger);
-        final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,
-                protocolAdapter.headerTranslator(), ActorSelection.apply(testRef, ""), connectionActorProbe.ref(),
-                testRef);
-        final ActorRef inboundDispatchingActor =
-                AbstractConsumerActorTest.actorSystem.actorOf(inboundDispatchingActorProps);
+        final Sink<Object, NotUsed> inboundDispatchingSink =
+                InboundDispatchingSink.createSink(CONNECTION, protocolAdapter.headerTranslator(),
+                        ActorSelection.apply(testRef, ""), connectionActorProbe.ref(),
+                        testRef,
+                        TestProbe.apply(actorSystem).ref(), actorSystem, actorSystem.settings().config());
 
         final MessageDispatcher messageDispatcher = actorSystem.dispatchers().defaultGlobalDispatcher();
-        return InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99, inboundDispatchingActor,
+        return InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99, inboundDispatchingSink,
                 TestConstants.MAPPING_CONFIG, messageDispatcher);
     }
 

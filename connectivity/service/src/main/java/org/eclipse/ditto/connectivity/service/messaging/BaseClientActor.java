@@ -162,7 +162,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
 
     private static final Set<String> NO_ADDRESS_REPORTING_CHILD_NAMES = Set.of(
-            InboundDispatchingActor.ACTOR_NAME,
             OutboundMappingProcessorActor.ACTOR_NAME,
             OutboundDispatchingActor.ACTOR_NAME
     );
@@ -315,9 +314,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         outboundDispatchingActor = actorPair.first();
         outboundMappingProcessorActor = actorPair.second();
 
-        final ActorRef inboundDispatcher =
-                startInboundDispatchingActor(connection, protocolAdapter, outboundMappingProcessorActor);
-        inboundMappingSink = getInboundMappingSink(connectionContext, protocolAdapter, inboundDispatcher);
+        final Sink<Object, NotUsed> inboundDispatchingSink =
+                startInboundDispatchingSink(connection, protocolAdapter, outboundMappingProcessorActor);
+        inboundMappingSink = getInboundMappingSink(connectionContext, protocolAdapter, inboundDispatchingSink);
         subscriptionManager = startSubscriptionManager(proxyActorSelection,
                 connectionContext.getConnectivityConfig().getClientConfig());
 
@@ -1668,21 +1667,19 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     /**
-     * Starts the {@link InboundDispatchingActor} responsible for signal de-multiplexing and acknowledgement
+     * Starts the {@link InboundDispatchingSink} responsible for signal de-multiplexing and acknowledgement
      * aggregation.
      *
-     * @return the ref to the started {@link InboundDispatchingActor}
+     * @return the ref to the started {@link InboundDispatchingSink}
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
-    private ActorRef startInboundDispatchingActor(final Connection connection,
+    private Sink<Object, NotUsed> startInboundDispatchingSink(final Connection connection,
             final ProtocolAdapter protocolAdapter,
             final ActorRef outboundMappingProcessorActor) {
 
-        final Props inboundDispatchingActorProps =
-                InboundDispatchingActor.props(connection, protocolAdapter.headerTranslator(), proxyActorSelection,
-                        connectionActor, outboundMappingProcessorActor);
-
-        return getContext().actorOf(inboundDispatchingActorProps, InboundDispatchingActor.ACTOR_NAME);
+        return InboundDispatchingSink.createSink(connection, protocolAdapter.headerTranslator(), proxyActorSelection,
+                connectionActor, outboundMappingProcessorActor, getSelf(), getContext(),
+                getContext().system().settings().config());
     }
 
     /**
@@ -1690,13 +1687,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      *
      * @param connectionContext the connection.
      * @param protocolAdapter the protocol adapter.
-     * @param inboundDispatchingActor the actor to hand mapping outcomes to.
+     * @param inboundDispatchingSink the sink to hand mapping outcomes to.
      * @return the Sink.
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
     private Sink<Object, NotUsed> getInboundMappingSink(final ConnectionContext connectionContext,
             final ProtocolAdapter protocolAdapter,
-            final ActorRef inboundDispatchingActor) {
+            final Sink<Object, NotUsed> inboundDispatchingSink) {
 
         final InboundMappingProcessor inboundMappingProcessor;
         try {
@@ -1721,7 +1718,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return InboundMappingSink.createSink(inboundMappingProcessor,
                 connectionContext.getConnection().getId(),
                 processorPoolSize,
-                inboundDispatchingActor,
+                inboundDispatchingSink,
                 mappingConfig,
                 messageMappingProcessorDispatcher);
     }

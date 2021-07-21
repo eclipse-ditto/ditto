@@ -351,14 +351,14 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 TestConstants.CONNECTIVITY_CONFIG);
         final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(connectionContext,
                 actorSystem, protocolAdapter, logger);
-        final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,
-                protocolAdapter.headerTranslator(), ActorSelection.apply(proxyActor, ""), connectionActorProbe.ref(),
-                outboundMappingProcessorActor);
-        final ActorRef inboundDispatchingActor = testKit.childActorOf(inboundDispatchingActorProps);
+        final Sink<Object, NotUsed> inboundDispatchingSink =
+                InboundDispatchingSink.createSink(CONNECTION, protocolAdapter.headerTranslator(),
+                        ActorSelection.apply(proxyActor, ""), connectionActorProbe.ref(), outboundMappingProcessorActor,
+                        testKit.getRef(), actorSystem, actorSystem.settings().config());
 
         final Sink<Object, NotUsed> inboundMappingSink =
                 InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99,
-                        inboundDispatchingActor, TestConstants.CONNECTIVITY_CONFIG.getMappingConfig(),
+                        inboundDispatchingSink, TestConstants.CONNECTIVITY_CONFIG.getMappingConfig(),
                         actorSystem.dispatchers().defaultGlobalDispatcher());
 
         return Source.actorRef(99, OverflowStrategy.dropNew())
