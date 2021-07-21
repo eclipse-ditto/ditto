@@ -35,8 +35,8 @@ public final class DefaultThingsAggregatorConfig implements ThingsAggregatorConf
 
     private DefaultThingsAggregatorConfig(final ScopedConfig config) {
         singleRetrieveThingTimeout =
-                config.getDuration(ThingsAggregatorConfigValue.SINGLE_RETRIEVE_THING_TIMEOUT.getConfigPath());
-        maxParallelism = config.getInt(ThingsAggregatorConfigValue.MAX_PARALLELISM.getConfigPath());
+                config.getNonNegativeAndNonZeroDurationOrThrow(ThingsAggregatorConfigValue.SINGLE_RETRIEVE_THING_TIMEOUT);
+        maxParallelism = config.getPositiveIntOrThrow(ThingsAggregatorConfigValue.MAX_PARALLELISM);
     }
 
     /**

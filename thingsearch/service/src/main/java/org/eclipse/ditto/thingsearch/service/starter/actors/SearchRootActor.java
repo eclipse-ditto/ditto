@@ -19,6 +19,16 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.service.actors.DittoRootActor;
+import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
+import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.monitoring.KamonCommandListener;
+import org.eclipse.ditto.internal.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoTimestampPersistence;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
@@ -26,8 +36,6 @@ import org.eclipse.ditto.rql.query.QueryBuilderFactory;
 import org.eclipse.ditto.rql.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.base.service.actors.DittoRootActor;
-import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
 import org.eclipse.ditto.thingsearch.service.persistence.query.validation.QueryCriteriaValidator;
@@ -35,15 +43,6 @@ import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchP
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdaterRootActor;
-import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.IndexInitializationConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.monitoring.KamonCommandListener;
-import org.eclipse.ditto.internal.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoTimestampPersistence;
 
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
@@ -74,19 +73,19 @@ public final class SearchRootActor extends DittoRootActor {
 
         log = Logging.getLogger(getContext().system(), this);
 
-        final MongoDbConfig mongoDbConfig = searchConfig.getMongoDbConfig();
-        final MongoDbConfig.MonitoringConfig monitoringConfig = mongoDbConfig.getMonitoringConfig();
+        final var mongoDbConfig = searchConfig.getMongoDbConfig();
+        final var monitoringConfig = mongoDbConfig.getMonitoringConfig();
 
         final DittoMongoClient mongoDbClient = MongoClientWrapper.getBuilder(mongoDbConfig)
                 .addCommandListener(getCommandListenerOrNull(monitoringConfig))
                 .addConnectionPoolListener(getConnectionPoolListenerOrNull(monitoringConfig))
                 .build();
 
-        final ThingsSearchPersistence thingsSearchPersistence = getThingsSearchPersistence(searchConfig, mongoDbClient);
+        final var thingsSearchPersistence = getThingsSearchPersistence(searchConfig, mongoDbClient);
         final ActorRef searchActor = initializeSearchActor(searchConfig.getLimitsConfig(), thingsSearchPersistence);
         pubSubMediator.tell(DistPubSubAccess.put(searchActor), getSelf());
 
-        final ActorSystem actorSystem = getContext().getSystem();
+        final var actorSystem = getContext().getSystem();
         final TimestampPersistence backgroundSyncPersistence =
                 MongoTimestampPersistence.initializedInstance(BACKGROUND_SYNC_COLLECTION_NAME, mongoDbClient,
                         SystemMaterializer.get(actorSystem).materializer());
@@ -113,14 +112,28 @@ public final class SearchRootActor extends DittoRootActor {
                 : null;
     }
 
+    protected static QueryParser getQueryParser(final LimitsConfig limitsConfig, final ActorSystem actorSystem) {
+        final var fieldExpressionFactory = getThingsFieldExpressionFactory();
+        final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(limitsConfig);
+        final var queryCriteriaValidator = QueryCriteriaValidator.get(actorSystem);
+        return QueryParser.of(fieldExpressionFactory, queryBuilderFactory, queryCriteriaValidator);
+    }
+
+    private static void addMapping(final Map<String, String> fieldMappings, final JsonFieldDefinition<?> definition) {
+        final JsonPointer pointer = definition.getPointer();
+        final String key = pointer.getRoot().map(JsonKey::toString).orElse("");
+        final var value = pointer.toString();
+        fieldMappings.put(key, value);
+    }
+
     private ThingsSearchPersistence getThingsSearchPersistence(final SearchConfig searchConfig,
             final DittoMongoClient mongoDbClient) {
 
         final ActorContext context = getContext();
-        final MongoThingsSearchPersistence persistence =
+        final var persistence =
                 new MongoThingsSearchPersistence(mongoDbClient, context.getSystem());
 
-        final IndexInitializationConfig indexInitializationConfig = searchConfig.getIndexInitializationConfig();
+        final var indexInitializationConfig = searchConfig.getIndexInitializationConfig();
         if (indexInitializationConfig.isIndexInitializationConfigEnabled()) {
             persistence.initializeIndices();
         } else {
@@ -133,21 +146,6 @@ public final class SearchRootActor extends DittoRootActor {
                     return persistence.withHintsByNamespace(mongoHintsByNamespace);
                 })
                 .orElse(persistence);
-    }
-
-    private ActorRef initializeSearchActor(final LimitsConfig limitsConfig,
-            final ThingsSearchPersistence thingsSearchPersistence) {
-
-        final QueryParser queryParser = getQueryParser(limitsConfig, getContext().getSystem());
-
-        return startChildActor(SearchActor.ACTOR_NAME, SearchActor.props(queryParser, thingsSearchPersistence));
-    }
-
-    protected static QueryParser getQueryParser(final LimitsConfig limitsConfig, final ActorSystem actorSystem) {
-        final ThingsFieldExpressionFactory fieldExpressionFactory = getThingsFieldExpressionFactory();
-        final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(limitsConfig);
-        final QueryCriteriaValidator queryCriteriaValidator = QueryCriteriaValidator.get(actorSystem);
-        return QueryParser.of(fieldExpressionFactory, queryBuilderFactory, queryCriteriaValidator);
     }
 
     private ActorRef initializeHealthCheckActor(final SearchConfig searchConfig,
@@ -183,11 +181,12 @@ public final class SearchRootActor extends DittoRootActor {
         return ThingsFieldExpressionFactory.of(mappings);
     }
 
-    private static void addMapping(final Map<String, String> fieldMappings, final JsonFieldDefinition<?> definition) {
-        final JsonPointer pointer = definition.getPointer();
-        final String key = pointer.getRoot().map(JsonKey::toString).orElse("");
-        final String value = pointer.toString();
-        fieldMappings.put(key, value);
+    private ActorRef initializeSearchActor(final LimitsConfig limitsConfig,
+            final ThingsSearchPersistence thingsSearchPersistence) {
+
+        final var queryParser = getQueryParser(limitsConfig, getContext().getSystem());
+
+        return startChildActor(SearchActor.ACTOR_NAME, SearchActor.props(queryParser, thingsSearchPersistence));
     }
 
 }

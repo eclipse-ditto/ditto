@@ -12,11 +12,12 @@
  */
 package org.eclipse.ditto.concierge.service.common;
 
-import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
@@ -28,14 +29,15 @@ import com.typesafe.config.Config;
 public final class DefaultEnforcementConfig implements EnforcementConfig {
 
     private static final String CONFIG_PATH = "enforcement";
+    private static final String ASK_WITH_RETRY_CONFIG_PATH = "ask-with-retry";
 
-    private final Duration askTimeout;
+    private final AskWithRetryConfig askWithRetryConfig;
     private final int bufferSize;
     private final boolean globalLiveResponseDispatching;
 
     private DefaultEnforcementConfig(final ConfigWithFallback configWithFallback) {
-        askTimeout = configWithFallback.getDuration(EnforcementConfigValue.ASK_TIMEOUT.getConfigPath());
-        bufferSize = configWithFallback.getInt(EnforcementConfigValue.BUFFER_SIZE.getConfigPath());
+        askWithRetryConfig = DefaultAskWithRetryConfig.of(configWithFallback, ASK_WITH_RETRY_CONFIG_PATH);
+        bufferSize = configWithFallback.getPositiveIntOrThrow(EnforcementConfigValue.BUFFER_SIZE);
         globalLiveResponseDispatching =
                 configWithFallback.getBoolean(EnforcementConfigValue.GLOBAL_LIVE_RESPONSE_DISPATCHING.getConfigPath());
     }
@@ -53,8 +55,8 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
     }
 
     @Override
-    public Duration getAskTimeout() {
-        return askTimeout;
+    public AskWithRetryConfig getAskWithRetryConfig() {
+        return askWithRetryConfig;
     }
 
     @Override
@@ -76,22 +78,22 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
             return false;
         }
         final DefaultEnforcementConfig that = (DefaultEnforcementConfig) o;
-        return bufferSize == that.bufferSize && askTimeout.equals(that.askTimeout) &&
-                globalLiveResponseDispatching == that.globalLiveResponseDispatching;
+        return bufferSize == that.bufferSize &&
+                globalLiveResponseDispatching == that.globalLiveResponseDispatching &&
+                askWithRetryConfig.equals(that.askWithRetryConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askTimeout, bufferSize, globalLiveResponseDispatching);
+        return Objects.hash(askWithRetryConfig, bufferSize, globalLiveResponseDispatching);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "askTimeout=" + askTimeout +
+                "askWithRetryConfig=" + askWithRetryConfig +
                 ", bufferSize=" + bufferSize +
                 ", globalLiveResponseDispatching=" + globalLiveResponseDispatching +
                 "]";
     }
-
 }

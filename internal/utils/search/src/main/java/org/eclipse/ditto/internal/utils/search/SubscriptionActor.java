@@ -14,13 +14,13 @@ package org.eclipse.ditto.internal.utils.search;
 
 import java.time.Duration;
 
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.SubscriptionProtocolErrorException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.SubscriptionTimeoutException;
@@ -123,7 +123,7 @@ public final class SubscriptionActor extends AbstractActorWithStashWithTimers {
                     );
                     getSender().tell(subscriptionFailed, ActorRef.noSender());
                 })
-                .matchAny(message -> log.info("Ignoring as zombie: <{}>", message))
+                .matchAny(message -> log.debug("Ignoring as zombie: <{}>", message))
                 .build();
     }
 

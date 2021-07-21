@@ -35,6 +35,7 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.GenericTarget;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
@@ -101,11 +102,9 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
      *
      * @param signal the signal.
      * @param target the target at which this signal is published, or null if the signal is published at a reply-target.
-     * @param result the result of the PUBLISH message according to the broker as encapsulated by the client.
      * @return the acknowledgement.
      */
-    protected SendResult buildResponse(final Signal<?> signal, @Nullable final Target target,
-            final R result) {
+    protected SendResult buildResponse(final Signal<?> signal, @Nullable final Target target) {
 
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         final Optional<AcknowledgementLabel> autoAckLabel = getAcknowledgementLabel(target);
@@ -134,8 +133,8 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
     }
 
     @Override
-    protected MqttPublishTarget toPublishTarget(final String address) {
-        return MqttPublishTarget.of(address);
+    protected MqttPublishTarget toPublishTarget(final GenericTarget target) {
+        return MqttPublishTarget.of(target.getAddress(), target.getQos().orElse(DEFAULT_TARGET_QOS));
     }
 
     @Override
@@ -148,7 +147,7 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
 
         try {
             final String topic = determineTopic(publishTarget, message);
-            final MqttQos qos = determineQos(message.getHeaders(), autoAckTarget);
+            final MqttQos qos = determineQos(message.getHeaders(), publishTarget);
             final boolean retain = determineMqttRetainFromHeaders(message.getHeaders());
             final P mqttMessage = mapExternalMessageToMqttMessage(topic, qos, retain, message);
             if (logger.isDebugEnabled()) {
@@ -156,7 +155,7 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
                         .debug("Publishing MQTT message to topic <{}>: {}", getTopic(mqttMessage),
                                 decodeAsHumanReadable(getPayload(mqttMessage).orElse(null), message));
             }
-            return client.apply(mqttMessage).thenApply(result -> buildResponse(signal, autoAckTarget, result));
+            return client.apply(mqttMessage).thenApply(result -> buildResponse(signal, autoAckTarget));
         } catch (final Exception e) {
             return CompletableFuture.failedFuture(e);
         }
@@ -169,16 +168,8 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
                 .orElse(publishTarget.getTopic());
     }
 
-    private static MqttQos determineQos(final Map<String, String> headers, @Nullable final Target autoAckTarget) {
-        final Optional<MqttQos> mqttQosFromHeaders = getMqttQosFromHeaders(headers);
-        if (mqttQosFromHeaders.isPresent()) {
-            return mqttQosFromHeaders.get();
-        } else if (autoAckTarget == null) {
-            return MqttQos.AT_MOST_ONCE;
-        } else {
-            final int qos = autoAckTarget.getQos().orElse(DEFAULT_TARGET_QOS);
-            return AbstractMqttValidator.getHiveQoS(qos);
-        }
+    private static MqttQos determineQos(final Map<String, String> headers, final MqttPublishTarget publishTarget) {
+        return getMqttQosFromHeaders(headers).orElseGet(() -> AbstractMqttValidator.getHiveQoS(publishTarget.getQos()));
     }
 
     private static Optional<MqttQos> getMqttQosFromHeaders(final Map<String, String> headers) {

@@ -23,25 +23,24 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
-import org.eclipse.ditto.policies.api.PolicyReferenceTag;
-import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.internal.models.streaming.IdentifiableStreamingMessage;
-import org.eclipse.ditto.things.api.ThingTag;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
-import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ConsistencyLag;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.policies.api.PolicyReferenceTag;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.things.api.ThingTag;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
+import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ConsistencyLag;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -71,7 +70,7 @@ final class ThingUpdater extends AbstractActor {
     @SuppressWarnings("unused") //It is used via reflection. See props method.
     private ThingUpdater(final ActorRef pubSubMediator, final ActorRef changeQueueActor) {
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-        final DittoSearchConfig dittoSearchConfig = DittoSearchConfig.of(
+        final var dittoSearchConfig = DittoSearchConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
         thingId = tryToGetThingId();
@@ -181,8 +180,8 @@ final class ThingUpdater extends AbstractActor {
                     thingId, thingRevision, policyId, policyRevision, policyReferenceTag.asIdentifierString());
         }
 
-        final PolicyTag policyTag = policyReferenceTag.getPolicyTag();
-        final PolicyId policyIdOfTag = policyTag.getEntityId();
+        final var policyTag = policyReferenceTag.getPolicyTag();
+        final var policyIdOfTag = policyTag.getEntityId();
         if (!Objects.equals(policyId, policyIdOfTag) || policyRevision < policyTag.getRevision()) {
             this.policyId = policyIdOfTag;
             policyRevision = policyTag.getRevision();

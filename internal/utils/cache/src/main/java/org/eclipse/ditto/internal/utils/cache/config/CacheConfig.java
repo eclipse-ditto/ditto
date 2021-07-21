@@ -83,7 +83,7 @@ public interface CacheConfig {
         EXPIRE_AFTER_ACCESS("expire-after-access", Duration.ofMinutes(15L)),
 
         /**
-         * Duration after which an accessed cache entry expires.
+         * Duration after which an created cache entry expires.
          */
         EXPIRE_AFTER_CREATE("expire-after-create", Duration.ZERO);
 

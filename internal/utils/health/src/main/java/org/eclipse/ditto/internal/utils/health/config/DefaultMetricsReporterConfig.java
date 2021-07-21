@@ -34,8 +34,8 @@ public final class DefaultMetricsReporterConfig implements MetricsReporterConfig
     private final int history;
 
     private DefaultMetricsReporterConfig(final ScopedConfig scopedConfig) {
-        resolution = scopedConfig.getDuration(MetricsReporterConfigValue.RESOLUTION.getConfigPath());
-        history = scopedConfig.getInt(MetricsReporterConfigValue.HISTORY.getConfigPath());
+        resolution = scopedConfig.getNonNegativeDurationOrThrow(MetricsReporterConfigValue.RESOLUTION);
+        history = scopedConfig.getPositiveIntOrThrow(MetricsReporterConfigValue.HISTORY);
     }
 
     /**

@@ -23,5 +23,5 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
  */
 public interface ReferencePlaceholderResolver<T> {
 
-    CompletionStage<T> resolve(final ReferencePlaceholder referencePlaceholder, final DittoHeaders dittoHeaders);
+    CompletionStage<T> resolve(ReferencePlaceholder referencePlaceholder, DittoHeaders dittoHeaders);
 }

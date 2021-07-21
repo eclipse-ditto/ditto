@@ -16,20 +16,18 @@ import java.time.Duration;
 import java.util.function.Function;
 
 import org.bson.Document;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamSnapshots;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
-
-import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
@@ -71,7 +69,7 @@ public final class SnapshotStreamingActor extends AbstractActor {
         this.pid2EntityId = pid2EntityId;
         this.entityId2Pid = entityId2Pid;
 
-        final Config config = getContext().getSystem().settings().config();
+        final var config = getContext().getSystem().settings().config();
         final MongoDbConfig mongoDbConfig =
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
         mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);

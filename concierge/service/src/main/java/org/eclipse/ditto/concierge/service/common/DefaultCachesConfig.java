@@ -12,14 +12,15 @@
  */
 package org.eclipse.ditto.concierge.service.common;
 
-import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
-import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -31,13 +32,14 @@ import com.typesafe.config.Config;
 public final class DefaultCachesConfig implements CachesConfig {
 
     private static final String CONFIG_PATH = "caches";
+    private static final String ASK_WITH_RETRY_CONFIG_PATH = "ask-with-retry";
 
-    private final Duration askTimeout;
+    private final AskWithRetryConfig askWithRetryConfig;
     private final CacheConfig idCacheConfig;
     private final CacheConfig enforcerCacheConfig;
 
     private DefaultCachesConfig(final ScopedConfig config) {
-        askTimeout = config.getDuration(CachesConfigValue.ASK_TIMEOUT.getConfigPath());
+        askWithRetryConfig = DefaultAskWithRetryConfig.of(config, ASK_WITH_RETRY_CONFIG_PATH);
         idCacheConfig = DefaultCacheConfig.of(config, "id");
         enforcerCacheConfig = DefaultCacheConfig.of(config, "enforcer");
     }
@@ -50,12 +52,12 @@ public final class DefaultCachesConfig implements CachesConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultCachesConfig of(final Config config) {
-        return new DefaultCachesConfig(ConfigWithFallback.newInstance(config, CONFIG_PATH, CachesConfigValue.values()));
+        return new DefaultCachesConfig(DefaultScopedConfig.newInstance(config, CONFIG_PATH));
     }
 
     @Override
-    public Duration getAskTimeout() {
-        return askTimeout;
+    public AskWithRetryConfig getAskWithRetryConfig() {
+        return askWithRetryConfig;
     }
 
     @Override
@@ -77,23 +79,21 @@ public final class DefaultCachesConfig implements CachesConfig {
             return false;
         }
         final DefaultCachesConfig that = (DefaultCachesConfig) o;
-        return askTimeout.equals(that.askTimeout) &&
-                idCacheConfig.equals(that.idCacheConfig) &&
-                enforcerCacheConfig.equals(that.enforcerCacheConfig);
+        return askWithRetryConfig.equals(that.askWithRetryConfig) &&
+                idCacheConfig.equals(that.idCacheConfig) && enforcerCacheConfig.equals(that.enforcerCacheConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askTimeout, idCacheConfig, enforcerCacheConfig);
+        return Objects.hash(askWithRetryConfig, idCacheConfig, enforcerCacheConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "askTimeout=" + askTimeout +
+                "askWithRetryConfig=" + askWithRetryConfig +
                 ", idCacheConfig=" + idCacheConfig +
                 ", enforcerCacheConfig=" + enforcerCacheConfig +
                 "]";
     }
-
 }

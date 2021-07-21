@@ -38,9 +38,9 @@ public final class DefaultMappingConfig implements MappingConfig {
     private final MapperLimitsConfig mapperLimitsConfig;
 
     private DefaultMappingConfig(final ScopedConfig config) {
-        bufferSize = config.getInt(MappingConfigValue.BUFFER_SIZE.getConfigPath());
-        parallelism = config.getInt(MappingConfigValue.PARALLELISM.getConfigPath());
-        maxPoolSize = config.getInt(MappingConfigValue.MAX_POOL_SIZE.getConfigPath());
+        bufferSize = config.getNonNegativeIntOrThrow(MappingConfigValue.BUFFER_SIZE);
+        parallelism = config.getPositiveIntOrThrow(MappingConfigValue.PARALLELISM);
+        maxPoolSize = config.getPositiveIntOrThrow(MappingConfigValue.MAX_POOL_SIZE);
         mapperLimitsConfig = DefaultMapperLimitsConfig.of(config);
         javaScriptConfig = DefaultJavaScriptConfig.of(config);
     }
@@ -53,7 +53,7 @@ public final class DefaultMappingConfig implements MappingConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultMappingConfig of(final Config config) {
-        final ConfigWithFallback mappingScopedConfig =
+        final var mappingScopedConfig =
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, MappingConfigValue.values());
 
         return new DefaultMappingConfig(mappingScopedConfig);

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.concierge.service.enforcement;
 
-import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
@@ -29,10 +28,10 @@ import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.model.ResourceKey;
-import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.things.model.ThingConstants;
 
@@ -137,7 +136,7 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
         final Throwable error = throwable == null
                 ? new NullPointerException("Result and error are both null")
                 : throwable;
-        final DittoRuntimeException dre = DittoRuntimeException
+        final var dre = DittoRuntimeException
                 .asDittoRuntimeException(error, cause -> reportUnexpectedError(hint, cause));
         log().info("{} - {}: {}", hint, dre.getClass().getSimpleName(), dre.getMessage());
         return dre;
@@ -177,9 +176,9 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
     protected static <T extends Signal<T>> T addEffectedReadSubjectsToThingSignal(final Signal<T> signal,
             final Enforcer enforcer) {
 
-        final ResourceKey resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, signal.getResourcePath());
-        final EffectedSubjects effectedSubjects = enforcer.getSubjectsWithPermission(resourceKey, Permission.READ);
-        final DittoHeaders newHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
+        final var resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, signal.getResourcePath());
+        final var effectedSubjects = enforcer.getSubjectsWithPermission(resourceKey, Permission.READ);
+        final var newHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
                 .readGrantedSubjects(effectedSubjects.getGranted())
                 .readRevokedSubjects(effectedSubjects.getRevoked())
                 .build();
@@ -199,10 +198,10 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
     }
 
     /**
-     * @return Timeout duration for asking entity shard regions.
+     * @return the configuration of "ask with retry" pattern during enforcement.
      */
-    protected Duration getAskTimeout() {
-        return context.getAskTimeout();
+    protected AskWithRetryConfig getAskWithRetryConfig() {
+        return context.getAskWithRetryConfig();
     }
 
     /**

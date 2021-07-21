@@ -166,10 +166,22 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     }
 
     @Override
-    public void preStart() throws JMSException {
-        initMessageConsumer();
+    public void preStart() throws Exception {
+        super.preStart();
         getConnectivityConfigProvider()
-                .registerForConnectivityConfigChanges(consumerData.getConnectionContext(), getSelf());
+                .registerForConnectivityConfigChanges(consumerData.getConnectionContext(), getSelf())
+                .exceptionally(e -> {
+                    log.error(e, "Failed to register for connectivity connfig changes");
+                    return null;
+                });
+        try {
+            initMessageConsumer();
+        } catch (final Exception e) {
+            final var failure = new ImmutableConnectionFailure(getSelf(), e,
+                    "Failed to initialize message consumers.");
+            getContext().getParent().tell(failure, getSelf());
+            getContext().stop(getSelf());
+        }
     }
 
     @Override

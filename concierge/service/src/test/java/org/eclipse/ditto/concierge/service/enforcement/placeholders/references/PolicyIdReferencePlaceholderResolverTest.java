@@ -19,16 +19,17 @@ import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 
 import org.awaitility.Awaitility;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayPlaceholderReferenceUnknownFieldException;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayPlaceholderReferenceUnknownFieldException;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
@@ -63,7 +64,8 @@ public class PolicyIdReferencePlaceholderResolverTest {
     public void setup() {
         conciergeForwarderActorProbe = TestProbe.apply(actorSystem);
         sut = PolicyIdReferencePlaceholderResolver.of(conciergeForwarderActorProbe.testActor(),
-                Duration.ofSeconds(5));
+                DefaultAskWithRetryConfig.of(ConfigFactory.empty(), "test"), actorSystem.scheduler(),
+                actorSystem.dispatcher());
     }
 
     @Test

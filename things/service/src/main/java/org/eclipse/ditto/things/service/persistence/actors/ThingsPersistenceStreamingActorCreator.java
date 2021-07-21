@@ -16,12 +16,12 @@ import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
-import org.eclipse.ditto.things.api.ThingTag;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DefaultPersistenceStreamingActor;
 import org.eclipse.ditto.internal.utils.persistence.mongo.SnapshotStreamingActor;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
+import org.eclipse.ditto.things.api.ThingTag;
+import org.eclipse.ditto.things.model.ThingId;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -53,13 +53,11 @@ public final class ThingsPersistenceStreamingActorCreator {
     /**
      * Create an actor for streaming from the event journal.
      *
-     * @param streamingCacheSize the size of the streaming cache.
      * @param actorCreator function to create a named actor with.
      * @return a reference of the created actor.
      */
-    public static ActorRef startEventStreamingActor(final int streamingCacheSize,
-            final BiFunction<String, Props, ActorRef> actorCreator) {
-        final Props props = DefaultPersistenceStreamingActor.props(ThingTag.class,
+    public static ActorRef startEventStreamingActor(final BiFunction<String, Props, ActorRef> actorCreator) {
+        final var props = DefaultPersistenceStreamingActor.props(ThingTag.class,
                 ThingsPersistenceStreamingActorCreator::createElement,
                 ThingsPersistenceStreamingActorCreator::createPidWithSeqNr);
         return actorCreator.apply(EVENT_STREAMING_ACTOR_NAME, props);
@@ -72,8 +70,9 @@ public final class ThingsPersistenceStreamingActorCreator {
      * @return a reference of the created actor.
      */
     public static ActorRef startSnapshotStreamingActor(final BiFunction<String, Props, ActorRef> actorCreator) {
-        final Props props = SnapshotStreamingActor.props(ThingsPersistenceStreamingActorCreator::pid2EntityId,
+        final var props = SnapshotStreamingActor.props(ThingsPersistenceStreamingActorCreator::pid2EntityId,
                 ThingsPersistenceStreamingActorCreator::entityId2Pid);
+
         return actorCreator.apply(SNAPSHOT_STREAMING_ACTOR_NAME, props);
     }
 

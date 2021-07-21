@@ -38,26 +38,27 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.GenericTarget;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.json.JsonValue;
 
 import com.newmotion.akka.rabbitmq.ChannelCreated;
 import com.newmotion.akka.rabbitmq.ChannelMessage;
@@ -142,8 +143,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     }
 
     @Override
-    protected RabbitMQTarget toPublishTarget(final String address) {
-        return RabbitMQTarget.fromTargetAddress(address);
+    protected RabbitMQTarget toPublishTarget(final GenericTarget target) {
+        return RabbitMQTarget.fromTargetAddress(target.getAddress());
     }
 
     @Override
@@ -168,7 +169,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
         final Map<String, Object> stringObjectMap = messageHeaders.entrySet()
                 .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> (Object) e.getValue()));
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         final AMQP.BasicProperties basicProperties = new AMQP.BasicProperties.Builder()
                 .contentType(contentType)
@@ -273,7 +274,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         final IOException confirmationStatus =
                 tryToEnterConfirmationMode(channel, outstandingAcks, outstandingAcksByTarget).orElse(null);
         final Map<Target, ResourceStatus> targetStatus =
-                declareExchangesPassive(channel, this::toPublishTarget);
+                declareExchangesPassive(channel, RabbitMQTarget::fromTargetAddress);
         getSelf().tell(new ChannelStatus(confirmationStatus, targetStatus), ActorRef.noSender());
         return null;
     }

@@ -35,11 +35,11 @@ final class DefaultWebsocketConfig implements WebsocketConfig {
 
     private DefaultWebsocketConfig(final ScopedConfig scopedConfig) {
         subscriberBackpressureQueueSize =
-                scopedConfig.getInt(WebsocketConfigValue.SUBSCRIBER_BACKPRESSURE_QUEUE_SIZE.getConfigPath());
+                scopedConfig.getPositiveIntOrThrow(WebsocketConfigValue.SUBSCRIBER_BACKPRESSURE_QUEUE_SIZE);
         publisherBackpressureBufferSize =
-                scopedConfig.getInt(WebsocketConfigValue.PUBLISHER_BACKPRESSURE_BUFFER_SIZE.getConfigPath());
+                scopedConfig.getPositiveIntOrThrow(WebsocketConfigValue.PUBLISHER_BACKPRESSURE_BUFFER_SIZE);
         throttlingRejectionFactor =
-                scopedConfig.getDouble(WebsocketConfigValue.THROTTLING_REJECTION_FACTOR.getConfigPath());
+                scopedConfig.getNonNegativeDoubleOrThrow(WebsocketConfigValue.THROTTLING_REJECTION_FACTOR);
         throttlingConfig = ThrottlingConfig.of(scopedConfig);
     }
 

@@ -15,21 +15,21 @@ package org.eclipse.ditto.thingsearch.service.updater.actors;
 import java.time.Instant;
 
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.base.api.common.Shutdown;
+import org.eclipse.ditto.base.api.common.ShutdownReasonFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.policies.api.PolicyReferenceTag;
+import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.things.api.ThingTag;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.policies.api.PolicyReferenceTag;
-import org.eclipse.ditto.policies.api.PolicyTag;
-import org.eclipse.ditto.things.api.ThingTag;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.base.api.common.Shutdown;
-import org.eclipse.ditto.base.api.common.ShutdownReasonFactory;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -69,7 +69,6 @@ public final class ThingUpdaterTest {
         final Config config = ConfigFactory.load("test");
         startActorSystem(config);
     }
-
 
     @After
     public void tearDownBase() {
@@ -277,4 +276,5 @@ public final class ThingUpdaterTest {
         return actorSystem.actorOf(ThingUpdater.props(pubSubTestProbe.ref(), changeQueueTestProbe.ref()),
                 THING_ID.toString());
     }
+
 }

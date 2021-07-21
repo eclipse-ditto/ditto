@@ -33,8 +33,8 @@ public final class DefaultPersistenceOperationsConfig implements PersistenceOper
     private final Duration delayAfterPersistenceActorShutdown;
 
     private DefaultPersistenceOperationsConfig(final ConfigWithFallback configWithFallback) {
-        delayAfterPersistenceActorShutdown = configWithFallback.getDuration(
-                PersistenceOperationsConfigValue.DELAY_AFTER_PERSISTENCE_ACTOR_SHUTDOWN.getConfigPath());
+        delayAfterPersistenceActorShutdown = configWithFallback.getNonNegativeDurationOrThrow(
+                PersistenceOperationsConfigValue.DELAY_AFTER_PERSISTENCE_ACTOR_SHUTDOWN);
     }
 
     /**

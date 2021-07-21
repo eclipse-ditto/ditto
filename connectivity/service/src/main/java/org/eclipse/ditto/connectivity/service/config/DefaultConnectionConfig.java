@@ -42,6 +42,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final int clientActorRestartsBeforeEscalation;
     private final Collection<String> allowedHostnames;
     private final Collection<String> blockedHostnames;
+    private final Collection<String> blockedSubnets;
+    private final String blockedHostRegex;
     private final SupervisorConfig supervisorConfig;
     private final SnapshotConfig snapshotConfig;
     private final DefaultAcknowledgementConfig acknowledgementConfig;
@@ -58,11 +60,14 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final boolean allClientActorsOnOneNode;
 
     private DefaultConnectionConfig(final ConfigWithFallback config) {
-        clientActorAskTimeout = config.getDuration(ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath());
-        clientActorRestartsBeforeEscalation = config.getInt(ConnectionConfigValue.CLIENT_ACTOR_RESTARTS_BEFORE_ESCALATION
-                .getConfigPath());
+        clientActorAskTimeout =
+                config.getNonNegativeAndNonZeroDurationOrThrow(ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT);
+        clientActorRestartsBeforeEscalation =
+                config.getPositiveIntOrThrow(ConnectionConfigValue.CLIENT_ACTOR_RESTARTS_BEFORE_ESCALATION);
         allowedHostnames = fromCommaSeparatedString(config, ConnectionConfigValue.ALLOWED_HOSTNAMES);
         blockedHostnames = fromCommaSeparatedString(config, ConnectionConfigValue.BLOCKED_HOSTNAMES);
+        blockedSubnets = fromCommaSeparatedString(config, ConnectionConfigValue.BLOCKED_SUBNETS);
+        blockedHostRegex = config.getString(ConnectionConfigValue.BLOCKED_HOST_REGEX.getConfigPath());
         supervisorConfig = DefaultSupervisorConfig.of(config);
         snapshotConfig = DefaultSnapshotConfig.of(config);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(config);
@@ -72,12 +77,14 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         kafkaConfig = DefaultKafkaConfig.of(config);
         httpPushConfig = DefaultHttpPushConfig.of(config);
         activityCheckConfig = DefaultActivityCheckConfig.of(config);
-        maxNumberOfTargets = config.getInt(ConnectionConfigValue.MAX_TARGET_NUMBER.getConfigPath());
-        maxNumberOfSources = config.getInt(ConnectionConfigValue.MAX_SOURCE_NUMBER.getConfigPath());
-        ackLabelDeclareInterval = config.getDuration(ConnectionConfigValue.ACK_LABEL_DECLARE_INTERVAL.getConfigPath());
+        maxNumberOfTargets = config.getNonNegativeIntOrThrow(ConnectionConfigValue.MAX_TARGET_NUMBER);
+        maxNumberOfSources = config.getNonNegativeIntOrThrow(ConnectionConfigValue.MAX_SOURCE_NUMBER);
+        ackLabelDeclareInterval =
+                config.getNonNegativeAndNonZeroDurationOrThrow(ConnectionConfigValue.ACK_LABEL_DECLARE_INTERVAL);
         allClientActorsOnOneNode =
                 config.getBoolean(ConnectionConfigValue.ALL_CLIENT_ACTORS_ON_ONE_NODE.getConfigPath());
-        priorityUpdateInterval = config.getDuration(ConnectionConfigValue.PRIORITY_UPDATE_INTERVAL.getConfigPath());
+        priorityUpdateInterval =
+                config.getNonNegativeAndNonZeroDurationOrThrow(ConnectionConfigValue.PRIORITY_UPDATE_INTERVAL);
     }
 
     /**
@@ -94,7 +101,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
 
     private Collection<String> fromCommaSeparatedString(final ConfigWithFallback config,
             final ConnectionConfigValue configValue) {
-        final String commaSeparated = config.getString(configValue.getConfigPath());
+        final var commaSeparated = config.getString(configValue.getConfigPath());
+
         return List.of(commaSeparated.split(","));
     }
 
@@ -116,6 +124,16 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     @Override
     public Collection<String> getBlockedHostnames() {
         return blockedHostnames;
+    }
+
+    @Override
+    public Collection<String> getBlockedSubnets() {
+        return blockedSubnets;
+    }
+
+    @Override
+    public String getBlockedHostRegex() {
+        return blockedHostRegex;
     }
 
     @Override
@@ -201,6 +219,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(clientActorRestartsBeforeEscalation, that.clientActorRestartsBeforeEscalation) &&
                 Objects.equals(allowedHostnames, that.allowedHostnames) &&
                 Objects.equals(blockedHostnames, that.blockedHostnames) &&
+                Objects.equals(blockedSubnets, that.blockedSubnets) &&
+                Objects.equals(blockedHostRegex, that.blockedHostRegex) &&
                 Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
                 Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
@@ -220,9 +240,10 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     @Override
     public int hashCode() {
         return Objects.hash(clientActorAskTimeout, clientActorRestartsBeforeEscalation, allowedHostnames,
-                blockedHostnames, supervisorConfig, snapshotConfig, acknowledgementConfig, maxNumberOfTargets,
-                maxNumberOfSources, activityCheckConfig, amqp10Config, amqp091Config, mqttConfig, kafkaConfig,
-                httpPushConfig, ackLabelDeclareInterval, priorityUpdateInterval, allClientActorsOnOneNode);
+                blockedHostnames, blockedSubnets, blockedHostRegex, supervisorConfig, snapshotConfig,
+                acknowledgementConfig, maxNumberOfTargets, maxNumberOfSources, activityCheckConfig, amqp10Config,
+                amqp091Config, mqttConfig, kafkaConfig, httpPushConfig, ackLabelDeclareInterval, priorityUpdateInterval,
+                allClientActorsOnOneNode);
     }
 
     @Override
@@ -232,6 +253,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", clientActorRestartsBeforeEscalation=" + clientActorRestartsBeforeEscalation +
                 ", allowedHostnames=" + allowedHostnames +
                 ", blockedHostnames=" + blockedHostnames +
+                ", blockedSubnets=" + blockedSubnets +
+                ", blockedHostRegex=" + blockedHostRegex +
                 ", supervisorConfig=" + supervisorConfig +
                 ", snapshotConfig=" + snapshotConfig +
                 ", acknowledgementConfig=" + acknowledgementConfig +

@@ -13,16 +13,19 @@
 package org.eclipse.ditto.concierge.service.enforcement;
 
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 
+import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
+import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 
 import akka.actor.ActorRef;
+import akka.actor.Scheduler;
 import akka.pattern.AskTimeoutException;
-import akka.pattern.Patterns;
 
 /**
  * Adds a common handling to ask an actor for a response and automatically filter the responses JSON view by an
@@ -54,15 +57,19 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
      * @param actorToAsk the actor that should be asked.
      * @param commandWithReadSubjects the command that is used to ask.
      * @param enforcer the enforced used to filter the JSON view.
+     * @param scheduler the scheduler to use for performing the "ask with retry".
+     * @param executor the executor to use for performing the "ask with retry".
      * @return A completion stage which either completes with a filtered response of type {@link R} or fails with a
      * {@link DittoRuntimeException}.
      */
     protected CompletionStage<R> askAndBuildJsonView(
             final ActorRef actorToAsk,
             final C commandWithReadSubjects,
-            final Enforcer enforcer) {
+            final Enforcer enforcer,
+            final Scheduler scheduler,
+            final Executor executor) {
 
-        return ask(actorToAsk, commandWithReadSubjects, "before building JsonView")
+        return ask(actorToAsk, commandWithReadSubjects, "before building JsonView", scheduler, executor)
                 .thenApply(response -> filterJsonView(response, enforcer));
     }
 
@@ -72,6 +79,8 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
      * @param actorToAsk the actor that should be asked.
      * @param commandWithReadSubjects the command that is used to ask.
      * @param hint used for logging purposes.
+     * @param scheduler the scheduler to use for performing the "ask with retry".
+     * @param executor the executor to use for performing the "ask with retry".
      * @return A completion stage which either completes with a filtered response of type {@link R} or fails with a
      * {@link DittoRuntimeException}.
      */
@@ -79,27 +88,42 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
     protected CompletionStage<R> ask(
             final ActorRef actorToAsk,
             final C commandWithReadSubjects,
-            final String hint) {
+            final String hint,
+            final Scheduler scheduler,
+            final Executor executor) {
 
-        return Patterns.ask(actorToAsk, wrapBeforeAsk(commandWithReadSubjects), getAskTimeout())
-                .handle((response, error) ->
-                {
-                    if (response != null && responseClass.isAssignableFrom(response.getClass())) {
+        return AskWithRetry.askWithRetry(actorToAsk, wrapBeforeAsk(commandWithReadSubjects),
+                getAskWithRetryConfig(), scheduler, executor,
+                response -> {
+                    if (responseClass.isAssignableFrom(response.getClass())) {
                         return (R) response;
-                    } else if (response instanceof AskTimeoutException) {
-                        throw handleAskTimeoutForCommand(commandWithReadSubjects, (AskTimeoutException) response);
-                    } else if (error instanceof AskTimeoutException) {
-                        throw handleAskTimeoutForCommand(commandWithReadSubjects, (AskTimeoutException) error);
                     } else if (response instanceof ErrorResponse) {
                         throw ((ErrorResponse<?>) response).getDittoRuntimeException();
+                    } else if (response instanceof AskException) {
+                        throw handleAskTimeoutForCommand(commandWithReadSubjects, (Throwable) response);
+                    } else if (response instanceof AskTimeoutException) {
+                        throw handleAskTimeoutForCommand(commandWithReadSubjects, (Throwable) response);
                     } else {
-                        throw reportErrorOrResponse(hint, response, error);
+                        throw reportErrorOrResponse(hint, response, null);
                     }
-                });
+                }
+        ).exceptionally(throwable -> {
+            final DittoRuntimeException dre = DittoRuntimeException.asDittoRuntimeException(throwable, cause ->
+                    AskException.newBuilder()
+                            .dittoHeaders(commandWithReadSubjects.getDittoHeaders())
+                            .cause(cause)
+                            .build());
+            if (dre instanceof AskException) {
+                throw handleAskTimeoutForCommand(commandWithReadSubjects, throwable);
+            } else {
+                throw dre;
+            }
+        });
     }
 
     /**
-     * Allows to wrap an command into something different before {@link #ask(ActorRef, Signal, String) asking}.
+     * Allows to wrap an command into something different before
+     * {@link #ask(ActorRef,Signal, String, Scheduler, Executor) asking}.
      * Useful if the {@link ActorRef actor} that should be asked is the pubsub mediator and the command therefore needs
      * to be wrapped into {@link akka.cluster.pubsub.DistributedPubSubMediator.Send }.
      *
@@ -111,14 +135,15 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
     }
 
     /**
-     * Handles the {@link AskTimeoutException} when {@link #ask(ActorRef, Signal, String) asking} the given
-     * {@code command} by transforming it into a individual {@link DittoRuntimeException}.
+     * Handles the {@link AskTimeoutException} when
+     * {@link #ask(ActorRef,Signal, String, Scheduler, Executor) asking}
+     * the given {@code command} by transforming it into a individual {@link DittoRuntimeException}.
      *
      * @param command The command that was used to ask.
      * @param askTimeout the ask timeout exception.
      * @return the ditto runtime exception.
      */
-    protected abstract DittoRuntimeException handleAskTimeoutForCommand(C command, AskTimeoutException askTimeout);
+    protected abstract DittoRuntimeException handleAskTimeoutForCommand(C command, Throwable askTimeout);
 
     /**
      * Filters the given {@code commandResponse} by using the given {@code enforcer}.

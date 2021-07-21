@@ -95,7 +95,7 @@ public final class EnforcementFlowTest {
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
             final EnforcementFlow underTest =
                     EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
-                            system.dispatchers().defaultGlobalDispatcher());
+                            system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
             materializeTestProbes(underTest.create(false, 1));
 
@@ -146,7 +146,7 @@ public final class EnforcementFlowTest {
         final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
         final EnforcementFlow underTest =
                 EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
-                        system.dispatchers().defaultGlobalDispatcher());
+                        system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
         materializeTestProbes(underTest.create(false, 1));
 

@@ -36,8 +36,8 @@ public final class DefaultCommandConfig implements CommandConfig {
     private final Duration maxTimeout;
 
     private DefaultCommandConfig(final ScopedConfig scopedConfig) {
-        defaultTimeout = scopedConfig.getDuration(CommandConfigValue.DEFAULT_TIMEOUT.getConfigPath());
-        maxTimeout = scopedConfig.getDuration(CommandConfigValue.MAX_TIMEOUT.getConfigPath());
+        defaultTimeout = scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(CommandConfigValue.DEFAULT_TIMEOUT);
+        maxTimeout = scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(CommandConfigValue.MAX_TIMEOUT);
     }
 
     /**

@@ -29,8 +29,6 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJou
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
-import com.typesafe.config.Config;
-
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
 
@@ -53,8 +51,8 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
     /**
      * Constructor.
      *
-     * @param entityMapper the mapper used to map {@link org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr} to {@code T}. The resulting entity will be
-     * streamed to the recipient actor.
+     * @param entityMapper the mapper used to map {@link org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr}
+     * to {@code T}. The resulting entity will be streamed to the recipient actor.
      * @param entityUnmapper the mapper used to map elements back to PidWithSeqNr for stream resumption.
      */
     protected AbstractPersistenceStreamingActor(final Function<PidWithSeqNr, T> entityMapper,
@@ -62,7 +60,7 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
         this.entityMapper = requireNonNull(entityMapper);
         this.entityUnmapper = entityUnmapper;
 
-        final Config config = getContext().getSystem().settings().config();
+        final var config = getContext().getSystem().settings().config();
         final MongoDbConfig mongoDbConfig =
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
         mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
@@ -72,8 +70,8 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
     /**
      * Constructor for tests.
      *
-     * @param entityMapper the mapper used to map {@link org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr} to {@code T}. The resulting entity will be
-     * streamed to the recipient actor.
+     * @param entityMapper the mapper used to map {@link org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr}
+     * to {@code T}. The resulting entity will be streamed to the recipient actor.
      * @param entityUnmapper the mapper used to map elements back to PidWithSeqNr for stream resumption.
      * @param readJournal the ReadJournal to use instead of creating one in the non-test constructor.
      */
@@ -83,7 +81,7 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
         this.entityMapper = requireNonNull(entityMapper);
         this.entityUnmapper = entityUnmapper;
 
-        final Config config = getContext().getSystem().settings().config();
+        final var config = getContext().getSystem().settings().config();
         final MongoDbConfig mongoDbConfig =
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
         mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
@@ -131,12 +129,12 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
     @Override
     protected final Source<T, NotUsed> createSource(final SudoStreamPids command) {
         log.info("Starting stream for <{}>", command);
-        final Duration maxIdleTime = Duration.ofMillis(command.getTimeoutMillis());
+        final var maxIdleTime = Duration.ofMillis(command.getTimeoutMillis());
         final int batchSize = command.getBurst() * 5;
         final Source<String, NotUsed> pidSource;
         if (command.hasNonEmptyLowerBound()) {
             // resume from lower bound
-            final PidWithSeqNr pidWithSeqNr = entityUnmapper.apply(command.getLowerBound());
+            final var pidWithSeqNr = entityUnmapper.apply(command.getLowerBound());
             pidSource =
                     readJournal.getJournalPidsAbove(pidWithSeqNr.getPersistenceId(), batchSize,
                             materializer);

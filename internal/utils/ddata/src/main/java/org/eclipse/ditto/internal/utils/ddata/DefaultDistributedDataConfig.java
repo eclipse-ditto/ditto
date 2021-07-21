@@ -86,7 +86,7 @@ class DefaultDistributedDataConfig implements DistributedDataConfig {
     public static DefaultDistributedDataConfig of(final Config config, final CharSequence replicatorName,
             final CharSequence replicatorRole) {
 
-        final ConfigWithFallback configWithFallback =
+        final var configWithFallback =
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, DistributedDataConfigValue.values());
 
         return new DefaultDistributedDataConfig(configWithFallback, replicatorName, replicatorRole);
@@ -171,4 +171,5 @@ class DefaultDistributedDataConfig implements DistributedDataConfig {
         }
         return (Replicator.WriteConsistency) writeConsistency;
     }
+
 }

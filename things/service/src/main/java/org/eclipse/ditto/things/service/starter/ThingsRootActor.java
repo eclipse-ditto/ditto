@@ -14,33 +14,28 @@ package org.eclipse.ditto.things.service.starter;
 
 import static org.eclipse.ditto.things.api.ThingsMessagingConstants.CLUSTER_ROLE;
 
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
+import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
+import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoMetricsReporter;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.pubsub.ThingEventPubSubFactory;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.ThingsConfig;
 import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceActorPropsFactory;
 import org.eclipse.ditto.things.service.persistence.actors.ThingPersistenceOperationsActor;
 import org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor;
 import org.eclipse.ditto.things.service.persistence.actors.ThingsPersistenceStreamingActorCreator;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
-import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
-import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
-import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
-import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
-import org.eclipse.ditto.internal.utils.health.config.MetricsReporterConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoMetricsReporter;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.TagsConfig;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
-import org.eclipse.ditto.internal.utils.pubsub.ThingEventPubSubFactory;
-import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
-import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
@@ -67,13 +62,13 @@ public final class ThingsRootActor extends DittoRootActor {
             final ActorRef pubSubMediator,
             final ThingPersistenceActorPropsFactory propsFactory) {
 
-        final ActorSystem actorSystem = getContext().system();
+        final var actorSystem = getContext().system();
 
-        final ClusterConfig clusterConfig = thingsConfig.getClusterConfig();
-        final ShardRegionExtractor shardRegionExtractor =
+        final var clusterConfig = thingsConfig.getClusterConfig();
+        final var shardRegionExtractor =
                 ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem);
-        final DistributedAcks distributedAcks = DistributedAcks.lookup(actorSystem);
-        final ThingEventPubSubFactory pubSubFactory =
+        final var distributedAcks = DistributedAcks.lookup(actorSystem);
+        final var pubSubFactory =
                 ThingEventPubSubFactory.of(getContext(), shardRegionExtractor, distributedAcks);
         final DistributedPub<ThingEvent<?>> distributedPub = pubSubFactory.startDistributedPub();
 
@@ -90,15 +85,15 @@ public final class ThingsRootActor extends DittoRootActor {
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(thingsShardRegion,
                 ThingsMessagingConstants.SHARD_REGION, log);
 
-        final HealthCheckConfig healthCheckConfig = thingsConfig.getHealthCheckConfig();
-        final HealthCheckingActorOptions.Builder hcBuilder =
+        final var healthCheckConfig = thingsConfig.getHealthCheckConfig();
+        final var hcBuilder =
                 HealthCheckingActorOptions.getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval());
         if (healthCheckConfig.getPersistenceConfig().isEnabled()) {
             hcBuilder.enablePersistenceCheck();
         }
 
-        final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
-        final MetricsReporterConfig metricsReporterConfig =
+        final var healthCheckingActorOptions = hcBuilder.build();
+        final var metricsReporterConfig =
                 healthCheckConfig.getPersistenceConfig().getMetricsReporterConfig();
         final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
@@ -110,10 +105,8 @@ public final class ThingsRootActor extends DittoRootActor {
                         )
                 ));
 
-        final TagsConfig tagsConfig = thingsConfig.getTagsConfig();
         final ActorRef eventStreamingActor =
-                ThingsPersistenceStreamingActorCreator.startEventStreamingActor(tagsConfig.getStreamingCacheSize(),
-                        this::startChildActor);
+                ThingsPersistenceStreamingActorCreator.startEventStreamingActor(this::startChildActor);
         final ActorRef snapshotStreamingActor =
                 ThingsPersistenceStreamingActorCreator.startSnapshotStreamingActor(this::startChildActor);
 

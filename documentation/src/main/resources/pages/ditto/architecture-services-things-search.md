@@ -22,14 +22,14 @@ It however contains a model which can transform an <a href="#" data-toggle="tool
 search query into a Java domain model which is defined here:
 
 
-* [rql parser ast](https://github.com/eclipse/ditto/tree/master/model/rql/src/main/java/org/eclipse/ditto/model/rql/predicates/ast)
+* [rql parser ast](https://github.com/eclipse/ditto/tree/master/rql/model/src/main/java/org/eclipse/ditto/rql/model/predicates/ast)
 
 ## Signals
 
 Other services can communicate with the things-search service via:
 
 
-* [commands](https://github.com/eclipse/ditto/tree/master/signals/commands/thingsearch/src/main/java/org/eclipse/ditto/signals/commands/thingsearch):
+* [commands](https://github.com/eclipse/ditto/tree/master/thingsearch/model/src/main/java/org/eclipse/ditto/thingsearch/model/signals/commands):
   containing commands and command responses which are processed by this service
 
 ## Persistence

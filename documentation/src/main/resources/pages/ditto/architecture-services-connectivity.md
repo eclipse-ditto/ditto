@@ -18,15 +18,15 @@ connectivity service offers a flexible and customizable [payload mapping] on top
 The model of the connectivity service is defined around the entity `Connection`:
 
 
-* [model](https://github.com/eclipse/ditto/tree/master/model/connectivity/src/main/java/org/eclipse/ditto/model/connectivity)
+* [model](https://github.com/eclipse/ditto/tree/master/connectivity/model/src/main/java/org/eclipse/ditto/connectivity/model)
 
 ## Signals
 
 Other services can communicate with the connectivity service via:
 
-* [commands](https://github.com/eclipse/ditto/tree/master/signals/commands/connectivity/src/main/java/org/eclipse/ditto/signals/commands/connectivity):
+* [commands](https://github.com/eclipse/ditto/tree/master/connectivity/model/src/main/java/org/eclipse/ditto/connectivity/model/signals/commands):
   containing commands and command responses which are processed by this service
-* [events](https://github.com/eclipse/ditto/tree/master/signals/events/connectivity/src/main/java/org/eclipse/ditto/signals/events/connectivity):
+* [events](https://github.com/eclipse/ditto/tree/master/connectivity/model/src/main/java/org/eclipse/ditto/connectivity/model/signals/events):
   containing events which are emitted when entities managed by this service were modified
 
 ## Persistence

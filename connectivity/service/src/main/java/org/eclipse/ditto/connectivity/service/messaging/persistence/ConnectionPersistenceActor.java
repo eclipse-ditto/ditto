@@ -103,6 +103,7 @@ import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
@@ -161,6 +162,7 @@ public final class ConnectionPersistenceActor
 
     private final ActorRef proxyActor;
     private final ClientActorPropsFactory propsFactory;
+    final ActorRef pubSubMediator;
     private final boolean allClientActorsOnOneNode;
     private final ConnectionLogger connectionLogger;
     private final Duration clientActorAskTimeout;
@@ -174,6 +176,7 @@ public final class ConnectionPersistenceActor
 
     @Nullable private final ConnectivityCommandInterceptor customCommandValidator;
     private ConnectivityCommandInterceptor commandValidator;
+            // Do nothing because nobody subscribes for connectivity events.
 
     private ConnectivityCommandStrategies createdStrategies;
     private ConnectivityCommandStrategies deletedStrategies;
@@ -185,7 +188,9 @@ public final class ConnectionPersistenceActor
 
     ConnectionPersistenceActor(final ConnectionId connectionId,
             final ActorRef proxyActor,
+            final ActorRef pubSubMediator,
             final ClientActorPropsFactory propsFactory,
+
             @Nullable final ConnectivityCommandInterceptor customCommandValidator,
             final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
             final Trilean allClientActorsOnOneNode) {
@@ -194,6 +199,7 @@ public final class ConnectionPersistenceActor
 
         this.proxyActor = proxyActor;
         this.propsFactory = propsFactory;
+        this.pubSubMediator = pubSubMediator;
         this.customCommandValidator = customCommandValidator;
 
         final ActorSystem actorSystem = getContext().getSystem();
@@ -228,7 +234,8 @@ public final class ConnectionPersistenceActor
      */
     private static Duration makeFuzzy(final Duration duration) {
         final long millis = duration.toMillis();
-        final double fuzzyFactor = new Random().doubles(0.95, 1.05).findAny().orElse(0.0);
+        final double fuzzyFactor =
+                new Random().doubles(0.95, 1.05).findAny().orElse(0.0);
         final double fuzzedMillis = millis * fuzzyFactor;
         return Duration.ofMillis((long) fuzzedMillis);
     }
@@ -251,12 +258,13 @@ public final class ConnectionPersistenceActor
      */
     public static Props props(final ConnectionId connectionId,
             final ActorRef proxyActor,
+            final ActorRef pubSubMediator,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator,
             final ConnectionPriorityProviderFactory connectionPriorityProviderFactory
     ) {
-        return Props.create(ConnectionPersistenceActor.class, connectionId, proxyActor, propsFactory, commandValidator,
-                connectionPriorityProviderFactory, Trilean.UNKNOWN);
+        return Props.create(ConnectionPersistenceActor.class, connectionId, proxyActor, pubSubMediator, propsFactory,
+                commandValidator, connectionPriorityProviderFactory, Trilean.UNKNOWN);
     }
 
     /**
@@ -332,7 +340,10 @@ public final class ConnectionPersistenceActor
 
     @Override
     protected void publishEvent(final ConnectivityEvent<?> event) {
-        // Do nothing because nobody subscribes for connectivity events.
+        if (event instanceof ConnectionDeleted) {
+            pubSubMediator.tell(DistPubSubAccess.publish(ConnectionDeleted.TYPE, event), getSelf());
+        }
+        // no other events are emitted
     }
 
     @Override
@@ -577,7 +588,10 @@ public final class ConnectionPersistenceActor
     protected Receive matchAnyWhenDeleted() {
         return createInitializationAndConfigUpdateBehavior()
                 .orElse(ReceiveBuilder.create()
-                        .match(Control.class, msg -> log.debug("Ignoring control message when deleted: <{}>", msg))
+                        .match(Control.class, msg ->
+                                log.warning("Ignoring control message when deleted: <{}>", msg))
+                        .match(ActorRef.class, msg ->
+                                log.warning("Ignoring ActorRef message from client actor when deleted: <{}>", msg))
                         .build())
                 .orElse(super.matchAnyWhenDeleted());
     }
@@ -686,7 +700,11 @@ public final class ConnectionPersistenceActor
     private void testConnection(final StagedCommand command) {
         final ActorRef origin = command.getSender();
         final ActorRef self = getSelf();
-        final TestConnection testConnection = (TestConnection) command.getCommand();
+        final DittoHeaders headersWithDryRun = command.getDittoHeaders()
+                .toBuilder()
+                .dryRun(true)
+                .build();
+        final TestConnection testConnection = (TestConnection) command.getCommand().setDittoHeaders(headersWithDryRun);
 
         if (clientActorRouter != null) {
             // client actor is already running, so either another TestConnection command is currently executed or the

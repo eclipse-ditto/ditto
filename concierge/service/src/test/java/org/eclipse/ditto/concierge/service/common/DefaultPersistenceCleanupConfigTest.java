@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -40,7 +41,7 @@ public final class DefaultPersistenceCleanupConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultPersistenceCleanupConfig.class, areImmutable(),
-                provided(CreditDecisionConfig.class, PersistenceIdsConfig.class, Config.class).areAlsoImmutable());
+                provided(CreditDecisionConfig.class, PersistenceIdsConfig.class, ScopedConfig.class).areAlsoImmutable());
     }
 
     @Test

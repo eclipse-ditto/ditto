@@ -51,23 +51,23 @@ public final class DefaultAmqp10Config implements Amqp10Config, WithStringMapDec
 
     private DefaultAmqp10Config(final ScopedConfig config) {
         consumerRateLimitEnabled = config.getBoolean(Amqp10ConfigValue.CONSUMER_RATE_LIMIT_ENABLED.getConfigPath());
-        consumerMaxInFlight = config.getInt(Amqp10ConfigValue.CONSUMER_MAX_IN_FLIGHT.getConfigPath());
+        consumerMaxInFlight = config.getNonNegativeIntOrThrow(Amqp10ConfigValue.CONSUMER_MAX_IN_FLIGHT);
         consumerRedeliveryExpectationTimeout =
-                config.getDuration(Amqp10ConfigValue.CONSUMER_REDELIVERY_EXPECTATION_TIMEOUT.getConfigPath());
-        producerCacheSize = config.getInt(Amqp10ConfigValue.PRODUCER_CACHE_SIZE.getConfigPath());
+                config.getNonNegativeAndNonZeroDurationOrThrow(Amqp10ConfigValue.CONSUMER_REDELIVERY_EXPECTATION_TIMEOUT);
+        producerCacheSize = config.getPositiveIntOrThrow(Amqp10ConfigValue.PRODUCER_CACHE_SIZE);
         backOffConfig = DefaultBackOffConfig.of(config.hasPath(BACKOFF_PATH)
                 ? config
                 : ConfigFactory.parseString(BACKOFF_PATH + "={}"));
         consumerThrottlingConfig = ThrottlingConfig.of(config.hasPath(CONSUMER_PATH)
                 ? config.getConfig(CONSUMER_PATH)
                 : ConfigFactory.empty());
-        maxQueueSize = config.getInt(Amqp10ConfigValue.MAX_QUEUE_SIZE.getConfigPath());
-        messagePublishingParallelism = config.getInt(Amqp10ConfigValue.MESSAGE_PUBLISHING_PARALLELISM.getConfigPath());
-        globalConnectTimeout = config.getDuration(Amqp10ConfigValue.GLOBAL_CONNECT_TIMEOUT.getConfigPath());
-        globalSendTimeout = config.getDuration(Amqp10ConfigValue.GLOBAL_SEND_TIMEOUT.getConfigPath());
-        globalRequestTimeout = config.getDuration(Amqp10ConfigValue.GLOBAL_REQUEST_TIMEOUT.getConfigPath());
+        maxQueueSize = config.getNonNegativeIntOrThrow(Amqp10ConfigValue.MAX_QUEUE_SIZE);
+        messagePublishingParallelism = config.getNonNegativeIntOrThrow(Amqp10ConfigValue.MESSAGE_PUBLISHING_PARALLELISM);
+        globalConnectTimeout = config.getNonNegativeDurationOrThrow(Amqp10ConfigValue.GLOBAL_CONNECT_TIMEOUT);
+        globalSendTimeout = config.getNonNegativeDurationOrThrow(Amqp10ConfigValue.GLOBAL_SEND_TIMEOUT);
+        globalRequestTimeout = config.getNonNegativeDurationOrThrow(Amqp10ConfigValue.GLOBAL_REQUEST_TIMEOUT);
         globalPrefetchPolicyAllCount =
-                config.getInt(Amqp10ConfigValue.GLOBAL_PREFETCH_POLICY_ALL_COUNT.getConfigPath());
+                config.getNonNegativeIntOrThrow(Amqp10ConfigValue.GLOBAL_PREFETCH_POLICY_ALL_COUNT);
         hmacAlgorithms = asStringMap(config, HttpPushConfig.ConfigValue.HMAC_ALGORITHMS.getConfigPath());
     }
 

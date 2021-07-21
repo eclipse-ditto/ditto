@@ -15,16 +15,18 @@ package org.eclipse.ditto.connectivity.service.messaging.validation;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.net.util.SubnetUtils;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 
 import akka.event.LoggingAdapter;
 
 /**
- * Validates a given hostname against a set of fixed blocked addresses (e.g. loopback, multicast, ...) and a set of
- * blocked/allowed hostnames from configuration.
+ * Validates a given hostname against a set of fixed blocked addresses (e.g. loopback, multicast, ...), a set of
+ * blocked/allowed hostnames and a set of blocked subnets from configuration.
  * <p>
  * The allowed hostnames override the blocked hostnames e.g. if a host would be blocked because it resolves to a blocked
  * address (localhost, site-local, ...), the host can be allowed by adding it to the list allowed hostnames.
@@ -33,12 +35,14 @@ final class DefaultHostValidator implements HostValidator {
 
     private final Collection<String> allowedHostnames;
     private final Collection<InetAddress> blockedAddresses;
+    private final Collection<SubnetUtils.SubnetInfo> blockedSubnets;
     private final AddressResolver resolver;
+    private final Pattern hostRegexPattern;
 
     /**
      * Creates a new instance of {@link DefaultHostValidator}.
      *
-     * @param connectivityConfig the connectivity config used to load the allow-/blocklist
+     * @param connectivityConfig the connectivity config used to load the allow-/block-list
      * @param loggingAdapter logging adapter
      */
     DefaultHostValidator(final ConnectivityConfig connectivityConfig, final LoggingAdapter loggingAdapter) {
@@ -48,7 +52,7 @@ final class DefaultHostValidator implements HostValidator {
     /**
      * Creates a new instance of {@link DefaultHostValidator}.
      *
-     * @param connectivityConfig the connectivity config used to load the allow-/blocklist
+     * @param connectivityConfig the connectivity config used to load the allow-/block-list
      * @param loggingAdapter logging adapter
      * @param resolver custom resolver (used for tests only)
      */
@@ -58,18 +62,24 @@ final class DefaultHostValidator implements HostValidator {
         this.allowedHostnames = connectivityConfig.getConnectionConfig().getAllowedHostnames();
         final Collection<String> blockedHostnames = connectivityConfig.getConnectionConfig().getBlockedHostnames();
         this.blockedAddresses = calculateBlockedAddresses(blockedHostnames, loggingAdapter);
+        final Collection<String> blockedSubnetsList = connectivityConfig.getConnectionConfig().getBlockedSubnets();
+        this.blockedSubnets = calculateBlockedSubnets(blockedSubnetsList, loggingAdapter);
+        final var regex = connectivityConfig.getConnectionConfig().getBlockedHostRegex();
+        this.hostRegexPattern = Pattern.compile(regex);
     }
 
     /**
      * Validate if connections to a host are allowed by checking (in this order):
      * <ul>
-     *     <li>if the blocklist is empty, this completely disables validation, every host is allowed</li>
-     *     <li>if the host is contained in the allowlist, the host is allowed</li>
+     *     <li>if the block-list is empty, this completely disables validation, every host is allowed</li>
+     *     <li>if the host is contained in the allow-list, the host is allowed</li>
+     *     <li>if the host matches the kubernetes cluster dns name suffix, the host is blocked</li>
      *     <li>if the host is resolved to a blocked ip (loopback, site-local, multicast, wildcard ip), the host is blocked</li>
-     *     <li>if the host is contained in the blocklist, the host is blocked</li>
+     *     <li>if the host is contained in the block-list, the host is blocked</li>
+     *     <li>if the host is contained in the blocked-subnet list, the host is blocked</li>
      *  </ul>
-     * Loopback, private, multicast and wildcard addresses are allowed only if the blocklist is empty or explicitly
-     * contained in allowlist.
+     * Loopback, private, multicast and wildcard addresses are allowed only if the block-list is empty or explicitly
+     * contained in allow-list.
      *
      * @param host the host to check.
      * @return whether connections to the host are permitted.
@@ -82,30 +92,44 @@ final class DefaultHostValidator implements HostValidator {
         } else if (allowedHostnames.contains(host)) {
             // the host is contained in the allow-list, do not block
             return HostValidationResult.valid();
+        } else if (hostRegexPattern.matcher(host).matches()) {
+            // the host matches the regex pattern --> block
+            return HostValidationResult.blocked(host);
         } else {
-            // Forbid blocked, private, loopback, multicast and wildcard IPs.
-            try {
-                final InetAddress[] inetAddresses = resolver.resolve(host);
-                for (final InetAddress requestAddress : inetAddresses) {
-                    if (requestAddress.isLoopbackAddress()) {
-                        return HostValidationResult.blocked(host, "the hostname resolved to a loopback address.");
-                    } else if (requestAddress.isSiteLocalAddress()) {
-                        return HostValidationResult.blocked(host, "the hostname resolved to a site local address.");
-                    } else if (requestAddress.isMulticastAddress()) {
-                        return HostValidationResult.blocked(host, "the hostname resolved to a multicast address.");
-                    } else if (requestAddress.isAnyLocalAddress()) {
-                        return HostValidationResult.blocked(host, "the hostname resolved to a wildcard address.");
-                    } else if (blockedAddresses.contains(requestAddress)) {
-                        // host is contained in the blocklist --> block
-                        return HostValidationResult.blocked(host);
+            return validateInetAddressesAndSubnets(host);
+        }
+    }
+
+    private HostValidationResult validateInetAddressesAndSubnets(final String host) {
+        // Forbid blocked, private, loopback, multicast and wildcard IPs and forbid ips in blocked subnets.
+        try {
+            final InetAddress[] inetAddresses = resolver.resolve(host);
+            for (final InetAddress requestAddress : inetAddresses) {
+                if (requestAddress.isLoopbackAddress()) {
+                    return HostValidationResult.blocked(host, "the hostname resolved to a loopback address.");
+                } else if (requestAddress.isSiteLocalAddress()) {
+                    return HostValidationResult.blocked(host, "the hostname resolved to a site local address.");
+                } else if (requestAddress.isMulticastAddress()) {
+                    return HostValidationResult.blocked(host, "the hostname resolved to a multicast address.");
+                } else if (requestAddress.isAnyLocalAddress()) {
+                    return HostValidationResult.blocked(host, "the hostname resolved to a wildcard address.");
+                } else if (blockedAddresses.contains(requestAddress)) {
+                    // host is contained in the block-list --> block
+                    return HostValidationResult.blocked(host);
+                }
+                for (final SubnetUtils.SubnetInfo subnet : blockedSubnets) {
+                    if (subnet.isInRange(requestAddress.getHostAddress())) {
+                        // ip is contained in the blocked-subnet --> block
+                        return HostValidationResult.blocked(host, "the hostname resides in a blocked subnet.");
                     }
                 }
-                return HostValidationResult.valid();
-            } catch (UnknownHostException e) {
-                final String reason = String.format("The configured host '%s' is invalid: %s", host, e.getMessage());
-                return HostValidationResult.invalid(host, reason);
             }
+        } catch (final UnknownHostException e) {
+            final var reason = String.format("The configured host '%s' is invalid: %s", host, e.getMessage());
+            return HostValidationResult.invalid(host, reason);
         }
+        // if nothing matches the host is valid
+        return HostValidationResult.valid();
     }
 
     /**
@@ -124,7 +148,32 @@ final class DefaultHostValidator implements HostValidator {
                     try {
                         return Stream.of(resolver.resolve(host));
                     } catch (final UnknownHostException e) {
-                        log.warning("Could not resolve hostname during building blocked hostnames set: <{}>", host);
+                        log.warning("Could not resolve hostname during building blocked hostnames set: <{}> - " +
+                                        "Exception: <{}: {}>", host, e.getClass().getSimpleName(), e.getMessage());
+                        return Stream.empty();
+                    }
+                })
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Calculate blocked subnets from cidr range strings that should not be accessed.
+     *
+     * @param blockedSubnets blocked subnets.
+     * @param log the logger.
+     * @return info of blocked subnets.
+     */
+    private Collection<SubnetUtils.SubnetInfo> calculateBlockedSubnets(final Collection<String> blockedSubnets,
+            final LoggingAdapter log) {
+
+        return blockedSubnets.stream()
+                .filter(blockedSubnet -> !blockedSubnet.isEmpty())
+                .flatMap(blockedSubnet -> {
+                    try {
+                        return Stream.of(new SubnetUtils(blockedSubnet).getInfo());
+                    } catch (final IllegalArgumentException e) {
+                        log.error(e, "Could not create subnet info during building blocked subnets set: <{}>",
+                                blockedSubnet);
                         return Stream.empty();
                     }
                 })
@@ -147,4 +196,5 @@ final class DefaultHostValidator implements HostValidator {
          */
         InetAddress[] resolve(String host) throws UnknownHostException;
     }
+
 }

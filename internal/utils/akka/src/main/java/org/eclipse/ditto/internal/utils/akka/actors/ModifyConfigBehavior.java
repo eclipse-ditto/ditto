@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.internal.utils.akka.actors;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.api.common.ModifyConfig;
 import org.eclipse.ditto.base.api.common.ModifyConfigResponse;
+import org.eclipse.ditto.json.JsonObject;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -45,10 +45,10 @@ public interface ModifyConfigBehavior extends Actor {
     default AbstractActor.Receive modifyConfigBehavior() {
         return ReceiveBuilder.create()
                 .match(ModifyConfig.class, cmd -> {
-                    final Config newConfig = setConfig(ConfigFactory.parseString(cmd.getConfig().toString()));
-                    final JsonObject newConfigJson =
+                    final var newConfig = setConfig(ConfigFactory.parseString(cmd.getConfig().toString()));
+                    final var newConfigJson =
                             JsonObject.of(newConfig.root().render(ConfigRenderOptions.concise()));
-                    final ModifyConfigResponse response =
+                    final var response =
                             ModifyConfigResponse.of(newConfigJson, cmd.getDittoHeaders());
                     sender().tell(response, self());
                 })

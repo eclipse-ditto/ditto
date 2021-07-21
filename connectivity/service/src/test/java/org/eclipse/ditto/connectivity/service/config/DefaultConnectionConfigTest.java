@@ -52,7 +52,7 @@ public final class DefaultConnectionConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultConnectionConfig.class,
                 areImmutable(),
-                assumingFields("blockedHostnames", "allowedHostnames")
+                assumingFields("allowedHostnames", "blockedHostnames", "blockedSubnets")
                         .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
                 provided(DefaultSupervisorConfig.class,
                         SnapshotConfig.class,
@@ -92,6 +92,14 @@ public final class DefaultConnectionConfigTest {
                 .as(ConnectionConfig.ConnectionConfigValue.BLOCKED_HOSTNAMES.getConfigPath())
                 .containsExactly("localhost");
 
+        softly.assertThat(underTest.getBlockedSubnets())
+                .as(ConnectionConfig.ConnectionConfigValue.BLOCKED_SUBNETS.getConfigPath())
+                .containsExactly("11.1.0.0/16");
+
+        softly.assertThat(underTest.getBlockedHostRegex())
+                .as(ConnectionConfig.ConnectionConfigValue.BLOCKED_HOST_REGEX.getConfigPath())
+                .isEqualTo("^.*\\.svc.cluster.local$");
+
         softly.assertThat(underTest.getSupervisorConfig())
                 .as("supervisorConfig")
                 .satisfies(supervisorConfig -> softly.assertThat(supervisorConfig.getExponentialBackOffConfig())
@@ -113,12 +121,6 @@ public final class DefaultConnectionConfigTest {
                 .satisfies(snapshotConfig -> softly.assertThat(snapshotConfig.getThreshold())
                         .as(SnapshotConfig.SnapshotConfigValue.THRESHOLD.getConfigPath())
                         .isEqualTo(20));
-
-        softly.assertThat(underTest.getMqttConfig())
-                .as("mqttConfig")
-                .satisfies(mqttConfig -> softly.assertThat(mqttConfig.getSourceBufferSize())
-                        .as(MqttConfig.MqttConfigValue.SOURCE_BUFFER_SIZE.getConfigPath())
-                        .isEqualTo(7));
 
         softly.assertThat(underTest.getHttpPushConfig())
                 .as("httpPushConfig")

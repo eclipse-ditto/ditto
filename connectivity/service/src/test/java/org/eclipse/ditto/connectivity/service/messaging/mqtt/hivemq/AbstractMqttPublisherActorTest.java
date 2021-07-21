@@ -20,6 +20,7 @@ import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
+import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttHeader;
 import org.junit.Test;
@@ -78,6 +79,30 @@ abstract class AbstractMqttPublisherActorTest extends AbstractPublisherActorTest
                     OutboundSignalFactory.newMultiMappedOutboundSignal(
                             List.of(getMockOutboundSignal(CUSTOM_QOS_HEADER, "2")),
                             getRef());
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+
+            publisherCreated(this, publisherActor);
+
+            publisherActor.tell(multiMapped, getRef());
+
+            verifyPublishedMessageHasQos(MqttQos.EXACTLY_ONCE);
+        }};
+
+    }
+
+    @Test
+    public void testPublishMessageWithCustomQosInTarget() throws Exception {
+
+        new TestKit(actorSystem) {{
+
+            final Target target =
+                    ConnectivityModelFactory.newTargetBuilder(decorateTarget(createTestTarget())).qos(2).build();
+            final TestProbe probe = new TestProbe(actorSystem);
+            setupMocks(probe);
+            final OutboundSignal.MultiMapped multiMapped =
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(getMockOutboundSignal(target)), getRef());
 
             final Props props = getPublisherActorProps();
             final ActorRef publisherActor = childActorOf(props);

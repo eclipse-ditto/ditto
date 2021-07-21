@@ -113,7 +113,7 @@ public interface PersistenceCleanupConfig extends BackgroundStreamingConfig {
         CLEANUP_TIMEOUT("cleanup-timeout", Duration.ofSeconds(30L)),
 
         /**
-         * Number of clewanup commands to execute in parallel.
+         * Number of cleanup commands to execute in parallel.
          */
         PARALLELISM("parallelism", 1),
 
@@ -150,4 +150,5 @@ public interface PersistenceCleanupConfig extends BackgroundStreamingConfig {
             return defaultValue;
         }
     }
+
 }

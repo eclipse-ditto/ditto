@@ -39,7 +39,7 @@ public final class DefaultHealthCheckConfig implements HealthCheckConfig {
     private DefaultHealthCheckConfig(final ScopedConfig scopedConfig,
             final BasicHealthCheckConfig basicHealthCheckConfig, final ClusterRolesConfig clusterRolesConfig) {
 
-        serviceTimeout = scopedConfig.getDuration(HealthCheckConfigValue.SERVICE_TIMEOUT.getConfigPath());
+        serviceTimeout = scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(HealthCheckConfigValue.SERVICE_TIMEOUT);
         this.basicHealthCheckConfig = basicHealthCheckConfig;
         this.clusterRolesConfig = clusterRolesConfig;
     }
@@ -52,7 +52,7 @@ public final class DefaultHealthCheckConfig implements HealthCheckConfig {
      * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultHealthCheckConfig of(final Config config) {
-        final ConfigWithFallback configWithFallback =
+        final var configWithFallback =
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, HealthCheckConfigValue.values());
 
         return new DefaultHealthCheckConfig(configWithFallback, DefaultBasicHealthCheckConfig.of(config),

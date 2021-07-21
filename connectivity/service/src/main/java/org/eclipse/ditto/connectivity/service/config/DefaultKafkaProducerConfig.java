@@ -18,6 +18,7 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
 
@@ -37,12 +38,12 @@ public final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
     private final double randomFactor;
     private final Config alpakkaConfig;
 
-    private DefaultKafkaProducerConfig(final Config kafkaProducerScopedConfig) {
-        queueSize = kafkaProducerScopedConfig.getInt(ConfigValue.QUEUE_SIZE.getConfigPath());
-        parallelism = kafkaProducerScopedConfig.getInt(ConfigValue.PARALLELISM.getConfigPath());
-        minBackoff = kafkaProducerScopedConfig.getDuration(ConfigValue.MIN_BACKOFF.getConfigPath());
-        maxBackoff = kafkaProducerScopedConfig.getDuration(ConfigValue.MAX_BACKOFF.getConfigPath());
-        randomFactor = kafkaProducerScopedConfig.getDouble(ConfigValue.RANDOM_FACTOR.getConfigPath());
+    private DefaultKafkaProducerConfig(final ScopedConfig kafkaProducerScopedConfig) {
+        queueSize = kafkaProducerScopedConfig.getPositiveIntOrThrow(ConfigValue.QUEUE_SIZE);
+        parallelism = kafkaProducerScopedConfig.getPositiveIntOrThrow(ConfigValue.PARALLELISM);
+        minBackoff = kafkaProducerScopedConfig.getNonNegativeDurationOrThrow(ConfigValue.MIN_BACKOFF);
+        maxBackoff = kafkaProducerScopedConfig.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.MAX_BACKOFF);
+        randomFactor = kafkaProducerScopedConfig.getPositiveDoubleOrThrow(ConfigValue.RANDOM_FACTOR);
         alpakkaConfig = kafkaProducerScopedConfig.getConfig(ALPAKKA_PATH);
     }
 
@@ -55,8 +56,7 @@ public final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
      */
     public static DefaultKafkaProducerConfig of(final Config config) {
         return new DefaultKafkaProducerConfig(
-                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values())
-        );
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));
     }
 
     @Override
@@ -118,4 +118,5 @@ public final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
                 ", alpakkaConfig=" + alpakkaConfig +
                 "]";
     }
+
 }

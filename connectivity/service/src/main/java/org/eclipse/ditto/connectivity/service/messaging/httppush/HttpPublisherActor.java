@@ -42,6 +42,7 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.GenericTarget;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
@@ -202,8 +203,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     @Override
-    protected HttpPublishTarget toPublishTarget(final String address) {
-        return HttpPublishTarget.of(address);
+    protected HttpPublishTarget toPublishTarget(final GenericTarget target) {
+        return HttpPublishTarget.of(target.getAddress());
     }
 
     @Override

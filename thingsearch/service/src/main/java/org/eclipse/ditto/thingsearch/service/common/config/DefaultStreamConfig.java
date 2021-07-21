@@ -18,6 +18,8 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
@@ -29,18 +31,19 @@ import com.typesafe.config.Config;
 public final class DefaultStreamConfig implements StreamConfig {
     private static final String CONFIG_PATH = "stream";
     private static final String RETRIEVAL_CONFIG_PATH = "retrieval";
+    private static final String ASK_WITH_RETRY_CONFIG_PATH = "ask-with-retry";
 
     private final int maxArraySize;
     private final Duration writeInterval;
-    private final Duration askTimeout;
     private final DefaultStreamStageConfig retrievalConfig;
     private final DefaultPersistenceStreamConfig persistenceStreamConfig;
     private final DefaultStreamCacheConfig streamCacheConfig;
+    private final DefaultAskWithRetryConfig askWithRetryConfig;
 
     private DefaultStreamConfig(final ConfigWithFallback streamScopedConfig) {
-        maxArraySize = streamScopedConfig.getInt(StreamConfigValue.MAX_ARRAY_SIZE.getConfigPath());
-        writeInterval = streamScopedConfig.getDuration(StreamConfigValue.WRITE_INTERVAL.getConfigPath());
-        askTimeout = streamScopedConfig.getDuration(StreamConfigValue.ASK_TIMEOUT.getConfigPath());
+        maxArraySize = streamScopedConfig.getNonNegativeIntOrThrow(StreamConfigValue.MAX_ARRAY_SIZE);
+        writeInterval = streamScopedConfig.getNonNegativeDurationOrThrow(StreamConfigValue.WRITE_INTERVAL);
+        askWithRetryConfig = DefaultAskWithRetryConfig.of(streamScopedConfig, ASK_WITH_RETRY_CONFIG_PATH);
         retrievalConfig = DefaultStreamStageConfig.getInstance(streamScopedConfig, RETRIEVAL_CONFIG_PATH);
         persistenceStreamConfig = DefaultPersistenceStreamConfig.of(streamScopedConfig);
         streamCacheConfig = DefaultStreamCacheConfig.of(streamScopedConfig);
@@ -68,8 +71,8 @@ public final class DefaultStreamConfig implements StreamConfig {
     }
 
     @Override
-    public Duration getAskTimeout() {
-        return askTimeout;
+    public AskWithRetryConfig getAskWithRetryConfig() {
+        return askWithRetryConfig;
     }
 
     @Override
@@ -98,7 +101,7 @@ public final class DefaultStreamConfig implements StreamConfig {
         final DefaultStreamConfig that = (DefaultStreamConfig) o;
         return maxArraySize == that.maxArraySize &&
                 writeInterval.equals(that.writeInterval) &&
-                askTimeout.equals(that.askTimeout) &&
+                askWithRetryConfig.equals(that.askWithRetryConfig) &&
                 retrievalConfig.equals(that.retrievalConfig) &&
                 persistenceStreamConfig.equals(that.persistenceStreamConfig) &&
                 streamCacheConfig.equals(that.streamCacheConfig);
@@ -106,8 +109,8 @@ public final class DefaultStreamConfig implements StreamConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxArraySize, writeInterval, askTimeout, retrievalConfig, persistenceStreamConfig,
-                streamCacheConfig);
+        return Objects.hash(maxArraySize, writeInterval, askWithRetryConfig, retrievalConfig,
+                persistenceStreamConfig, streamCacheConfig);
     }
 
     @Override
@@ -115,7 +118,7 @@ public final class DefaultStreamConfig implements StreamConfig {
         return getClass().getSimpleName() + " [" +
                 "maxArraySize=" + maxArraySize +
                 ", writeInterval=" + writeInterval +
-                ", askTimeout=" + askTimeout +
+                ", askWithRetryConfig=" + askWithRetryConfig +
                 ", retrievalConfig=" + retrievalConfig +
                 ", persistenceStreamConfig=" + persistenceStreamConfig +
                 ", streamCacheConfig=" + streamCacheConfig +

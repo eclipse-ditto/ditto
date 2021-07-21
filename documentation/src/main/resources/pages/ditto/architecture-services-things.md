@@ -11,15 +11,15 @@ The "things" service takes care of persisting [Things](basic-thing.html) and [Fe
 
 The model of the things service is defined around the entities `Thing` and `Feature`:
 
-* [Thing model](https://github.com/eclipse/ditto/tree/master/model/things/src/main/java/org/eclipse/ditto/model/things)
+* [Thing model](https://github.com/eclipse/ditto/tree/master/things/model/src/main/java/org/eclipse/ditto/things/model)
 
 ## Signals
 
 Other services can communicate with the things service via:
 
-* [commands](https://github.com/eclipse/ditto/tree/master/signals/commands/things/src/main/java/org/eclipse/ditto/signals/commands/things):
+* [commands](https://github.com/eclipse/ditto/tree/master/things/model/src/main/java/org/eclipse/ditto/things/model/signals/commands):
   containing commands and command responses which are processed by this service
-* [events](https://github.com/eclipse/ditto/tree/master/signals/events/things/src/main/java/org/eclipse/ditto/signals/events/things):
+* [events](https://github.com/eclipse/ditto/tree/master/things/model/src/main/java/org/eclipse/ditto/things/model/signals/events):
   containing events which are emitted when entities managed by this service were modified
 
 ## Persistence
