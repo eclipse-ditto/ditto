@@ -75,6 +75,6 @@ interface EvictingQueue<E> extends Queue<E> {
      *         this time due to insertion restrictions
      */
     @Override
-    boolean addAll(Collection<? extends E> c);
+    boolean addAll(@Nullable Collection<? extends E> c);
 
 }

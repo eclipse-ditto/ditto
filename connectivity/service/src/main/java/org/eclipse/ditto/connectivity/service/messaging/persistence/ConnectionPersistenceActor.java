@@ -588,7 +588,10 @@ public final class ConnectionPersistenceActor
     protected Receive matchAnyWhenDeleted() {
         return createInitializationAndConfigUpdateBehavior()
                 .orElse(ReceiveBuilder.create()
-                        .match(Control.class, msg -> log.debug("Ignoring control message when deleted: <{}>", msg))
+                        .match(Control.class, msg ->
+                                log.warning("Ignoring control message when deleted: <{}>", msg))
+                        .match(ActorRef.class, msg ->
+                                log.warning("Ignoring ActorRef message from client actor when deleted: <{}>", msg))
                         .build())
                 .orElse(super.matchAnyWhenDeleted());
     }
@@ -697,7 +700,11 @@ public final class ConnectionPersistenceActor
     private void testConnection(final StagedCommand command) {
         final ActorRef origin = command.getSender();
         final ActorRef self = getSelf();
-        final TestConnection testConnection = (TestConnection) command.getCommand();
+        final DittoHeaders headersWithDryRun = command.getDittoHeaders()
+                .toBuilder()
+                .dryRun(true)
+                .build();
+        final TestConnection testConnection = (TestConnection) command.getCommand().setDittoHeaders(headersWithDryRun);
 
         if (clientActorRouter != null) {
             // client actor is already running, so either another TestConnection command is currently executed or the
