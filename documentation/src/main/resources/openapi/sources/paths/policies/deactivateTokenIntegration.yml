@@ -19,6 +19,18 @@ post:
 
     the calculated subject with information extracted from the authenticated JWT is **removed
     from the matched policy entry**.
+
+    The injected subjects expire when the JWT expires. The `expiry` timestamp (a string in ISO-8601 format)
+    specifies how long the specific subject will have access to the resource secured by the policy.
+    The subject will be automatically deleted from the policy once this timestamp is reached.
+    To give the subject a chance to prolong the access he can configure a connection to get announcements.
+    Policy announcements are published to websockets and connections that have the relevant subject ID.
+
+    The settings under `announcement` control when a policy announcement is published (before expiry or when deleted).
+    If the field `requestedAcks` is set, then the announcements are published with at-least-once delivery until
+    the acknowledgement requests under labels are fulfilled.
+    If a "beforeExpiry" announcement was sent without acknowledgement requests, or the a "beforeExpiry"
+    announcement was acknowledged, the "whenDeleted" announcement will not be triggered.
   tags:
     - Policies
   parameters:
