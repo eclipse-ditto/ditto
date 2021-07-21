@@ -310,7 +310,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
 
         final MessageDispatcher messageDispatcher = actorSystem.dispatchers().defaultGlobalDispatcher();
         return InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99, inboundDispatchingSink,
-                TestConstants.MAPPING_CONFIG, messageDispatcher);
+                TestConstants.MAPPING_CONFIG, null, messageDispatcher);
     }
 
     @Test

@@ -16,9 +16,7 @@ import static org.apache.kafka.clients.consumer.ConsumerRecord.NULL_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.header;
-import static org.mockito.Mockito.when;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,13 +26,11 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
 import org.eclipse.ditto.base.model.common.ResponseType;
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
-import org.eclipse.ditto.connectivity.service.config.KafkaConsumerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.Before;
@@ -63,18 +59,11 @@ public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRe
     private static final String CUSTOM_KEY = "the.key";
     private static final String CUSTOM_TIMESTAMP = "the.timestamp";
 
-    private KafkaConsumerConfig kafkaConsumerConfig;
     private BoundedSourceQueue<ConsumerRecord<String, String>> sourceQueue;
     private Source<ConsumerRecord<String, String>, Consumer.Control> source;
 
     @Before
     public void initKafka() {
-        kafkaConsumerConfig = Mockito.mock(KafkaConsumerConfig.class);
-        final ThrottlingConfig throttlingConfig = Mockito.mock(ThrottlingConfig.class);
-        when(throttlingConfig.getInterval()).thenReturn(Duration.ofSeconds(1));
-        when(throttlingConfig.getLimit()).thenReturn(10);
-        when(kafkaConsumerConfig.getThrottlingConfig()).thenReturn(throttlingConfig);
-
         final Consumer.Control control = Mockito.mock(Consumer.Control.class);
         final Pair<BoundedSourceQueue<ConsumerRecord<String, String>>, Source<ConsumerRecord<String, String>, NotUsed>>
                 sourcePair = Source.<ConsumerRecord<String, String>>queue(20)
@@ -117,7 +106,7 @@ public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRe
         ));
         final HeaderMapping mappingWithSpecialKafkaHeaders = ConnectivityModelFactory.newHeaderMapping(map);
 
-        return KafkaConsumerActor.props(CONNECTION, kafkaConsumerConfig, () -> source, "kafka", inboundMappingSink,
+        return KafkaConsumerActor.props(CONNECTION, () -> source, "kafka", inboundMappingSink,
                 ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                         .address("kafka")

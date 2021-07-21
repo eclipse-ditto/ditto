@@ -15,8 +15,11 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
@@ -47,17 +50,20 @@ public final class InboundMappingSink {
     private final MessageDispatcher messageMappingProcessorDispatcher;
     private final Sink<Object, ?> inboundDispatchingSink;
     private final InboundMappingProcessor initialInboundMappingProcessor;
+    @Nullable private final ThrottlingConfig throttlingConfig;
 
     private InboundMappingSink(final InboundMappingProcessor initialInboundMappingProcessor,
             final ConnectionId connectionId,
             final int processorPoolSize,
             final Sink<Object, ?> inboundDispatchingSink,
             final MappingConfig mappingConfig,
+            @Nullable final ThrottlingConfig throttlingConfig,
             final MessageDispatcher messageMappingProcessorDispatcher) {
 
         this.messageMappingProcessorDispatcher = messageMappingProcessorDispatcher;
         this.initialInboundMappingProcessor = initialInboundMappingProcessor;
         this.inboundDispatchingSink = inboundDispatchingSink;
+        this.throttlingConfig = throttlingConfig;
 
         logger = DittoLoggerFactory.getThreadSafeLogger(InboundMappingSink.class)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
@@ -74,6 +80,7 @@ public final class InboundMappingSink {
      * @param processorPoolSize how many message processing may happen in parallel per direction (incoming or outgoing).
      * @param inboundDispatchingSink used to dispatch inbound signals.
      * @param mappingConfig The mapping config.
+     * @param throttlingConfig the throttling config.
      * @param messageMappingProcessorDispatcher The dispatcher which is used for async mapping.
      * @return the Akka configuration Props object.
      */
@@ -83,6 +90,7 @@ public final class InboundMappingSink {
             final int processorPoolSize,
             final Sink<Object, ?> inboundDispatchingSink,
             final MappingConfig mappingConfig,
+            @Nullable final ThrottlingConfig throttlingConfig,
             final MessageDispatcher messageMappingProcessorDispatcher) {
 
         final var inboundMappingSink = new InboundMappingSink(inboundMappingProcessor,
@@ -90,6 +98,7 @@ public final class InboundMappingSink {
                 processorPoolSize,
                 inboundDispatchingSink,
                 mappingConfig,
+                throttlingConfig,
                 messageMappingProcessorDispatcher);
 
         return inboundMappingSink.getSink();
@@ -111,7 +120,8 @@ public final class InboundMappingSink {
     }
 
     private Sink<Object, NotUsed> mapMessage() {
-        final Sink<MappingContext, NotUsed> mappingSink = Flow.<MappingContext>create()
+        final Flow<Object, InboundMappingOutcomes, NotUsed> mapMessageFlow = Flow.create()
+                .statefulMapConcat(StatefulExternalMessageHandler::new)
                 // parallelize potentially CPU-intensive payload mapping on this actor's dispatcher
                 .mapAsync(processorPoolSize, mappingContext -> CompletableFuture.supplyAsync(
                         () -> {
@@ -119,14 +129,21 @@ public final class InboundMappingSink {
                             return mapInboundMessage(mappingContext.message, mappingContext.mappingProcessor);
                         },
                         messageMappingProcessorDispatcher)
-                )
+                );
+
+        final Flow<Object, InboundMappingOutcomes, NotUsed> flowWithOptionalThrottling;
+        if (throttlingConfig != null) {
+            flowWithOptionalThrottling = mapMessageFlow
+                    .throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval(),
+                            outcomes -> outcomes.getOutcomes().size());
+        } else {
+            flowWithOptionalThrottling = mapMessageFlow;
+        }
+
+        return flowWithOptionalThrottling
                 // map returns outcome
                 .map(Object.class::cast)
                 .to(inboundDispatchingSink);
-
-        return Flow.create()
-                .statefulMapConcat(StatefulExternalMessageHandler::new)
-                .to(mappingSink);
     }
 
     private int determinePoolSize(final int connectionPoolSize, final int maxPoolSize) {

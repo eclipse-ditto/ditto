@@ -358,7 +358,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
 
         final Sink<Object, NotUsed> inboundMappingSink =
                 InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99,
-                        inboundDispatchingSink, TestConstants.CONNECTIVITY_CONFIG.getMappingConfig(),
+                        inboundDispatchingSink, TestConstants.CONNECTIVITY_CONFIG.getMappingConfig(), null,
                         actorSystem.dispatchers().defaultGlobalDispatcher());
 
         return Source.actorRef(99, OverflowStrategy.dropNew())

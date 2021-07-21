@@ -264,7 +264,7 @@ public abstract class AbstractConsumerActorTest<M> {
                         TestProbe.apply(actorSystem).ref(), actorSystem, actorSystem.settings().config());
 
         return InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99,
-                inboundDispatchingSink, connectivityConfig.getMappingConfig(),
+                inboundDispatchingSink, connectivityConfig.getMappingConfig(), null,
                 actorSystem.dispatchers().defaultGlobalDispatcher());
     }
 

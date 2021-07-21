@@ -80,6 +80,7 @@ public final class InboundMappingProcessorActorTest {
                         1,
                         inboundSink,
                         TestConstants.MAPPING_CONFIG,
+                        null,
                         system.dispatchers().defaultGlobalDispatcher());
                 final ActorRef underTest = Source.actorRef(1, OverflowStrategy.dropNew())
                         .to(inboundMappingSink)

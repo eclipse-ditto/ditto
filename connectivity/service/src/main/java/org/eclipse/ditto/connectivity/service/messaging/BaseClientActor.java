@@ -54,6 +54,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
@@ -315,7 +316,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         outboundMappingProcessorActor = actorPair.second();
 
         final Sink<Object, NotUsed> inboundDispatchingSink =
-                startInboundDispatchingSink(connection, protocolAdapter, outboundMappingProcessorActor);
+                getInboundDispatchingSink(connection, protocolAdapter, outboundMappingProcessorActor);
         inboundMappingSink = getInboundMappingSink(connectionContext, protocolAdapter, inboundDispatchingSink);
         subscriptionManager = startSubscriptionManager(proxyActorSelection,
                 connectionContext.getConnectivityConfig().getClientConfig());
@@ -1667,13 +1668,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     /**
-     * Starts the {@link InboundDispatchingSink} responsible for signal de-multiplexing and acknowledgement
+     * Gets the {@link InboundDispatchingSink} responsible for signal de-multiplexing and acknowledgement
      * aggregation.
      *
      * @return the ref to the started {@link InboundDispatchingSink}
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
-    private Sink<Object, NotUsed> startInboundDispatchingSink(final Connection connection,
+    private Sink<Object, NotUsed> getInboundDispatchingSink(final Connection connection,
             final ProtocolAdapter protocolAdapter,
             final ActorRef outboundMappingProcessorActor) {
 
@@ -1720,7 +1721,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 processorPoolSize,
                 inboundDispatchingSink,
                 mappingConfig,
+                getThrottlingConfig().orElse(null),
                 messageMappingProcessorDispatcher);
+    }
+
+    protected Optional<ThrottlingConfig> getThrottlingConfig() {
+        return Optional.empty();
     }
 
     /**
