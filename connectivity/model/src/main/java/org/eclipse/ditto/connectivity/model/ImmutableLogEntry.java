@@ -25,19 +25,21 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.ThingId;
 
 /**
  * Immutable implementation of {@link LogEntry}.
  */
 @Immutable
-public final class ImmutableLogEntry implements LogEntry {
+final class ImmutableLogEntry implements LogEntry {
 
     private final String correlationId;
     private final Instant timestamp;
@@ -46,7 +48,7 @@ public final class ImmutableLogEntry implements LogEntry {
     private final LogLevel logLevel;
     private final String message;
     @Nullable private final String address;
-    @Nullable private final ThingId thingId;
+    @Nullable private final EntityId entityId;
 
     private ImmutableLogEntry(final Builder builder) {
         this.correlationId = builder.correlationId;
@@ -56,7 +58,7 @@ public final class ImmutableLogEntry implements LogEntry {
         this.logLevel = builder.logLevel;
         this.message = builder.message;
         this.address = builder.address;
-        this.thingId = builder.thingId;
+        this.entityId = builder.entityId;
     }
 
     public static LogEntryBuilder getBuilder(final String correlationId, final Instant timestamp, final LogCategory logCategory,
@@ -64,12 +66,12 @@ public final class ImmutableLogEntry implements LogEntry {
         return getBuilder(correlationId, timestamp, logCategory, logType, logLevel, message, null, null);
     }
 
-    public static LogEntryBuilder getBuilder(final String correlationId, final Instant timestamp, final LogCategory logCategory,
+    static LogEntryBuilder getBuilder(final String correlationId, final Instant timestamp, final LogCategory logCategory,
             final LogType logType, final LogLevel logLevel, final String message,
-            @Nullable final String address, @Nullable final ThingId thingId) {
+            @Nullable final String address, @Nullable final EntityId entityId) {
         return new Builder(correlationId, timestamp, logCategory, logType, logLevel, message)
                 .address(address)
-                .thingId(thingId);
+                .entityId(entityId);
     }
 
     public static LogEntry fromJson(final JsonObject jsonObject) {
@@ -81,8 +83,16 @@ public final class ImmutableLogEntry implements LogEntry {
         final String message = jsonObject.getValueOrThrow(JsonFields.MESSAGE);
         final String address = jsonObject.getValue(JsonFields.ADDRESS).orElse(null);
         final ThingId thingId = jsonObject.getValue(JsonFields.THING_ID).map(ThingId::of).orElse(null);
+        final EntityId entityId;
+        if (null != thingId) {
+            entityId = thingId;
+        } else {
+            entityId = jsonObject.getValue(JsonFields.ENTITY_ID)
+                    .map(eId -> EntityId.of(EntityType.of("unknown"), eId))
+                    .orElse(null);
+        }
 
-        return getBuilder(correlationId, timestamp, category, type, level, message, address, thingId)
+        return getBuilder(correlationId, timestamp, category, type, level, message, address, entityId)
                 .build();
     }
 
@@ -158,8 +168,8 @@ public final class ImmutableLogEntry implements LogEntry {
     }
 
     @Override
-    public Optional<ThingId> getThingId() {
-        return Optional.ofNullable(thingId);
+    public Optional<EntityId> getEntityId() {
+        return Optional.ofNullable(entityId);
     }
 
     @Override
@@ -174,8 +184,11 @@ public final class ImmutableLogEntry implements LogEntry {
         if (null != address) {
             builder.set(JsonFields.ADDRESS, address);
         }
-        if (null != thingId) {
-            builder.set(JsonFields.THING_ID, thingId.toString());
+        if (null != entityId) {
+            if (entityId instanceof ThingId) {
+                builder.set(JsonFields.THING_ID, entityId.toString());
+            }
+            builder.set(JsonFields.ENTITY_ID, entityId.toString());
         }
         return builder.build();
     }
@@ -196,12 +209,12 @@ public final class ImmutableLogEntry implements LogEntry {
                 logLevel == that.logLevel &&
                 Objects.equals(message, that.message) &&
                 Objects.equals(address, that.address) &&
-                Objects.equals(thingId, that.thingId);
+                Objects.equals(entityId, that.entityId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(correlationId, timestamp, logCategory, logType, logLevel, message, address, thingId);
+        return Objects.hash(correlationId, timestamp, logCategory, logType, logLevel, message, address, entityId);
     }
 
     @Override
@@ -214,7 +227,7 @@ public final class ImmutableLogEntry implements LogEntry {
                 ", logLevel=" + logLevel +
                 ", message=" + message +
                 ", address=" + address +
-                ", thingId=" + thingId +
+                ", entityId=" + entityId +
                 "]";
     }
 
@@ -232,7 +245,7 @@ public final class ImmutableLogEntry implements LogEntry {
         private String message;
 
         @Nullable private String address;
-        @Nullable private ThingId thingId;
+        @Nullable private EntityId entityId;
 
         Builder(final String correlationId, final Instant timestamp, final LogCategory logCategory,
                 final LogType logType, final LogLevel logLevel, final String message) {
@@ -287,8 +300,8 @@ public final class ImmutableLogEntry implements LogEntry {
         }
 
         @Override
-        public LogEntryBuilder thingId(@Nullable final ThingId thingId) {
-            this.thingId = thingId;
+        public LogEntryBuilder entityId(@Nullable final EntityId entityId) {
+            this.entityId = entityId;
             return this;
         }
 

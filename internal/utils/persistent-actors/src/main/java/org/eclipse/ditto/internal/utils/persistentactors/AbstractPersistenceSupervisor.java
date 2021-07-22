@@ -137,20 +137,23 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
                 .build();
     }
 
+    /**
+     * Become corrupted because this actor cannot start.
+     */
+    protected void becomeCorrupted() {
+        getContext().setReceiveTimeout(getCorruptedReceiveTimeout());
+        getContext().become(ReceiveBuilder.create()
+                .match(ReceiveTimeout.class, timeout -> passivate(Control.PASSIVATE))
+                .matchAny(this::replyUnavailableException)
+                .build());
+    }
+
     private void becomeActive(final ShutdownBehaviour shutdownBehaviour) {
         getContext().become(shutdownBehaviour.createReceive()
                 .match(Terminated.class, this::childTerminated)
                 .matchEquals(Control.START_CHILD, this::startChild)
                 .matchEquals(Control.PASSIVATE, this::passivate)
                 .matchAny(this::forwardToChildIfAvailable)
-                .build());
-    }
-
-    private void becomeCorrupted() {
-        getContext().setReceiveTimeout(getCorruptedReceiveTimeout());
-        getContext().become(ReceiveBuilder.create()
-                .match(ReceiveTimeout.class, timeout -> passivate(Control.PASSIVATE))
-                .matchAny(this::replyUnavailableException)
                 .build());
     }
 

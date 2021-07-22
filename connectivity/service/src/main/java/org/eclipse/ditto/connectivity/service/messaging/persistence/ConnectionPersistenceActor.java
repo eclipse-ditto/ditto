@@ -415,7 +415,7 @@ public final class ConnectionPersistenceActor
             targetConnectionStatus = ConnectivityStatus.UNKNOWN;
         }
 
-        alwaysAlive = (targetConnectionStatus == ConnectivityStatus.OPEN);
+        final var alwaysAlive = (targetConnectionStatus == ConnectivityStatus.OPEN);
         if (alwaysAlive) {
             final DittoHeaders headersWithJournalTags = superEvent.getDittoHeaders().toBuilder()
                     .journalTags(journalTags())

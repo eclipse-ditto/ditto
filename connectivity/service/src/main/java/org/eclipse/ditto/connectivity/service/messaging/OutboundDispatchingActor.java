@@ -23,20 +23,20 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.models.acks.AcknowledgementForwarderActor;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
+import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.internal.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
@@ -104,10 +104,10 @@ final class OutboundDispatchingActor extends AbstractActor {
             return;
         }
 
-        final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, signal);
+        final Optional<EntityId> entityIdOptional = WithEntityId.getEntityIdOfType(EntityId.class, signal);
         final Signal<?> signalToForward;
-        if (thingIdOptional.isPresent()) {
-            signalToForward = adjustSignalAndStartAckForwarder(signal, thingIdOptional.get());
+        if (entityIdOptional.isPresent()) {
+            signalToForward = adjustSignalAndStartAckForwarder(signal, entityIdOptional.get());
         } else {
             signalToForward = signal;
         }
@@ -144,7 +144,7 @@ final class OutboundDispatchingActor extends AbstractActor {
         return settings.getSourceDeclaredAcks().contains(label) || settings.getTargetIssuedAcks().contains(label);
     }
 
-    private Signal<?> adjustSignalAndStartAckForwarder(final Signal<?> signal, final ThingId thingId) {
+    private Signal<?> adjustSignalAndStartAckForwarder(final Signal<?> signal, final EntityId entityId) {
         final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
         if (ackRequests.isEmpty()) {
             return signal;
@@ -157,7 +157,7 @@ final class OutboundDispatchingActor extends AbstractActor {
         if (hasSourceDeclaredAcks) {
             // start ackregator for source declared acks
             return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
-                    thingId,
+                    entityId,
                     signal,
                     settings.getAcknowledgementConfig(),
                     this::isSourceDeclaredOrTargetIssuedAck

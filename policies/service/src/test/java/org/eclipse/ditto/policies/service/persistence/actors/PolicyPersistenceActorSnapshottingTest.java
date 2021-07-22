@@ -411,8 +411,8 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
 
     private ActorRef createPersistenceActorFor(final PolicyId policyId) {
         final SnapshotAdapter<Policy> snapshotAdapter = new PolicyMongoSnapshotAdapter();
-        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator,
-                policyAnnouncementPub);
+        final Props props = PolicyPersistenceActor.propsForTests(policyId, snapshotAdapter, pubSubMediator,
+                actorSystem.deadLetters());
         return actorSystem.actorOf(props);
     }
 

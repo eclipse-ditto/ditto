@@ -32,6 +32,7 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotDeclaredExceptio
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -422,10 +423,10 @@ public final class InboundDispatchingSink
     private int dispatchIncomingSignal(final IncomingSignal incomingSignal) {
         final Signal<?> signal = incomingSignal.signal;
         final ActorRef sender = incomingSignal.sender;
-        final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, signal);
-        if (incomingSignal.isAckRequesting && thingIdOptional.isPresent()) {
+        final Optional<EntityId> entityIdOptional = WithEntityId.getEntityIdOfType(EntityId.class, signal);
+        if (incomingSignal.isAckRequesting && entityIdOptional.isPresent()) {
             try {
-                startAckregatorAndForwardSignal(thingIdOptional.get(), signal.getDittoHeaders(), signal, sender);
+                startAckregatorAndForwardSignal(entityIdOptional.get(), signal.getDittoHeaders(), signal, sender);
             } catch (final DittoRuntimeException e) {
                 handleErrorDuringStartingOfAckregator(e, signal.getDittoHeaders(), sender);
             }
@@ -466,9 +467,9 @@ public final class InboundDispatchingSink
                 (signal instanceof ThingCommand && ProtocolAdapter.isLiveSignal(signal)));
     }
 
-    private void startAckregatorAndForwardSignal(final ThingId thingId, final DittoHeaders dittoHeaders,
+    private void startAckregatorAndForwardSignal(final EntityId entityId, final DittoHeaders dittoHeaders,
             final Signal<?> signal, @Nullable final ActorRef sender) {
-        ackregatorStarter.doStart(thingId, dittoHeaders,
+        ackregatorStarter.doStart(entityId, dittoHeaders,
                 responseSignal -> {
                     // potentially publish response/aggregated acks to reply target
                     if (signal.getDittoHeaders().isResponseRequired()) {

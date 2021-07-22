@@ -47,10 +47,10 @@ import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
-import org.eclipse.ditto.connectivity.service.messaging.signing.NoOpSigning;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.connectivity.service.messaging.signing.NoOpSigning;
 import org.eclipse.ditto.internal.utils.akka.controlflow.TimeMeasuringFlow;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -368,9 +368,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return getResponseBody(response, maxResponseSize, materializer).thenApply(body -> {
             @Nullable final CommandResponse<?> result;
             final DittoHeaders dittoHeaders = setDittoHeaders(signal.getDittoHeaders(), response);
-            final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, signal);
-            if (autoAckLabel.isPresent() && thingIdOptional.isPresent()) {
-                final ThingId thingId = thingIdOptional.get();
+            final Optional<EntityId> entityIdOptional = WithEntityId.getEntityIdOfType(EntityId.class, signal);
+            if (autoAckLabel.isPresent() && entityIdOptional.isPresent()) {
+                final EntityId entityId = entityIdOptional.get();
 
                 if (DittoAcknowledgementLabel.LIVE_RESPONSE.equals(autoAckLabel.get())) {
                     // Live-Response is declared as issued ack => parse live response from response
@@ -382,7 +382,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     }
                 } else {
                     // There is an issued ack declared but its not live-response => handle response as acknowledgement.
-                    result = Acknowledgement.of(autoAckLabel.get(), thingId, httpStatus, dittoHeaders, body);
+                    result = Acknowledgement.of(autoAckLabel.get(), entityId, httpStatus, dittoHeaders, body);
                 }
 
             } else {

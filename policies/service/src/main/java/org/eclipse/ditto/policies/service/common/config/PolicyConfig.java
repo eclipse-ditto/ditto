@@ -59,6 +59,13 @@ public interface PolicyConfig extends WithSupervisorConfig, WithActivityCheckCon
     String getSubjectIdResolver();
 
     /**
+     * Return the policy announcement config.
+     *
+     * @return the policy announcement config.
+     */
+    PolicyAnnouncementConfig getPolicyAnnouncementConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for {@code PolicyConfig}.
      */
     enum PolicyConfigValue implements KnownConfigValue {

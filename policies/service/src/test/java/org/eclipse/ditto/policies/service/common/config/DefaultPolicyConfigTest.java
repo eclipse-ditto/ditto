@@ -47,7 +47,7 @@ public final class DefaultPolicyConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultPolicyConfig.class, areImmutable(),
-                provided(DefaultSupervisorConfig.class)
+                provided(DefaultSupervisorConfig.class, PolicyAnnouncementConfig.class)
                         .areAlsoImmutable());
     }
 
@@ -90,6 +90,10 @@ public final class DefaultPolicyConfigTest {
         softly.assertThat(underTest.getSubjectIdResolver())
                 .as(PolicyConfig.PolicyConfigValue.SUBJECT_ID_RESOLVER.getConfigPath())
                 .isEqualTo("IrredeemableSubjectIdResolver");
+
+        softly.assertThat(underTest.getPolicyAnnouncementConfig())
+                .as(DefaultPolicyAnnouncementConfig.CONFIG_PATH)
+                .isEqualTo(PolicyAnnouncementConfig.of(ConfigFactory.load("policy-announcement-config-test.conf")));
     }
 
 }

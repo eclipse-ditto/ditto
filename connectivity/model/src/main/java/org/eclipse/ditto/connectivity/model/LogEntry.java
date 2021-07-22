@@ -17,14 +17,15 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.things.model.ThingId;
 
 /**
@@ -69,9 +70,18 @@ public interface LogEntry extends Jsonifiable.WithFieldSelectorAndPredicate<Json
     Optional<String> getAddress();
 
     /**
-     * @return thing ID if the log can be correlated to a known Thing, empty otherwise.
+     * @return entity ID if the log can be correlated to a known entity (e.g. a Thing), empty otherwise.
      */
-    Optional<ThingId> getThingId();
+    Optional<EntityId> getEntityId();
+
+    /**
+     * @return entity ID if the log can be correlated to a Thing, empty otherwise.
+     * @deprecated replaced by {@link #getEntityId()}
+     */
+    @Deprecated
+    default Optional<ThingId> getThingId() {
+        return getEntityId().map(ThingId::of);
+    }
 
 
     /**
@@ -146,9 +156,19 @@ public interface LogEntry extends Jsonifiable.WithFieldSelectorAndPredicate<Json
 
         /**
          * JSON field containing the Thing ID.
+         * @deprecated replaced by {@link #ENTITY_ID}
          */
+        @Deprecated
         public static final JsonFieldDefinition<String> THING_ID =
                 JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR,
+                        JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the entity ID.
+         * @since 2.1.0
+         */
+        public static final JsonFieldDefinition<String> ENTITY_ID =
+                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

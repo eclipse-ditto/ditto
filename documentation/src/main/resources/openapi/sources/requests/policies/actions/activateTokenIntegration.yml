@@ -18,5 +18,8 @@ content:
       announcement:
         beforeExpiry: "5m"
         whenDeleted: true
+        requestedAcks:
+          labels: ["my-connection-id:my-issued-acknowledgement"]
+          timeout: "30s"
 description: Optional request payload for `activateTokenIntegration` policy action.
 required: false

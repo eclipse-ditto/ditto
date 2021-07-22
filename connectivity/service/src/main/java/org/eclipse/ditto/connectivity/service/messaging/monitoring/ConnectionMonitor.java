@@ -22,13 +22,13 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ConnectionMetricsCounter;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * An abstraction for connection monitoring that currently encapsulates metrics and logging into one interface.
@@ -475,10 +475,10 @@ public interface ConnectionMonitor {
         Instant getTimestamp();
 
         /**
-         * @return the thing for which the monitoring event was thrown.
+         * @return the entity ID for which the monitoring event was thrown.
          */
         @Nullable
-        ThingId getThingId();
+        EntityId getEntityId();
 
         /**
          * @return the headers that were part of the message that caused the monitoring event.

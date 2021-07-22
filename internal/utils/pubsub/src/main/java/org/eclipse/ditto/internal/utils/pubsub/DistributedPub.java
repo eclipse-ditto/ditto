@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
@@ -55,7 +57,7 @@ public interface DistributedPub<T> {
      * @param message the message to publish.
      * @param sender reply address for all subscribers who receive this message.
      */
-    default void publish(final T message, final ActorRef sender) {
+    default void publish(final T message, @Nullable final ActorRef sender) {
         getPublisher().tell(wrapForPublication(message), sender);
     }
 
@@ -66,7 +68,7 @@ public interface DistributedPub<T> {
      * @param ackExtractor extractor of ack-related information from the message.
      * @param sender the sender of the message and the receiver of acknowledgements.
      */
-    default void publishWithAcks(final T message, final AckExtractor<T> ackExtractor, final ActorRef sender) {
+    default void publishWithAcks(final T message, final AckExtractor<T> ackExtractor, @Nullable final ActorRef sender) {
         getPublisher().tell(wrapForPublicationWithAcks(message, ackExtractor), sender);
     }
 

@@ -106,8 +106,7 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      *
      * @return the new builder.
      */
-    @SuppressWarnings({"rawtypes", "java:S3740"})
-    default DittoHeadersBuilder toBuilder() {
+    default DittoHeadersBuilder<?, ?> toBuilder() {
         return DefaultDittoHeadersBuilder.of(this);
     }
 

@@ -24,18 +24,18 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
-import org.eclipse.ditto.connectivity.model.signals.commands.TestConstants;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.ImmutableLogEntry;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.LogCategory;
 import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.LogLevel;
 import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
+import org.eclipse.ditto.connectivity.model.signals.commands.TestConstants;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -148,7 +148,7 @@ public class RetrieveConnectionLogsResponseTest {
                 ENABLED_UNTIL,
                 EMPTY_HEADERS);
         final DittoHeaders secondHeaders = DittoHeaders.newBuilder().correlationId("hey there").build();
-        final Collection<LogEntry> secondLogEntries = Collections.singleton(ImmutableLogEntry.getBuilder(
+        final Collection<LogEntry> secondLogEntries = Collections.singleton(ConnectivityModelFactory.newLogEntryBuilder(
                 "hey there",
                 Instant.now(),
                 LogCategory.TARGET,

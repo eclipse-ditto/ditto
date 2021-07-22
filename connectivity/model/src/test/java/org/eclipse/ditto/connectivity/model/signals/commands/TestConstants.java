@@ -28,9 +28,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -41,7 +38,6 @@ import org.eclipse.ditto.connectivity.model.ConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.connectivity.model.ImmutableLogEntry;
 import org.eclipse.ditto.connectivity.model.LogCategory;
 import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.LogLevel;
@@ -54,6 +50,9 @@ import org.eclipse.ditto.connectivity.model.SourceMetrics;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.TargetMetrics;
 import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingId;
 
 /**
@@ -238,11 +237,15 @@ public final class TestConstants {
         public static final ThingId THING_ID = ThingId.of("org.eclipse.ditto.connection.logs:loggedThing");
 
         public static final LogEntry ENTRY_1 =
-                ImmutableLogEntry.getBuilder(CORRELATION_ID, TIMESTAMP_1, CATEGORY, TYPE_1, LEVEL, MESSAGE_1, ADDRESS,
-                        THING_ID).build();
+                ConnectivityModelFactory.newLogEntryBuilder(CORRELATION_ID, TIMESTAMP_1, CATEGORY, TYPE_1, LEVEL, MESSAGE_1)
+                        .address(ADDRESS)
+                        .entityId(THING_ID)
+                        .build();
         public static final LogEntry ENTRY_2 =
-                ImmutableLogEntry.getBuilder(CORRELATION_ID, TIMESTAMP_2, CATEGORY, TYPE_2, LEVEL, MESSAGE_2, ADDRESS,
-                        THING_ID).build();
+                ConnectivityModelFactory.newLogEntryBuilder(CORRELATION_ID, TIMESTAMP_2, CATEGORY, TYPE_2, LEVEL, MESSAGE_2)
+                        .address(ADDRESS)
+                        .entityId(THING_ID)
+                        .build();
 
         public static final List<LogEntry> ENTRIES = Arrays.asList(ENTRY_1, ENTRY_2);
 
@@ -257,6 +260,7 @@ public final class TestConstants {
                     .set(LogEntry.JsonFields.LEVEL, LEVEL.getLevel())
                     .set(LogEntry.JsonFields.ADDRESS, ADDRESS)
                     .set(LogEntry.JsonFields.THING_ID, THING_ID.toString())
+                    .set(LogEntry.JsonFields.ENTITY_ID, THING_ID.toString())
                     .build();
             public static final JsonObject ENTRY_2_JSON = JsonFactory.newObjectBuilder()
                     .set(LogEntry.JsonFields.CORRELATION_ID, CORRELATION_ID)
@@ -267,6 +271,7 @@ public final class TestConstants {
                     .set(LogEntry.JsonFields.LEVEL, LEVEL.getLevel())
                     .set(LogEntry.JsonFields.ADDRESS, ADDRESS)
                     .set(LogEntry.JsonFields.THING_ID, THING_ID.toString())
+                    .set(LogEntry.JsonFields.ENTITY_ID, THING_ID.toString())
                     .build();
 
             public static final JsonArray ENTRIES_JSON = JsonFactory.newArrayBuilder()

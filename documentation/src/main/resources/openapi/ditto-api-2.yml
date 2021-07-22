@@ -8,7 +8,7 @@ info:
     The Eclipse Ditto HTTP API uses response status codes (see [RFC 7231](https://tools.ietf.org/html/rfc7231#section-6))
     to indicate whether a specific request has been successfully completed, or not.
 
-    However, the descriptions we provide additionally to the status code (e.g. in our API docs, or error codes like. "things:thing.tooLarge") might change without advance notice. These are not be considered as official API, and must therefore not be applied in your applications or tests.
+    The information Ditto provides additionally to the status code (e.g. in API docs, or error codes like. "things:thing.tooLarge") might change without advance notice. These are not be considered as official API, and must therefore not be applied in your applications or tests.
 servers:
   - url: 'https://ditto.eclipseprojects.io/api/2'
     description: online Ditto Sandbox
@@ -6206,6 +6206,10 @@ components:
             announcement:
               beforeExpiry: 5m
               whenDeleted: true
+              requestedAcks:
+                labels:
+                  - 'my-connection-id:my-issued-acknowledgement'
+                timeout: 30s
       description: Optional request payload for `activateTokenIntegration` policy action.
       required: false
   responses:
@@ -6760,9 +6764,8 @@ components:
         acknowledgements via the `requested-acks` param. Can be specified without unit (then seconds are assumed) or
         together with `s`, `ms` or `m` unit. Example: `42s`, `1m`.
 
-        The default (if omitted) timeout is `10s`. Maximum value: `60s`.
-
-        A value of `0` applies fire and forget semantics for the command resulting in setting `response-required=false`.
+        The default (if omitted) and maximum timeout is `60s`. A value of `0` applies fire and forget semantics for
+        the command resulting in setting `response-required=false`.
       required: false
       schema:
         type: string
@@ -7055,6 +7058,22 @@ components:
         whenDeleted:
           type: boolean
           description: Whether an announcement should be made when this subject is deleted.
+        requestedAcks:
+          type: object
+          description: Whether the announcement should be published at-least-once via acknowledgement requests.
+          properties:
+            labels:
+              type: array
+              description: Acknowledgement labels to request an announcement is published.
+              items:
+                type: string
+            timeout:
+              type: string
+              description: How long to wait for requested announcements before retrying publication of an announcement.
+          example:
+            labels:
+              - 'my-connection-id:my-issued-acknowledgement'
+            timeout: 5s
       example:
         beforeExpiry: 5m
         whenDeleted: true

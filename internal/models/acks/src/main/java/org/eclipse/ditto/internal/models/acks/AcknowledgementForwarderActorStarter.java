@@ -29,6 +29,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementRequestDuplicateCorrelationIdException;
@@ -235,6 +236,8 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
                     .anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersistedOrLiveResponse);
         } else if (signal instanceof MessageCommand || (isLiveSignal && signal instanceof ThingCommand)) {
             return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted);
+        } else if (signal instanceof PolicyAnnouncement) {
+            return !ackRequests.isEmpty();
         } else {
             return false;
         }

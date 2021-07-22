@@ -223,8 +223,24 @@ The labels of issued acknowledgements are globally unique for each subscriber. B
 send acknowledgements, it must declare the labels of acknowledgements it sends. Any declared label taken by another
 subscriber causes an appropriate error for each channel that may issue acknowledgements.
 
-### Issuing ACKs via HTTP
-It is not possible to issue acknowledgements via HTTP, because it is impossible to subscribe for twin events,
+### Semantics of status codes for issued acknowledgements
+
+The `status` code of issued acknowledgements have certain semantics when it comes to whether Ditto shall e.g. try to 
+retry processing a consumed message (when it was consumed from a message broker which persisted the message).
+
+Application specific code invoking a Ditto API and requesting acknowledgements should also adapt the semantics in order 
+to correctly perform retries:
+
+| Status code | Description                     | Should be retried       | Reasoning |
+| ---         | ---                             | ---                     | ---       |
+| `2xx`       | Successfully processed / ACKed  | &#10060;                | Successfully received + processed. |
+| `4xx`       | Request was erroneous           | &#10060;                | Request could not be understood or authentication failed,<br/>so retrying would result in the same outcome. |
+| `408`       | Request timeout                 | &#10004;                | HTTP semantic for request timeout,<br/>retrying does make sense. | 
+| `424`       | Mixed status codes,<br/>with at least one request error | &#10004; | There could be a timeout or server error in the mixed status codes,<br/>so retrying does make sense. |
+| `5xx`       | Server error                    | &#10004;                | The processing backend encountered a temporary error,<br/>retrying could solve the issue. |
+
+### Issuing ACKs via Ditto's HTTP API
+It is not possible to issue acknowledgements via Ditto's HTTP API, because it is impossible to subscribe for twin events,
 live commands or live messages via HTTP.
 
 ### Issuing ACKs via WebSocket
@@ -280,8 +296,9 @@ broker).
 
 This can be used in order to automatically issue technical acknowledgements once an event, live command or live message
 was published to an HTTP endpoint or into a message broker. When this target guarantees having processed the event
-via its protocol (for HTTP for example when a status code `2xx` is returned), a successful acknowledgement is created
-and returned to the requester.
+via its protocol (see the 
+[defined semantics of the status codes](#semantics-of-status-codes-for-issued-acknowledgements)), a successful 
+acknowledgement is created and returned to the requester.
 
 
 ## Quality of Service
@@ -348,7 +365,7 @@ Three headers control how Ditto responds to a command: `response-required`, `req
     * If it is `false`, the acknowledgement label `live-response` will be removed from `requested-acks` if present.
 * `requested-acks`: JSON array of acknowledgement requests.<br/>
    It determines the content of the response and transport-layer message settlement.
-* `timeout`: Duration.<br/>
+* `timeout`: Duration.  
    It governs how long Ditto waits for responses and acknowledgements.
 
 It is considered a client error if `timeout` is set to `0s` while `response-required` is `true` or `requested-acks` is
@@ -356,8 +373,8 @@ nonempty.
 
 ### Default header values
 Ditto set each of the three headers `response-required`, `requested-acks`, `timeout` to a default value according to any
-values of the other two headers set by the user.
-The default values depend only on headers set by the user; they do not depend on each other.
+values of the other two headers set by the user.  
+The default values depend only on headers set by the user; they do not depend on each other.  
 Setting the default header values this way never produces any combination considered a client error unless the headers
 set by the user already cause a client error.
 
@@ -371,13 +388,13 @@ The following sections show how each Ditto API interprets the three headers.
 
 ### HTTP
 Since an HTTP response always follows an HTTP request, the header `response-required` is interpreted as whether
-the user wants a *detailed* response.
+the user wants a *detailed* response.  
 If it is set to `false`, the HTTP response consists of status line and headers without body, or with a minimal body
-containing other status codes.
+containing other status codes.  
 If acknowledgements are requested, the HTTP response is delayed until all requested acknowledgements are received.
 Generally, if a request cannot be answered within the defined timeout, the HTTP response has status code 408.
 A response containing successful acknowledgements (2xx) and at least one failed acknowledgement (4xx) has status code
-424 (failed dependency).
+424 (failed dependency).  
 In this case the status codes of all acknowledgements should be check to determine the one which caused the failure.
 
 | API  | response-required | requested-acks | timeout   | Outcome |
@@ -410,9 +427,9 @@ Consequently, it is considered a client error to have non-empty `requested-acks`
 
 ### Connectivity
 For any incoming supported signal through a connection source, the header `response-required` determines whether a
-response message is published at the reply-target of the source.
+response message is published at the reply-target of the source.  
 The header `requested-acks` determines the transport-layer message settlement and the content of any response message
-published at the reply-target.
+published at the reply-target.  
 Examples of transport-layer message settlement mechanisms are AMQP 0.9.1 consumer acknowledgement mode, AMQP 1.0
 disposition frames, and MQTT PUBACK/PUBREC/PUBREL messages for incoming PUBLISH with QoS 1 or 2.
 
@@ -429,8 +446,8 @@ disposition frames, and MQTT PUBACK/PUBREC/PUBREL messages for incoming PUBLISH 
 
 ### Default header values
 Ditto set each of the three headers `response-required`, `requested-acks`, `timeout` to a default value according to any
-values of the other two headers set by the user.
-The default values depend only on headers set by the user; they do not depend on each other.
+values of the other two headers set by the user.  
+The default values depend only on headers set by the user; they do not depend on each other.  
 Setting the default header values this way never produces any combination considered a client error unless the headers
 set by the user already cause a client error.
 

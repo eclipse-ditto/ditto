@@ -26,6 +26,7 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.acks.AbstractCommandAckRequestSetter;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -34,7 +35,6 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
@@ -53,20 +53,20 @@ import scala.PartialFunction;
 public final class AcknowledgementAggregatorActorStarter {
 
     protected final ActorRefFactory actorRefFactory;
-    protected final AcknowledgementConfig acknowledgementConfig;
+    protected final Duration maxTimeout;
     protected final HeaderTranslator headerTranslator;
     protected final PartialFunction<Signal<?>, Signal<?>> ackRequestSetter;
 
     private int childCounter = 0;
 
     private AcknowledgementAggregatorActorStarter(final ActorRefFactory actorRefFactory,
-            final AcknowledgementConfig acknowledgementConfig,
+            final Duration maxTimeout,
             final HeaderTranslator headerTranslator,
             final PartialFunction<Signal<?>, Signal<?>> ackRequestSetter) {
 
         this.actorRefFactory = checkNotNull(actorRefFactory, "actorRefFactory");
         this.ackRequestSetter = ackRequestSetter;
-        this.acknowledgementConfig = checkNotNull(acknowledgementConfig, "acknowledgementConfig");
+        this.maxTimeout = checkNotNull(maxTimeout, "maxTimeout");
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
     }
 
@@ -85,8 +85,27 @@ public final class AcknowledgementAggregatorActorStarter {
             final HeaderTranslator headerTranslator,
             final AbstractCommandAckRequestSetter<?>... ackRequestSetters) {
 
-        return new AcknowledgementAggregatorActorStarter(actorRefFactory, acknowledgementConfig,
-                headerTranslator, buildAckRequestSetter(ackRequestSetters));
+        return of(actorRefFactory, acknowledgementConfig.getForwarderFallbackTimeout(), headerTranslator,
+                ackRequestSetters);
+    }
+
+    /**
+     * Returns an instance of {@code AcknowledgementAggregatorActorStarter}.
+     *
+     * @param actorRefFactory the actorRefFactory to start the aggregator actor in.
+     * @param maxTimeout the maximum timeout.
+     * @param headerTranslator translates headers from external sources or to external sources.
+     * response over a channel to the user.
+     * @return a means to start an acknowledgement forwarder actor.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static AcknowledgementAggregatorActorStarter of(final ActorRefFactory actorRefFactory,
+            final Duration maxTimeout,
+            final HeaderTranslator headerTranslator,
+            final AbstractCommandAckRequestSetter<?>... ackRequestSetters) {
+
+        return new AcknowledgementAggregatorActorStarter(actorRefFactory, maxTimeout, headerTranslator,
+                buildAckRequestSetter(ackRequestSetters));
     }
 
     /**
@@ -107,9 +126,9 @@ public final class AcknowledgementAggregatorActorStarter {
 
         return preprocess(signal,
                 (s, shouldStart) -> {
-                    final Optional<ThingId> thingIdOptional = WithEntityId.getEntityIdOfType(ThingId.class, s);
-                    if (shouldStart && thingIdOptional.isPresent()) {
-                        return doStart(thingIdOptional.get(), s.getDittoHeaders(), responseSignalConsumer::apply,
+                    final Optional<EntityId> entityIdOptional = WithEntityId.getEntityIdOfType(EntityId.class, s);
+                    if (shouldStart && entityIdOptional.isPresent()) {
+                        return doStart(entityIdOptional.get(), s.getDittoHeaders(), responseSignalConsumer::apply,
                                 ackregator -> ackregatorStartedFunction.apply(s, ackregator));
                     } else {
                         return ackregatorNotStartedFunction.apply(s);
@@ -141,23 +160,23 @@ public final class AcknowledgementAggregatorActorStarter {
     /**
      * Start an acknowledgement aggregator actor for a signal with acknowledgement requests.
      *
-     * @param thingId the ThingId of the originating signal signal.
+     * @param entityId the entity ID of the originating signal signal.
      * @param dittoHeaders The headers of the originating signal. Must have nonempty acknowledgement requests.
      * @param responseSignalConsumer consumer of the aggregated response or error.
      * @param forwarderStartedFunction what to do after the aggregator actor started.
      * @param <T> type of results.
      * @return the result.
      */
-    public <T> T doStart(final ThingId thingId,
+    public <T> T doStart(final EntityId entityId,
             final DittoHeaders dittoHeaders,
             final Consumer<Object> responseSignalConsumer,
             final Function<ActorRef, T> forwarderStartedFunction) {
-        return forwarderStartedFunction.apply(startAckAggregatorActor(thingId, dittoHeaders, responseSignalConsumer));
+        return forwarderStartedFunction.apply(startAckAggregatorActor(entityId, dittoHeaders, responseSignalConsumer));
     }
 
-    private ActorRef startAckAggregatorActor(final ThingId thingId, final DittoHeaders dittoHeaders,
+    private ActorRef startAckAggregatorActor(final EntityId entityId, final DittoHeaders dittoHeaders,
             final Consumer<Object> responseSignalConsumer) {
-        final Props props = AcknowledgementAggregatorActor.props(thingId, dittoHeaders, acknowledgementConfig, headerTranslator,
+        final Props props = AcknowledgementAggregatorActor.props(entityId, dittoHeaders, maxTimeout, headerTranslator,
                 responseSignalConsumer);
         final String actorName = getNextActorName(dittoHeaders);
         return actorRefFactory.actorOf(props, actorName);
