@@ -31,8 +31,10 @@ import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.Mqtt5Subscribe;
 import com.hivemq.client.mqtt.mqtt5.message.subscribe.suback.Mqtt5SubAck;
 
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.stream.javadsl.Sink;
 
 /**
  * Actor which handles connection to MQTT 5 server.
@@ -130,11 +132,11 @@ public final class HiveMqtt5ClientActor
     @Override
     ActorRef startConsumerActor(final boolean dryRun,
             final Source source,
-            final ActorRef inboundMessageProcessor,
+            final Sink<Object, NotUsed> inboundMappingSink,
             final MqttSpecificConfig specificConfig) {
 
         return startChildActorConflictFree(HiveMqtt5ConsumerActor.NAME,
-                HiveMqtt5ConsumerActor.props(connection(), inboundMessageProcessor, source, dryRun, specificConfig));
+                HiveMqtt5ConsumerActor.props(connection(), inboundMappingSink, source, dryRun, specificConfig));
     }
 
 }

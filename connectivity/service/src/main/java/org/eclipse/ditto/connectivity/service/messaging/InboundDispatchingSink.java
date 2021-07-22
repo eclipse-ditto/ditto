@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.HashSet;
@@ -54,6 +56,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
@@ -68,8 +71,8 @@ import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.internal.models.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
@@ -86,22 +89,25 @@ import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAc
 import org.eclipse.ditto.thingsearch.model.signals.commands.WithSubscriptionId;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 
-import akka.actor.AbstractActor;
+import com.typesafe.config.Config;
+
+import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.actor.ActorRefFactory;
 import akka.actor.ActorSelection;
-import akka.actor.Props;
 import akka.japi.pf.PFBuilder;
-import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
+import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.Sink;
 import scala.PartialFunction;
 import scala.util.Either;
 import scala.util.Left;
 import scala.util.Right;
 
 /**
- * This Actor dispatches inbound messages after they are mapped.
+ * This Sink dispatches inbound messages after they are mapped.
  */
-public final class InboundDispatchingActor extends AbstractActor
+public final class InboundDispatchingSink
         implements MappingOutcome.Visitor<MappedInboundExternalMessage, Optional<Signal<?>>> {
 
     /**
@@ -111,53 +117,58 @@ public final class InboundDispatchingActor extends AbstractActor
 
     private static final String UNKNOWN_MAPPER_ID = "?";
 
-    private final DittoDiagnosticLoggingAdapter logger;
+    private final ThreadSafeDittoLogger logger;
 
     private final HeaderTranslator headerTranslator;
     private final Connection connection;
     private final ActorSelection proxyActor;
     private final ActorRef connectionActor;
+    private final ActorRef outboundMessageMappingProcessorActor;
+    private final ActorRef clientActor;
+
+    private final ExpressionResolver connectionIdResolver;
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
     private final ConnectionMonitor responseMappedMonitor;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
-    private final ActorRef outboundMessageMappingProcessorActor;
-    private final ExpressionResolver connectionIdResolver;
     private final AcknowledgementConfig acknowledgementConfig;
 
-    @SuppressWarnings("unused")
-    private InboundDispatchingActor(
+    private InboundDispatchingSink(
             final Connection connection,
             final HeaderTranslator headerTranslator,
             final ActorSelection proxyActor,
             final ActorRef connectionActor,
-            final ActorRef outboundMessageMappingProcessorActor) {
+            final ActorRef outboundMessageMappingProcessorActor,
+            final ActorRef clientActor,
+            final ConnectivityConfig connectivityConfig,
+            final LimitsConfig limitsConfig,
+            final ActorRefFactory actorRefFactory) {
 
-        this.proxyActor = proxyActor;
-        this.outboundMessageMappingProcessorActor = outboundMessageMappingProcessorActor;
-        this.headerTranslator = headerTranslator;
-        this.connection = connection;
-        this.connectionActor = connectionActor;
+        this.connection = checkNotNull(connection, "connection");
+        this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
+        this.proxyActor = checkNotNull(proxyActor, "proxyActor");
+        this.connectionActor = checkNotNull(connectionActor, "connectionActor");
+        this.outboundMessageMappingProcessorActor = checkNotNull(outboundMessageMappingProcessorActor,
+                "outboundMessageMappingProcessorActor");
+        this.clientActor = checkNotNull(clientActor, "clientActor");
+        checkNotNull(connectivityConfig, "connectivityConfig");
+        checkNotNull(limitsConfig, "limitsConfig");
+        checkNotNull(actorRefFactory, "actorRefFactory");
 
-        logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this)
+        logger = DittoLoggerFactory.getThreadSafeLogger(InboundDispatchingSink.class)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
 
         connectionIdResolver = PlaceholderFactory.newExpressionResolver(
                 ConnectivityPlaceholders.newConnectionIdPlaceholder(),
                 connection.getId());
 
-        final DefaultScopedConfig dittoScoped =
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
-
-        final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
-        final LimitsConfig limitsConfig = DefaultLimitsConfig.of(dittoScoped);
 
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(connection);
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
         acknowledgementConfig = connectivityConfig.getConnectionConfig().getAcknowledgementConfig();
-        ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
+        ackregatorStarter = AcknowledgementAggregatorActorStarter.of(actorRefFactory,
                 acknowledgementConfig,
                 headerTranslator,
                 ThingModifyCommandAckRequestSetter.getInstance(),
@@ -166,50 +177,83 @@ public final class InboundDispatchingActor extends AbstractActor
     }
 
     /**
-     * Creates Akka configuration object for this actor.
+     * Creates a Sink that dispatches inbound messages after they are mapped.
      *
      * @param connection the connection
      * @param headerTranslator the headerTranslator to use.
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connection actor acting as the grandparent of this actor.
      * @param outboundMessageMappingProcessorActor used to publish errors.
-     * @return the Akka configuration Props object.
+     * @param clientActor the client actor ref to forward commands to.
+     * @param actorRefFactory the ActorRefFactory to use in order to create new actors in.
+     * @param config the configuration of the Akka system.
+     * @throws java.lang.NullPointerException if any of the passed arguments was {@code null}.
+     * @return the Sink.
      */
-    public static Props props(final Connection connection,
+    public static Sink<Object, NotUsed> createSink(final Connection connection,
             final HeaderTranslator headerTranslator,
             final ActorSelection proxyActor,
             final ActorRef connectionActor,
-            final ActorRef outboundMessageMappingProcessorActor) {
+            final ActorRef outboundMessageMappingProcessorActor,
+            final ActorRef clientActor,
+            final ActorRefFactory actorRefFactory,
+            final Config config) {
 
-        return Props.create(InboundDispatchingActor.class,
+        final var dittoScoped = DefaultScopedConfig.dittoScoped(checkNotNull(config, "config"));
+        final var connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
+        final var limitsConfig = DefaultLimitsConfig.of(dittoScoped);
+        final var inboundDispatchingSink = new InboundDispatchingSink(
                 connection,
                 headerTranslator,
                 proxyActor,
                 connectionActor,
-                outboundMessageMappingProcessorActor
+                outboundMessageMappingProcessorActor,
+                clientActor,
+                connectivityConfig,
+                limitsConfig,
+                actorRefFactory
         );
+        return inboundDispatchingSink.getSink();
     }
 
-    @Override
-    public Receive createReceive() {
-        return ReceiveBuilder.create()
-                .match(InboundMappingOutcomes.class, InboundMappingOutcomes::hasError, this::dispatchError)
-                .match(InboundMappingOutcomes.class, this::dispatchMapped)
-                .match(DittoRuntimeException.class, this::onDittoRuntimeException)
-                .matchAny(message -> logger.warning("Received unknown message <{}>.", message))
-                .build();
+    private Sink<Object, NotUsed> getSink() {
+        return Flow.create()
+                .divertTo(dispatchError(), InboundDispatchingSink::isInboundMappingOutcomesWithError)
+                .divertTo(dispatchMapped(), InboundMappingOutcomes.class::isInstance)
+                .divertTo(onDittoRuntimeException(), DittoRuntimeException.class::isInstance)
+                .to(Sink.foreach(message -> logger.warn("Received unknown message <{}>.", message)));
+    }
+
+    private static boolean isInboundMappingOutcomesWithError(final Object streamingElement) {
+        return streamingElement instanceof InboundMappingOutcomes &&
+                ((InboundMappingOutcomes) streamingElement).hasError();
+    }
+
+    private Sink<Object, NotUsed> onDittoRuntimeException() {
+        return Flow.fromFunction(DittoRuntimeException.class::cast)
+                .to(Sink.foreach(this::onDittoRuntimeException));
     }
 
     private void onDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
         onError(UNKNOWN_MAPPER_ID, dittoRuntimeException, null, null);
     }
 
+    private Sink<Object, NotUsed> dispatchError() {
+        return Flow.fromFunction(InboundMappingOutcomes.class::cast)
+                .to(Sink.foreach(this::dispatchError));
+    }
+
     private void dispatchError(final InboundMappingOutcomes outcomes) {
         onError(UNKNOWN_MAPPER_ID, outcomes.getError(), null, outcomes.getExternalMessage());
     }
 
+    private Sink<Object, NotUsed> dispatchMapped() {
+        return Flow.fromFunction(InboundMappingOutcomes.class::cast)
+                .to(Sink.foreach(this::dispatchMapped));
+    }
+
     private void dispatchMapped(final InboundMappingOutcomes outcomes) {
-        final ActorRef sender = getSender();
+        final ActorRef sender = outcomes.getSender();
         final PartialFunction<Signal<?>, Stream<IncomingSignal>> dispatchResponsesAndSearchCommands =
                 dispatchResponsesAndSearchCommands(sender, outcomes);
         final int ackRequestingSignalCount = outcomes.getOutcomes()
@@ -220,7 +264,7 @@ public final class InboundDispatchingActor extends AbstractActor
                 .mapToInt(this::dispatchIncomingSignal)
                 .sum();
         logger.debug("OnMapped from <{}>: <{}>", sender, outcomes);
-        sender.tell(ResponseCollectorActor.setCount(ackRequestingSignalCount), getSelf());
+        sender.tell(ResponseCollectorActor.setCount(ackRequestingSignalCount), ActorRef.noSender());
     }
 
     private Set<AcknowledgementLabel> getDeclaredAckLabels(final InboundMappingOutcomes outcomes) {
@@ -284,8 +328,8 @@ public final class InboundDispatchingActor extends AbstractActor
             @Nullable final TopicPath topicPath,
             @Nullable final ExternalMessage message) {
 
-        logger.debug("OnError mapperId=<{}> exception=<{}> topicPath=<{}> message=<{}> sender=<{}>",
-                mapperId, e, topicPath, message, getSender());
+        logger.debug("OnError mapperId=<{}> exception=<{}> topicPath=<{}> message=<{}>",
+                mapperId, e, topicPath, message);
         if (e instanceof DittoRuntimeException) {
             final DittoRuntimeException dittoRuntimeException = (DittoRuntimeException) e;
             final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(dittoRuntimeException, topicPath);
@@ -302,7 +346,7 @@ public final class InboundDispatchingActor extends AbstractActor
                                 e.getMessage());
                 mappedHeaders = applyInboundHeaderMapping(errorResponse, message, authorizationContext,
                         message.getTopicPath().orElse(null), message.getInternalHeaders());
-                final DittoDiagnosticLoggingAdapter l = logger.withCorrelationId(mappedHeaders);
+                final ThreadSafeDittoLogger l = logger.withCorrelationId(mappedHeaders);
                 l.info("Got exception <{}> when processing external message with mapper <{}>: <{}>",
                         dittoRuntimeException.getErrorCode(),
                         mapperId,
@@ -320,7 +364,7 @@ public final class InboundDispatchingActor extends AbstractActor
             logger.withCorrelationId(Optional.ofNullable(message)
                     .map(ExternalMessage::getInternalHeaders)
                     .orElseGet(DittoHeaders::empty)
-            ).warning("Got unknown exception <{}> when processing external message with mapper <{}>: <{}>",
+            ).warn("Got unknown exception <{}> when processing external message with mapper <{}>: <{}>",
                     e.getClass().getSimpleName(), mapperId, e.getMessage());
         }
         return Optional.empty();
@@ -429,7 +473,7 @@ public final class InboundDispatchingActor extends AbstractActor
                 responseSignal -> {
                     // potentially publish response/aggregated acks to reply target
                     if (signal.getDittoHeaders().isResponseRequired()) {
-                        outboundMessageMappingProcessorActor.tell(responseSignal, getSelf());
+                        outboundMessageMappingProcessorActor.tell(responseSignal, ActorRef.noSender());
                     }
 
                     // forward acks to the original sender for consumer settlement
@@ -454,29 +498,28 @@ public final class InboundDispatchingActor extends AbstractActor
         final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(e, null);
         // tell sender the error response for consumer settlement
         if (sender != null) {
-            sender.tell(errorResponse, getSelf());
+            sender.tell(errorResponse, ActorRef.noSender());
         }
         // publish error response
         outboundMessageMappingProcessorActor.tell(errorResponse.setDittoHeaders(dittoHeaders), ActorRef.noSender());
     }
 
     /**
-     * Only special Signals must be forwarded to the {@code ConnectionPersistenceActor}:
+     * Only special Signals must be forwarded to the {@code ClientActor}:
      * <ul>
      * <li>{@code Acknowledgement}s which were received via an incoming connection source</li>
      * <li>live {@code CommandResponse}s which were received via an incoming connection source</li>
      * <li>{@code SearchCommand}s which were received via an incoming connection source</li>
      * </ul>
      *
-     * @param signal the Signal to forward to the connectionActor
+     * @param signal the Signal to forward to the clientActor
      * @param sender the sender which shall receive the response
      * @param <T> type of elements for the next step..
      * @return an empty source of Signals
      */
-    private <T> Stream<T> forwardToClientActor(final Signal<?> signal,
-            @Nullable final ActorRef sender) {
+    private <T> Stream<T> forwardToClientActor(final Signal<?> signal, @Nullable final ActorRef sender) {
         // wrap response or search command for dispatching by entity ID
-        getContext().parent().tell(InboundSignal.of(signal), sender);
+        clientActor.tell(InboundSignal.of(signal), sender);
         return Stream.empty();
     }
 

@@ -19,7 +19,6 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -41,6 +40,7 @@ import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.messaging.InboundMappingSink.ExternalMessageWithSender;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
@@ -51,9 +51,12 @@ import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.TracingTags;
 
+import akka.NotUsed;
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 import akka.pattern.Patterns;
+import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.Sink;
 
 /**
  * Base class for consumer actors that holds common fields and handles the address status.
@@ -69,16 +72,16 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final ConnectionMonitor inboundAcknowledgedMonitor;
     protected final ConnectionId connectionId;
 
-    private final ActorRef inboundMappingProcessor;
+    private final Sink<Object, ?> inboundMappingSink;
     private final AcknowledgementConfig acknowledgementConfig;
 
     @Nullable private ResourceStatus resourceStatus;
 
     protected BaseConsumerActor(final Connection connection, final String sourceAddress,
-            final ActorRef inboundMappingProcessor, final Source source) {
+            final Sink<Object, ?> inboundMappingSink, final Source source) {
         this.connectionId = checkNotNull(connection, "connection").getId();
         this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
-        this.inboundMappingProcessor = checkNotNull(inboundMappingProcessor, "inboundMappingProcessor");
+        this.inboundMappingSink = checkNotNull(inboundMappingSink, "inboundMappingSink");
         this.source = checkNotNull(source, "source");
         this.connectionType = connection.getConnectionType();
         resetResourceStatus();
@@ -101,91 +104,112 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
      */
     protected abstract ThreadSafeDittoLoggingAdapter log();
 
-    /**
-     * Send an external message to the mapping processor actor.
-     * NOT thread-safe!
-     *
-     * @param message the external message
-     * @param settle technically settle the incoming message. MUST be thread-safe.
-     * @param reject technically reject the incoming message. MUST be thread-safe.
-     */
-    protected final void forwardToMappingActor(final ExternalMessage message, final Runnable settle,
-            final Reject reject) {
+    protected final Sink<AcknowledgeableMessage, NotUsed> getMessageMappingSink() {
+        return Flow.fromFunction(this::withSender)
+                .map(Object.class::cast)
+                .to(inboundMappingSink);
+    }
+
+    private ExternalMessageWithSender withSender(final AcknowledgeableMessage acknowledgeableMessage) {
+        // Start per-inbound-signal actor to collect acks of all thing-modify-commands mapped from incoming signal
+        final Duration collectorLifetime = acknowledgementConfig.getCollectorFallbackLifetime();
+        final ActorRef responseCollector = getContext().actorOf(ResponseCollectorActor.props(collectorLifetime));
+        prepareResponseHandler(acknowledgeableMessage, responseCollector);
+
+        final ExternalMessage messageWithSourceAndReplyTarget =
+                addSourceAndReplyTarget(acknowledgeableMessage.getMessage());
+        log().debug("Forwarding incoming message for mapping. ResponseCollector=<{}>", responseCollector);
+        return new ExternalMessageWithSender(messageWithSourceAndReplyTarget, responseCollector);
+    }
+
+    private void prepareResponseHandler(final AcknowledgeableMessage acknowledgeableMessage,
+            final ActorRef responseCollector) {
 
         final StartedTimer timer = DittoMetrics.timer(TIMER_ACK_HANDLING)
                 .tag(TracingTags.CONNECTION_ID, connectionId.toString())
                 .tag(TracingTags.CONNECTION_TYPE, connectionType.getName())
                 .start();
-        // Start per-inbound-signal actor to collect acks of all thing-modify-commands mapped from incoming signal
-        final Duration collectorLifetime = acknowledgementConfig.getCollectorFallbackLifetime();
-        final ActorRef responseCollector = getContext().actorOf(ResponseCollectorActor.props(collectorLifetime));
-        forwardAndAwaitAck(addSourceAndReplyTarget(message), responseCollector)
-                .handle((output, error) -> {
-                    log().debug("Result from ResponseCollector=<{}>: output=<{}> error=<{}>",
-                            responseCollector, output, error);
-                    if (output != null) {
-                        final List<CommandResponse<?>> failedResponses = output.getFailedResponses();
-                        if (output.allExpectedResponsesArrived() && failedResponses.isEmpty()) {
-                            timer.tag(TracingTags.ACK_SUCCESS, true).stop();
-                            settle.run();
-                        } else {
-                            // empty failed responses indicate that SetCount was missing
-                            final boolean shouldRedeliver = failedResponses.isEmpty() ||
-                                    someFailedResponseRequiresRedelivery(failedResponses);
-                            log().debug("Rejecting [redeliver={}] due to failed responses <{}>. " +
-                                    "ResponseCollector=<{}>", shouldRedeliver, failedResponses, responseCollector);
+
+        final Duration askTimeout = acknowledgementConfig.getCollectorFallbackAskTimeout();
+        // Ask response collector actor to get the collected responses in a future
+        Patterns.ask(responseCollector, ResponseCollectorActor.query(), askTimeout).thenCompose(output -> {
+            if (output instanceof ResponseCollectorActor.Output) {
+                return CompletableFuture.completedFuture((ResponseCollectorActor.Output) output);
+            } else if (output instanceof Throwable) {
+                log().debug("Patterns.ask failed. ResponseCollector=<{}>", responseCollector);
+                return CompletableFuture.failedFuture((Throwable) output);
+            } else {
+                log().error("Expect ResponseCollectorActor.Output, got: <{}>. ResponseCollector=<{}>", output,
+                        responseCollector);
+                return CompletableFuture.failedFuture(new ClassCastException("Unexpected acknowledgement type."));
+            }
+        }).handle((output, error) -> {
+            log().debug("Result from ResponseCollector=<{}>: output=<{}> error=<{}>",
+                    responseCollector, output, error);
+            if (output != null) {
+                final List<CommandResponse<?>> failedResponses = output.getFailedResponses();
+                if (output.allExpectedResponsesArrived() && failedResponses.isEmpty()) {
+                    timer.tag(TracingTags.ACK_SUCCESS, true).stop();
+                    acknowledgeableMessage.settle();
+                } else {
+                    // empty failed responses indicate that SetCount was missing
+                    final boolean shouldRedeliver = failedResponses.isEmpty() ||
+                            someFailedResponseRequiresRedelivery(failedResponses);
+                    log().debug("Rejecting [redeliver={}] due to failed responses <{}>. " +
+                            "ResponseCollector=<{}>", shouldRedeliver, failedResponses, responseCollector);
+                    timer.tag(TracingTags.ACK_SUCCESS, false)
+                            .tag(TracingTags.ACK_REDELIVER, shouldRedeliver)
+                            .stop();
+                    acknowledgeableMessage.reject(shouldRedeliver);
+                }
+            } else {
+                // don't count this as "failure" in the "source consumed" metric as the consumption
+                // itself was successful
+                final DittoRuntimeException dittoRuntimeException =
+                        DittoRuntimeException.asDittoRuntimeException(error, rootCause -> {
+                            // Redeliver and pray this unexpected error goes away
+                            log().debug("Rejecting [redeliver=true] due to error <{}>. " +
+                                    "ResponseCollector=<{}>", rootCause, responseCollector);
                             timer.tag(TracingTags.ACK_SUCCESS, false)
-                                    .tag(TracingTags.ACK_REDELIVER, shouldRedeliver)
+                                    .tag(TracingTags.ACK_REDELIVER, true)
                                     .stop();
-                            reject.reject(shouldRedeliver);
-                        }
+                            acknowledgeableMessage.reject(true);
+                            return null;
+                        });
+                if (dittoRuntimeException != null) {
+                    if (isConsideredSuccess(dittoRuntimeException)) {
+                        timer.tag(TracingTags.ACK_SUCCESS, true).stop();
+                        acknowledgeableMessage.settle();
                     } else {
-                        // don't count this as "failure" in the "source consumed" metric as the consumption
-                        // itself was successful
-                        final DittoRuntimeException dittoRuntimeException =
-                                DittoRuntimeException.asDittoRuntimeException(error, rootCause -> {
-                                    // Redeliver and pray this unexpected error goes away
-                                    log().debug("Rejecting [redeliver=true] due to error <{}>. " +
-                                            "ResponseCollector=<{}>", rootCause, responseCollector);
-                                    timer.tag(TracingTags.ACK_SUCCESS, false)
-                                            .tag(TracingTags.ACK_REDELIVER, true)
-                                            .stop();
-                                    reject.reject(true);
-                                    return null;
-                                });
-                        if (dittoRuntimeException != null) {
-                            if (isConsideredSuccess(dittoRuntimeException)) {
-                                timer.tag(TracingTags.ACK_SUCCESS, true).stop();
-                                settle.run();
-                            } else {
-                                final var shouldRedeliver = requiresRedelivery(dittoRuntimeException.getHttpStatus());
-                                log().debug("Rejecting [redeliver={}] due to error <{}>. ResponseCollector=<{}>",
-                                        shouldRedeliver, dittoRuntimeException, responseCollector);
-                                timer.tag(TracingTags.ACK_SUCCESS, false)
-                                        .tag(TracingTags.ACK_REDELIVER, shouldRedeliver)
-                                        .stop();
-                                reject.reject(shouldRedeliver);
-                            }
-                        }
+                        final var shouldRedeliver = requiresRedelivery(dittoRuntimeException.getHttpStatus());
+                        log().debug("Rejecting [redeliver={}] due to error <{}>. ResponseCollector=<{}>",
+                                shouldRedeliver, dittoRuntimeException, responseCollector);
+                        timer.tag(TracingTags.ACK_SUCCESS, false)
+                                .tag(TracingTags.ACK_REDELIVER, shouldRedeliver)
+                                .stop();
+                        acknowledgeableMessage.reject(shouldRedeliver);
                     }
-                    return null;
-                })
-                .exceptionally(e -> {
-                    log().error(e, "Unexpected error during manual acknowledgement. ResponseCollector=<{}>",
-                            responseCollector);
-                    return null;
-                });
+                }
+            }
+            return null;
+        }).exceptionally(e -> {
+            log().error(e, "Unexpected error during manual acknowledgement. ResponseCollector=<{}>",
+                    responseCollector);
+            return null;
+        });
     }
 
     /**
-     * Send an error to the mapping processor actor to be published in the reply-target.
-     *
-     * @param message the error.
+     * Send an error to the mapping sink to be published in the reply-target.
      */
-    protected final void forwardToMappingActor(final DittoRuntimeException message) {
-        final DittoRuntimeException messageWithReplyInformation =
-                message.setDittoHeaders(enrichHeadersWithReplyInformation(message.getDittoHeaders()));
-        inboundMappingProcessor.tell(messageWithReplyInformation, ActorRef.noSender());
+    protected final Sink<DittoRuntimeException, ?> getDittoRuntimeExceptionSink() {
+        return Flow.<DittoRuntimeException, DittoRuntimeException>fromFunction(
+                message -> message.setDittoHeaders(enrichHeadersWithReplyInformation(message.getDittoHeaders())))
+                .via(Flow.<DittoRuntimeException, Object>fromFunction(value -> {
+                    inboundMonitor.failure(value.getDittoHeaders(), value);
+                    return value;
+                }))
+                .to(inboundMappingSink);
     }
 
     protected void resetResourceStatus() {
@@ -208,30 +232,6 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         } else {
             this.resourceStatus = resourceStatus;
         }
-    }
-
-    private CompletionStage<ResponseCollectorActor.Output> forwardAndAwaitAck(final ExternalMessage message,
-            final ActorRef responseCollector) {
-        final Duration askTimeout = acknowledgementConfig.getCollectorFallbackAskTimeout();
-        // Forward message to mapping processor actor with response collector actor as sender
-        // message mapping processor actor will set the number of expected acks (can be 0)
-        // and start the same amount of ack aggregator actors
-        log().debug("Forwarding incoming message for mapping. ResponseCollector=<{}>", responseCollector);
-        inboundMappingProcessor.tell(message, responseCollector);
-        // Ask response collector actor to get the collected responses in a future
-
-        return Patterns.ask(responseCollector, ResponseCollectorActor.query(), askTimeout).thenCompose(output -> {
-            if (output instanceof ResponseCollectorActor.Output) {
-                return CompletableFuture.completedFuture((ResponseCollectorActor.Output) output);
-            } else if (output instanceof Throwable) {
-                log().debug("Patterns.ask failed. ResponseCollector=<{}>", responseCollector);
-                return CompletableFuture.failedFuture((Throwable) output);
-            } else {
-                log().error("Expect ResponseCollectorActor.Output, got: <{}>. ResponseCollector=<{}>", output,
-                        responseCollector);
-                return CompletableFuture.failedFuture(new ClassCastException("Unexpected acknowledgement type."));
-            }
-        });
     }
 
     private ExternalMessage addSourceAndReplyTarget(final ExternalMessage message) {

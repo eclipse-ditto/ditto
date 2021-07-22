@@ -19,8 +19,11 @@ import java.util.regex.Pattern;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.internal.models.placeholders.PlaceholderFilter;
 
 /**
  * Allows to configure a consumer group ID via the specific config of a connection.
@@ -79,7 +82,11 @@ final class KafkaConsumerGroupSpecificConfig implements KafkaSpecificConfig {
     }
 
     private Optional<String> getGroupId(final Connection connection) {
-        return Optional.ofNullable(connection.getSpecificConfig().get(GROUP_ID_SPECIFIC_CONFIG_KEY));
+        final var placeholderResolver =
+                PlaceholderFactory.newExpressionResolver(ConnectivityPlaceholders.newConnectionIdPlaceholder(),
+                        connection.getId());
+        return Optional.ofNullable(connection.getSpecificConfig().get(GROUP_ID_SPECIFIC_CONFIG_KEY))
+                .map(groupId -> PlaceholderFilter.apply(groupId, placeholderResolver));
     }
 
 }

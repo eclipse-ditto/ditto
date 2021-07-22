@@ -38,8 +38,8 @@ import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
-import akka.actor.ActorContext;
 import akka.actor.ActorRef;
+import akka.actor.ActorRefFactory;
 import akka.actor.Props;
 import akka.japi.pf.PFBuilder;
 import scala.PartialFunction;
@@ -52,19 +52,19 @@ import scala.PartialFunction;
  */
 public final class AcknowledgementAggregatorActorStarter {
 
-    protected final ActorContext actorContext;
+    protected final ActorRefFactory actorRefFactory;
     protected final Duration maxTimeout;
     protected final HeaderTranslator headerTranslator;
     protected final PartialFunction<Signal<?>, Signal<?>> ackRequestSetter;
 
     private int childCounter = 0;
 
-    private AcknowledgementAggregatorActorStarter(final ActorContext context,
+    private AcknowledgementAggregatorActorStarter(final ActorRefFactory actorRefFactory,
             final Duration maxTimeout,
             final HeaderTranslator headerTranslator,
             final PartialFunction<Signal<?>, Signal<?>> ackRequestSetter) {
 
-        actorContext = checkNotNull(context, "context");
+        this.actorRefFactory = checkNotNull(actorRefFactory, "actorRefFactory");
         this.ackRequestSetter = ackRequestSetter;
         this.maxTimeout = checkNotNull(maxTimeout, "maxTimeout");
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
@@ -73,39 +73,39 @@ public final class AcknowledgementAggregatorActorStarter {
     /**
      * Returns an instance of {@code AcknowledgementAggregatorActorStarter}.
      *
-     * @param context the context to start the aggregator actor in.
+     * @param actorRefFactory the actorRefFactory to start the aggregator actor in.
      * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
      * @param headerTranslator translates headers from external sources or to external sources.
      * response over a channel to the user.
      * @return a means to start an acknowledgement forwarder actor.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static AcknowledgementAggregatorActorStarter of(final ActorContext context,
+    public static AcknowledgementAggregatorActorStarter of(final ActorRefFactory actorRefFactory,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
             final AbstractCommandAckRequestSetter<?>... ackRequestSetters) {
 
-        return new AcknowledgementAggregatorActorStarter(context, acknowledgementConfig.getForwarderFallbackTimeout(),
-                headerTranslator, buildAckRequestSetter(ackRequestSetters));
+        return of(actorRefFactory, acknowledgementConfig.getForwarderFallbackTimeout(), headerTranslator,
+                ackRequestSetters);
     }
 
     /**
      * Returns an instance of {@code AcknowledgementAggregatorActorStarter}.
      *
-     * @param context the context to start the aggregator actor in.
-     * @param maxTimeout maximum timeout of the acknowledgement aggregator actor.
+     * @param actorRefFactory the actorRefFactory to start the aggregator actor in.
+     * @param maxTimeout the maximum timeout.
      * @param headerTranslator translates headers from external sources or to external sources.
      * response over a channel to the user.
      * @return a means to start an acknowledgement forwarder actor.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static AcknowledgementAggregatorActorStarter of(final ActorContext context,
+    public static AcknowledgementAggregatorActorStarter of(final ActorRefFactory actorRefFactory,
             final Duration maxTimeout,
             final HeaderTranslator headerTranslator,
             final AbstractCommandAckRequestSetter<?>... ackRequestSetters) {
 
-        return new AcknowledgementAggregatorActorStarter(context, maxTimeout,
-                headerTranslator, buildAckRequestSetter(ackRequestSetters));
+        return new AcknowledgementAggregatorActorStarter(actorRefFactory, maxTimeout, headerTranslator,
+                buildAckRequestSetter(ackRequestSetters));
     }
 
     /**
@@ -179,7 +179,7 @@ public final class AcknowledgementAggregatorActorStarter {
         final Props props = AcknowledgementAggregatorActor.props(entityId, dittoHeaders, maxTimeout, headerTranslator,
                 responseSignalConsumer);
         final String actorName = getNextActorName(dittoHeaders);
-        return actorContext.actorOf(props, actorName);
+        return actorRefFactory.actorOf(props, actorName);
     }
 
     private String getNextActorName(final DittoHeaders dittoHeaders) {

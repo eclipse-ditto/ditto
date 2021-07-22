@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -80,11 +81,10 @@ final class KafkaMessageTransformer {
                 .getOrDefault(DittoHeaderDefinition.CORRELATION_ID.getKey(), UUID.randomUUID().toString());
         try {
             final DittoLogger correlationIdScopedLogger = LOGGER.withCorrelationId(correlationId);
-            if (correlationIdScopedLogger.isDebugEnabled()) {
-                correlationIdScopedLogger.debug(
-                        "Transforming incoming kafka message <{}> with headers <{}> for thing with ID <{}>.",
-                        value, messageHeaders, key);
-            }
+            correlationIdScopedLogger.debug(
+                    "Transforming incoming kafka message <{}> with headers <{}> and key <{}>.",
+                    value, messageHeaders, key
+            );
 
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(messageHeaders)
                     .withTextAndBytes(value, value == null ? null : value.getBytes())
@@ -125,6 +125,12 @@ final class KafkaMessageTransformer {
         if (!messageHeaders.containsKey(DittoHeaderDefinition.CORRELATION_ID.getKey())) {
             messageHeaders.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), UUID.randomUUID().toString());
         }
+
+        // add properties from consumer record to headers to make them available in payload/header mappings
+        Arrays.stream(KafkaHeader.values())
+                .forEach(kafkaHeader -> kafkaHeader.apply(consumerRecord)
+                        .ifPresent(property -> messageHeaders.put(kafkaHeader.getName(), property)));
+
         return messageHeaders;
     }
 

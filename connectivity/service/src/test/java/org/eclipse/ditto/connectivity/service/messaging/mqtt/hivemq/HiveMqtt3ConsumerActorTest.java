@@ -31,9 +31,9 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
-import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorWithAcknowledgementsTest;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.junit.Ignore;
 
 import com.hivemq.client.internal.mqtt.message.publish.MqttPublish;
@@ -41,14 +41,16 @@ import com.hivemq.client.internal.mqtt.message.publish.mqtt3.Mqtt3PublishView;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
 
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link HiveMqtt3ConsumerActor}.
  */
-public final class HiveMqtt3ConsumerActorTest extends AbstractConsumerActorTest<Mqtt3Publish> {
+public final class HiveMqtt3ConsumerActorTest extends AbstractConsumerActorWithAcknowledgementsTest<Mqtt3Publish> {
 
     final CountDownLatch confirmLatch = new CountDownLatch(1);
 
@@ -58,9 +60,9 @@ public final class HiveMqtt3ConsumerActorTest extends AbstractConsumerActorTest<
             MqttSpecificConfig.fromConnection(CONNECTION, CONNECTION_CONFIG.getMqttConfig());
 
     @Override
-    protected Props getConsumerActorProps(final ActorRef mappingActor,
+    protected Props getConsumerActorProps(final Sink<Object, NotUsed> inboundMappingSink,
             final Set<AcknowledgementRequest> acknowledgementRequests) {
-        return HiveMqtt3ConsumerActor.props(CONNECTION, mappingActor, ConnectivityModelFactory.newSourceBuilder()
+        return HiveMqtt3ConsumerActor.props(CONNECTION, inboundMappingSink, ConnectivityModelFactory.newSourceBuilder()
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .headerMapping(TestConstants.MQTT3_HEADER_MAPPING)
                 .acknowledgementRequests(FilteredAcknowledgementRequest.of(acknowledgementRequests, null))
@@ -72,8 +74,9 @@ public final class HiveMqtt3ConsumerActorTest extends AbstractConsumerActorTest<
     }
 
     @Override
-    protected Props getConsumerActorProps(final ActorRef mappingActor, final PayloadMapping payloadMapping) {
-        return HiveMqtt3ConsumerActor.props(CONNECTION, mappingActor, ConnectivityModelFactory.newSourceBuilder()
+    protected Props getConsumerActorProps(final Sink<Object, NotUsed> inboundMappingSink,
+            final PayloadMapping payloadMapping) {
+        return HiveMqtt3ConsumerActor.props(CONNECTION, inboundMappingSink, ConnectivityModelFactory.newSourceBuilder()
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .headerMapping(TestConstants.MQTT3_HEADER_MAPPING)
                 .payloadMapping(payloadMapping)

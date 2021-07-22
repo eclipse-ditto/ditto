@@ -31,8 +31,10 @@ import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3Subscribe;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.suback.Mqtt3SubAck;
 
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.stream.javadsl.Sink;
 
 /**
  * Actor which handles connection to MQTT 3.1.1 server.
@@ -127,11 +129,11 @@ public final class HiveMqtt3ClientActor
     @Override
     ActorRef startConsumerActor(final boolean dryRun,
             final Source source,
-            final ActorRef inboundMessageProcessor,
+            final Sink<Object, NotUsed> inboundMappingSink,
             final MqttSpecificConfig specificConfig) {
 
         return startChildActorConflictFree(HiveMqtt3ConsumerActor.NAME,
-                HiveMqtt3ConsumerActor.props(connection(), inboundMessageProcessor, source, dryRun, specificConfig));
+                HiveMqtt3ConsumerActor.props(connection(), inboundMappingSink, source, dryRun, specificConfig));
     }
 
 }

@@ -49,11 +49,13 @@ import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttDisconnectSource;
 
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.FSM;
 import akka.actor.Status;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
+import akka.stream.javadsl.Sink;
 
 /**
  * Actor which handles connection to an MQTT 3 or 5 broker.
@@ -133,11 +135,11 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
      *
      * @param dryRun whether this is a dry-run (consumed messages are discarded)
      * @param source source of the consumer actor.
-     * @param inboundMessageProcessor the message mapping processor actor.
+     * @param inboundMappingSink the inbound message mapping sink.
      * @param specificConfig the MQTT specific config.
      * @return reference of the created publisher actor.
      */
-    abstract ActorRef startConsumerActor(boolean dryRun, Source source, ActorRef inboundMessageProcessor,
+    abstract ActorRef startConsumerActor(boolean dryRun, Source source, Sink<Object, NotUsed> inboundMappingSink,
             MqttSpecificConfig specificConfig);
 
     /**
@@ -553,7 +555,7 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
     private void startHiveMqConsumers(final Consumer<MqttConsumer> consumerListener) {
         connection().getSources().stream()
                 .map(source -> MqttConsumer.of(source,
-                        startConsumerActor(isDryRun(), source, getInboundMappingProcessorActor(), mqttSpecificConfig)))
+                        startConsumerActor(isDryRun(), source, getInboundMappingSink(), mqttSpecificConfig)))
                 .forEach(consumerListener);
     }
 

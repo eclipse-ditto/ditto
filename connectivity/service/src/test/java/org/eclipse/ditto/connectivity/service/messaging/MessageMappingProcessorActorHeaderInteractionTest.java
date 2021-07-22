@@ -24,9 +24,9 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
@@ -88,7 +88,11 @@ public final class MessageMappingProcessorActorHeaderInteractionTest extends Abs
             final boolean isBadRequest = expectedStatusCode.filter(HttpStatus.BAD_REQUEST::equals).isPresent();
             final boolean settleImmediately = modifyThing.getDittoHeaders().getAcknowledgementRequests().isEmpty();
 
-            inboundMappingProcessorActor.tell(toExternalMessage(modifyThing), collectorProbe.ref());
+            inboundMappingProcessorActor.tell(
+                    new InboundMappingSink.ExternalMessageWithSender(toExternalMessage(modifyThing),
+                            collectorProbe.ref()),
+                    ActorRef.noSender()
+            );
 
             // transport-layer settlement based on requested-acks alone
             if (settleImmediately && !isBadRequest) {

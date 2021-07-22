@@ -29,6 +29,7 @@ import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 
 import com.typesafe.config.Config;
 
+import akka.kafka.ConnectionCheckerSettings;
 import akka.kafka.ConsumerSettings;
 import akka.kafka.ProducerSettings;
 
@@ -46,6 +47,7 @@ final class PropertiesFactory {
     static {
         final List<KafkaSpecificConfig> consumerSpecificConfigs = new ArrayList<>(COMMON_SPECIFIC_CONFIGS);
         consumerSpecificConfigs.add(KafkaConsumerGroupSpecificConfig.getInstance());
+        consumerSpecificConfigs.add(KafkaConsumerOffsetResetSpecificConfig.getInstance());
         CONSUMER_SPECIFIC_CONFIGS = List.copyOf(consumerSpecificConfigs);
         PRODUCER_SPECIFIC_CONFIGS = List.copyOf(COMMON_SPECIFIC_CONFIGS);
     }
@@ -82,13 +84,16 @@ final class PropertiesFactory {
      */
     ConsumerSettings<String, String> getConsumerSettings(final boolean dryRun) {
         final Config alpakkaConfig = this.config.getConsumerConfig().getAlpakkaConfig();
+        final ConnectionCheckerSettings connectionCheckerSettings =
+                ConnectionCheckerSettings.apply(alpakkaConfig.getConfig("connection-checker"));
         final ConsumerSettings<String, String> consumerSettings =
                 ConsumerSettings.apply(alpakkaConfig, new StringDeserializer(), new StringDeserializer())
                         .withBootstrapServers(bootstrapServers)
                         .withGroupId(connection.getId().toString())
                         .withClientId(clientId + "-consumer")
                         .withProperties(getConsumerSpecificConfigProperties())
-                        .withProperties(getSecurityProtocolProperties());
+                        .withProperties(getSecurityProtocolProperties())
+                        .withConnectionChecker(connectionCheckerSettings);
 
         // disable auto commit in dry run mode
         return dryRun ? consumerSettings.withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false") :
