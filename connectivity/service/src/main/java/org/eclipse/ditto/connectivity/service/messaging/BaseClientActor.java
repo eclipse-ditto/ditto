@@ -196,6 +196,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final Materializer materializer;
     protected final ConnectionLogger connectionLogger;
+    private final boolean dryRun;
 
     private final ConnectionContextProvider connectionContextProvider;
     protected ConnectionContext connectionContext;
@@ -257,6 +258,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 ConnectionPersistenceActor.getSubscriptionPrefixLength(connection.getClientCount());
 
         // Send init message to allow for unsafe initialization of subclasses.
+        dryRun = dittoHeaders.isDryRun();
         startInitialization(dittoHeaders);
     }
 
@@ -297,7 +299,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         initialize();
 
         // inform connection actor of my presence if there are other client actors
-        if (connection.getClientCount() > 1) {
+        if (connection.getClientCount() > 1 && !dryRun) {
             connectionActor.tell(getSelf(), getSelf());
             startTimerWithFixedDelay(Control.REFRESH_CLIENT_ACTOR_REFS.name(), Control.REFRESH_CLIENT_ACTOR_REFS,
                     clientActorRefsNotificationDelay);
@@ -1190,11 +1192,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // All these method calls are NOT thread-safe. Do NOT inline.
         final CompletionStage<Status.Status> publisherReady = startPublisherActor();
         final CompletionStage<Status.Status> consumersReady = startConsumerActors(clientConnected);
-        final boolean isDryRun = isDryRun();
 
         return publisherReady
                 .thenCompose(unused -> consumersReady)
-                .thenCompose(unused -> subscribeAndDeclareAcknowledgementLabels(isDryRun))
+                .thenCompose(unused -> subscribeAndDeclareAcknowledgementLabels(dryRun))
                 .thenApply(unused -> InitializationResult.success())
                 .exceptionally(InitializationResult::failed);
     }
@@ -1765,7 +1766,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     protected boolean isDryRun() {
-        return TESTING.equals(stateName());
+        return dryRun;
     }
 
     private String nextChildActorName(final String prefix) {

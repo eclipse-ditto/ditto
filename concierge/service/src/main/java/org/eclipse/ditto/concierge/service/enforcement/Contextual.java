@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.concierge.service.enforcement;
 
-import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -29,41 +29,34 @@ import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.Scheduler;
 
 /**
  * A message together with contextual information about the actor processing it.
  */
 public final class Contextual<T extends WithDittoHeaders> implements WithSender<T>, WithDittoHeaders {
 
-    @Nullable
-    private final T message;
+    private static final String POLICY_ENFORCER_CACHE_DISPATCHER = "policy-enforcer-cache-dispatcher";
 
+    @Nullable private final T message;
     private final ActorRef self;
-
     private final ActorRef sender;
-
+    private final Scheduler scheduler;
+    private final Executor executor;
     private final ActorRef pubSubMediator;
-
     private final ActorRef conciergeForwarder;
-
-    private final Duration askTimeout;
-
+    private final AskWithRetryConfig askWithRetryConfig;
     private final ThreadSafeDittoLoggingAdapter log;
 
-    @Nullable
-    private final CacheKey cacheKey;
-
-    @Nullable
-    private final StartedTimer startedTimer;
-
-    @Nullable
-    private final ActorRef receiver;
-
-    @Nullable
-    private final Function<Object, Object> receiverWrapperFunction;
+    @Nullable private final CacheKey cacheKey;
+    @Nullable private final StartedTimer startedTimer;
+    @Nullable private final ActorRef receiver;
+    @Nullable private final Function<Object, Object> receiverWrapperFunction;
 
     // for live signal enforcement
     @Nullable
@@ -72,9 +65,15 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     @Nullable
     private final Supplier<CompletionStage<Object>> askFuture;
 
-    private Contextual(@Nullable final T message, final ActorRef self, @Nullable final ActorRef sender,
-            final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
-            final Duration askTimeout, final ThreadSafeDittoLoggingAdapter log,
+    private Contextual(@Nullable final T message,
+            final ActorRef self,
+            @Nullable final ActorRef sender,
+            final Scheduler scheduler,
+            final Executor executor,
+            final ActorRef pubSubMediator,
+            final ActorRef conciergeForwarder,
+            final AskWithRetryConfig askWithRetryConfig,
+            final ThreadSafeDittoLoggingAdapter log,
             @Nullable final CacheKey cacheKey,
             @Nullable final StartedTimer startedTimer,
             @Nullable final ActorRef receiver,
@@ -84,9 +83,11 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         this.message = message;
         this.self = self;
         this.sender = sender;
+        this.scheduler = scheduler;
+        this.executor = executor;
         this.pubSubMediator = pubSubMediator;
         this.conciergeForwarder = conciergeForwarder;
-        this.askTimeout = askTimeout;
+        this.askWithRetryConfig = askWithRetryConfig;
         this.log = log;
         this.cacheKey = cacheKey;
         this.startedTimer = startedTimer;
@@ -97,16 +98,28 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     }
 
     static <T extends WithDittoHeaders> Contextual<T> forActor(final ActorRef self,
-            final ActorRef deadLetters,
+            final ActorSystem actorSystem,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
-            final Duration askTimeout,
+            final AskWithRetryConfig askWithRetryConfig,
             final ThreadSafeDittoLoggingAdapter log,
             @Nullable final Cache<String, ActorRef> responseReceivers) {
 
-        return new Contextual<>(null, self, deadLetters, pubSubMediator, conciergeForwarder, askTimeout, log, null,
+        return new Contextual<>(null,
+                self,
+                actorSystem.deadLetters(),
+                actorSystem.getScheduler(),
+                actorSystem.dispatchers().lookup(POLICY_ENFORCER_CACHE_DISPATCHER),
+                pubSubMediator,
+                conciergeForwarder,
+                askWithRetryConfig,
+                log,
                 null,
-                null, null, responseReceivers, null);
+                null,
+                null,
+                null,
+                responseReceivers,
+                null);
     }
 
     /**
@@ -118,8 +131,9 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
      * @return a copy of this with an ask-future.
      */
     Contextual<T> withAskFuture(final Supplier<CompletionStage<Object>> askFuture) {
-        return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout, log, cacheKey,
-                startedTimer, receiver, receiverWrapperFunction, responseReceivers, askFuture);
+        return new Contextual<>(message, self, sender, scheduler, executor, pubSubMediator, conciergeForwarder,
+                askWithRetryConfig, log, cacheKey, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+                askFuture);
     }
 
     /**
@@ -142,6 +156,24 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     @Override
     public ActorRef getSender() {
         return sender;
+    }
+
+    /**
+     * Returns the scheduler to use for doing retries of asks.
+     *
+     * @return the scheduler to use for doing retries of asks.
+     */
+    public Scheduler getScheduler() {
+        return scheduler;
+    }
+
+    /**
+     * Returns the executor to use for doing asks/retries of asks.
+     *
+     * @return the executor to use for doing asks/retries of asks.
+     */
+    public Executor getExecutor() {
+        return executor;
     }
 
     @Override
@@ -178,8 +210,8 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         return conciergeForwarder;
     }
 
-    Duration getAskTimeout() {
-        return askTimeout;
+    AskWithRetryConfig getAskWithRetryConfig() {
+        return askWithRetryConfig;
     }
 
     ThreadSafeDittoLoggingAdapter getLog() {
@@ -215,26 +247,26 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
 
     <S extends WithDittoHeaders> Contextual<S> withReceivedMessage(@Nullable final S message,
             @Nullable final ActorRef sender) {
-        return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, cacheKeyFor(message), startedTimer, receiver, receiverWrapperFunction, responseReceivers,
-                askFuture);
+        return new Contextual<>(message, self, sender, scheduler, executor, pubSubMediator, conciergeForwarder,
+                askWithRetryConfig, log, cacheKeyFor(message), startedTimer, receiver, receiverWrapperFunction,
+                responseReceivers, askFuture);
     }
 
     Contextual<T> withTimer(final StartedTimer startedTimer) {
-        return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, cacheKey, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+        return new Contextual<>(message, self, sender, scheduler, executor, pubSubMediator, conciergeForwarder,
+                askWithRetryConfig, log, cacheKey, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture);
     }
 
     Contextual<T> withReceiver(@Nullable final ActorRef receiver) {
-        return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, cacheKey, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+        return new Contextual<>(message, self, sender, scheduler, executor, pubSubMediator, conciergeForwarder,
+                askWithRetryConfig, log, cacheKey, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture);
     }
 
     Contextual<T> withReceiverWrapperFunction(final Function<Object, Object> receiverWrapperFunction) {
-        return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, cacheKey, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+        return new Contextual<>(message, self, sender, scheduler, executor, pubSubMediator, conciergeForwarder,
+                askWithRetryConfig, log, cacheKey, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture);
     }
 
@@ -259,6 +291,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 "message=" + message +
                 ", self=" + self +
                 ", sender=" + sender +
+                ", executionContext=" + executor +
                 ", cacheKey=" + cacheKey +
                 ", receiver=" + receiver +
                 ", receiverWrapperFunction=" + receiverWrapperFunction +

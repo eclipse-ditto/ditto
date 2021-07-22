@@ -19,7 +19,6 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
-import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
@@ -27,9 +26,10 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyPolicyId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.junit.AfterClass;
@@ -38,6 +38,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
+
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -53,7 +55,7 @@ public final class EnforcementSchedulerTest {
 
     @BeforeClass
     public static void beforeClass() {
-        actorSystem = ActorSystem.create();
+        actorSystem = ActorSystem.create("test", ConfigFactory.load("test"));
     }
 
     @AfterClass
@@ -72,7 +74,6 @@ public final class EnforcementSchedulerTest {
     @Test
     public void testOrdering() {
         new TestKit(actorSystem) {{
-            final TestProbe deadLetterProbe = TestProbe.apply(actorSystem);
             final TestProbe pubSubProbe = TestProbe.apply(actorSystem);
             final TestProbe conciergeForwarderProbe = TestProbe.apply(actorSystem);
             final TestProbe receiverProbe = TestProbe.apply(actorSystem);
@@ -80,9 +81,10 @@ public final class EnforcementSchedulerTest {
             doAnswer(invocation -> mockLogger).when(mockLogger).withCorrelationId(any(DittoHeaders.class));
             doAnswer(invocation -> mockLogger).when(mockLogger).withCorrelationId(any(WithDittoHeaders.class));
             doAnswer(invocation -> mockLogger).when(mockLogger).withCorrelationId(any(CharSequence.class));
-            final Contextual<WithDittoHeaders> baseContextual = Contextual.forActor(getRef(), deadLetterProbe.ref(),
+            final Contextual<WithDittoHeaders> baseContextual = Contextual.forActor(getRef(), actorSystem,
                     pubSubProbe.ref(), conciergeForwarderProbe.ref(),
-                    Duration.ofSeconds(10), mockLogger,
+                    DefaultAskWithRetryConfig.of(ConfigFactory.empty(), "test"),
+                    mockLogger,
                     null
             );
             final ThingId thingId = ThingId.of("busy", "thing");

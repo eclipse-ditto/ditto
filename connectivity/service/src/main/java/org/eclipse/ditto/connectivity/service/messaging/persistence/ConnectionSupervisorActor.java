@@ -19,16 +19,16 @@ import javax.annotation.Nullable;
 import javax.jms.JMSRuntimeException;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
+import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnavailableException;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
-import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnavailableException;
 
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
@@ -105,7 +105,8 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
 
     @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
-        return ConnectionPersistenceActor.props(entityId, proxyActor, propsFactory, commandInterceptor, connectionPriorityProviderFactory);
+        return ConnectionPersistenceActor.props(entityId, proxyActor, pubSubMediator, propsFactory, commandInterceptor,
+                connectionPriorityProviderFactory);
     }
 
     @Override

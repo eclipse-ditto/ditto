@@ -52,7 +52,7 @@ class ClientSessionCredentialsVisitor implements CredentialsVisitor<Void> {
     public Void usernamePassword(final UserPasswordCredentials credentials) {
         logger.debug("Setting password identity on session.");
         final String password = credentials.getPassword();
-        clientSession.setPasswordIdentityProvider(() -> Collections.singleton(password));
+        clientSession.setPasswordIdentityProvider(sessionContext -> Collections.singleton(password));
         return null;
     }
 

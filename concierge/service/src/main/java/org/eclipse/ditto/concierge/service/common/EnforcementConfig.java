@@ -12,10 +12,9 @@
  */
 package org.eclipse.ditto.concierge.service.common;
 
-import java.time.Duration;
-
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
@@ -25,11 +24,12 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 public interface EnforcementConfig {
 
     /**
-     * Returns the ask timeout duration: the duration to wait for entity shard regions.
+     * Returns the configuration for the used "ask with retry" pattern in the concierge enforcement to load
+     * things+policies.
      *
-     * @return the ask timeout duration.
+     * @return the "ask with retry" pattern config for retrieval of things and policies.
      */
-    Duration getAskTimeout();
+    AskWithRetryConfig getAskWithRetryConfig();
 
     /**
      * Returns the buffer size used for the queue in the enforcer actor.
@@ -50,11 +50,6 @@ public interface EnforcementConfig {
      * {@code EnforcementConfig}.
      */
     enum EnforcementConfigValue implements KnownConfigValue {
-
-        /**
-         * The ask timeout duration: the duration to wait for entity shard regions.
-         */
-        ASK_TIMEOUT("ask-timeout", Duration.ofSeconds(10)),
 
         /**
          * The buffer size used for the queue in the enforcer actor.

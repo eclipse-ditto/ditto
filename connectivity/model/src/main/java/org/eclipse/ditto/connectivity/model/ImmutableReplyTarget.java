@@ -28,6 +28,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.common.ResponseType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -35,8 +37,6 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.ResponseType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Immutable implementation of {@link ReplyTarget}.
@@ -71,6 +71,20 @@ final class ImmutableReplyTarget implements ReplyTarget {
     @Override
     public HeaderMapping getHeaderMapping() {
         return headerMapping;
+    }
+
+    @Override
+    public Optional<Integer> getQos() {
+        // reply target does not support QoS yet
+        return Optional.empty();
+    }
+
+    @Override
+    public GenericTarget withAddress(final String newAddress) {
+        return new Builder().address(newAddress)
+                .headerMapping(headerMapping)
+                .expectedResponseTypes(expectedResponseTypes)
+                .build();
     }
 
     @Override

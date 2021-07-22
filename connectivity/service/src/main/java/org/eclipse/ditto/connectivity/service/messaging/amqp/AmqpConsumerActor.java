@@ -106,7 +106,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
 
     @SuppressWarnings("unused")
     private AmqpConsumerActor(final Connection connection, final ConsumerData consumerData,
-            final Sink<Object, NotUsed> inboundMappingSink, final ActorRef jmsActor) {
+            final Sink<Object, ?> inboundMappingSink, final ActorRef jmsActor) {
         super(connection,
                 checkNotNull(consumerData, "consumerData").getAddress(),
                 inboundMappingSink,
@@ -142,7 +142,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection, final ConsumerData consumerData,
-            final Sink<Object, NotUsed> inboundMappingSink, final ActorRef jmsActor) {
+            final Sink<Object, ?> inboundMappingSink, final ActorRef jmsActor) {
 
         return Props.create(AmqpConsumerActor.class, connection, consumerData, inboundMappingSink, jmsActor);
     }
@@ -170,10 +170,22 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
     }
 
     @Override
-    public void preStart() throws JMSException {
-        initMessageConsumer();
+    public void preStart() throws Exception {
+        super.preStart();
         getConnectivityConfigProvider()
-                .registerForConnectivityConfigChanges(consumerData.getConnectionContext(), getSelf());
+                .registerForConnectivityConfigChanges(consumerData.getConnectionContext(), getSelf())
+                .exceptionally(e -> {
+                    log.error(e, "Failed to register for connectivity connfig changes");
+                    return null;
+                });
+        try {
+            initMessageConsumer();
+        } catch (final Exception e) {
+            final var failure = new ImmutableConnectionFailure(getSelf(), e,
+                    "Failed to initialize message consumers.");
+            getContext().getParent().tell(failure, getSelf());
+            getContext().stop(getSelf());
+        }
     }
 
     @Override

@@ -47,12 +47,7 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      */
     String getOriginalAddress();
 
-    /**
-     * Create a copy of this object with the target address replaced.
-     *
-     * @param newAddress new value for the address field.
-     * @return a copy of this object retaining the class and all other fields.
-     */
+    @Override
     Target withAddress(String newAddress);
 
     /**
@@ -60,9 +55,7 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      */
     Set<FilteredTopic> getTopics();
 
-    /**
-     * @return the optional qos value of this target - only applicable for certain {@link ConnectionType}s.
-     */
+    @Override
     Optional<Integer> getQos();
 
     /**

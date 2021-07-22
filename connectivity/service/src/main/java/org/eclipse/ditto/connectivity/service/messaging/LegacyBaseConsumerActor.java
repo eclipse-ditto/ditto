@@ -39,7 +39,7 @@ public abstract class LegacyBaseConsumerActor extends BaseConsumerActor {
     private final SourceQueueWithComplete<DittoRuntimeException> dreSourceQueue;
 
     protected LegacyBaseConsumerActor(final Connection connection, final String sourceAddress,
-            final Sink<Object, NotUsed> inboundMappingSink, final Source source) {
+            final Sink<Object, ?> inboundMappingSink, final Source source) {
         super(connection, sourceAddress, inboundMappingSink, source);
 
         final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(

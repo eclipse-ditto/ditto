@@ -17,7 +17,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithTagsConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.WithPersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
 
@@ -26,7 +25,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
  */
 @Immutable
 public interface PoliciesConfig extends ServiceSpecificConfig, WithHealthCheckConfig, WithPersistenceOperationsConfig,
-        WithMongoDbConfig, WithTagsConfig {
+        WithMongoDbConfig {
 
     /**
      * Returns the configuration settings for policy entities.

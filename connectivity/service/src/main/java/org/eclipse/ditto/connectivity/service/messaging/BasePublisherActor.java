@@ -442,7 +442,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final OutboundSignal.Mapped outbound = sendingContext.getMappedOutboundSignal();
         final GenericTarget genericTarget = sendingContext.getGenericTarget();
         final String address = genericTarget.getAddress();
-        final Optional<T> publishTargetOptional = resolveTargetAddress(resolver, address).map(this::toPublishTarget);
+        final Optional<T> publishTargetOptional = resolveTargetAddress(resolver, address)
+                .map(genericTarget::withAddress)
+                .map(this::toPublishTarget);
         final Signal<?> outboundSource = outbound.getSource();
         final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(outboundSource);
 
@@ -499,10 +501,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     /**
      * Converts the passed {@code address} to a {@link PublishTarget} of type {@code <T>}.
      *
-     * @param address the address to convert to a {@link PublishTarget} of type {@code <T>}.
+     * @param target the address to convert to a {@link PublishTarget} of type {@code <T>}.
      * @return the instance of type {@code <T>}
      */
-    protected abstract T toPublishTarget(String address);
+    protected abstract T toPublishTarget(GenericTarget target);
 
     /**
      * Publish a message. Construct the acknowledgement regardless of any request for diagnostic purposes.
@@ -573,7 +575,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      */
     protected Optional<AcknowledgementLabel> getAcknowledgementLabel(@Nullable final Target target) {
         return Optional.ofNullable(target).flatMap(Target::getIssuedAcknowledgementLabel)
-                .flatMap(ackLabel -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel));
+                .flatMap(
+                        ackLabel -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel));
     }
 
     /**
@@ -611,7 +614,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             return dittoHeaders.isResponseRequired() && isLiveSignal(source);
         } else {
             return target.getIssuedAcknowledgementLabel()
-                    .flatMap(ackLabel -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
+                    .flatMap(ackLabel -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver,
+                            ackLabel))
                     .filter(requestedAcks::contains)
                     .isPresent();
         }

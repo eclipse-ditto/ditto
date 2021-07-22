@@ -20,27 +20,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonKey;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
-import org.eclipse.ditto.policies.model.Label;
-import org.eclipse.ditto.policies.model.Permissions;
-import org.eclipse.ditto.policies.model.PoliciesResourceType;
-import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.PolicyEntry;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.ResourceKey;
+import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
 import org.eclipse.ditto.concierge.api.ConciergeMessagingConstants;
-import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.InvalidateCacheEntry;
@@ -48,7 +34,21 @@ import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.IdentityCache;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.api.Permission;
+import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.Permissions;
+import org.eclipse.ditto.policies.model.PoliciesResourceType;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyEntry;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.ResourceKey;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.actions.PolicyActionCommand;
 import org.eclipse.ditto.policies.model.signals.commands.actions.TopLevelPolicyActionCommand;
@@ -64,7 +64,6 @@ import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryComman
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 
 import akka.actor.ActorRef;
-import akka.pattern.AskTimeoutException;
 
 /**
  * Authorize {@link PolicyCommand}.
@@ -102,9 +101,9 @@ public final class PolicyCommandEnforcement
     public static <T extends PolicyCommand<?>> Optional<T> authorizePolicyCommand(final T command,
             final PolicyEnforcer policyEnforcer) {
 
-        final Enforcer enforcer = policyEnforcer.getEnforcer();
-        final ResourceKey policyResourceKey = PoliciesResourceType.policyResource(command.getResourcePath());
-        final AuthorizationContext authorizationContext = command.getDittoHeaders().getAuthorizationContext();
+        final var enforcer = policyEnforcer.getEnforcer();
+        final var policyResourceKey = PoliciesResourceType.policyResource(command.getResourcePath());
+        final var authorizationContext = command.getDittoHeaders().getAuthorizationContext();
         final Optional<T> authorizedCommand;
         if (command instanceof CreatePolicy) {
             if (command.getDittoHeaders().isAllowPolicyLockout() ||
@@ -135,15 +134,11 @@ public final class PolicyCommandEnforcement
             final T command, final ResourceKey resourceKey, final AuthorizationContext authorizationContext) {
 
         if (command instanceof TopLevelPolicyActionCommand) {
-            final TopLevelPolicyActionCommand topLevelPolicyActionCommand = (TopLevelPolicyActionCommand) command;
+            final var topLevelPolicyActionCommand = (TopLevelPolicyActionCommand) command;
             return (Optional<T>) authorizeTopLevelAction(enforcer, topLevelPolicyActionCommand, authorizationContext);
         } else {
             return authorizeEntryLevelAction(enforcer.getEnforcer(), command, resourceKey, authorizationContext);
         }
-    }
-
-    private static boolean isTopLevelActionCommand(final PolicyCommand<?> command) {
-        return PolicyActionCommand.RESOURCE_PATH_ACTIONS.getRoot().equals(command.getResourcePath().getRoot());
     }
 
     private static <T extends PolicyCommand<?>> Optional<T> authorizeEntryLevelAction(final Enforcer enforcer,
@@ -155,7 +150,7 @@ public final class PolicyCommandEnforcement
 
     private static Optional<TopLevelPolicyActionCommand> authorizeTopLevelAction(final PolicyEnforcer policyEnforcer,
             final TopLevelPolicyActionCommand command, final AuthorizationContext authorizationContext) {
-        final Enforcer enforcer = policyEnforcer.getEnforcer();
+        final var enforcer = policyEnforcer.getEnforcer();
         final List<Label> authorizedLabels = policyEnforcer.getPolicy()
                 .map(policy -> policy.getEntriesSet().stream()
                         .map(PolicyEntry::getLabel)
@@ -166,8 +161,7 @@ public final class PolicyCommandEnforcement
         if (authorizedLabels.isEmpty()) {
             return Optional.empty();
         } else {
-            final TopLevelPolicyActionCommand adjustedCommand =
-                    TopLevelPolicyActionCommand.of(command.getPolicyActionCommand(), authorizedLabels);
+            final var adjustedCommand = TopLevelPolicyActionCommand.of(command.getPolicyActionCommand(), authorizedLabels);
             return Optional.of(adjustedCommand);
         }
     }
@@ -202,9 +196,8 @@ public final class PolicyCommandEnforcement
             final PolicyQueryCommandResponse<?> response,
             final Enforcer enforcer) {
 
-        final ResourceKey resourceKey =
-                ResourceKey.newInstance(PolicyCommand.RESOURCE_TYPE, response.getResourcePath());
-        final AuthorizationContext authorizationContext = response.getDittoHeaders().getAuthorizationContext();
+        final var resourceKey = ResourceKey.newInstance(PolicyCommand.RESOURCE_TYPE, response.getResourcePath());
+        final var authorizationContext = response.getDittoHeaders().getAuthorizationContext();
 
         return enforcer.buildJsonView(resourceKey, responseEntity, authorizationContext,
                 POLICY_QUERY_COMMAND_RESPONSE_ALLOWLIST, Permissions.newInstance(Permission.READ));
@@ -212,7 +205,7 @@ public final class PolicyCommandEnforcement
 
     private static PolicyCommand<?> transformModifyPolicyToCreatePolicy(final PolicyCommand<?> receivedCommand) {
         if (receivedCommand instanceof ModifyPolicy) {
-            final ModifyPolicy modifyPolicy = (ModifyPolicy) receivedCommand;
+            final var modifyPolicy = (ModifyPolicy) receivedCommand;
             return CreatePolicy.of(modifyPolicy.getPolicy(), modifyPolicy.getDittoHeaders());
         } else {
             return receivedCommand;
@@ -270,7 +263,7 @@ public final class PolicyCommandEnforcement
                 } else {
                     return withMessageToReceiverViaAskFuture(policyQueryCommand, sender(),
                             () -> askAndBuildJsonView(policiesShardRegion, policyQueryCommand,
-                                    policyEnforcer.getEnforcer()));
+                                    policyEnforcer.getEnforcer(), context.getScheduler(), context.getExecutor()));
                 }
             } else {
                 return forwardToPoliciesShardRegion(authorizedCommand);
@@ -283,8 +276,8 @@ public final class PolicyCommandEnforcement
     private CreatePolicy enforcePolicyCommandByNonexistentEnforcer() {
         final PolicyCommand<?> policyCommand = transformModifyPolicyToCreatePolicy(signal());
         if (policyCommand instanceof CreatePolicy) {
-            final CreatePolicy createPolicy = (CreatePolicy) policyCommand;
-            final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(createPolicy.getPolicy());
+            final var createPolicy = (CreatePolicy) policyCommand;
+            final var enforcer = PolicyEnforcers.defaultEvaluator(createPolicy.getPolicy());
             final Optional<CreatePolicy> authorizedCommand =
                     authorizePolicyCommand(createPolicy, PolicyEnforcer.of(enforcer));
             if (authorizedCommand.isPresent()) {
@@ -327,7 +320,7 @@ public final class PolicyCommandEnforcement
      * @param policyId the ID of the Policy to invalidate caches for.
      */
     private void invalidateCaches(final PolicyId policyId) {
-        final CacheKey entityId = CacheKey.of(policyId);
+        final var entityId = CacheKey.of(policyId);
         enforcerCache.invalidate(entityId);
         pubSubMediator().tell(DistPubSubAccess.sendToAll(
                 ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
@@ -338,7 +331,7 @@ public final class PolicyCommandEnforcement
 
     @Override
     protected DittoRuntimeException handleAskTimeoutForCommand(final PolicyCommand<?> command,
-            final AskTimeoutException askTimeout) {
+            final Throwable askTimeout) {
         log(command).error(askTimeout, "Timeout before building JsonView");
         return PolicyUnavailableException.newBuilder(command.getEntityId())
                 .dittoHeaders(command.getDittoHeaders())

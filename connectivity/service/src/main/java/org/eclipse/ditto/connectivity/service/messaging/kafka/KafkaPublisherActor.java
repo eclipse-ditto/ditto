@@ -40,6 +40,7 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.GenericTarget;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.KafkaProducerConfig;
@@ -140,8 +141,8 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
     }
 
     @Override
-    protected KafkaPublishTarget toPublishTarget(final String address) {
-        return KafkaPublishTarget.fromTargetAddress(address);
+    protected KafkaPublishTarget toPublishTarget(final GenericTarget target) {
+        return KafkaPublishTarget.fromTargetAddress(target.getAddress());
     }
 
     @Override
@@ -271,6 +272,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         private boolean isDebugEnabled() {
             final Map<String, String> specificConfig = connection.getSpecificConfig();
             return Boolean.parseBoolean(specificConfig.getOrDefault("debugEnabled", Boolean.FALSE.toString()));
+
         }
 
     }

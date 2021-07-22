@@ -72,13 +72,13 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final ConnectionMonitor inboundAcknowledgedMonitor;
     protected final ConnectionId connectionId;
 
-    private final Sink<Object, NotUsed> inboundMappingSink;
+    private final Sink<Object, ?> inboundMappingSink;
     private final AcknowledgementConfig acknowledgementConfig;
 
     @Nullable private ResourceStatus resourceStatus;
 
     protected BaseConsumerActor(final Connection connection, final String sourceAddress,
-            final Sink<Object, NotUsed> inboundMappingSink, final Source source) {
+            final Sink<Object, ?> inboundMappingSink, final Source source) {
         this.connectionId = checkNotNull(connection, "connection").getId();
         this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
         this.inboundMappingSink = checkNotNull(inboundMappingSink, "inboundMappingSink");

@@ -27,17 +27,23 @@ import org.eclipse.ditto.connectivity.service.messaging.PublishTarget;
 public final class MqttPublishTarget implements PublishTarget {
 
     private final String topic;
+    private final int qos;
 
-    public static MqttPublishTarget of(final String topic) {
-        return new MqttPublishTarget(topic);
+    public static MqttPublishTarget of(final String topic, final int qos) {
+        return new MqttPublishTarget(topic, qos);
     }
 
-    private MqttPublishTarget(final String topic) {
+    private MqttPublishTarget(final String topic, final int qos) {
         this.topic = ConditionChecker.argumentNotEmpty(topic, "topic");
+        this.qos = qos;
     }
 
     public String getTopic() {
         return topic;
+    }
+
+    public int getQos() {
+        return qos;
     }
 
     @Override
@@ -49,18 +55,20 @@ public final class MqttPublishTarget implements PublishTarget {
             return false;
         }
         final MqttPublishTarget that = (MqttPublishTarget) o;
-        return Objects.equals(topic, that.topic);
+        return Objects.equals(topic, that.topic) && qos == that.qos;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(topic);
+        return Objects.hash(topic, qos);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "topic=" + topic +
+                ", qos=" + qos +
                 "]";
     }
+
 }
