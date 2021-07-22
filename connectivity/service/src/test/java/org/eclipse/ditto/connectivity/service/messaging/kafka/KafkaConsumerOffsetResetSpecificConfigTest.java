@@ -24,26 +24,19 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.Source;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public final class KafkaConsumerGroupSpecificConfigTest {
+public final class KafkaConsumerOffsetResetSpecificConfigTest {
 
-    private static final ConnectionId CONNECTION_ID = ConnectionId.generateRandom();
-    private final KafkaConsumerGroupSpecificConfig underTest = KafkaConsumerGroupSpecificConfig.getInstance();
+    private final KafkaConsumerOffsetResetSpecificConfig underTest =
+            KafkaConsumerOffsetResetSpecificConfig.getInstance();
     @Mock
     private Connection connection;
-
-    @Before
-    public void setup() {
-        when(connection.getId()).thenReturn(CONNECTION_ID);
-    }
 
     @Test
     public void isNotApplicableToConnectionWithoutSources() {
@@ -59,8 +52,8 @@ public final class KafkaConsumerGroupSpecificConfigTest {
     }
 
     @Test
-    public void invalidCharactersCauseConnectionConfigurationInvalidException() {
-        final Map<String, String> specificConfig = Map.of("groupId", "invalidCharacterÜ");
+    public void invalidOffsetResetCauseConnectionConfigurationInvalidException() {
+        final Map<String, String> specificConfig = Map.of("consumerOffsetReset", "invalid");
         when(connection.getSpecificConfig()).thenReturn(specificConfig);
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         assertThatCode(() -> underTest.validateOrThrow(connection, dittoHeaders))
@@ -68,8 +61,8 @@ public final class KafkaConsumerGroupSpecificConfigTest {
     }
 
     @Test
-    public void validCharactersCauseNoException() {
-        final Map<String, String> specificConfig = Map.of("groupId", "only-Valid-Characters-1234");
+    public void validOffsetResetCauseNoException() {
+        final Map<String, String> specificConfig = Map.of("consumerOffsetReset", "earliest");
         when(connection.getSpecificConfig()).thenReturn(specificConfig);
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         assertThatCode(() -> underTest.validateOrThrow(connection, dittoHeaders))
@@ -77,41 +70,33 @@ public final class KafkaConsumerGroupSpecificConfigTest {
     }
 
     @Test
-    public void invalidCharactersAreInvalid() {
-        final Map<String, String> specificConfig = Map.of("groupId", "invalidCharacterÜ");
+    public void invalidOffsetResetIsInvalid() {
+        final Map<String, String> specificConfig = Map.of("consumerOffsetReset", "invalid");
         when(connection.getSpecificConfig()).thenReturn(specificConfig);
         assertThat(underTest.isValid(connection)).isFalse();
     }
 
     @Test
-    public void validCharactersAreValid() {
-        final Map<String, String> specificConfig = Map.of("groupId", "only-Valid-Characters-1234");
+    public void validOffsetResetIsValid() {
+        final Map<String, String> specificConfig = Map.of("consumerOffsetReset", "earliest");
         when(connection.getSpecificConfig()).thenReturn(specificConfig);
         assertThat(underTest.isValid(connection)).isTrue();
     }
 
     @Test
-    public void emptyGroupIdIsInvalid() {
-        final Map<String, String> specificConfig = Map.of("groupId", "");
+    public void emptyOffsetResetIsInvalid() {
+        final Map<String, String> specificConfig = Map.of("consumerOffsetReset", "");
         when(connection.getSpecificConfig()).thenReturn(specificConfig);
         assertThat(underTest.isValid(connection)).isFalse();
     }
 
     @Test
-    public void applyReturnsGroupIdForConsumerConfigKey() {
-        final Map<String, String> specificConfig = Map.of("groupId", "only-Valid-Characters-1234");
+    public void applyReturnsOffsetResetForConsumerConfigKey() {
+        final Map<String, String> specificConfig = Map.of("consumerOffsetReset", "earliest");
         when(connection.getSpecificConfig()).thenReturn(specificConfig);
 
-        final Map<String, String> expectedConfig = Map.of(ConsumerConfig.GROUP_ID_CONFIG, "only-Valid-Characters-1234");
-        assertThat(underTest.apply(connection)).isEqualTo(expectedConfig);
-    }
-
-    @Test
-    public void resolvesConnectionIdPlaceholder() {
-        final Map<String, String> specificConfig = Map.of("groupId", "test_{{connection:id}}");
-        when(connection.getSpecificConfig()).thenReturn(specificConfig);
-
-        final Map<String, String> expectedConfig = Map.of(ConsumerConfig.GROUP_ID_CONFIG, "test_" + CONNECTION_ID);
+        final Map<String, String> expectedConfig =
+                Map.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         assertThat(underTest.apply(connection)).isEqualTo(expectedConfig);
     }
 

@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -25,6 +26,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -209,9 +211,11 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     private void startKafkaConsumer(final ConsumerData consumerData, final boolean dryRun) {
+        final DefaultKafkaConsumerSourceSupplier sourceSupplier =
+                new DefaultKafkaConsumerSourceSupplier(propertiesFactory, consumerData.getAddress(), dryRun);
         final Props consumerActorProps =
-                KafkaConsumerActor.props(connection(), kafkaConfig.getConsumerConfig(), propertiesFactory,
-                        consumerData.getAddress(), getInboundMappingProcessorActor(), consumerData.getSource(), dryRun);
+                KafkaConsumerActor.props(connection(), sourceSupplier,
+                        consumerData.getAddress(), getInboundMappingSink(), consumerData.getSource(), dryRun);
         final ActorRef consumerActor =
                 startChildActorConflictFree(consumerData.getActorNamePrefix(), consumerActorProps);
         kafkaConsumerActors.add(consumerActor);
@@ -236,6 +240,11 @@ public final class KafkaClientActor extends BaseClientActor {
     @Override
     protected CompletionStage<Status.Status> startPublisherActor() {
         return CompletableFuture.completedFuture(DONE);
+    }
+
+    @Override
+    protected Optional<ThrottlingConfig> getThrottlingConfig() {
+        return Optional.of(kafkaConfig.getConsumerConfig().getThrottlingConfig());
     }
 
     private void stopPublisherActor() {

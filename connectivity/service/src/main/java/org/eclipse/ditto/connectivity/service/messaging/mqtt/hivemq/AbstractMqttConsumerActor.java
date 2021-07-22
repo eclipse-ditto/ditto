@@ -36,7 +36,7 @@ import org.eclipse.ditto.connectivity.model.EnforcementFilter;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.Source;
-import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
+import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -44,14 +44,16 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 
+import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.stream.javadsl.Sink;
 
 /**
  * Common implementation for MQTT3 and MQTT5 consumer actors.
  *
  * @param <P> type of PUBLISH messages.
  */
-abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
+abstract class AbstractMqttConsumerActor<P> extends LegacyBaseConsumerActor {
 
     protected final ThreadSafeDittoLoggingAdapter logger;
     protected final boolean dryRun;
@@ -59,9 +61,9 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
     protected final PayloadMapping payloadMapping;
     protected final boolean reconnectForRedelivery;
 
-    protected AbstractMqttConsumerActor(final Connection connection, final ActorRef messageMappingProcessor,
+    protected AbstractMqttConsumerActor(final Connection connection, final Sink<Object, NotUsed> inboundMappingSink,
             final Source source, final boolean dryRun, final boolean reconnectForRedelivery) {
-        super(connection, String.join(";", source.getAddresses()), messageMappingProcessor, source);
+        super(connection, String.join(";", source.getAddresses()), inboundMappingSink, source);
 
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connection.getId());

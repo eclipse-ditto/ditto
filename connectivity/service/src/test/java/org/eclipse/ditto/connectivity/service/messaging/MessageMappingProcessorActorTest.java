@@ -252,8 +252,9 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                             .payloadMapping(
                                     ConnectivityModelFactory.newPayloadMapping(ADD_HEADER_MAPPER, DUPLICATING_MAPPER))
                             .build();
-            final Signal<?> signal = ((AbstractEventsourcedEvent<?>) TestConstants.thingModified(Collections.emptyList()))
-                    .setRevision(8L); // important to set revision to same value as cache lookup retrieves
+            final Signal<?> signal =
+                    ((AbstractEventsourcedEvent<?>) TestConstants.thingModified(Collections.emptyList()))
+                            .setRevision(8L); // important to set revision to same value as cache lookup retrieves
             final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(signal, Arrays.asList(
                     targetWithEnrichment,
                     targetWithoutEnrichment,
@@ -406,7 +407,10 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                             .build();
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            inboundMappingProcessorActor.tell(inboundMessage, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(
+                    new InboundMappingSink.ExternalMessageWithSender(inboundMessage, collectorProbe.ref()),
+                    ActorRef.noSender()
+            );
 
             // THEN: resulting error response retains the correlation ID
             final OutboundSignal outboundSignal =
@@ -462,11 +466,16 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                             .build();
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            inboundMappingProcessorActor.tell(inboundMessage, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(
+                    new InboundMappingSink.ExternalMessageWithSender(inboundMessage, collectorProbe.ref()),
+                    ActorRef.noSender()
+            );
 
             // THEN: resulting error response retains the topic including thing ID and channel
             final ExternalMessage outboundMessage =
-                    expectMsgClass(BaseClientActor.PublishMappedMessage.class).getOutboundSignal().first().getExternalMessage();
+                    expectMsgClass(BaseClientActor.PublishMappedMessage.class).getOutboundSignal()
+                            .first()
+                            .getExternalMessage();
             assertThat(outboundMessage)
                     .extracting(e -> JsonFactory.newObject(e.getTextPayload().orElse("{}"))
                             .getValue("topic"))
@@ -581,7 +590,10 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     .build();
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            inboundMappingProcessorActor.tell(message, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(
+                    new InboundMappingSink.ExternalMessageWithSender(message, collectorProbe.ref()),
+                    ActorRef.noSender()
+            );
 
             final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
             assertThat(modifyAttribute.getDittoHeaders().getAcknowledgementRequests()).isEqualTo(validationSet);
@@ -620,7 +632,10 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     .build();
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            inboundMappingProcessorActor.tell(message, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(
+                    new InboundMappingSink.ExternalMessageWithSender(message,collectorProbe.ref()),
+                    ActorRef.noSender()
+            );
 
             final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
             assertThat(modifyAttribute.getDittoHeaders().getAcknowledgementRequests()).isEmpty();
@@ -640,7 +655,11 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             final Acknowledgement acknowledgement =
                     Acknowledgement.of(label, KNOWN_THING_ID, HttpStatus.BAD_REQUEST,
                             DittoHeaders.empty(), JsonValue.of("payload"));
-            inboundMappingProcessorActor.tell(toExternalMessage(acknowledgement), sender.ref());
+            inboundMappingProcessorActor.tell(
+                    new InboundMappingSink.ExternalMessageWithSender(toExternalMessage(acknowledgement),
+                            sender.ref()),
+                    ActorRef.noSender()
+            );
             final Acknowledgement receivedAck = (Acknowledgement) expectMsgClass(InboundSignal.class).getSignal();
             assertThat(receivedAck.getDittoHeaders().get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
                     .isEqualTo(CONNECTION_ID.toString());
@@ -648,7 +667,11 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
 
             // Acknowledgements
             final Signal<?> acknowledgements = Acknowledgements.of(List.of(acknowledgement), DittoHeaders.empty());
-            inboundMappingProcessorActor.tell(toExternalMessage(acknowledgements), sender.ref());
+            inboundMappingProcessorActor.tell(
+                    new InboundMappingSink.ExternalMessageWithSender(toExternalMessage(acknowledgements),
+                            sender.ref()),
+                    ActorRef.noSender()
+            );
             final Acknowledgements receivedAcks = (Acknowledgements) expectMsgClass(InboundSignal.class).getSignal();
             assertThat(receivedAcks.getAcknowledgement(label)
                     .orElseThrow()
@@ -661,7 +684,11 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             final Signal<?> liveResponse = DeleteThingResponse.of(KNOWN_THING_ID, DittoHeaders.newBuilder()
                     .channel(TopicPath.Channel.LIVE.getName())
                     .build());
-            inboundMappingProcessorActor.tell(toExternalMessage(liveResponse), sender.ref());
+            inboundMappingProcessorActor.tell(
+                    new InboundMappingSink.ExternalMessageWithSender(toExternalMessage(liveResponse),
+                            sender.ref()),
+                    ActorRef.noSender()
+            );
             final DeleteThingResponse receivedResponse =
                     (DeleteThingResponse) expectMsgClass(InboundSignal.class).getSignal();
             assertThat(receivedResponse.getDittoHeaders().getChannel()).contains(TopicPath.Channel.LIVE.getName());
@@ -688,11 +715,17 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                                     .expectedResponseTypes(ResponseType.ERROR)
                                     .build(),
                             JsonValue.of("payload"));
-            inboundMappingProcessorActor.tell(toExternalMessage(acknowledgement, builder -> {}), getRef());
+            inboundMappingProcessorActor.tell(
+                    new InboundMappingSink.ExternalMessageWithSender(
+                            toExternalMessage(acknowledgement, builder -> {}),
+                            getRef()),
+                    ActorRef.noSender()
+            );
 
             // THEN: ann AcknowledgementLabelNotDeclaredException is published to the reply-target
             final BaseClientActor.PublishMappedMessage errorResponse =
-                    (BaseClientActor.PublishMappedMessage) fishForMessage(Duration.ofSeconds(3L), "PublishMappedMessage",
+                    (BaseClientActor.PublishMappedMessage) fishForMessage(Duration.ofSeconds(3L),
+                            "PublishMappedMessage",
                             BaseClientActor.PublishMappedMessage.class::isInstance);
             final Signal<?> source = errorResponse.getOutboundSignal().getSource();
             assertThat(source).isInstanceOf(ErrorResponse.class);
@@ -726,7 +759,10 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     .withHeaderMapping(SOURCE_HEADER_MAPPING)
                     .build();
 
-            inboundMappingProcessorActor.tell(externalMessage, getRef());
+            inboundMappingProcessorActor.tell(
+                    new InboundMappingSink.ExternalMessageWithSender(externalMessage, getRef()),
+                    ActorRef.noSender()
+            );
 
             connectionActorProbe.expectMsgClass(CreateSubscription.class);
         }};
@@ -743,7 +779,11 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
                     DittoHeaders.newBuilder()
                             .acknowledgementRequest(AcknowledgementRequest.parseAcknowledgementRequest("dummy-request"))
                             .build());
-            inboundMappingProcessorActor.tell(toExternalMessage(retrieveFeature), getRef());
+            inboundMappingProcessorActor.tell(
+                    new InboundMappingSink.ExternalMessageWithSender(toExternalMessage(retrieveFeature),
+                            getRef()),
+                    ActorRef.noSender()
+            );
 
             // THEN: the response collector actor is asked to acknowledge right away despite the ack request.
             expectMsg(ResponseCollectorActor.setCount(0));

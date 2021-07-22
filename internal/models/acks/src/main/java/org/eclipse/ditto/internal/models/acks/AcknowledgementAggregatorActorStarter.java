@@ -30,16 +30,16 @@ import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
-import akka.actor.ActorContext;
 import akka.actor.ActorRef;
+import akka.actor.ActorRefFactory;
 import akka.actor.Props;
 import akka.japi.pf.PFBuilder;
 import scala.PartialFunction;
@@ -52,19 +52,19 @@ import scala.PartialFunction;
  */
 public final class AcknowledgementAggregatorActorStarter {
 
-    protected final ActorContext actorContext;
+    protected final ActorRefFactory actorRefFactory;
     protected final AcknowledgementConfig acknowledgementConfig;
     protected final HeaderTranslator headerTranslator;
     protected final PartialFunction<Signal<?>, Signal<?>> ackRequestSetter;
 
     private int childCounter = 0;
 
-    private AcknowledgementAggregatorActorStarter(final ActorContext context,
+    private AcknowledgementAggregatorActorStarter(final ActorRefFactory actorRefFactory,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
             final PartialFunction<Signal<?>, Signal<?>> ackRequestSetter) {
 
-        actorContext = checkNotNull(context, "context");
+        this.actorRefFactory = checkNotNull(actorRefFactory, "actorRefFactory");
         this.ackRequestSetter = ackRequestSetter;
         this.acknowledgementConfig = checkNotNull(acknowledgementConfig, "acknowledgementConfig");
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
@@ -73,19 +73,19 @@ public final class AcknowledgementAggregatorActorStarter {
     /**
      * Returns an instance of {@code AcknowledgementAggregatorActorStarter}.
      *
-     * @param context the context to start the aggregator actor in.
+     * @param actorRefFactory the actorRefFactory to start the aggregator actor in.
      * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
      * @param headerTranslator translates headers from external sources or to external sources.
      * response over a channel to the user.
      * @return a means to start an acknowledgement forwarder actor.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static AcknowledgementAggregatorActorStarter of(final ActorContext context,
+    public static AcknowledgementAggregatorActorStarter of(final ActorRefFactory actorRefFactory,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
             final AbstractCommandAckRequestSetter<?>... ackRequestSetters) {
 
-        return new AcknowledgementAggregatorActorStarter(context, acknowledgementConfig,
+        return new AcknowledgementAggregatorActorStarter(actorRefFactory, acknowledgementConfig,
                 headerTranslator, buildAckRequestSetter(ackRequestSetters));
     }
 
@@ -160,7 +160,7 @@ public final class AcknowledgementAggregatorActorStarter {
         final Props props = AcknowledgementAggregatorActor.props(thingId, dittoHeaders, acknowledgementConfig, headerTranslator,
                 responseSignalConsumer);
         final String actorName = getNextActorName(dittoHeaders);
-        return actorContext.actorOf(props, actorName);
+        return actorRefFactory.actorOf(props, actorName);
     }
 
     private String getNextActorName(final DittoHeaders dittoHeaders) {

@@ -50,6 +50,27 @@ The following example shows a valid kafka source:
 }
 ```
 
+#### Source header mapping
+
+The Kafka protocol binding supports to map arbitrary headers from a consumed record to the message that is further 
+processed by Ditto (see [Header Mapping](connectivity-header-mapping.html)). 
+
+In addition, there are three special headers extracted from every received record that can be used in a payload or 
+header mapping:
+* `kafka.topic`: contains the Kafka topic the record was received from 
+* `kafka.key`: contains the key of the received record (only set if key is available)
+* `kafka.timestamp`: contains the timestamp of the received record 
+
+These headers may be used in a source header mapping:
+```json
+{
+  "headerMapping": {
+    "the-topic": "{%raw%}{{ header:kafka.topic }}{%endraw%}",
+    "the-key": "{%raw%}{{ header:kafka.key }}{%endraw%}"
+  }
+}
+```
+
 ### Target format
 
 A Kafka 2.x connection requires the protocol configuration target object to have an `address` property.

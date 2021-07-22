@@ -76,11 +76,16 @@ import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigValueFactory;
 
+import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.pattern.Patterns;
+import akka.stream.Materializer;
+import akka.stream.OverflowStrategy;
+import akka.stream.javadsl.Sink;
+import akka.stream.scaladsl.Source;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -202,7 +207,9 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                             .build();
 
             TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            inboundMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(
+                    new InboundMappingSink.ExternalMessageWithSender(externalMessage, collectorProbe.ref()),
+                    ActorRef.noSender());
 
             if (expectSuccess) {
                 final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
@@ -273,7 +280,9 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                     .build();
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            inboundMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(
+                    new InboundMappingSink.ExternalMessageWithSender(externalMessage, collectorProbe.ref()),
+                    ActorRef.noSender());
 
             final T received = expectMsgClass(expectedMessageClass);
             verifyReceivedMessage.accept(received);
@@ -305,7 +314,9 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                     .build();
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            inboundMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(
+                    new InboundMappingSink.ExternalMessageWithSender(externalMessage, collectorProbe.ref()),
+                    ActorRef.noSender());
 
             final T received = expectMsgClass(expectedMessageClass);
             verifyReceivedMessage.accept(received);
@@ -340,15 +351,19 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 TestConstants.CONNECTIVITY_CONFIG);
         final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(connectionContext,
                 actorSystem, protocolAdapter, logger);
-        final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,
-                protocolAdapter.headerTranslator(), ActorSelection.apply(proxyActor, ""), connectionActorProbe.ref(),
-                outboundMappingProcessorActor);
-        final ActorRef inboundDispatchingActor = testKit.childActorOf(inboundDispatchingActorProps);
+        final Sink<Object, NotUsed> inboundDispatchingSink =
+                InboundDispatchingSink.createSink(CONNECTION, protocolAdapter.headerTranslator(),
+                        ActorSelection.apply(proxyActor, ""), connectionActorProbe.ref(), outboundMappingProcessorActor,
+                        testKit.getRef(), actorSystem, actorSystem.settings().config());
 
-        final Props inboundMappingProcessorProps =
-                InboundMappingProcessorActor.props(inboundMappingProcessor, protocolAdapter.headerTranslator(),
-                        CONNECTION, 99, inboundDispatchingActor);
-        return testKit.childActorOf(inboundMappingProcessorProps);
+        final Sink<Object, NotUsed> inboundMappingSink =
+                InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99,
+                        inboundDispatchingSink, TestConstants.CONNECTIVITY_CONFIG.getMappingConfig(), null,
+                        actorSystem.dispatchers().defaultGlobalDispatcher());
+
+        return Source.actorRef(99, OverflowStrategy.dropNew())
+                .to(inboundMappingSink)
+                .run(Materializer.createMaterializer(actorSystem));
     }
 
     ActorRef createOutboundMappingProcessorActor(final TestKit kit) {
