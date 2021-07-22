@@ -19,6 +19,8 @@ import static org.eclipse.ditto.messages.model.MessageHeaderDefinition.SUBJECT;
 import static org.eclipse.ditto.messages.model.MessageHeaderDefinition.THING_ID;
 
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -27,15 +29,18 @@ import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.messages.model.Message;
+import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageHeaderDefinition;
 import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.messages.model.MessagesModelFactory;
 import org.eclipse.ditto.messages.model.signals.commands.MessageDeserializer;
 import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.InvalidPathException;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
 import org.eclipse.ditto.protocol.MessagePath;
 import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 
 /**
  * Provides helper methods to map from {@link Adaptable}s to MessageCommands or MessageCommandResponses.
@@ -103,11 +108,18 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
         // these headers are used to store message attributes of Message that are not fields.
         // their content comes from elsewhere; overwrite message headers of the same names.
         dittoHeadersBuilder.putHeader(THING_ID.getKey(), topicPath.getNamespace() + ":" + topicPath.getEntityName());
-        dittoHeadersBuilder.putHeader(SUBJECT.getKey(), topicPath.getSubject().orElse(""));
+        final String messageSubject =
+                topicPath.getSubject().orElseThrow(() -> UnknownTopicPathException.newBuilder(topicPath)
+                        .description("Missing message subject.")
+                        .build());
+        dittoHeadersBuilder.putHeader(SUBJECT.getKey(), messageSubject);
         final Payload payload = adaptable.getPayload();
         final MessagePath payloadPath = payload.getPath();
-        payloadPath.getDirection()
-                .ifPresent(direction -> dittoHeadersBuilder.putHeader(DIRECTION.getKey(), direction.name()));
+        validatePathForLiveMessages(payloadPath, messageSubject);
+        final MessageDirection messageDirection = payloadPath.getDirection()
+                // Should not happen because of the validation of the path.
+                .orElseThrow(() -> InvalidPathException.newBuilder(payloadPath).build());
+        dittoHeadersBuilder.putHeader(DIRECTION.getKey(), messageDirection.name());
         payloadPath.getFeatureId()
                 .ifPresent(featureId -> dittoHeadersBuilder.putHeader(FEATURE_ID.getKey(), featureId));
         payload.getHttpStatus()
@@ -116,6 +128,17 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
         final DittoHeaders newDittoHeaders = dittoHeadersBuilder.build();
 
         return MessagesModelFactory.newHeadersBuilder(newDittoHeaders).build();
+    }
+
+    private static void validatePathForLiveMessages(final MessagePath path, final String messageSubject) {
+        final String pathValidationRegex = "(/features/[^/]+)?/(inbox|outbox)/messages/" + messageSubject;
+        final Pattern pattern = Pattern.compile(pathValidationRegex);
+        final Matcher matcher = pattern.matcher(path.toString());
+        if (!matcher.matches()) {
+            throw InvalidPathException.newBuilder(path)
+                    .description("It should match the pattern: " + pathValidationRegex)
+                    .build();
+        }
     }
 
     /**
