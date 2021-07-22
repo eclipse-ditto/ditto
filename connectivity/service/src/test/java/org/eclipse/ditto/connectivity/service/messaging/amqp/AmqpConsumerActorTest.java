@@ -82,7 +82,6 @@ import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.dispatch.MessageDispatcher;
-import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -267,17 +266,6 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
         } catch (final JMSException e) {
             throw new JMSRuntimeException(e.getMessage(), e.getErrorCode(), e.getCause());
         }
-    }
-
-    @Test
-    public void createWithDefaultMapperOnly() {
-        // TODO: Yannic This test seem to be outdated.
-//        new TestKit(actorSystem) {{
-//            final ActorRef underTest = setupActor(getTestActor(), null);
-//            final ExternalMessage msg =
-//                    ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap()).withText("").build();
-//            underTest.tell(msg, null);
-//        }};
     }
 
     private Sink<Object, NotUsed> setupMappingSink(final ActorRef testRef,

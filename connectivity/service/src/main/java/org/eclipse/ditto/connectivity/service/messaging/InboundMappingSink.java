@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -46,11 +48,11 @@ public final class InboundMappingSink {
 
     private final ThreadSafeDittoLogger logger;
 
-    private final int processorPoolSize;
-    private final MessageDispatcher messageMappingProcessorDispatcher;
-    private final Sink<Object, ?> inboundDispatchingSink;
     private final InboundMappingProcessor initialInboundMappingProcessor;
+    private final Sink<Object, ?> inboundDispatchingSink;
     @Nullable private final ThrottlingConfig throttlingConfig;
+    private final MessageDispatcher messageMappingProcessorDispatcher;
+    private final int processorPoolSize;
 
     private InboundMappingSink(final InboundMappingProcessor initialInboundMappingProcessor,
             final ConnectionId connectionId,
@@ -60,10 +62,11 @@ public final class InboundMappingSink {
             @Nullable final ThrottlingConfig throttlingConfig,
             final MessageDispatcher messageMappingProcessorDispatcher) {
 
-        this.messageMappingProcessorDispatcher = messageMappingProcessorDispatcher;
-        this.initialInboundMappingProcessor = initialInboundMappingProcessor;
-        this.inboundDispatchingSink = inboundDispatchingSink;
+        this.initialInboundMappingProcessor = checkNotNull(initialInboundMappingProcessor, "initialInboundMappingProcessor");
+        this.inboundDispatchingSink = checkNotNull(inboundDispatchingSink, "inboundDispatchingSink");
+        checkNotNull(mappingConfig, "mappingConfig");
         this.throttlingConfig = throttlingConfig;
+        this.messageMappingProcessorDispatcher = checkNotNull(messageMappingProcessorDispatcher, "messageMappingProcessorDispatcher");
 
         logger = DittoLoggerFactory.getThreadSafeLogger(InboundMappingSink.class)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
@@ -82,7 +85,9 @@ public final class InboundMappingSink {
      * @param mappingConfig The mapping config.
      * @param throttlingConfig the throttling config.
      * @param messageMappingProcessorDispatcher The dispatcher which is used for async mapping.
-     * @return the Akka configuration Props object.
+     * @throws java.lang.NullPointerException if any of the passed arguments except {@code throttlingConfig} was
+     * {@code null}.
+     * @return the Sink.
      */
     public static Sink<Object, NotUsed> createSink(
             final InboundMappingProcessor inboundMappingProcessor,

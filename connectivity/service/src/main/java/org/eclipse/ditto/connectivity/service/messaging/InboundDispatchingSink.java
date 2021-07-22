@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.HashSet;
@@ -120,14 +122,15 @@ public final class InboundDispatchingSink
     private final Connection connection;
     private final ActorSelection proxyActor;
     private final ActorRef connectionActor;
+    private final ActorRef outboundMessageMappingProcessorActor;
+    private final ActorRef clientActor;
+
+    private final ExpressionResolver connectionIdResolver;
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
     private final ConnectionMonitor responseMappedMonitor;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
-    private final ActorRef outboundMessageMappingProcessorActor;
-    private final ExpressionResolver connectionIdResolver;
     private final AcknowledgementConfig acknowledgementConfig;
-    private final ActorRef clientActor;
 
     private InboundDispatchingSink(
             final Connection connection,
@@ -140,12 +143,16 @@ public final class InboundDispatchingSink
             final LimitsConfig limitsConfig,
             final ActorRefFactory actorRefFactory) {
 
-        this.proxyActor = proxyActor;
-        this.outboundMessageMappingProcessorActor = outboundMessageMappingProcessorActor;
-        this.headerTranslator = headerTranslator;
-        this.connection = connection;
-        this.connectionActor = connectionActor;
-        this.clientActor = clientActor;
+        this.connection = checkNotNull(connection, "connection");
+        this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
+        this.proxyActor = checkNotNull(proxyActor, "proxyActor");
+        this.connectionActor = checkNotNull(connectionActor, "connectionActor");
+        this.outboundMessageMappingProcessorActor = checkNotNull(outboundMessageMappingProcessorActor,
+                "outboundMessageMappingProcessorActor");
+        this.clientActor = checkNotNull(clientActor, "clientActor");
+        checkNotNull(connectivityConfig, "connectivityConfig");
+        checkNotNull(limitsConfig, "limitsConfig");
+        checkNotNull(actorRefFactory, "actorRefFactory");
 
         logger = DittoLoggerFactory.getThreadSafeLogger(InboundDispatchingSink.class)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
@@ -169,14 +176,18 @@ public final class InboundDispatchingSink
     }
 
     /**
-     * Creates a Sink that dispatches inbound messages after they are mapped..
+     * Creates a Sink that dispatches inbound messages after they are mapped.
      *
      * @param connection the connection
      * @param headerTranslator the headerTranslator to use.
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connection actor acting as the grandparent of this actor.
      * @param outboundMessageMappingProcessorActor used to publish errors.
-     * @return the Akka configuration Props object.
+     * @param clientActor the client actor ref to forward commands to.
+     * @param actorRefFactory the ActorRefFactory to use in order to create new actors in.
+     * @param config the configuration of the Akka system.
+     * @throws java.lang.NullPointerException if any of the passed arguments was {@code null}.
+     * @return the Sink.
      */
     public static Sink<Object, NotUsed> createSink(final Connection connection,
             final HeaderTranslator headerTranslator,
@@ -187,7 +198,7 @@ public final class InboundDispatchingSink
             final ActorRefFactory actorRefFactory,
             final Config config) {
 
-        final var dittoScoped = DefaultScopedConfig.dittoScoped(config);
+        final var dittoScoped = DefaultScopedConfig.dittoScoped(checkNotNull(config, "config"));
         final var connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
         final var limitsConfig = DefaultLimitsConfig.of(dittoScoped);
         final var inboundDispatchingSink = new InboundDispatchingSink(
@@ -505,8 +516,7 @@ public final class InboundDispatchingSink
      * @param <T> type of elements for the next step..
      * @return an empty source of Signals
      */
-    private <T> Stream<T> forwardToClientActor(final Signal<?> signal,
-            @Nullable final ActorRef sender) {
+    private <T> Stream<T> forwardToClientActor(final Signal<?> signal, @Nullable final ActorRef sender) {
         // wrap response or search command for dispatching by entity ID
         clientActor.tell(InboundSignal.of(signal), sender);
         return Stream.empty();

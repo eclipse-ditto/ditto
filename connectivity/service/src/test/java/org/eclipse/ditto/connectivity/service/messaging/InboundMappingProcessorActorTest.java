@@ -68,64 +68,60 @@ public final class InboundMappingProcessorActorTest {
 
     @Test
     public void onError() {
-        new TestKit(system) {
-            {
-                // GIVEN: InboundMappingProcessorActor is constructed with a processor that throws an exception always.
-                final TestProbe inboundDispatcher = TestProbe.apply("inboundDispatcher", system);
-                final Sink<Object, ?> inboundSink =
-                        Sink.foreach(x -> inboundDispatcher.ref().tell(x, ActorRef.noSender()));
-                final InboundMappingProcessor throwingProcessor = createThrowingProcessor();
-                final Sink<Object, NotUsed> inboundMappingSink = InboundMappingSink.createSink(throwingProcessor,
-                        TestConstants.createRandomConnectionId(),
-                        1,
-                        inboundSink,
-                        TestConstants.MAPPING_CONFIG,
-                        null,
-                        system.dispatchers().defaultGlobalDispatcher());
-                final ActorRef underTest = Source.actorRef(1, OverflowStrategy.dropNew())
-                        .to(inboundMappingSink)
-                        .run(Materializer.createMaterializer(system));
+        new TestKit(system) {{
+            // GIVEN: InboundMappingProcessorActor is constructed with a processor that throws an exception always.
+            final TestProbe inboundDispatcher = TestProbe.apply("inboundDispatcher", system);
+            final Sink<Object, ?> inboundSink =
+                    Sink.foreach(x -> inboundDispatcher.ref().tell(x, ActorRef.noSender()));
+            final InboundMappingProcessor throwingProcessor = createThrowingProcessor();
+            final Sink<Object, NotUsed> inboundMappingSink = InboundMappingSink.createSink(throwingProcessor,
+                    TestConstants.createRandomConnectionId(),
+                    1,
+                    inboundSink,
+                    TestConstants.MAPPING_CONFIG,
+                    null,
+                    system.dispatchers().defaultGlobalDispatcher());
+            final ActorRef underTest = Source.actorRef(1, OverflowStrategy.dropNew())
+                    .to(inboundMappingSink)
+                    .run(Materializer.createMaterializer(system));
 
-                // WHEN: InboundMappingProcessorActor receives a text message.
-                final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(Map.of())
-                        .withSource(TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT.get(0))
-                        .withText("text")
-                        // attach non-null payload mapping to avoid using the default mapper
-                        .withPayloadMapping(Mockito.mock(PayloadMapping.class))
-                        .build();
-                underTest.tell(
-                        new InboundMappingSink.ExternalMessageWithSender(message, getRef()),
-                        ActorRef.noSender()
-                );
+            // WHEN: InboundMappingProcessorActor receives a text message.
+            final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(Map.of())
+                    .withSource(TestConstants.Sources.SOURCES_WITH_AUTH_CONTEXT.get(0))
+                    .withText("text")
+                    // attach non-null payload mapping to avoid using the default mapper
+                    .withPayloadMapping(Mockito.mock(PayloadMapping.class))
+                    .build();
+            underTest.tell(
+                    new InboundMappingSink.ExternalMessageWithSender(message, getRef()),
+                    ActorRef.noSender()
+            );
 
-                // THEN: InboundDispatchingActor receives 1 error outcome with the exception thrown.
-                final InboundMappingOutcomes outcomes =
-                        inboundDispatcher.expectMsgClass(InboundMappingOutcomes.class);
-                assertThat(outcomes.getOutcomes()).hasSize(1);
-                outcomes.getOutcomes().get(0).accept(new MappingOutcome.Visitor<>() {
-                    @Override
-                    public Integer onMapped(final String mapperId, final MappedInboundExternalMessage mapped) {
-                        throw new AssertionError("Expect error, got: mapped " + mapped);
-                    }
+            // THEN: InboundDispatchingActor receives 1 error outcome with the exception thrown.
+            final InboundMappingOutcomes outcomes =
+                    inboundDispatcher.expectMsgClass(InboundMappingOutcomes.class);
+            assertThat(outcomes.getOutcomes()).hasSize(1);
+            outcomes.getOutcomes().get(0).accept(new MappingOutcome.Visitor<>() {
+                @Override
+                public Integer onMapped(final String mapperId, final MappedInboundExternalMessage mapped) {
+                    throw new AssertionError("Expect error, got: mapped " + mapped);
+                }
 
-                    @Override
-                    public Integer onDropped(final String mapperId,
-                            @Nullable final ExternalMessage droppedMessage) {
-                        throw new AssertionError("Expect error, got: dropped " + droppedMessage);
-                    }
+                @Override
+                public Integer onDropped(final String mapperId,
+                        @Nullable final ExternalMessage droppedMessage) {
+                    throw new AssertionError("Expect error, got: dropped " + droppedMessage);
+                }
 
-                    @Override
-                    public Integer onError(final String mapperId, final Exception error,
-                            @Nullable final TopicPath topicPath,
-                            @Nullable final ExternalMessage externalMessage) {
-                        assertThat(error).isEqualTo(ThrowingMapper.EXCEPTION);
-                        return 0;
-                    }
-                });
-            }
-        }
-
-        ;
+                @Override
+                public Integer onError(final String mapperId, final Exception error,
+                        @Nullable final TopicPath topicPath,
+                        @Nullable final ExternalMessage externalMessage) {
+                    assertThat(error).isEqualTo(ThrowingMapper.EXCEPTION);
+                    return 0;
+                }
+            });
+        }};
     }
 
     private static InboundMappingProcessor createThrowingProcessor() {
