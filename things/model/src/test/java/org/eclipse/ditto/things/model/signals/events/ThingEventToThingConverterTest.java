@@ -16,11 +16,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Optional;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureProperties;
@@ -83,7 +83,7 @@ public final class ThingEventToThingConverterTest {
         final int modifiedCounterValue = 100;
         final AttributeModified attributeModified =
                 AttributeModified.of(TestConstants.Thing.THING_ID, JsonPointer.of(ATTR_KEY_COUNTER),
-                        JsonValue.of(modifiedCounterValue), revision,null, DittoHeaders.empty(), null);
+                        JsonValue.of(modifiedCounterValue), revision, null, DittoHeaders.empty(), null);
         final JsonFieldSelector extraSelector = JsonFieldSelector.newInstance("attributes");
         final JsonObject extra = JsonObject.newBuilder()
                 .set("attributes", JsonObject.newBuilder()
@@ -103,5 +103,25 @@ public final class ThingEventToThingConverterTest {
                 .set(ATTR_KEY_CITY, KNOWN_CITY)
                 .build()
         );
+    }
+
+    @Test
+    public void ensureThingMergedConvertsAsExpected() {
+        final long revision = 23L;
+        final JsonPointer mergedPointer = JsonPointer.of("/");
+        final JsonObject mergedValue = JsonObject.newBuilder()
+                .set("attributes", JsonObject.newBuilder()
+                        .set("foo", "bar")
+                        .build())
+                .build();
+        final ThingMerged thingMerged = ThingMerged.of(TestConstants.Thing.THING_ID, mergedPointer, mergedValue, revision,
+                null, DittoHeaders.empty(), null);
+
+        final Optional<Thing> thingOpt = ThingEventToThingConverter.thingEventToThing(thingMerged);
+        assertThat(thingOpt).isPresent();
+        final Thing thing = thingOpt.get();
+        assertThat(thing.getEntityId()).contains(TestConstants.Thing.THING_ID);
+        assertThat(thing.getRevision()).contains(ThingRevision.newInstance(revision));
+        assertThat(thing.getAttributes()).contains(Attributes.newBuilder().set("foo", "bar").build());
     }
 }

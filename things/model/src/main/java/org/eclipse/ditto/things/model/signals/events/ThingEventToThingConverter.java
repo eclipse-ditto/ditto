@@ -19,18 +19,20 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 
 /**
  * Helpers and utils for converting {@link ThingEvent}s to {@link org.eclipse.ditto.things.model.Thing}s.
@@ -116,8 +118,12 @@ public final class ThingEventToThingConverter {
         mappers.put(ThingMerged.class,
                 (te, tb) -> {
                     final ThingMerged thingMerged = (ThingMerged) te;
-                    return ThingsModelFactory.newThing(JsonFactory.newObject(thingMerged.getResourcePath(),
-                            filterNullValuesInJsonValue(thingMerged.getValue())));
+                    final JsonPointer resourcePath = thingMerged.getResourcePath();
+                    final JsonValue nonNullValue = filterNullValuesInJsonValue(thingMerged.getValue());
+                    final JsonObject mergedFields = JsonFactory.newObject(resourcePath, nonNullValue);
+                    final JsonObject thingWithoutMergedFields = tb.build().toJson(FieldType.all());
+                    final JsonValue mergedJson = JsonFactory.mergeJsonValues(thingWithoutMergedFields, mergedFields);
+                    return ThingsModelFactory.newThing(mergedJson.asObject());
                 }
         );
         mappers.put(ThingDeleted.class,
