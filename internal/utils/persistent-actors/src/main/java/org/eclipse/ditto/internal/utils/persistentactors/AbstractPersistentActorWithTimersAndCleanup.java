@@ -145,10 +145,7 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
         if (deleteSnapshotsResponse != null && deleteMessagesResponse != null) {
             if (isCleanupCompletedSuccessfully()) {
                 log.info("Cleanup for '{}' completed.", persistenceId());
-                Optional.ofNullable(origin)
-                        .ifPresent(o -> o.tell(
-                                CleanupPersistenceResponse.success(extractEntityIdFromPersistenceId(persistenceId()),
-                                        DittoHeaders.empty()), getSelf()));
+                respondWithCleanupSuccess();
             } else {
                 log.info("Cleanup for '{}' failed. Snapshots: {}. Messages: {}.", persistenceId(),
                         getResponseStatus(deleteSnapshotsResponse), getResponseStatus(deleteMessagesResponse));
@@ -159,6 +156,13 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
             }
             finishCleanup();
         }
+    }
+
+    private void respondWithCleanupSuccess() {
+        Optional.ofNullable(origin)
+                .ifPresent(o -> o.tell(
+                        CleanupPersistenceResponse.success(extractEntityIdFromPersistenceId(persistenceId()),
+                                DittoHeaders.empty()), getSelf()));
     }
 
     private boolean isCleanupCompletedSuccessfully() {
@@ -199,8 +203,7 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
             lastCleanupExecutedAtSequenceNumber = latestSnapshotSequenceNumber;
         } else {
             // respond fast that no cleanup is necessary, treat as success:
-            getSender().tell(CleanupPersistenceResponse.success(extractEntityIdFromPersistenceId(persistenceId()),
-                        DittoHeaders.empty()), getSelf());
+            respondWithCleanupSuccess();
             finishCleanup();
         }
     }
