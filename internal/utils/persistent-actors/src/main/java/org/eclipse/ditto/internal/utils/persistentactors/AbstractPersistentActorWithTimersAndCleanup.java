@@ -197,6 +197,11 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
             deleteMessages(maxEventSeqNoToDelete);
             deleteSnapshots(deletionCriteria);
             lastCleanupExecutedAtSequenceNumber = latestSnapshotSequenceNumber;
+        } else {
+            // respond fast that no cleanup is necessary, treat as success:
+            getSender().tell(CleanupPersistenceResponse.success(extractEntityIdFromPersistenceId(persistenceId()),
+                        DittoHeaders.empty()), getSelf());
+            finishCleanup();
         }
     }
 
