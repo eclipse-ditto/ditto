@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -45,6 +46,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 
 import com.hivemq.client.mqtt.MqttClient;
 import com.hivemq.client.mqtt.MqttClientState;
+import com.hivemq.client.mqtt.exceptions.MqttClientStateException;
 import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttDisconnectSource;
@@ -535,20 +537,22 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
      *
      * @param clientToDisconnect the client to disconnect
      * @param name a name describing the client's purpose
-     * @param prevenntAutomaticReconnect whether automatic reconnect should be disabled.
+     * @param preventAutomaticReconnect whether automatic reconnect should be disabled.
      */
     private void safelyDisconnectClient(@Nullable final ClientWithCancelSwitch clientToDisconnect,
-            final String name, final boolean prevenntAutomaticReconnect) {
+            final String name, final boolean preventAutomaticReconnect) {
         if (clientToDisconnect != null) {
-            try {
-                logger.info("Disconnecting mqtt <{}> client, ignoring any errors.", name);
-                clientToDisconnect.disconnect(prevenntAutomaticReconnect).exceptionally(error -> {
+            logger.info("Disconnecting mqtt <{}> client, ignoring any errors.", name);
+            clientToDisconnect.disconnect(preventAutomaticReconnect).exceptionally(error -> {
+                final var cause = error instanceof CompletionException ? error.getCause() : error;
+                if (cause instanceof MqttClientStateException) {
+                    logger.debug("Failed to disconnect client <{}>, it was probably already closed: {}",
+                            clientToDisconnect.mqttClient, cause);
+                } else {
                     logger.error(error, "Failed to disconnect client <{}>", clientToDisconnect.mqttClient);
-                    return null;
-                });
-            } catch (final Exception e) {
-                logger.debug("Disconnecting client failed, it was probably already closed: {}", e);
-            }
+                }
+                return null;
+            });
         }
     }
 

@@ -58,7 +58,6 @@ import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
-import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConsumerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
@@ -70,7 +69,6 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 
-import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
@@ -178,14 +176,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                     log.error(e, "Failed to register for connectivity connfig changes");
                     return null;
                 });
-        try {
-            initMessageConsumer();
-        } catch (final Exception e) {
-            final var failure = new ImmutableConnectionFailure(getSelf(), e,
-                    "Failed to initialize message consumers.");
-            getContext().getParent().tell(failure, getSelf());
-            getContext().stop(getSelf());
-        }
+        initMessageConsumer();
     }
 
     @Override
@@ -231,10 +222,17 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         return messageRateLimiter;
     }
 
-    private void initMessageConsumer() throws JMSException {
-        if (messageConsumer != null) {
-            messageConsumer.setMessageListener(this);
-            consumerData = consumerData.withMessageConsumer(messageConsumer);
+    private void initMessageConsumer() {
+        try {
+            if (messageConsumer != null) {
+                messageConsumer.setMessageListener(this);
+                consumerData = consumerData.withMessageConsumer(messageConsumer);
+            }
+        } catch (final Exception e) {
+            final var failure = new ImmutableConnectionFailure(getSelf(), e,
+                    "Failed to initialize message consumers.");
+            getContext().getParent().tell(failure, getSelf());
+            getContext().stop(getSelf());
         }
     }
 
@@ -282,7 +280,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         Patterns.pipe(responseFuture, getContext().getDispatcher()).to(getSelf());
     }
 
-    private void messageConsumerCreated(final CreateMessageConsumerResponse response) throws JMSException {
+    private void messageConsumerCreated(final CreateMessageConsumerResponse response) {
         if (consumerData.equals(response.consumerData)) {
             log.info("Consumer <{}> created", response.messageConsumer);
             destroyMessageConsumer();
