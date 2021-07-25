@@ -41,7 +41,7 @@ final class UriForLocationHeaderSupplier implements Supplier<Uri> {
     public Uri get() {
         final Uri requestUri = httpRequest.getUri().query(Query.EMPTY); // strip query params
         if (isRequestIdempotent()) {
-            return requestUri.query(Query.EMPTY);
+            return requestUri;
         }
         return Uri.create(removeTrailingSlash(getLocationUriString(removeEntityId(requestUri.toString()))))
                 .query(Query.EMPTY);

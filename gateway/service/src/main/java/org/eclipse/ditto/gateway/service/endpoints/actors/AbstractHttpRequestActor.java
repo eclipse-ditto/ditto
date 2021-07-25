@@ -240,6 +240,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         if (HttpStatus.CREATED.equals(commandResponse.getHttpStatus()) && optionalEntityId.isPresent()) {
             responseLocationUri =
                     getUriForLocationHeader(httpRequest, optionalEntityId.get(), commandResponse.getResourcePath());
+            logger.debug("Setting responseLocationUri=<{}> from request <{}>", responseLocationUri, httpRequest);
         }
     }
 
