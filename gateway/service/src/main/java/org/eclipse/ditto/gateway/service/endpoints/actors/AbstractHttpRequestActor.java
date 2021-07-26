@@ -240,6 +240,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         if (HttpStatus.CREATED.equals(commandResponse.getHttpStatus()) && optionalEntityId.isPresent()) {
             responseLocationUri =
                     getUriForLocationHeader(httpRequest, optionalEntityId.get(), commandResponse.getResourcePath());
+            logger.debug("Setting responseLocationUri=<{}> from request <{}>", responseLocationUri, httpRequest);
         }
     }
 
@@ -485,10 +486,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             completionResponse = createHttpResponse(HttpStatus.ACCEPTED);
         }
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Responding with HTTP response code <{}>.", completionResponse.status().intValue());
-            logger.debug("Responding with entity <{}>.", completionResponse.entity());
-        }
+        logger.debug("Responding with HTTP response <{}>.", completionResponse);
         httpResponseFuture.complete(completionResponse);
 
         stop();
