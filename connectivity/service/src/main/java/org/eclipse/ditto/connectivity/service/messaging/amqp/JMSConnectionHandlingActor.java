@@ -217,17 +217,19 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                 sender.tell(r, self);
                 log.debug("Session of connection <{}> recovered successfully.",
                         connectionContext.getConnection().getId());
-            } catch (final ConnectionFailedException | ConnectionUnauthorizedException e) {
-                sender.tell(ImmutableConnectionFailure.userRelated(origin, e, e.getMessage()),
-                        self);
+            } catch (final ConnectionFailedException e) {
+                sender.tell(ImmutableConnectionFailure.of(origin, e, e.getMessage()), self);
+                log.warning(e.getMessage());
+            } catch (final ConnectionUnauthorizedException e) {
+                sender.tell(ImmutableConnectionFailure.userRelated(origin, e, e.getMessage()), self);
                 log.warning(e.getMessage());
             } catch (final Exception e) {
-                sender.tell(ImmutableConnectionFailure.internal(origin, e, e.getMessage()), self);
+                sender.tell(ImmutableConnectionFailure.of(origin, e, e.getMessage()), self);
                 log.error("Unexpected error: {}", e.getMessage());
             }
         } else {
             log.info("Recovering session failed, no connection available.");
-            sender.tell(ImmutableConnectionFailure.internal(origin, null,
+            sender.tell(ImmutableConnectionFailure.of(origin, null,
                     "Session recovery failed, no connection available."), self);
         }
     }
@@ -258,13 +260,13 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
             sender.tell(connectedMessage, self);
             log.debug("Connection <{}> established successfully.", connectionContext.getConnection().getId());
         } catch (final ConnectionFailedException e) {
-            sender.tell(ImmutableConnectionFailure.internal(origin, e, e.getMessage()), self);
+            sender.tell(ImmutableConnectionFailure.of(origin, e, e.getMessage()), self);
             log.warning(e.getMessage());
         } catch (final ConnectionUnauthorizedException e) {
             sender.tell(ImmutableConnectionFailure.userRelated(origin, e, e.getMessage()), self);
             log.warning(e.getMessage());
         } catch (final Exception e) {
-            sender.tell(ImmutableConnectionFailure.internal(origin, e, e.getMessage()), self);
+            sender.tell(ImmutableConnectionFailure.of(origin, e, e.getMessage()), self);
             log.error("Unexpected error: {}", e.getMessage());
         }
     }

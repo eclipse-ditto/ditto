@@ -275,7 +275,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         private void escalate(final DittoRuntimeException dittoRuntimeException) {
             final ActorRef self = getContext().getSelf();
             getContext().getParent()
-                    .tell(ImmutableConnectionFailure.internal(self, dittoRuntimeException, null), self);
+                    .tell(ImmutableConnectionFailure.of(self, dittoRuntimeException, null), self);
         }
 
         private void stop() {

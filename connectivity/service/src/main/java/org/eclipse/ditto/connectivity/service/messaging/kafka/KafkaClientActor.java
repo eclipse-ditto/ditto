@@ -261,7 +261,7 @@ public final class KafkaClientActor extends BaseClientActor {
             if (status instanceof Status.Failure) {
                 final Status.Failure failure = (Status.Failure) status;
                 final ConnectionFailure connectionFailure =
-                        ImmutableConnectionFailure.internal(null, failure.cause(), "child failed");
+                        ImmutableConnectionFailure.of(null, failure.cause(), "child failed");
                 getSelf().tell(connectionFailure, ActorRef.noSender());
             } else if (pendingStatusReportsFromStreams.isEmpty()) {
                 // all children are ready; this client actor is connected.

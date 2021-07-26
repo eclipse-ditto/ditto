@@ -197,6 +197,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final Materializer materializer;
     protected final ConnectionLogger connectionLogger;
     private final boolean dryRun;
+    private final ConnectivityStatusResolver connectivityStatusResolver;
 
     private final ConnectionContextProvider connectionContextProvider;
     protected ConnectionContext connectionContext;
@@ -212,13 +213,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     protected BaseClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
-        materializer = Materializer.createMaterializer(getContext().getSystem());
+        final ActorSystem system = getContext().getSystem();
+        materializer = Materializer.createMaterializer(system);
         this.connection = checkNotNull(connection, "connection");
         this.connectionActor = connectionActor;
         // this is retrieve via the extension for each baseClientActor in order to not pass it as constructor arg
         //  as all constructor arguments need to be serializable as the BaseClientActor is started behind a cluster
         //  router
-        this.dittoProtocolSub = DittoProtocolSub.get(getContext().getSystem());
+        this.dittoProtocolSub = DittoProtocolSub.get(system);
         actorUUID = UUID.randomUUID().toString();
 
         final var connectionId = connection.getId();
@@ -228,12 +230,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         logger.info("Using default client ID <{}>", getDefaultClientId());
 
         proxyActorSelection = getLocalActorOfSamePath(proxyActor);
-        connectionContextProvider = ConnectionContextProviderFactory.getInstance(getContext().getSystem());
+        connectionContextProvider = ConnectionContextProviderFactory.getInstance(system);
 
-        final ConnectivityConfig staticConnectivityConfig = ConnectivityConfig.forActorSystem(getContext().getSystem());
+        final UserIndicatedErrors userIndicatedErrors = UserIndicatedErrors.of(system.settings().config());
+        connectivityStatusResolver = ConnectivityStatusResolver.of(userIndicatedErrors);
+        final ConnectivityConfig staticConnectivityConfig = ConnectivityConfig.forActorSystem(system);
         final ClientConfig staticClientConfig = staticConnectivityConfig.getClientConfig();
         final var protocolAdapterProvider =
-                ProtocolAdapterProvider.load(staticConnectivityConfig.getProtocolConfig(), getContext().getSystem());
+                ProtocolAdapterProvider.load(staticConnectivityConfig.getProtocolConfig(), system);
         protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         connectionContext = DittoConnectionContext.of(connection, staticConnectivityConfig);
 
@@ -1326,7 +1330,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     connectionLogger.failure(errorMessage, event.getFailureDescription());
                     logger.info("Connection failed: {}. Reconnect after {}.", event, nextBackoff);
                     return goToConnecting(nextBackoff).using(data.resetSession()
-                            .setConnectionStatus(event.getStatus())
+                            .setConnectionStatus(connectivityStatusResolver.resolve(event))
                             .setConnectionStatusDetails(event.getFailureDescription()));
                 }
             } else {
@@ -1339,7 +1343,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
                 // stay in UNKNOWN state until re-opened manually
                 return goTo(INITIALIZED).using(data.resetSession()
-                        .setConnectionStatus(event.getStatus())
+                        .setConnectionStatus(connectivityStatusResolver.resolve(event))
                         .setConnectionStatusDetails(event.getFailureDescription()
                                 + " Reached maximum retries and thus will not try to reconnect any longer."));
             }
@@ -1348,7 +1352,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         connectionLogger.failure("Connection failed due to: {0}.", event.getFailureDescription());
         return goTo(INITIALIZED)
                 .using(data.resetSession()
-                        .setConnectionStatus(event.getStatus())
+                        .setConnectionStatus(connectivityStatusResolver.resolve(event))
                         .setConnectionStatusDetails(event.getFailureDescription())
                 );
     }
@@ -1848,10 +1852,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                             return (SupervisorStrategy.Directive) SupervisorStrategy.resume();
                         })
                         .matchAny(error -> {
-                            self.tell(
-                                    ImmutableConnectionFailure.internal(getSender(), error, "exception in child"),
-                                    self
-                            );
+                            self.tell(ImmutableConnectionFailure.of(getSender(), error, "exception in child"), self);
                             if (getSender().equals(tunnelActor)) {
                                 logger.debug("Restarting tunnel actor after failure: {}", error.getMessage());
                                 return (SupervisorStrategy.Directive) SupervisorStrategy.restart();
@@ -2133,7 +2134,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         }
 
         public static InitializationResult failed(@Nullable final Throwable throwable) {
-            return new InitializationResult(ImmutableConnectionFailure.internal(null, throwable,
+            return new InitializationResult(ImmutableConnectionFailure.of(null, throwable,
                     "Exception during client actor initialization."));
         }
 

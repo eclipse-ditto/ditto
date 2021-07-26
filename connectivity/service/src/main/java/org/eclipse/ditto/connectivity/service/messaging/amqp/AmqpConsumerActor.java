@@ -180,7 +180,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
             initMessageConsumer();
         } catch (final Exception e) {
             final var failure =
-                    ImmutableConnectionFailure.internal(getSelf(), e, "Failed to initialize message consumers.");
+                    ImmutableConnectionFailure.of(getSelf(), e, "Failed to initialize message consumers.");
             getContext().getParent().tell(failure, getSelf());
             getContext().stop(getSelf());
         }
@@ -296,7 +296,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
 
     private void messageConsumerFailed(final Status.Failure failure) {
         // escalate to parent
-        final ConnectionFailure connectionFailed = ImmutableConnectionFailure.internal(getSelf(), failure.cause(),
+        final ConnectionFailure connectionFailed = ImmutableConnectionFailure.of(getSelf(), failure.cause(),
                 "Failed to recreate closed message consumer");
         getContext().getParent().tell(connectionFailed, getSelf());
     }

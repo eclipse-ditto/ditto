@@ -601,7 +601,7 @@ public final class BaseClientActorTest {
     }
 
     private static void andConnectionFails(final ActorRef clientActor, final ActorRef origin) {
-        clientActor.tell(ImmutableConnectionFailure.internal(null, null, null), clientActor);
+        clientActor.tell(ImmutableConnectionFailure.of(null, null, null), clientActor);
     }
 
     private static void andDisconnectionSuccessful(final ActorRef clientActor, final ActorRef origin) {
@@ -609,7 +609,7 @@ public final class BaseClientActorTest {
     }
 
     private static void andConnectionNotSuccessful(final ActorRef clientActor) {
-        clientActor.tell(ImmutableConnectionFailure.internal(null, null, "expected exception"), clientActor);
+        clientActor.tell(ImmutableConnectionFailure.of(null, null, "expected exception"), clientActor);
     }
 
     private static void andStateTimeoutSent(final ActorRef clientActor) {

@@ -563,7 +563,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param description description of the failure.
      */
     protected void escalate(final Throwable error, final String description) {
-        final ConnectionFailure failure = ImmutableConnectionFailure.internal(getSelf(), error, description);
+        final ConnectionFailure failure = ImmutableConnectionFailure.of(getSelf(), error, description);
         getContext().getParent().tell(failure, getSelf());
     }
 

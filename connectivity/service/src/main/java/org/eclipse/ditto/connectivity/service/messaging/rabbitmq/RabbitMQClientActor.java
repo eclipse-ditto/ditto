@@ -254,7 +254,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private static Object messageFromConnectionStatus(final Status.Status status) {
         if (status instanceof Status.Failure) {
             final Status.Failure failure = (Status.Failure) status;
-            return ImmutableConnectionFailure.internal(null, failure.cause(), null);
+            return ImmutableConnectionFailure.of(null, failure.cause(), null);
         } else {
             return (ClientConnected) Optional::empty;
         }

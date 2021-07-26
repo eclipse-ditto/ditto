@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.internal;
 
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -32,16 +33,28 @@ public final class ImmutableConnectionFailure extends AbstractWithOrigin impleme
 
     @Nullable private final Throwable cause;
     @Nullable private final String description;
-    private final ConnectivityStatus connectivityStatus;
+    @Nullable private final ConnectivityStatus connectivityStatus;
     private final Instant time;
 
     private ImmutableConnectionFailure(@Nullable final ActorRef origin, @Nullable final Throwable cause,
-            @Nullable final String description, final ConnectivityStatus connectivityStatus) {
+            @Nullable final String description, @Nullable final ConnectivityStatus connectivityStatus) {
         super(origin);
         this.cause = cause;
         this.description = description;
         time = Instant.now();
         this.connectivityStatus = connectivityStatus;
+    }
+
+    /**
+     * Constructs a new ImmutableConnectionFailure which was most likely cause by an internal problem.
+     *
+     * @param origin the origin ActorRef
+     * @param cause the cause of the Failure
+     * @param description an optional description
+     */
+    public static ImmutableConnectionFailure of(@Nullable final ActorRef origin, @Nullable final Throwable cause,
+            @Nullable final String description) {
+        return new ImmutableConnectionFailure(origin, cause, description, null);
     }
 
     /**
@@ -66,7 +79,8 @@ public final class ImmutableConnectionFailure extends AbstractWithOrigin impleme
      * @param cause the cause of the Failure
      * @param description an optional description
      */
-    public static ImmutableConnectionFailure userRelated(@Nullable final ActorRef origin, @Nullable final Throwable cause,
+    public static ImmutableConnectionFailure userRelated(@Nullable final ActorRef origin,
+            @Nullable final Throwable cause,
             @Nullable final String description) {
         return new ImmutableConnectionFailure(origin, cause, description, ConnectivityStatus.MISCONFIGURED);
     }
@@ -97,8 +111,8 @@ public final class ImmutableConnectionFailure extends AbstractWithOrigin impleme
     }
 
     @Override
-    public ConnectivityStatus getStatus() {
-        return connectivityStatus;
+    public Optional<ConnectivityStatus> getStatus() {
+        return Optional.ofNullable(connectivityStatus);
     }
 
     @Override
@@ -112,12 +126,13 @@ public final class ImmutableConnectionFailure extends AbstractWithOrigin impleme
         final ImmutableConnectionFailure that = (ImmutableConnectionFailure) o;
         return Objects.equals(cause, that.cause) &&
                 Objects.equals(description, that.description) &&
-                Objects.equals(time, that.time);
+                Objects.equals(time, that.time) &&
+                Objects.equals(connectivityStatus, that.connectivityStatus);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(cause, description, time);
+        return Objects.hash(cause, description, time, connectivityStatus);
     }
 
     @Override
@@ -126,6 +141,7 @@ public final class ImmutableConnectionFailure extends AbstractWithOrigin impleme
                 ", cause=" + cause +
                 ", description=" + description +
                 ", time=" + time +
+                ", connectivityStatus=" + connectivityStatus +
                 "]";
     }
 }

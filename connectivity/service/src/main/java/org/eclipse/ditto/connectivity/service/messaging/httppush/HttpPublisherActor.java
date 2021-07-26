@@ -560,7 +560,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     private ConnectionFailure toConnectionFailure(@Nullable final Done done, @Nullable final Throwable error) {
-        return ImmutableConnectionFailure.internal(getSelf(), error, "HttpPublisherActor stream terminated");
+        return ImmutableConnectionFailure.of(getSelf(), error, "HttpPublisherActor stream terminated");
     }
 
     private static DittoHeaders setDittoHeaders(final DittoHeaders dittoHeaders, final HttpResponse response) {
