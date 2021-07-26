@@ -27,6 +27,20 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.ResourceStatus;
+import org.eclipse.ditto.connectivity.model.WithConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -37,20 +51,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.connectivity.model.ResourceStatus;
-import org.eclipse.ditto.connectivity.model.WithConnectionId;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 
 /**
  * Response to a {@link RetrieveConnection} command.
@@ -294,7 +294,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                " connectionId=" + connectionId +
+                "connectionId=" + connectionId +
                 ", jsonObject=" + jsonObject +
                 "]";
     }
@@ -336,13 +336,13 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
 
         private final ConnectionId connectionId;
         private final DittoHeaders dittoHeaders;
-        private ConnectivityStatus connectionStatus;
-        private ConnectivityStatus liveStatus;
+        @Nullable private ConnectivityStatus connectionStatus;
+        @Nullable private ConnectivityStatus liveStatus;
         @Nullable private Instant connectedSince;
-        private List<ResourceStatus> clientStatus;
-        private List<ResourceStatus> sourceStatus;
-        private List<ResourceStatus> targetStatus;
-        private List<ResourceStatus> sshTunnelStatus;
+        @Nullable private List<ResourceStatus> clientStatus;
+        @Nullable private List<ResourceStatus> sourceStatus;
+        @Nullable private List<ResourceStatus> targetStatus;
+        @Nullable private List<ResourceStatus> sshTunnelStatus;
 
         private Builder(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
             this.connectionId = connectionId;

@@ -61,7 +61,8 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
                 .connectedSince(Instant.EPOCH)
                 .clientStatus(Collections.emptyList())
                 .sourceStatus(Collections.emptyList())
-                .targetStatus(Collections.emptyList());
+                .targetStatus(Collections.emptyList())
+                .sshTunnelStatus(Collections.emptyList());
 
         expectedResponses = new EnumMap<>(ResourceStatus.ResourceType.class);
         // one response per client actor
