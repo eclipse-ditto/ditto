@@ -41,6 +41,7 @@ import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
+import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
@@ -50,7 +51,6 @@ import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
-import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.Props;
@@ -277,7 +277,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
             statusDetail = "ssh tunnel established.";
         } else if (error != null) {
             status = ConnectivityStatus.FAILED;
-            statusDetail = "ssh tunnel failed " + String.format("(reason: " + error.getMessage() + ").", error);
+            statusDetail =  String.format("ssh tunnel failed (reason: %s).", error.getMessage());
         } else {
             status = ConnectivityStatus.CLOSED;
             statusDetail = "ssh tunnel closed.";
