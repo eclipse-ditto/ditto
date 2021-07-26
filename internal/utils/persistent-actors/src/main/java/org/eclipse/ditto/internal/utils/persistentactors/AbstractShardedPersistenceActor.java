@@ -518,7 +518,8 @@ public abstract class AbstractShardedPersistenceActor<
         l.debug("Persisting Event <{}>.", event.getType());
 
         persist(event, persistedEvent -> {
-            l.info("Successfully persisted Event <{}>.", event.getType());
+            l.info("Successfully persisted Event <{}> w/ rev: <{}>.", event.getType(),
+                    getRevisionNumber());
 
             /* the event has to be applied before creating the snapshot, otherwise a snapshot with new
                sequence no (e.g. 2), but old entity revision no (e.g. 1) will be created -> can lead to serious
