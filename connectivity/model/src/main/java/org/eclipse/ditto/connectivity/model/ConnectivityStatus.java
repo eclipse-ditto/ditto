@@ -44,6 +44,7 @@ public enum ConnectivityStatus implements CharSequence, Jsonifiable<JsonObject> 
 
     /**
      * Indicates a failed {@code Connection} due to wrong configuration.
+     * @since 2.1.0
      */
     MISCONFIGURED("misconfigured"),
 
