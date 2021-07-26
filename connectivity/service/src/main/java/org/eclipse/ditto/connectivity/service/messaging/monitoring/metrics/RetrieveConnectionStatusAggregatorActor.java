@@ -146,7 +146,7 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
                 .allMatch(ConnectivityStatus.OPEN::equals);
         final boolean anyClientFailed = clientStatus.stream()
                 .map(ResourceStatus::getStatus)
-                .anyMatch(ConnectivityStatus.FAILED::equals);
+                .anyMatch(ConnectivityStatus::isFailure);
         final boolean allClientsClosed = clientStatus.stream()
                 .map(ResourceStatus::getStatus)
                 .allMatch(ConnectivityStatus.CLOSED::equals);

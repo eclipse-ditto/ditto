@@ -296,17 +296,18 @@ public final class OutboundMappingProcessorActor
     protected Sink<OutboundSignalWithSender, ?> createSink() {
         // Enrich outbound signals by extra fields if necessary.
         // Targets attached to the OutboundSignal are pre-selected by authorization, topic and filter sans enrichment.
-        final Flow<OutboundSignalWithSender, OutboundSignal.MultiMapped, ?> flow = Flow.<OutboundSignalWithSender>create()
-                .mapAsync(processorPoolSize, outbound -> toMultiMappedOutboundSignal(
-                        outbound,
-                        Source.single(outbound)
-                                .via(splitByTargetExtraFieldsFlow())
-                                .mapAsync(mappingConfig.getParallelism(), this::enrichAndFilterSignal)
-                                .mapConcat(x -> x)
-                                .map(this::handleOutboundSignal)
-                                .flatMapConcat(x -> x)
-                ))
-                .mapConcat(x -> x);
+        final Flow<OutboundSignalWithSender, OutboundSignal.MultiMapped, ?> flow =
+                Flow.<OutboundSignalWithSender>create()
+                        .mapAsync(processorPoolSize, outbound -> toMultiMappedOutboundSignal(
+                                outbound,
+                                Source.single(outbound)
+                                        .via(splitByTargetExtraFieldsFlow())
+                                        .mapAsync(mappingConfig.getParallelism(), this::enrichAndFilterSignal)
+                                        .mapConcat(x -> x)
+                                        .map(this::handleOutboundSignal)
+                                        .flatMapConcat(x -> x)
+                        ))
+                        .mapConcat(x -> x);
         return flow.to(Sink.foreach(this::forwardToPublisherActor));
     }
 
@@ -381,11 +382,11 @@ public final class OutboundMappingProcessorActor
                 .filter(ThingId.class::isInstance)
                 .map(ThingId.class::cast)
                 .map(thingId ->
-                     signalEnrichmentFacade.retrievePartialThing(
-                            thingId,
-                            extraFields,
-                            headers,
-                            outboundSignal.getSource())
+                        signalEnrichmentFacade.retrievePartialThing(
+                                thingId,
+                                extraFields,
+                                headers,
+                                outboundSignal.getSource())
                 )
                 .map(partialThingCompletionStage -> partialThingCompletionStage.thenApply(outboundSignal::setExtra))
                 .orElse(CompletableFuture.completedStage(outboundSignal))
@@ -420,15 +421,17 @@ public final class OutboundMappingProcessorActor
         // show enrichment failure in service logs according to severity
         if (dittoRuntimeException instanceof ThingNotAccessibleException) {
             // This error should be rare but possible due to user action; log on INFO level
-            dittoLoggingAdapter.withCorrelationId(outboundSignal.getSource()).info("Enrichment of <{}> failed due to <{}>.",
-                    outboundSignal.getSource().getClass(), dittoRuntimeException);
+            dittoLoggingAdapter.withCorrelationId(outboundSignal.getSource())
+                    .info("Enrichment of <{}> failed due to <{}>.",
+                            outboundSignal.getSource().getClass(), dittoRuntimeException);
         } else {
             // This error should not have happened during normal operation.
             // There is a (possibly transient) problem with the Ditto cluster. Request parent to restart.
             dittoLoggingAdapter.withCorrelationId(outboundSignal.getSource())
-                    .error(dittoRuntimeException, "Enrichment of <{}> failed due to <{}>.", outboundSignal, dittoRuntimeException);
+                    .error(dittoRuntimeException, "Enrichment of <{}> failed due to <{}>.", outboundSignal,
+                            dittoRuntimeException);
             final ConnectionFailure connectionFailure =
-                    new ImmutableConnectionFailure(getSelf(), dittoRuntimeException, "Signal enrichment failed");
+                    ImmutableConnectionFailure.internal(getSelf(), dittoRuntimeException, "Signal enrichment failed");
             clientActor.tell(connectionFailure, getSelf());
         }
         return outboundSignal.setTargets(Collections.singletonList(target));
@@ -463,8 +466,9 @@ public final class OutboundMappingProcessorActor
     private Object handleCommandResponse(final CommandResponse<?> response,
             @Nullable final DittoRuntimeException exception, final ActorRef sender) {
 
-        final ThreadSafeDittoLoggingAdapter l = dittoLoggingAdapter.isDebugEnabled() ? dittoLoggingAdapter.withCorrelationId(response) :
-                dittoLoggingAdapter;
+        final ThreadSafeDittoLoggingAdapter l =
+                dittoLoggingAdapter.isDebugEnabled() ? dittoLoggingAdapter.withCorrelationId(response) :
+                        dittoLoggingAdapter;
         recordResponse(response, exception);
         if (!response.isOfExpectedResponseType()) {
             l.debug("Requester did not require response (via DittoHeader '{}') - not mapping back to ExternalMessage.",
@@ -501,7 +505,8 @@ public final class OutboundMappingProcessorActor
     }
 
     private void forwardToPublisherActor(final OutboundSignal.MultiMapped mappedEnvelop) {
-        clientActor.tell(new BaseClientActor.PublishMappedMessage(mappedEnvelop), mappedEnvelop.getSender().orElse(null));
+        clientActor.tell(new BaseClientActor.PublishMappedMessage(mappedEnvelop),
+                mappedEnvelop.getSender().orElse(null));
     }
 
     /**

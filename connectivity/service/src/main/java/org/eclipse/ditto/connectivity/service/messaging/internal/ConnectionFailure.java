@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.internal;
 
+import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+
 import akka.actor.Status;
 
 /**
@@ -23,6 +25,11 @@ public interface ConnectionFailure extends WithOrigin {
      * @return the description of the failure.
      */
     String getFailureDescription();
+
+    /**
+     * @return the connectivity status.
+     */
+    ConnectivityStatus getStatus();
 
     /**
      * @return the Failure containing the cause.

@@ -593,7 +593,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     "publish/subscribe infrastructure. Failing the connection to try again later.";
             getSelf().tell(
                     // not setting "cause" to put the description literally in the error log
-                    new ImmutableConnectionFailure(null, exception.asDittoRuntimeException(), description),
+                    ImmutableConnectionFailure.internal(null, exception.asDittoRuntimeException(), description),
                     getSelf());
         }
         return stay();
@@ -972,7 +972,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final DittoRuntimeException error = newConnectionFailedException(dittoHeaders);
             sender.tell(new Status.Failure(error), getSelf());
             return goToConnecting(connectingTimeout)
-                    .using(data.setConnectionStatus(ConnectivityStatus.FAILED)
+                    .using(data.setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
                             .setConnectionStatusDetails(error.getMessage())
                             .resetSession());
         }
@@ -1139,7 +1139,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final BaseClientData data) {
         logger.info("SSH tunnel closed: {}", tunnelClosed.getMessage());
         final var failure =
-                new ImmutableConnectionFailure(null, tunnelClosed.getError(), tunnelClosed.getMessage());
+                ImmutableConnectionFailure.userRelated(null, tunnelClosed.getError(), tunnelClosed.getMessage());
         getSelf().tell(failure, getSelf());
         final SshTunnelState closedState = data.getSshTunnelState().failed(tunnelClosed.getError());
         return stay().using(data.setSshTunnelState(closedState));
@@ -1314,7 +1314,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         dittoProtocolSub.removeSubscriber(getSelf());
         if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
             if (reconnectTimeoutStrategy.canReconnect()) {
-                if (ConnectivityStatus.FAILED.equals(data.getConnectionStatus())) {
+                if (data.getConnectionStatus().isFailure()) {
                     connectionLogger.failure("Connection failed due to: {0}. Reconnect was already triggered.",
                             event.getFailureDescription());
                     logger.info("Connection failed: {}. Reconnect was already triggered.", event);
@@ -1326,7 +1326,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     connectionLogger.failure(errorMessage, event.getFailureDescription());
                     logger.info("Connection failed: {}. Reconnect after {}.", event, nextBackoff);
                     return goToConnecting(nextBackoff).using(data.resetSession()
-                            .setConnectionStatus(ConnectivityStatus.FAILED)
+                            .setConnectionStatus(event.getStatus())
                             .setConnectionStatusDetails(event.getFailureDescription()));
                 }
             } else {
@@ -1339,7 +1339,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
                 // stay in UNKNOWN state until re-opened manually
                 return goTo(INITIALIZED).using(data.resetSession()
-                        .setConnectionStatus(ConnectivityStatus.FAILED)
+                        .setConnectionStatus(event.getStatus())
                         .setConnectionStatusDetails(event.getFailureDescription()
                                 + " Reached maximum retries and thus will not try to reconnect any longer."));
             }
@@ -1348,7 +1348,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         connectionLogger.failure("Connection failed due to: {0}.", event.getFailureDescription());
         return goTo(INITIALIZED)
                 .using(data.resetSession()
-                        .setConnectionStatus(ConnectivityStatus.FAILED)
+                        .setConnectionStatus(event.getStatus())
                         .setConnectionStatusDetails(event.getFailureDescription())
                 );
     }
@@ -1848,7 +1848,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                             return (SupervisorStrategy.Directive) SupervisorStrategy.resume();
                         })
                         .matchAny(error -> {
-                            self.tell(new ImmutableConnectionFailure(getSender(), error, "exception in child"), self);
+                            self.tell(
+                                    ImmutableConnectionFailure.internal(getSender(), error, "exception in child"),
+                                    self
+                            );
                             if (getSender().equals(tunnelActor)) {
                                 logger.debug("Restarting tunnel actor after failure: {}", error.getMessage());
                                 return (SupervisorStrategy.Directive) SupervisorStrategy.restart();
@@ -2130,7 +2133,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         }
 
         public static InitializationResult failed(@Nullable final Throwable throwable) {
-            return new InitializationResult(new ImmutableConnectionFailure(null, throwable,
+            return new InitializationResult(ImmutableConnectionFailure.internal(null, throwable,
                     "Exception during client actor initialization."));
         }
 

@@ -602,7 +602,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         publisherReady.thenRun(() -> connectionLogger.success("Session has been recovered successfully."))
                 .exceptionally(t -> {
-                    final ImmutableConnectionFailure failure = new ImmutableConnectionFailure(null, t,
+                    final ImmutableConnectionFailure failure = ImmutableConnectionFailure.internal(null, t,
                             "failed to recover session");
                     getSelf().tell(failure, getSelf());
                     return null;
@@ -832,8 +832,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         public void onConnectionFailure(final Throwable error) {
             connectionLogger.failure("Connection failure: {0}", error.getMessage());
             logger.warning("Connection Failure: {}", error.getMessage());
-            final ConnectionFailure failure =
-                    new ImmutableConnectionFailure(ActorRef.noSender(), error, null);
+            final ConnectionFailure failure = ImmutableConnectionFailure.internal(ActorRef.noSender(), error, null);
             self.tell(ConnectionFailureStatusReport.get(failure), ActorRef.noSender());
         }
 
@@ -842,7 +841,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             connectionLogger.failure("Connection was interrupted.");
             logger.warning("Connection interrupted: {}", remoteURI);
             final ConnectionFailure failure =
-                    new ImmutableConnectionFailure(ActorRef.noSender(), null, "JMS Interrupted");
+                    ImmutableConnectionFailure.userRelated(ActorRef.noSender(), null, "JMS Interrupted");
             self.tell(ConnectionFailureStatusReport.get(failure), ActorRef.noSender());
         }
 
@@ -863,7 +862,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             connectionLogger.failure("Session was closed: {0}", cause.getMessage());
             logger.warning("Session closed: {} - {}", session, cause.getMessage());
             final ConnectionFailure failure =
-                    new ImmutableConnectionFailure(ActorRef.noSender(), cause, "JMS Session closed");
+                    ImmutableConnectionFailure.internal(ActorRef.noSender(), cause, "JMS Session closed");
             self.tell(SessionClosedStatusReport.get(failure, session), ActorRef.noSender());
         }
 

@@ -222,14 +222,16 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             // target producer not creatable; stop self and request restart by parent
             final String errorMessage = "Failed to create target";
             logger.error(jmsException, errorMessage);
-            final ConnectionFailure failure = new ImmutableConnectionFailure(getSelf(), jmsException, errorMessage);
+            final ConnectionFailure failure =
+                    ImmutableConnectionFailure.internal(getSelf(), jmsException, errorMessage);
             final ActorContext context = getContext();
             context.getParent().tell(failure, getSelf());
             context.stop(getSelf());
         } catch (final Exception e) {
             logger.warning("Failed to create static target producers: {}", e.getMessage());
-            getContext().getParent().tell(new ImmutableConnectionFailure(null, e,
-                    "failed to initialize static producers"), getSelf());
+            getContext().getParent()
+                    .tell(ImmutableConnectionFailure.internal(null, e, "failed to initialize static producers"),
+                            getSelf());
             throw e;
         }
     }

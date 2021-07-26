@@ -58,7 +58,6 @@ import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
-import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConsumerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
@@ -70,7 +69,6 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 
-import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
@@ -181,8 +179,8 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         try {
             initMessageConsumer();
         } catch (final Exception e) {
-            final var failure = new ImmutableConnectionFailure(getSelf(), e,
-                    "Failed to initialize message consumers.");
+            final var failure =
+                    ImmutableConnectionFailure.internal(getSelf(), e, "Failed to initialize message consumers.");
             getContext().getParent().tell(failure, getSelf());
             getContext().stop(getSelf());
         }
@@ -298,7 +296,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
 
     private void messageConsumerFailed(final Status.Failure failure) {
         // escalate to parent
-        final ConnectionFailure connectionFailed = new ImmutableConnectionFailure(getSelf(), failure.cause(),
+        final ConnectionFailure connectionFailed = ImmutableConnectionFailure.internal(getSelf(), failure.cause(),
                 "Failed to recreate closed message consumer");
         getContext().getParent().tell(connectionFailed, getSelf());
     }

@@ -99,7 +99,7 @@ public final class BaseClientActorTest {
         connectivityConfig =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
         DISCONNECT_TIMEOUT = connectivityConfig.getClientConfig().getDisconnectAnnouncementTimeout()
-            .plus(connectivityConfig.getClientConfig().getDisconnectingMaxTimeout());
+                .plus(connectivityConfig.getClientConfig().getDisconnectingMaxTimeout());
     }
 
     @AfterClass
@@ -468,7 +468,8 @@ public final class BaseClientActorTest {
             expectMsg(CONNECTED_STATUS);
             thenExpectConnectionOpenedAnnouncement(publisherActor, randomConnectionId);
 
-            andClosingConnection(dummyClientActor, CloseConnection.of(randomConnectionId, DittoHeaders.empty()), getRef());
+            andClosingConnection(dummyClientActor, CloseConnection.of(randomConnectionId, DittoHeaders.empty()),
+                    getRef());
 
             thenExpectDisconnectClientNotCalledForAtLeast(
                     connectivityConfig.getClientConfig().getConnectingMinTimeout().dividedBy(2L));
@@ -479,7 +480,8 @@ public final class BaseClientActorTest {
 
     @Test
     public void sendsConnectionClosedAnnouncementBeforeSystemShutdown() {
-        final ActorSystem closableActorSystem = ActorSystem.create("AkkaTestSystem-closableActorSystem", TestConstants.CONFIG);
+        final ActorSystem closableActorSystem =
+                ActorSystem.create("AkkaTestSystem-closableActorSystem", TestConstants.CONFIG);
         new TestKit(closableActorSystem) {{
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection = createConnectionWithConnectivityAnnouncementTarget(randomConnectionId);
@@ -521,6 +523,7 @@ public final class BaseClientActorTest {
 
         thenExpectConnectivityAnnouncement(publisherActorProbe, announcement);
     }
+
     private void thenExpectConnectionClosedAnnouncement(final TestProbe publisherActorProbe,
             final ConnectionId connectionId) {
         final ConnectionClosedAnnouncement announcement =
@@ -598,7 +601,7 @@ public final class BaseClientActorTest {
     }
 
     private static void andConnectionFails(final ActorRef clientActor, final ActorRef origin) {
-        clientActor.tell(new ImmutableConnectionFailure(null, null, null), clientActor);
+        clientActor.tell(ImmutableConnectionFailure.internal(null, null, null), clientActor);
     }
 
     private static void andDisconnectionSuccessful(final ActorRef clientActor, final ActorRef origin) {
@@ -606,8 +609,7 @@ public final class BaseClientActorTest {
     }
 
     private static void andConnectionNotSuccessful(final ActorRef clientActor) {
-        clientActor.tell(new ImmutableConnectionFailure(null, null, "expected exception"),
-                clientActor);
+        clientActor.tell(ImmutableConnectionFailure.internal(null, null, "expected exception"), clientActor);
     }
 
     private static void andStateTimeoutSent(final ActorRef clientActor) {

@@ -267,7 +267,7 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
         } catch (final Exception e) {
             logger.debug("Connecting failed ({}): {}", e.getClass().getName(), e.getMessage());
             resetClientAndSubscriptionHandler();
-            self.tell(new ImmutableConnectionFailure(self, e, null), self);
+            self.tell(ImmutableConnectionFailure.internal(self, e, null), self);
         }
     }
 

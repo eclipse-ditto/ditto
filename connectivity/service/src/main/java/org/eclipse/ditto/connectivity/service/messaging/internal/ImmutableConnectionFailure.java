@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 
 import akka.actor.ActorRef;
 import akka.actor.Status;
@@ -31,21 +32,43 @@ public final class ImmutableConnectionFailure extends AbstractWithOrigin impleme
 
     @Nullable private final Throwable cause;
     @Nullable private final String description;
+    private final ConnectivityStatus connectivityStatus;
     private final Instant time;
 
+    private ImmutableConnectionFailure(@Nullable final ActorRef origin, @Nullable final Throwable cause,
+            @Nullable final String description, final ConnectivityStatus connectivityStatus) {
+        super(origin);
+        this.cause = cause;
+        this.description = description;
+        time = Instant.now();
+        this.connectivityStatus = connectivityStatus;
+    }
+
     /**
-     * Constructs a new ImmutableConnectionFailure.
+     * Constructs a new ImmutableConnectionFailure which was most likely cause by an internal problem.
      *
      * @param origin the origin ActorRef
      * @param cause the cause of the Failure
      * @param description an optional description
      */
-    public ImmutableConnectionFailure(@Nullable final ActorRef origin, @Nullable final Throwable cause,
+    public static ImmutableConnectionFailure internal(@Nullable final ActorRef origin, @Nullable final Throwable cause,
             @Nullable final String description) {
-        super(origin);
-        this.cause = cause;
-        this.description = description;
-        time = Instant.now();
+        return new ImmutableConnectionFailure(origin, cause, description, ConnectivityStatus.FAILED);
+    }
+
+
+    /**
+     * Constructs a new ImmutableConnectionFailure which was most likely caused by an issue outside of the service.
+     * This could be for example a misconfiguration of the connection by a user or a temporary downtime of the broker
+     * or anything else that is not in our responsibility.
+     *
+     * @param origin the origin ActorRef
+     * @param cause the cause of the Failure
+     * @param description an optional description
+     */
+    public static ImmutableConnectionFailure userRelated(@Nullable final ActorRef origin, @Nullable final Throwable cause,
+            @Nullable final String description) {
+        return new ImmutableConnectionFailure(origin, cause, description, ConnectivityStatus.MISCONFIGURED);
     }
 
     @Override
@@ -71,6 +94,11 @@ public final class ImmutableConnectionFailure extends AbstractWithOrigin impleme
         }
         responseStr += " at " + time;
         return responseStr;
+    }
+
+    @Override
+    public ConnectivityStatus getStatus() {
+        return connectivityStatus;
     }
 
     @Override
