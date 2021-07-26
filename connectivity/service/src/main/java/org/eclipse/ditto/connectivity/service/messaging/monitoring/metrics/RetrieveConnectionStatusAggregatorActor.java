@@ -25,8 +25,8 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatusResponse;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -144,9 +144,12 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
         final boolean allClientsOpen = clientStatus.stream()
                 .map(ResourceStatus::getStatus)
                 .allMatch(ConnectivityStatus.OPEN::equals);
+        final boolean anyMisconfigured = clientStatus.stream()
+                .map(ResourceStatus::getStatus)
+                .anyMatch(ConnectivityStatus.MISCONFIGURED::equals);
         final boolean anyClientFailed = clientStatus.stream()
                 .map(ResourceStatus::getStatus)
-                .anyMatch(ConnectivityStatus::isFailure);
+                .anyMatch(ConnectivityStatus.FAILED::equals);
         final boolean allClientsClosed = clientStatus.stream()
                 .map(ResourceStatus::getStatus)
                 .allMatch(ConnectivityStatus.CLOSED::equals);
@@ -154,6 +157,8 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
         final ConnectivityStatus liveStatus;
         if (allClientsOpen) {
             liveStatus = ConnectivityStatus.OPEN;
+        } else if (anyMisconfigured) {
+            liveStatus = ConnectivityStatus.MISCONFIGURED;
         } else if (anyClientFailed) {
             liveStatus = ConnectivityStatus.FAILED;
         } else if (allClientsClosed) {
