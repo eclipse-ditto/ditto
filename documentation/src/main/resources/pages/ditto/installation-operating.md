@@ -254,6 +254,21 @@ Have a look at the
 [example Grafana dashboards](https://github.com/eclipse/ditto/tree/master/deployment/operations/grafana-dashboards)
 and build and share new ones back to the Ditto community.
 
+## Tracing
+
+Ditto supports reading and propagating [W3C trace context](https://www.w3.org/TR/trace-context/) headers at the 
+edges of the Ditto service (e.g. Gateway and Connectivity service). Several spans are generated when a request is  
+processed and the tracing data is exported in [OpenTelemetry](https://opentelemetry.io/) format using 
+kamon-opentelemetry library.
+
+Adjust the following environment variables to configure the Ditto services to produce traces:
+* `TRACING_SAMPLER`: defines the used sampler
+  * `always`: report all traces 
+  * `never`:  don't report any trace (default)
+  * `random`: randomly decide using the probability defined in the `TRACING_RANDOM_SAMPLER_PROBABILITY` environment variable
+  * `adaptive`: keeps dynamic samplers for each operation while trying to achieve a set throughput goal (`TRACING_ADAPTIVE_SAMPLER_THROUGHPUT`) 
+* `OTEL_EXPORTER_OTLP_ENDPOINT`: the OTLP endpoint where to report the gathered traces
+
 ## DevOps commands
 
 The "DevOps commands" API allows Ditto operators to make changes to a running installation without restarts.
