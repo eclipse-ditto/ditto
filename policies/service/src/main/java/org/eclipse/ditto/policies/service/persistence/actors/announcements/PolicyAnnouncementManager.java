@@ -111,7 +111,7 @@ public final class PolicyAnnouncementManager extends AbstractActor {
     private void startChild(final Subject subject) {
         final var props =
                 SubjectExpiryActor.props(policyId, subject, config.getGracePeriod(), policyAnnouncementPub,
-                        config.getMaxTimeout(), commandForwarder, config.getExponentialBackOffConfig());
+                        config.getMaxTimeout(), commandForwarder, config);
 
         final var child = getContext().actorOf(props);
         getContext().watch(child);

@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -32,8 +33,6 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.service.config.supervision.DefaultExponentialBackOffConfig;
-import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
@@ -44,6 +43,7 @@ import org.eclipse.ditto.policies.model.SubjectType;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteExpiredSubject;
+import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig;
 import org.junit.After;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -93,7 +93,7 @@ public final class SubjectExpiryActorTest {
 
     private final ArgumentCaptor<ActorRef> senderCaptor = ArgumentCaptor.forClass(ActorRef.class);
 
-    private final ExponentialBackOffConfig config = DefaultExponentialBackOffConfig.of(ConfigFactory.empty());
+    private final PolicyAnnouncementConfig config = PolicyAnnouncementConfig.of(ConfigFactory.empty());
 
     @After
     public void shutdown() {
@@ -130,6 +130,32 @@ public final class SubjectExpiryActorTest {
             assertThat(subjectDeletionAnnouncement.getSubjectIds())
                     .containsExactly(SUBJECT_DITTO_DITTO);
             assertThat(subjectDeletionAnnouncement.getDittoHeaders().getAcknowledgementRequests()).isEmpty();
+
+            expectTerminated(underTest);
+            expectNoMessage();
+            verifyNoMoreInteractions(policiesPub);
+        }};
+    }
+
+    @Test
+    public void test0010disableWhenDeleted() {
+        // aka test0010purge0
+        new TestKit(system) {{
+            final Subject subject = createSubject(null,
+                    null,
+                    true,
+                    null
+            );
+
+            final var disabledConfig = PolicyAnnouncementConfig.of(ConfigFactory.parseMap(
+                    Map.of("announcement.enable-announcements-when-deleted", false)
+            ));
+
+            final Props props = SubjectExpiryActor.props(policyId, subject, Duration.ofHours(4), policiesPub,
+                    maxTimeout, getTestActor(), disabledConfig);
+            final ActorRef underTest = watch(childActorOf(props));
+
+            underTest.tell(SUBJECT_DELETED, ActorRef.noSender());
 
             expectTerminated(underTest);
             expectNoMessage();
