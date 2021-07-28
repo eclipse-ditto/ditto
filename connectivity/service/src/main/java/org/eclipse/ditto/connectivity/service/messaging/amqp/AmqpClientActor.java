@@ -267,7 +267,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final Connection connectionToBeTested = testConnectionCommand.getConnection();
         final ClientConfig clientConfig = connectionContext.getConnectivityConfig().getClientConfig();
         return Patterns.ask(getTestConnectionHandler(connectionToBeTested),
-                jmsConnect(getSender(), connectionToBeTested), clientConfig.getTestingTimeout())
+                        jmsConnect(getSender(), connectionToBeTested), clientConfig.getTestingTimeout())
                 // compose the disconnect because otherwise the actor hierarchy might be stopped too fast
                 .thenCompose(response -> {
                     logger.withCorrelationId(testConnectionCommand)
@@ -278,7 +278,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                         final JmsDisconnect jmsDisconnect = new JmsDisconnect(ActorRef.noSender(),
                                 connectedJmsConnection, true);
                         return Patterns.ask(getDisconnectConnectionHandler(connectionToBeTested), jmsDisconnect,
-                                clientConfig.getTestingTimeout())
+                                        clientConfig.getTestingTimeout())
                                 // replace jmsDisconnected message with original response
                                 .thenApply(jmsDisconnected -> response);
                     } else {
@@ -539,7 +539,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final String message = MessageFormat.format("Failure: {0}, Description: {1}",
                 failure.getFailure().cause(), failure.getFailureDescription());
         connectionLogger.failure(message);
-        return stay().using(currentData.setConnectionStatus(ConnectivityStatus.FAILED)
+        final ConnectivityStatus newStatus = connectivityStatusResolver.resolve(failure);
+        return stay().using(currentData.setConnectionStatus(newStatus)
                 .setConnectionStatusDetails(message));
     }
 

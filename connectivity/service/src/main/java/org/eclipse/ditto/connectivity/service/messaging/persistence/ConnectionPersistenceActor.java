@@ -471,7 +471,7 @@ public final class ConnectionPersistenceActor
                         if (liveStatus == ConnectivityStatus.FAILED) {
                             l.error(template, liveStatus, rcsResp);
                         } else if (liveStatus == ConnectivityStatus.MISCONFIGURED) {
-                            l.warning(template, liveStatus, rcsResp);
+                            l.info(template, liveStatus, rcsResp);
                         } else {
                             l.info(template, liveStatus, rcsResp);
                         }

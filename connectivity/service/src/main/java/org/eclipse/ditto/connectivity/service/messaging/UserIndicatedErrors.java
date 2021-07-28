@@ -17,6 +17,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 
 import com.typesafe.config.Config;
@@ -61,7 +63,10 @@ final class UserIndicatedErrors {
      * @param throwable the throwable that should be checked.
      * @return True if the throwable matches and {@link ErrorDefinition} contained in this list.
      */
-    boolean matches(final Throwable throwable) {
+    boolean matches(@Nullable final Throwable throwable) {
+        if (throwable == null) {
+            return false;
+        }
         return StreamSupport.stream(errorDefinitions.spliterator(), true)
                 .anyMatch(definition -> definition.matches(throwable));
     }

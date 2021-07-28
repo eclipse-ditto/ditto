@@ -258,7 +258,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         // update own status
         final ResourceStatus addressStatus = ConnectivityModelFactory.newStatusUpdate(
                 InstanceIdentifierSupplier.getInstance().get(),
-                ConnectivityStatus.FAILED,
+                ConnectivityStatus.MISCONFIGURED,
                 sourceAddress,
                 "Consumer closed", Instant.now());
         handleAddressStatus(addressStatus);

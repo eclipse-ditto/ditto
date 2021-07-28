@@ -196,8 +196,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final Materializer materializer;
     protected final ConnectionLogger connectionLogger;
+    protected final ConnectivityStatusResolver connectivityStatusResolver;
     private final boolean dryRun;
-    private final ConnectivityStatusResolver connectivityStatusResolver;
 
     private final ConnectionContextProvider connectionContextProvider;
     protected ConnectionContext connectionContext;

@@ -12,13 +12,15 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 
 /**
  * Resolves the correct {@link ConnectivityStatus} from a given {@link ConnectionFailure}.
  */
-final class ConnectivityStatusResolver {
+public final class ConnectivityStatusResolver {
 
     private final UserIndicatedErrors userIndicatedErrors;
 
@@ -42,11 +44,21 @@ final class ConnectivityStatusResolver {
      * @param connectionFailure the failure.
      * @return the resolved status.
      */
-    ConnectivityStatus resolve(final ConnectionFailure connectionFailure) {
+    public ConnectivityStatus resolve(final ConnectionFailure connectionFailure) {
         return connectionFailure.getStatus()
-                .orElseGet(() -> userIndicatedErrors.matches(connectionFailure.getFailure().cause()) ?
-                        ConnectivityStatus.MISCONFIGURED :
-                        ConnectivityStatus.FAILED);
+                .orElseGet(() -> this.resolve(connectionFailure.getFailure().cause()));
+    }
+
+    /**
+     * Resolves the correct {@link ConnectivityStatus} from a given {@link Throwable}.
+     *
+     * @param throwable the throwable.
+     * @return the resolved status.
+     */
+    public ConnectivityStatus resolve(@Nullable final Throwable throwable) {
+        return userIndicatedErrors.matches(throwable) ?
+                ConnectivityStatus.MISCONFIGURED :
+                ConnectivityStatus.FAILED;
     }
 
 }

@@ -535,11 +535,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
             if (null != consumingQueueByTag) {
                 connectionLogger.failure("Consumer with queue {0} was cancelled. This can happen for example " +
                         "when the queue was deleted.", consumingQueueByTag);
-                logger.warning("Consumer with queue <{}> was cancelled on connection <{}>. This can happen for " +
+                logger.info("Consumer with queue <{}> was cancelled on connection <{}>. This can happen for " +
                         "example when the queue was deleted.", consumingQueueByTag, connectionId());
             }
 
-            updateSourceStatus(ConnectivityStatus.FAILED, "Consumer for queue cancelled at " + Instant.now());
+            updateSourceStatus(ConnectivityStatus.MISCONFIGURED, "Consumer for queue cancelled at " + Instant.now());
         }
 
         @Override
@@ -555,7 +555,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         "been shut down on connection <{}>.", consumingQueueByTag, connectionId());
             }
 
-            updateSourceStatus(ConnectivityStatus.FAILED,
+            final ConnectivityStatus failureStatus = connectivityStatusResolver.resolve(sig);
+            updateSourceStatus(failureStatus,
                     "Channel or the underlying connection has been shut down at " + Instant.now());
         }
 

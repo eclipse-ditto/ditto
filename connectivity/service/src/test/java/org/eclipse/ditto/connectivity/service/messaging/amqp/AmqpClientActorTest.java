@@ -330,7 +330,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             final JmsConnectionListener connectionListener = checkNotNull(listenerArgumentCaptor.getValue());
 
             connectionListener.onConnectionInterrupted(DUMMY);
-            verifyConnectionStatus(amqpClientActor, aggregator, ConnectivityStatus.FAILED);
+            verifyConnectionStatus(amqpClientActor, aggregator, ConnectivityStatus.MISCONFIGURED);
 
             connectionListener.onConnectionRestored(DUMMY);
             verifyConnectionStatus(amqpClientActor, aggregator, ConnectivityStatus.OPEN);
