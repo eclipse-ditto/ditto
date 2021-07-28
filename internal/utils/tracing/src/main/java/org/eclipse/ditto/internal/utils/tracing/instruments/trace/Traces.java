@@ -31,9 +31,16 @@ public final class Traces {
     }
 
     /**
-     * Builds a {@link PreparedTrace} with the given name.
+     * Builds an empty {@link PreparedTrace}.
      */
-    public static StartedTrace emptyTrace() {
+    public static PreparedTrace emptyPreparedTrace() {
+        return EmptyPreparedTrace.getInstance();
+    }
+
+    /**
+     * Builds an empty {@link StartedTrace}.
+     */
+    public static StartedTrace emptyStartedTrace() {
         return EmptyStartedTrace.getInstance();
     }
 

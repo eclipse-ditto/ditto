@@ -91,7 +91,7 @@ class StartedKamonTrace implements StartedTrace {
 
     @Override
     public Map<String, String> propagateContext(final Map<String, String> map) {
-        return DittoTracing.propagateContext(map, getContext());
+        return DittoTracing.propagateContext(getContext(), map);
     }
 
     @Override

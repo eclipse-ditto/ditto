@@ -34,6 +34,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.IndexInitializa
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.DefaultPersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
+import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 
 /**
  * This class is the default implementation of {@link SearchConfig}.
@@ -112,6 +113,11 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
     @Override
     public MetricsConfig getMetricsConfig() {
         return dittoServiceConfig.getMetricsConfig();
+    }
+
+    @Override
+    public TracingConfig getTracingConfig() {
+        return dittoServiceConfig.getTracingConfig();
     }
 
     @Override

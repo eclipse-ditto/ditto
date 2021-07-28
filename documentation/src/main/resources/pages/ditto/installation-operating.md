@@ -262,12 +262,13 @@ processed and the tracing data is exported in [OpenTelemetry](https://openteleme
 kamon-opentelemetry library.
 
 Adjust the following environment variables to configure the Ditto services to produce traces:
-* `TRACING_SAMPLER`: defines the used sampler
+* `DITTO_TRACING_ENABLED`: determines whether tracing is enabled (default:`false`) 
+* `DITTO_TRACING_SAMPLER`: defines the used sampler
   * `always`: report all traces 
   * `never`:  don't report any trace (default)
-  * `random`: randomly decide using the probability defined in the `TRACING_RANDOM_SAMPLER_PROBABILITY` environment variable
-  * `adaptive`: keeps dynamic samplers for each operation while trying to achieve a set throughput goal (`TRACING_ADAPTIVE_SAMPLER_THROUGHPUT`) 
-* `OTEL_EXPORTER_OTLP_ENDPOINT`: the OTLP endpoint where to report the gathered traces
+  * `random`: randomly decide using the probability defined in the `DITTO_TRACING_RANDOM_SAMPLER_PROBABILITY` environment variable
+  * `adaptive`: keeps dynamic samplers for each operation while trying to achieve a set throughput goal (`DITTO_TRACING_ADAPTIVE_SAMPLER_THROUGHPUT`) 
+* `OTEL_EXPORTER_OTLP_ENDPOINT`: the OTLP endpoint where to report the gathered traces (default: `http://localhost:4317`)
 
 ## DevOps commands
 

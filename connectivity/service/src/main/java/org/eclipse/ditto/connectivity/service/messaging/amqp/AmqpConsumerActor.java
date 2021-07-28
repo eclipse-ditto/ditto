@@ -307,7 +307,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
     private void handleJmsMessage(final JmsMessage message) {
         Map<String, String> headers = null;
         String correlationId = null;
-        StartedTrace trace = Traces.emptyTrace();
+        StartedTrace trace = Traces.emptyStartedTrace();
         try {
             recordIncomingForRateLimit(message.getJMSMessageID());
             if (log.isDebugEnabled()) {

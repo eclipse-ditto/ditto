@@ -128,7 +128,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
         final Envelope envelope = delivery.getEnvelope();
         final byte[] body = delivery.getBody();
 
-        StartedTrace trace = Traces.emptyTrace();
+        StartedTrace trace = Traces.emptyStartedTrace();
         Map<String, String> headers = null;
         try {
             final String correlationId = properties.getCorrelationId();

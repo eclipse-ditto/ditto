@@ -31,6 +31,7 @@ import org.eclipse.ditto.internal.utils.persistence.operations.DefaultPersistenc
 import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.config.DefaultPingConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
+import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 
 /**
  * This class implements the config of the Ditto Policies service.
@@ -86,6 +87,11 @@ public final class DittoPoliciesConfig implements PoliciesConfig {
     @Override
     public MetricsConfig getMetricsConfig() {
         return serviceSpecificConfig.getMetricsConfig();
+    }
+
+    @Override
+    public TracingConfig getTracingConfig() {
+        return serviceSpecificConfig.getTracingConfig();
     }
 
     @Override
