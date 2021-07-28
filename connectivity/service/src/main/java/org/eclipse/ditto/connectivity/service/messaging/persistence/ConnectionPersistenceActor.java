@@ -101,6 +101,7 @@ import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionVal
 import org.eclipse.ditto.connectivity.service.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
+import org.eclipse.ditto.internal.utils.akka.logging.CommonMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
@@ -465,13 +466,15 @@ public final class ConnectionPersistenceActor
                 .whenComplete((response, throwable) -> {
                     if (response instanceof RetrieveConnectionStatusResponse) {
                         final RetrieveConnectionStatusResponse rcsResp = (RetrieveConnectionStatusResponse) response;
-                        final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(rcsResp);
+                        final DittoDiagnosticLoggingAdapter l = log
+                                .withMdcEntry(CommonMdcEntryKey.DITTO_LOG_TAG, "connection-live-status")
+                                .withCorrelationId(rcsResp);
                         final ConnectivityStatus liveStatus = rcsResp.getLiveStatus();
                         final String template = "Calculated <{}> live ConnectionStatus: <{}>";
                         if (liveStatus == ConnectivityStatus.FAILED) {
                             l.error(template, liveStatus, rcsResp);
                         } else if (liveStatus == ConnectivityStatus.MISCONFIGURED) {
-                            l.info(template, liveStatus, rcsResp);
+                            l.warning(template, liveStatus, rcsResp);
                         } else {
                             l.info(template, liveStatus, rcsResp);
                         }

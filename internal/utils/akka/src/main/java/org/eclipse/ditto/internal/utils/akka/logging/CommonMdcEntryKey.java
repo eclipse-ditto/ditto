@@ -19,11 +19,12 @@ package org.eclipse.ditto.internal.utils.akka.logging;
  */
 public enum CommonMdcEntryKey implements CharSequence {
 
-    CORRELATION_ID("x-correlation-id");
+    CORRELATION_ID("x-correlation-id"),
+    DITTO_LOG_TAG("ditto-log-tag");
 
     private final String key;
 
-    private CommonMdcEntryKey(final String key) {
+    CommonMdcEntryKey(final String key) {
         this.key = key;
     }
 
