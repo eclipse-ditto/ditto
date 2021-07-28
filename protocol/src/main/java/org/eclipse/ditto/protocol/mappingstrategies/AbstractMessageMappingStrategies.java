@@ -131,12 +131,12 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
     private static void validatePathForLiveMessages(final MessagePath path, final String messageSubject) {
         final String pathAsString = path.toString();
         final boolean valid;
-        if (pathAsString.startsWith("/features")) {
+        if (pathAsString.startsWith("/features/")) {
             valid = pathAsString.endsWith("/inbox/messages/" + messageSubject) ||
                     pathAsString.endsWith("/outbox/messages/" + messageSubject);
         } else {
             valid = pathAsString.equals("/inbox/messages/" + messageSubject) ||
-                    pathAsString.endsWith("/outbox/messages/" + messageSubject);
+                    pathAsString.equals("/outbox/messages/" + messageSubject);
         }
         if (!valid) {
             final String pathPattern = "(/features/[^/]+)?/(inbox|outbox)/messages/" + messageSubject;
