@@ -467,7 +467,10 @@ public final class ConnectionPersistenceActor
                     if (response instanceof RetrieveConnectionStatusResponse) {
                         final RetrieveConnectionStatusResponse rcsResp = (RetrieveConnectionStatusResponse) response;
                         final DittoDiagnosticLoggingAdapter l = log
-                                .withMdcEntry(CommonMdcEntryKey.DITTO_LOG_TAG, "connection-live-status")
+                                .withMdcEntries(
+                                        ConnectivityMdcEntryKey.CONNECTION_ID.toString(), entityId,
+                                        CommonMdcEntryKey.DITTO_LOG_TAG, "connection-live-status"
+                                )
                                 .withCorrelationId(rcsResp);
                         final ConnectivityStatus liveStatus = rcsResp.getLiveStatus();
                         final String template = "Calculated <{}> live ConnectionStatus: <{}>";
