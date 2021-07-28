@@ -62,4 +62,43 @@ public final class AbstractMessageMappingStrategiesTest {
                 .isThrownBy(() -> AbstractMessageMappingStrategies.messageHeadersFrom(adaptable));
     }
 
+    @Test
+    public void messageHeadersFromWithFeaturePath() {
+        final Adaptable adaptable = Adaptable.newBuilder(
+                        TopicPath.newBuilder(ThingId.generateRandom()).live().messages().subject("test").build())
+                .withPayload(Payload.newBuilder(JsonPointer.of("/features/xy/inbox/messages/test")).build())
+                .build();
+        final MessageHeaders messageHeaders = AbstractMessageMappingStrategies.messageHeadersFrom(adaptable);
+        assertThat(messageHeaders.getDirection()).isEqualTo(MessageDirection.TO);
+        assertThat(messageHeaders.getSubject()).isEqualTo("test");
+    }
+
+    @Test
+    public void messageHeadersFromThrowsWhenPointerIsNoFeaturePointerAndNotExplicitlyOutbox() {
+        final Adaptable adaptable = Adaptable.newBuilder(
+                        TopicPath.newBuilder(ThingId.generateRandom()).live().messages().subject("test").build())
+                .withPayload(Payload.newBuilder(JsonPointer.of("test/outbox/messages/test")).build())
+                .build();
+
+        assertThatExceptionOfType(InvalidPathException.class)
+                .isThrownBy(() -> AbstractMessageMappingStrategies.messageHeadersFrom(adaptable))
+                .satisfies(invalidPathException -> {
+                    assertThat(invalidPathException.getDescription().orElse("")).contains("pattern");
+                });
+    }
+
+    @Test
+    public void messageHeadersFromThrowsWhenPointerIsNoFeaturePointerAndNotExplicitlyInbox() {
+        final Adaptable adaptable = Adaptable.newBuilder(
+                        TopicPath.newBuilder(ThingId.generateRandom()).live().messages().subject("test").build())
+                .withPayload(Payload.newBuilder(JsonPointer.of("test/inbox/messages/test")).build())
+                .build();
+
+        assertThatExceptionOfType(InvalidPathException.class)
+                .isThrownBy(() -> AbstractMessageMappingStrategies.messageHeadersFrom(adaptable))
+                .satisfies(invalidPathException -> {
+                    assertThat(invalidPathException.getDescription().orElse("")).contains("pattern");
+                });
+    }
+
 }

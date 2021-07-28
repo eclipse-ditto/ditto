@@ -19,8 +19,6 @@ import static org.eclipse.ditto.messages.model.MessageHeaderDefinition.SUBJECT;
 import static org.eclipse.ditto.messages.model.MessageHeaderDefinition.THING_ID;
 
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -131,12 +129,19 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
     }
 
     private static void validatePathForLiveMessages(final MessagePath path, final String messageSubject) {
-        final String pathValidationRegex = "(/features/[^/]+)?/(inbox|outbox)/messages/" + messageSubject;
-        final Pattern pattern = Pattern.compile(pathValidationRegex);
-        final Matcher matcher = pattern.matcher(path.toString());
-        if (!matcher.matches()) {
+        final String pathAsString = path.toString();
+        final boolean valid;
+        if (pathAsString.startsWith("/features/")) {
+            valid = pathAsString.endsWith("/inbox/messages/" + messageSubject) ||
+                    pathAsString.endsWith("/outbox/messages/" + messageSubject);
+        } else {
+            valid = pathAsString.equals("/inbox/messages/" + messageSubject) ||
+                    pathAsString.equals("/outbox/messages/" + messageSubject);
+        }
+        if (!valid) {
+            final String pathPattern = "(/features/[^/]+)?/(inbox|outbox)/messages/" + messageSubject;
             throw InvalidPathException.newBuilder(path)
-                    .description("It should match the pattern: " + pathValidationRegex)
+                    .description("It should match the pattern: " + pathPattern)
                     .build();
         }
     }
