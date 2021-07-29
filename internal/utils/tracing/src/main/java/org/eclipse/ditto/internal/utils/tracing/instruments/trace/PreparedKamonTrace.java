@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -71,6 +72,11 @@ class PreparedKamonTrace implements PreparedTrace {
     @Override
     public StartedTrace start() {
         return new StartedKamonTrace(spanBuilder.start());
+    }
+
+    @Override
+    public StartedTrace startAt(final Instant startInstant) {
+        return new StartedKamonTrace(spanBuilder.start(startInstant));
     }
 
     @Override

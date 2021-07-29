@@ -28,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
-import kamon.context.Context;
 import kamon.metric.Distribution;
 import kamon.metric.Timer;
 import kamon.tag.TagSet;
@@ -46,15 +45,12 @@ final class PreparedKamonTimer implements PreparedTimer {
     private final Duration maximumDuration;
     private final Consumer<StartedTimer> additionalExpirationHandling;
 
-    private Context context = Context.Empty();
-
     private PreparedKamonTimer(final String name) {
         this(name, new HashMap<>(), Duration.ofMinutes(5), startedTimer -> {});
     }
 
     private PreparedKamonTimer(final String name, final Map<String, String> tags, final Duration maximumDuration,
             final Consumer<StartedTimer> additionalExpirationHandling) {
-
         this.name = name;
         this.tags = tags;
         this.maximumDuration = maximumDuration;
@@ -95,12 +91,6 @@ final class PreparedKamonTimer implements PreparedTimer {
     }
 
     @Override
-    public PreparedTimer withTraceContext(final Context context) {
-        this.context = context;
-        return this;
-    }
-
-    @Override
     public PreparedTimer tags(final Map<String, String> tags) {
         this.tags.putAll(tags);
         return this;
@@ -134,7 +124,7 @@ final class PreparedKamonTimer implements PreparedTimer {
         final ScheduledFuture<?> expirationFuture = scheduler.schedule(
                 () -> defaultExpirationHandling(timer.getName(), timer, additionalExpirationHandling),
                 maximumDuration.toMillis(), TimeUnit.MILLISECONDS);
-        timer.onStop(new OnStopHandler(stoppedTimer -> cancelScheduledExpiration(stoppedTimer, expirationFuture)));
+        timer.onStop(stoppedTimer -> cancelScheduledExpiration(stoppedTimer, expirationFuture));
         return timer;
     }
 
@@ -170,11 +160,6 @@ final class PreparedKamonTimer implements PreparedTimer {
     }
 
     @Override
-    public Context getTraceContext() {
-        return context;
-    }
-
-    @Override
     public boolean reset() {
         try {
             getSnapshot(true);
@@ -200,13 +185,11 @@ final class PreparedKamonTimer implements PreparedTimer {
         return Kamon.timer(name).withTags(TagSet.from(new HashMap<>(this.tags)));
     }
 
-
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "name=" + name +
                 ", tags=" + tags +
-                ", context=" + context +
                 "]";
     }
 }

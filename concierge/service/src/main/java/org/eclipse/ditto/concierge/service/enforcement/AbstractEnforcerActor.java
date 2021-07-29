@@ -43,6 +43,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.javadsl.Sink;
+import kamon.context.Context;
 
 /**
  * Extensible actor to execute enforcement behavior.
@@ -128,10 +129,12 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     @Override
     protected Contextual<WithDittoHeaders> beforeProcessMessage(final Contextual<WithDittoHeaders> contextual) {
         final StartedTimer startedTimer = createTimer(contextual.getMessage());
+        final Context context =
+                DittoTracing.wrapTimer(DittoTracing.extractTraceContext(contextual.getMessage()), startedTimer);
         final Contextual<WithDittoHeaders> withTimer = contextual.withTimer(startedTimer);
         if (contextual.getMessage() instanceof DittoHeadersSettable) {
             final DittoHeadersSettable<?> message = ((DittoHeadersSettable<?>) contextual.getMessage());
-            return withTimer.withMessage(DittoTracing.propagateContext(startedTimer.getContext(), message));
+            return withTimer.withMessage(DittoTracing.propagateContext(context, message));
         } else {
             return withTimer;
         }
@@ -150,7 +153,6 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
             expiringTimer.tag("category", ((Command<?>) withDittoHeaders).getCategory().name().toLowerCase());
         }
 
-        expiringTimer.withTraceContext(DittoTracing.extractTraceContext(withDittoHeaders));
 
         return expiringTimer.start();
     }

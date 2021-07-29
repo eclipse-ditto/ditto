@@ -133,7 +133,7 @@ public final class InboundMappingProcessor
         final Context context = DittoTracing.extractTraceContext(message.getHeaders());
         final MappingTimer mappingTimer = MappingTimer.inbound(connectionId, connectionType, context);
         final ExternalMessage externalMessageWithTracContext =
-                DittoTracing.propagateContext(mappingTimer.getCurrentContext(), message,
+                DittoTracing.propagateContext(mappingTimer.getContext(), message,
                         (msg, header) -> msg.withHeader(header.getKey(), header.getValue()));
         return mappingTimer.overall(() -> mappers.stream()
                 .flatMap(mapper -> runMapper(mapper, externalMessageWithTracContext, mappingTimer))

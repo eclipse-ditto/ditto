@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 
+import java.time.Instant;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -29,6 +30,13 @@ public interface PreparedTrace extends TaggedMetricInstrument<PreparedTrace>, Tr
      * @return The started {@link StartedTrace trace}.
      */
     StartedTrace start();
+
+    /**
+     * Starts the trace setting the given start instant.
+     *
+     * @return The started {@link StartedTrace trace}.
+     */
+    StartedTrace startAt(Instant startInstant);
 
     /**
      * Executes the given {@code Function} and records the duration with this {@code PreparedTrace} .

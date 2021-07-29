@@ -212,8 +212,8 @@ final class ThingUpdater extends AbstractActor {
                     .tag(ConsistencyLag.TAG_SHOULD_ACK, Boolean.toString(shouldAcknowledge))
                     .onExpiration(startedTimer ->
                             l.warning("Timer measuring consistency lag timed out for event <{}>", thingEvent))
-                    .withTraceContext(DittoTracing.extractTraceContext(thingEvent))
                     .start();
+            DittoTracing.wrapTimer(DittoTracing.extractTraceContext(thingEvent), timer);
             ConsistencyLag.startS0InUpdater(timer);
             enqueueMetadata(exportMetadataWithSender(shouldAcknowledge, getSender(), timer));
         }

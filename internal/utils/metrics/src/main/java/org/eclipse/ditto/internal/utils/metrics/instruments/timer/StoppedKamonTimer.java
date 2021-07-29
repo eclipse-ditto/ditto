@@ -14,7 +14,6 @@ package org.eclipse.ditto.internal.utils.metrics.instruments.timer;
 
 import java.time.Duration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -23,9 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
-import kamon.context.Context;
 import kamon.tag.TagSet;
-import kamon.trace.Span;
 
 /**
  * Kamon based implementation of {@link StoppedTimer}.
@@ -38,34 +35,29 @@ final class StoppedKamonTimer implements StoppedTimer {
     private final String name;
     private final Map<String, String> tags;
 
-    private final long startTimestamp;
-    private final long endTimestamp;
+    private final long startNanoTime;
+    private final long endNanoTime;
 
-    private StoppedKamonTimer(final String name, final Map<String, String> tags, final long startTimestamp,
-            final Map<String, StartedTimer> segments, List<OnStopHandler> onStopHandlers, final Context context) {
-        this.startTimestamp = startTimestamp;
-        this.endTimestamp = System.nanoTime();
-        this.name = name;
-        this.tags = new HashMap<>(tags);
-        segments.forEach((segmentName, segment) -> {
+    private StoppedKamonTimer(final StartedTimer startedTimer) {
+        this.name = startedTimer.getName();
+        this.startNanoTime = startedTimer.getStartNanoTime();
+        this.endNanoTime = System.nanoTime();
+        this.tags = new HashMap<>(startedTimer.getTags());
+        startedTimer.getSegments().forEach((segmentName, segment) -> {
             if (segment.isRunning()) {
                 segment.stop();
             }
         });
 
-        final Span span = context.get(Span.Key());
-        span.tag(TagSet.from(Map.copyOf(tags))).finishAfter(getDuration());
-
         final long durationNano = getElapsedNano();
         LOGGER.trace("Timer with name <{}> and segment <{}> was stopped after <{}> nanoseconds", name,
                 tags.get(SEGMENT_TAG), durationNano);
-        onStopHandlers.forEach(stoppedTimerConsumer -> stoppedTimerConsumer.handleStoppedTimer(this));
+        startedTimer.getOnStopHandlers().forEach(stoppedTimerConsumer -> stoppedTimerConsumer.accept(this));
         getKamonInternalTimer().record(durationNano);
     }
 
     static StoppedTimer fromStartedTimer(final StartedTimer startedTimer) {
-        return new StoppedKamonTimer(startedTimer.getName(), startedTimer.getTags(), startedTimer.getStartTimeStamp(),
-                startedTimer.getSegments(), startedTimer.getOnStopHandlers(), startedTimer.getContext());
+        return new StoppedKamonTimer(startedTimer);
     }
 
     @Override
@@ -94,18 +86,17 @@ final class StoppedKamonTimer implements StoppedTimer {
         return this.name;
     }
 
+    private long getElapsedNano() {
+        return this.endNanoTime - this.startNanoTime;
+    }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "name=" + name +
                 ", tags=" + tags +
-                ", startTimestamp=" + startTimestamp +
-                ", endTimestamp=" + endTimestamp +
+                ", startNanoTime=" + startNanoTime +
+                ", endNanoTime=" + endNanoTime +
                 "]";
-    }
-
-    private long getElapsedNano() {
-        return this.endTimestamp - this.startTimestamp;
     }
 }

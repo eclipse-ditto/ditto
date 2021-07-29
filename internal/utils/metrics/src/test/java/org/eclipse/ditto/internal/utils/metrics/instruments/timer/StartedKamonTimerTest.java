@@ -20,6 +20,7 @@ import static org.mockito.Mockito.verify;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
@@ -44,19 +45,19 @@ public class StartedKamonTimerTest {
 
     @Test
     public void getOnStopHandlers() {
-        final OnStopHandler onStopHandler = mock(OnStopHandler.class);
+        final Consumer<StoppedTimer> onStopHandler = mock(Consumer.class);
         sut.onStop(onStopHandler);
-        final List<OnStopHandler> onStopHandlers = sut.getOnStopHandlers();
+        final List<Consumer<StoppedTimer>> onStopHandlers = sut.getOnStopHandlers();
         Assertions.assertThat(onStopHandlers).hasSize(2);
         Assertions.assertThat(onStopHandlers).contains(onStopHandler);
     }
 
     @Test
     public void onStopIsCalled() {
-        final OnStopHandler onStopHandler = mock(OnStopHandler.class);
+        final Consumer<StoppedTimer> onStopHandler = mock(Consumer.class);
         sut.onStop(onStopHandler);
         final StoppedTimer stop = sut.stop();
-        verify(onStopHandler).handleStoppedTimer(stop);
+        verify(onStopHandler).accept(stop);
     }
 
     @Test
@@ -107,19 +108,19 @@ public class StartedKamonTimerTest {
 
     @Test
     public void onStopHandlersOfSegmentsAreCalledToo() {
-        final OnStopHandler onStopHandler = mock(OnStopHandler.class);
-        final OnStopHandler segmentOnStopHandler = mock(OnStopHandler.class);
+        final Consumer<StoppedTimer> onStopHandler = mock(Consumer.class);
+        final Consumer<StoppedTimer> segmentOnStopHandler = mock(Consumer.class);
         sut.onStop(onStopHandler);
         final StartedTimer testSegment = sut.startNewSegment("TEST");
         testSegment.onStop(segmentOnStopHandler);
         final StoppedTimer stop = sut.stop();
-        verify(onStopHandler).handleStoppedTimer(stop);
-        verify(segmentOnStopHandler).handleStoppedTimer(any(StoppedTimer.class));
+        verify(onStopHandler).accept(stop);
+        verify(segmentOnStopHandler).accept(any(StoppedTimer.class));
     }
 
     @Test
     public void startTimeStampAlwaysSet() {
-        assertThat(sut.getStartTimeStamp()).isGreaterThan(0);
+        assertThat(sut.getStartNanoTime()).isGreaterThan(0);
     }
 
     @Test

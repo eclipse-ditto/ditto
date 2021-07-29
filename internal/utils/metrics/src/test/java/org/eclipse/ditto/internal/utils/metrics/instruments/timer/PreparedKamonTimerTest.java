@@ -84,6 +84,6 @@ public class PreparedKamonTimerTest {
     public void canStartMultipleTimes() {
         final StartedTimer started1 = sut.start();
         final StartedTimer started2 = sut.start();
-        assertThat(started1.getStartTimeStamp()).isNotEqualTo(started2.getStartTimeStamp());
+        assertThat(started1.getStartNanoTime()).isNotEqualTo(started2.getStartNanoTime());
     }
 }

@@ -58,7 +58,6 @@ import akka.actor.ActorRef;
 import akka.pattern.Patterns;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
-import kamon.context.Context;
 
 /**
  * Base class for consumer actors that holds common fields and handles the address status.
@@ -127,12 +126,12 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     private void prepareResponseHandler(final AcknowledgeableMessage acknowledgeableMessage,
             final ActorRef responseCollector) {
 
-        final Context context = DittoTracing.extractTraceContext(acknowledgeableMessage.getMessage().getHeaders());
         final StartedTimer timer = DittoMetrics.timer(TIMER_ACK_HANDLING)
                 .tag(TracingTags.CONNECTION_ID, connectionId.toString())
                 .tag(TracingTags.CONNECTION_TYPE, connectionType.getName())
-                .withTraceContext(context)
                 .start();
+        DittoTracing.wrapTimer(DittoTracing.extractTraceContext(acknowledgeableMessage.getMessage().getHeaders()),
+                timer);
 
         final Duration askTimeout = acknowledgementConfig.getCollectorFallbackAskTimeout();
         // Ask response collector actor to get the collected responses in a future

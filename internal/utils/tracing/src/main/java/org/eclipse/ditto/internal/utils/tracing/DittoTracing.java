@@ -24,8 +24,10 @@ import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.PreparedTrace;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -285,6 +287,16 @@ public final class DittoTracing {
             propagation.write(context, map::put);
             return Map.copyOf(map);
         });
+    }
+
+    /**
+     * Wraps a StartedTimer and generates a trace span when the timer is finished.
+     */
+    public static Context wrapTimer(final Context context, final StartedTimer startedTimer) {
+        final StartedTrace trace = trace(context, startedTimer.getName()).startAt(startedTimer.getStartInstant());
+        startedTimer.onStop(stoppedTimer -> trace.tags(stoppedTimer.getTags())
+                .finishAfter(stoppedTimer.getDuration()));
+        return trace.getContext();
     }
 
     private static PreparedTrace doTrace(final Supplier<PreparedTrace> createTrace) {

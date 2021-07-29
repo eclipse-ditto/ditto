@@ -351,11 +351,12 @@ public final class SearchActor extends AbstractActor {
 
     private static StartedTimer startNewTimer(final JsonSchemaVersion version, final String queryType,
             final WithDittoHeaders queryThings) {
-        return DittoMetrics.timer(TRACING_THINGS_SEARCH)
+        final StartedTimer startedTimer = DittoMetrics.timer(TRACING_THINGS_SEARCH)
                 .tag(QUERY_TYPE_TAG, queryType)
                 .tag(API_VERSION_TAG, version.toString())
-                .withTraceContext(DittoTracing.extractTraceContext(queryThings))
                 .start();
+        DittoTracing.wrapTimer(DittoTracing.extractTraceContext(queryThings), startedTimer);
+        return startedTimer;
     }
 
     private static <T> Source<Query, NotUsed> createQuerySource(final Function<T, CompletionStage<Query>> parser,

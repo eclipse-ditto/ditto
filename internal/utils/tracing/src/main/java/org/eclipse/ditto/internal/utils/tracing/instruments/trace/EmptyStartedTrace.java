@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 
@@ -58,9 +59,10 @@ final class EmptyStartedTrace implements StartedTrace {
     }
 
     @Override
-    public void finish() {
+    public void finish() {}
 
-    }
+    @Override
+    public void finishAfter(final Duration duration) {}
 
     @Override
     public StartedTrace fail(final String errorMessage) {
@@ -94,6 +96,6 @@ final class EmptyStartedTrace implements StartedTrace {
 
     @Override
     public Map<String, String> propagateContext(final Map<String, String> map) {
-        return Map.of();
+        return map;
     }
 }

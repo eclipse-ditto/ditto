@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -61,6 +62,11 @@ final class EmptyPreparedTrace implements PreparedTrace {
 
     @Override
     public StartedTrace start() {
+        return EmptyStartedTrace.getInstance();
+    }
+
+    @Override
+    public StartedTrace startAt(final Instant startInstant) {
         return EmptyStartedTrace.getInstance();
     }
 

@@ -15,20 +15,14 @@ package org.eclipse.ditto.internal.utils.metrics.instruments.timer;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import kamon.Kamon;
-import kamon.context.Context;
-import kamon.tag.TagSet;
-import kamon.trace.Span;
-import kamon.trace.SpanBuilder;
 
 /**
  * Kamon based implementation of {@link StartedTimer}.
@@ -40,40 +34,27 @@ final class StartedKamonTimer implements StartedTimer {
 
     private final String name;
     private final Map<String, String> tags;
-    private final List<OnStopHandler> onStopHandlers;
+    private final List<Consumer<StoppedTimer>> onStopHandlers;
     private final Map<String, StartedTimer> segments;
-    private final long startTimestamp;
+    private final long startNanoTime;
     private final Instant startInstant;
-    private final Context context;
 
     @Nullable private StoppedTimer stoppedTimer;
 
-    private StartedKamonTimer(final String name, final Map<String, String> tags, final Context parentContext) {
+    private StartedKamonTimer(final String name, final Map<String, String> tags) {
         this.name = name;
         this.tags = new HashMap<>(tags);
-        this.segments = new LinkedHashMap<>(); // keeps insertion order
+        this.segments = new HashMap<>();
         this.onStopHandlers = new ArrayList<>();
         this.stoppedTimer = null;
-        this.startTimestamp = System.nanoTime();
+        this.startNanoTime = System.nanoTime();
         this.startInstant = Instant.now();
-
-        if (parentContext != null) {
-            final SpanBuilder spanBuilder = Kamon.spanBuilder(name);
-            final Span parent = parentContext.get(Span.Key());
-            final Span span = spanBuilder
-                    .asChildOf(parent)
-                    .tag(TagSet.from(Map.copyOf(tags)))
-                    .start(startInstant);
-            this.context = Context.of(Span.Key(), span);
-        } else {
-            this.context = Context.Empty();
-        }
 
         if (!this.tags.containsKey(SEGMENT_TAG)) {tag(SEGMENT_TAG, "overall");}
     }
 
     static StartedTimer fromPreparedTimer(final PreparedTimer preparedTimer) {
-        return new StartedKamonTimer(preparedTimer.getName(), preparedTimer.getTags(), preparedTimer.getTraceContext());
+        return new StartedKamonTimer(preparedTimer.getName(), preparedTimer.getTags());
     }
 
     @Override
@@ -136,8 +117,6 @@ final class StartedKamonTimer implements StartedTimer {
             final StartedTimer segment = PreparedKamonTimer.newTimer(name)
                     .tags(tags)
                     .tag(SEGMENT_TAG, segmentName)
-                    .withTraceContext(segments.values().stream().reduce((a, b) -> b)
-                            .map(StartedTimer::getContext).orElse(getContext()))
                     .start();
             this.segments.put(segmentName, segment);
             return segment;
@@ -149,7 +128,7 @@ final class StartedKamonTimer implements StartedTimer {
     }
 
     @Override
-    public StartedTimer onStop(final OnStopHandler onStopHandler) {
+    public StartedTimer onStop(final Consumer<StoppedTimer> onStopHandler) {
         onStopHandlers.add(onStopHandler);
         return this;
     }
@@ -160,8 +139,13 @@ final class StartedKamonTimer implements StartedTimer {
     }
 
     @Override
-    public Long getStartTimeStamp() {
-        return startTimestamp;
+    public Instant getStartInstant() {
+        return startInstant;
+    }
+
+    @Override
+    public Long getStartNanoTime() {
+        return startNanoTime;
     }
 
     @Override
@@ -170,13 +154,8 @@ final class StartedKamonTimer implements StartedTimer {
     }
 
     @Override
-    public List<OnStopHandler> getOnStopHandlers() {
-        return new ArrayList<>(onStopHandlers);
-    }
-
-    @Override
-    public Context getContext() {
-        return context;
+    public List<Consumer<StoppedTimer>> getOnStopHandlers() {
+        return List.copyOf(onStopHandlers);
     }
 
     @Override
@@ -186,10 +165,9 @@ final class StartedKamonTimer implements StartedTimer {
                 ", tags=" + tags +
                 ", onStopHandlers=" + onStopHandlers +
                 ", segments=" + segments +
-                ", startTimestamp=" + startTimestamp +
+                ", startTimestamp=" + startNanoTime +
                 ", startInstant=" + startInstant +
                 ", stoppedTimer=" + stoppedTimer +
-                ", context=" + context +
                 "]";
     }
 

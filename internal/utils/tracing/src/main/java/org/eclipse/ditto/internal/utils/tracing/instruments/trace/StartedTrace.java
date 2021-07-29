@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 
@@ -28,6 +29,11 @@ public interface StartedTrace extends TaggedMetricInstrument<StartedTrace>, Trac
      * Finishes the trace. Any method called after the trace is finished has no effect.
      */
     void finish();
+
+    /**
+     * Finishes the trace with the given duration. Any method called after the trace is finished has no effect.
+     */
+    void finishAfter(Duration duration);
 
     /**
      * Marks the current operation as failed and adds the provided error message as a tag.

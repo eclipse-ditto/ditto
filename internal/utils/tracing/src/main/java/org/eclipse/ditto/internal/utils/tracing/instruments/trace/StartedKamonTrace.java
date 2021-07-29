@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 
@@ -57,6 +58,11 @@ class StartedKamonTrace implements StartedTrace {
     @Override
     public void finish() {
         span.finish();
+    }
+
+    @Override
+    public void finishAfter(final Duration duration) {
+        span.finishAfter(duration);
     }
 
     @Override
