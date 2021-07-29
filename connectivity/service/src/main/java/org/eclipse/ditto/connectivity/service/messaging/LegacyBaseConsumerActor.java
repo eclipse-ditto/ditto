@@ -20,7 +20,6 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
-import akka.NotUsed;
 import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.Sink;
@@ -38,9 +37,12 @@ public abstract class LegacyBaseConsumerActor extends BaseConsumerActor {
     private final SourceQueueWithComplete<AcknowledgeableMessage> messageSourceQueue;
     private final SourceQueueWithComplete<DittoRuntimeException> dreSourceQueue;
 
-    protected LegacyBaseConsumerActor(final Connection connection, final String sourceAddress,
-            final Sink<Object, ?> inboundMappingSink, final Source source) {
-        super(connection, sourceAddress, inboundMappingSink, source);
+    protected LegacyBaseConsumerActor(final Connection connection,
+            final String sourceAddress,
+            final Sink<Object, ?> inboundMappingSink,
+            final Source source,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
+        super(connection, sourceAddress, inboundMappingSink, source, connectivityStatusResolver);
 
         final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));

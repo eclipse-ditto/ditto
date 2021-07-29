@@ -36,6 +36,7 @@ import org.eclipse.ditto.connectivity.model.EnforcementFilter;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
@@ -62,8 +63,10 @@ abstract class AbstractMqttConsumerActor<P> extends LegacyBaseConsumerActor {
     protected final boolean reconnectForRedelivery;
 
     protected AbstractMqttConsumerActor(final Connection connection, final Sink<Object, NotUsed> inboundMappingSink,
-            final Source source, final boolean dryRun, final boolean reconnectForRedelivery) {
-        super(connection, String.join(";", source.getAddresses()), inboundMappingSink, source);
+            final Source source, final boolean dryRun, final boolean reconnectForRedelivery,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
+        super(connection, String.join(";", source.getAddresses()), inboundMappingSink, source,
+                connectivityStatusResolver);
 
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connection.getId());

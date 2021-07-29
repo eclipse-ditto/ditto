@@ -329,7 +329,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 connectionContext.getConnectivityConfig().getClientConfig());
 
         if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
-            tunnelActor = startChildActor(SshTunnelActor.ACTOR_NAME, SshTunnelActor.props(connection));
+            tunnelActor = startChildActor(SshTunnelActor.ACTOR_NAME, SshTunnelActor.props(connection,
+                    connectivityStatusResolver));
         } else {
             tunnelActor = null;
         }

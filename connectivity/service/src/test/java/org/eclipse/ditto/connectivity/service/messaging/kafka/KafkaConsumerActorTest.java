@@ -16,6 +16,7 @@ import static org.apache.kafka.clients.consumer.ConsumerRecord.NULL_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.header;
+import static org.mockito.Mockito.mock;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,9 +33,9 @@ import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.Before;
-import org.mockito.Mockito;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -64,7 +65,7 @@ public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRe
 
     @Before
     public void initKafka() {
-        final Consumer.Control control = Mockito.mock(Consumer.Control.class);
+        final Consumer.Control control = mock(Consumer.Control.class);
         final Pair<BoundedSourceQueue<ConsumerRecord<String, String>>, Source<ConsumerRecord<String, String>, NotUsed>>
                 sourcePair = Source.<ConsumerRecord<String, String>>queue(20)
                 .preMaterialize(Materializer.createMaterializer(actorSystem));
@@ -118,6 +119,7 @@ public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRe
                                 .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                                 .build())
                         .build(),
+                mock(ConnectivityStatusResolver.class),
                 false);
     }
 

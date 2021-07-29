@@ -345,7 +345,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                     declarationStatus.put(target,
                             ConnectivityModelFactory.newTargetStatus(
                                     getClientId(),
-                                    ConnectivityStatus.FAILED,
+                                    ConnectivityStatus.MISCONFIGURED,
                                     target.getAddress(),
                                     "Exchange '" + exchange + "' was missing at " + Instant.now()));
                 }

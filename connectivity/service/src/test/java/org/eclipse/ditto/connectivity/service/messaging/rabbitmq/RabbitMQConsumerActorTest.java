@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.header;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -32,6 +33,7 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorWithAcknowledgementsTest;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.mockito.Mockito;
 
@@ -41,7 +43,6 @@ import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
 import akka.NotUsed;
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
@@ -72,7 +73,8 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorWithAc
                                 .build())
                         .build(),
                 channel,
-                CONNECTION);
+                CONNECTION,
+                mock(ConnectivityStatusResolver.class));
     }
 
     @Override
@@ -91,7 +93,8 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorWithAc
                                 .build())
                         .build(),
                 channel,
-                CONNECTION);
+                CONNECTION,
+                mock(ConnectivityStatusResolver.class));
     }
 
     @Override

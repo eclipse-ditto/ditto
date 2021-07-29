@@ -447,7 +447,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private void startCommandConsumer(final ConsumerData consumer, final Sink<Object, NotUsed> inboundMappingSink,
             final ActorRef jmsActor) {
         final String namePrefix = consumer.getActorNamePrefix();
-        final Props props = AmqpConsumerActor.props(connection(), consumer, inboundMappingSink, jmsActor);
+        final Props props = AmqpConsumerActor.props(connection(), consumer, inboundMappingSink, jmsActor,
+                connectivityStatusResolver);
 
         final ActorRef child = startChildActorConflictFree(namePrefix, props);
         consumerByNamePrefix.put(namePrefix, child);

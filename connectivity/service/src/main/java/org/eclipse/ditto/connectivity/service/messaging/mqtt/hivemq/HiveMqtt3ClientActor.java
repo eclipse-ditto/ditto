@@ -133,7 +133,8 @@ public final class HiveMqtt3ClientActor
             final MqttSpecificConfig specificConfig) {
 
         return startChildActorConflictFree(HiveMqtt3ConsumerActor.NAME,
-                HiveMqtt3ConsumerActor.props(connection(), inboundMappingSink, source, dryRun, specificConfig));
+                HiveMqtt3ConsumerActor.props(connection(), inboundMappingSink, source, dryRun, specificConfig,
+                        connectivityStatusResolver));
     }
 
 }

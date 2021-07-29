@@ -214,7 +214,8 @@ public final class KafkaClientActor extends BaseClientActor {
                 new DefaultKafkaConsumerSourceSupplier(propertiesFactory, consumerData.getAddress(), dryRun);
         final Props consumerActorProps =
                 KafkaConsumerActor.props(connection(), sourceSupplier,
-                        consumerData.getAddress(), getInboundMappingSink(), consumerData.getSource(), dryRun);
+                        consumerData.getAddress(), getInboundMappingSink(), consumerData.getSource(),
+                        connectivityStatusResolver, dryRun);
         final ActorRef consumerActor =
                 startChildActorConflictFree(consumerData.getActorNamePrefix(), consumerActorProps);
         kafkaConsumerActors.add(consumerActor);

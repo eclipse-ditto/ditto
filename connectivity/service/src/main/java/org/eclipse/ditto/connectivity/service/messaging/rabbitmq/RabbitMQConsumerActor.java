@@ -35,6 +35,7 @@ import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
@@ -70,8 +71,9 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
 
     @SuppressWarnings("unused")
     private RabbitMQConsumerActor(final Connection connection, final String sourceAddress,
-            final Sink<Object, NotUsed> inboundMappingSink, final Source source, final Channel channel) {
-        super(connection, sourceAddress, inboundMappingSink, source);
+            final Sink<Object, NotUsed> inboundMappingSink, final Source source, final Channel channel,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
+        super(connection, sourceAddress, inboundMappingSink, source, connectivityStatusResolver);
 
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
@@ -97,15 +99,21 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
      * @param sourceAddress the source address.
      * @param inboundMappingSink the mapping sink where received messages are forwarded to
      * @param source the configured connection source for the consumer actor.
-     * @param connection the connection
+     * @param channel the RabbitMQ channel.
+     * @param connection the connection.
+     * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
+     * status.
      * @return the Akka configuration Props object.
      */
-    static Props props(final String sourceAddress, final Sink<Object, NotUsed> inboundMappingSink, final Source source,
-            Channel channel,
-            final Connection connection) {
+    static Props props(final String sourceAddress,
+            final Sink<Object, NotUsed> inboundMappingSink,
+            final Source source,
+            final Channel channel,
+            final Connection connection,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
 
         return Props.create(RabbitMQConsumerActor.class, connection, sourceAddress, inboundMappingSink, source,
-                channel);
+                channel, connectivityStatusResolver);
     }
 
     @Override
