@@ -178,7 +178,7 @@ public final class ConnectionPersistenceActor
 
     @Nullable private final ConnectivityCommandInterceptor customCommandValidator;
     private ConnectivityCommandInterceptor commandValidator;
-            // Do nothing because nobody subscribes for connectivity events.
+    // Do nothing because nobody subscribes for connectivity events.
 
     private ConnectivityCommandStrategies createdStrategies;
     private ConnectivityCommandStrategies deletedStrategies;
@@ -466,18 +466,19 @@ public final class ConnectionPersistenceActor
                 .whenComplete((response, throwable) -> {
                     if (response instanceof RetrieveConnectionStatusResponse) {
                         final RetrieveConnectionStatusResponse rcsResp = (RetrieveConnectionStatusResponse) response;
+                        final ConnectivityStatus liveStatus = rcsResp.getLiveStatus();
                         final DittoDiagnosticLoggingAdapter l = log
                                 .withMdcEntries(
                                         ConnectivityMdcEntryKey.CONNECTION_ID.toString(), entityId,
-                                        CommonMdcEntryKey.DITTO_LOG_TAG, "connection-live-status"
+                                        CommonMdcEntryKey.DITTO_LOG_TAG,
+                                        "connection-live-status-" + liveStatus.getName()
                                 )
                                 .withCorrelationId(rcsResp);
-                        final ConnectivityStatus liveStatus = rcsResp.getLiveStatus();
                         final String template = "Calculated <{}> live ConnectionStatus: <{}>";
                         if (liveStatus == ConnectivityStatus.FAILED) {
                             l.error(template, liveStatus, rcsResp);
                         } else if (liveStatus == ConnectivityStatus.MISCONFIGURED) {
-                            l.warning(template, liveStatus, rcsResp);
+                            l.info(template, liveStatus, rcsResp);
                         } else {
                             l.info(template, liveStatus, rcsResp);
                         }
