@@ -39,8 +39,8 @@ import org.eclipse.ditto.connectivity.service.config.ClientConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableClientDisconnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
@@ -204,7 +204,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin,
             final boolean shutdownAfterDisconnect) {
-        getSelf().tell(new ImmutableClientDisconnected(origin, shutdownAfterDisconnect), origin);
+        getSelf().tell(ClientDisconnected.of(origin, shutdownAfterDisconnect), origin);
     }
 
     @Override
@@ -213,7 +213,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     @Override
-    protected CompletionStage<Status.Status> startConsumerActors(final ClientConnected clientConnected) {
+    protected CompletionStage<Status.Status> startConsumerActors(@Nullable final ClientConnected clientConnected) {
         if (clientConnected instanceof RmqConsumerChannelCreated) {
             final RmqConsumerChannelCreated rmqConsumerChannelCreated = (RmqConsumerChannelCreated) clientConnected;
             startCommandConsumers(rmqConsumerChannelCreated.getChannel());
@@ -254,7 +254,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private static Object messageFromConnectionStatus(final Status.Status status) {
         if (status instanceof Status.Failure) {
             final Status.Failure failure = (Status.Failure) status;
-            return ImmutableConnectionFailure.of(null, failure.cause(), null);
+            return ConnectionFailure.of(null, failure.cause(), null);
         } else {
             return (ClientConnected) Optional::empty;
         }

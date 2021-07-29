@@ -29,60 +29,20 @@ import akka.actor.Status;
  * Immutable implementation of {@link ConnectionFailure}.
  */
 @Immutable
-public final class ImmutableConnectionFailure extends AbstractWithOrigin implements ConnectionFailure {
+final class ImmutableConnectionFailure extends AbstractWithOrigin implements ConnectionFailure {
 
     @Nullable private final Throwable cause;
     @Nullable private final String description;
     @Nullable private final ConnectivityStatus connectivityStatus;
     private final Instant time;
 
-    private ImmutableConnectionFailure(@Nullable final ActorRef origin, @Nullable final Throwable cause,
+    ImmutableConnectionFailure(@Nullable final ActorRef origin, @Nullable final Throwable cause,
             @Nullable final String description, @Nullable final ConnectivityStatus connectivityStatus) {
         super(origin);
         this.cause = cause;
         this.description = description;
         time = Instant.now();
         this.connectivityStatus = connectivityStatus;
-    }
-
-    /**
-     * Constructs a new ImmutableConnectionFailure which was most likely cause by an internal problem.
-     *
-     * @param origin the origin ActorRef
-     * @param cause the cause of the Failure
-     * @param description an optional description
-     */
-    public static ImmutableConnectionFailure of(@Nullable final ActorRef origin, @Nullable final Throwable cause,
-            @Nullable final String description) {
-        return new ImmutableConnectionFailure(origin, cause, description, null);
-    }
-
-    /**
-     * Constructs a new ImmutableConnectionFailure which was most likely cause by an internal problem.
-     *
-     * @param origin the origin ActorRef
-     * @param cause the cause of the Failure
-     * @param description an optional description
-     */
-    public static ImmutableConnectionFailure internal(@Nullable final ActorRef origin, @Nullable final Throwable cause,
-            @Nullable final String description) {
-        return new ImmutableConnectionFailure(origin, cause, description, ConnectivityStatus.FAILED);
-    }
-
-
-    /**
-     * Constructs a new ImmutableConnectionFailure which was most likely caused by an issue outside of the service.
-     * This could be for example a misconfiguration of the connection by a user or a temporary downtime of the broker
-     * or anything else that is not in our responsibility.
-     *
-     * @param origin the origin ActorRef
-     * @param cause the cause of the Failure
-     * @param description an optional description
-     */
-    public static ImmutableConnectionFailure userRelated(@Nullable final ActorRef origin,
-            @Nullable final Throwable cause,
-            @Nullable final String description) {
-        return new ImmutableConnectionFailure(origin, cause, description, ConnectivityStatus.MISCONFIGURED);
     }
 
     @Override

@@ -64,7 +64,6 @@ import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
@@ -563,7 +562,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param description description of the failure.
      */
     protected void escalate(final Throwable error, final String description) {
-        final ConnectionFailure failure = ImmutableConnectionFailure.of(getSelf(), error, description);
+        final ConnectionFailure failure = ConnectionFailure.of(getSelf(), error, description);
         getContext().getParent().tell(failure, getSelf());
     }
 

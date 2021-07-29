@@ -39,7 +39,7 @@ import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -275,7 +275,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         private void escalate(final DittoRuntimeException dittoRuntimeException) {
             final ActorRef self = getContext().getSelf();
             getContext().getParent()
-                    .tell(ImmutableConnectionFailure.of(self, dittoRuntimeException, null), self);
+                    .tell(ConnectionFailure.of(self, dittoRuntimeException, null), self);
         }
 
         private void stop() {

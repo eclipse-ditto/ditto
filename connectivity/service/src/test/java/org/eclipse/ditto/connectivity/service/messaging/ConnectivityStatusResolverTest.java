@@ -23,11 +23,11 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailu
 import org.junit.Before;
 import org.junit.Test;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-
 import akka.actor.Status;
 
+/**
+ * Unit tests for {@link ConnectivityStatusResolver}.
+ */
 public final class ConnectivityStatusResolverTest {
 
     private ConnectivityStatusResolver underTest;

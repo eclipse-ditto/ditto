@@ -64,7 +64,6 @@ import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectivitySignalEnrichmentProvider;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnectionMonitorRegistry;
@@ -431,7 +430,7 @@ public final class OutboundMappingProcessorActor
                     .error(dittoRuntimeException, "Enrichment of <{}> failed due to <{}>.", outboundSignal,
                             dittoRuntimeException);
             final ConnectionFailure connectionFailure =
-                    ImmutableConnectionFailure.internal(getSelf(), dittoRuntimeException, "Signal enrichment failed");
+                    ConnectionFailure.internal(getSelf(), dittoRuntimeException, "Signal enrichment failed");
             clientActor.tell(connectionFailure, getSelf());
         }
         return outboundSignal.setTargets(Collections.singletonList(target));

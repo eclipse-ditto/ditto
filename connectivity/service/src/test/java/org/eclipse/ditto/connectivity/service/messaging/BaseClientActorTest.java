@@ -53,8 +53,8 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnecti
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableClientDisconnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.protocol.Adaptable;
@@ -601,15 +601,15 @@ public final class BaseClientActorTest {
     }
 
     private static void andConnectionFails(final ActorRef clientActor, final ActorRef origin) {
-        clientActor.tell(ImmutableConnectionFailure.of(null, null, null), clientActor);
+        clientActor.tell(ConnectionFailure.of(null, null, null), clientActor);
     }
 
     private static void andDisconnectionSuccessful(final ActorRef clientActor, final ActorRef origin) {
-        clientActor.tell(new ImmutableClientDisconnected(origin, false), clientActor);
+        clientActor.tell(ClientDisconnected.of(origin, false), clientActor);
     }
 
     private static void andConnectionNotSuccessful(final ActorRef clientActor) {
-        clientActor.tell(ImmutableConnectionFailure.of(null, null, "expected exception"), clientActor);
+        clientActor.tell(ConnectionFailure.of(null, null, "expected exception"), clientActor);
     }
 
     private static void andStateTimeoutSent(final ActorRef clientActor) {

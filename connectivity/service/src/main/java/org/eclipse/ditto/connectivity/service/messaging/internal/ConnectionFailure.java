@@ -14,8 +14,11 @@ package org.eclipse.ditto.connectivity.service.messaging.internal;
 
 import java.util.Optional;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 
+import akka.actor.ActorRef;
 import akka.actor.Status;
 
 /**
@@ -24,12 +27,56 @@ import akka.actor.Status;
 public interface ConnectionFailure extends WithOrigin {
 
     /**
+     * Creates a new ConnectionFailure of not yet known differentiation between {@link ConnectivityStatus#FAILED} and
+     * {@link ConnectivityStatus#MISCONFIGURED}.
+     *
+     * @param origin the origin ActorRef
+     * @param cause the cause of the Failure
+     * @param description an optional description
+     * @return the created ConnectionFailure
+     */
+    static ConnectionFailure of(@Nullable final ActorRef origin, @Nullable final Throwable cause,
+            @Nullable final String description) {
+        return new ImmutableConnectionFailure(origin, cause, description, null);
+    }
+
+    /**
+     * Creates a new ConnectionFailure which was most likely cause by an internal problem.
+     *
+     * @param origin the origin ActorRef
+     * @param cause the cause of the Failure
+     * @param description an optional description
+     * @return the created ConnectionFailure
+     */
+    static ConnectionFailure internal(@Nullable final ActorRef origin, @Nullable final Throwable cause,
+            @Nullable final String description) {
+        return new ImmutableConnectionFailure(origin, cause, description, ConnectivityStatus.FAILED);
+    }
+
+
+    /**
+     * Creates a new ConnectionFailure which was most likely caused by an issue outside of the service.
+     * This could be for example a misconfiguration of the connection by a user or a temporary downtime of the broker
+     * or anything else that is not in our responsibility.
+     *
+     * @param origin the origin ActorRef
+     * @param cause the cause of the Failure
+     * @param description an optional description
+     * @return the created ConnectionFailure
+     */
+    static ConnectionFailure userRelated(@Nullable final ActorRef origin,
+            @Nullable final Throwable cause,
+            @Nullable final String description) {
+        return new ImmutableConnectionFailure(origin, cause, description, ConnectivityStatus.MISCONFIGURED);
+    }
+
+    /**
      * @return the description of the failure.
      */
     String getFailureDescription();
 
     /**
-     * @return the connectivity status.
+     * @return the optionally already certainly known connectivity status.
      */
     Optional<ConnectivityStatus> getStatus();
 

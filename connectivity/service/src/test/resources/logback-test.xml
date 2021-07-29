@@ -14,9 +14,11 @@
 
     <!-- Akka and Ditto log levels are reduced to reduce log verbosity. Increase them to debug tests. -->
     <logger name="akka" level="WARN"/>
-    <logger name="org.eclipse.ditto" level="OFF"/>
+    <logger name="org.eclipse.ditto" level="${LOG_LEVEL_TEST:-OFF}"/>
     <logger name="org.apache.qpid.jms.provider.ProviderFactory" level="OFF"/>
     <logger name="org.apache.kafka" level="WARN"/>
+
+    <logger name="com.bosch.iot.things.test" level="${LOG_LEVEL_TEST:-INFO}"/>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>

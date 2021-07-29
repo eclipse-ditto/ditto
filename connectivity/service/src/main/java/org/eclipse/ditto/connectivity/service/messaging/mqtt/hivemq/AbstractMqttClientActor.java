@@ -37,8 +37,8 @@ import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.backoff.RetryTimeoutStrategy;
 import org.eclipse.ditto.connectivity.service.messaging.internal.AbstractWithOrigin;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableClientDisconnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -236,7 +236,7 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
         //  do not default to empty client ID - support for empty client ID is not guaranteed by the spec.
         final String publisherId = config.getMqttPublisherId()
                 .or(() -> config.getMqttClientId().map(cId -> cId + "p"))
-                .orElseGet(() -> connection.getId().toString() + "p");
+                .orElseGet(() -> connection.getId() + "p");
         return distinguishClientIdIfNecessary(publisherId);
     }
 
@@ -267,7 +267,7 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
         } catch (final Exception e) {
             logger.debug("Connecting failed ({}): {}", e.getClass().getName(), e.getMessage());
             resetClientAndSubscriptionHandler();
-            self.tell(ImmutableConnectionFailure.of(self, e, null), self);
+            self.tell(ConnectionFailure.of(self, e, null), self);
         }
     }
 
@@ -509,7 +509,7 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
                             } else {
                                 logger.debug("Successfully disconnected.");
                             }
-                            return new ImmutableClientDisconnected(origin, shutdownAfterDisconnect);
+                            return ClientDisconnected.of(origin, shutdownAfterDisconnect);
                         });
         Patterns.pipe(disconnectFuture, getContext().getDispatcher()).to(getSelf(), origin);
     }

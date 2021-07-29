@@ -15,7 +15,6 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -25,14 +24,14 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 
 /**
- * Allows to find out if a given {@link Throwable} matches this list.
+ * Allows finding out if a given {@link Throwable} matches the configured list of user indicated errors.
  */
 final class UserIndicatedErrors {
 
     private static final String USER_INDICATED_ERRORS = "ditto.connectivity.user-indicated-errors";
-    private final Iterable<ErrorDefinition> errorDefinitions;
+    private final List<ErrorDefinition> errorDefinitions;
 
-    private UserIndicatedErrors(final Iterable<ErrorDefinition> errorDefinitions) {
+    private UserIndicatedErrors(final List<ErrorDefinition> errorDefinitions) {
         this.errorDefinitions = errorDefinitions;
     }
 
@@ -60,6 +59,9 @@ final class UserIndicatedErrors {
     }
 
     /**
+     * Checks whether the passed {@code throwable} matches against any of the configured error definitions indicating
+     * that the Throwable is an error indicated by a user and not an internal one.
+     *
      * @param throwable the throwable that should be checked.
      * @return True if the throwable matches and {@link ErrorDefinition} contained in this list.
      */
@@ -67,7 +69,7 @@ final class UserIndicatedErrors {
         if (throwable == null) {
             return false;
         }
-        return StreamSupport.stream(errorDefinitions.spliterator(), true)
+        return errorDefinitions.stream()
                 .anyMatch(definition -> definition.matches(throwable));
     }
 
@@ -90,7 +92,7 @@ final class UserIndicatedErrors {
          *
          * @param config the config  which is expected to have {@link UserIndicatedErrors.ErrorDefinition#NAME}
          * and {@link UserIndicatedErrors.ErrorDefinition#PATTERN} as key.
-         * @return the new blame definition
+         * @return the new error definition
          */
         private static ErrorDefinition of(final Config config) {
             try {
@@ -104,8 +106,11 @@ final class UserIndicatedErrors {
         }
 
         /**
+         * Matches the passed {@code throwable}'s class name and message against the configured ones of this instace
+         * and returns {@code true} if they match.
+         *
          * @param throwable the throwable that should be checked.
-         * @return True if the throwable matches this definition and false if not.
+         * @return {@code true} if the throwable matches this definition and false if not.
          */
         boolean matches(final Throwable throwable) {
             return exceptionName.equals(throwable.getClass().getName()) &&

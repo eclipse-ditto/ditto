@@ -61,7 +61,6 @@ import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConsumerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
@@ -180,7 +179,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
             initMessageConsumer();
         } catch (final Exception e) {
             final var failure =
-                    ImmutableConnectionFailure.of(getSelf(), e, "Failed to initialize message consumers.");
+                    ConnectionFailure.of(getSelf(), e, "Failed to initialize message consumers.");
             getContext().getParent().tell(failure, getSelf());
             getContext().stop(getSelf());
         }
@@ -296,7 +295,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
 
     private void messageConsumerFailed(final Status.Failure failure) {
         // escalate to parent
-        final ConnectionFailure connectionFailed = ImmutableConnectionFailure.of(getSelf(), failure.cause(),
+        final ConnectionFailure connectionFailed = ConnectionFailure.of(getSelf(), failure.cause(),
                 "Failed to recreate closed message consumer");
         getContext().getParent().tell(connectionFailed, getSelf());
     }

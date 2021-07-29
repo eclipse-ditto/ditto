@@ -49,7 +49,6 @@ import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.signing.NoOpSigning;
 import org.eclipse.ditto.internal.utils.akka.controlflow.TimeMeasuringFlow;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -431,6 +430,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     "Live response does not target the correct thing. Expected thing ID <%s>, but no ID found",
                     messageThingId);
             handleInvalidResponse(message, commandResponse);
+            return;
         }
         final EntityId responseThingId = ((WithEntityId) commandResponse).getEntityId();
 
@@ -471,6 +471,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     final String message = String.format(LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE, commandResponse.getType(),
                             SendFeatureMessageResponse.TYPE);
                     handleInvalidResponse(message, commandResponse);
+                    return;
                 }
                 final String messageFeatureId = ((SendFeatureMessage<?>) messageCommand).getFeatureId();
                 final String responseFeatureId = ((SendFeatureMessageResponse<?>) commandResponse).getFeatureId();
@@ -560,7 +561,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     private ConnectionFailure toConnectionFailure(@Nullable final Done done, @Nullable final Throwable error) {
-        return ImmutableConnectionFailure.of(getSelf(), error, "HttpPublisherActor stream terminated");
+        return ConnectionFailure.of(getSelf(), error, "HttpPublisherActor stream terminated");
     }
 
     private static DittoHeaders setDittoHeaders(final DittoHeaders dittoHeaders, final HttpResponse response) {

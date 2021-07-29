@@ -59,7 +59,6 @@ import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ProducerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.backoff.BackOffActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 import akka.Done;
@@ -222,14 +221,14 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             // target producer not creatable; stop self and request restart by parent
             final String errorMessage = "Failed to create target";
             logger.error(jmsException, errorMessage);
-            final ConnectionFailure failure = ImmutableConnectionFailure.of(getSelf(), jmsException, errorMessage);
+            final ConnectionFailure failure = ConnectionFailure.of(getSelf(), jmsException, errorMessage);
             final ActorContext context = getContext();
             context.getParent().tell(failure, getSelf());
             context.stop(getSelf());
         } catch (final Exception e) {
             logger.warning("Failed to create static target producers: {}", e.getMessage());
             getContext().getParent()
-                    .tell(ImmutableConnectionFailure.of(null, e, "failed to initialize static producers"), getSelf());
+                    .tell(ConnectionFailure.of(null, e, "failed to initialize static producers"), getSelf());
             throw e;
         }
     }

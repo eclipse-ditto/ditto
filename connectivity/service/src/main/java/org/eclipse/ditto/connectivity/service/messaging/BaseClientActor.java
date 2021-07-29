@@ -98,7 +98,6 @@ import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLoggerRegistry;
@@ -597,7 +596,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     "publish/subscribe infrastructure. Failing the connection to try again later.";
             getSelf().tell(
                     // not setting "cause" to put the description literally in the error log
-                    ImmutableConnectionFailure.internal(null, exception.asDittoRuntimeException(), description),
+                    ConnectionFailure.internal(null, exception.asDittoRuntimeException(), description),
                     getSelf());
         }
         return stay();
@@ -1143,7 +1142,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final BaseClientData data) {
         logger.info("SSH tunnel closed: {}", tunnelClosed.getMessage());
         final var failure =
-                ImmutableConnectionFailure.userRelated(null, tunnelClosed.getError(), tunnelClosed.getMessage());
+                ConnectionFailure.userRelated(null, tunnelClosed.getError(), tunnelClosed.getMessage());
         getSelf().tell(failure, getSelf());
         final SshTunnelState closedState = data.getSshTunnelState().failed(tunnelClosed.getError());
         return stay().using(data.setSshTunnelState(closedState));
@@ -1852,7 +1851,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                             return (SupervisorStrategy.Directive) SupervisorStrategy.resume();
                         })
                         .matchAny(error -> {
-                            self.tell(ImmutableConnectionFailure.of(getSender(), error, "exception in child"), self);
+                            self.tell(ConnectionFailure.of(getSender(), error, "exception in child"), self);
                             if (getSender().equals(tunnelActor)) {
                                 logger.debug("Restarting tunnel actor after failure: {}", error.getMessage());
                                 return (SupervisorStrategy.Directive) SupervisorStrategy.restart();
@@ -2134,7 +2133,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         }
 
         public static InitializationResult failed(@Nullable final Throwable throwable) {
-            return new InitializationResult(ImmutableConnectionFailure.of(null, throwable,
+            return new InitializationResult(ConnectionFailure.of(null, throwable,
                     "Exception during client actor initialization."));
         }
 
