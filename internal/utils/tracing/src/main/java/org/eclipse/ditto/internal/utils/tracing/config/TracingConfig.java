@@ -50,7 +50,7 @@ public interface TracingConfig {
          * Determines which propagation channel to use. The configured channel has to be configured at
          * {@code kamon.propagation.http.<channel>}.
          */
-        TRACING_PROPAGATION_CHANNEL("propagation-channel", "ditto");
+        TRACING_PROPAGATION_CHANNEL("propagation-channel", "default");
 
         private final String path;
         private final Object defaultValue;
