@@ -1004,6 +1004,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         } else {
             logger.info("Socket is closed, scheduling a reconnect.");
             cleanupResourcesForConnection();
+            throw newConnectionFailedException(DittoHeaders.empty());
         }
     }
 
@@ -1076,7 +1077,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     logger.info("Connection requires SSH tunnel, start tunnel.");
                     tunnelActor.tell(SshTunnelActor.TunnelControl.START_TUNNEL, getSender());
                 } else {
-                    reconnect();
+                    try {
+                        reconnect();
+                    } catch (final ConnectionFailedException e){
+                        return goToConnecting(reconnectTimeoutStrategy.getNextTimeout())
+                                .using(data.setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
+                                        .setConnectionStatusDetails(e.getMessage())
+                                        .resetSession());
+                    }
                 }
                 return goToConnecting(reconnectTimeoutStrategy.getNextTimeout()).using(data.resetSession()
                         .setConnectionStatus(ConnectivityStatus.FAILED)
@@ -1114,15 +1122,21 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         if (data.getSessionSenders().isEmpty()) {
             logger.info("Reconnecting after ssh tunnel was established.");
-            reconnect();
+            try {
+                reconnect();
+                return stay();
+            } catch (final ConnectionFailedException e){
+                return goToConnecting(reconnectTimeoutStrategy.getNextTimeout())
+                        .using(data.setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
+                                .setConnectionStatusDetails(e.getMessage())
+                                .resetSession());
+            }
         } else {
             logger.info("Connecting initially after tunnel was established.");
             final ActorRef sender = data.getSessionSenders().get(0).first();
             final DittoHeaders dittoHeaders = data.getSessionSenders().get(0).second();
-            doOpenConnection(data, sender, dittoHeaders);
+            return doOpenConnection(data, sender, dittoHeaders);
         }
-
-        return stay();
     }
 
     private State<BaseClientState, BaseClientData> testConnectionAfterTunnelStarted(final Control control,
