@@ -291,7 +291,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // start with UNKNOWN state but send self OpenConnection because client actors are never created closed
         final BaseClientData startingData =
                 BaseClientData.BaseClientDataBuilder.from(connection.getId(), connection, ConnectivityStatus.UNKNOWN,
-                        ConnectivityStatus.OPEN, "initialized", Instant.now())
+                                ConnectivityStatus.OPEN, "initialized", Instant.now())
                         .build();
         startWith(UNKNOWN, startingData);
 
@@ -1322,7 +1322,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     connectionLogger.failure("Connection failed due to: {0}. Reconnect was already triggered.",
                             event.getFailureDescription());
                     logger.info("Connection failed: {}. Reconnect was already triggered.", event);
-                    return stay();
+                    return stay().using(data.resetSession()
+                            .setConnectionStatus(connectivityStatusResolver.resolve(event))
+                            .setConnectionStatusDetails(event.getFailureDescription()));
                 } else {
                     final Duration nextBackoff = reconnectTimeoutStrategy.getNextBackoff();
                     final var errorMessage =
@@ -1471,7 +1473,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 connectionLoggerRegistry.aggregateLogs(connectionId());
 
         getSender().tell(RetrieveConnectionLogsResponse.of(connectionId(), connectionLogs.getLogs(),
-                connectionLogs.getEnabledSince(), connectionLogs.getEnabledUntil(), command.getDittoHeaders()),
+                        connectionLogs.getEnabledSince(), connectionLogs.getEnabledUntil(), command.getDittoHeaders()),
                 getSelf());
 
         return stay();
