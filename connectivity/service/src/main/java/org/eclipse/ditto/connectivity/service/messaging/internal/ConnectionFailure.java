@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.internal;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
@@ -132,6 +133,9 @@ public interface ConnectionFailure extends WithOrigin {
         if (cause instanceof CompletionException) {
             realCause = cause.getCause();
         } else if (cause instanceof ExecutionException) {
+            realCause = cause.getCause();
+        } else if (cause != null && IOException.class.equals(cause.getClass()) && cause.getMessage() == null &&
+                cause.getCause() != null) {
             realCause = cause.getCause();
         } else {
             realCause = cause;

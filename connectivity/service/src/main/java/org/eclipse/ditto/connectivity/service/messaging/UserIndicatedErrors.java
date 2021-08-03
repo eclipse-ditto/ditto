@@ -127,8 +127,15 @@ final class UserIndicatedErrors {
          * @return {@code true} if the throwable matches this definition and false if not.
          */
         boolean matches(final Throwable throwable) {
-            return exceptionName.equals(throwable.getClass().getName()) &&
+            boolean matches = exceptionName.equals(throwable.getClass().getName()) &&
                     messagePattern.matcher(String.valueOf(throwable.getMessage())).matches();
+            final Throwable cause = throwable.getCause();
+            if (matches) {
+                return true;
+            } else if (cause != null && cause != throwable) {
+                return matches(cause);
+            }
+            return false;
         }
 
     }
