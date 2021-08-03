@@ -64,8 +64,8 @@ public final class GatewayHttpConfigTest {
         assertInstancesOf(GatewayHttpConfig.class,
                 areImmutable(),
                 provided(Pattern.class).isAlsoImmutable(),
-                assumingFields("queryParamsAsHeaders", "additionalAcceptedMediaTypes", "schemaVersions")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
+                assumingFields("queryParamsAsHeaders", "additionalAcceptedMediaTypes", "schemaVersions",
+                        "protocolHeaders").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
                 assumingFields("redirectToHttpsBlocklistPattern").areNotModifiedAndDoNotEscape());
     }
 
