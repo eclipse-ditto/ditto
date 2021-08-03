@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -22,6 +23,10 @@ import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigList;
+import com.typesafe.config.ConfigValue;
+import com.typesafe.config.ConfigValueType;
 
 /**
  * Allows finding out if a given {@link Throwable} matches the configured list of user indicated errors.
@@ -42,17 +47,26 @@ final class UserIndicatedErrors {
      * @return the new error list.
      */
     static UserIndicatedErrors of(final Config config) {
-        final List<? extends Config> configList = getConfiguredListOrEmpty(config);
-        final List<ErrorDefinition> definitionList = configList.stream()
-                .map(Config.class::cast)
-                .map(ErrorDefinition::of)
-                .collect(Collectors.toList());
+        final List<ErrorDefinition> definitionList = getConfiguredListOrEmpty(config);
         return new UserIndicatedErrors(definitionList);
     }
 
-    private static List<? extends Config> getConfiguredListOrEmpty(final Config config) {
+    private static List<ErrorDefinition> getConfiguredListOrEmpty(final Config config) {
         try {
-            return config.getConfigList(USER_INDICATED_ERRORS);
+            final ConfigList list = config.getList(USER_INDICATED_ERRORS);
+            final Stream<ErrorDefinition> errorDefinitionsFromString = list.stream()
+                    .filter(value -> ConfigValueType.STRING.equals(value.valueType()))
+                    .map(ConfigValue::unwrapped)
+                    .map(Object::toString)
+                    .map(ConfigFactory::parseString)
+                    .map(ErrorDefinition::of);
+            final Stream<ErrorDefinition> errorDefinitionsFromMap = list.stream()
+                    .filter(value -> ConfigValueType.OBJECT.equals(value.valueType()))
+                    .map(ConfigValue::render)
+                    .map(ConfigFactory::parseString)
+                    .map(ErrorDefinition::of);
+            return Stream.concat(errorDefinitionsFromMap, errorDefinitionsFromString)
+                    .collect(Collectors.toList());
         } catch (final ConfigException.Missing | ConfigException.WrongType e) {
             return List.of();
         }
