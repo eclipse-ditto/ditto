@@ -536,12 +536,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final BaseClientData currentData) {
 
         final ConnectionFailure failure = statusReport.getFailure();
-        final String message = MessageFormat.format("Failure: {0}, Description: {1}",
-                failure.getFailure().cause(), failure.getFailureDescription());
-        connectionLogger.failure(message);
+        connectionLogger.failure(failure.getFailureDescription());
         final ConnectivityStatus newStatus = connectivityStatusResolver.resolve(failure);
         return stay().using(currentData.setConnectionStatus(newStatus)
-                .setConnectionStatusDetails(message));
+                .setConnectionStatusDetails(failure.getFailureDescription()));
     }
 
     private FSM.State<BaseClientState, BaseClientData> handleConsumerClosed(

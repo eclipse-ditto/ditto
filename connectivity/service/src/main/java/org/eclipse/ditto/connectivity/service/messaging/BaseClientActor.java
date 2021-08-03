@@ -977,7 +977,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             sender.tell(new Status.Failure(error), getSelf());
             return goToConnecting(connectingTimeout)
                     .using(data.setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
-                            .setConnectionStatusDetails(error.getMessage())
+                            .setConnectionStatusDetails(
+                                    ConnectionFailure.determineFailureDescription(Instant.now(), error, null))
                             .resetSession());
         }
     }
@@ -1082,7 +1083,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     } catch (final ConnectionFailedException e){
                         return goToConnecting(reconnectTimeoutStrategy.getNextTimeout())
                                 .using(data.setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
-                                        .setConnectionStatusDetails(e.getMessage())
+                                        .setConnectionStatusDetails(
+                                                ConnectionFailure.determineFailureDescription(Instant.now(), e, null))
                                         .resetSession());
                     }
                 }
@@ -1128,7 +1130,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             } catch (final ConnectionFailedException e){
                 return goToConnecting(reconnectTimeoutStrategy.getNextTimeout())
                         .using(data.setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
-                                .setConnectionStatusDetails(e.getMessage())
+                                .setConnectionStatusDetails(
+                                        ConnectionFailure.determineFailureDescription(Instant.now(), e, null))
                                 .resetSession());
             }
         } else {
@@ -1674,11 +1677,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             throw dre;
         }
 
-        final Connection connection = connectionContext.getConnection();
-        final int processorPoolSize = connection.getProcessorPoolSize();
+        final Connection theConnection = connectionContext.getConnection();
+        final int processorPoolSize = theConnection.getProcessorPoolSize();
         logger.debug("Starting mapping processor actors with pool size of <{}>.", processorPoolSize);
         final Props outboundMappingProcessorActorProps =
-                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connection, processorPoolSize);
+                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, theConnection, processorPoolSize);
 
         final ActorRef processorActor =
                 getContext().actorOf(outboundMappingProcessorActorProps, OutboundMappingProcessorActor.ACTOR_NAME);
@@ -1971,7 +1974,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 connectionContextProvider.getConnectionContext(connection, dittoHeaders)
                         .thenCompose(context ->
                                 connectionContextProvider.registerForConnectivityConfigChanges(context, self)
-                                        .<Object>thenApply(_void -> context)
+                                        .<Object>thenApply(theVoid -> context)
                         )
                         .exceptionally(throwable -> {
                             if (throwable instanceof RuntimeException) {

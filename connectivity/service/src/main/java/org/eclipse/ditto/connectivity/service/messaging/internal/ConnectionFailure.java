@@ -12,10 +12,15 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.internal;
 
+import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 
 import akka.actor.ActorRef;
@@ -37,7 +42,7 @@ public interface ConnectionFailure extends WithOrigin {
      */
     static ConnectionFailure of(@Nullable final ActorRef origin, @Nullable final Throwable cause,
             @Nullable final String description) {
-        return new ImmutableConnectionFailure(origin, cause, description, null);
+        return new ImmutableConnectionFailure(origin, getRealCause(cause), description, null);
     }
 
     /**
@@ -50,7 +55,7 @@ public interface ConnectionFailure extends WithOrigin {
      */
     static ConnectionFailure internal(@Nullable final ActorRef origin, @Nullable final Throwable cause,
             @Nullable final String description) {
-        return new ImmutableConnectionFailure(origin, cause, description, ConnectivityStatus.FAILED);
+        return new ImmutableConnectionFailure(origin, getRealCause(cause), description, ConnectivityStatus.FAILED);
     }
 
 
@@ -67,7 +72,43 @@ public interface ConnectionFailure extends WithOrigin {
     static ConnectionFailure userRelated(@Nullable final ActorRef origin,
             @Nullable final Throwable cause,
             @Nullable final String description) {
-        return new ImmutableConnectionFailure(origin, cause, description, ConnectivityStatus.MISCONFIGURED);
+        return new ImmutableConnectionFailure(origin, getRealCause(cause), description,
+                ConnectivityStatus.MISCONFIGURED);
+    }
+
+    /**
+     * Determines a nicely formatted failure description string based on the based in optional {@code cause}, an
+     * optional {@code description} and the {@code time}.
+     *
+     * @param time the time to include in the description.
+     * @param cause the optional cause to extract {@code message} and (if it was a {@code DittoRuntimeException}
+     * {@code description} from.
+     * @param description an optional additional description to include in the created failure description.
+     * @return the created nicely formatted failure description.
+     */
+    static String determineFailureDescription(final Instant time,
+            @Nullable final Throwable cause,
+            @Nullable final String description) {
+        String responseStr = "";
+        if (cause != null) {
+            if (description != null) {
+                responseStr = description + " - cause ";
+            }
+            responseStr += String.format("<%s>: %s", cause.getClass().getSimpleName(), cause.getMessage());
+            if (cause instanceof DittoRuntimeException) {
+                if (!responseStr.endsWith(".")) {
+                    responseStr += ".";
+                }
+                responseStr += ((DittoRuntimeException) cause).getDescription().map(d -> " " + d).orElse("");
+            }
+        } else {
+            responseStr = Objects.requireNonNullElse(description, "unknown failure");
+        }
+        if (!responseStr.endsWith(".")) {
+            responseStr += ".";
+        }
+        responseStr += " At " + time;
+        return responseStr;
     }
 
     /**
@@ -84,4 +125,17 @@ public interface ConnectionFailure extends WithOrigin {
      * @return the Failure containing the cause.
      */
     Status.Failure getFailure();
+
+    @Nullable
+    private static Throwable getRealCause(@Nullable final Throwable cause) {
+        final Throwable realCause;
+        if (cause instanceof CompletionException) {
+            realCause = cause.getCause();
+        } else if (cause instanceof ExecutionException) {
+            realCause = cause.getCause();
+        } else {
+            realCause = cause;
+        }
+        return realCause;
+    }
 }

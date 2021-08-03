@@ -19,7 +19,6 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 
 import akka.actor.ActorRef;
@@ -52,22 +51,7 @@ final class ImmutableConnectionFailure extends AbstractWithOrigin implements Con
 
     @Override
     public String getFailureDescription() {
-        String responseStr = "";
-        if (cause != null) {
-            if (description != null) {
-                responseStr = description + " - cause ";
-            }
-            responseStr += cause.getClass().getSimpleName() + ": " + cause.getMessage();
-            if (cause instanceof DittoRuntimeException) {
-                responseStr += " / " + ((DittoRuntimeException) cause).getDescription().orElse("");
-            }
-        } else if (description != null) {
-            responseStr = description;
-        } else {
-            responseStr = "unknown failure";
-        }
-        responseStr += " at " + time;
-        return responseStr;
+        return ConnectionFailure.determineFailureDescription(time, cause, description);
     }
 
     @Override
