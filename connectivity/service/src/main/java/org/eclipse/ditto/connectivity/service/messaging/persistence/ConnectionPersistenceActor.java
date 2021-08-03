@@ -469,7 +469,9 @@ public final class ConnectionPersistenceActor
                         final ConnectivityStatus liveStatus = rcsResp.getLiveStatus();
                         final DittoDiagnosticLoggingAdapter l = log
                                 .withMdcEntries(
-                                        ConnectivityMdcEntryKey.CONNECTION_ID.toString(), entityId,
+                                        ConnectivityMdcEntryKey.CONNECTION_ID, entityId,
+                                        ConnectivityMdcEntryKey.CONNECTION_TYPE, Optional.ofNullable(entity)
+                                                .map(Connection::getConnectionType).map(Object::toString).orElse("?"),
                                         CommonMdcEntryKey.DITTO_LOG_TAG,
                                         "connection-live-status-" + liveStatus.getName()
                                 )
@@ -1210,7 +1212,7 @@ public final class ConnectionPersistenceActor
             this.dittoHeaders = dittoHeaders;
         }
 
-        protected Integer getDesiredPriority() {
+        Integer getDesiredPriority() {
             return desiredPriority;
         }
 
