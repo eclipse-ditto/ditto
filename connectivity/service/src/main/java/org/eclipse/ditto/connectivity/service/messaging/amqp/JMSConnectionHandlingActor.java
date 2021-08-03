@@ -218,13 +218,13 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                 log.debug("Session of connection <{}> recovered successfully.",
                         connectionContext.getConnection().getId());
             } catch (final ConnectionFailedException e) {
-                sender.tell(ConnectionFailure.of(origin, e, e.getMessage()), self);
+                sender.tell(ConnectionFailure.of(origin, e, null), self);
                 log.warning(e.getMessage());
             } catch (final ConnectionUnauthorizedException e) {
-                sender.tell(ConnectionFailure.userRelated(origin, e, e.getMessage()), self);
+                sender.tell(ConnectionFailure.userRelated(origin, e, null), self);
                 log.warning(e.getMessage());
             } catch (final Exception e) {
-                sender.tell(ConnectionFailure.of(origin, e, e.getMessage()), self);
+                sender.tell(ConnectionFailure.of(origin, e, null), self);
                 log.error("Unexpected error: {}", e.getMessage());
             }
         } else {
@@ -260,13 +260,13 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
             sender.tell(connectedMessage, self);
             log.debug("Connection <{}> established successfully.", connectionContext.getConnection().getId());
         } catch (final ConnectionFailedException e) {
-            sender.tell(ConnectionFailure.of(origin, e, e.getMessage()), self);
+            sender.tell(ConnectionFailure.of(origin, e, null), self);
             log.warning(e.getMessage());
         } catch (final ConnectionUnauthorizedException e) {
-            sender.tell(ConnectionFailure.userRelated(origin, e, e.getMessage()), self);
+            sender.tell(ConnectionFailure.userRelated(origin, e, null), self);
             log.warning(e.getMessage());
         } catch (final Exception e) {
-            sender.tell(ConnectionFailure.of(origin, e, e.getMessage()), self);
+            sender.tell(ConnectionFailure.of(origin, e, null), self);
             log.error("Unexpected error: {}", e.getMessage());
         }
     }

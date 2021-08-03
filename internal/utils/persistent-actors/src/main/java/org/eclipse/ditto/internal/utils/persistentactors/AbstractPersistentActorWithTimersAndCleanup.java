@@ -150,7 +150,7 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
                                 CleanupPersistenceResponse.success(extractEntityIdFromPersistenceId(persistenceId()),
                                         DittoHeaders.empty()), getSelf()));
             } else {
-                log.info("Cleanup for '{}' failed. Snapshots: {}. Messages: {}.", persistenceId(),
+                log.warning("Cleanup for '{}' failed. Snapshots: {}. Messages: {}.", persistenceId(),
                         getResponseStatus(deleteSnapshotsResponse), getResponseStatus(deleteMessagesResponse));
                 Optional.ofNullable(origin)
                         .ifPresent(o -> o.tell(
