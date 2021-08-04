@@ -24,8 +24,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
@@ -47,6 +50,7 @@ import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -941,7 +945,8 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
         @Override
         public <T> Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> createFlow(final ActorSystem system,
-                final LoggingAdapter log, final Duration requestTimeout) {
+                final LoggingAdapter log, final Duration requestTimeout, @Nullable final PreparedTimer timer,
+                @Nullable final Consumer<Duration> consumer) {
             return Flow.<Pair<HttpRequest, T>>create()
                     .map(pair -> Pair.create(Try.apply(() -> mapper.apply(pair.first())), pair.second()));
         }
