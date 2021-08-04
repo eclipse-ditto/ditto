@@ -58,6 +58,7 @@ import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.json.JsonValue;
 
 import com.newmotion.akka.rabbitmq.ChannelCreated;
@@ -343,8 +344,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                 logger.warning("Failed to declare exchange <{}> passively.", exchange);
                 if (target != null) {
                     declarationStatus.put(target,
-                            ConnectivityModelFactory.newTargetStatus(
-                                    getClientId(),
+                            ConnectivityModelFactory.newTargetStatus(InstanceIdentifierSupplier.getInstance().get(),
                                     ConnectivityStatus.MISCONFIGURED,
                                     target.getAddress(),
                                     "Exchange '" + exchange + "' was missing at " + Instant.now()));

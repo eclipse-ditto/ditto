@@ -98,7 +98,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private static final Object START_PRODUCER = new Object();
 
     private static final String TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION = "This can have the following reasons:\n" +
-            "a) The AMQP consumer does not consume the messages fast enough.\n" +
+            "a) The AMQP 1.0 consumer does not consume the messages fast enough.\n" +
             "b) The client count of this connection is not configured high enough.";
 
     private final Session session;
@@ -200,14 +200,14 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         if (!isInBackOffMode) {
             final MessageProducer producer = report.getMessageProducer();
             final String genericLogInfo = "Will try to re-establish the targets after some cool-down period.";
-            logger.info("Got closed JMS producer '{}'. {}", producer, genericLogInfo);
+            logger.info("Got closed AMQP 1.0 producer '{}'. {}", producer, genericLogInfo);
 
             findByValue(dynamicTargets, producer).map(Map.Entry::getKey).forEach(dynamicTargets::remove);
 
             connectionLogger.failure("Targets were closed due to an error in the target. {0}", genericLogInfo);
             backOff();
         } else {
-            logger.info("Got closed JMS producer while already in backOff mode." +
+            logger.info("Got closed AMQP 1.0 producer while already in backOff mode." +
                     " Will ignore the closed info as this should never happen" +
                     " (and also the backOff mechanism will create a producer soon)");
         }

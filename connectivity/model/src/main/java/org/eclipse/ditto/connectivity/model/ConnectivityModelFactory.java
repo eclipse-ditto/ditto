@@ -256,7 +256,7 @@ public final class ConnectivityModelFactory {
     public static ResourceStatus newSshTunnelStatus(final String client,
             final ConnectivityStatus status,
             @Nullable final String statusDetails,
-            final Instant inStateSince) {
+            @Nullable final Instant inStateSince) {
 
         return ImmutableResourceStatus.of(ResourceStatus.ResourceType.SSH_TUNNEL, client, status, null, statusDetails,
                 inStateSince);

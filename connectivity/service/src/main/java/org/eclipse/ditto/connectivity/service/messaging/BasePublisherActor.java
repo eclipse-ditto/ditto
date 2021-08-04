@@ -76,6 +76,7 @@ import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
@@ -121,8 +122,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final List<Target> targets = connection.getTargets();
         targets.forEach(target ->
                 resourceStatusMap.put(target,
-                        ConnectivityModelFactory.newTargetStatus(getClientId(), ConnectivityStatus.OPEN,
-                                target.getAddress(), "Started at " + Instant.now())));
+                        ConnectivityModelFactory.newTargetStatus(InstanceIdentifierSupplier.getInstance().get(),
+                                ConnectivityStatus.OPEN, target.getAddress(), "Started at " + Instant.now())));
 
         connectivityConfig = getConnectivityConfig();
         connectionConfig = connectivityConfig.getConnectionConfig();
