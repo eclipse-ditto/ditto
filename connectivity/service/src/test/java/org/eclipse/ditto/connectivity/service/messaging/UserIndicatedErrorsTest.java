@@ -20,6 +20,9 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+/**
+ * Unit tests for {@link UserIndicatedErrors}.
+ */
 public final class UserIndicatedErrorsTest {
 
     private UserIndicatedErrors underTest;
@@ -54,4 +57,22 @@ public final class UserIndicatedErrorsTest {
         assertThat(underTest.matches(new IllegalAccessException())).isTrue();
     }
 
+    @Test
+    public void configurationEnvironmentVariableParsesStringObjects() {
+        // this test uses an environment variable injected via maven-surefire-plugin in the pom.xml
+
+        final Config config = ConfigFactory.load("user-indicated-errors-via-env");
+        final UserIndicatedErrors withEnvInjectedConfig = UserIndicatedErrors.of(config);
+        assertThat(withEnvInjectedConfig.matches(new IllegalArgumentException("This exception should match.")))
+                .isTrue();
+        assertThat(withEnvInjectedConfig.matches(new IllegalArgumentException("This exception should not match.")))
+                .isFalse();
+        assertThat(withEnvInjectedConfig.matches(new ArithmeticException("Some hickup here, nevermind")))
+                .isTrue();
+        assertThat(withEnvInjectedConfig.matches(new ArithmeticException("Division by zero")))
+                .isFalse();
+        assertThat(withEnvInjectedConfig.matches(new UnsupportedOperationException()))
+                .isTrue();
+
+    }
 }

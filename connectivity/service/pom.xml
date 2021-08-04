@@ -319,6 +319,20 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <environmentVariables>
+                        <USER_INDICATED_ERRORS.0>
+                            {exceptionName:"java.lang.ArithmeticException", messagePattern: "^(?!Division by zero).*$"}
+                        </USER_INDICATED_ERRORS.0>
+                        <USER_INDICATED_ERRORS.1>
+                            {exceptionName:"java.lang.UnsupportedOperationException", messagePattern: "null"}
+                        </USER_INDICATED_ERRORS.1>
+                    </environmentVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
                     <additionalOptions>
