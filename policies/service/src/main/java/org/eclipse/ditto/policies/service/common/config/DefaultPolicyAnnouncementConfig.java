@@ -34,11 +34,14 @@ final class DefaultPolicyAnnouncementConfig implements PolicyAnnouncementConfig 
 
     private final Duration gracePeriod;
     private final Duration maxTimeout;
+    private final boolean enableAnnouncementsWhenDeleted;
     private final ExponentialBackOffConfig exponentialBackOffConfig;
 
     private DefaultPolicyAnnouncementConfig(final ScopedConfig scopedConfig) {
         gracePeriod = scopedConfig.getDuration(ConfigValue.GRACE_PERIOD.getConfigPath());
         maxTimeout = scopedConfig.getDuration(ConfigValue.MAX_TIMEOUT.getConfigPath());
+        enableAnnouncementsWhenDeleted =
+                scopedConfig.getBoolean(ConfigValue.ENABLE_ANNOUNCEMENTS_WHEN_DELETED.getConfigPath());
         exponentialBackOffConfig = DefaultExponentialBackOffConfig.of(scopedConfig);
     }
 
@@ -59,6 +62,11 @@ final class DefaultPolicyAnnouncementConfig implements PolicyAnnouncementConfig 
     }
 
     @Override
+    public boolean isEnableAnnouncementsWhenDeleted() {
+        return enableAnnouncementsWhenDeleted;
+    }
+
+    @Override
     public ExponentialBackOffConfig getExponentialBackOffConfig() {
         return exponentialBackOffConfig;
     }
@@ -74,12 +82,13 @@ final class DefaultPolicyAnnouncementConfig implements PolicyAnnouncementConfig 
         final DefaultPolicyAnnouncementConfig that = (DefaultPolicyAnnouncementConfig) o;
         return Objects.equals(gracePeriod, that.gracePeriod) &&
                 Objects.equals(maxTimeout, that.maxTimeout) &&
+                enableAnnouncementsWhenDeleted == that.enableAnnouncementsWhenDeleted &&
                 Objects.equals(exponentialBackOffConfig, that.exponentialBackOffConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(gracePeriod, maxTimeout, exponentialBackOffConfig);
+        return Objects.hash(gracePeriod, maxTimeout, enableAnnouncementsWhenDeleted, exponentialBackOffConfig);
     }
 
     @Override
@@ -87,6 +96,7 @@ final class DefaultPolicyAnnouncementConfig implements PolicyAnnouncementConfig 
         return getClass().getSimpleName() + " [" +
                 "gracePeriod=" + gracePeriod +
                 ", maxTimeout=" + maxTimeout +
+                ", enableAnnouncementsWhenDeleted=" + enableAnnouncementsWhenDeleted +
                 ", exponentialBackOffConfig" + exponentialBackOffConfig +
                 "]";
     }

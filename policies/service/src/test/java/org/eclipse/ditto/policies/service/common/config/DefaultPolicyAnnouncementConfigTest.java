@@ -69,6 +69,10 @@ public final class DefaultPolicyAnnouncementConfigTest {
         softly.assertThat(underTest.getMaxTimeout())
                 .as(PolicyAnnouncementConfig.ConfigValue.MAX_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofMinutes(1L));
+
+        softly.assertThat(underTest.isEnableAnnouncementsWhenDeleted())
+                .as(PolicyAnnouncementConfig.ConfigValue.ENABLE_ANNOUNCEMENTS_WHEN_DELETED.getConfigPath())
+                .isTrue();
     }
 
     @Test
@@ -82,6 +86,10 @@ public final class DefaultPolicyAnnouncementConfigTest {
         softly.assertThat(underTest.getMaxTimeout())
                 .as(PolicyAnnouncementConfig.ConfigValue.MAX_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(5678));
+
+        softly.assertThat(underTest.isEnableAnnouncementsWhenDeleted())
+                .as(PolicyAnnouncementConfig.ConfigValue.ENABLE_ANNOUNCEMENTS_WHEN_DELETED.getConfigPath())
+                .isFalse();
 
         softly.assertThat(underTest.getExponentialBackOffConfig().getMin())
                 .as("exponential-backoff.min")
