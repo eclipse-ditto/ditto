@@ -22,7 +22,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -445,16 +447,12 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                 final JsonArray jsonArray = clientStatus.stream()
                         .map(ResourceStatus::toJson)
                         .collect(JsonCollectors.valuesToArray());
-                if (missingResources != null &&
-                        missingResources.getOrDefault(ResourceStatus.ResourceType.CLIENT, 0) > 0) {
-                    jsonArray.add(
-                            ConnectivityModelFactory.newClientStatus(UNKNOWN_CLIENT,
-                                    ConnectivityStatus.FAILED,
-                                    "Client failed to report its status within the timeout.",
-                                    now
-                            ).toJson()
-                    );
-                }
+                addTimeoutsToResourcesArray(ResourceStatus.ResourceType.CLIENT, jsonArray, () ->
+                        ConnectivityModelFactory.newClientStatus(UNKNOWN_CLIENT,
+                                ConnectivityStatus.FAILED,
+                                "Client failed to report its status within the timeout.",
+                                now
+                        ));
                 jsonObjectBuilder.set(JsonFields.CLIENT_STATUS, jsonArray);
             }
 
@@ -462,14 +460,12 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                 final JsonArray jsonArray = sourceStatus.stream()
                         .map(ResourceStatus::toJson)
                         .collect(JsonCollectors.valuesToArray());
-                if (missingResources != null &&
-                        missingResources.getOrDefault(ResourceStatus.ResourceType.SOURCE, 0) > 0) {
-                    jsonArray.add(ConnectivityModelFactory.newSourceStatus(UNKNOWN_CLIENT,
-                            ConnectivityStatus.FAILED,
-                            null,
-                            "Source failed to report its status within the timeout."
-                    ).toJson());
-                }
+                addTimeoutsToResourcesArray(ResourceStatus.ResourceType.SOURCE, jsonArray, () ->
+                        ConnectivityModelFactory.newSourceStatus(UNKNOWN_CLIENT,
+                                ConnectivityStatus.FAILED,
+                                null,
+                                "Source failed to report its status within the timeout."
+                        ));
                 jsonObjectBuilder.set(JsonFields.SOURCE_STATUS, jsonArray);
             }
 
@@ -477,14 +473,12 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                 final JsonArray jsonArray = targetStatus.stream()
                         .map(ResourceStatus::toJson)
                         .collect(JsonCollectors.valuesToArray());
-                if (missingResources != null &&
-                        missingResources.getOrDefault(ResourceStatus.ResourceType.TARGET, 0) > 0) {
-                    jsonArray.add(ConnectivityModelFactory.newTargetStatus(UNKNOWN_CLIENT,
-                            ConnectivityStatus.FAILED,
-                            null,
-                            "Target failed to report its status within the timeout."
-                    ).toJson());
-                }
+                addTimeoutsToResourcesArray(ResourceStatus.ResourceType.TARGET, jsonArray, () ->
+                        ConnectivityModelFactory.newTargetStatus(UNKNOWN_CLIENT,
+                                ConnectivityStatus.FAILED,
+                                null,
+                                "Target failed to report its status within the timeout."
+                        ));
                 jsonObjectBuilder.set(JsonFields.TARGET_STATUS, jsonArray);
             }
 
@@ -492,18 +486,29 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                 final JsonArray jsonArray = sshTunnelStatus.stream()
                         .map(ResourceStatus::toJson)
                         .collect(JsonCollectors.valuesToArray());
-                if (missingResources != null &&
-                        missingResources.getOrDefault(ResourceStatus.ResourceType.SSH_TUNNEL, 0) > 0) {
-                    jsonArray.add(ConnectivityModelFactory.newSshTunnelStatus(UNKNOWN_CLIENT,
-                            ConnectivityStatus.FAILED,
-                            "SSH Tunnel failed to report its status within the timeout.",
-                            now
-                    ).toJson());
-                }
+                addTimeoutsToResourcesArray(ResourceStatus.ResourceType.SSH_TUNNEL, jsonArray, () ->
+                        ConnectivityModelFactory.newSshTunnelStatus(UNKNOWN_CLIENT,
+                                ConnectivityStatus.FAILED,
+                                "SSH Tunnel failed to report its status within the timeout.",
+                                now
+                        ));
                 jsonObjectBuilder.set(JsonFields.SSH_TUNNEL_STATUS, jsonArray);
             }
 
             return new RetrieveConnectionStatusResponse(connectionId, jsonObjectBuilder.build(), dittoHeaders);
+        }
+
+        private void addTimeoutsToResourcesArray(final ResourceStatus.ResourceType resourceType,
+                final JsonArray jsonArray,
+                final Supplier<ResourceStatus> resourceStatusSupplier) {
+
+            if (null == missingResources) {
+                return;
+            }
+            final int missingCount = missingResources.getOrDefault(resourceType, 0);
+            IntStream.range(0, missingCount)
+                    .forEach(i -> jsonArray.add(resourceStatusSupplier.get().toJson()));
+
         }
     }
 
