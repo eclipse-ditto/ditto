@@ -30,7 +30,7 @@ class StartedKamonTrace implements StartedTrace {
 
     private final Span span;
 
-    public StartedKamonTrace(final Span span) {this.span = span;}
+    StartedKamonTrace(final Span span) {this.span = span;}
 
     @Override
     public StartedTrace tag(final String key, final String value) {

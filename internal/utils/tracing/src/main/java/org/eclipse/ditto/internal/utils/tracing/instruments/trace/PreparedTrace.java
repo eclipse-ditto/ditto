@@ -25,7 +25,7 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.TaggedMetricInstrume
 public interface PreparedTrace extends TaggedMetricInstrument<PreparedTrace>, TraceTags<PreparedTrace> {
 
     /**
-     * Starts the trace.
+     * Starts the trace at the current instant.
      *
      * @return The started {@link StartedTrace trace}.
      */
@@ -34,22 +34,25 @@ public interface PreparedTrace extends TaggedMetricInstrument<PreparedTrace>, Tr
     /**
      * Starts the trace setting the given start instant.
      *
+     * @param startInstant the instant where to start the trace at.
      * @return The started {@link StartedTrace trace}.
      */
     StartedTrace startAt(Instant startInstant);
 
     /**
-     * Executes the given {@code Function} and records the duration with this {@code PreparedTrace} .
+     * Executes the given {@code Function} and records the duration with this {@code PreparedTrace}.
      *
+     * @param dittoHeaders the DittoHeaders to which the trace context is attached
      * @param function the function to execute
-     * @param <T> the return type of the supplier
-     * @return the value returned by the executed Supplier
+     * @param <T> the return type of the function
+     * @return the value returned by the executed Function
      */
     <T> T run(DittoHeaders dittoHeaders, Function<DittoHeaders, T> function);
 
     /**
-     * Executes the given {@code Consumer} and records the duration with this {@code PreparedTrace} .
+     * Executes the given {@code Consumer} and records the duration with this {@code PreparedTrace}.
      *
+     * @param dittoHeaders the DittoHeaders to which the trace context is attached
      * @param consumer the consumer to execute
      */
     void run(DittoHeaders dittoHeaders, Consumer<DittoHeaders> consumer);

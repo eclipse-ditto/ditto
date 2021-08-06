@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -76,8 +76,8 @@ public final class DittoTracing {
      * Creates a new trace for an operation with the given name.
      *
      * @param context the trace context
-     * @param name the name of the operation.
-     * @return the new prepared trace.
+     * @param name the name of the operation
+     * @return the new prepared trace
      */
     public static PreparedTrace trace(final Context context, final String name) {
         return doTrace(() -> Traces.newTrace(context, name));
@@ -87,8 +87,8 @@ public final class DittoTracing {
      * Creates a new trace for an operation with the given name.
      *
      * @param withDittoHeaders a WithDittoHeaders instance containing trace information
-     * @param name the name of the operation.
-     * @return the new prepared trace.
+     * @param name the name of the operation
+     * @return the new prepared trace
      */
     public static PreparedTrace trace(final WithDittoHeaders withDittoHeaders, final String name) {
         return doTrace(() -> {
@@ -103,8 +103,8 @@ public final class DittoTracing {
      * Creates a new trace for an operation with the given name.
      *
      * @param dittoHeaders a DittoHeaders instance containing trace information
-     * @param name the name of the operation.
-     * @return the new prepared trace.
+     * @param name the name of the operation
+     * @return the new prepared trace
      */
     public static PreparedTrace trace(final DittoHeaders dittoHeaders, final String name) {
         return doTrace(() -> {
@@ -116,13 +116,13 @@ public final class DittoTracing {
     }
 
     /**
-     * Extracts a trace context from an HttpRequest.
+     * Extracts a trace context from an Akka HTTP HttpRequest.
      *
      * @param request the request from which to extract tracing information
      * @return the extracted trace context
      */
     public static Context extractTraceContext(final HttpRequest request) {
-        return doExtract(request, () -> {
+        return doExtract(() -> {
             final Map<String, String> map = new HashMap<>();
             Optional.of(request)
                     .map(HttpMessage::getHeaders)
@@ -133,13 +133,13 @@ public final class DittoTracing {
     }
 
     /**
-     * Extracts a trace context from a RequestContext.
+     * Extracts a trace context from an Akka HTTP RequestContext.
      *
      * @param requestContext the request context from which to extract tracing information
      * @return the extracted trace context
      */
     public static Context extractTraceContext(final RequestContext requestContext) {
-        return doExtract(requestContext, () -> {
+        return doExtract(() -> {
             final Map<String, String> map = new HashMap<>();
             Optional.of(requestContext)
                     .map(RequestContext::getRequest)
@@ -169,7 +169,7 @@ public final class DittoTracing {
      * @return the extracted trace context
      */
     public static Context extractTraceContext(final Map<String, String> map) {
-        return doExtract(map, () -> propagation.read(new MapHeaderReader(map)));
+        return doExtract(() -> propagation.read(new MapHeaderReader(map)));
     }
 
     /**
@@ -240,17 +240,17 @@ public final class DittoTracing {
     }
 
     /**
-     * Propagate trace context to T using the given setter. This can be used for immutable types which return a new
-     * instance when e.g. adding a new header.
+     * Propagate trace context to the passed {@code identity} using the given setter.
+     * This can be used for immutable types which return a new instance when e.g. adding a new header.
      *
      * @param context the trace context to propagate
-     * @param identity the identity of T
-     * @param setter a setter that adds a new header to an instance of T
+     * @param identity the identity of type T
+     * @param setter a setter that adds a new header to an instance of type T
      * @param <T> the type holding the trace information
-     * @return the instance of T with the trace context added
+     * @return the instance of type T with the trace context added
      */
-    public static <T> T propagateContext(final Context context,
-            final T identity, final BiFunction<T, Map.Entry<String, String>, T> setter) {
+    public static <T> T propagateContext(final Context context, final T identity,
+            final BiFunction<T, Map.Entry<String, String>, T> setter) {
         return doPropagate(context, identity, () -> {
             final var ref = new Object() {
                 T result = identity;
@@ -279,6 +279,7 @@ public final class DittoTracing {
      * Propagate trace context to a given map.
      *
      * @param context the trace context to propagate
+     * @param headers the headers to propagate the trace context to
      * @return the map containing the trace context
      */
     public static Map<String, String> propagateContext(final Context context, final Map<String, String> headers) {
@@ -291,6 +292,10 @@ public final class DittoTracing {
 
     /**
      * Wraps a StartedTimer and generates a trace span when the timer is finished.
+     *
+     * @param context the trace context
+     * @param startedTimer the StartedTimer to wrap
+     * @return the passed in trace context
      */
     public static Context wrapTimer(final Context context, final StartedTimer startedTimer) {
         final StartedTrace trace = trace(context, startedTimer.getName()).startAt(startedTimer.getStartInstant());
@@ -307,7 +312,7 @@ public final class DittoTracing {
         }
     }
 
-    private static <T> Context doExtract(final T t, final Supplier<Context> extract) {
+    private static Context doExtract(final Supplier<Context> extract) {
         if (enabled) {
             return extract.get();
         } else {

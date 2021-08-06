@@ -25,6 +25,10 @@ public final class Traces {
 
     /**
      * Builds a {@link PreparedTrace} with the given name.
+     *
+     * @param context the trace context
+     * @param name the name of the operation
+     * @return the new prepared trace
      */
     public static PreparedTrace newTrace(final Context context, final String name) {
         return new PreparedKamonTrace(context, name);
@@ -32,6 +36,8 @@ public final class Traces {
 
     /**
      * Builds an empty {@link PreparedTrace}.
+     *
+     * @return the new prepared trace
      */
     public static PreparedTrace emptyPreparedTrace() {
         return EmptyPreparedTrace.getInstance();
@@ -39,6 +45,8 @@ public final class Traces {
 
     /**
      * Builds an empty {@link StartedTrace}.
+     *
+     * @return the new prepared trace
      */
     public static StartedTrace emptyStartedTrace() {
         return EmptyStartedTrace.getInstance();

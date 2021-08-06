@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -54,7 +54,7 @@ public final class RequestTracingDirective {
             // creates new context if it was empty
             final StartedTrace startedTrace = DittoTracing
                     .trace(context, "http-request")
-                    .correlationId(correlationId.toString())
+                    .correlationId(correlationId)
                     .start();
             final String requestMethod = request.method().name();
             final String filteredRelativeRequestUri = filterUri(request.getUri().toRelative()).toString();

@@ -21,11 +21,9 @@ public final class TracingTags {
 
     // General
     public static final String CORRELATION_ID = PREFIX + "correlationId";
+    public static final String SIGNAL_TYPE = PREFIX + "signal.type";
 
-    // AMQP round trip tags
-    public static final String COMMAND_TYPE = PREFIX + "command.type";
-    public static final String COMMAND_TYPE_PREFIX = PREFIX + "command.typePrefix";
-    public static final String COMMAND_CATEGORY = PREFIX + "command.category";
+    // connectivity tags
     public static final String CONNECTION_ID = PREFIX + "connection.id";
     public static final String CONNECTION_TYPE = PREFIX + "connection.type";
 

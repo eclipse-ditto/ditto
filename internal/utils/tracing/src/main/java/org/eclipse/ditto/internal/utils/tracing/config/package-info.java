@@ -10,18 +10,5 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
+@org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
 package org.eclipse.ditto.internal.utils.tracing.config;
-
-/**
- * This interface provides access to the {@link org.eclipse.ditto.internal.utils.tracing.config.TracingConfig}.
- */
-public interface WithTracingConfig {
-
-    /**
-     * Returns the tracing config.
-     *
-     * @return the config.
-     */
-    TracingConfig getTracingConfig();
-
-}

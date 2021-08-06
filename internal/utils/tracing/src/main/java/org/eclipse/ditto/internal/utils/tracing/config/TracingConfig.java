@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -46,6 +46,7 @@ public interface TracingConfig {
          * Determines whether tracing is enabled.
          */
         TRACING_ENABLED("enabled", false),
+
         /**
          * Determines which propagation channel to use. The configured channel has to be configured at
          * {@code kamon.propagation.http.<channel>}.
@@ -55,7 +56,7 @@ public interface TracingConfig {
         private final String path;
         private final Object defaultValue;
 
-        private TracingConfigValue(final String thePath, final Object theDefaultValue) {
+        TracingConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

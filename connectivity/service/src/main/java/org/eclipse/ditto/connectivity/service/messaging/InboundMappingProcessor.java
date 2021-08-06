@@ -132,11 +132,11 @@ public final class InboundMappingProcessor
                 .debug("Mappers resolved for message: {}", mappers);
         final Context context = DittoTracing.extractTraceContext(message.getHeaders());
         final MappingTimer mappingTimer = MappingTimer.inbound(connectionId, connectionType, context);
-        final ExternalMessage externalMessageWithTracContext =
+        final ExternalMessage externalMessageWithTraceContext =
                 DittoTracing.propagateContext(mappingTimer.getContext(), message,
                         (msg, header) -> msg.withHeader(header.getKey(), header.getValue()));
         return mappingTimer.overall(() -> mappers.stream()
-                .flatMap(mapper -> runMapper(mapper, externalMessageWithTracContext, mappingTimer))
+                .flatMap(mapper -> runMapper(mapper, externalMessageWithTraceContext, mappingTimer))
                 .collect(Collectors.toList())
         );
     }

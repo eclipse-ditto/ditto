@@ -153,7 +153,6 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
             expiringTimer.tag("category", ((Command<?>) withDittoHeaders).getCategory().name().toLowerCase());
         }
 
-
         return expiringTimer.start();
     }
 

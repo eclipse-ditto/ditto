@@ -165,7 +165,7 @@ final class StartedKamonTimer implements StartedTimer {
                 ", tags=" + tags +
                 ", onStopHandlers=" + onStopHandlers +
                 ", segments=" + segments +
-                ", startTimestamp=" + startNanoTime +
+                ", startNanoTime=" + startNanoTime +
                 ", startInstant=" + startInstant +
                 ", stoppedTimer=" + stoppedTimer +
                 "]";

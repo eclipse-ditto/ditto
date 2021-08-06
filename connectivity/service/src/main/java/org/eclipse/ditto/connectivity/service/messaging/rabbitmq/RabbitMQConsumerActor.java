@@ -42,6 +42,7 @@ import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.PreparedTrace;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
 
@@ -131,7 +132,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
         StartedTrace trace = Traces.emptyStartedTrace();
         Map<String, String> headers = null;
         try {
-            final String correlationId = properties.getCorrelationId();
+            @Nullable final String correlationId = properties.getCorrelationId();
             if (log.isDebugEnabled()) {
                 log.withCorrelationId(correlationId)
                         .debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties,
@@ -139,9 +140,13 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             }
             headers = extractHeadersFromMessage(properties, envelope);
 
-            trace = DittoTracing.trace(DittoTracing.extractTraceContext(headers), "rabbitmq.consume")
-                    .correlationId(correlationId)
-                    .start();
+            final PreparedTrace preparedTrace =
+                    DittoTracing.trace(DittoTracing.extractTraceContext(headers), "rabbitmq.consume");
+            if (null != correlationId) {
+                trace = preparedTrace.correlationId(correlationId).start();
+            } else {
+                trace = preparedTrace.start();
+            }
 
             final ExternalMessageBuilder externalMessageBuilder =
                     ExternalMessageFactory.newExternalMessageBuilder(headers);

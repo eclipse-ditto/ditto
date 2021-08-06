@@ -39,6 +39,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.TracingTags;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.json.JsonValue;
 
@@ -109,11 +110,10 @@ public abstract class AbstractShardedPersistenceActor<
         confirmedSnapshotRevision = 0L;
 
         handleEvents = ReceiveBuilder.create()
-                .match(getEventClass(), event -> {
-                    entity = getEventStrategy().handle((E) event, entity, getRevisionNumber());
-                })
-                .match(EmptyEvent.class,
-                        event -> log.withCorrelationId(event).debug("Recovered EmptyEvent: <{}>", event))
+                .match(getEventClass(), event ->
+                        entity = getEventStrategy().handle((E) event, entity, getRevisionNumber()))
+                .match(EmptyEvent.class, event ->
+                        log.withCorrelationId(event).debug("Recovered EmptyEvent: <{}>", event))
                 .build();
 
         handleCleanups = super.createReceive();
@@ -527,9 +527,14 @@ public abstract class AbstractShardedPersistenceActor<
         final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(event);
         l.debug("Persisting Event <{}>.", event.getType());
 
+        final StartedTrace persistTrace = DittoTracing.trace(event, "persist.event")
+                .tag(TracingTags.SIGNAL_TYPE, event.getType())
+                .start();
+
         persist(event, persistedEvent -> {
             l.info("Successfully persisted Event <{}> w/ rev: <{}>.", event.getType(),
                     getRevisionNumber());
+            persistTrace.finish();
 
             /* the event has to be applied before creating the snapshot, otherwise a snapshot with new
                sequence no (e.g. 2), but old entity revision no (e.g. 1) will be created -> can lead to serious
@@ -667,7 +672,7 @@ public abstract class AbstractShardedPersistenceActor<
 
 
     /**
-     * Local message this actor may sent to itself in order to persist an {@link EmptyEvent} to the event journal,
+     * Local message this actor may send to itself in order to persist an {@link EmptyEvent} to the event journal,
      * e.g. in order to save a specific journal tag with that event to the event journal.
      */
     @Immutable
@@ -679,7 +684,7 @@ public abstract class AbstractShardedPersistenceActor<
             this.emptyEvent = emptyEvent;
         }
 
-        protected EmptyEvent getEmptyEvent() {
+        EmptyEvent getEmptyEvent() {
             return emptyEvent;
         }
 

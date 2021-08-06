@@ -464,8 +464,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             final Context context = DittoTracing.extractTraceContext(mappedMessage.getHeaders());
             final StartedTrace trace = DittoTracing
                     .trace(context, "publish")
-                    .connectionId(connection.getId().toString())
-                    .connectionType(connection.getConnectionType().toString())
+                    .connectionId(connection.getId())
+                    .connectionType(connection.getConnectionType())
                     .start();
             final ExternalMessage mappedMessageWithTraceContext =
                     DittoTracing.propagateContext(trace.getContext(), mappedMessage,

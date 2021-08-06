@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -143,11 +144,13 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     @Override
     public void toBinary(final Object object, final ByteBuffer buf) {
         if (object instanceof Jsonifiable) {
+            final Instant beforeSerializeInstant = Instant.now();
             final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
             final DittoHeaders dittoHeaders = getDittoHeadersOrEmpty(object);
 
             final Context context = DittoTracing.extractTraceContext(dittoHeaders);
-            final StartedTrace trace = DittoTracing.trace(context, "toBinary").start();
+            final StartedTrace trace = DittoTracing.trace(context, "serialize")
+                    .startAt(beforeSerializeInstant);
             dittoHeaders.getCorrelationId().ifPresent(trace::correlationId);
             final DittoHeaders dittoHeadersWithTraceContext =
                     DittoTracing.propagateContext(trace.getContext(), dittoHeaders);
@@ -273,6 +276,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     private Jsonifiable<?> createJsonifiableFrom(final String manifest, final ByteBuffer bytebuffer)
             throws NotSerializableException {
 
+        final Instant beforeDeserializeInstant = Instant.now();
         final JsonValue jsonValue = deserializeFromByteBuffer(bytebuffer);
 
         final JsonObject jsonObject;
@@ -295,7 +299,8 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                 .orElseGet(DittoHeaders::newBuilder);
 
         final DittoHeaders dittoHeaders = dittoHeadersBuilder.build();
-        final StartedTrace trace = DittoTracing.trace(dittoHeaders, "fromBinary").start();
+        final StartedTrace trace = DittoTracing.trace(dittoHeaders, "deserialize")
+                .startAt(beforeDeserializeInstant);
         try {
             final DittoHeaders dittoHeadersWithTraceContext =
                     DittoTracing.propagateContext(trace.getContext(), dittoHeaders);

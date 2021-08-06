@@ -32,6 +32,8 @@ public interface StartedTrace extends TaggedMetricInstrument<StartedTrace>, Trac
 
     /**
      * Finishes the trace with the given duration. Any method called after the trace is finished has no effect.
+     *
+     * @param duration the duration after which to finish the trace
      */
     void finishAfter(Duration duration);
 
@@ -53,7 +55,8 @@ public interface StartedTrace extends TaggedMetricInstrument<StartedTrace>, Trac
     StartedTrace fail(Throwable throwable);
 
     /**
-     * Marks the current operation as failed and adds the provided error message as a tag and optionally adds the provided error stack trace as a tag.
+     * Marks the current operation as failed and adds the provided error message as a tag and optionally adds the
+     * provided error stack trace as a tag.
      *
      * @param errorMessage message describing the error
      * @param throwable the throwable
@@ -73,6 +76,7 @@ public interface StartedTrace extends TaggedMetricInstrument<StartedTrace>, Trac
      * Adds a new mark with the provided key using the provided instant.
      *
      * @param key the key of the created mark
+     * @param at the provided instant
      * @return this trace
      */
     StartedTrace mark(String key, Instant at);
@@ -85,7 +89,7 @@ public interface StartedTrace extends TaggedMetricInstrument<StartedTrace>, Trac
     /**
      * Propagates the current context trace context to the given map.
      *
-     * @param map the map containing to which the current trace context is added.
+     * @param map the map containing to which the current trace context is added
      * @return the given map with the current trace context added
      */
     Map<String, String> propagateContext(Map<String, String> map);

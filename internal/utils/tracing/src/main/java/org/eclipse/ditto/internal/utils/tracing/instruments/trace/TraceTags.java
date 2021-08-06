@@ -22,16 +22,34 @@ import org.eclipse.ditto.internal.utils.tracing.TracingTags;
  */
 public interface TraceTags<T extends TaggedMetricInstrument<T>> extends TaggedMetricInstrument<T> {
 
-    default T correlationId(final String correlationId) {
-        return tag(TracingTags.CORRELATION_ID, correlationId);
+    /**
+     * Adds a {@link TracingTags#CORRELATION_ID} tag to the trace.
+     *
+     * @param correlationId the correlation ID to add to the trace
+     * @return the new TaggedMetricInstrument instance containing the tag
+     */
+    default T correlationId(final CharSequence correlationId) {
+        return tag(TracingTags.CORRELATION_ID, correlationId.toString());
     }
 
-    default T connectionId(final String connectionId) {
-        return tag(TracingTags.CONNECTION_ID, connectionId);
+    /**
+     * Adds a {@link TracingTags#CONNECTION_ID} tag to the trace.
+     *
+     * @param connectionId the connection ID to add to the trace
+     * @return the new TaggedMetricInstrument instance containing the tag
+     */
+    default T connectionId(final CharSequence connectionId) {
+        return tag(TracingTags.CONNECTION_ID, connectionId.toString());
     }
 
-    default T connectionType(final String connectionType) {
-        return tag(TracingTags.COMMAND_TYPE, connectionType);
+    /**
+     * Adds a {@link TracingTags#CONNECTION_TYPE} tag to the trace.
+     *
+     * @param connectionType the connection type to add to the trace
+     * @return the new TaggedMetricInstrument instance containing the tag
+     */
+    default T connectionType(final CharSequence connectionType) {
+        return tag(TracingTags.CONNECTION_TYPE, connectionType.toString());
     }
 
 }

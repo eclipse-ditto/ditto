@@ -25,6 +25,9 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.gateway.service.streaming.StreamingAck;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.TracingTags;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
@@ -66,6 +69,11 @@ public interface SessionedJsonifiable {
     Optional<StreamingSession> getSession();
 
     /**
+     * Finish a started trace.
+     */
+    void finishTrace();
+
+    /**
      * Create a sessioned Jsonifiable for a signal.
      *
      * @param signal the signal.
@@ -75,7 +83,11 @@ public interface SessionedJsonifiable {
      */
     static SessionedJsonifiable signal(final Signal<?> signal, final DittoHeaders sessionHeaders,
             final StreamingSession session) {
-        return new SessionedSignal(signal, sessionHeaders, session);
+        final StartedTrace trace = DittoTracing.trace(signal, "gw.streaming.out.signal")
+                .tag(TracingTags.SIGNAL_TYPE, signal.getType())
+                .start();
+        final Signal<?> tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);
+        return new SessionedSignal(tracedSignal, sessionHeaders, session, trace);
     }
 
     /**
@@ -85,7 +97,11 @@ public interface SessionedJsonifiable {
      * @return the sessioned Jsonifiable.
      */
     static SessionedJsonifiable error(final DittoRuntimeException error) {
-        return new SessionedResponseErrorOrAck(error, error.getDittoHeaders());
+        final StartedTrace trace = DittoTracing.trace(error, "gw.streaming.out.error")
+                .start();
+        trace.fail(error);
+        final DittoRuntimeException tracedError = DittoTracing.propagateContext(trace.getContext(), error);
+        return new SessionedResponseErrorOrAck(tracedError, error.getDittoHeaders(), trace);
     }
 
     /**
@@ -95,7 +111,11 @@ public interface SessionedJsonifiable {
      * @return the sessioned Jsonifiable.
      */
     static SessionedJsonifiable response(final CommandResponse<?> response) {
-        return new SessionedResponseErrorOrAck(response, response.getDittoHeaders());
+        final StartedTrace trace = DittoTracing.trace(response, "gw.streaming.out.response")
+                .tag(TracingTags.SIGNAL_TYPE, response.getType())
+                .start();
+        final CommandResponse<?> tracedResponse = DittoTracing.propagateContext(trace.getContext(), response);
+        return new SessionedResponseErrorOrAck(tracedResponse, response.getDittoHeaders(), trace);
     }
 
     /**
@@ -106,7 +126,7 @@ public interface SessionedJsonifiable {
      * @return the sessioned Jsonifiable.
      */
     static SessionedJsonifiable subscription(final SubscriptionEvent<?> subscriptionEvent) {
-        return new SessionedResponseErrorOrAck(subscriptionEvent, subscriptionEvent.getDittoHeaders());
+        return new SessionedResponseErrorOrAck(subscriptionEvent, subscriptionEvent.getDittoHeaders(), null);
     }
 
     /**
@@ -121,8 +141,7 @@ public interface SessionedJsonifiable {
             final CharSequence connectionCorrelationId) {
         return new SessionedResponseErrorOrAck(
                 new StreamingAck(streamingType, subscribed),
-                DittoHeaders.newBuilder().correlationId(connectionCorrelationId).build()
-        );
+                DittoHeaders.newBuilder().correlationId(connectionCorrelationId).build(), null);
     }
 
 }

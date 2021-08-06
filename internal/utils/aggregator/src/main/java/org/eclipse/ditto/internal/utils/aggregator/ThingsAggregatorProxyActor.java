@@ -196,7 +196,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 sourceRef.getSource()
                         .<Jsonifiable<?>>map(Jsonifiable.class::cast)
                         .orElse(thingNotAccessibleExceptionSource)
-                        .filterNot(el -> el instanceof DittoRuntimeException)
+                        .filterNot(DittoRuntimeException.class::isInstance)
                         .map(thingPlainJsonSupplier::apply)
                         .log("retrieve-thing-response", log)
                         .recoverWithRetries(1, new PFBuilder<Throwable, Source<PlainJson, NotUsed>>()
