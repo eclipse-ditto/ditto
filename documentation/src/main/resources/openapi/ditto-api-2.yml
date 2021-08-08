@@ -3881,6 +3881,41 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '413':
           $ref: '#/components/responses/MessageTooLarge'
+        '424':
+          description: |-
+            One or more acknowledgement requests in the parameter `requested-acks`
+            were not fulfilled.
+          content:
+            application/json:
+              schema:
+                properties:
+                  acknowledgementLabel1:
+                    $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/424/content/application~1json/schema/properties/acknowledgementLabelN'
+                  acknowledgementLabelN:
+                    properties:
+                      status:
+                        type: integer
+                        description: The HTTP status of the acknowledgement
+                      payload:
+                        oneOf:
+                          - type: object
+                          - type: string
+                          - type: number
+                          - type: array
+                          - type: boolean
+                        description: The payload of the acknowledgement
+                    required:
+                      - status
+                    example:
+                      status: 200
+                      payload: OK
+                example:
+                  acknowledgementLabel1:
+                    status: 200
+                    payload: OK
+                  acknnowledgementLabelN:
+                    status: 403
+                    payload: Forbidden
         '429':
           description: |-
             The user has sent too many requests in a given amount of time ("rate
@@ -3981,6 +4016,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '413':
           $ref: '#/components/responses/MessageTooLarge'
+        '424':
+          $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/424'
         '503':
           $ref: '#/components/responses/MessageTimeout'
       requestBody:
@@ -4060,6 +4097,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '413':
           $ref: '#/components/responses/MessageTooLarge'
+        '424':
+          $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/424'
         '503':
           $ref: '#/components/responses/MessageTimeout'
       requestBody:
@@ -4143,6 +4182,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '413':
           $ref: '#/components/responses/MessageTooLarge'
+        '424':
+          $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/424'
         '503':
           $ref: '#/components/responses/MessageTimeout'
       requestBody:
@@ -4224,6 +4265,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '413':
           $ref: '#/components/responses/MessageTooLarge'
+        '424':
+          $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/424'
         '503':
           $ref: '#/components/responses/MessageTimeout'
       requestBody:
@@ -4527,7 +4570,17 @@ paths:
         a new subject is **injected into the matched policy entry** calculated with information extracted from the
         authenticated JWT.
 
-        The injected subjects expire when the JWT expires.
+        The injected subjects expire when the JWT expires. The `expiry` timestamp (a string in ISO-8601 format)
+        specifies how long the specific subject will have access to the resource secured by the policy.
+        The subject will be automatically deleted from the policy once this timestamp is reached.
+        To give the subject a chance to prolong the access he can configure a connection to get announcements.
+        Policy announcements are published to websockets and connections that have the relevant subject ID.
+
+        The settings under `announcement` control when a policy announcement is published (before expiry or when deleted).
+        If the field `requestedAcks` is set, then the announcements are published with at-least-once delivery until
+        the acknowledgement requests under labels are fulfilled.
+        If a "beforeExpiry" announcement was sent without acknowledgement requests, or the a "beforeExpiry"
+        announcement was acknowledged, the "whenDeleted" announcement will not be triggered.
       tags:
         - Policies
       parameters:
@@ -4560,6 +4613,18 @@ paths:
 
         the calculated subject with information extracted from the authenticated JWT is **removed
         from the matched policy entry**.
+
+        The injected subjects expire when the JWT expires. The `expiry` timestamp (a string in ISO-8601 format)
+        specifies how long the specific subject will have access to the resource secured by the policy.
+        The subject will be automatically deleted from the policy once this timestamp is reached.
+        To give the subject a chance to prolong the access he can configure a connection to get announcements.
+        Policy announcements are published to websockets and connections that have the relevant subject ID.
+
+        The settings under `announcement` control when a policy announcement is published (before expiry or when deleted).
+        If the field `requestedAcks` is set, then the announcements are published with at-least-once delivery until
+        the acknowledgement requests under labels are fulfilled.
+        If a "beforeExpiry" announcement was sent without acknowledgement requests, or the a "beforeExpiry"
+        announcement was acknowledged, the "whenDeleted" announcement will not be triggered.
       tags:
         - Policies
       parameters:
@@ -4995,7 +5060,17 @@ paths:
         When all conditions match, a new subject is **injected into this policy entry** calculated with information
         extracted from the authenticated JWT.
 
-        The injected subjects expire when the JWT expires.
+        The injected subjects expire when the JWT expires. The `expiry` timestamp (a string in ISO-8601 format)
+        specifies how long the specific subject will have access to the resource secured by the policy.
+        The subject will be automatically deleted from the policy once this timestamp is reached.
+        To give the subject a chance to prolong the access he can configure a connection to get announcements.
+        Policy announcements are published to websockets and connections that have the relevant subject ID.
+
+        The settings under `announcement` control when a policy announcement is published (before expiry or when deleted).
+        If the field `requestedAcks` is set, then the announcements are published with at-least-once delivery until
+        the acknowledgement requests under labels are fulfilled.
+        If a "beforeExpiry" announcement was sent without acknowledgement requests, or the a "beforeExpiry"
+        announcement was acknowledged, the "whenDeleted" announcement will not be triggered.
       tags:
         - Policies
       parameters:
@@ -5029,6 +5104,18 @@ paths:
 
         When all conditions match, the calculated subject with information extracted from the authenticated JWT is **removed
         from this policy entry**.
+
+        The injected subjects expire when the JWT expires. The `expiry` timestamp (a string in ISO-8601 format)
+        specifies how long the specific subject will have access to the resource secured by the policy.
+        The subject will be automatically deleted from the policy once this timestamp is reached.
+        To give the subject a chance to prolong the access he can configure a connection to get announcements.
+        Policy announcements are published to websockets and connections that have the relevant subject ID.
+
+        The settings under `announcement` control when a policy announcement is published (before expiry or when deleted).
+        If the field `requestedAcks` is set, then the announcements are published with at-least-once delivery until
+        the acknowledgement requests under labels are fulfilled.
+        If a "beforeExpiry" announcement was sent without acknowledgement requests, or the a "beforeExpiry"
+        announcement was acknowledged, the "whenDeleted" announcement will not be triggered.
       tags:
         - Policies
       parameters:
@@ -6226,7 +6313,7 @@ components:
           schema:
             $ref: '#/components/schemas/AdvancedError'
     MessageTooLarge:
-      description: The size of the send message is larger than the accepted limit of 250 kB.
+      description: The size of the sent message is larger than the accepted limit of 250 kB.
       content:
         application/json:
           schema:
@@ -7060,11 +7147,11 @@ components:
           description: Whether an announcement should be made when this subject is deleted.
         requestedAcks:
           type: object
-          description: Whether the announcement should be published at-least-once via acknowledgement requests.
+          description: Settings to enable at-least-once delivery for policy announcements.
           properties:
             labels:
               type: array
-              description: Acknowledgement labels to request an announcement is published.
+              description: Acknowledgement labels to request when an announcement is published.
               items:
                 type: string
             timeout:
