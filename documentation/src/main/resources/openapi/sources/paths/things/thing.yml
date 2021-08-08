@@ -268,6 +268,8 @@ put:
       $ref: '../../responses/preconditionFailed.yml'
     '413':
       $ref: '../../responses/entityTooLarge.yml'
+    '424':
+      $ref: '../../responses/dependencyFailed.yml'
   requestBody:
     content:
       application/json:
@@ -489,6 +491,8 @@ patch:
       $ref: '../../responses/preconditionFailed.yml'
     '413':
       $ref: '../../responses/entityTooLarge.yml'
+    '424':
+      $ref: '../../responses/dependencyFailed.yml'
   requestBody:
     content:
       application/merge-patch+json:
@@ -556,3 +560,5 @@ delete:
             $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
+    '424':
+      $ref: '../../responses/dependencyFailed.yml'

@@ -142,6 +142,8 @@ put:
       $ref: '../../responses/preconditionFailed.yml'
     '413':
       $ref: '../../responses/entityTooLarge.yml'
+    '424':
+      $ref: '../../responses/dependencyFailed.yml'
   requestBody:
     $ref: '../../requests/value.yml'
 patch:
@@ -215,6 +217,8 @@ patch:
       $ref: '../../responses/preconditionFailed.yml'
     '413':
       $ref: '../../responses/entityTooLarge.yml'
+    '424':
+      $ref: '../../responses/dependencyFailed.yml'
   requestBody:
     $ref: '../../requests/patchValue.yml'
 delete:
@@ -277,3 +281,5 @@ delete:
             $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
+    '424':
+      $ref: '../../responses/dependencyFailed.yml'

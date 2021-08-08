@@ -165,6 +165,41 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          description: |-
+            One or more acknowledgement requests in the parameter `requested-acks`
+            were not fulfilled.
+          content:
+            application/json:
+              schema:
+                properties:
+                  acknowledgementLabel1:
+                    properties:
+                      status:
+                        type: integer
+                        description: The HTTP status of the acknowledgement
+                      payload:
+                        oneOf:
+                          - type: object
+                          - type: string
+                          - type: number
+                          - type: array
+                          - type: boolean
+                        description: The payload of the acknowledgement
+                    required:
+                      - status
+                    example:
+                      status: 200
+                      payload: OK
+                  acknowledgementLabelN:
+                    $ref: '#/paths/~1things/post/responses/424/content/application~1json/schema/properties/acknowledgementLabel1'
+                example:
+                  acknowledgementLabel1:
+                    status: 200
+                    payload: OK
+                  acknnowledgementLabelN:
+                    status: 403
+                    payload: Forbidden
       requestBody:
         content:
           application/json:
@@ -454,6 +489,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         content:
           application/json:
@@ -667,6 +704,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         content:
           application/merge-patch+json:
@@ -749,6 +788,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
   '/things/{thingId}/definition':
     get:
       summary: Retrieve the definition of a specific thing
@@ -887,6 +928,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         $ref: '#/components/requestBodies/Definition'
     patch:
@@ -954,6 +997,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         content:
           application/merge-patch+json:
@@ -1016,6 +1061,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
   '/things/{thingId}/policyId':
     get:
       summary: Retrieve the policy ID of a thing
@@ -1119,6 +1166,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         content:
           application/json:
@@ -1184,6 +1233,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         content:
           application/merge-patch+json:
@@ -1322,6 +1373,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         $ref: '#/components/requestBodies/Attributes'
     patch:
@@ -1388,6 +1441,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         content:
           application/merge-patch+json:
@@ -1454,6 +1509,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
   '/things/{thingId}/attributes/{attributePath}':
     get:
       summary: Retrieve a specific attribute of a specific thing
@@ -1590,6 +1647,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         $ref: '#/components/requestBodies/Value'
     patch:
@@ -1661,6 +1720,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         $ref: '#/components/requestBodies/PatchValue'
     delete:
@@ -1717,6 +1778,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
   '/things/{thingId}/features':
     get:
       summary: List all features of a specific thing
@@ -1897,6 +1960,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         content:
           application/json:
@@ -2023,6 +2088,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         content:
           application/merge-patch+json:
@@ -2096,6 +2163,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
   '/things/{thingId}/features/{featureId}':
     get:
       summary: Retrieve a specific feature of a specific thing
@@ -2247,6 +2316,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         content:
           application/json:
@@ -2347,6 +2418,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         content:
           application/merge-patch+json:
@@ -2414,6 +2487,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
   '/things/{thingId}/features/{featureId}/definition':
     get:
       summary: List the definition of a feature
@@ -2545,6 +2620,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         content:
           application/json:
@@ -2623,6 +2700,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         content:
           application/merge-patch+json:
@@ -2686,6 +2765,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
   '/things/{thingId}/features/{featureId}/properties':
     get:
       summary: List all properties of a feature
@@ -2813,6 +2894,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         content:
           application/json:
@@ -2901,6 +2984,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         content:
           application/merge-patch+json:
@@ -2972,6 +3057,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
   '/things/{thingId}/features/{featureId}/properties/{propertyPath}':
     get:
       summary: Retrieve a specific property of a feature
@@ -3104,6 +3191,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         $ref: '#/components/requestBodies/Value'
     patch:
@@ -3177,6 +3266,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         $ref: '#/components/requestBodies/PatchValue'
     delete:
@@ -3236,6 +3327,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
   '/things/{thingId}/features/{featureId}/desiredProperties':
     get:
       summary: List all desired properties of a feature
@@ -3369,6 +3462,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         content:
           application/json:
@@ -3457,6 +3552,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         content:
           application/merge-patch+json:
@@ -3528,6 +3625,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
   '/things/{thingId}/features/{featureId}/desiredProperties/{propertyPath}':
     get:
       summary: Retrieve a specific desired property of a feature
@@ -3662,6 +3761,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         $ref: '#/components/requestBodies/Value'
     patch:
@@ -3734,6 +3835,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
       requestBody:
         $ref: '#/components/requestBodies/PatchValue'
     delete:
@@ -3796,6 +3899,8 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
+        '424':
+          $ref: '#/paths/~1things/post/responses/424'
   '/things/{thingId}/inbox/claim':
     post:
       summary: Initiates claiming a specific thing in order to gain access
@@ -3882,40 +3987,7 @@ paths:
         '413':
           $ref: '#/components/responses/MessageTooLarge'
         '424':
-          description: |-
-            One or more acknowledgement requests in the parameter `requested-acks`
-            were not fulfilled.
-          content:
-            application/json:
-              schema:
-                properties:
-                  acknowledgementLabel1:
-                    $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/424/content/application~1json/schema/properties/acknowledgementLabelN'
-                  acknowledgementLabelN:
-                    properties:
-                      status:
-                        type: integer
-                        description: The HTTP status of the acknowledgement
-                      payload:
-                        oneOf:
-                          - type: object
-                          - type: string
-                          - type: number
-                          - type: array
-                          - type: boolean
-                        description: The payload of the acknowledgement
-                    required:
-                      - status
-                    example:
-                      status: 200
-                      payload: OK
-                example:
-                  acknowledgementLabel1:
-                    status: 200
-                    payload: OK
-                  acknnowledgementLabelN:
-                    status: 403
-                    payload: Forbidden
+          $ref: '#/paths/~1things/post/responses/424'
         '429':
           description: |-
             The user has sent too many requests in a given amount of time ("rate
@@ -4017,7 +4089,7 @@ paths:
         '413':
           $ref: '#/components/responses/MessageTooLarge'
         '424':
-          $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/424'
+          $ref: '#/paths/~1things/post/responses/424'
         '503':
           $ref: '#/components/responses/MessageTimeout'
       requestBody:
@@ -4098,7 +4170,7 @@ paths:
         '413':
           $ref: '#/components/responses/MessageTooLarge'
         '424':
-          $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/424'
+          $ref: '#/paths/~1things/post/responses/424'
         '503':
           $ref: '#/components/responses/MessageTimeout'
       requestBody:
@@ -4183,7 +4255,7 @@ paths:
         '413':
           $ref: '#/components/responses/MessageTooLarge'
         '424':
-          $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/424'
+          $ref: '#/paths/~1things/post/responses/424'
         '503':
           $ref: '#/components/responses/MessageTimeout'
       requestBody:
@@ -4266,7 +4338,7 @@ paths:
         '413':
           $ref: '#/components/responses/MessageTooLarge'
         '424':
-          $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/424'
+          $ref: '#/paths/~1things/post/responses/424'
         '503':
           $ref: '#/components/responses/MessageTimeout'
       requestBody:
