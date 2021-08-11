@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.rql.model.predicates;
 
+import org.eclipse.ditto.rql.model.ParserException;
 import org.eclipse.ditto.rql.model.predicates.ast.RootNode;
 
 /**
@@ -25,6 +26,7 @@ public interface PredicateParser {
      * @param input the input that should be parsed.
      * @return the AST {@link RootNode} representing the root of the AST.
      * @throws NullPointerException if {@code input} is {@code null}.
+     * @throws ParserException      if {@code input} could not be parsed.
      */
     RootNode parse(String input);
 
