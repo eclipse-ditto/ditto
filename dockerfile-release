@@ -9,7 +9,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 
-FROM adoptopenjdk/openjdk11-openj9:jdk-11.0.11_9_openj9-0.26.0-alpine-slim
+FROM adoptopenjdk/openjdk11-openj9:jdk-11.0.12_7_openj9-0.27.0-alpine-slim
 
 ARG MAVEN_REPO=https://repo.eclipse.org/service/local/artifact/maven/content
 ARG SERVICE_STARTER
