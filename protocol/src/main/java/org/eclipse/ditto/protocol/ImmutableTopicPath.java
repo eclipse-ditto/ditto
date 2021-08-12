@@ -495,9 +495,16 @@ final class ImmutableTopicPath implements TopicPath {
         }
 
         private static LinkedList<String> splitByPathDelimiter(final String topicPathString) {
-            return StreamSupport.stream(newTopicOrPathPointer(topicPathString).spliterator(), false)
-                    .map(JsonKey::toString)
-                    .collect(Collectors.toCollection(LinkedList::new));
+            final LinkedList<String> result =
+                    StreamSupport.stream(newTopicOrPathPointer(topicPathString).spliterator(), false)
+                            .map(JsonKey::toString)
+                            .collect(Collectors.toCollection(LinkedList::new));
+
+            if (topicPathString.startsWith(TopicPath.PATH_DELIMITER)) {
+                // topic path starts with an empty segment
+                result.addFirst("");
+            }
+            return result;
         }
 
         @Override
