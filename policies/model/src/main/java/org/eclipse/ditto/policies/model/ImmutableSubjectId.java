@@ -59,7 +59,7 @@ final class ImmutableSubjectId implements SubjectId {
         checkNotNull(issuer, "issuer");
         argumentNotEmpty(subject, "subject");
 
-        final String subjectIdAsString = issuer.toString() + ":" + subject.toString();
+        final String subjectIdAsString = issuer + ":" + subject;
         final Validator validator = NoControlCharactersValidator.getInstance(subjectIdAsString);
         if (!validator.isValid()) {
             throw SubjectIdInvalidException.newBuilder(subjectIdAsString)
@@ -101,7 +101,7 @@ final class ImmutableSubjectId implements SubjectId {
         final SubjectIssuer issuer =
                 PoliciesModelFactory.newSubjectIssuer(subjectIdAsString.substring(0, lastDelimiter));
         final String subject =
-                subjectIdAsString.replaceFirst(Pattern.quote(issuer.toString() + ISSUER_DELIMITER), "");
+                subjectIdAsString.replaceFirst(Pattern.quote(issuer + ISSUER_DELIMITER), "");
 
         return of(issuer, subject);
     }

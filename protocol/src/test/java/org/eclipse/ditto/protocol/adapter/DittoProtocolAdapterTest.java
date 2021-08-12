@@ -28,14 +28,8 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
 
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectionOpenedAnnouncement;
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -43,21 +37,33 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectionOpenedAnnouncement;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.Subject;
+import org.eclipse.ditto.policies.model.SubjectAnnouncement;
 import org.eclipse.ditto.policies.model.SubjectId;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.ThingIdInvalidException;
+import org.eclipse.ditto.policies.model.SubjectType;
+import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TestConstants;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureDesiredProperty;
@@ -70,11 +76,11 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
-import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionCreated;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 import org.junit.Before;
@@ -404,7 +410,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
     @Test
     public void thingEventFromAdaptable() {
         final ThingModified expected =
-                ThingModified.of(TestConstants.THING, TestConstants.REVISION, TestConstants.TIMESTAMP, DITTO_HEADERS_V_2,
+                ThingModified.of(TestConstants.THING, TestConstants.REVISION, TestConstants.TIMESTAMP,
+                        DITTO_HEADERS_V_2,
                         TestConstants.METADATA);
 
         final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
@@ -546,7 +553,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
         assertThat(acknowledgement).isEqualTo(Acknowledgements.of(
                 Arrays.asList(Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"), HttpStatus.CONTINUE,
-                        DittoHeaders.empty()),
+                                DittoHeaders.empty()),
                         Acknowledgement.of(AcknowledgementLabel.of("the-ack-label"), ThingId.of("thing:id"),
                                 HttpStatus.LOOP_DETECTED, DittoHeaders.empty())
                 ),
@@ -617,6 +624,54 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         assertThat(announcement.getDeleteAt()).isEqualTo(expiry);
         assertThat(announcement.getSubjectIds()).isEqualTo(expectedSubjectIds);
         assertThat(announcement.getDittoHeaders().getCorrelationId()).contains(correlationId);
+    }
+
+    @Test
+    public void policyCommandsWithSlashInSubjectFromAdaptable() {
+        final JsonObject json = JsonObject.of("{\n" +
+                "  \"topic\": \"policy/id/policies/commands/modify\",\n" +
+                "  \"headers\": {},\n" +
+                "  \"path\": \"/entries/user5/subjects/issuer//with///slashes:" +
+                "//json//pointer///as/////subject/id\",\n" +
+                "  \"value\": {\n" +
+                "    \"type\": \"generated\",\n" +
+                "    \"announcement\": {\n" +
+                "      \"beforeExpiry\": \"3599s\",\n" +
+                "      \"whenDeleted\": true\n" +
+                "    }\n" +
+                "  }\n" +
+                "}");
+        final Subject expectedSubject = Subject.newInstance(
+                SubjectId.newInstance("issuer:/json/pointer/as/subject/id"),
+                SubjectType.GENERATED,
+                null,
+                SubjectAnnouncement.of(DittoDuration.parseDuration("3599s"), true)
+        );
+
+        final Adaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(json);
+        final ModifySubject modifySubject = (ModifySubject) underTest.fromAdaptable(adaptable);
+        assertThat(modifySubject.getSubject()).isEqualTo(expectedSubject);
+    }
+
+    @Test
+    public void messageCommandSlashInSubjectFromAdaptable() {
+        final JsonObject json = JsonObject.of("{\n" +
+                "    \"topic\": \"org.eclipse.ditto/smartcoffee/things/live/messages/ask///slashes//\",\n" +
+                "    \"headers\": {\n" +
+                "        \"content-type\": \"text/plain\",\n" +
+                "        \"correlation-id\": \"a-unique-string-for-this-message\"\n" +
+                "    },\n" +
+                "    \"path\": \"/inbox/messages/ask///slashes//\",\n" +
+                "    \"value\": \"Hey, how are you?\"\n" +
+                "}");
+
+        final String expectedSubject = "ask///slashes//";
+        final String expectedPayload = "Hey, how are you?";
+
+        final Adaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(json);
+        final SendThingMessage<?> sendThingMessage = (SendThingMessage<?>) underTest.fromAdaptable(adaptable);
+        assertThat(sendThingMessage.getMessage().getSubject()).isEqualTo(expectedSubject);
+        assertThat(sendThingMessage.getMessage().getPayload().orElse(null)).isEqualTo(expectedPayload);
     }
 
     @Test
