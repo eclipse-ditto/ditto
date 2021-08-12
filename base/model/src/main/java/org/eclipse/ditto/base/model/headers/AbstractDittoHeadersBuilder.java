@@ -30,18 +30,13 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.json.JsonValueContainer;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.base.model.headers.condition.Condition;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
@@ -49,6 +44,12 @@ import org.eclipse.ditto.base.model.headers.metadata.MetadataHeader;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.JsonValueContainer;
 
 /**
  * An abstract base implementation for subclasses of {@link org.eclipse.ditto.base.model.headers.DittoHeadersBuilder}. This implementation does already
@@ -448,6 +449,12 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         putJsonValue(DittoHeaderDefinition.EVENT_JOURNAL_TAGS, journalTags.stream()
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray()));
+        return myself;
+    }
+
+    @Override
+    public S condition(final Condition condition) {
+        putCharSequence(DittoHeaderDefinition.CONDITION, condition.toString());
         return myself;
     }
 

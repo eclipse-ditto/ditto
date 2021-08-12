@@ -264,6 +264,11 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     }
 
     @Override
+    public Optional<String> getCondition() {
+        return getStringForDefinition(DittoHeaderDefinition.CONDITION);
+    }
+
+    @Override
     public Optional<String> getOrigin() {
         return getStringForDefinition(DittoHeaderDefinition.ORIGIN);
     }
@@ -434,7 +439,7 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
 
     /*
      * Returns the header entries sorted by their length. The sort order is ascending,
-     * i. e. the smallest entry is the first.
+     * i.e. the smallest entry is the first.
      */
     @Nonnull
     private List<Header> getSortedHeadersByLength() {

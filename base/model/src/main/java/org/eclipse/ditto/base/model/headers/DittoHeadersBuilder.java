@@ -20,16 +20,17 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.common.ResponseType;
+import org.eclipse.ditto.base.model.headers.condition.Condition;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * This interface represents a mutable builder with a fluent API for a {@link org.eclipse.ditto.base.model.headers.DittoHeaders} object or an object of a
@@ -298,6 +299,15 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
      * @since 2.0.0
      */
     B journalTags(Collection<String> journalTags);
+
+    /**
+     * Sets the condition which should be evaluated when applying the request.
+     *
+     * @param condition the condition to check before applying the request.
+     * @return this builder for method chaining.
+     * @since 2.1.0
+     */
+    B condition(Condition condition);
 
     /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
