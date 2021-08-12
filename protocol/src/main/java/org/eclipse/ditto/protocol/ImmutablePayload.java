@@ -20,14 +20,14 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 
 /**
  * Immutable implementation of {@link Payload}.
@@ -75,7 +75,7 @@ final class ImmutablePayload implements Payload {
     public static ImmutablePayload fromJson(final JsonObject jsonObject) {
         final String readPath = jsonObject.getValueOrThrow(JsonFields.PATH);
 
-        final ImmutablePayloadBuilder payloadBuilder = getBuilder(JsonFactory.newPointer(readPath))
+        final ImmutablePayloadBuilder payloadBuilder = getBuilder(ImmutableTopicPath.newTopicOrPathPointer(readPath))
                 .withValue(jsonObject.getValue(JsonFields.VALUE).orElse(null))
                 .withExtra(jsonObject.getValue(JsonFields.EXTRA).orElse(null))
                 .withStatus(jsonObject.getValue(JsonFields.STATUS).flatMap(HttpStatus::tryGetInstance).orElse(null))

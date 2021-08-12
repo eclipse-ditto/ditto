@@ -631,8 +631,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final JsonObject json = JsonObject.of("{\n" +
                 "  \"topic\": \"policy/id/policies/commands/modify\",\n" +
                 "  \"headers\": {},\n" +
-                "  \"path\": \"/entries/user5/subjects/issuer//with///slashes:" +
-                "//json//pointer///as/////subject/id\",\n" +
+                "  \"path\": \"/entries/user5/subjects/issuer:/json/pointer/as/subject///id//\",\n" +
                 "  \"value\": {\n" +
                 "    \"type\": \"generated\",\n" +
                 "    \"announcement\": {\n" +
@@ -642,7 +641,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 "  }\n" +
                 "}");
         final Subject expectedSubject = Subject.newInstance(
-                SubjectId.newInstance("issuer:/json/pointer/as/subject/id"),
+                SubjectId.newInstance("issuer:/json/pointer/as/subject///id//"),
                 SubjectType.GENERATED,
                 null,
                 SubjectAnnouncement.of(DittoDuration.parseDuration("3599s"), true)
@@ -656,16 +655,16 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
     @Test
     public void messageCommandSlashInSubjectFromAdaptable() {
         final JsonObject json = JsonObject.of("{\n" +
-                "    \"topic\": \"org.eclipse.ditto/smartcoffee/things/live/messages/ask///slashes//\",\n" +
+                "    \"topic\": \"org.eclipse.ditto/smartcoffee/things/live/messages/a/s/k///slashes//\",\n" +
                 "    \"headers\": {\n" +
                 "        \"content-type\": \"text/plain\",\n" +
                 "        \"correlation-id\": \"a-unique-string-for-this-message\"\n" +
                 "    },\n" +
-                "    \"path\": \"/inbox/messages/ask///slashes//\",\n" +
+                "    \"path\": \"/inbox/messages/a/s/k///slashes//\",\n" +
                 "    \"value\": \"Hey, how are you?\"\n" +
                 "}");
 
-        final String expectedSubject = "ask///slashes//";
+        final String expectedSubject = "a/s/k///slashes//";
         final String expectedPayload = "Hey, how are you?";
 
         final Adaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(json);

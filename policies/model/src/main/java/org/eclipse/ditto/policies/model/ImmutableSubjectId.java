@@ -16,7 +16,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEm
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -100,8 +99,7 @@ final class ImmutableSubjectId implements SubjectId {
                 : subjectIdAsString.indexOf(ISSUER_DELIMITER);
         final SubjectIssuer issuer =
                 PoliciesModelFactory.newSubjectIssuer(subjectIdAsString.substring(0, lastDelimiter));
-        final String subject =
-                subjectIdAsString.replaceFirst(Pattern.quote(issuer + ISSUER_DELIMITER), "");
+        final String subject = subjectIdAsString.substring(lastDelimiter + 1);
 
         return of(issuer, subject);
     }
