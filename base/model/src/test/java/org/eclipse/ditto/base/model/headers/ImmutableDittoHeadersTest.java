@@ -39,6 +39,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.common.ResponseType;
+import org.eclipse.ditto.base.model.headers.condition.Condition;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeader;
@@ -108,6 +109,7 @@ public final class ImmutableDittoHeadersTest {
     private static final boolean KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY = true;
     private static final List<String> KNOWN_JOURNAL_TAGS = Lists.list("tag-a", "tag-b");
     private static final boolean KNOWN_IS_SUDO = true;
+    private static final Condition KNOWN_CONDITION = Condition.of("eq(attributes/value)");
 
 
     static {
@@ -166,6 +168,7 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
                         charSequencesToJsonArray(KNOWN_JOURNAL_TAGS).toString())
                 .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), String.valueOf(KNOWN_IS_SUDO))
+                .condition(KNOWN_CONDITION)
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -410,7 +413,9 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
                         charSequencesToJsonArray(KNOWN_JOURNAL_TAGS))
                 .set(DittoHeaderDefinition.DITTO_SUDO.getKey(), KNOWN_IS_SUDO)
+                .set(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION.toString())
                 .build();
+
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
         final DittoHeaders underTest = DittoHeaders.newBuilder(allKnownHeaders).build();
@@ -634,6 +639,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
                 charSequencesToJsonArray(KNOWN_JOURNAL_TAGS).toString());
         result.put(DittoHeaderDefinition.DITTO_SUDO.getKey(), String.valueOf(KNOWN_IS_SUDO));
+        result.put(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION.toString());
 
         return result;
     }
