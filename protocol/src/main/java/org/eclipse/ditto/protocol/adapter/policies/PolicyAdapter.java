@@ -15,6 +15,9 @@ package org.eclipse.ditto.protocol.adapter.policies;
 import java.util.EnumSet;
 import java.util.Set;
 
+import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.MessagePath;
 import org.eclipse.ditto.protocol.adapter.Adapter;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.base.model.signals.Signal;

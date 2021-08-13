@@ -19,13 +19,31 @@ import static org.eclipse.ditto.protocol.TopicPath.Channel.TWIN;
 
 import java.util.Arrays;
 
-import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.ErrorRegistry;
+import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.messages.model.MessageHeaderDefinition;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
+import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
+import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
+import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.Payload;
@@ -44,22 +62,6 @@ import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvide
 import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.things.DefaultThingCommandAdapterProvider;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
-import org.eclipse.ditto.base.model.signals.ErrorRegistry;
-import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
-import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
-import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
-import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
-import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
-import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
-import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
-import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
@@ -70,11 +72,10 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
-import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
-import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
-import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
+import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
+import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 /**
@@ -164,7 +165,9 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
 
     @Override
     public Signal<?> fromAdaptable(final Adaptable adaptable) {
-        return adapterResolver.getAdapter(adaptable).fromAdaptable(adaptable);
+        final Adapter<? extends Signal<?>> adapter = adapterResolver.getAdapter(adaptable);
+        return DittoJsonException.wrapJsonRuntimeException(() ->
+                adapter.fromAdaptable(adapter.validateAndPreprocess(adaptable)));
     }
 
     @Override

@@ -12,13 +12,15 @@
  */
 package org.eclipse.ditto.protocol.adapter.policies;
 
-import org.eclipse.ditto.protocol.adapter.AbstractAdapter;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.protocol.MessagePath;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategies;
+import org.eclipse.ditto.protocol.adapter.AbstractAdapter;
 import org.eclipse.ditto.protocol.mapper.SignalMapper;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategies;
 
 /**
  * Base class for {@link org.eclipse.ditto.protocol.adapter.Adapter}s that handle policy commands.
@@ -45,6 +47,23 @@ abstract class AbstractPolicyAdapter<T extends Signal<?>> extends AbstractAdapte
     @Override
     protected Adaptable mapSignalToAdaptable(final T signal, final TopicPath.Channel channel) {
         return signalMapper.mapSignalToAdaptable(signal, channel);
+    }
+
+    @Override
+    public Adaptable validateAndPreprocess(final Adaptable adaptable) {
+        final String subjectsPathSegment = "subjects";
+        final int subjectsPathLevel = 2;
+        final MessagePath messagePath = adaptable.getPayload().getPath();
+        final boolean isSubjectSignal = messagePath.get(subjectsPathLevel)
+                .map(JsonKey::toString)
+                .filter(subjectsPathSegment::equals)
+                .isPresent();
+        if (isSubjectSignal) {
+            // skip path validation of subjects: they are not valid JSON pointers.
+            return validateAndPreprocessMessagePathPrefix(adaptable, subjectsPathLevel + 1);
+        } else {
+            return super.validateAndPreprocess(adaptable);
+        }
     }
 
 }

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.protocol.adapter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel.TWIN_PERSISTED;
 import static org.eclipse.ditto.protocol.TestConstants.DITTO_HEADERS_V_2;
 import static org.eclipse.ditto.protocol.TestConstants.DITTO_HEADERS_V_2_NO_STATUS;
@@ -31,6 +32,7 @@ import java.util.UUID;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -671,6 +673,22 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final SendThingMessage<?> sendThingMessage = (SendThingMessage<?>) underTest.fromAdaptable(adaptable);
         assertThat(sendThingMessage.getMessage().getSubject()).isEqualTo(expectedSubject);
         assertThat(sendThingMessage.getMessage().getPayload().orElse(null)).isEqualTo(expectedPayload);
+    }
+
+    @Test
+    public void thingCommandWithSlashInPathFromAdaptable() {
+        final JsonObject json = JsonObject.of("{\n" +
+                "    \"topic\": \"org.eclipse.ditto/smartcoffee/things/twin/commands/modify\",\n" +
+                "    \"headers\": {},\n" +
+                "    \"path\": \"/attributes/a/s/k///slashes//\",\n" +
+                "    \"value\": 51234\n" +
+                "}");
+
+        final Adaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(json);
+        assertThatExceptionOfType(DittoJsonException.class)
+                .isThrownBy(() -> underTest.fromAdaptable(adaptable))
+                .satisfies(e -> assertThat(e.getDescription())
+                        .contains("Consecutive slashes in JSON pointers are not supported."));
     }
 
     @Test
