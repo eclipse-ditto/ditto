@@ -219,6 +219,7 @@ final class ImmutablePayload implements Payload {
         ImmutablePayloadBuilder(final Payload payload) {
             path = payload.getPath();
             value = payload.getValue().orElse(null);
+            extra = payload.getExtra().orElse(null);
             status = payload.getHttpStatus().orElse(null);
             revision = payload.getRevision().orElse(null);
             timestamp = payload.getTimestamp().orElse(null);
