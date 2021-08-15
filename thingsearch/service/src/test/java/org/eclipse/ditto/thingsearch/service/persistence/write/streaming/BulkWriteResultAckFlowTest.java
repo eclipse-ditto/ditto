@@ -24,6 +24,8 @@ import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.Document;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
@@ -32,8 +34,6 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 import org.junit.After;
 import org.junit.Test;
 
@@ -201,7 +201,7 @@ public final class BulkWriteResultAckFlowTest {
             final Metadata metadata =
                     Metadata.of(thingId, thingRevision, policyId, policyRevision, null, probes.get(i).ref());
             if (i % 2 == 0) {
-                writeModels.add(ThingDeleteModel.of(metadata));
+                writeModels.add(ThingDeleteModel.of(metadata, false));
             } else {
                 writeModels.add(ThingWriteModel.of(metadata, new Document()));
             }

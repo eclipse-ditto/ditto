@@ -71,6 +71,7 @@ final class EnforcementFlow {
     private final int maxArraySize;
     private final MessageDispatcher cacheDispatcher;
     private final Scheduler scheduler;
+    private final boolean deleteImmediately;
 
     private EnforcementFlow(final ActorRef thingsShardRegion,
             final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
@@ -78,7 +79,8 @@ final class EnforcementFlow {
             final Duration cacheRetryDelay,
             final int maxArraySize,
             final MessageDispatcher cacheDispatcher,
-            final Scheduler scheduler) {
+            final Scheduler scheduler,
+            final boolean deleteImmediately) {
 
         this.thingsShardRegion = thingsShardRegion;
         this.policyEnforcerCache = policyEnforcerCache;
@@ -87,6 +89,7 @@ final class EnforcementFlow {
         this.maxArraySize = maxArraySize;
         this.cacheDispatcher = cacheDispatcher;
         this.scheduler = scheduler;
+        this.deleteImmediately = deleteImmediately;
     }
 
     /**
@@ -107,6 +110,7 @@ final class EnforcementFlow {
 
         final var askWithRetryConfig = updaterStreamConfig.getAskWithRetryConfig();
         final var streamCacheConfig = updaterStreamConfig.getCacheConfig();
+        final var deleteImmediately = updaterStreamConfig.isDeleteImmediately();
 
         final AsyncCacheLoader<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askWithRetryConfig, scheduler, policiesShardRegion);
@@ -116,7 +120,8 @@ final class EnforcementFlow {
                         .projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
 
         return new EnforcementFlow(thingsShardRegion, policyEnforcerCache, askWithRetryConfig,
-                streamCacheConfig.getRetryDelay(), updaterStreamConfig.getMaxArraySize(), cacheDispatcher, scheduler);
+                streamCacheConfig.getRetryDelay(), updaterStreamConfig.getMaxArraySize(), cacheDispatcher, scheduler,
+                deleteImmediately);
     }
 
     private static CacheKey getPolicyCacheKey(final PolicyId policyId) {
@@ -223,7 +228,7 @@ final class EnforcementFlow {
 
         ConsistencyLag.startS4GetEnforcer(metadata);
         if (sudoRetrieveThingResponse == null) {
-            return Source.single(ThingDeleteModel.of(metadata));
+            return Source.single(ThingDeleteModel.of(metadata, deleteImmediately));
         } else {
             final JsonObject thing = sudoRetrieveThingResponse.getEntity().asObject();
 
@@ -237,11 +242,11 @@ final class EnforcementFlow {
                                         metadata);
                             } catch (final JsonRuntimeException e) {
                                 log.error(e.getMessage(), e);
-                                return ThingDeleteModel.of(metadata);
+                                return ThingDeleteModel.of(metadata, deleteImmediately);
                             }
                         } else {
                             // no enforcer; delete thing from search index
-                            return ThingDeleteModel.of(metadata);
+                            return ThingDeleteModel.of(metadata, deleteImmediately);
                         }
                     });
         }

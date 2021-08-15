@@ -29,20 +29,23 @@ import com.typesafe.config.Config;
  */
 @Immutable
 public final class DefaultStreamConfig implements StreamConfig {
+
     private static final String CONFIG_PATH = "stream";
     private static final String RETRIEVAL_CONFIG_PATH = "retrieval";
     private static final String ASK_WITH_RETRY_CONFIG_PATH = "ask-with-retry";
 
     private final int maxArraySize;
     private final Duration writeInterval;
-    private final DefaultStreamStageConfig retrievalConfig;
-    private final DefaultPersistenceStreamConfig persistenceStreamConfig;
-    private final DefaultStreamCacheConfig streamCacheConfig;
-    private final DefaultAskWithRetryConfig askWithRetryConfig;
+    private final boolean deleteImmediately;
+    private final StreamStageConfig retrievalConfig;
+    private final PersistenceStreamConfig persistenceStreamConfig;
+    private final StreamCacheConfig streamCacheConfig;
+    private final AskWithRetryConfig askWithRetryConfig;
 
     private DefaultStreamConfig(final ConfigWithFallback streamScopedConfig) {
         maxArraySize = streamScopedConfig.getNonNegativeIntOrThrow(StreamConfigValue.MAX_ARRAY_SIZE);
         writeInterval = streamScopedConfig.getNonNegativeDurationOrThrow(StreamConfigValue.WRITE_INTERVAL);
+        deleteImmediately = streamScopedConfig.getBoolean(StreamConfigValue.DELETE_IMMEDIATELY.getConfigPath());
         askWithRetryConfig = DefaultAskWithRetryConfig.of(streamScopedConfig, ASK_WITH_RETRY_CONFIG_PATH);
         retrievalConfig = DefaultStreamStageConfig.getInstance(streamScopedConfig, RETRIEVAL_CONFIG_PATH);
         persistenceStreamConfig = DefaultPersistenceStreamConfig.of(streamScopedConfig);
@@ -68,6 +71,11 @@ public final class DefaultStreamConfig implements StreamConfig {
     @Override
     public Duration getWriteInterval() {
         return writeInterval;
+    }
+
+    @Override
+    public boolean isDeleteImmediately() {
+        return deleteImmediately;
     }
 
     @Override
@@ -101,6 +109,7 @@ public final class DefaultStreamConfig implements StreamConfig {
         final DefaultStreamConfig that = (DefaultStreamConfig) o;
         return maxArraySize == that.maxArraySize &&
                 writeInterval.equals(that.writeInterval) &&
+                deleteImmediately == that.deleteImmediately &&
                 askWithRetryConfig.equals(that.askWithRetryConfig) &&
                 retrievalConfig.equals(that.retrievalConfig) &&
                 persistenceStreamConfig.equals(that.persistenceStreamConfig) &&
@@ -109,7 +118,7 @@ public final class DefaultStreamConfig implements StreamConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxArraySize, writeInterval, askWithRetryConfig, retrievalConfig,
+        return Objects.hash(maxArraySize, writeInterval, deleteImmediately, askWithRetryConfig, retrievalConfig,
                 persistenceStreamConfig, streamCacheConfig);
     }
 
@@ -118,6 +127,7 @@ public final class DefaultStreamConfig implements StreamConfig {
         return getClass().getSimpleName() + " [" +
                 "maxArraySize=" + maxArraySize +
                 ", writeInterval=" + writeInterval +
+                ", deleteImmediately=" + deleteImmediately +
                 ", askWithRetryConfig=" + askWithRetryConfig +
                 ", retrievalConfig=" + retrievalConfig +
                 ", persistenceStreamConfig=" + persistenceStreamConfig +
