@@ -30,7 +30,6 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Enforcement;
@@ -256,19 +255,27 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
         private void handleStreamCompletion(@Nullable final Done done, @Nullable final Throwable throwable) {
             final ConnectivityStatus status;
+            final ResourceStatus statusUpdate;
+            final Instant now = Instant.now();
             if (null == throwable) {
                 status = ConnectivityStatus.CLOSED;
+                statusUpdate = ConnectivityModelFactory.newStatusUpdate(
+                        InstanceIdentifierSupplier.getInstance().get(),
+                        status,
+                        sourceAddress,
+                        "Consumer closed", now);
             } else {
                 log.debug("Consumer failed with error! <{}: {}>", throwable.getClass().getSimpleName(),
                         throwable.getMessage());
                 status = connectivityStatusResolver.resolve(throwable);
                 escalate(throwable, "Unexpected consumer failure.");
+                statusUpdate = ConnectivityModelFactory.newStatusUpdate(
+                        InstanceIdentifierSupplier.getInstance().get(),
+                        status,
+                        sourceAddress,
+                        ConnectionFailure.determineFailureDescription(now, throwable,
+                                "Kafka consumer failed."), now);
             }
-            final ResourceStatus statusUpdate = ConnectivityModelFactory.newStatusUpdate(
-                    InstanceIdentifierSupplier.getInstance().get(),
-                    status,
-                    sourceAddress,
-                    "Consumer closed", Instant.now());
             handleAddressStatus(statusUpdate);
         }
 
