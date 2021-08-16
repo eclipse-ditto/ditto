@@ -262,12 +262,6 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                 log.debug("Consumer failed with error! <{}: {}>", throwable.getClass().getSimpleName(),
                         throwable.getMessage());
                 status = connectivityStatusResolver.resolve(throwable);
-                final ConnectivityInternalErrorException exception = ConnectivityInternalErrorException.newBuilder()
-                        .cause(throwable)
-                        .message(throwable.getMessage())
-                        .description("Unexpected consumer failure.")
-                        .build();
-                inboundMonitor.exception(exception);
                 escalate(throwable, "Unexpected consumer failure.");
             }
             final ResourceStatus statusUpdate = ConnectivityModelFactory.newStatusUpdate(
