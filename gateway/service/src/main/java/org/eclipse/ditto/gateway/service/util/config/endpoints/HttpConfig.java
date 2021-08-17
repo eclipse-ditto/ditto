@@ -41,6 +41,13 @@ public interface HttpConfig extends org.eclipse.ditto.base.service.config.http.H
     Set<JsonSchemaVersion> getSupportedSchemaVersions();
 
     /**
+     * Returns the list of HTTP headers to read proxy-forwarded protocol from.
+     *
+     * @return the header list.
+     */
+    List<String> getProtocolHeaders();
+
+    /**
      * Indicates whether transport encryption via HTTPS should be enforced.
      *
      * @return {@code true} if HTTPS should be enforced, {@code false} else.
@@ -115,6 +122,11 @@ public interface HttpConfig extends org.eclipse.ditto.base.service.config.http.H
         SCHEMA_VERSIONS("http.schema-versions", List.of(2)),
 
         /**
+         * HTTP headers to read forwarded protocols from.
+         */
+        PROTOCOL_HEADERS("protocol-headers", List.of()),
+
+        /**
          * Determines whether transport encryption via HTTPS should be enforced.
          */
         FORCE_HTTPS("forcehttps", false),
@@ -168,7 +180,8 @@ public interface HttpConfig extends org.eclipse.ditto.base.service.config.http.H
          *
          * @since 1.1.0
          */
-        ADDITIONAL_ACCEPTED_MEDIA_TYPES("additional-accepted-media-types", MediaTypes.APPLICATION_OCTET_STREAM.toString());
+        ADDITIONAL_ACCEPTED_MEDIA_TYPES("additional-accepted-media-types",
+                MediaTypes.APPLICATION_OCTET_STREAM.toString());
 
         private final String path;
         private final Object defaultValue;

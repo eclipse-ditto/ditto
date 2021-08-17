@@ -27,22 +27,14 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.eclipse.ditto.gateway.service.health.DittoStatusAndHealthProviderFactory;
-import org.eclipse.ditto.gateway.service.health.StatusAndHealthProvider;
-import org.eclipse.ditto.gateway.service.security.HttpHeader;
-import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
-import org.eclipse.ditto.gateway.service.security.utils.HttpClientFacade;
-import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.things.model.ThingIdInvalidException;
-import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.base.model.signals.commands.CommandHeaderInvalidException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayDuplicateHeaderException;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
-import org.eclipse.ditto.gateway.service.endpoints.directives.HttpsEnsuringDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
@@ -60,11 +52,18 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
+import org.eclipse.ditto.gateway.service.health.DittoStatusAndHealthProviderFactory;
+import org.eclipse.ditto.gateway.service.health.StatusAndHealthProvider;
+import org.eclipse.ditto.gateway.service.security.HttpHeader;
+import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
+import org.eclipse.ditto.gateway.service.security.utils.HttpClientFacade;
+import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.base.model.signals.commands.CommandHeaderInvalidException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayDuplicateHeaderException;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -496,7 +495,7 @@ public final class RootRouteTest extends EndpointTestBase {
     }
 
     private static HttpRequest withHttps(final HttpRequest httpRequest) {
-        return httpRequest.addHeader(RawHeader.create(HttpsEnsuringDirective.X_FORWARDED_PROTO_LBAAS, HTTPS));
+        return httpRequest.withUri(httpRequest.getUri().scheme("https"));
     }
 
     private static HttpRequest withPreAuthenticatedAuthentication(final HttpRequest httpRequest, final String subject) {
