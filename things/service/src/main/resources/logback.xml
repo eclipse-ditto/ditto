@@ -52,8 +52,9 @@
                 </filter>
                 <file>/var/log/ditto/things.log</file>
                 <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-                    <fileNamePattern>/var/log/ditto/things.log.%d{yyyy-MM-dd}.gz</fileNamePattern>
-                    <!-- Keep 30 days' worth of history capped at 1GB total size -->
+                    <!-- daily rollover as default-->
+                    <fileNamePattern>${DITTO_LOGGING_FILE_NAME_PATTERN:-/var/log/ditto/things.log.%d{yyyy-MM-dd}.gz}</fileNamePattern>
+                    <!-- Keep 10 days' worth of history capped at 1GB total size as default -->
                     <maxHistory>${DITTO_LOGGING_MAX_LOG_FILE_HISTORY_IN_DAYS:-10}</maxHistory>
                     <totalSizeCap>${DITTO_LOGGING_TOTAL_LOG_FILE_SIZE:-1GB}</totalSizeCap>
                 </rollingPolicy>
