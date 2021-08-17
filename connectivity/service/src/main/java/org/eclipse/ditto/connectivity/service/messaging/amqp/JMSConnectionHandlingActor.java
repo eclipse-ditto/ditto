@@ -408,6 +408,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                         .stream()
                         .map(e -> e.getKey() + ": " + e.getValue().getMessage())
                         .collect(Collectors.joining(", ")))
+                .cause(failedSources.values().stream().findAny().orElse(null))
                 .build();
     }
 
