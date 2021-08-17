@@ -1828,6 +1828,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
                         .description(describeEventualCause(failure.cause()))
                         .dittoHeaders(dittoHeaders)
+                        .cause(failure.cause())
                         .build();
                 answerToPublish = new Status.Failure(error);
             } else {
