@@ -16,11 +16,14 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * An implementation of {@code EntityIdInvalidException} to be used for testing in conjunction with
  * {@link EntityIdForTests}.
  */
+@JsonParsableException(errorCode = "EntityIdForTestsInvalidException")
 final class EntityIdForTestsInvalidException extends EntityIdInvalidException {
 
     private static final long serialVersionUID = 3573397504239435104L;
@@ -32,6 +35,11 @@ final class EntityIdForTestsInvalidException extends EntityIdInvalidException {
     @Override
     public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return this;
+    }
+
+    public static EntityIdForTestsInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        // Do nothing (necessary for ErrorRegistry)
+        return null;
     }
 
 }
