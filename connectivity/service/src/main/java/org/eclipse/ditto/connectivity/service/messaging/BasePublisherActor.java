@@ -469,7 +469,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             result = new Sending(sendingContext.setExternalMessage(mappedMessage), responsesFuture,
                     connectionIdResolver, l);
         } else {
-            l.debug("Signal dropped, target address unresolved: {0}", address);
+            l.debug("Signal dropped, target address unresolved: <{}>", address);
             result = new Dropped(sendingContext, "Signal dropped, target address unresolved: {0}");
         }
         return result;

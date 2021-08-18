@@ -454,7 +454,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     @Override
     public S condition(final Condition condition) {
-        putCharSequence(DittoHeaderDefinition.CONDITION, condition.toString());
+        putCharSequence(DittoHeaderDefinition.CONDITION, condition.getRqlCondition());
         return myself;
     }
 

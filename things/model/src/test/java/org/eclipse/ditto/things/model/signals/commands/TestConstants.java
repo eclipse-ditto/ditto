@@ -16,17 +16,17 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.FeatureDefinition;
@@ -62,6 +62,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotAll
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyNotAllowedException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConflictException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingDefinitionNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingIdNotExplicitlySettableException;
@@ -349,6 +350,14 @@ public final class TestConstants {
          */
         public static final PolicyInvalidException POLICY_INVALID_EXCEPTION =
                 PolicyInvalidException.newBuilder(REQUIRED_THING_PERMISSIONS, THING_ID).build();
+
+        /**
+         * A known {@code ThingConditionFailedException}.
+         */
+        public static final ThingConditionFailedException THING_CONDITION_FAILED_EXCEPTION =
+                ThingConditionFailedException
+                        .newBuilder("eq(attributes/attr1,42)")
+                        .build();
 
         private Thing() {
             throw new AssertionError();

@@ -17,15 +17,15 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
-import org.eclipse.ditto.internal.utils.persistentactors.MetadataFromSignal;
-import org.eclipse.ditto.internal.utils.persistentactors.etags.AbstractConditionHeaderCheckingCommandStrategy;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
+import org.eclipse.ditto.internal.utils.persistentactors.MetadataFromSignal;
+import org.eclipse.ditto.internal.utils.persistentactors.condition.AbstractConditionCheckingCommandStrategy;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 /**
@@ -36,7 +36,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  */
 @Immutable
 abstract class AbstractThingCommandStrategy<C extends Command<C>>
-        extends AbstractConditionHeaderCheckingCommandStrategy<C, Thing, ThingId, ThingEvent<?>> {
+        extends AbstractConditionCheckingCommandStrategy<C, Thing, ThingId, ThingEvent<?>> {
 
     private static final ConditionalHeadersValidator VALIDATOR =
             ThingsConditionalHeadersValidatorProvider.getInstance();
