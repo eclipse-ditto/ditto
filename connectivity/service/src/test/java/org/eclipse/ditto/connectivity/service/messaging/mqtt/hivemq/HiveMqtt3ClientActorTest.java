@@ -20,14 +20,16 @@ import java.util.List;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.connectivity.service.messaging.mqtt.AbstractMqttClientActorTest;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.mqtt.AbstractMqttClientActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttServerRule;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
 import com.hivemq.client.internal.checkpoint.Confirmable;
 import com.hivemq.client.internal.mqtt.message.publish.mqtt3.Mqtt3PublishView;
@@ -38,6 +40,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.testkit.javadsl.TestKit;
 
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public final class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<Mqtt3Publish> {
 
     private static final TestConstants.FreePort FREE_PORT = new TestConstants.FreePort();
@@ -68,7 +71,7 @@ public final class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<
             final ActorRef mqttClientActor = actorSystem.actorOf(props, "mqttClientActor-testSubscribeFails");
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsgClass(Duration.ofSeconds(10L), Status.Failure.class);
+            expectMsgClass(Duration.ofSeconds(20L), Status.Failure.class);
 
             mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
