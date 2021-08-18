@@ -129,8 +129,8 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     @Override
     protected Contextual<WithDittoHeaders> beforeProcessMessage(final Contextual<WithDittoHeaders> contextual) {
         final StartedTimer startedTimer = createTimer(contextual.getMessage());
-        final Context context =
-                DittoTracing.wrapTimer(DittoTracing.extractTraceContext(contextual.getMessage()), startedTimer);
+        final Context traceContext = DittoTracing.extractTraceContext(contextual.getMessage());
+        final Context context = DittoTracing.wrapTimer(traceContext, startedTimer);
         final Contextual<WithDittoHeaders> withTimer = contextual.withTimer(startedTimer);
         if (contextual.getMessage() instanceof DittoHeadersSettable) {
             final DittoHeadersSettable<?> message = ((DittoHeadersSettable<?>) contextual.getMessage());
