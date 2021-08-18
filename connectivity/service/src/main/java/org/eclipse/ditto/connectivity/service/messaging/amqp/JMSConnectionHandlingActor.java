@@ -359,6 +359,12 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         ).collect(Collectors.toList());
 
         if (!failedSources.isEmpty()) {
+            if (log.isDebugEnabled()) {
+                final String errorDetails = failedSources.values().stream()
+                        .map(error -> error.toString() + " with cause: " + error.getCause())
+                        .collect(Collectors.joining(","));
+                log.debug("Detected failures in consumer: {}", errorDetails);
+            }
             throw buildConnectionFailedException(failedSources);
         }
         return consumers;
