@@ -53,7 +53,8 @@ final class DefaultAuthenticationFailureAggregator implements AuthenticationFail
 
     @Override
     public DittoRuntimeException aggregateAuthenticationFailures(final List<AuthenticationResult> failedAuthResults) {
-        final List<DittoRuntimeException> reasonsOfFailure = getDittoRuntimeExceptionReasonsWithDescription(failedAuthResults);
+        final List<DittoRuntimeException> reasonsOfFailure =
+                getDittoRuntimeExceptionReasonsWithDescription(failedAuthResults);
 
         if (reasonsOfFailure.isEmpty()) {
             final String msgPattern = "The failed authentication results did not contain any failure reason of type " +
