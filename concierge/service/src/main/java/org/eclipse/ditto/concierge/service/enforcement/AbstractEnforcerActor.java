@@ -17,8 +17,6 @@ import java.time.Duration;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.concierge.service.common.ConciergeConfig;
 import org.eclipse.ditto.concierge.service.common.DittoConciergeConfig;
 import org.eclipse.ditto.concierge.service.common.EnforcementConfig;
@@ -30,9 +28,6 @@ import org.eclipse.ditto.internal.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
-import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 
@@ -47,8 +42,6 @@ import akka.stream.javadsl.Sink;
  */
 public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextual<WithDittoHeaders>,
         WithDittoHeaders> {
-
-    private static final String TIMER_NAME = "concierge_enforcements";
 
     /**
      * Contextual information about this actor.
@@ -121,26 +114,6 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
             final boolean invalidated = policyEnforcerCache.invalidate(entityId);
             logger.debug("Policy enforcer cache for entity ID <{}> was invalidated: {}", entityId, invalidated);
         }
-    }
-
-    @Override
-    protected Contextual<WithDittoHeaders> beforeProcessMessage(final Contextual<WithDittoHeaders> contextual) {
-        return contextual.withTimer(createTimer(contextual.getMessage()));
-    }
-
-    private StartedTimer createTimer(final WithDittoHeaders withDittoHeaders) {
-        final PreparedTimer expiringTimer = DittoMetrics.timer(TIMER_NAME);
-
-        withDittoHeaders.getDittoHeaders().getChannel().ifPresent(channel ->
-                expiringTimer.tag("channel", channel)
-        );
-        if (withDittoHeaders instanceof Signal) {
-            expiringTimer.tag("resource", ((Signal<?>) withDittoHeaders).getResourceType());
-        }
-        if (withDittoHeaders instanceof Command) {
-            expiringTimer.tag("category", ((Command<?>) withDittoHeaders).getCategory().name().toLowerCase());
-        }
-        return expiringTimer.start();
     }
 
     @Override
