@@ -20,9 +20,9 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 
 /**
  * This <em>Singleton</em> delegates a {@code Command} to a dedicated strategy - if one is available - to be handled.
@@ -89,8 +89,7 @@ public abstract class AbstractCommandStrategies<C extends Command<?>, S, K, E ex
 
     @Override
     protected Result<E> doApply(final Context<K> context, @Nullable final S entity, final long nextRevision,
-            final C command,
-            @Nullable final Metadata metadata) {
+            final C command, @Nullable final Metadata metadata) {
 
         final CommandStrategy<C, S, K, ? extends E> commandStrategy =
                 getAppropriateStrategy(command.getClass());

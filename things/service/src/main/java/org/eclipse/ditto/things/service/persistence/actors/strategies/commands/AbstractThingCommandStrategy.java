@@ -18,15 +18,22 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.internal.utils.persistentactors.MetadataFromSignal;
-import org.eclipse.ditto.internal.utils.persistentactors.condition.AbstractConditionCheckingCommandStrategy;
+import org.eclipse.ditto.internal.utils.persistentactors.etags.AbstractConditionHeaderCheckingCommandStrategy;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+
+import scala.util.Either;
 
 /**
  * Abstract base class for {@link org.eclipse.ditto.things.model.signals.commands.ThingCommand} strategies.
@@ -36,18 +43,55 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  */
 @Immutable
 abstract class AbstractThingCommandStrategy<C extends Command<C>>
-        extends AbstractConditionCheckingCommandStrategy<C, Thing, ThingId, ThingEvent<?>> {
+        extends AbstractConditionHeaderCheckingCommandStrategy<C, Thing, ThingId, ThingEvent<?>> {
 
     private static final ConditionalHeadersValidator VALIDATOR =
             ThingsConditionalHeadersValidatorProvider.getInstance();
 
+    private final ThingConditionValidator thingConditionValidator;
+
     protected AbstractThingCommandStrategy(final Class<C> theMatchingClass) {
         super(theMatchingClass);
+        this.thingConditionValidator = ThingConditionValidator.getInstance();
     }
 
     @Override
     protected ConditionalHeadersValidator getValidator() {
         return VALIDATOR;
+    }
+
+    /**
+     * Execute a command strategy after it is determined applicable.
+     *
+     * @param context context of the persistent actor.
+     * @param entity entity of the persistent actor.
+     * @param nextRevision the next revision to allocate to events.
+     * @param command the incoming command.
+     * @return result of the command strategy.
+     */
+    @Override
+    public Result<ThingEvent<?>> apply(final Context<ThingId> context, @Nullable final Thing entity,
+            final long nextRevision, final C command) {
+
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final String condition = dittoHeaders.getCondition().orElse(null);
+
+        context.getLog().withCorrelationId(command)
+                .debug("Validating condition <{}> on command <{}>.", condition, command);
+        final Either<Void, ThingConditionFailedException> validate =
+                thingConditionValidator.validate(command, condition, entity);
+
+        if (validate.isRight()) {
+            final ThingConditionFailedException thingConditionFailedException = validate.right().get();
+
+            context.getLog().withCorrelationId(command)
+                    .debug("Validating condition failed with exception <{}>.",
+                            thingConditionFailedException.getMessage());
+            return ResultFactory.newErrorResult(thingConditionFailedException, command);
+        }
+        context.getLog().withCorrelationId(command).debug("Validating condition succeeded.");
+
+        return super.apply(context, entity, nextRevision, command);
     }
 
     @Override
@@ -70,7 +114,7 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
 
     @Override
     public boolean isDefined(final C command) {
-        throw new UnsupportedOperationException("This method is not supported by this implementation.");
+        return command instanceof ThingCommand;
     }
 
 }

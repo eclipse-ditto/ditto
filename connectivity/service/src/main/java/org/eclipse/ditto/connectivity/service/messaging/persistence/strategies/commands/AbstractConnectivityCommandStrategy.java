@@ -22,12 +22,12 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
-import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractCommandStrategy;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionNotAccessibleException;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.ConnectionState;
+import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractCommandStrategy;
 
 /**
  * Abstract base class for {@link org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand} strategies.
