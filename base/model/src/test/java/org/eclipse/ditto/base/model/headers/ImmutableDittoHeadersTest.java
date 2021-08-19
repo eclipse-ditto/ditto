@@ -413,7 +413,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
                         charSequencesToJsonArray(KNOWN_JOURNAL_TAGS))
                 .set(DittoHeaderDefinition.DITTO_SUDO.getKey(), KNOWN_IS_SUDO)
-                .set(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION.toString())
+                .set(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION.getRqlCondition())
                 .build();
 
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
@@ -639,7 +639,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
                 charSequencesToJsonArray(KNOWN_JOURNAL_TAGS).toString());
         result.put(DittoHeaderDefinition.DITTO_SUDO.getKey(), String.valueOf(KNOWN_IS_SUDO));
-        result.put(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION.toString());
+        result.put(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION.getRqlCondition());
 
         return result;
     }
