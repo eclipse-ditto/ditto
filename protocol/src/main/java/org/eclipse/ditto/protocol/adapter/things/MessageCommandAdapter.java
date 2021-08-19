@@ -31,8 +31,7 @@ import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 /**
  * Adapter for mapping a {@link MessageCommandAdapter} to and from an {@link Adaptable}.
  */
-final class MessageCommandAdapter extends AbstractAdapter<MessageCommand<?, ?>>
-        implements ThingMessageAdapter<MessageCommand<?, ?>> {
+final class MessageCommandAdapter extends AbstractMessageAdapter<MessageCommand<?, ?>> {
 
     private static final SignalMapper<MessageCommand<?, ?>>
             TO_ADAPTABLE_MAPPER = SignalMapperFactory.newMessageCommandSignalMapper();

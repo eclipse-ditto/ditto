@@ -15,19 +15,24 @@ package org.eclipse.ditto.protocol;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 
 /**
@@ -81,6 +86,27 @@ final class ImmutableTopicPath implements TopicPath {
     static ImmutableTopicPath parseTopicPath(final String topicPathString) {
         final TopicPathParser topicPathParser = new TopicPathParser(checkNotNull(topicPathString, "topicPathString"));
         return topicPathParser.get();
+    }
+
+    static JsonPointer newTopicOrPathPointer(final String path) {
+        final String slash = TopicPath.PATH_DELIMITER;
+        if (path.isEmpty() || slash.equals(path)) {
+            return JsonPointer.empty();
+        }
+        final List<JsonKey> jsonKeys = new ArrayList<>();
+        int segmentStart = path.startsWith(slash) ? 1 : 0;
+        int segmentEnd = path.indexOf(slash, segmentStart);
+        // add segments until double slashes are encountered
+        while (segmentEnd >= 0 && segmentStart != segmentEnd) {
+            jsonKeys.add(JsonKey.of(path.substring(segmentStart, segmentEnd)));
+            segmentStart = segmentEnd + 1;
+            segmentEnd = path.indexOf(slash, segmentStart);
+        }
+        if (segmentStart < path.length()) {
+            jsonKeys.add(JsonKey.of(path.substring(segmentStart)));
+        }
+        // jsonKeys guaranteed to be non-empty due to the emptiness check at the start
+        return JsonFactory.newPointer(jsonKeys.get(0), jsonKeys.stream().skip(1).toArray(JsonKey[]::new));
     }
 
     @Override
@@ -469,11 +495,14 @@ final class ImmutableTopicPath implements TopicPath {
         }
 
         private static LinkedList<String> splitByPathDelimiter(final String topicPathString) {
-            final LinkedList<String> result;
-            if (topicPathString.isEmpty()) {
-                result = new LinkedList<>();
-            } else {
-                result = new LinkedList<>(Arrays.asList(topicPathString.split(TopicPath.PATH_DELIMITER)));
+            final LinkedList<String> result =
+                    StreamSupport.stream(newTopicOrPathPointer(topicPathString).spliterator(), false)
+                            .map(JsonKey::toString)
+                            .collect(Collectors.toCollection(LinkedList::new));
+
+            if (topicPathString.startsWith(TopicPath.PATH_DELIMITER)) {
+                // topic path starts with an empty segment
+                result.addFirst("");
             }
             return result;
         }

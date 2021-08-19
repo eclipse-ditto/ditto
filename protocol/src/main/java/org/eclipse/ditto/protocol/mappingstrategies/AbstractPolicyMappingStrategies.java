@@ -16,13 +16,13 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Map;
 
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
@@ -166,7 +166,8 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
                 .filter(entries -> Policy.JsonFields.ENTRIES.getPointer().equals(entries.asPointer()))
                 .flatMap(entries -> path.get(RESOURCES_PATH_LEVEL))
                 .filter(resources -> PolicyEntry.JsonFields.SUBJECTS.getPointer().equals(resources.asPointer()))
-                .flatMap(resources -> path.get(SUBJECT_PATH_LEVEL))
+                .flatMap(resources -> path.getSubPointer(SUBJECT_PATH_LEVEL))
+                .map(AbstractPolicyMappingStrategies::stripLeadingSlash)
                 .map(PoliciesModelFactory::newSubjectId)
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
@@ -202,6 +203,14 @@ abstract class AbstractPolicyMappingStrategies<T extends Jsonifiable.WithPredica
                 .filter(JsonValue::isObject)
                 .orElseThrow(() -> new NullPointerException("Payload value must be a non-null object."));
         return value.asObject();
+    }
+
+    private static CharSequence stripLeadingSlash(final CharSequence charSequence) {
+        if (charSequence.length() == 0 || charSequence.charAt(0) != '/') {
+            return charSequence;
+        } else {
+            return charSequence.subSequence(1, charSequence.length());
+        }
     }
 
 }
