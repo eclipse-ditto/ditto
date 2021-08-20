@@ -13,6 +13,8 @@
 package org.eclipse.ditto.thingsearch.service.starter;
 
 import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
+import org.eclipse.ditto.connectivity.model.signals.commands.modify.ModifyConnection;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnection;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
@@ -54,7 +56,9 @@ public final class ThingsSearchServiceGlobalCommandRegistryTest extends GlobalCo
                 RetrieveHealth.class,
                 PurgeEntities.class,
                 PublishSignal.class,
-                CleanupPersistence.class
+                CleanupPersistence.class,
+                ModifyConnection.class,
+                RetrieveConnection.class
         );
     }
 
