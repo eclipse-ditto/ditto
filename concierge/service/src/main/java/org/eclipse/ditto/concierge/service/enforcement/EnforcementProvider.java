@@ -17,6 +17,10 @@ import java.util.Optional;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Flow;
@@ -27,6 +31,11 @@ import akka.stream.javadsl.Flow;
  * @param <T> the type of commands which are enforced.
  */
 public interface EnforcementProvider<T extends Signal<?>> {
+
+    /**
+     * Name of the enforcement timer.
+     */
+    String TIMER_NAME = "concierge_enforcements";
 
     /**
      * The base class of the commands to which this enforcement applies.
@@ -73,7 +82,7 @@ public interface EnforcementProvider<T extends Signal<?>> {
             final PreEnforcer preEnforcer
     ) {
         return Flow.<Contextual<WithDittoHeaders>, Optional<Contextual<T>>>fromFunction(
-                contextual -> contextual.tryToMapMessage(this::mapToHandledClass))
+                        contextual -> contextual.tryToMapMessage(this::mapToHandledClass))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .map(contextual -> buildEnforcementTask(contextual, preEnforcer))
@@ -89,11 +98,15 @@ public interface EnforcementProvider<T extends Signal<?>> {
 
         if (message instanceof WithEntityId) {
             final var entityId = ((WithEntityId) message).getEntityId();
+            final var timer = createTimer(message);
             return Optional.of(EnforcementTask.of(entityId, changesAuthorization,
                     () -> preEnforcer.withErrorHandlingAsync(contextual,
-                            contextual.setMessage(null).withReceiver(null),
-                            converted -> createEnforcement(converted).enforceSafely()
-                    )
+                                    contextual.setMessage(null).withReceiver(null),
+                                    converted -> createEnforcement(converted).enforceSafely())
+                            .whenComplete((result, error) -> {
+                                timer.tag("outcome", error != null ? "fail" : "success");
+                                timer.stop();
+                            })
             ));
         } else {
             // This should not happen: Refuse to perform enforcement task for messages without ID.
@@ -101,6 +114,21 @@ public interface EnforcementProvider<T extends Signal<?>> {
             return Optional.empty();
         }
 
+    }
+
+    private StartedTimer createTimer(final WithDittoHeaders withDittoHeaders) {
+        final PreparedTimer expiringTimer = DittoMetrics.timer(TIMER_NAME);
+
+        withDittoHeaders.getDittoHeaders().getChannel().ifPresent(channel ->
+                expiringTimer.tag("channel", channel)
+        );
+        if (withDittoHeaders instanceof Signal) {
+            expiringTimer.tag("resource", ((Signal<?>) withDittoHeaders).getResourceType());
+        }
+        if (withDittoHeaders instanceof Command) {
+            expiringTimer.tag("category", ((Command<?>) withDittoHeaders).getCategory().name().toLowerCase());
+        }
+        return expiringTimer.start();
     }
 
     private Optional<T> mapToHandledClass(final WithDittoHeaders message) {
