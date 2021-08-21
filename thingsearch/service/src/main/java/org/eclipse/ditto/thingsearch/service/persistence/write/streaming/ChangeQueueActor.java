@@ -23,9 +23,6 @@ import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.dispatch.ControlMessage;
-import akka.dispatch.RequiresMessageQueue;
-import akka.dispatch.UnboundedControlAwareMessageQueueSemantics;
 import akka.japi.function.Function;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
@@ -35,8 +32,7 @@ import akka.stream.javadsl.Source;
 /**
  * Collects changes from ThingUpdaters and forward them downstream on demand.
  */
-public final class ChangeQueueActor extends AbstractActor
-        implements RequiresMessageQueue<UnboundedControlAwareMessageQueueSemantics> {
+public final class ChangeQueueActor extends AbstractActor {
 
     /**
      * Name of this actor.
@@ -81,10 +77,10 @@ public final class ChangeQueueActor extends AbstractActor
     private void enqueue(final Metadata metadata) {
         if (metadata.getSenders().isEmpty()) {
             ConsistencyLag.startS1InChangeQueue(metadata);
-            cache.merge(metadata.getThingId(), metadata, Metadata::prependTimersAndSenders);
+            cache.merge(metadata.getThingId(), metadata, Metadata::append);
         } else {
             ConsistencyLag.startS1InChangeQueue(metadata);
-            cacheShouldAcknowledge.merge(metadata.getThingId(), metadata, Metadata::prependTimersAndSenders);
+            cacheShouldAcknowledge.merge(metadata.getThingId(), metadata, Metadata::append);
         }
     }
 
@@ -131,19 +127,22 @@ public final class ChangeQueueActor extends AbstractActor
     @SuppressWarnings("unchecked")
     private static Function<Control, Source<Map<ThingId, Metadata>, NotUsed>> askSelf(final ActorRef self) {
         return message -> Source.completionStageSource(
-                Patterns.ask(self, message, ASK_SELF_TIMEOUT)
-                        .handle((result, error) -> {
-                            if (result instanceof Map) {
-                                return Source.single((Map<ThingId, Metadata>) result);
-                            } else {
-                                return Source.empty();
-                            }
-                        }))
+                        Patterns.ask(self, message, ASK_SELF_TIMEOUT)
+                                .handle((result, error) -> {
+                                    if (result instanceof Map) {
+                                        return Source.single((Map<ThingId, Metadata>) result);
+                                    } else {
+                                        return Source.empty();
+                                    }
+                                }))
                 .withAttributes(Attributes.inputBuffer(1, 1))
                 .mapMaterializedValue(whatever -> NotUsed.getInstance());
     }
 
-    private enum Control implements ControlMessage {
+    // DO NOT give control messages priority over Metadata.
+    // We want Metadata of each thing to stay in change queue as long as possible in order to aggregate updates
+    // to reduce DB load.
+    enum Control {
         DUMP,
         DUMP_SHOULD_ACKNOWLEDGE
     }

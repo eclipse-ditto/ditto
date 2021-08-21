@@ -29,8 +29,9 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 
-import akka.actor.ActorSelection;
+import akka.actor.ActorRef;
 import akka.pattern.Patterns;
 
 /**
@@ -38,15 +39,15 @@ import akka.pattern.Patterns;
  */
 final class SudoSignalEnrichmentFacade implements SignalEnrichmentFacade {
 
-    private final ActorSelection commandHandler;
+    private final ActorRef commandHandler;
     private final Duration askTimeout;
 
-    private SudoSignalEnrichmentFacade(final ActorSelection commandHandler, final Duration askTimeout) {
+    private SudoSignalEnrichmentFacade(final ActorRef commandHandler, final Duration askTimeout) {
         this.commandHandler = checkNotNull(commandHandler, "commandHandler");
         this.askTimeout = checkNotNull(askTimeout, "askTimeout");
     }
 
-    static SudoSignalEnrichmentFacade of(final ActorSelection commandHandler, final Duration askTimeout) {
+    static SudoSignalEnrichmentFacade of(final ActorRef commandHandler, final Duration askTimeout) {
         return new SudoSignalEnrichmentFacade(commandHandler, askTimeout);
     }
 
@@ -65,6 +66,8 @@ final class SudoSignalEnrichmentFacade implements SignalEnrichmentFacade {
         if (object instanceof SudoRetrieveThingResponse) {
             final SudoRetrieveThingResponse response = (SudoRetrieveThingResponse) object;
             return CompletableFuture.completedFuture(response.getEntity(JsonSchemaVersion.LATEST));
+        } else if (object instanceof ThingNotAccessibleException) {
+            return CompletableFuture.completedFuture(JsonObject.empty());
         } else {
             final CompletableFuture<JsonObject> failedFuture = new CompletableFuture<>();
             failedFuture.completeExceptionally(toThrowable(object));

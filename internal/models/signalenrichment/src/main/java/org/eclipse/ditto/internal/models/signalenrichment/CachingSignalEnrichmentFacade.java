@@ -93,7 +93,7 @@ public final class CachingSignalEnrichmentFacade implements
 
         // as second step only return what was originally requested as fields:
         final List<Signal<?>> concernedSignals = concernedSignal == null ? List.of() : List.of(concernedSignal);
-        return doRetrievePartialThing(thingId, jsonFieldSelector, dittoHeaders, concernedSignals, true)
+        return doRetrievePartialThing(thingId, jsonFieldSelector, dittoHeaders, concernedSignals, true, 0)
                 .thenApply(jsonObject -> jsonObject.get(jsonFieldSelector));
     }
 
@@ -102,16 +102,19 @@ public final class CachingSignalEnrichmentFacade implements
      *
      * @param thingId the thing to retrieve.
      * @param events received thing events to reduce traffic. If there are no events, a fresh entry is retrieved.
+     * @param minAcceptableSeqNr the minimum sequence number acceptable as result. If negative,
+     * cache loading is forced.
      * @return future of the retrieved thing.
      */
-    public CompletionStage<JsonObject> retrieveThing(final ThingId thingId, final List<ThingEvent<?>> events) {
-        if (events.isEmpty()) {
+    public CompletionStage<JsonObject> retrieveThing(final ThingId thingId, final List<ThingEvent<?>> events,
+            final long minAcceptableSeqNr) {
+        if (minAcceptableSeqNr < 0) {
             final var cacheKey =
                     CacheKey.of(thingId, CacheFactory.newCacheLookupContext(DittoHeaders.empty(), null));
             extraFieldsCache.invalidate(cacheKey);
             return doCacheLookup(cacheKey, DittoHeaders.empty());
         } else {
-            return doRetrievePartialThing(thingId, null, DittoHeaders.empty(), events, false);
+            return doRetrievePartialThing(thingId, null, DittoHeaders.empty(), events, false, minAcceptableSeqNr);
         }
     }
 
@@ -119,7 +122,8 @@ public final class CachingSignalEnrichmentFacade implements
             @Nullable final JsonFieldSelector jsonFieldSelector,
             final DittoHeaders dittoHeaders,
             final List<? extends Signal<?>> concernedSignals,
-            final boolean invalidateCacheOnPolicyChange) {
+            final boolean invalidateCacheOnPolicyChange,
+            final long minAcceptableSeqNr) {
 
         final JsonFieldSelector enhancedFieldSelector;
         if (jsonFieldSelector == null) {
@@ -135,7 +139,7 @@ public final class CachingSignalEnrichmentFacade implements
                 CacheKey.of(thingId, CacheFactory.newCacheLookupContext(dittoHeaders, enhancedFieldSelector));
 
         return smartUpdateCachedObject(enhancedFieldSelector, idWithResourceType, concernedSignals,
-                invalidateCacheOnPolicyChange);
+                invalidateCacheOnPolicyChange, minAcceptableSeqNr);
     }
 
     private Optional<Integer> findLastThingDeletedOrCreated(final List<ThingEvent<?>> thingEvents) {
@@ -149,19 +153,25 @@ public final class CachingSignalEnrichmentFacade implements
     }
 
     private Optional<List<ThingEvent<?>>> extractConsecutiveTwinEvents(
-            final List<? extends Signal<?>> concernedSignals) {
+            final List<? extends Signal<?>> concernedSignals, final long minAcceptableSeqNr) {
         final List<ThingEvent<?>> thingEvents = concernedSignals.stream()
                 .filter(signal -> (signal instanceof ThingEvent) && !(ProtocolAdapter.isLiveSignal(signal)))
                 .map(signal -> (ThingEvent<?>) signal)
                 .collect(Collectors.toList());
 
         // ignore events before ThingDeleted or ThingCreated
+        // not safe to ignore events before ThingModified because ThingModified has merge semantics at the top level
         final var events = findLastThingDeletedOrCreated(thingEvents)
                 .map(i -> thingEvents.subList(i, thingEvents.size()))
                 .orElse(thingEvents);
 
+        // Check if minimum acceptable sequence number is met
+        if (minAcceptableSeqNr >= 0 && (events.isEmpty() || getLast(events).getRevision() < minAcceptableSeqNr)) {
+            return Optional.empty();
+        }
+
+        // Validate sequence numbers. Discard if events have gaps
         if (!events.isEmpty()) {
-            // Validate sequence numbers. Discard
             long lastSeq = -1;
             for (final ThingEvent<?> event : events) {
                 if (lastSeq >= 0 && event.getRevision() != lastSeq + 1) {
@@ -171,6 +181,7 @@ public final class CachingSignalEnrichmentFacade implements
                 }
             }
         }
+
         return Optional.of(events);
     }
 
@@ -187,19 +198,22 @@ public final class CachingSignalEnrichmentFacade implements
             @Nullable final JsonFieldSelector enhancedFieldSelector,
             final CacheKey idWithResourceType,
             final List<? extends Signal<?>> concernedSignals,
-            final boolean invalidateCacheOnPolicyChange) {
+            final boolean invalidateCacheOnPolicyChange,
+            final long minAcceptableSeqNr) {
 
-        final Optional<List<ThingEvent<?>>> thingEventsOptional = extractConsecutiveTwinEvents(concernedSignals);
+        final Optional<List<ThingEvent<?>>> thingEventsOptional =
+                extractConsecutiveTwinEvents(concernedSignals, minAcceptableSeqNr);
         final var dittoHeaders = getLastDittoHeaders(concernedSignals);
 
-        // there are twin events, but their sequence numbers have gaps
+        // there are twin events, but their sequence numbers have gaps or do not reach the min acceptable seq nr
         if (thingEventsOptional.isEmpty()) {
             extraFieldsCache.invalidate(idWithResourceType);
             return doCacheLookup(idWithResourceType, dittoHeaders);
         }
 
-        // there are no twin event; return the cached thing
         final var thingEvents = thingEventsOptional.orElseThrow();
+
+        // there are no twin event; return the cached thing
         if (thingEvents.isEmpty()) {
             return doCacheLookup(idWithResourceType, dittoHeaders);
         }
@@ -214,14 +228,16 @@ public final class CachingSignalEnrichmentFacade implements
         // there are twin events; perform smart update
         return doCacheLookup(idWithResourceType, dittoHeaders).thenCompose(cachedJsonObject -> {
             final long cachedRevision = cachedJsonObject.getValue(Thing.JsonFields.REVISION).orElse(0L);
-            final long lastRevision = getLast(thingEvents).getRevision();
-            if (cachedRevision >= lastRevision) {
+            final var relevantEvents = thingEvents.stream()
+                    .filter(e -> e.getRevision() > cachedRevision)
+                    .collect(Collectors.toList());
+            if (relevantEvents.isEmpty()) {
                 // the cache entry was more up-to-date
                 return CompletableFuture.completedFuture(cachedJsonObject);
-            } else if (cachedRevision + 1 == getFirst(thingEvents).getRevision()) {
+            } else if (cachedRevision + 1 == getFirst(relevantEvents).getRevision()) {
                 // the cache entry was already present and the first thingEvent was the next expected revision no
                 // -> we have all information necessary to calculate it without making another roundtrip
-                return handleNextExpectedThingEvents(enhancedFieldSelector, idWithResourceType, thingEvents,
+                return handleNextExpectedThingEvents(enhancedFieldSelector, idWithResourceType, relevantEvents,
                         cachedJsonObject, invalidateCacheOnPolicyChange);
             } else {
                 // the cache entry was already present, but we missed sth and need to invalidate the cache

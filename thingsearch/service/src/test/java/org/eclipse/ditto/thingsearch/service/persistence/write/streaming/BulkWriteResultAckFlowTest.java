@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -84,7 +85,7 @@ public final class BulkWriteResultAckFlowTest {
     @Test
     public void partialSuccess() {
         final List<AbstractWriteModel> writeModels = generate5WriteModels();
-        final BulkWriteResult result = BulkWriteResult.acknowledged(1, 2, 1, 2, List.of());
+        final BulkWriteResult result = BulkWriteResult.acknowledged(1, 2, 1, 2, List.of(), List.of());
         final List<BulkWriteError> updateFailure = List.of(
                 new BulkWriteError(11000, "E11000 duplicate key error", new BsonDocument(), 3),
                 new BulkWriteError(50, "E50 operation timed out", new BsonDocument(), 4)
@@ -92,7 +93,7 @@ public final class BulkWriteResultAckFlowTest {
 
         // WHEN: BulkWriteResultAckFlow receives partial update success with errors, one of which is not duplicate key
         final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.failure(writeModels,
-                new MongoBulkWriteException(result, updateFailure, null, new ServerAddress()));
+                new MongoBulkWriteException(result, updateFailure, null, new ServerAddress(), Set.of()));
         final String message = runBulkWriteResultAckFlowAndGetFirstLogEntry(resultAndErrors);
 
         // THEN: the non-duplicate-key error triggers a failure acknowledgement
@@ -128,7 +129,7 @@ public final class BulkWriteResultAckFlowTest {
     @Test
     public void errorIndexOutOfBoundError() {
         final List<AbstractWriteModel> writeModels = generate5WriteModels();
-        final BulkWriteResult result = BulkWriteResult.acknowledged(1, 2, 1, 2, List.of());
+        final BulkWriteResult result = BulkWriteResult.acknowledged(1, 2, 1, 2, List.of(), List.of());
         final List<BulkWriteError> updateFailure = List.of(
                 new BulkWriteError(11000, "E11000 duplicate key error", new BsonDocument(), 0),
                 new BulkWriteError(50, "E50 operation timed out", new BsonDocument(), 5)
@@ -136,7 +137,7 @@ public final class BulkWriteResultAckFlowTest {
 
         // WHEN: BulkWriteResultAckFlow receives partial update success with at least 1 error with out-of-bound index
         final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.failure(writeModels,
-                new MongoBulkWriteException(result, updateFailure, null, new ServerAddress()));
+                new MongoBulkWriteException(result, updateFailure, null, new ServerAddress(), Set.of()));
         final String message = runBulkWriteResultAckFlowAndGetFirstLogEntry(resultAndErrors);
 
         // THEN: All updates are considered failures
@@ -153,7 +154,7 @@ public final class BulkWriteResultAckFlowTest {
         final List<TestProbe> probes =
                 IntStream.range(0, 5).mapToObj(i -> TestProbe.apply(actorSystem)).collect(Collectors.toList());
         final List<AbstractWriteModel> writeModels = generateWriteModels(probes);
-        final BulkWriteResult result = BulkWriteResult.acknowledged(1, 2, 1, 2, List.of());
+        final BulkWriteResult result = BulkWriteResult.acknowledged(1, 2, 1, 2, List.of(), List.of());
         final List<BulkWriteError> updateFailure = List.of(
                 new BulkWriteError(11000, "E11000 duplicate key error", new BsonDocument(), 3),
                 new BulkWriteError(50, "E50 operation timed out", new BsonDocument(), 4)
@@ -161,7 +162,7 @@ public final class BulkWriteResultAckFlowTest {
 
         // WHEN: BulkWriteResultAckFlow receives partial update success with errors, one of which is not duplicate key
         final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.failure(writeModels,
-                new MongoBulkWriteException(result, updateFailure, null, new ServerAddress()));
+                new MongoBulkWriteException(result, updateFailure, null, new ServerAddress(), Set.of()));
         runBulkWriteResultAckFlowAndGetFirstLogEntry(resultAndErrors);
 
         // THEN: only the non-duplicate-key sender receives negative acknowledgement
@@ -199,7 +200,7 @@ public final class BulkWriteResultAckFlowTest {
             final PolicyId policyId = i % 4 < 2 ? null : PolicyId.of("policy", String.valueOf(i));
             final long policyRevision = i * 100;
             final Metadata metadata =
-                    Metadata.of(thingId, thingRevision, policyId, policyRevision, null, probes.get(i).ref());
+                    Metadata.of(thingId, thingRevision, policyId, policyRevision, List.of(), null, probes.get(i).ref());
             if (i % 2 == 0) {
                 writeModels.add(ThingDeleteModel.of(metadata, false));
             } else {

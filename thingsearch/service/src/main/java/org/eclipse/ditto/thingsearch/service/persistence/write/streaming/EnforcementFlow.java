@@ -14,17 +14,18 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
@@ -33,11 +34,10 @@ import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.thingsearch.service.common.config.StreamCacheConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.EnforcedThingMapper;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
@@ -52,6 +52,7 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Scheduler;
 import akka.dispatch.MessageDispatcher;
+import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
@@ -64,31 +65,25 @@ final class EnforcementFlow {
     private static final Source<Entry<Enforcer>, NotUsed> ENFORCER_NONEXISTENT = Source.single(Entry.nonexistent());
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final ActorRef thingsShardRegion;
+    private final CachingSignalEnrichmentFacade thingsFacade;
     private final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache;
-    private final AskWithRetryConfig askWithRetryConfig;
     private final Duration cacheRetryDelay;
     private final int maxArraySize;
-    private final MessageDispatcher cacheDispatcher;
-    private final Scheduler scheduler;
     private final boolean deleteImmediately;
 
     private EnforcementFlow(final ActorRef thingsShardRegion,
             final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
             final AskWithRetryConfig askWithRetryConfig,
-            final Duration cacheRetryDelay,
+            final StreamCacheConfig streamCacheConfig,
             final int maxArraySize,
             final MessageDispatcher cacheDispatcher,
-            final Scheduler scheduler,
             final boolean deleteImmediately) {
 
-        this.thingsShardRegion = thingsShardRegion;
+        this.thingsFacade = createThingsFacade(thingsShardRegion, askWithRetryConfig.getAskTimeout(), streamCacheConfig,
+                cacheDispatcher);
         this.policyEnforcerCache = policyEnforcerCache;
-        this.askWithRetryConfig = askWithRetryConfig;
-        this.cacheRetryDelay = cacheRetryDelay;
+        this.cacheRetryDelay = streamCacheConfig.getRetryDelay();
         this.maxArraySize = maxArraySize;
-        this.cacheDispatcher = cacheDispatcher;
-        this.scheduler = scheduler;
         this.deleteImmediately = deleteImmediately;
     }
 
@@ -116,11 +111,11 @@ final class EnforcementFlow {
                 new PolicyEnforcerCacheLoader(askWithRetryConfig, scheduler, policiesShardRegion);
         final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, streamCacheConfig,
-                        "things-search_enforcementflow_enforcer_cache_policy", cacheDispatcher)
+                                "things-search_enforcementflow_enforcer_cache_policy", cacheDispatcher)
                         .projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
 
         return new EnforcementFlow(thingsShardRegion, policyEnforcerCache, askWithRetryConfig,
-                streamCacheConfig.getRetryDelay(), updaterStreamConfig.getMaxArraySize(), cacheDispatcher, scheduler,
+                streamCacheConfig, updaterStreamConfig.getMaxArraySize(), cacheDispatcher,
                 deleteImmediately);
     }
 
@@ -204,23 +199,24 @@ final class EnforcementFlow {
 
     private Source<SudoRetrieveThingResponse, NotUsed> sudoRetrieveThing(final Map.Entry<ThingId, Metadata> entry) {
         final var thingId = entry.getKey();
-        ConsistencyLag.startS3RetrieveThing(entry.getValue());
-        final var command = SudoRetrieveThing.withOriginalSchemaVersion(thingId, DittoHeaders.empty());
-        final CompletionStage<Source<SudoRetrieveThingResponse, NotUsed>> responseFuture =
-                AskWithRetry.askWithRetry(thingsShardRegion, command, askWithRetryConfig, scheduler, cacheDispatcher,
-                        response -> {
-                            if (response instanceof SudoRetrieveThingResponse) {
-                                return Source.single((SudoRetrieveThingResponse) response);
-                            } else {
-                                if (!(response instanceof ThingNotAccessibleException)) {
-                                    log.error("Unexpected response for <{}>: <{}>", command, response);
-                                }
-                                return Source.empty();
-                            }
-                        });
+        final var metadata = entry.getValue();
+        ConsistencyLag.startS3RetrieveThing(metadata);
+        final CompletionStage<JsonObject> thingFuture;
+        if (metadata.shouldInvalidateCache()) {
+            thingFuture = thingsFacade.retrieveThing(thingId, List.of(), -1);
+        } else {
+            thingFuture = thingsFacade.retrieveThing(thingId, metadata.getEvents(), metadata.getThingRevision());
+        }
 
-        return Source.completionStageSource(responseFuture)
-                .viaMat(Flow.create(), Keep.none());
+        return Source.fromCompletionStage(thingFuture)
+                .filter(thing -> !thing.isEmpty())
+                .map(thing -> SudoRetrieveThingResponse.of(thing, DittoHeaders.empty()))
+                .recoverWithRetries(1, new PFBuilder<Throwable, Source<SudoRetrieveThingResponse, NotUsed>>()
+                        .match(Throwable.class, error -> {
+                            log.error("Unexpected response for SudoRetrieveThing " + thingId, error);
+                            return Source.empty();
+                        })
+                        .build());
     }
 
     private Source<AbstractWriteModel, NotUsed> computeWriteModel(final Metadata metadata,
@@ -295,6 +291,15 @@ final class EnforcementFlow {
         });
 
         return lazySource.viaMat(Flow.create(), Keep.none());
+    }
+
+    private static CachingSignalEnrichmentFacade createThingsFacade(final ActorRef thingsShardRegion,
+            final Duration timeout,
+            final StreamCacheConfig streamCacheConfig,
+            final MessageDispatcher cacheDispatcher) {
+        final var sudoRetrieveThingFacade = SudoSignalEnrichmentFacade.of(thingsShardRegion, timeout);
+        return CachingSignalEnrichmentFacade.of(sudoRetrieveThingFacade, streamCacheConfig, cacheDispatcher,
+                "things-search_enforcementflow_enforcer_cache_things");
     }
 
 }
