@@ -120,7 +120,8 @@ final class ThingUpdater extends AbstractActor {
      * @param timer an optional timer measuring the search updater's consistency lag.
      */
     private Metadata exportMetadata(@Nullable final ThingEvent<?> event, @Nullable final StartedTimer timer) {
-        return Metadata.of(thingId, thingRevision, policyId, policyRevision, List.of(event), timer, null);
+        return Metadata.of(thingId, thingRevision, policyId, policyRevision,
+                event == null ? List.of() : List.of(event), timer, null);
     }
 
     private Metadata exportMetadataWithSender(final boolean shouldAcknowledge,

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.time.Duration;
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +21,6 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
@@ -34,7 +34,6 @@ import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamCacheConfig;
@@ -124,18 +123,6 @@ final class EnforcementFlow {
     }
 
     /**
-     * Extract Thing ID from SudoRetrieveThingResponse.
-     * This is needed because SudoRetrieveThingResponse#id() is always the empty string.
-     *
-     * @param response the SudoRetrieveThingResponse.
-     * @return the extracted Thing ID.
-     */
-    private static ThingId getThingId(final SudoRetrieveThingResponse response) {
-        final String thingId = response.getEntity().asObject().getValueOrThrow(Thing.JsonFields.ID);
-        return ThingId.of(thingId);
-    }
-
-    /**
      * Decide whether to reload an enforcer entry.
      * An entry should be reload if it is out-of-date, nonexistent, or corresponds to a nonexistent entity.
      *
@@ -181,14 +168,14 @@ final class EnforcementFlow {
 
     }
 
-    private Source<Map<ThingId, SudoRetrieveThingResponse>, NotUsed> sudoRetrieveThingJsons(
+    private Source<Map<ThingId, JsonObject>, NotUsed> sudoRetrieveThingJsons(
             final int parallelism, final Map<ThingId, Metadata> changeMap) {
 
         return Source.fromIterator(changeMap.entrySet()::iterator)
                 .flatMapMerge(parallelism, entry -> sudoRetrieveThing(entry)
                         .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism))
-                .<Map<ThingId, SudoRetrieveThingResponse>>fold(new HashMap<>(), (map, response) -> {
-                    map.put(getThingId(response), response);
+                .<Map<ThingId, JsonObject>>fold(new HashMap<>(), (map, entry) -> {
+                    map.put(entry.getKey(), entry.getValue());
                     return map;
                 })
                 .map(result -> {
@@ -197,7 +184,9 @@ final class EnforcementFlow {
                 });
     }
 
-    private Source<SudoRetrieveThingResponse, NotUsed> sudoRetrieveThing(final Map.Entry<ThingId, Metadata> entry) {
+    private Source<Map.Entry<ThingId, JsonObject>, NotUsed> sudoRetrieveThing(
+            final Map.Entry<ThingId, Metadata> entry) {
+
         final var thingId = entry.getKey();
         final var metadata = entry.getValue();
         ConsistencyLag.startS3RetrieveThing(metadata);
@@ -210,8 +199,8 @@ final class EnforcementFlow {
 
         return Source.fromCompletionStage(thingFuture)
                 .filter(thing -> !thing.isEmpty())
-                .map(thing -> SudoRetrieveThingResponse.of(thing, DittoHeaders.empty()))
-                .recoverWithRetries(1, new PFBuilder<Throwable, Source<SudoRetrieveThingResponse, NotUsed>>()
+                .<Map.Entry<ThingId, JsonObject>>map(thing -> new AbstractMap.SimpleImmutableEntry<>(thingId, thing))
+                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Map.Entry<ThingId, JsonObject>, NotUsed>>()
                         .match(Throwable.class, error -> {
                             log.error("Unexpected response for SudoRetrieveThing " + thingId, error);
                             return Source.empty();
@@ -220,14 +209,12 @@ final class EnforcementFlow {
     }
 
     private Source<AbstractWriteModel, NotUsed> computeWriteModel(final Metadata metadata,
-            @Nullable final SudoRetrieveThingResponse sudoRetrieveThingResponse) {
+            @Nullable final JsonObject thing) {
 
         ConsistencyLag.startS4GetEnforcer(metadata);
-        if (sudoRetrieveThingResponse == null) {
+        if (thing == null) {
             return Source.single(ThingDeleteModel.of(metadata, deleteImmediately));
         } else {
-            final JsonObject thing = sudoRetrieveThingResponse.getEntity().asObject();
-
             return getEnforcer(metadata, thing)
                     .map(entry -> {
                         if (entry.exists()) {
