@@ -15,6 +15,7 @@ package org.eclipse.ditto.concierge.service.enforcement;
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.policies.api.Permission.MIN_REQUIRED_POLICY_PERMISSIONS;
 
+import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
@@ -22,6 +23,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -78,6 +80,8 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
+import org.eclipse.ditto.rql.parser.internal.RqlPredicateParser;
+import org.eclipse.ditto.rql.query.things.FieldNamesPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
@@ -86,6 +90,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotAll
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingCommandToAccessExceptionRegistry;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingCommandToModifyExceptionRegistry;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreatableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
@@ -235,7 +240,7 @@ public final class ThingCommandEnforcement
      * Authorize a thing command by policy enforcer with view restriction for query commands.
      *
      * @param thingCommand the thing command to authorize.
-     * @param policyId Id of the thing's policy.
+     * @param policyId the ID of the thing's policy.
      * @param enforcer the policy enforcer.
      * @return the contextual including message and receiver
      */
@@ -269,7 +274,7 @@ public final class ThingCommandEnforcement
      * Retrieve a thing and its policy and combine them into a response.
      *
      * @param retrieveThing the retrieve-thing command.
-     * @param policyId ID of the thing's policy.
+     * @param policyId the ID of the thing's policy.
      * @param enforcer the enforcer for the command.
      * @return always {@code true}.
      */
@@ -765,23 +770,53 @@ public final class ThingCommandEnforcement
         final var thingResourceKey = PoliciesResourceType.thingResource(command.getResourcePath());
         final var dittoHeaders = command.getDittoHeaders();
         final var authorizationContext = dittoHeaders.getAuthorizationContext();
+        final var condition = dittoHeaders.getCondition().orElse(null);
 
-        final boolean authorized;
+        final boolean commandAuthorized;
         if (command instanceof MergeThing) {
-            authorized = enforceMergeThingCommand(policyEnforcer, (MergeThing) command, thingResourceKey,
+            commandAuthorized = enforceMergeThingCommand(policyEnforcer, (MergeThing) command, thingResourceKey,
                     authorizationContext);
         } else if (command instanceof ThingModifyCommand) {
-            authorized = policyEnforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext,
+            commandAuthorized = policyEnforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext,
                     Permission.WRITE);
         } else {
-            authorized = policyEnforcer.hasPartialPermissions(thingResourceKey, authorizationContext, Permission.READ);
+            commandAuthorized =
+                    policyEnforcer.hasPartialPermissions(thingResourceKey, authorizationContext, Permission.READ);
         }
 
-        if (authorized) {
+        if (condition != null && !(command instanceof CreateThing)) {
+            enforceReadPermissionOnCondition(condition, policyEnforcer, authorizationContext);
+        }
+
+        if (commandAuthorized ) {
             return AbstractEnforcement.addEffectedReadSubjectsToThingSignal(command, policyEnforcer);
         } else {
             throw errorForThingCommand(command);
         }
+    }
+
+    private static void enforceReadPermissionOnCondition(final String condition,
+            final Enforcer policyEnforcer,
+            final AuthorizationContext authorizationContext) {
+
+        final Set<ResourceKey> resourceKeyList = determineResourceKeys(condition);
+        if(!policyEnforcer.hasUnrestrictedPermissions(resourceKeyList, authorizationContext, Permission.READ)) {
+            throw ThingConditionFailedException.newBuilder(condition)
+                    .message(MessageFormat.format("The resource specified in the condition ''{0}'' could not be " +
+                            "found or the requester had insufficient permissions to access it.", condition))
+                    .description("Check if the ID of your requested Thing was correct and you have sufficient permissions.")
+                    .build();
+        }
+    }
+
+    private static Set<ResourceKey> determineResourceKeys(final String condition) {
+        final FieldNamesPredicateVisitor visitor = new FieldNamesPredicateVisitor();
+        visitor.visit(RqlPredicateParser.parse(condition));
+        final Set<String> extractedFieldNames = visitor.getFieldNames();
+
+        return extractedFieldNames.stream()
+                .map(PoliciesResourceType::thingResource)
+                .collect(Collectors.toSet());
     }
 
     private static boolean enforceMergeThingCommand(final Enforcer policyEnforcer,

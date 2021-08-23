@@ -60,6 +60,8 @@ final class ThingConditionValidator {
      */
     public Either<Void, ThingConditionFailedException> validate(final Command<?> command,
             @Nullable final String condition, @Nullable final Thing entity) {
+        checkNotNull(command, "Command");
+
         if (isDefined(command, entity) && (condition != null && entity != null)) {
                 final DittoHeaders dittoHeaders = command.getDittoHeaders();
                 final Criteria criteria = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance())
@@ -82,8 +84,6 @@ final class ThingConditionValidator {
      * @return @{code true} if the command should be applied otherwise @{code false}.
      */
     private boolean isDefined(final Command<?> command, @Nullable final Thing entity) {
-        checkNotNull(command, "Command");
-
         return !(command instanceof CreateThing) && entity != null;
     }
 

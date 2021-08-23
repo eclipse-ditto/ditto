@@ -17,7 +17,7 @@ import static java.util.Objects.requireNonNull;
 import javax.annotation.Nullable;
 
 /**
- * Generic comparison node that has a type, a property to compare on and a generic value. Subclasses have to specifiy
+ * Generic comparison node that has a type, a property to compare on and a generic value. Subclasses have to specify
  * what type the value can have.
  *
  * @param <T> Type of the comparison enumeration.
