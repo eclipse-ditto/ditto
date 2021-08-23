@@ -65,10 +65,7 @@
         <janino.version>2.7.8</janino.version>
 
         <!-- ### Metrics and Tracing -->
-        <kamon-core.version>2.2.2</kamon-core.version>
-        <kamon-system-metrics.version>2.2.2</kamon-system-metrics.version>
-        <kamon-prometheus.version>2.2.2</kamon-prometheus.version>
-        <kamon-opentelemetry.version>2.2.2</kamon-opentelemetry.version>
+        <kamon.version>2.2.2</kamon.version>
 
         <jsr305.version>3.0.2</jsr305.version>
 
@@ -395,12 +392,12 @@
             <dependency>
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-core_${scala.version}</artifactId>
-                <version>${kamon-core.version}</version>
+                <version>${kamon.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-system-metrics_${scala.version}</artifactId>
-                <version>${kamon-system-metrics.version}</version>
+                <version>${kamon.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>com.github.oshi</groupId>
@@ -411,7 +408,7 @@
             <dependency>
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-prometheus_${scala.version}</artifactId>
-                <version>${kamon-prometheus.version}</version>
+                <version>${kamon.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>com.squareup.okhttp3</groupId>
@@ -426,7 +423,7 @@
             <dependency>
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-opentelemetry_${scala.version}</artifactId>
-                <version>${kamon-opentelemetry.version}</version>
+                <version>${kamon.version}</version>
             </dependency>
 
             <!-- ### Compile - own artifacts ### -->
