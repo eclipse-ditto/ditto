@@ -389,8 +389,8 @@ variables. Response example:
 
 ```json
 {
-  "?": {
-    "?": {
+  "gateway": {
+    "1": {
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
@@ -405,8 +405,10 @@ variables. Response example:
           "-Dfile.encoding=UTF-8"
         ]
       }
-    },
-    "?1": {
+    }
+  },
+  "connectivity": {
+    "1": {
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
@@ -440,8 +442,8 @@ Response example:
 
 ```json
 {
-  "?": {
-    "?": {
+  "gateway": {
+    "1": {
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
@@ -529,8 +531,8 @@ The response has the following details:
 
 ```json
 {
-  "?": {
-    "?": {
+  "concierge": {
+    "1": {
       "type": "status.responses:retrieveHealth",
       "status": 200,
       "statusInfo": {
@@ -579,8 +581,8 @@ Response example:
 
 ```json
 {
-  "?": {
-    "?": {
+  "concierge": {
+    "1": {
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
@@ -638,8 +640,8 @@ piggyback command contains any error, then an error is logged and the actor's co
 
 ```json
 {
-  "?": {
-    "?": {
+  "concierge": {
+    "1": {
       "type": "common.responses:modifyConfig",
       "status": 200,
       "config": {
@@ -693,8 +695,8 @@ Response example:
 
 ```json
 {
-  "?": {
-    "?": {
+  "concierge": {
+    "1": {
       "type": "common.responses:shutdown",
       "status": 200,
       "message": "Restarting stream in <PT5760H30M5S>."
@@ -729,8 +731,8 @@ Response example:
 
 ```json
 {
-  "?": {
-    "?": {
+  "things": {
+    "1": {
       "type": "cleanup.responses:cleanupPersistence",
       "status": 200,
       "entityId": "thing:ditto:thing1"
@@ -886,7 +888,8 @@ slow. Set the timeout to a safe margin above the estimated erasure time in milli
 {
   "targetActorSelection": "/system/distributedPubSubMediator",
   "headers": {
-    "aggregate": true
+    "aggregate": true,
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "namespaces.commands:purgeNamespace",
