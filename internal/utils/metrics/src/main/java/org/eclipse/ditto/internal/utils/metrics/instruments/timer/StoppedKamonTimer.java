@@ -52,7 +52,7 @@ final class StoppedKamonTimer implements StoppedTimer {
         final long durationNano = getElapsedNano();
         LOGGER.trace("Timer with name <{}> and segment <{}> was stopped after <{}> nanoseconds", name,
                 tags.get(SEGMENT_TAG), durationNano);
-        startedTimer.getOnStopHandlers().forEach(stoppedTimerConsumer -> stoppedTimerConsumer.accept(this));
+        startedTimer.getOnStopHandlers().forEach(stoppedTimerConsumer -> stoppedTimerConsumer.handleStoppedTimer(this));
         getKamonInternalTimer().record(durationNano);
     }
 

@@ -54,7 +54,14 @@ public interface StartedTimer extends Timer, TaggedMetricInstrument<StartedTimer
      *
      * @param onStopHandler the handler to invoke when this timer stops.
      */
-    StartedTimer onStop(Consumer<StoppedTimer> onStopHandler);
+    StartedTimer onStop(OnStopHandler onStopHandler);
+
+    /**
+     * Gets all on stop handlers of this timer.
+     *
+     * @return All on stop handlers of this timer.
+     */
+    List<OnStopHandler> getOnStopHandlers();
 
     /**
      * @return the instant when the timer was started.
@@ -74,11 +81,4 @@ public interface StartedTimer extends Timer, TaggedMetricInstrument<StartedTimer
      * @return Segments of this timer.
      */
     Map<String, StartedTimer> getSegments();
-
-    /**
-     * Gets all on stop handlers of this timer.
-     *
-     * @return All on stop handlers of this timer.
-     */
-    List<Consumer<StoppedTimer>> getOnStopHandlers();
 }

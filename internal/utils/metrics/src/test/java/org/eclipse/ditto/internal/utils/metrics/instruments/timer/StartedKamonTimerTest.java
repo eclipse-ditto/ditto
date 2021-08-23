@@ -45,19 +45,19 @@ public class StartedKamonTimerTest {
 
     @Test
     public void getOnStopHandlers() {
-        final Consumer<StoppedTimer> onStopHandler = mock(Consumer.class);
+        final OnStopHandler onStopHandler = mock(OnStopHandler.class);
         sut.onStop(onStopHandler);
-        final List<Consumer<StoppedTimer>> onStopHandlers = sut.getOnStopHandlers();
+        final List<OnStopHandler> onStopHandlers = sut.getOnStopHandlers();
         Assertions.assertThat(onStopHandlers).hasSize(2);
         Assertions.assertThat(onStopHandlers).contains(onStopHandler);
     }
 
     @Test
     public void onStopIsCalled() {
-        final Consumer<StoppedTimer> onStopHandler = mock(Consumer.class);
+        final OnStopHandler onStopHandler = mock(OnStopHandler.class);
         sut.onStop(onStopHandler);
-        final StoppedTimer stop = sut.stop();
-        verify(onStopHandler).accept(stop);
+        final StoppedTimer stopped = sut.stop();
+        verify(onStopHandler).handleStoppedTimer(stopped);
     }
 
     @Test
@@ -108,14 +108,14 @@ public class StartedKamonTimerTest {
 
     @Test
     public void onStopHandlersOfSegmentsAreCalledToo() {
-        final Consumer<StoppedTimer> onStopHandler = mock(Consumer.class);
-        final Consumer<StoppedTimer> segmentOnStopHandler = mock(Consumer.class);
+        final OnStopHandler onStopHandler = mock(OnStopHandler.class);
+        final OnStopHandler segmentOnStopHandler = mock(OnStopHandler.class);
         sut.onStop(onStopHandler);
         final StartedTimer testSegment = sut.startNewSegment("TEST");
         testSegment.onStop(segmentOnStopHandler);
         final StoppedTimer stop = sut.stop();
-        verify(onStopHandler).accept(stop);
-        verify(segmentOnStopHandler).accept(any(StoppedTimer.class));
+        verify(onStopHandler).handleStoppedTimer(stop);
+        verify(segmentOnStopHandler).handleStoppedTimer(any(StoppedTimer.class));
     }
 
     @Test

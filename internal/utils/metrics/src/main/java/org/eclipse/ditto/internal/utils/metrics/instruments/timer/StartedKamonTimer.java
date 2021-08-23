@@ -34,7 +34,7 @@ final class StartedKamonTimer implements StartedTimer {
 
     private final String name;
     private final Map<String, String> tags;
-    private final List<Consumer<StoppedTimer>> onStopHandlers;
+    private final List<OnStopHandler> onStopHandlers;
     private final Map<String, StartedTimer> segments;
     private final long startNanoTime;
     private final Instant startInstant;
@@ -128,7 +128,7 @@ final class StartedKamonTimer implements StartedTimer {
     }
 
     @Override
-    public StartedTimer onStop(final Consumer<StoppedTimer> onStopHandler) {
+    public StartedTimer onStop(final OnStopHandler onStopHandler) {
         onStopHandlers.add(onStopHandler);
         return this;
     }
@@ -154,7 +154,7 @@ final class StartedKamonTimer implements StartedTimer {
     }
 
     @Override
-    public List<Consumer<StoppedTimer>> getOnStopHandlers() {
+    public List<OnStopHandler> getOnStopHandlers() {
         return List.copyOf(onStopHandlers);
     }
 
