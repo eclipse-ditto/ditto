@@ -36,7 +36,6 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.base.model.headers.condition.Condition;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
@@ -453,8 +452,8 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
-    public S condition(final Condition condition) {
-        putCharSequence(DittoHeaderDefinition.CONDITION, condition.getRqlCondition());
+    public S condition(final String condition) {
+        putCharSequence(DittoHeaderDefinition.CONDITION, condition);
         return myself;
     }
 

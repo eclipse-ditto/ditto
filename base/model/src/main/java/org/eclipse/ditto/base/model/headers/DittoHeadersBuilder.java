@@ -24,7 +24,6 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.common.ResponseType;
-import org.eclipse.ditto.base.model.headers.condition.Condition;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
@@ -307,7 +306,7 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
      * @return this builder for method chaining.
      * @since 2.1.0
      */
-    B condition(Condition condition);
+    B condition(String condition);
 
     /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
