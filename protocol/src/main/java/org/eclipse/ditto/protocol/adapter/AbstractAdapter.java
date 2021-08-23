@@ -21,14 +21,17 @@ import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
+import org.eclipse.ditto.protocol.MessagePath;
 import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.PayloadPathMatcher;
+import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategies;
 
@@ -185,5 +188,28 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
      * @return the mapped {@link Adaptable}
      */
     protected abstract Adaptable mapSignalToAdaptable(T signal, TopicPath.Channel channel);
+
+    /**
+     * Validate a prefix of the message path of the adaptable and unescape it.
+     * Useful to skip validations for a suffix of the message path, say policy subject ID or thing message subject.
+     *
+     * @param adaptable the adaptable.
+     * @param prefixLevel how many JSON pointer segments to validate.
+     * @return adaptable with parsed and unescaped message path prefix.
+     */
+    protected Adaptable validateAndPreprocessMessagePathPrefix(final Adaptable adaptable, final int prefixLevel) {
+        final MessagePath messagePath = adaptable.getPayload().getPath();
+        final JsonPointer prefixPointer = messagePath.getPrefixPointer(prefixLevel)
+                .map(JsonPointer::toString)
+                .map(JsonFactory::newPointer)
+                .orElseGet(JsonPointer::empty);
+        final JsonPointer parsedMessagePath =
+                prefixPointer.append(messagePath.getSubPointer(prefixLevel).orElseGet(JsonPointer::empty));
+        return ProtocolFactory.newAdaptableBuilder(adaptable)
+                .withPayload(ProtocolFactory.toPayloadBuilder(adaptable.getPayload())
+                        .withPath(parsedMessagePath)
+                        .build())
+                .build();
+    }
 
 }

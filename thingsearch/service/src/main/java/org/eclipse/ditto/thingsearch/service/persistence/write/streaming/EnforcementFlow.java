@@ -13,18 +13,19 @@
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.time.Duration;
+import java.util.AbstractMap;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
@@ -33,11 +34,9 @@ import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.thingsearch.service.common.config.StreamCacheConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.EnforcedThingMapper;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
@@ -52,6 +51,7 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Scheduler;
 import akka.dispatch.MessageDispatcher;
+import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
@@ -64,29 +64,26 @@ final class EnforcementFlow {
     private static final Source<Entry<Enforcer>, NotUsed> ENFORCER_NONEXISTENT = Source.single(Entry.nonexistent());
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final ActorRef thingsShardRegion;
+    private final CachingSignalEnrichmentFacade thingsFacade;
     private final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache;
-    private final AskWithRetryConfig askWithRetryConfig;
     private final Duration cacheRetryDelay;
     private final int maxArraySize;
-    private final MessageDispatcher cacheDispatcher;
-    private final Scheduler scheduler;
+    private final boolean deleteImmediately;
 
     private EnforcementFlow(final ActorRef thingsShardRegion,
             final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
             final AskWithRetryConfig askWithRetryConfig,
-            final Duration cacheRetryDelay,
+            final StreamCacheConfig streamCacheConfig,
             final int maxArraySize,
             final MessageDispatcher cacheDispatcher,
-            final Scheduler scheduler) {
+            final boolean deleteImmediately) {
 
-        this.thingsShardRegion = thingsShardRegion;
+        this.thingsFacade = createThingsFacade(thingsShardRegion, askWithRetryConfig.getAskTimeout(), streamCacheConfig,
+                cacheDispatcher);
         this.policyEnforcerCache = policyEnforcerCache;
-        this.askWithRetryConfig = askWithRetryConfig;
-        this.cacheRetryDelay = cacheRetryDelay;
+        this.cacheRetryDelay = streamCacheConfig.getRetryDelay();
         this.maxArraySize = maxArraySize;
-        this.cacheDispatcher = cacheDispatcher;
-        this.scheduler = scheduler;
+        this.deleteImmediately = deleteImmediately;
     }
 
     /**
@@ -107,32 +104,22 @@ final class EnforcementFlow {
 
         final var askWithRetryConfig = updaterStreamConfig.getAskWithRetryConfig();
         final var streamCacheConfig = updaterStreamConfig.getCacheConfig();
+        final var deleteImmediately = updaterStreamConfig.isDeleteImmediately();
 
         final AsyncCacheLoader<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askWithRetryConfig, scheduler, policiesShardRegion);
         final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, streamCacheConfig,
-                        "things-search_enforcementflow_enforcer_cache_policy", cacheDispatcher)
+                                "things-search_enforcementflow_enforcer_cache_policy", cacheDispatcher)
                         .projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
 
         return new EnforcementFlow(thingsShardRegion, policyEnforcerCache, askWithRetryConfig,
-                streamCacheConfig.getRetryDelay(), updaterStreamConfig.getMaxArraySize(), cacheDispatcher, scheduler);
+                streamCacheConfig, updaterStreamConfig.getMaxArraySize(), cacheDispatcher,
+                deleteImmediately);
     }
 
     private static CacheKey getPolicyCacheKey(final PolicyId policyId) {
         return CacheKey.of(policyId);
-    }
-
-    /**
-     * Extract Thing ID from SudoRetrieveThingResponse.
-     * This is needed because SudoRetrieveThingResponse#id() is always the empty string.
-     *
-     * @param response the SudoRetrieveThingResponse.
-     * @return the extracted Thing ID.
-     */
-    private static ThingId getThingId(final SudoRetrieveThingResponse response) {
-        final String thingId = response.getEntity().asObject().getValueOrThrow(Thing.JsonFields.ID);
-        return ThingId.of(thingId);
     }
 
     /**
@@ -181,14 +168,14 @@ final class EnforcementFlow {
 
     }
 
-    private Source<Map<ThingId, SudoRetrieveThingResponse>, NotUsed> sudoRetrieveThingJsons(
+    private Source<Map<ThingId, JsonObject>, NotUsed> sudoRetrieveThingJsons(
             final int parallelism, final Map<ThingId, Metadata> changeMap) {
 
         return Source.fromIterator(changeMap.entrySet()::iterator)
                 .flatMapMerge(parallelism, entry -> sudoRetrieveThing(entry)
                         .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism))
-                .<Map<ThingId, SudoRetrieveThingResponse>>fold(new HashMap<>(), (map, response) -> {
-                    map.put(getThingId(response), response);
+                .<Map<ThingId, JsonObject>>fold(new HashMap<>(), (map, entry) -> {
+                    map.put(entry.getKey(), entry.getValue());
                     return map;
                 })
                 .map(result -> {
@@ -197,36 +184,37 @@ final class EnforcementFlow {
                 });
     }
 
-    private Source<SudoRetrieveThingResponse, NotUsed> sudoRetrieveThing(final Map.Entry<ThingId, Metadata> entry) {
-        final var thingId = entry.getKey();
-        ConsistencyLag.startS3RetrieveThing(entry.getValue());
-        final var command = SudoRetrieveThing.withOriginalSchemaVersion(thingId, DittoHeaders.empty());
-        final CompletionStage<Source<SudoRetrieveThingResponse, NotUsed>> responseFuture =
-                AskWithRetry.askWithRetry(thingsShardRegion, command, askWithRetryConfig, scheduler, cacheDispatcher,
-                        response -> {
-                            if (response instanceof SudoRetrieveThingResponse) {
-                                return Source.single((SudoRetrieveThingResponse) response);
-                            } else {
-                                if (!(response instanceof ThingNotAccessibleException)) {
-                                    log.error("Unexpected response for <{}>: <{}>", command, response);
-                                }
-                                return Source.empty();
-                            }
-                        });
+    private Source<Map.Entry<ThingId, JsonObject>, NotUsed> sudoRetrieveThing(
+            final Map.Entry<ThingId, Metadata> entry) {
 
-        return Source.completionStageSource(responseFuture)
-                .viaMat(Flow.create(), Keep.none());
+        final var thingId = entry.getKey();
+        final var metadata = entry.getValue();
+        ConsistencyLag.startS3RetrieveThing(metadata);
+        final CompletionStage<JsonObject> thingFuture;
+        if (metadata.shouldInvalidateCache()) {
+            thingFuture = thingsFacade.retrieveThing(thingId, List.of(), -1);
+        } else {
+            thingFuture = thingsFacade.retrieveThing(thingId, metadata.getEvents(), metadata.getThingRevision());
+        }
+
+        return Source.fromCompletionStage(thingFuture)
+                .filter(thing -> !thing.isEmpty())
+                .<Map.Entry<ThingId, JsonObject>>map(thing -> new AbstractMap.SimpleImmutableEntry<>(thingId, thing))
+                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Map.Entry<ThingId, JsonObject>, NotUsed>>()
+                        .match(Throwable.class, error -> {
+                            log.error("Unexpected response for SudoRetrieveThing " + thingId, error);
+                            return Source.empty();
+                        })
+                        .build());
     }
 
     private Source<AbstractWriteModel, NotUsed> computeWriteModel(final Metadata metadata,
-            @Nullable final SudoRetrieveThingResponse sudoRetrieveThingResponse) {
+            @Nullable final JsonObject thing) {
 
         ConsistencyLag.startS4GetEnforcer(metadata);
-        if (sudoRetrieveThingResponse == null) {
-            return Source.single(ThingDeleteModel.of(metadata));
+        if (thing == null) {
+            return Source.single(ThingDeleteModel.of(metadata, deleteImmediately));
         } else {
-            final JsonObject thing = sudoRetrieveThingResponse.getEntity().asObject();
-
             return getEnforcer(metadata, thing)
                     .map(entry -> {
                         if (entry.exists()) {
@@ -237,11 +225,11 @@ final class EnforcementFlow {
                                         metadata);
                             } catch (final JsonRuntimeException e) {
                                 log.error(e.getMessage(), e);
-                                return ThingDeleteModel.of(metadata);
+                                return ThingDeleteModel.of(metadata, deleteImmediately);
                             }
                         } else {
                             // no enforcer; delete thing from search index
-                            return ThingDeleteModel.of(metadata);
+                            return ThingDeleteModel.of(metadata, deleteImmediately);
                         }
                     });
         }
@@ -290,6 +278,15 @@ final class EnforcementFlow {
         });
 
         return lazySource.viaMat(Flow.create(), Keep.none());
+    }
+
+    private static CachingSignalEnrichmentFacade createThingsFacade(final ActorRef thingsShardRegion,
+            final Duration timeout,
+            final StreamCacheConfig streamCacheConfig,
+            final MessageDispatcher cacheDispatcher) {
+        final var sudoRetrieveThingFacade = SudoSignalEnrichmentFacade.of(thingsShardRegion, timeout);
+        return CachingSignalEnrichmentFacade.of(sudoRetrieveThingFacade, streamCacheConfig, cacheDispatcher,
+                "things-search_enforcementflow_enforcer_cache_things");
     }
 
 }

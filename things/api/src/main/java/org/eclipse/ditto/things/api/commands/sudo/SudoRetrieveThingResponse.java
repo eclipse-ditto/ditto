@@ -120,7 +120,7 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
     }
 
     @Override
-    public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
+    public JsonObject getEntity(final JsonSchemaVersion schemaVersion) {
         return thing;
     }
 

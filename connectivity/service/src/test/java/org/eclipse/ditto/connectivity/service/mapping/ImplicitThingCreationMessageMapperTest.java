@@ -41,6 +41,7 @@ import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConflictException;
@@ -297,6 +298,22 @@ public final class ImplicitThingCreationMessageMapperTest {
         final Adaptable errorAdaptable = DittoProtocolAdapter.newInstance().toAdaptable(thingErrorResponse);
         assertThatExceptionOfType(ThingConflictException.class)
                 .isThrownBy(() -> underTest.map(errorAdaptable));
+    }
+
+    @Test
+    public void throwErrorIfThingIdIsInvalidAfterPlaceholderResolution() {
+        final JsonObject templateInvalidThingId = JsonObject.newBuilder()
+                .set("thingId", "{{header:id}}")
+                .build();
+
+        final DefaultMessageMapperConfiguration mapperConfig =
+                createMapperConfig(templateInvalidThingId, COMMAND_HEADERS);
+
+        final var externalMessage = ExternalMessageFactory.newExternalMessageBuilder(Map.of("id", "invalid")).build();
+
+        underTest.configure(connectionContext, mapperConfig);
+
+        assertThatExceptionOfType(ThingIdInvalidException.class).isThrownBy(() -> underTest.map(externalMessage));
     }
 
     @Test

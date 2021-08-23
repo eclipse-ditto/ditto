@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.model.signals.events;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -48,6 +49,14 @@ public interface ThingEvent<T extends ThingEvent<T>> extends EventsourcedEvent<T
 
     @Override
     T setDittoHeaders(DittoHeaders dittoHeaders);
+
+    /**
+     * Get the category of the command that caused this event.
+     *
+     * @return the command category.
+     * @since 2.1.0
+     */
+    Command.Category getCommandCategory();
 
     /**
      * An enumeration of the known {@link org.eclipse.ditto.json.JsonField}s of an event.

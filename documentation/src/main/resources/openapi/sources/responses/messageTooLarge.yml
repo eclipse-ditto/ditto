@@ -9,7 +9,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 description: |-
-  The size of the send message is larger than the accepted limit of 250 kB.
+  The size of the sent message is larger than the accepted limit of 250 kB.
 content:
   application/json:
     schema:

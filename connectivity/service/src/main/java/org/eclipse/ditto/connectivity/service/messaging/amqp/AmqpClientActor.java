@@ -18,7 +18,6 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -394,32 +393,6 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             disconnectConnectionHandler = null;
         }
         super.cleanupFurtherResourcesOnConnectionTimeout(currentState);
-    }
-
-    @Override
-    protected boolean isEventUpToDate(final Object event, final BaseClientState state,
-            @Nullable final ActorRef sender) {
-        if (getSelf().equals(sender)) {
-            // events from self are always relevant
-            return true;
-        }
-        switch (state) {
-            case CONNECTED:
-                // while connected, events from publisher or consumer child actors are relevant
-                return sender != null &&
-                        sender.path().toStringWithoutAddress().startsWith(getSelf().path().toStringWithoutAddress()) &&
-                        (sender.path().name().startsWith(AmqpConsumerActor.ACTOR_NAME_PREFIX) ||
-                                sender.path().name().startsWith(AmqpPublisherActor.ACTOR_NAME_PREFIX));
-            case CONNECTING:
-                return Objects.equals(sender, connectConnectionHandler);
-            case DISCONNECTING:
-                return Objects.equals(sender, disconnectConnectionHandler);
-            case TESTING:
-            default:
-                // no need to check testConnectionHandler because test runs only once during this actor's lifetime
-                // ignore random events by default - they could come from a connection handler that is already dead
-                return false;
-        }
     }
 
     @Override

@@ -31,7 +31,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
-import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -44,6 +43,7 @@ import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteExpiredSubject;
+import org.eclipse.ditto.policies.service.common.config.PolicyAnnouncementConfig;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 
 import akka.NotUsed;
@@ -80,6 +80,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     private final DeleteExpiredSubject deleteExpiredSubject;
     private final Duration persistenceTimeout;
     private final ActorRef commandForwarder;
+    private final boolean enableAnnouncementsWhenDeleted;
 
     private final Duration maxBackOff;
     private final double backOffRandomFactor;
@@ -92,11 +93,12 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     @SuppressWarnings("unused")
     private SubjectExpiryActor(final PolicyId policyId, final Subject subject, final Duration gracePeriod,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
-            final Duration maxTimeout, final ActorRef commandForwarder, final ExponentialBackOffConfig backOffConfig) {
+            final Duration maxTimeout, final ActorRef commandForwarder, final PolicyAnnouncementConfig config) {
         this.policyId = policyId;
         this.subject = subject;
         this.gracePeriod = gracePeriod;
         this.policyAnnouncementPub = policyAnnouncementPub;
+        enableAnnouncementsWhenDeleted = config.isEnableAnnouncementsWhenDeleted();
 
         ackregatorStarter =
                 AcknowledgementAggregatorActorStarter.of(getContext(), maxTimeout, HeaderTranslator.empty());
@@ -105,6 +107,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
                 DeleteExpiredSubject.of(policyId, subject, DittoHeaders.newBuilder().responseRequired(false).build());
         persistenceTimeout = maxTimeout;
 
+        final var backOffConfig = config.getExponentialBackOffConfig();
         maxBackOff = backOffConfig.getMax();
         backOffRandomFactor = Math.max(0.0, backOffConfig.getRandomFactor());
 
@@ -123,14 +126,15 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
      * @param policyAnnouncementPub Ditto pubsub API to publish policy announcements.
      * @param maxTimeout the maximum timeout.
      * @param forwarder actor to forward policy commands to.
+     * @param config the policy announcement config.
      * @return The Props object.
      */
     public static Props props(final PolicyId policyId, final Subject subject, final Duration gracePeriod,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub, final Duration maxTimeout,
-            final ActorRef forwarder, final ExponentialBackOffConfig backOffConfig) {
+            final ActorRef forwarder, final PolicyAnnouncementConfig config) {
 
         return Props.create(SubjectExpiryActor.class, policyId, subject, gracePeriod, policyAnnouncementPub,
-                maxTimeout, forwarder, backOffConfig);
+                maxTimeout, forwarder, config);
     }
 
     @Override
@@ -375,7 +379,8 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     }
 
     private boolean shouldAnnounceWhenDeleted() {
-        return subject.getAnnouncement().filter(SubjectAnnouncement::isWhenDeleted).isPresent();
+        return enableAnnouncementsWhenDeleted &&
+                subject.getAnnouncement().filter(SubjectAnnouncement::isWhenDeleted).isPresent();
     }
 
     private boolean shouldRetry(final Acknowledgements acks) {

@@ -30,12 +30,12 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
-import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.internal.utils.pubsub.api.RemoveSubscriber;
 import org.eclipse.ditto.internal.utils.pubsub.api.Request;
 import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
 import org.eclipse.ditto.internal.utils.pubsub.api.Subscribe;
 import org.eclipse.ditto.internal.utils.pubsub.api.Unsubscribe;
+import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.Subscriptions;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.SubscriptionsReader;
@@ -63,6 +63,8 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
      * Prefix of this actor's name.
      */
     public static final String ACTOR_NAME_PREFIX = "subUpdater";
+
+    public static final int MAX_ERROR_COUNTER = 3;
 
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
     private final Subscriptions<LiteralUpdate> subscriptions;
@@ -93,6 +95,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
     private boolean localSubscriptionsChanged = false;
     private int seqNr = 0;
     private LiteralUpdate previousUpdate = LiteralUpdate.empty();
+    private int errorCounter = 0;
 
     @SuppressWarnings("unused")
     private SubUpdater(final PubSubConfig config,
@@ -183,6 +186,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
     }
 
     private void ddataOpSuccess(final DDataOpSuccess<SubscriptionsReader> opSuccess) {
+        errorCounter = 0;
         flushSubAcks(opSuccess.seqNr);
         // race condition possible -- some published messages may arrive before the acknowledgement
         // could solve it by having pubSubSubscriber forward acknowledgements. probably not worth it.
@@ -237,7 +241,12 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
      * @param failure the update failure.
      */
     private void updateFailure(final Status.Failure failure) {
-        log.error(failure.cause(), "Failure updating Ditto pub/sub subscription - trying again next clock tick");
+        ++errorCounter;
+        if (errorCounter > MAX_ERROR_COUNTER) {
+            log.error(failure.cause(), "Failure updating Ditto pub/sub subscription - trying again next clock tick");
+        } else {
+            log.warning("Failure updating Ditto pub/sub subscription - trying again next clock tick");
+        }
         // try again next clock tick
         localSubscriptionsChanged = true;
     }

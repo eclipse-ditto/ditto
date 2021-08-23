@@ -43,6 +43,13 @@ public interface PolicyAnnouncementConfig {
     Duration getMaxTimeout();
 
     /**
+     * Returns whether announcements are published for subjects upon deletion when requested.
+     *
+     * @return whether announcements-when-deleted are enabled.
+     */
+    boolean isEnableAnnouncementsWhenDeleted();
+
+    /**
      * Returns the config for the exponential back-off strategy of announcement redelivery.
      *
      * @return the config.
@@ -74,7 +81,12 @@ public interface PolicyAnnouncementConfig {
         /**
          * The maximum timeout.
          */
-        MAX_TIMEOUT("max-timeout", Duration.ofMinutes(1L));
+        MAX_TIMEOUT("max-timeout", Duration.ofMinutes(1L)),
+
+        /**
+         * Whether when-deleted announcements are enabled.
+         */
+        ENABLE_ANNOUNCEMENTS_WHEN_DELETED("enable-announcements-when-deleted", true);
 
         private final String path;
         private final Object defaultValue;

@@ -182,14 +182,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                     log.error(e, "Failed to register for connectivity connfig changes");
                     return null;
                 });
-        try {
-            initMessageConsumer();
-        } catch (final Exception e) {
-            final var failure =
-                    ConnectionFailure.of(getSelf(), e, "Failed to initialize message consumers.");
-            getContext().getParent().tell(failure, getSelf());
-            getContext().stop(getSelf());
-        }
+        initMessageConsumer();
     }
 
     @Override
@@ -235,10 +228,17 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         return messageRateLimiter;
     }
 
-    private void initMessageConsumer() throws JMSException {
-        if (messageConsumer != null) {
-            messageConsumer.setMessageListener(this);
-            consumerData = consumerData.withMessageConsumer(messageConsumer);
+    private void initMessageConsumer() {
+        try {
+            if (messageConsumer != null) {
+                messageConsumer.setMessageListener(this);
+                consumerData = consumerData.withMessageConsumer(messageConsumer);
+            }
+        } catch (final Exception e) {
+            final var failure =
+                    ConnectionFailure.of(getSelf(), e, "Failed to initialize message consumers.");
+            getContext().getParent().tell(failure, getSelf());
+            getContext().stop(getSelf());
         }
     }
 
@@ -286,7 +286,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         Patterns.pipe(responseFuture, getContext().getDispatcher()).to(getSelf());
     }
 
-    private void messageConsumerCreated(final CreateMessageConsumerResponse response) throws JMSException {
+    private void messageConsumerCreated(final CreateMessageConsumerResponse response) {
         if (consumerData.equals(response.consumerData)) {
             log.info("Consumer <{}> created", response.messageConsumer);
             destroyMessageConsumer();

@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -50,7 +51,6 @@ import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.signing.NoOpSigning;
-import org.eclipse.ditto.internal.utils.akka.controlflow.TimeMeasuringFlow;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
@@ -166,9 +166,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 .maximumDuration(requestTimeout.plus(Duration.ofSeconds(5)))
                 .tag("id", connection.getId().toString());
 
-        final Sink<Duration, CompletionStage<Done>> logRequestTimes = Sink.<Duration>foreach(duration ->
-                connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis())
-        );
+        final Consumer<Duration> logRequestTimes =
+                duration -> connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis());
 
         final Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> requestSigningFlow =
                 Flow.<Pair<HttpRequest, HttpPushContext>>create()
@@ -178,11 +177,11 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                                     return Pair.create(signedRequest, pair.second());
                                 }));
 
-        final var httpPushFlow = factory.<HttpPushContext>createFlow(getContext().getSystem(), logger, requestTimeout);
+        final var httpPushFlow =
+                factory.<HttpPushContext>createFlow(getContext().getSystem(), logger, requestTimeout, timer,
+                        logRequestTimes);
 
-        final var httpFlowIncludingRequestSigning = requestSigningFlow.via(httpPushFlow);
-
-        return TimeMeasuringFlow.measureTimeOf(httpFlowIncludingRequestSigning, timer, logRequestTimes);
+        return requestSigningFlow.via(httpPushFlow);
     }
 
     @Override

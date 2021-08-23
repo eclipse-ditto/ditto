@@ -82,6 +82,8 @@ post:
             $ref: '../../schemas/errors/advancedError.yml'
     '413':
       $ref: '../../responses/messageTooLarge.yml'
+    '424':
+      $ref: '../../responses/dependencyFailed.yml'
     '503':
       $ref: '../../responses/messageTimeout.yml'
   requestBody:

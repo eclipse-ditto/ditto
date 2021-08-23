@@ -22,6 +22,7 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -180,6 +181,11 @@ public final class FeatureDefinitionModified extends AbstractThingEvent<FeatureD
     public FeatureDefinitionModified setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getEntityId(), featureId, definition, getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
+    }
+
+    @Override
+    public Command.Category getCommandCategory() {
+        return Command.Category.MODIFY;
     }
 
     @Override
