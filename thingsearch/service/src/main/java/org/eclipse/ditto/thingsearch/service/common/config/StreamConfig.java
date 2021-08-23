@@ -40,6 +40,13 @@ public interface StreamConfig {
     Duration getWriteInterval();
 
     /**
+     * Returns whether to delete entries from the search index immediately.
+     *
+     * @return whether to delete immediately.
+     */
+    boolean isDeleteImmediately();
+
+    /**
      * Returns the configuration for the used "ask with retry" pattern in the search updater for retrieval of things and
      * policies.
      *
@@ -81,7 +88,12 @@ public interface StreamConfig {
         /**
          * The minimal delay between event dumps.
          */
-        WRITE_INTERVAL("write-interval", Duration.ofSeconds(1L));
+        WRITE_INTERVAL("write-interval", Duration.ofSeconds(1L)),
+
+        /**
+         * Whether to delete entries from the search index immediately.
+         */
+        DELETE_IMMEDIATELY("delete-immediately", true);
 
         private final String configPath;
         private final Object defaultValue;

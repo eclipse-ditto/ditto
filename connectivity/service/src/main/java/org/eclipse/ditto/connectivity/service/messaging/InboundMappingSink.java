@@ -62,11 +62,13 @@ public final class InboundMappingSink {
             @Nullable final ThrottlingConfig throttlingConfig,
             final MessageDispatcher messageMappingProcessorDispatcher) {
 
-        this.initialInboundMappingProcessor = checkNotNull(initialInboundMappingProcessor, "initialInboundMappingProcessor");
+        this.initialInboundMappingProcessor =
+                checkNotNull(initialInboundMappingProcessor, "initialInboundMappingProcessor");
         this.inboundDispatchingSink = checkNotNull(inboundDispatchingSink, "inboundDispatchingSink");
         checkNotNull(mappingConfig, "mappingConfig");
         this.throttlingConfig = throttlingConfig;
-        this.messageMappingProcessorDispatcher = checkNotNull(messageMappingProcessorDispatcher, "messageMappingProcessorDispatcher");
+        this.messageMappingProcessorDispatcher =
+                checkNotNull(messageMappingProcessorDispatcher, "messageMappingProcessorDispatcher");
 
         logger = DittoLoggerFactory.getThreadSafeLogger(InboundMappingSink.class)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
@@ -85,9 +87,9 @@ public final class InboundMappingSink {
      * @param mappingConfig The mapping config.
      * @param throttlingConfig the throttling config.
      * @param messageMappingProcessorDispatcher The dispatcher which is used for async mapping.
+     * @return the Sink.
      * @throws java.lang.NullPointerException if any of the passed arguments except {@code throttlingConfig} was
      * {@code null}.
-     * @return the Sink.
      */
     public static Sink<Object, NotUsed> createSink(
             final InboundMappingProcessor inboundMappingProcessor,

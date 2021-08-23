@@ -194,7 +194,7 @@ public final class ProtocolFactory {
      * @return the builder.
      */
     public static PayloadBuilder newPayloadBuilder() {
-        return newPayloadBuilder(null);
+        return newPayloadBuilder(JsonPointer.empty());
     }
 
     /**
@@ -203,8 +203,19 @@ public final class ProtocolFactory {
      * @param path the path.
      * @return the builder.
      */
-    public static PayloadBuilder newPayloadBuilder(@Nullable final JsonPointer path) {
+    public static PayloadBuilder newPayloadBuilder(final JsonPointer path) {
         return ImmutablePayload.getBuilder(path);
+    }
+
+    /**
+     * Copy the payload's content into a new {@code PayloadBuilder}.
+     *
+     * @param payload the payload.
+     * @return the builder.
+     * @since 2.1.0
+     */
+    public static PayloadBuilder toPayloadBuilder(final Payload payload) {
+        return new ImmutablePayload.ImmutablePayloadBuilder(payload);
     }
 
     /**

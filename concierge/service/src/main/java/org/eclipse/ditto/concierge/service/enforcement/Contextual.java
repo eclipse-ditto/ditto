@@ -54,7 +54,6 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     private final ThreadSafeDittoLoggingAdapter log;
 
     @Nullable private final CacheKey cacheKey;
-    @Nullable private final StartedTimer startedTimer;
     @Nullable private final ActorRef receiver;
     @Nullable private final Function<Object, Object> receiverWrapperFunction;
 
@@ -75,7 +74,6 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
             final AskWithRetryConfig askWithRetryConfig,
             final ThreadSafeDittoLoggingAdapter log,
             @Nullable final CacheKey cacheKey,
-            @Nullable final StartedTimer startedTimer,
             @Nullable final ActorRef receiver,
             @Nullable final Function<Object, Object> receiverWrapperFunction,
             @Nullable final Cache<String, ActorRef> responseReceivers,
@@ -90,7 +88,6 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         this.askWithRetryConfig = askWithRetryConfig;
         this.log = log;
         this.cacheKey = cacheKey;
-        this.startedTimer = startedTimer;
         this.receiver = receiver;
         this.receiverWrapperFunction = receiverWrapperFunction;
         this.responseReceivers = responseReceivers;
@@ -117,7 +114,6 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 null,
                 null,
                 null,
-                null,
                 responseReceivers,
                 null);
     }
@@ -132,7 +128,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
      */
     Contextual<T> withAskFuture(final Supplier<CompletionStage<Object>> askFuture) {
         return new Contextual<>(message, self, sender, scheduler, executor, pubSubMediator, conciergeForwarder,
-                askWithRetryConfig, log, cacheKey, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+                askWithRetryConfig, log, cacheKey, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture);
     }
 
@@ -225,10 +221,6 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         return cacheKey;
     }
 
-    Optional<StartedTimer> getStartedTimer() {
-        return Optional.ofNullable(startedTimer);
-    }
-
     Optional<ActorRef> getReceiver() {
         return Optional.ofNullable(receiver);
     }
@@ -248,25 +240,25 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     <S extends WithDittoHeaders> Contextual<S> withReceivedMessage(@Nullable final S message,
             @Nullable final ActorRef sender) {
         return new Contextual<>(message, self, sender, scheduler, executor, pubSubMediator, conciergeForwarder,
-                askWithRetryConfig, log, cacheKeyFor(message), startedTimer, receiver, receiverWrapperFunction,
+                askWithRetryConfig, log, cacheKeyFor(message), receiver, receiverWrapperFunction,
                 responseReceivers, askFuture);
     }
 
     Contextual<T> withTimer(final StartedTimer startedTimer) {
         return new Contextual<>(message, self, sender, scheduler, executor, pubSubMediator, conciergeForwarder,
-                askWithRetryConfig, log, cacheKey, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+                askWithRetryConfig, log, cacheKey, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture);
     }
 
     Contextual<T> withReceiver(@Nullable final ActorRef receiver) {
         return new Contextual<>(message, self, sender, scheduler, executor, pubSubMediator, conciergeForwarder,
-                askWithRetryConfig, log, cacheKey, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+                askWithRetryConfig, log, cacheKey, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture);
     }
 
     Contextual<T> withReceiverWrapperFunction(final Function<Object, Object> receiverWrapperFunction) {
         return new Contextual<>(message, self, sender, scheduler, executor, pubSubMediator, conciergeForwarder,
-                askWithRetryConfig, log, cacheKey, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
+                askWithRetryConfig, log, cacheKey, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture);
     }
 
@@ -277,12 +269,13 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
             return null;
         } else if (signal instanceof DittoRuntimeException) {
             return null;
-        } else
+        } else {
             return WithEntityId.getEntityIdOfType(EntityId.class, signal)
                     .map(CacheKey::of)
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Contextual: processed WithDittoHeaders message did not implement " +
                                     "WithResource or WithEntityId: " + signal.getClass().getSimpleName()));
+        }
     }
 
     @Override

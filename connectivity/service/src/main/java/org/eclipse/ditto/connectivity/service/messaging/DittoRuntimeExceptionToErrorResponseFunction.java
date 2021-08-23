@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
@@ -76,28 +77,51 @@ final class DittoRuntimeExceptionToErrorResponseFunction
             @Nullable final TopicPath topicPath) {
 
         return getEntityId(exception, topicPath)
-                .map(PolicyId::of)
+                .flatMap(constructEntityIdSafely(PolicyId::of))
                 .map(policyId -> PolicyErrorResponse.of(policyId, exception, truncateHeaders(exception)))
-                .orElseGet(() -> PolicyErrorResponse.of(exception, truncateHeaders(exception)));
+                .orElseGet(() -> PolicyErrorResponse.of(exception, truncateHeaders(exception.getDittoHeaders()
+                        .toBuilder()
+                        .removeHeader(DittoHeaderDefinition.ENTITY_ID.getKey())
+                        .build())));
     }
 
     private ThingErrorResponse getThingErrorResponse(final DittoRuntimeException exception,
             @Nullable final TopicPath topicPath) {
 
         return getEntityId(exception, topicPath)
-                .map(ThingId::of)
+                .flatMap(constructEntityIdSafely(ThingId::of))
                 .map(thingId -> ThingErrorResponse.of(thingId, exception, truncateHeaders(exception)))
-                .orElseGet(() -> ThingErrorResponse.of(exception, truncateHeaders(exception)));
+                .orElseGet(() -> ThingErrorResponse.of(exception, truncateHeaders(exception.getDittoHeaders()
+                        .toBuilder()
+                        .removeHeader(DittoHeaderDefinition.ENTITY_ID.getKey())
+                        .build())));
+    }
+
+    private static <T> Function<EntityId, Optional<T>> constructEntityIdSafely(
+            final Function<EntityId, T> constructor) {
+        return entityId -> {
+            try {
+                return Optional.of(constructor.apply(entityId));
+            } catch (final DittoRuntimeException e) {
+                // entity ID is invalid
+                return Optional.empty();
+            }
+        };
     }
 
     private static Optional<EntityId> getEntityId(final WithDittoHeaders e, @Nullable final TopicPath topicPath) {
-        final Optional<EntityId> result;
-        if (null != topicPath) {
-            result = getEntityIdFromTopicPath(topicPath);
-        } else {
-            result = getEntityIdFromDittoHeaders(e.getDittoHeaders());
+        try {
+            final Optional<EntityId> result;
+            if (null != topicPath) {
+                result = getEntityIdFromTopicPath(topicPath);
+            } else {
+                result = getEntityIdFromDittoHeaders(e.getDittoHeaders());
+            }
+            return result;
+        } catch (final Exception e2) {
+            // entity ID from available information is not valid for the entity type
+            return Optional.empty();
         }
-        return result;
     }
 
     private static Optional<EntityId> getEntityIdFromTopicPath(final TopicPath topicPath) {
@@ -133,6 +157,10 @@ final class DittoRuntimeExceptionToErrorResponseFunction
          * instance due to cluster routing.
          */
         final var dittoHeaders = withDittoHeaders.getDittoHeaders();
+        return truncateHeaders(dittoHeaders);
+    }
+
+    private DittoHeaders truncateHeaders(final DittoHeaders dittoHeaders) {
         return dittoHeaders.truncate(headersMaxSize);
     }
 

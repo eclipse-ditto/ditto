@@ -12,7 +12,10 @@
  */
 package org.eclipse.ditto.gateway.service.security.authentication;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -33,6 +36,7 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayServiceUnavailableException;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -184,6 +188,59 @@ public final class AuthenticationChainTest {
         verify(authenticationProviderA).authenticate(requestContextMock, dittoHeaders);
         verify(authenticationProviderB, never()).authenticate(requestContextMock, dittoHeaders);
         softly.assertThat(authenticationResult).isEqualTo(expectedAuthenticationResult);
+    }
+
+    @Test
+    public void synchronousExceptionDoesNotAbortAuthenticationChain() {
+        final RequestContext requestContextMock = mock(RequestContext.class);
+        final DittoRuntimeException error = GatewayServiceUnavailableException.newBuilder().build();
+        final var expectedAuthenticationResult =
+                DefaultAuthenticationResult.successful(dittoHeaders, knownAuthorizationContext);
+        when(authenticationProviderA.isApplicable(any())).thenReturn(true);
+        when(authenticationProviderA.authenticate(any(), any())).thenThrow(error);
+        when(authenticationProviderB.isApplicable(any())).thenReturn(true);
+        when(authenticationProviderB.authenticate(any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(expectedAuthenticationResult));
+        final AuthenticationChain underTest =
+                AuthenticationChain.getInstance(Arrays.asList(authenticationProviderA, authenticationProviderB),
+                        authenticationFailureAggregator,
+                        messageDispatcher);
+
+        final AuthenticationResult authenticationResult =
+                underTest.authenticate(requestContextMock, dittoHeaders).join();
+
+        assertThat(authenticationResult).isEqualTo(expectedAuthenticationResult);
+        verify(authenticationProviderA).isApplicable(eq(requestContextMock));
+        verify(authenticationProviderB).isApplicable(eq(requestContextMock));
+        verify(authenticationProviderA).authenticate(eq(requestContextMock), eq(dittoHeaders));
+        verify(authenticationProviderB).authenticate(eq(requestContextMock), eq(dittoHeaders));
+    }
+
+    @Test
+    public void asynchronousExceptionDoesNotAbortAuthenticationChain() {
+        final RequestContext requestContextMock = mock(RequestContext.class);
+        final DittoRuntimeException error = GatewayServiceUnavailableException.newBuilder().build();
+        final var expectedAuthenticationResult =
+                DefaultAuthenticationResult.successful(dittoHeaders, knownAuthorizationContext);
+        when(authenticationProviderA.isApplicable(any())).thenReturn(true);
+        when(authenticationProviderA.authenticate(any(), any()))
+                .thenReturn(CompletableFuture.failedFuture(error));
+        when(authenticationProviderB.isApplicable(any())).thenReturn(true);
+        when(authenticationProviderB.authenticate(any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(expectedAuthenticationResult));
+        final AuthenticationChain underTest =
+                AuthenticationChain.getInstance(Arrays.asList(authenticationProviderA, authenticationProviderB),
+                        authenticationFailureAggregator,
+                        messageDispatcher);
+
+        final AuthenticationResult authenticationResult =
+                underTest.authenticate(requestContextMock, dittoHeaders).join();
+
+        assertThat(authenticationResult).isEqualTo(expectedAuthenticationResult);
+        verify(authenticationProviderA).isApplicable(eq(requestContextMock));
+        verify(authenticationProviderB).isApplicable(eq(requestContextMock));
+        verify(authenticationProviderA).authenticate(eq(requestContextMock), eq(dittoHeaders));
+        verify(authenticationProviderB).authenticate(eq(requestContextMock), eq(dittoHeaders));
     }
 
     @Test

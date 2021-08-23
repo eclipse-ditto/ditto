@@ -18,6 +18,8 @@ import static akka.http.javadsl.server.Directives.extractRequestContext;
 import static akka.http.javadsl.server.Directives.redirect;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -31,6 +33,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.slf4j.Logger;
 
 import akka.http.javadsl.model.HttpHeader;
+import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.server.RequestContext;
@@ -40,10 +43,6 @@ import akka.http.javadsl.server.Route;
  * Custom Akka Http directive ensuring that proxied requests only come via HTTPs.
  */
 public final class HttpsEnsuringDirective {
-
-    public static final String X_FORWARDED_PROTO_LBAAS = "x_forwarded_proto"; // LBaaS sets this value
-
-    private static final String X_FORWARDED_PROTO_STANDARD = "X-Forwarded-Proto";
 
     private static final String HTTPS_PROTO = "https";
     private static final String HTTPS_TEXT =
@@ -82,7 +81,7 @@ public final class HttpsEnsuringDirective {
      * @param inner the inner route to be wrapped with the HTTPs check.
      * @return the new route wrapping {@code inner} with the HTTPs check.
      */
-    public Route ensureHttps(final CharSequence correlationId, final Supplier<Route> inner) {
+    public Route ensureHttps(@Nullable final CharSequence correlationId, final Supplier<Route> inner) {
         final ThreadSafeDittoLogger logger;
         if (null != correlationId) {
             logger = LOGGER.withCorrelationId(correlationId);
@@ -110,26 +109,14 @@ public final class HttpsEnsuringDirective {
                 }));
     }
 
-    @Nullable
-    private static String getForwardedProtoHeaderOrNull(final Uri requestUri, final RequestContext requestContext,
+    private String getForwardedProtoHeaderOrNull(final Uri requestUri, final RequestContext requestContext,
             final Logger logger) {
 
-        @Nullable final String result = requestContext.getRequest()
-                .getHeader(X_FORWARDED_PROTO_STANDARD)
-                .map(HttpHeader::value)
-                .filter(value -> !value.isEmpty())
-                .orElseGet(() -> requestContext.getRequest()
-                        .getHeader(X_FORWARDED_PROTO_LBAAS)
-                        .map(HttpHeader::value)
-                        .filter(value -> !value.isEmpty())
-                        .orElse(null));
+        final String result = getHeader(requestContext.getRequest(), httpConfig.getProtocolHeaders())
+                .orElseGet(requestUri::getScheme);
 
-        if (null != result) {
-            logger.debug("Header <{}> was <{}> for URI <{}>.", X_FORWARDED_PROTO_STANDARD, result, requestUri);
-        } else {
-            logger.debug("Neither header <{}> nor <{}> set for URI <{}>.", X_FORWARDED_PROTO_STANDARD,
-                    X_FORWARDED_PROTO_LBAAS, requestUri);
-        }
+        logger.debug("Read protocol <{}> from headers <{}> or from URI <{}>.", result, requestUri,
+                httpConfig.getProtocolHeaders());
 
         return result;
     }
@@ -158,6 +145,16 @@ public final class HttpsEnsuringDirective {
         logger.info("REST request on URI <{}> did not originate via HTTPS, sending back <{}>.", requestUri,
                 StatusCodes.NOT_FOUND);
         return complete(StatusCodes.NOT_FOUND, HTTPS_TEXT);
+    }
+
+    private static Optional<String> getHeader(final HttpRequest request, final List<String> protocolHeaderNames) {
+        for (final var headerName : protocolHeaderNames) {
+            final var header = request.getHeader(headerName);
+            if (header.isPresent()) {
+                return header.map(HttpHeader::value);
+            }
+        }
+        return Optional.empty();
     }
 
 }

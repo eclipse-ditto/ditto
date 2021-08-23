@@ -17,10 +17,13 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -122,7 +125,7 @@ public final class AuthenticationChain {
                 final RequestContext requestContext,
                 final DittoHeaders dittoHeaders) {
             this.successResult = successResult;
-            this.failureResults = failureResults;
+            this.failureResults = Collections.unmodifiableList(failureResults);
             this.requestContext = requestContext;
             this.dittoHeaders = dittoHeaders;
         }
@@ -135,9 +138,16 @@ public final class AuthenticationChain {
                 return new AuthResultAccumulator(nextResult, failureResults, requestContext, dittoHeaders);
             } else {
                 logFailure(authenticationProvider, nextResult);
-                failureResults.add(nextResult);
-                return new AuthResultAccumulator(successResult, failureResults, requestContext, dittoHeaders);
+                final var newFailureResults =
+                        Stream.concat(failureResults.stream(), Stream.of(nextResult)).collect(Collectors.toList());
+                return new AuthResultAccumulator(successResult, newFailureResults, requestContext, dittoHeaders);
             }
+        }
+
+        private AuthResultAccumulator appendFailure(final AuthenticationProvider<?> provider,
+                final Throwable throwable) {
+
+            return appendResult(provider, DefaultAuthenticationResult.failed(dittoHeaders, throwable));
         }
 
         private void logSuccess(final AuthenticationProvider<?> provider) {
@@ -164,8 +174,11 @@ public final class AuthenticationChain {
                 return CompletableFuture.completedFuture(this);
             } else {
                 return other.thenApplyAsync(that -> {
-                    failureResults.addAll(that.failureResults);
-                    return new AuthResultAccumulator(that.successResult, failureResults, requestContext, dittoHeaders);
+                    final var newFailureResults =
+                            Stream.concat(failureResults.stream(), that.failureResults.stream())
+                                    .collect(Collectors.toList());
+                    return new AuthResultAccumulator(that.successResult, newFailureResults, requestContext,
+                            dittoHeaders);
                 }, authenticationDispatcher);
             }
         }
@@ -173,9 +186,14 @@ public final class AuthenticationChain {
         private CompletableFuture<AuthResultAccumulator> andThen(
                 final AuthenticationProvider<?> authenticationProvider) {
             if (successResult == null && authenticationProvider.isApplicable(requestContext)) {
-                return authenticationProvider.authenticate(requestContext, dittoHeaders)
-                        .thenApplyAsync(result -> appendResult(authenticationProvider, result),
-                                authenticationDispatcher);
+                try {
+                    return authenticationProvider.authenticate(requestContext, dittoHeaders)
+                            .thenApplyAsync(result -> appendResult(authenticationProvider, result),
+                                    authenticationDispatcher)
+                            .exceptionally(e -> appendFailure(authenticationProvider, e));
+                } catch (final Throwable e) {
+                    return CompletableFuture.completedFuture(appendFailure(authenticationProvider, e));
+                }
             } else {
                 return CompletableFuture.completedFuture(this);
             }
