@@ -30,7 +30,6 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Enforcement;
@@ -39,7 +38,8 @@ import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -71,8 +71,9 @@ final class KafkaConsumerActor extends BaseConsumerActor {
     private KafkaConsumerActor(final Connection connection,
             final KafkaConsumerSourceSupplier sourceSupplier,
             final String sourceAddress, final Sink<Object, NotUsed> inboundMappingSink,
-            final Source source, final boolean dryRun) {
-        super(connection, sourceAddress, inboundMappingSink, source);
+            final Source source, final ConnectivityStatusResolver connectivityStatusResolver,
+            final boolean dryRun) {
+        super(connection, sourceAddress, inboundMappingSink, source, connectivityStatusResolver);
 
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
@@ -88,11 +89,14 @@ final class KafkaConsumerActor extends BaseConsumerActor {
     }
 
     static Props props(final Connection connection,
-            final KafkaConsumerSourceSupplier sourceSupplier, final String sourceAddress,
-            final Sink<Object, NotUsed> inboundMappingSink, final Source source,
+            final KafkaConsumerSourceSupplier sourceSupplier,
+            final String sourceAddress,
+            final Sink<Object, NotUsed> inboundMappingSink,
+            final Source source,
+            final ConnectivityStatusResolver connectivityStatusResolver,
             final boolean dryRun) {
         return Props.create(KafkaConsumerActor.class, connection, sourceSupplier, sourceAddress,
-                inboundMappingSink, source, dryRun);
+                inboundMappingSink, source, connectivityStatusResolver, dryRun);
     }
 
     @Override
@@ -251,31 +255,34 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
         private void handleStreamCompletion(@Nullable final Done done, @Nullable final Throwable throwable) {
             final ConnectivityStatus status;
+            final ResourceStatus statusUpdate;
+            final Instant now = Instant.now();
             if (null == throwable) {
                 status = ConnectivityStatus.CLOSED;
+                statusUpdate = ConnectivityModelFactory.newStatusUpdate(
+                        InstanceIdentifierSupplier.getInstance().get(),
+                        status,
+                        sourceAddress,
+                        "Consumer closed", now);
             } else {
-                log.debug("Consumer failed with error! {}", throwable.getMessage());
-                status = ConnectivityStatus.FAILED;
-                final ConnectivityInternalErrorException exception = ConnectivityInternalErrorException.newBuilder()
-                        .cause(throwable)
-                        .message(throwable.getMessage())
-                        .description("Unexpected consumer failure.")
-                        .build();
-                inboundMonitor.exception(exception);
-                escalate(exception);
+                log.debug("Consumer failed with error! <{}: {}>", throwable.getClass().getSimpleName(),
+                        throwable.getMessage());
+                status = connectivityStatusResolver.resolve(throwable);
+                escalate(throwable, "Unexpected consumer failure.");
+                statusUpdate = ConnectivityModelFactory.newStatusUpdate(
+                        InstanceIdentifierSupplier.getInstance().get(),
+                        status,
+                        sourceAddress,
+                        ConnectionFailure.determineFailureDescription(now, throwable,
+                                "Kafka consumer failed."), now);
             }
-            final ResourceStatus statusUpdate = ConnectivityModelFactory.newStatusUpdate(
-                    InstanceIdentifierSupplier.getInstance().get(),
-                    status,
-                    sourceAddress,
-                    "Consumer closed", Instant.now());
             handleAddressStatus(statusUpdate);
         }
 
-        private void escalate(final DittoRuntimeException dittoRuntimeException) {
+        private void escalate(final Throwable throwable, final String description) {
             final ActorRef self = getContext().getSelf();
             getContext().getParent()
-                    .tell(new ImmutableConnectionFailure(self, dittoRuntimeException, null), self);
+                    .tell(ConnectionFailure.of(self, throwable, description), self);
         }
 
         private void stop() {

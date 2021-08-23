@@ -22,6 +22,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.EnforcementFilter;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
@@ -40,8 +41,9 @@ public final class HiveMqtt3ConsumerActor extends AbstractMqttConsumerActor<Mqtt
 
     @SuppressWarnings("unused")
     private HiveMqtt3ConsumerActor(final Connection connection, final Sink<Object, NotUsed> inboundMappingSink,
-            final Source source, final boolean dryRun, final boolean reconnectForRedelivery) {
-        super(connection, inboundMappingSink, source, dryRun, reconnectForRedelivery);
+            final Source source, final boolean dryRun, final boolean reconnectForRedelivery,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
+        super(connection, inboundMappingSink, source, dryRun, reconnectForRedelivery, connectivityStatusResolver);
     }
 
     /**
@@ -52,13 +54,18 @@ public final class HiveMqtt3ConsumerActor extends AbstractMqttConsumerActor<Mqtt
      * @param source the source from which this consumer is built
      * @param dryRun whether this is a dry-run/connection test or not
      * @param specificConfig the MQTT specific config.
+     * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
+     * status.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connection connection, final Sink<Object, NotUsed> inboundMappingSink,
-            final Source source, final boolean dryRun,
-            final MqttSpecificConfig specificConfig) {
+    static Props props(final Connection connection,
+            final Sink<Object, NotUsed> inboundMappingSink,
+            final Source source,
+            final boolean dryRun,
+            final MqttSpecificConfig specificConfig,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
         return Props.create(HiveMqtt3ConsumerActor.class, connection, inboundMappingSink,
-                source, dryRun, specificConfig.reconnectForRedelivery());
+                source, dryRun, specificConfig.reconnectForRedelivery(), connectivityStatusResolver);
     }
 
     @Override

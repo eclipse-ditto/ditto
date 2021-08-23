@@ -58,10 +58,10 @@ import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConsumerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
@@ -104,11 +104,13 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
 
     @SuppressWarnings("unused")
     private AmqpConsumerActor(final Connection connection, final ConsumerData consumerData,
-            final Sink<Object, ?> inboundMappingSink, final ActorRef jmsActor) {
+            final Sink<Object, ?> inboundMappingSink, final ActorRef jmsActor,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
         super(connection,
                 checkNotNull(consumerData, "consumerData").getAddress(),
                 inboundMappingSink,
-                consumerData.getSource());
+                consumerData.getSource(),
+                connectivityStatusResolver);
 
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
@@ -137,12 +139,16 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
      * @param consumerData the consumer data.
      * @param inboundMappingSink the message mapping sink where received messages are forwarded to
      * @param jmsActor reference of the {@code JMSConnectionHandlingActor).
+     * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
+     * status.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection, final ConsumerData consumerData,
-            final Sink<Object, ?> inboundMappingSink, final ActorRef jmsActor) {
+            final Sink<Object, ?> inboundMappingSink, final ActorRef jmsActor,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
 
-        return Props.create(AmqpConsumerActor.class, connection, consumerData, inboundMappingSink, jmsActor);
+        return Props.create(AmqpConsumerActor.class, connection, consumerData, inboundMappingSink, jmsActor,
+                connectivityStatusResolver);
     }
 
     @Override
@@ -229,8 +235,8 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                 consumerData = consumerData.withMessageConsumer(messageConsumer);
             }
         } catch (final Exception e) {
-            final var failure = new ImmutableConnectionFailure(getSelf(), e,
-                    "Failed to initialize message consumers.");
+            final var failure =
+                    ConnectionFailure.of(getSelf(), e, "Failed to initialize message consumers.");
             getContext().getParent().tell(failure, getSelf());
             getContext().stop(getSelf());
         }
@@ -258,7 +264,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         // update own status
         final ResourceStatus addressStatus = ConnectivityModelFactory.newStatusUpdate(
                 InstanceIdentifierSupplier.getInstance().get(),
-                ConnectivityStatus.FAILED,
+                ConnectivityStatus.MISCONFIGURED,
                 sourceAddress,
                 "Consumer closed", Instant.now());
         handleAddressStatus(addressStatus);
@@ -296,7 +302,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
 
     private void messageConsumerFailed(final Status.Failure failure) {
         // escalate to parent
-        final ConnectionFailure connectionFailed = new ImmutableConnectionFailure(getSelf(), failure.cause(),
+        final ConnectionFailure connectionFailed = ConnectionFailure.of(getSelf(), failure.cause(),
                 "Failed to recreate closed message consumer");
         getContext().getParent().tell(connectionFailed, getSelf());
     }

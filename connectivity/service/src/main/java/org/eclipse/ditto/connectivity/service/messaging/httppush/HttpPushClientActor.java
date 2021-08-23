@@ -38,7 +38,7 @@ import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableClientDisconnected;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -135,7 +135,7 @@ public final class HttpPushClientActor extends BaseClientActor {
     @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin,
             final boolean shutdownAfterDisconnect) {
-        getSelf().tell(new ImmutableClientDisconnected(origin, shutdownAfterDisconnect), getSelf());
+        getSelf().tell(ClientDisconnected.of(origin, shutdownAfterDisconnect), getSelf());
     }
 
     @Nullable

@@ -205,6 +205,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                         .targetStatus(
                                 List.of(ConnectivityModelFactory.newTargetStatus("client1", ConnectivityStatus.OPEN,
                                         "target1", "publisher started")))
+                        .sshTunnelStatus(List.of())
                         .build();
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
         enableConnectionLogs = EnableConnectionLogs.of(connectionId, DittoHeaders.empty());

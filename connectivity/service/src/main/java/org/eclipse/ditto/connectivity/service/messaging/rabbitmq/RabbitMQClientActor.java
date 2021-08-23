@@ -39,8 +39,8 @@ import org.eclipse.ditto.connectivity.service.config.ClientConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableClientDisconnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
@@ -204,7 +204,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     @Override
     protected void doDisconnectClient(final Connection connection, @Nullable final ActorRef origin,
             final boolean shutdownAfterDisconnect) {
-        getSelf().tell(new ImmutableClientDisconnected(origin, shutdownAfterDisconnect), origin);
+        getSelf().tell(ClientDisconnected.of(origin, shutdownAfterDisconnect), origin);
     }
 
     @Override
@@ -213,7 +213,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     }
 
     @Override
-    protected CompletionStage<Status.Status> startConsumerActors(final ClientConnected clientConnected) {
+    protected CompletionStage<Status.Status> startConsumerActors(@Nullable final ClientConnected clientConnected) {
         if (clientConnected instanceof RmqConsumerChannelCreated) {
             final RmqConsumerChannelCreated rmqConsumerChannelCreated = (RmqConsumerChannelCreated) clientConnected;
             startCommandConsumers(rmqConsumerChannelCreated.getChannel());
@@ -254,7 +254,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private static Object messageFromConnectionStatus(final Status.Status status) {
         if (status instanceof Status.Failure) {
             final Status.Failure failure = (Status.Failure) status;
-            return new ImmutableConnectionFailure(null, failure.cause(), null);
+            return ConnectionFailure.of(null, failure.cause(), null);
         } else {
             return (ClientConnected) Optional::empty;
         }
@@ -370,7 +370,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         final ActorRef consumer = startChildActorConflictFree(
                                 CONSUMER_ACTOR_PREFIX + addressWithIndex,
                                 RabbitMQConsumerActor.props(sourceAddress, getInboundMappingSink(), source,
-                                        channel, connection()));
+                                        channel, connection(), connectivityStatusResolver));
                         consumerByAddressWithIndex.put(addressWithIndex, consumer);
                         try {
                             final String consumerTag = channel.basicConsume(sourceAddress, false,
@@ -535,11 +535,11 @@ public final class RabbitMQClientActor extends BaseClientActor {
             if (null != consumingQueueByTag) {
                 connectionLogger.failure("Consumer with queue {0} was cancelled. This can happen for example " +
                         "when the queue was deleted.", consumingQueueByTag);
-                logger.warning("Consumer with queue <{}> was cancelled on connection <{}>. This can happen for " +
+                logger.info("Consumer with queue <{}> was cancelled on connection <{}>. This can happen for " +
                         "example when the queue was deleted.", consumingQueueByTag, connectionId());
             }
 
-            updateSourceStatus(ConnectivityStatus.FAILED, "Consumer for queue cancelled at " + Instant.now());
+            updateSourceStatus(ConnectivityStatus.MISCONFIGURED, "Consumer for queue cancelled at " + Instant.now());
         }
 
         @Override
@@ -555,7 +555,8 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         "been shut down on connection <{}>.", consumingQueueByTag, connectionId());
             }
 
-            updateSourceStatus(ConnectivityStatus.FAILED,
+            final ConnectivityStatus failureStatus = connectivityStatusResolver.resolve(sig);
+            updateSourceStatus(failureStatus,
                     "Channel or the underlying connection has been shut down at " + Instant.now());
         }
 

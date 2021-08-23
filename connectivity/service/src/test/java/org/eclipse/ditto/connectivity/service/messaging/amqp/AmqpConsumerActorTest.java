@@ -62,6 +62,7 @@ import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.javascript.JavaScriptMessageMapperFactory;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorWithAcknowledgementsTest;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.InboundDispatchingSink;
 import org.eclipse.ditto.connectivity.service.messaging.InboundMappingProcessor;
 import org.eclipse.ditto.connectivity.service.messaging.InboundMappingSink;
@@ -113,7 +114,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                                 .build())
                         .build());
         return AmqpConsumerActor.props(CONNECTION, mockConsumerData, inboundMappingSink,
-                TestProbe.apply(actorSystem).testActor());
+                TestProbe.apply(actorSystem).testActor(), mock(ConnectivityStatusResolver.class));
     }
 
     @Override
@@ -133,7 +134,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                                 .build())
                         .build());
         return AmqpConsumerActor.props(CONNECTION, mockConsumerData, inboundMappingSink,
-                TestProbe.apply(actorSystem).testActor());
+                TestProbe.apply(actorSystem).testActor(), mock(ConnectivityStatusResolver.class));
     }
 
     @Override
@@ -191,7 +192,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                     .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
             when(source.getPayloadMapping()).thenReturn(ConnectivityModelFactory.newPayloadMapping("test"));
             final ActorRef underTest = actorSystem.actorOf(AmqpConsumerActor.props(CONNECTION,
-                    consumerData("foo", mock(MessageConsumer.class), source), mappingSink, getRef()));
+                    consumerData("foo", mock(MessageConsumer.class), source), mappingSink, getRef(),
+                    mock(ConnectivityStatusResolver.class)));
 
             final String plainPayload = "hello world!";
             final String correlationId = "cor-";
@@ -229,7 +231,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                     .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
             when(source.getPayloadMapping()).thenReturn(ConnectivityModelFactory.newPayloadMapping("test"));
             final ActorRef underTest = actorSystem.actorOf(AmqpConsumerActor.props(CONNECTION,
-                    consumerData("foo", mock(MessageConsumer.class), source), mappingSink, getRef()));
+                    consumerData("foo", mock(MessageConsumer.class), source), mappingSink, getRef(),
+                    mock(ConnectivityStatusResolver.class)));
 
             final String plainPayload = "hello world!";
             final String correlationId = "cor-";
@@ -322,7 +325,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
             final ActorRef underTest = actorSystem.actorOf(
                     AmqpConsumerActor.props(CONNECTION,
                             consumerData("foo123", mock(MessageConsumer.class), source), mappingSink,
-                            getRef()));
+                            getRef(), mock(ConnectivityStatusResolver.class)));
 
             final String correlationId = "cor-";
             final String plainPayload =
@@ -363,7 +366,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                     AmqpConsumerActor.props(CONNECTION,
                             consumerData("foo123", messageConsumer, source),
                             mappingSink,
-                            getRef())));
+                            getRef(),
+                            mock(ConnectivityStatusResolver.class))));
 
             final var failure = expectMsgClass(ConnectionFailure.class);
             assertThat(failure.getFailure().cause()).isEqualTo(error);
