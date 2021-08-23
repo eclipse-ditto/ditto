@@ -17,10 +17,10 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.Arrays;
 import java.util.Optional;
 
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * An enumeration of status of connectivity resource.
@@ -41,6 +41,13 @@ public enum ConnectivityStatus implements CharSequence, Jsonifiable<JsonObject> 
      * Indicates a failed {@code Connection}.
      */
     FAILED("failed"),
+
+    /**
+     * Indicates a failed {@code Connection} due to wrong configuration.
+     *
+     * @since 2.1.0
+     */
+    MISCONFIGURED("misconfigured"),
 
     /**
      * Indicates an unknown status.
@@ -121,6 +128,14 @@ public enum ConnectivityStatus implements CharSequence, Jsonifiable<JsonObject> 
     @Override
     public String toString() {
         return name;
+    }
+
+    /**
+     * @return true if the connectivity status indicates a failure and false if not.
+     * @since 2.1.0
+     */
+    public boolean isFailure() {
+        return this == FAILED || this == MISCONFIGURED;
     }
 
 }

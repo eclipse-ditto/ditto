@@ -73,6 +73,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final ConnectionMonitor inboundMonitor;
     protected final ConnectionMonitor inboundAcknowledgedMonitor;
     protected final ConnectionId connectionId;
+    protected final ConnectivityStatusResolver connectivityStatusResolver;
 
     private final Sink<Object, ?> inboundMappingSink;
     private final AcknowledgementConfig acknowledgementConfig;
@@ -80,12 +81,14 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     @Nullable private ResourceStatus resourceStatus;
 
     protected BaseConsumerActor(final Connection connection, final String sourceAddress,
-            final Sink<Object, ?> inboundMappingSink, final Source source) {
+            final Sink<Object, ?> inboundMappingSink, final Source source,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
         this.connectionId = checkNotNull(connection, "connection").getId();
         this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
         this.inboundMappingSink = checkNotNull(inboundMappingSink, "inboundMappingSink");
         this.source = checkNotNull(source, "source");
         this.connectionType = connection.getConnectionType();
+        this.connectivityStatusResolver = checkNotNull(connectivityStatusResolver, "connectivityStatusResolver");
         resetResourceStatus();
 
         final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(

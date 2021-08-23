@@ -101,6 +101,7 @@ import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionVal
 import org.eclipse.ditto.connectivity.service.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.PingCommand;
+import org.eclipse.ditto.internal.utils.akka.logging.CommonMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
@@ -156,6 +157,7 @@ public final class ConnectionPersistenceActor
     public static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
 
     private static final Duration DEFAULT_RETRIEVE_STATUS_TIMEOUT = Duration.ofMillis(500L);
+    private static final Duration SELF_RETRIEVE_CONNECTION_STATUS_TIMEOUT = Duration.ofSeconds(30);
 
     // never retry, just escalate. ConnectionSupervisorActor will handle restarting this actor
     private static final SupervisorStrategy ESCALATE_ALWAYS_STRATEGY = OneForOneEscalateStrategy.escalateStrategy();
@@ -176,7 +178,7 @@ public final class ConnectionPersistenceActor
 
     @Nullable private final ConnectivityCommandInterceptor customCommandValidator;
     private ConnectivityCommandInterceptor commandValidator;
-            // Do nothing because nobody subscribes for connectivity events.
+    // Do nothing because nobody subscribes for connectivity events.
 
     private ConnectivityCommandStrategies createdStrategies;
     private ConnectivityCommandStrategies deletedStrategies;
@@ -452,6 +454,46 @@ public final class ConnectionPersistenceActor
                             .build());
             getSelf().tell(new PersistEmptyEvent(emptyEvent), ActorRef.noSender());
         }
+
+        askSelfForRetrieveConnectionStatus(ping.getCorrelationId().orElse(null));
+    }
+
+    private void askSelfForRetrieveConnectionStatus(@Nullable final String correlationId) {
+        final var retrieveConnectionStatus = RetrieveConnectionStatus.of(entityId, DittoHeaders.newBuilder()
+                .correlationId(correlationId)
+                .build());
+        Patterns.ask(getSelf(), retrieveConnectionStatus, SELF_RETRIEVE_CONNECTION_STATUS_TIMEOUT)
+                .whenComplete((response, throwable) -> {
+                    if (response instanceof RetrieveConnectionStatusResponse) {
+                        final RetrieveConnectionStatusResponse rcsResp = (RetrieveConnectionStatusResponse) response;
+                        final ConnectivityStatus liveStatus = rcsResp.getLiveStatus();
+                        final DittoDiagnosticLoggingAdapter l = log
+                                .withMdcEntries(
+                                        ConnectivityMdcEntryKey.CONNECTION_ID, entityId,
+                                        ConnectivityMdcEntryKey.CONNECTION_TYPE, Optional.ofNullable(entity)
+                                                .map(Connection::getConnectionType).map(Object::toString).orElse("?"),
+                                        CommonMdcEntryKey.DITTO_LOG_TAG,
+                                        "connection-live-status-" + liveStatus.getName()
+                                )
+                                .withCorrelationId(rcsResp);
+                        final String template = "Calculated <{}> live ConnectionStatus: <{}>";
+                        if (liveStatus == ConnectivityStatus.FAILED) {
+                            l.error(template, liveStatus, rcsResp);
+                        } else if (liveStatus == ConnectivityStatus.MISCONFIGURED) {
+                            l.info(template, liveStatus, rcsResp);
+                        } else {
+                            l.info(template, liveStatus, rcsResp);
+                        }
+                    } else if (null != throwable) {
+                        log.withCorrelationId(correlationId)
+                                .warning("Received throwable while waiting for RetrieveConnectionStatusResponse: " +
+                                        "<{}: {}>", throwable.getClass().getSimpleName(), throwable.getMessage());
+                    } else if (null != response) {
+                        log.withCorrelationId(correlationId)
+                                .warning("Unknown response while waiting for RetrieveConnectionStatusResponse: " +
+                                        "<{}: {}>", response.getClass().getSimpleName(), response);
+                    }
+                });
     }
 
     @Override
@@ -1144,7 +1186,7 @@ public final class ConnectionPersistenceActor
         /**
          * Indicates the the priority of the connection should get updated
          */
-        TRIGGER_UPDATE_PRIORITY;
+        TRIGGER_UPDATE_PRIORITY
     }
 
     private static final class InitializationFailure {
@@ -1170,7 +1212,7 @@ public final class ConnectionPersistenceActor
             this.dittoHeaders = dittoHeaders;
         }
 
-        protected Integer getDesiredPriority() {
+        Integer getDesiredPriority() {
             return desiredPriority;
         }
 

@@ -173,6 +173,7 @@ Gathering logs for a running Ditto installation can be achieved by:
 * writing logs to log files: this can be done by setting the environment variable `DITTO_LOGGING_FILE_APPENDER` to `true`
    * configure the amount of log files, and the total amount of space used for logs files via these two environment 
      variables:
+       * `DITTO_LOGGING_FILE_NAME_PATTERN` (default: /var/log/ditto/<service-name>.log.%d{yyyy-MM-dd}.gz)
        * `DITTO_LOGGING_MAX_LOG_FILE_HISTORY_IN_DAYS` (default: 10) 
        * `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` (default: 1GB)
    * the format in which logging is done is "LogstashEncoder" format - that way the logfiles may easily be imported into

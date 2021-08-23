@@ -18,7 +18,6 @@ import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Aut
 
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -60,6 +59,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Unit test for {@link KafkaClientActor}.
@@ -197,8 +197,8 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
-            expectMsgClass(Duration.ofSeconds(10), KafkaPublisherActor.GracefulStop.class);
-            expectMsgClass(Duration.ofSeconds(10), Status.Failure.class);
+            fishForMessage(FiniteDuration.apply(10, TimeUnit.SECONDS), Status.Failure.class.getName(),
+                    Status.Failure.class::isInstance);
         }};
     }
 

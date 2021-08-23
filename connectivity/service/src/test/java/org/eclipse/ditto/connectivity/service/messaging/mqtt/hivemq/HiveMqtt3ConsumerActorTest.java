@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.CONNECTION_CONFIG;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.header;
+import static org.mockito.Mockito.mock;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -32,6 +33,7 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorWithAcknowledgementsTest;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.junit.Ignore;
@@ -42,7 +44,6 @@ import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
 
 import akka.NotUsed;
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.stream.javadsl.Sink;
 import akka.testkit.javadsl.TestKit;
@@ -70,7 +71,7 @@ public final class HiveMqtt3ConsumerActorTest extends AbstractConsumerActorWithA
                         .address("foo")
                         .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                         .build())
-                .build(), false, SPECIFIC_CONFIG);
+                .build(), false, SPECIFIC_CONFIG, mock(ConnectivityStatusResolver.class));
     }
 
     @Override
@@ -84,7 +85,7 @@ public final class HiveMqtt3ConsumerActorTest extends AbstractConsumerActorWithA
                         .address("foo")
                         .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                         .build())
-                .build(), false, SPECIFIC_CONFIG);
+                .build(), false, SPECIFIC_CONFIG, mock(ConnectivityStatusResolver.class));
     }
 
     @Override
