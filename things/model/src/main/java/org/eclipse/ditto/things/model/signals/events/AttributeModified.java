@@ -20,6 +20,7 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -181,6 +182,11 @@ public final class AttributeModified extends AbstractThingEvent<AttributeModifie
     public AttributeModified setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getEntityId(), attributePointer, attributeValue, getRevision(), getTimestamp().orElse(null),
                 dittoHeaders, getMetadata().orElse(null));
+    }
+
+    @Override
+    public Command.Category getCommandCategory() {
+        return Command.Category.MODIFY;
     }
 
     @Override

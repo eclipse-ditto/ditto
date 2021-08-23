@@ -17,6 +17,7 @@ import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -119,16 +120,20 @@ final class ThingUpdater extends AbstractActor {
      *
      * @param timer an optional timer measuring the search updater's consistency lag.
      */
-    private Metadata exportMetadata(@Nullable final StartedTimer timer) {
-        return Metadata.of(thingId, thingRevision, policyId, policyRevision, timer);
+    private Metadata exportMetadata(@Nullable final ThingEvent<?> event, @Nullable final StartedTimer timer) {
+        return Metadata.of(thingId, thingRevision, policyId, policyRevision,
+                event == null ? List.of() : List.of(event), timer, null);
     }
 
-    private Metadata exportMetadataWithSender(final boolean shouldAcknowledge, final ActorRef sender,
+    private Metadata exportMetadataWithSender(final boolean shouldAcknowledge,
+            final ThingEvent<?> event,
+            final ActorRef sender,
             final StartedTimer consistencyLagTimer) {
         if (shouldAcknowledge) {
-            return Metadata.of(thingId, thingRevision, policyId, policyRevision, consistencyLagTimer, sender);
+            return Metadata.of(thingId, thingRevision, policyId, policyRevision, List.of(event), consistencyLagTimer,
+                    sender);
         } else {
-            return exportMetadata(consistencyLagTimer);
+            return exportMetadata(event, consistencyLagTimer);
         }
     }
 
@@ -136,7 +141,7 @@ final class ThingUpdater extends AbstractActor {
      * Push metadata of this updater to the queue of thing-changes to be streamed into the persistence.
      */
     private void enqueueMetadata() {
-        enqueueMetadata(exportMetadata(null));
+        enqueueMetadata(exportMetadata(null, null));
     }
 
     private void enqueueMetadata(final Metadata metadata) {
@@ -161,12 +166,12 @@ final class ThingUpdater extends AbstractActor {
     private void updateThing(final UpdateThing updateThing) {
         log.withCorrelationId(updateThing)
                 .info("Requested to update search index <{}> by <{}>", updateThing, getSender());
-        enqueueMetadata(exportMetadata(null).invalidateCache());
+        enqueueMetadata(exportMetadata(null, null).invalidateCache());
     }
 
     private void processUpdateThingResponse(final UpdateThingResponse response) {
         if (!response.isSuccess()) {
-            final Metadata metadata = exportMetadata(null);
+            final Metadata metadata = exportMetadata(null, null).invalidateCache();
             log.warning("Got negative acknowledgement for <{}>; updating to <{}>.",
                     Metadata.fromResponse(response),
                     metadata);
@@ -215,7 +220,7 @@ final class ThingUpdater extends AbstractActor {
                     .start();
             DittoTracing.wrapTimer(DittoTracing.extractTraceContext(thingEvent), timer);
             ConsistencyLag.startS0InUpdater(timer);
-            enqueueMetadata(exportMetadataWithSender(shouldAcknowledge, getSender(), timer));
+            enqueueMetadata(exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), timer));
         }
     }
 

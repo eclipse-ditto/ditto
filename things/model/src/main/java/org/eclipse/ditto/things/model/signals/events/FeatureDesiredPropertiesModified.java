@@ -22,6 +22,7 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -48,8 +49,7 @@ import org.eclipse.ditto.base.model.signals.events.EventJsonDeserializer;
 @Immutable
 @JsonParsableEvent(name = FeatureDesiredPropertiesModified.NAME, typePrefix = ThingEvent.TYPE_PREFIX)
 public final class FeatureDesiredPropertiesModified extends AbstractThingEvent<FeatureDesiredPropertiesModified>
-        implements
-        ThingModifiedEvent<FeatureDesiredPropertiesModified>, WithFeatureId {
+        implements ThingModifiedEvent<FeatureDesiredPropertiesModified>, WithFeatureId {
 
     /**
      * Name of the "Feature Desired Properties Modified" event.
@@ -186,6 +186,11 @@ public final class FeatureDesiredPropertiesModified extends AbstractThingEvent<F
         return of(getEntityId(), featureId, desiredProperties, getRevision(), getTimestamp().orElse(null),
                 dittoHeaders,
                 getMetadata().orElse(null));
+    }
+
+    @Override
+    public Command.Category getCommandCategory() {
+        return Command.Category.MODIFY;
     }
 
     @Override
