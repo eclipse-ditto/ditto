@@ -21,6 +21,7 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -145,6 +146,11 @@ public final class FeaturePropertiesDeleted extends AbstractThingEvent<FeaturePr
     public FeaturePropertiesDeleted setDittoHeaders(final DittoHeaders dittoHeaders) {
         return of(getEntityId(), featureId, getRevision(), getTimestamp().orElse(null), dittoHeaders,
                 getMetadata().orElse(null));
+    }
+
+    @Override
+    public Command.Category getCommandCategory() {
+        return Command.Category.DELETE;
     }
 
     @Override

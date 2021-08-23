@@ -53,10 +53,10 @@ final class SignalEnrichmentCacheLoader implements AsyncCacheLoader<CacheKey, Js
         final Optional<CacheLookupContext> contextOptional = key.getCacheLookupContext();
         final Optional<JsonFieldSelector> selectorOptional =
                 contextOptional.flatMap(CacheLookupContext::getJsonFieldSelector);
-        if (contextOptional.isPresent() && selectorOptional.isPresent()) {
+        if (contextOptional.isPresent()) {
             final CacheLookupContext context = contextOptional.get();
             final ThingId thingId = ThingId.of(key.getId());
-            final JsonFieldSelector jsonFieldSelector = selectorOptional.get();
+            final JsonFieldSelector jsonFieldSelector = selectorOptional.orElse(null);
             final DittoHeaders dittoHeaders = context.getDittoHeaders().orElseGet(DittoHeaders::empty);
             return facade.retrievePartialThing(thingId, jsonFieldSelector, dittoHeaders, null)
                     .toCompletableFuture();
