@@ -25,6 +25,15 @@
     <name>Eclipse Ditto :: Internal :: Utils :: Test</name>
 
     <dependencies>
+        <dependency>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-actor_2.13</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>bson</artifactId>
+        </dependency>
+
         <!-- Required for GlobalErrorRegistryTestCases -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>

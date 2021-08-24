@@ -219,7 +219,7 @@
             <!-- MongoDB client -->
             <dependency>
                 <groupId>org.mongodb</groupId>
-                <artifactId>mongodb-bson</artifactId>
+                <artifactId>bson</artifactId>
                 <version>${mongo-java-driver.version}</version>
             </dependency>
             <dependency>
