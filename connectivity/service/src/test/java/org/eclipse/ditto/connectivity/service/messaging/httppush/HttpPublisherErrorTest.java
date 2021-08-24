@@ -29,25 +29,25 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.service.config.DittoServiceConfig;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.api.OutboundSignal;
+import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.service.config.DefaultConnectionConfig;
+import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.base.service.config.DittoServiceConfig;
-import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
-import org.eclipse.ditto.connectivity.api.OutboundSignal;
-import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.After;
 import org.junit.Test;
@@ -59,7 +59,6 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.model.HttpRequest;
@@ -191,7 +190,9 @@ public final class HttpPublisherErrorTest {
                                     .thenAccept(unused -> killSwitch.shutdown());
                             return NotUsed.getInstance();
                         });
-        binding = Http.get(actorSystem).bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", port), mat)
+        binding = Http.get(actorSystem)
+                .newServerAt("127.0.0.1", port)
+                .bindFlow(handler)
                 .toCompletableFuture()
                 .join();
     }
