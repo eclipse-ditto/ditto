@@ -316,7 +316,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 final Throwable error = tryResponse.toEither().left().get();
                 final String errorDescription = MessageFormat.format("Failed to send HTTP request to <{0}>.",
                         requestUri);
-                l.info("Failed to send message <{}> due to <{}>", message, error);
+                l.info("Failed to send message due to <{}: {}>", error.getClass().getSimpleName(),
+                        error.getMessage());
+                l.debug("Failed to send message <{}> due to <{}: {}>", message, error.getClass().getSimpleName(),
+                        error.getMessage());
                 resultFuture.completeExceptionally(error);
                 escalate(error, errorDescription);
             } else {
