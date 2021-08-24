@@ -28,12 +28,14 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
 import org.eclipse.ditto.gateway.service.endpoints.directives.CorrelationIdEnsuringDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.CorsEnablingDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.EncodingEnsuringDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.HttpsEnsuringDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.RequestResultLoggingDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.RequestTimeoutHandlingDirective;
+import org.eclipse.ditto.gateway.service.endpoints.directives.RequestTracingDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.devops.DevOpsRoute;
@@ -46,14 +48,13 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.things.ThingsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRouteBuilder;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
+import org.eclipse.ditto.gateway.service.endpoints.utils.DittoRejectionHandlerFactory;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-import org.eclipse.ditto.gateway.service.endpoints.utils.DittoRejectionHandlerFactory;
 import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
@@ -177,12 +178,15 @@ public final class RootRoute extends AllDirectives {
                 /* the outer handleExceptions is for handling exceptions in the directives wrapping the rootRoute
                    (which normally should not occur */
                 handleExceptions(exceptionHandler, () ->
-                        CorrelationIdEnsuringDirective.ensureCorrelationId(correlationId -> requestTimeoutHandlingDirective
-                                .handleRequestTimeout(correlationId, () ->
-                                        RequestResultLoggingDirective.logRequestResult(correlationId, () ->
-                                                innerRouteProvider.apply(correlationId)
+                        CorrelationIdEnsuringDirective.ensureCorrelationId(
+                                correlationId -> requestTimeoutHandlingDirective
+                                        .handleRequestTimeout(correlationId, () ->
+                                                RequestTracingDirective.traceRequest(correlationId, () ->
+                                                        RequestResultLoggingDirective.logRequestResult(correlationId,
+                                                                () -> innerRouteProvider.apply(correlationId)
+                                                        )
+                                                )
                                         )
-                                )
                         )
                 );
 

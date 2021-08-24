@@ -15,15 +15,18 @@ package org.eclipse.ditto.concierge.service.enforcement;
 import java.util.Optional;
 
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Flow;
+import kamon.context.Context;
 
 /**
  * Provider interface for {@link AbstractEnforcement}.
@@ -95,12 +98,17 @@ public interface EnforcementProvider<T extends Signal<?>> {
         final T message = contextual.getMessage();
         final boolean changesAuthorization = changesAuthorization(message);
 
-
         if (message instanceof WithEntityId) {
             final var entityId = ((WithEntityId) message).getEntityId();
             final var timer = createTimer(message);
+
+            // use timer to produce traces and propagate context with the processed message
+            final Context traceContext = DittoTracing.extractTraceContext(message);
+            final Context context = DittoTracing.wrapTimer(traceContext, timer);
+            final T messageWithTraceContext = DittoTracing.propagateContext(context, message);
+
             return Optional.of(EnforcementTask.of(entityId, changesAuthorization,
-                    () -> preEnforcer.withErrorHandlingAsync(contextual,
+                    () -> preEnforcer.withErrorHandlingAsync(contextual.setMessage(messageWithTraceContext),
                                     contextual.setMessage(null).withReceiver(null),
                                     converted -> createEnforcement(converted).enforceSafely())
                             .whenComplete((result, error) -> {

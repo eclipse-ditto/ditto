@@ -67,7 +67,7 @@ public interface TaggedMetricInstrument<T extends MetricInstrument> extends Metr
      * @param value The value of the tag.
      * @return The TracingTimerBuilder.
      */
-    T tag(final String key, final String value);
+    T tag(String key, String value);
 
     /**
      * Adds tags to the timer.
@@ -76,7 +76,7 @@ public interface TaggedMetricInstrument<T extends MetricInstrument> extends Metr
      * @param tags Additional tags for this tracing.
      * @return The TracingTimerBuilder.
      */
-    T tags(final Map<String, String> tags);
+    T tags(Map<String, String> tags);
 
     /**
      * Gets the value of the tag with the given key.

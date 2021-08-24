@@ -20,11 +20,11 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Enumeration of definitions of well known Ditto Headers including their key and Java type.
@@ -316,6 +316,22 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      */
     EVENT_JOURNAL_TAGS("ditto-event-journal-tags", JsonArray.class,
             false, false, HeaderValueValidators.getJsonArrayValidator()),
+
+    /**
+     * W3C traceparent header. See https://www.w3.org/TR/trace-context/#traceparent-header.
+     *
+     * @since 2.1.0
+     */
+    W3C_TRACEPARENT("traceparent", String.class,
+            true, true, HeaderValueValidators.getNoOpValidator()),
+
+    /**
+     * W3C tracestate header. See https://www.w3.org/TR/trace-context/#tracestate-header.
+     *
+     * @since 2.1.0
+     */
+    W3C_TRACESTATE("tracestate", String.class,
+            true, true, HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Internal header which may be set to ignore some preventions in the service. Can only be used in piggy-back

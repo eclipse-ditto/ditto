@@ -292,6 +292,8 @@ public final class InboundDispatchingSink
                 applyInboundHeaderMapping(signal, incomingMessage, authorizationContext,
                         mappedInboundMessage.getTopicPath(), incomingMessage.getInternalHeaders());
 
+        logger.withCorrelationId(mappedHeaders).info("onMapped mappedHeaders {}", mappedHeaders);
+
         final Signal<?> adjustedSignal = appendConnectionAcknowledgementsToSignal(incomingMessage,
                 signal.setDittoHeaders(mappedHeaders));
 

@@ -102,6 +102,10 @@
             <groupId>io.kamon</groupId>
             <artifactId>kamon-system-metrics_${scala.version}</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.kamon</groupId>
+            <artifactId>kamon-opentelemetry_${scala.version}</artifactId>
+        </dependency>
 
         <!-- test scope -->
         <dependency>

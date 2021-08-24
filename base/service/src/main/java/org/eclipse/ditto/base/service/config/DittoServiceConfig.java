@@ -34,6 +34,8 @@ import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.config.DefaultMetricsConfig;
 import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
+import org.eclipse.ditto.internal.utils.tracing.config.DefaultTracingConfig;
+import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigList;
@@ -60,6 +62,7 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
     private final DefaultClusterConfig clusterConfig;
     private final DefaultHttpConfig httpConfig;
     private final DefaultMetricsConfig metricsConfig;
+    private final DefaultTracingConfig tracingConfig;
 
     private DittoServiceConfig(final ScopedConfig dittoScopedConfig, final String configPath) {
         serviceScopedConfig = DefaultScopedConfig.newInstance(dittoScopedConfig, configPath);
@@ -67,6 +70,7 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
         clusterConfig = DefaultClusterConfig.of(dittoScopedConfig);
         httpConfig = DefaultHttpConfig.of(dittoScopedConfig);
         metricsConfig = DefaultMetricsConfig.of(dittoScopedConfig);
+        tracingConfig = DefaultTracingConfig.of(dittoScopedConfig);
     }
 
     /**
@@ -110,6 +114,11 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
     @Override
     public MetricsConfig getMetricsConfig() {
         return metricsConfig;
+    }
+
+    @Override
+    public TracingConfig getTracingConfig() {
+        return tracingConfig;
     }
 
     @Override
@@ -405,12 +414,13 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
                 clusterConfig.equals(that.clusterConfig) &&
                 httpConfig.equals(that.httpConfig) &&
                 metricsConfig.equals(that.metricsConfig) &&
+                tracingConfig.equals(that.tracingConfig) &&
                 serviceScopedConfig.equals(that.serviceScopedConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(limitsConfig, clusterConfig, httpConfig, metricsConfig, serviceScopedConfig);
+        return Objects.hash(limitsConfig, clusterConfig, httpConfig, metricsConfig, tracingConfig, serviceScopedConfig);
     }
 
     @Override
@@ -420,6 +430,7 @@ public final class DittoServiceConfig implements ScopedConfig, ServiceSpecificCo
                 ", clusterConfig=" + clusterConfig +
                 ", httpConfig=" + httpConfig +
                 ", metricsConfig=" + metricsConfig +
+                ", tracingConfig=" + tracingConfig +
                 ", config=" + serviceScopedConfig +
                 "]";
     }

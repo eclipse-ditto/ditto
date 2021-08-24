@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -12,30 +12,16 @@
  */
 package org.eclipse.ditto.internal.utils.metrics.instruments.timer;
 
-import java.util.function.Consumer;
-
 /**
- * Contains {@code stoppedTimerConsumer} to be invoked when a Timer stops.
+ * To be invoked when a Timer stops.
  */
-final class OnStopHandler {
-
-    private final Consumer<StoppedTimer> stoppedTimerConsumer;
-
-    /**
-     * Creates a new OnStopHandler instance.
-     *
-     * @param stoppedTimerConsumer the Consumer to register.
-     */
-    public OnStopHandler(final Consumer<StoppedTimer> stoppedTimerConsumer) {
-        this.stoppedTimerConsumer = stoppedTimerConsumer;
-    }
+@FunctionalInterface
+public interface OnStopHandler {
 
     /**
-     * Handles the passed {@code stoppedTimer} by passing it to the registered {@code stoppedTimerConsumer}.
+     * Handles the passed {@code stoppedTimer}.
      *
-     * @param stoppedTimer the StoppedTimer to pass along.
+     * @param stoppedTimer the StoppedTimer to handle.
      */
-    public void handleStoppedTimer(final StoppedTimer stoppedTimer) {
-        this.stoppedTimerConsumer.accept(stoppedTimer);
-    }
+    void handleStoppedTimer(final StoppedTimer stoppedTimer);
 }

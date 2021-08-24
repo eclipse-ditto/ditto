@@ -12,8 +12,10 @@
  */
 package org.eclipse.ditto.internal.utils.metrics.instruments.timer;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.eclipse.ditto.internal.utils.metrics.instruments.TaggedMetricInstrument;
 
@@ -55,11 +57,23 @@ public interface StartedTimer extends Timer, TaggedMetricInstrument<StartedTimer
     StartedTimer onStop(OnStopHandler onStopHandler);
 
     /**
+     * Gets all on stop handlers of this timer.
+     *
+     * @return All on stop handlers of this timer.
+     */
+    List<OnStopHandler> getOnStopHandlers();
+
+    /**
+     * @return the instant when the timer was started.
+     */
+    Instant getStartInstant();
+
+    /**
      * Returns the start timestamp in nanos.
      *
      * @return The start timestamp in nanos.
      */
-    Long getStartTimeStamp();
+    Long getStartNanoTime();
 
     /**
      * Gets all segments of this timer.
@@ -67,11 +81,4 @@ public interface StartedTimer extends Timer, TaggedMetricInstrument<StartedTimer
      * @return Segments of this timer.
      */
     Map<String, StartedTimer> getSegments();
-
-    /**
-     * Gets all on stop handlers of this timer.
-     *
-     * @return All on stop handlers of this timer.
-     */
-    List<OnStopHandler> getOnStopHandlers();
 }

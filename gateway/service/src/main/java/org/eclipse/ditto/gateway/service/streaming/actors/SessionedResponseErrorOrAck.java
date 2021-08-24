@@ -19,11 +19,12 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Sessioned Jsonifiable that does not support signal enrichment.
@@ -33,12 +34,15 @@ final class SessionedResponseErrorOrAck implements SessionedJsonifiable {
 
     private final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable;
     private final DittoHeaders dittoHeaders;
+    @Nullable private final StartedTrace trace;
 
     SessionedResponseErrorOrAck(
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final StartedTrace trace) {
         this.jsonifiable = jsonifiable;
         this.dittoHeaders = dittoHeaders;
+        this.trace = trace;
     }
 
     @Override
@@ -59,5 +63,12 @@ final class SessionedResponseErrorOrAck implements SessionedJsonifiable {
     @Override
     public Optional<StreamingSession> getSession() {
         return Optional.empty();
+    }
+
+    @Override
+    public void finishTrace() {
+        if (null != trace) {
+            trace.finish();
+        }
     }
 }

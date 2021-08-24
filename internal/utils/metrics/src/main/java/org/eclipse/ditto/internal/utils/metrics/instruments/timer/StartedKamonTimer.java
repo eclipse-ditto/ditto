@@ -12,10 +12,12 @@
  */
 package org.eclipse.ditto.internal.utils.metrics.instruments.timer;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -34,7 +36,8 @@ final class StartedKamonTimer implements StartedTimer {
     private final Map<String, String> tags;
     private final List<OnStopHandler> onStopHandlers;
     private final Map<String, StartedTimer> segments;
-    private final long startTimestamp;
+    private final long startNanoTime;
+    private final Instant startInstant;
 
     @Nullable private StoppedTimer stoppedTimer;
 
@@ -44,7 +47,9 @@ final class StartedKamonTimer implements StartedTimer {
         this.segments = new HashMap<>();
         this.onStopHandlers = new ArrayList<>();
         this.stoppedTimer = null;
-        this.startTimestamp = System.nanoTime();
+        this.startNanoTime = System.nanoTime();
+        this.startInstant = Instant.now();
+
         if (!this.tags.containsKey(SEGMENT_TAG)) {tag(SEGMENT_TAG, "overall");}
     }
 
@@ -110,7 +115,7 @@ final class StartedKamonTimer implements StartedTimer {
     public StartedTimer startNewSegment(final String segmentName) {
         if (isRunning()) {
             final StartedTimer segment = PreparedKamonTimer.newTimer(name)
-                    .tags(this.tags)
+                    .tags(tags)
                     .tag(SEGMENT_TAG, segmentName)
                     .start();
             this.segments.put(segmentName, segment);
@@ -134,8 +139,13 @@ final class StartedKamonTimer implements StartedTimer {
     }
 
     @Override
-    public Long getStartTimeStamp() {
-        return startTimestamp;
+    public Instant getStartInstant() {
+        return startInstant;
+    }
+
+    @Override
+    public Long getStartNanoTime() {
+        return startNanoTime;
     }
 
     @Override
@@ -145,9 +155,8 @@ final class StartedKamonTimer implements StartedTimer {
 
     @Override
     public List<OnStopHandler> getOnStopHandlers() {
-        return new ArrayList<>(onStopHandlers);
+        return List.copyOf(onStopHandlers);
     }
-
 
     @Override
     public String toString() {
@@ -156,8 +165,10 @@ final class StartedKamonTimer implements StartedTimer {
                 ", tags=" + tags +
                 ", onStopHandlers=" + onStopHandlers +
                 ", segments=" + segments +
-                ", startTimestamp=" + startTimestamp +
+                ", startNanoTime=" + startNanoTime +
+                ", startInstant=" + startInstant +
                 ", stoppedTimer=" + stoppedTimer +
                 "]";
     }
+
 }

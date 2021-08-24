@@ -16,12 +16,13 @@ import org.eclipse.ditto.base.service.config.http.HttpConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.internal.utils.cluster.config.WithClusterConfig;
 import org.eclipse.ditto.internal.utils.metrics.config.WithMetricsConfig;
+import org.eclipse.ditto.internal.utils.tracing.config.WithTracingConfig;
 
 /**
  * Provides the common configuration settings of each Ditto service.
  * This interface is the base of all service specific configuration settings.
  */
-public interface ServiceSpecificConfig extends WithClusterConfig, WithMetricsConfig {
+public interface ServiceSpecificConfig extends WithClusterConfig, WithMetricsConfig, WithTracingConfig {
 
     /**
      * Returns the limits config.

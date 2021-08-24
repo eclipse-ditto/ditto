@@ -44,11 +44,13 @@ import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.ThingConstants;
 
 import akka.actor.ActorSystem;
+import kamon.context.Context;
 
 /**
  * Processes incoming {@link ExternalMessage}s to {@link Signal}s.
@@ -128,23 +130,26 @@ public final class InboundMappingProcessor
         final List<MessageMapper> mappers = getMappers(message.getPayloadMapping().orElse(null));
         logger.withCorrelationId(message.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey()))
                 .debug("Mappers resolved for message: {}", mappers);
-        final MappingTimer mappingTimer = MappingTimer.inbound(connectionId, connectionType);
+        final Context context = DittoTracing.extractTraceContext(message.getHeaders());
+        final MappingTimer mappingTimer = MappingTimer.inbound(connectionId, connectionType, context);
+        final ExternalMessage externalMessageWithTraceContext =
+                DittoTracing.propagateContext(mappingTimer.getContext(), message,
+                        (msg, header) -> msg.withHeader(header.getKey(), header.getValue()));
         return mappingTimer.overall(() -> mappers.stream()
-                .flatMap(mapper -> runMapper(mapper, message, mappingTimer))
+                .flatMap(mapper -> runMapper(mapper, externalMessageWithTraceContext, mappingTimer))
                 .collect(Collectors.toList())
         );
     }
 
     private Stream<MappingOutcome<MappedInboundExternalMessage>> runMapper(final MessageMapper mapper,
-            final ExternalMessage message,
-            final MappingTimer timer) {
+            final ExternalMessage message, final MappingTimer timer) {
 
         checkNotNull(message, "message");
         try {
             if (shouldMapMessageByContentType(message, mapper) && shouldMapMessageByConditions(message, mapper)) {
                 logger.withCorrelationId(message.getInternalHeaders())
                         .debug("Mapping message using mapper {}.", mapper.getId());
-                final List<Adaptable> adaptables = timer.payload(mapper.getId(), () -> mapper.map(message));
+                final List<Adaptable> adaptables = timer.inboundPayload(mapper.getId(), () -> mapper.map(message));
 
                 if (isNullOrEmpty(adaptables)) {
                     return Stream.of(MappingOutcome.dropped(mapper.getId(), message));
@@ -152,7 +157,8 @@ public final class InboundMappingProcessor
                     final List<MappedInboundExternalMessage> mappedMessages = new ArrayList<>(adaptables.size());
                     for (final Adaptable adaptable : adaptables) {
                         try {
-                            final Signal<?> signal = timer.protocol(() -> protocolAdapter.fromAdaptable(adaptable));
+                            final Signal<?> signal =
+                                    timer.inboundProtocol(() -> protocolAdapter.fromAdaptable(adaptable));
                             dittoHeadersSizeChecker.check(signal.getDittoHeaders());
                             final DittoHeaders dittoHeaders = signal.getDittoHeaders();
                             final DittoHeaders headersWithMapper =

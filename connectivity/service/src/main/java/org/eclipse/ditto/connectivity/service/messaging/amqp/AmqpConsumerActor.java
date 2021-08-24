@@ -68,6 +68,9 @@ import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -310,6 +313,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
     private void handleJmsMessage(final JmsMessage message) {
         Map<String, String> headers = null;
         String correlationId = null;
+        StartedTrace trace = Traces.emptyStartedTrace();
         try {
             recordIncomingForRateLimit(message.getJMSMessageID());
             if (log.isDebugEnabled()) {
@@ -323,6 +327,10 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
             }
             headers = extractHeadersMapFromJmsMessage(message);
             correlationId = headers.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
+            trace = DittoTracing.trace(DittoTracing.extractTraceContext(headers), "amqp.consume")
+                    .correlationId(correlationId)
+                    .start();
+            headers = trace.propagateContext(headers);
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder, correlationId)
                     .withAuthorizationContext(source.getAuthorizationContext())
@@ -347,6 +355,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
             log.withCorrelationId(e)
                     .info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(),
                             e.getMessage());
+            trace.fail(e);
             if (headers != null) {
                 // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
                 // because we need a reply-to address to send the error response
@@ -361,9 +370,11 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
             } else {
                 inboundMonitor.exception(e);
             }
-
+            trace.fail(e);
             log.withCorrelationId(correlationId)
                     .error(e, "Unexpected {}: {}", e.getClass().getName(), e.getMessage());
+        } finally {
+            trace.finish();
         }
     }
 

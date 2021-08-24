@@ -29,6 +29,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbC
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.DefaultPersistenceOperationsConfig;
 import org.eclipse.ditto.internal.utils.persistence.operations.PersistenceOperationsConfig;
+import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 
 /**
  * This class implements the config of the Ditto Things service.
@@ -84,6 +85,11 @@ public final class DittoThingsConfig implements ThingsConfig {
     @Override
     public MetricsConfig getMetricsConfig() {
         return serviceSpecificConfig.getMetricsConfig();
+    }
+
+    @Override
+    public TracingConfig getTracingConfig() {
+        return serviceSpecificConfig.getTracingConfig();
     }
 
     @Override

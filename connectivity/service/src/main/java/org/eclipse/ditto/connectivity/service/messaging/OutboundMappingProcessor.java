@@ -41,12 +41,14 @@ import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
+import kamon.context.Context;
 
 /**
  * Processes outgoing {@link Signal}s to {@link ExternalMessage}s.
@@ -157,7 +159,8 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
     private List<MappingOutcome<OutboundSignal.Mapped>> processMappableSignals(final OutboundSignal outboundSignal,
             final List<OutboundSignal.Mappable> mappableSignals) {
 
-        final MappingTimer timer = MappingTimer.outbound(connectionId, connectionType);
+        final Context context = DittoTracing.extractTraceContext(outboundSignal.getSource().getDittoHeaders());
+        final MappingTimer timer = MappingTimer.outbound(connectionId, connectionType, context);
 
         final DittoHeaders dittoHeaders = outboundSignal.getSource().getDittoHeaders();
         final Signal<?> signalToMap;
@@ -173,8 +176,7 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
             signalToMap = outboundSignal.getSource();
         }
 
-        final Adaptable adaptableWithoutExtra =
-                timer.protocol(() -> protocolAdapter.toAdaptable(signalToMap));
+        final Adaptable adaptableWithoutExtra = timer.protocol(() -> protocolAdapter.toAdaptable(signalToMap));
         final Adaptable adaptable = outboundSignal.getExtra()
                 .map(extra -> ProtocolFactory.setExtra(adaptableWithoutExtra, extra))
                 .orElse(adaptableWithoutExtra);
@@ -203,7 +205,7 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                         .debug("Applying mapper <{}> to message <{}>", mapper.getId(), adaptable);
 
                 final List<ExternalMessage> messages =
-                        timer.payload(mapper.getId(), () -> checkForNull(mapper.map(adaptable)));
+                        timer.outboundPayload(mapper.getId(), () -> checkForNull(mapper.map(adaptable)));
 
                 logger.withCorrelationId(adaptable)
                         .debug("Mapping <{}> produced <{}> messages.", mapper.getId(), messages.size());

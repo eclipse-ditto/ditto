@@ -25,6 +25,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
@@ -39,11 +40,14 @@ final class SessionedSignal implements SessionedJsonifiable {
     private final Signal<?> signal;
     private final DittoHeaders sessionHeaders;
     private final StreamingSession session;
+    private final StartedTrace trace;
 
-    SessionedSignal(final Signal<?> signal, final DittoHeaders sessionHeaders, final StreamingSession session) {
+    SessionedSignal(final Signal<?> signal, final DittoHeaders sessionHeaders, final StreamingSession session,
+            final StartedTrace trace) {
         this.signal = signal;
         this.sessionHeaders = sessionHeaders;
         this.session = session;
+        this.trace = trace;
     }
 
     @Override
@@ -80,5 +84,10 @@ final class SessionedSignal implements SessionedJsonifiable {
     @Override
     public Optional<StreamingSession> getSession() {
         return Optional.of(session);
+    }
+
+    @Override
+    public void finishTrace() {
+        trace.finish();
     }
 }

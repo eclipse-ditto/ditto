@@ -27,6 +27,7 @@ import org.eclipse.ditto.gateway.service.util.config.endpoints.GatewayHttpConfig
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.MessageConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.PublicHealthConfig;
+import org.eclipse.ditto.gateway.service.util.config.health.DefaultHealthCheckConfig;
 import org.eclipse.ditto.gateway.service.util.config.health.HealthCheckConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.AuthenticationConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.CachesConfig;
@@ -34,13 +35,13 @@ import org.eclipse.ditto.gateway.service.util.config.security.DefaultAuthenticat
 import org.eclipse.ditto.gateway.service.util.config.security.DefaultCachesConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
-import org.eclipse.ditto.gateway.service.util.config.health.DefaultHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.config.WithConfigPath;
 import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
 import org.eclipse.ditto.internal.utils.protocol.config.DefaultProtocolConfig;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
+import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 
 /**
  * This class is the default implementation of the Gateway config.
@@ -149,6 +150,11 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
     @Override
     public MetricsConfig getMetricsConfig() {
         return dittoServiceConfig.getMetricsConfig();
+    }
+
+    @Override
+    public TracingConfig getTracingConfig() {
+        return dittoServiceConfig.getTracingConfig();
     }
 
     @Override

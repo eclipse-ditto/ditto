@@ -69,6 +69,9 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.TracingTags;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -441,12 +444,23 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                         try {
                             final Signal<?> signal = buildSignal(cmdString, version, connectionCorrelationId,
                                     connectionAuthContext, additionalHeaders, adapter, headerTranslator, logger);
-                            result = Right.apply(Right.apply(signal));
+                            final StartedTrace trace = DittoTracing.trace(signal, "gw.streaming.in.signal")
+                                    .tag(TracingTags.SIGNAL_TYPE, signal.getType())
+                                    .start();
+                            final Signal<?> tracedSignal = DittoTracing.propagateContext(trace.getContext(), signal);
+                            result = Right.apply(Right.apply(tracedSignal));
+                            trace.finish();
                         } catch (final DittoRuntimeException dre) {
                             // This is a client error usually; log at level DEBUG without stack trace.
                             logger.withCorrelationId(dre)
                                     .debug("DittoRuntimeException building signal from <{}>: <{}>", cmdString, dre);
-                            result = Left.apply(dre);
+                            final StartedTrace trace = DittoTracing.trace(dre, "gw.streaming.in.error")
+                                    .start();
+                            trace.fail(dre);
+                            final DittoRuntimeException tracedDre = DittoTracing.propagateContext(trace.getContext(),
+                                    dre);
+                            result = Left.apply(tracedDre);
+                            trace.finish();
                         } catch (final Exception throwable) {
                             logger.warn("Error building signal from <{}>: {}: <{}>", cmdString,
                                     throwable.getClass().getSimpleName(), throwable.getMessage());
@@ -454,7 +468,13 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                                     GatewayInternalErrorException.newBuilder()
                                             .cause(throwable)
                                             .build();
-                            result = Left.apply(dittoRuntimeException);
+                            final StartedTrace trace = DittoTracing.trace(dittoRuntimeException, "gw.streaming.in.error")
+                                    .start();
+                            trace.fail(throwable);
+                            final DittoRuntimeException tracedDre = DittoTracing.propagateContext(trace.getContext(),
+                                    dittoRuntimeException);
+                            result = Left.apply(tracedDre);
+                            trace.finish();
                         }
                     }
                     return result;
@@ -654,8 +674,12 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     return Collections.singletonList(toJsonStringWithExtra(adaptable, extra));
                 }
                 issuePotentialWeakAcknowledgements(sessionedJsonifiable);
+                sessionedJsonifiable.finishTrace();
                 return Collections.emptyList();
-            }).exceptionally(error -> WebSocketRoute.reportEnrichmentError(error, adapter, adaptable, logger));
+            }).exceptionally(error -> {
+                sessionedJsonifiable.finishTrace();
+                return WebSocketRoute.reportEnrichmentError(error, adapter, adaptable, logger);
+            });
         };
     }
 

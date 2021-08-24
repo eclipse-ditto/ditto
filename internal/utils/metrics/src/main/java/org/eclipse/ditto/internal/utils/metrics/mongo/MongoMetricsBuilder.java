@@ -16,8 +16,8 @@ import java.util.concurrent.atomic.LongAccumulator;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 
 import akka.contrib.persistence.mongodb.MetricsBuilder;
 import akka.contrib.persistence.mongodb.MongoHistogram;
@@ -36,7 +36,6 @@ public final class MongoMetricsBuilder implements MetricsBuilder {
     public MongoTimer timer(final String name) {
         return () -> {
             final StartedTimer startedTimer = DittoMetrics.timer(name).start();
-
             return () -> {
                 final long nanos = startedTimer.stop().getDuration().toNanos();
                 MAX_TIMER_NANOS.accumulate(nanos);

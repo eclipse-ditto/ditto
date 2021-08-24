@@ -19,8 +19,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 
 import akka.http.javadsl.model.HttpRequest;
 
@@ -33,7 +31,6 @@ public final class TraceUtils {
     private static final String TRACING_FILTER_DELIMITER = "_";
 
     private static final String HTTP_ROUNDTRIP_METRIC_NAME = "roundtrip_http";
-    private static final String AMQP_ROUNDTRIP_METRIC_NAME = "roundtrip_amqp";
     private static final String FILTER_AUTH_METRIC_NAME = "filter_auth";
 
     private TraceUtils() {
@@ -55,35 +52,6 @@ public final class TraceUtils {
         return newExpiringTimer(HTTP_ROUNDTRIP_METRIC_NAME)
                 .tags(traceInformation.getTags())
                 .tag(TracingTags.REQUEST_METHOD, requestMethod);
-    }
-
-    /**
-     * Prepares an {@link PreparedTimer} with default {@link #AMQP_ROUNDTRIP_METRIC_NAME} and tags.
-     *
-     * @param command The command to extract tags.
-     * @return The prepared {@link PreparedTimer}
-     */
-    public static PreparedTimer newAmqpRoundTripTimer(final Command<?> command) {
-        return newExpiringTimer(AMQP_ROUNDTRIP_METRIC_NAME)
-                .tag(TracingTags.COMMAND_TYPE, command.getType())
-                .tag(TracingTags.COMMAND_TYPE_PREFIX, command.getTypePrefix())
-                .tag(TracingTags.COMMAND_CATEGORY, command.getCategory().name());
-    }
-
-    /**
-     * Prepares an {@link PreparedTimer} with default {@link #AMQP_ROUNDTRIP_METRIC_NAME} and tags.
-     *
-     * @param command The command to extract tags.
-     * @return The prepared {@link PreparedTimer}
-     */
-    public static PreparedTimer newAmqpRoundTripTimer(final Signal<?> command) {
-        if (command instanceof Command) {
-            return newAmqpRoundTripTimer((Command) command);
-        }
-
-        final String metricsUri = AMQP_ROUNDTRIP_METRIC_NAME + command.getType();
-        return newExpiringTimer(metricsUri)
-                .tag(TracingTags.COMMAND_TYPE, command.getType());
     }
 
     /**

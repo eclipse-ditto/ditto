@@ -51,7 +51,6 @@ final class PreparedKamonTimer implements PreparedTimer {
 
     private PreparedKamonTimer(final String name, final Map<String, String> tags, final Duration maximumDuration,
             final Consumer<StartedTimer> additionalExpirationHandling) {
-
         this.name = name;
         this.tags = tags;
         this.maximumDuration = maximumDuration;
@@ -125,7 +124,7 @@ final class PreparedKamonTimer implements PreparedTimer {
         final ScheduledFuture<?> expirationFuture = scheduler.schedule(
                 () -> defaultExpirationHandling(timer.getName(), timer, additionalExpirationHandling),
                 maximumDuration.toMillis(), TimeUnit.MILLISECONDS);
-        timer.onStop(new OnStopHandler(stoppedTimer -> cancelScheduledExpiration(stoppedTimer, expirationFuture)));
+        timer.onStop(stoppedTimer -> cancelScheduledExpiration(stoppedTimer, expirationFuture));
         return timer;
     }
 
@@ -185,7 +184,6 @@ final class PreparedKamonTimer implements PreparedTimer {
     private kamon.metric.Timer getKamonInternalTimer() {
         return Kamon.timer(name).withTags(TagSet.from(new HashMap<>(this.tags)));
     }
-
 
     @Override
     public String toString() {
