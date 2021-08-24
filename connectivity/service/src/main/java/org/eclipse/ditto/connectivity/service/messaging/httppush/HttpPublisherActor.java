@@ -310,24 +310,19 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return tryResponse -> {
             final Uri requestUri = stripUserInfo(request.getUri());
 
-            final ThreadSafeDittoLoggingAdapter l;
-            if (logger.isDebugEnabled()) {
-                l = logger.withCorrelationId(message.getInternalHeaders());
-            } else {
-                l = logger;
-            }
+            final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(message.getInternalHeaders());
 
             if (tryResponse.isFailure()) {
                 final Throwable error = tryResponse.toEither().left().get();
                 final String errorDescription = MessageFormat.format("Failed to send HTTP request to <{0}>.",
                         requestUri);
-                l.debug("Failed to send message <{}> due to <{}>", message, error);
+                l.info("Failed to send message <{}> due to <{}>", message, error);
                 resultFuture.completeExceptionally(error);
                 escalate(error, errorDescription);
             } else {
                 final HttpResponse response = tryResponse.toEither().right().get();
-                l.debug("Sent message <{}>. Got response <{} {}>", message,
-                        response.status(), response.getHeaders());
+                l.info("Got response status <{}>", response.status());
+                l.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
 
                 toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize, ackSizeQuota)
                         .thenAccept(resultFuture::complete)
