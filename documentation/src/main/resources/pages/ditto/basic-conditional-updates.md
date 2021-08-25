@@ -24,7 +24,10 @@ If the condition specified in the request is not fulfilled than the thing is not
 and no [event/change notification](basic-changenotifications.html) is emitted.
 Otherwise, the thing will be updated normally and an event will be emitted.
 
-Conditional updates are available via HTTP API, Ditto protocol and Ditto Java client.
+The requester needs WRITE or READ permission on the resource which is requested and additionally needs READ permission
+on the resource specified in the condition. Otherwise, the request will fail.
+
+Conditional requests are available via HTTP API, Ditto protocol and Ditto Java client.
 
 
 ## Examples
