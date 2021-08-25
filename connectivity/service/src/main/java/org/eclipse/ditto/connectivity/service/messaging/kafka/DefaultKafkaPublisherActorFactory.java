@@ -29,8 +29,6 @@ public final class DefaultKafkaPublisherActorFactory implements KafkaPublisherAc
 
     @Nullable private static DefaultKafkaPublisherActorFactory instance;
 
-    private static final long serialVersionUID = 5200344820825330940L;
-
     private DefaultKafkaPublisherActorFactory() {
         super();
     }
