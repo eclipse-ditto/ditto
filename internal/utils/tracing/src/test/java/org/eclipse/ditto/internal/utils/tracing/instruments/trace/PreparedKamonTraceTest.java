@@ -12,15 +12,60 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.eclipse.ditto.internal.utils.tracing.TracingTags;
 import org.junit.Before;
+import org.junit.Test;
 
 import kamon.context.Context;
 
-public class PreparedKamonTraceTest extends TaggedMetricsInstrumentTest<PreparedTrace> {
+public class PreparedKamonTraceTest {
+
+    private PreparedTrace underTest;
 
     @Before
     public void setup() {
         underTest = new PreparedKamonTrace(Context.Empty(), "prepared");
+    }
+
+    @Test
+    public void taggingWorks() {
+        underTest.tag("stringTag", "2");
+        underTest.tag("longTag", 2L);
+        underTest.tag("booleanTag", true);
+        underTest.tag("doubleTag", 2.0);
+
+        assertThat(underTest.getTags()).hasSize(4);
+        assertThat(underTest.getTag("stringTag")).isEqualTo("2");
+        assertThat(underTest.getTag("longTag")).isEqualTo("2");
+        assertThat(underTest.getTag("booleanTag")).isEqualTo("true");
+        assertThat(underTest.getTag("doubleTag")).isEqualTo("2.0");
+    }
+
+    @Test
+    public void traceTags() {
+        underTest.correlationId("12345");
+        underTest.connectionType("test");
+        underTest.connectionId("connection-1");
+
+        assertThat(underTest.getTags()).hasSize(3);
+        assertThat(underTest.getTag(TracingTags.CORRELATION_ID)).isEqualTo("12345");
+        assertThat(underTest.getTag(TracingTags.CONNECTION_TYPE)).isEqualTo("test");
+        assertThat(underTest.getTag(TracingTags.CONNECTION_ID)).isEqualTo("connection-1");
+    }
+
+    @Test
+    public void nullTraceTagsAreIgnored() {
+        underTest.correlationId(null);
+        underTest.connectionType(null);
+        underTest.connectionId(null);
+        assertThat(underTest.getTags()).hasSize(0);
+    }
+
+    @Test
+    public void selfReturnsSelf() {
+        assertThat(underTest.self()).isSameAs(underTest);
     }
 
 }

@@ -14,7 +14,7 @@ package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.internal.utils.metrics.instruments.TaggedMetricInstrument;
+import org.eclipse.ditto.internal.utils.metrics.instruments.TaggableMetricsInstrument;
 import org.eclipse.ditto.internal.utils.tracing.TracingTags;
 
 /**
@@ -22,7 +22,7 @@ import org.eclipse.ditto.internal.utils.tracing.TracingTags;
  *
  * @param <T> the type of the implementing class
  */
-public interface TraceTags<T extends TaggedMetricInstrument<T>> extends TaggedMetricInstrument<T> {
+public interface TraceTags<T extends TaggableMetricsInstrument<T>> extends TaggableMetricsInstrument<T> {
 
     /**
      * Adds a {@link TracingTags#CORRELATION_ID} tag to the trace.
