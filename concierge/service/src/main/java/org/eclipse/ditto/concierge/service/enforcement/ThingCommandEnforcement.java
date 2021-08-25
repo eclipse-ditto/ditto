@@ -15,7 +15,6 @@ package org.eclipse.ditto.concierge.service.enforcement;
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.policies.api.Permission.MIN_REQUIRED_POLICY_PERMISSIONS;
 
-import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
@@ -57,6 +56,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.Permission;
@@ -80,7 +80,9 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
-import org.eclipse.ditto.rql.parser.internal.RqlPredicateParser;
+import org.eclipse.ditto.rql.model.ParserException;
+import org.eclipse.ditto.rql.model.predicates.ast.RootNode;
+import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.things.FieldNamesPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingConstants;
@@ -91,6 +93,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyInvalidE
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingCommandToAccessExceptionRegistry;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingCommandToModifyExceptionRegistry;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreatableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
@@ -770,7 +773,6 @@ public final class ThingCommandEnforcement
         final var thingResourceKey = PoliciesResourceType.thingResource(command.getResourcePath());
         final var dittoHeaders = command.getDittoHeaders();
         final var authorizationContext = dittoHeaders.getAuthorizationContext();
-        final var condition = dittoHeaders.getCondition().orElse(null);
 
         final boolean commandAuthorized;
         if (command instanceof MergeThing) {
@@ -784,11 +786,13 @@ public final class ThingCommandEnforcement
                     policyEnforcer.hasPartialPermissions(thingResourceKey, authorizationContext, Permission.READ);
         }
 
-        if (condition != null && !(command instanceof CreateThing)) {
-            enforceReadPermissionOnCondition(condition, policyEnforcer, authorizationContext);
-        }
+        dittoHeaders.getCondition().ifPresent(condition -> {
+            if (!(command instanceof CreateThing)) {
+                enforceReadPermissionOnCondition(condition, policyEnforcer, authorizationContext, dittoHeaders);
+            }
+        });
 
-        if (commandAuthorized ) {
+        if (commandAuthorized) {
             return AbstractEnforcement.addEffectedReadSubjectsToThingSignal(command, policyEnforcer);
         } else {
             throw errorForThingCommand(command);
@@ -797,25 +801,42 @@ public final class ThingCommandEnforcement
 
     private static void enforceReadPermissionOnCondition(final String condition,
             final Enforcer policyEnforcer,
-            final AuthorizationContext authorizationContext) {
+            final AuthorizationContext authorizationContext,
+            final DittoHeaders dittoHeaders) {
 
-        final Set<ResourceKey> resourceKeyList = determineResourceKeys(condition);
-        if(!policyEnforcer.hasUnrestrictedPermissions(resourceKeyList, authorizationContext, Permission.READ)) {
-            throw ThingConditionFailedException.newBuilder(condition)
-                    .message(MessageFormat.format("The resource specified in the condition ''{0}'' could not be " +
-                            "found or the requester had insufficient permissions to access it.", condition))
-                    .description("Check if the ID of your requested Thing was correct and you have sufficient permissions.")
+        final RootNode rootNode = validateCondition(condition, dittoHeaders);
+        final Set<ResourceKey> resourceKeyList = determineResourceKeys(rootNode, dittoHeaders);
+        if (!policyEnforcer.hasUnrestrictedPermissions(resourceKeyList, authorizationContext, Permission.READ)) {
+            throw ThingConditionFailedException.newBuilderForInsufficientPermission(condition)
                     .build();
         }
     }
 
-    private static Set<ResourceKey> determineResourceKeys(final String condition) {
+    private static RootNode validateCondition(final String condition, final DittoHeaders dittoHeaders) {
+        try {
+            return RqlPredicateParser.getInstance().parse(condition);
+        } catch (final ParserException e) {
+            throw ThingConditionInvalidException.newBuilder(condition, e.getMessage())
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+    }
+
+    private static Set<ResourceKey> determineResourceKeys(final RootNode rootNode, final DittoHeaders dittoHeaders) {
         final FieldNamesPredicateVisitor visitor = new FieldNamesPredicateVisitor();
-        visitor.visit(RqlPredicateParser.parse(condition));
+        visitor.visit(rootNode);
         final Set<String> extractedFieldNames = visitor.getFieldNames();
 
         return extractedFieldNames.stream()
-                .map(PoliciesResourceType::thingResource)
+                .map(fieldName -> {
+                    try {
+                        return PoliciesResourceType.thingResource(fieldName);
+                    } catch (JsonPointerInvalidException e) {
+                        throw ThingConditionInvalidException.newBuilder(fieldName, e.getDescription().orElse(""))
+                                .dittoHeaders(dittoHeaders)
+                                .build();
+                    }
+                })
                 .collect(Collectors.toSet());
     }
 

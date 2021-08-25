@@ -28,74 +28,54 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingException;
 
 /**
- * Thrown when validating a condition on a Thing or one of its sub-entities is failing.
+ * Thrown when validating the condition is failing.
  */
 @Immutable
-@JsonParsableException(errorCode = ThingConditionFailedException.ERROR_CODE)
-public final class ThingConditionFailedException extends DittoRuntimeException implements ThingException {
+@JsonParsableException(errorCode = ThingConditionInvalidException.ERROR_CODE)
+public final class ThingConditionInvalidException extends DittoRuntimeException implements ThingException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "condition.failed";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "condition.invalid";
 
-    private static final String MESSAGE_TEMPLATE_CONDITION_NOT_MET =
-            "The specified condition ''{0}'' does not match the state of the requested Thing.";
+    private static final String MESSAGE_TEMPLATE =
+            "The specified condition ''{0}'' is invalid.";
 
-    private static final String MESSAGE_TEMPLATE_FOR_INSUFFICIENT_PERMISSION =
-            "The specified resource in the condition ''{0}'' could not be found " +
-                    "or the requester had insufficient permissions to access it.";
+    private static final String DEFAULT_DESCRIPTION = "The provided condition is not valid. " +
+            "Please check the value of your condition header.";
 
-    private static final String DEFAULT_DESCRIPTION = "The provided condition did not match the actual Thing state. " +
-            "Please check your provided condition.";
-
-    private static final String DESCRIPTION_FOR_INSUFFICIENT_PERMISSION =
-            "Check if you have sufficient permissions to access the specified resource (READ permission is required).";
-
-    private ThingConditionFailedException(final DittoHeaders dittoHeaders,
+    private ThingConditionInvalidException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatus.PRECONDITION_FAILED, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**
-     * A mutable builder for a {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException}.
+     * A mutable builder for a {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionInvalidException}.
      *
      * @param condition the condition to apply for the request.
      * @return the builder.
      */
-    public static Builder newBuilder(final String condition) {
-        return new Builder(condition);
+    public static Builder newBuilder(final String condition, final String description) {
+        return new Builder(condition, description);
     }
 
     /**
-     * A mutable builder for a {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException}.
-     *
-     * @param condition the condition to apply for the request.
-     * @return the builder.
-     */
-    public static DittoRuntimeExceptionBuilder<ThingConditionFailedException> newBuilderForInsufficientPermission(
-            final String condition) {
-        return new Builder(condition)
-                .message(MessageFormat.format(MESSAGE_TEMPLATE_FOR_INSUFFICIENT_PERMISSION, condition))
-                .description(DESCRIPTION_FOR_INSUFFICIENT_PERMISSION);
-    }
-
-    /**
-     * Constructs a new {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException}
+     * Constructs a new {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionInvalidException}
      * object with the exception message extracted from the given JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException}.
+     * @return the new {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionInvalidException}.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static ThingConditionFailedException fromJson(final JsonObject jsonObject,
+    public static ThingConditionInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
@@ -112,28 +92,31 @@ public final class ThingConditionFailedException extends DittoRuntimeException i
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException}.
+     * A mutable builder with a fluent API for a {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionInvalidException}.
      */
     @NotThreadSafe
     public static final class Builder
-            extends DittoRuntimeExceptionBuilder<ThingConditionFailedException> {
+            extends DittoRuntimeExceptionBuilder<ThingConditionInvalidException> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String condition) {
+        private Builder(final String condition, final String description) {
             this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE_CONDITION_NOT_MET, condition));
+            message(MessageFormat.format(MESSAGE_TEMPLATE, condition));
+            if (!description.equals("")) {
+                description(description);
+            }
         }
 
         @Override
-        protected ThingConditionFailedException doBuild(final DittoHeaders dittoHeaders,
+        protected ThingConditionInvalidException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new ThingConditionFailedException(dittoHeaders, message, description, cause, href);
+            return new ThingConditionInvalidException(dittoHeaders, message, description, cause, href);
         }
     }
 

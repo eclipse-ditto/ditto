@@ -63,6 +63,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotMod
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyNotAllowedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConflictException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingDefinitionNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingIdNotExplicitlySettableException;
@@ -357,6 +358,14 @@ public final class TestConstants {
         public static final ThingConditionFailedException THING_CONDITION_FAILED_EXCEPTION =
                 ThingConditionFailedException
                         .newBuilder("eq(attributes/attr1,42)")
+                        .build();
+
+        /**
+         * A known {@code ThingConditionInvalidException}.
+         */
+        public static final ThingConditionInvalidException THING_CONDITION_INVALID_EXCEPTION =
+                ThingConditionInvalidException
+                        .newBuilder("eq(attributes//attr1,42)", "")
                         .build();
 
         private Thing() {

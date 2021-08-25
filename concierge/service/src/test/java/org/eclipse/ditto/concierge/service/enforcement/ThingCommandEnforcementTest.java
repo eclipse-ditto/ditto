@@ -61,6 +61,7 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.FeatureNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
@@ -702,6 +703,42 @@ public final class ThingCommandEnforcementTest {
             final DittoRuntimeException response = TestSetup.fishForMsgClass(this, DittoRuntimeException.class);
             assertThat(response.getErrorCode()).isEqualTo(ThingConditionFailedException.ERROR_CODE);
             assertThat(response.getHttpStatus()).isEqualTo(HttpStatus.PRECONDITION_FAILED);
+        }};
+    }
+
+    @Test
+    public void testModifyWithInvalidCondition() {
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final JsonObject thingWithPolicy = newThingWithPolicyId(policyId);
+        final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .forLabel("authorize-self")
+                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .build()
+                .toJson(FieldType.all());
+        final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
+        final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
+                SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
+
+            final ActorRef underTest = newEnforcerActor(getRef());
+
+            final DittoHeaders dittoHeaders = headers(V_2).toBuilder()
+                    .condition("eq(attributes//testAttr,\"testString\")")
+                    .build();
+
+            final ThingCommand modifyCommand = getModifyCommand(dittoHeaders);
+            mockEntitiesActorInstance.setReply(modifyCommand);
+            underTest.tell(modifyCommand, getRef());
+            final DittoRuntimeException response = TestSetup.fishForMsgClass(this, DittoRuntimeException.class);
+            assertThat(response.getErrorCode()).isEqualTo(ThingConditionInvalidException.ERROR_CODE);
+            assertThat(response.getHttpStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
         }};
     }
 
