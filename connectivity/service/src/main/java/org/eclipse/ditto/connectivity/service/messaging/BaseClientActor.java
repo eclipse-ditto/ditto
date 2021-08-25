@@ -173,7 +173,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
 
-
     /**
      * Common logger for all sub-classes of BaseClientActor as its MDC already contains the connection ID.
      */
@@ -1654,11 +1653,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             throw dre;
         }
 
-        final Connection connection = connectionContext.getConnection();
-        final int processorPoolSize = connection.getProcessorPoolSize();
+        final Connection connectionContextConnection = connectionContext.getConnection();
+        final int processorPoolSize = connectionContextConnection.getProcessorPoolSize();
         logger.debug("Starting mapping processor actors with pool size of <{}>.", processorPoolSize);
         final Props outboundMappingProcessorActorProps =
-                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connection, processorPoolSize);
+                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connectionContextConnection,
+                        processorPoolSize);
 
         final ActorRef processorActor =
                 getContext().actorOf(outboundMappingProcessorActorProps, OutboundMappingProcessorActor.ACTOR_NAME);
@@ -1951,7 +1951,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 connectionContextProvider.getConnectionContext(connection, dittoHeaders)
                         .thenCompose(context ->
                                 connectionContextProvider.registerForConnectivityConfigChanges(context, self)
-                                        .<Object>thenApply(_void -> context)
+                                        .<Object>thenApply(aVoid -> context)
                         )
                         .exceptionally(throwable -> {
                             if (throwable instanceof RuntimeException) {

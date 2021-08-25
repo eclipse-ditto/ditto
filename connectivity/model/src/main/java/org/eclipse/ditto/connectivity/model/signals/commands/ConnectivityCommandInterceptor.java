@@ -45,7 +45,7 @@ public interface ConnectivityCommandInterceptor extends Consumer<ConnectivityCom
     }
 
     /**
-     * By default resolve connection from the given {@link ConnectivityCommand}.
+     * By default, resolve connection from the given {@link ConnectivityCommand}.
      *
      * @param command the intercepted command
      */
@@ -53,4 +53,5 @@ public interface ConnectivityCommandInterceptor extends Consumer<ConnectivityCom
     default void accept(final ConnectivityCommand<?> command) {
         accept(command, () -> getConnectionFromCommand(command));
     }
+
 }

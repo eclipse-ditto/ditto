@@ -153,8 +153,8 @@ public final class InboundMappingProcessor
                     for (final Adaptable adaptable : adaptables) {
                         try {
                             final Signal<?> signal = timer.protocol(() -> protocolAdapter.fromAdaptable(adaptable));
-                            dittoHeadersSizeChecker.check(signal.getDittoHeaders());
                             final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+                            dittoHeadersSizeChecker.check(dittoHeaders);
                             final DittoHeaders headersWithMapper =
                                     dittoHeaders.toBuilder().inboundPayloadMapper(mapper.getId()).build();
                             final Signal<?> signalWithMapperHeader = signal.setDittoHeaders(headersWithMapper);

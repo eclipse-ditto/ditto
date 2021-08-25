@@ -136,8 +136,8 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
         final Throwable error = throwable == null
                 ? new NullPointerException("Result and error are both null")
                 : throwable;
-        final var dre = DittoRuntimeException
-                .asDittoRuntimeException(error, cause -> reportUnexpectedError(hint, cause));
+        final var dre = DittoRuntimeException.asDittoRuntimeException(
+                error, cause -> reportUnexpectedError(hint, cause));
         log().info("{} - {}: {}", hint, dre.getClass().getSimpleName(), dre.getMessage());
         return dre;
     }
