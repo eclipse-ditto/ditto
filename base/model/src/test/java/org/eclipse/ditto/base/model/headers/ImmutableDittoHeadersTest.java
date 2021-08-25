@@ -109,6 +109,8 @@ public final class ImmutableDittoHeadersTest {
     private static final List<String> KNOWN_JOURNAL_TAGS = Lists.list("tag-a", "tag-b");
     private static final boolean KNOWN_IS_SUDO = true;
     private static final String KNOWN_CONDITION = "eq(attributes/value)";
+    private static final String KNOWN_TRACEPARENT = "00-dfca0d990402884d22e909a87ac677ec-94fc4da95e842f96-01";
+    private static final String KNOWN_TRACESTATE = "eclipse=ditto";
 
 
     static {
@@ -167,6 +169,8 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
                         charSequencesToJsonArray(KNOWN_JOURNAL_TAGS).toString())
                 .putHeader(DittoHeaderDefinition.DITTO_SUDO.getKey(), String.valueOf(KNOWN_IS_SUDO))
+                .putHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), KNOWN_TRACEPARENT)
+                .putHeader(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE)
                 .condition(KNOWN_CONDITION)
                 .build();
 
@@ -412,6 +416,8 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
                         charSequencesToJsonArray(KNOWN_JOURNAL_TAGS))
                 .set(DittoHeaderDefinition.DITTO_SUDO.getKey(), KNOWN_IS_SUDO)
+                .set(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), KNOWN_TRACEPARENT)
+                .set(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE)
                 .set(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION)
                 .build();
 
@@ -638,6 +644,8 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.EVENT_JOURNAL_TAGS.getKey(),
                 charSequencesToJsonArray(KNOWN_JOURNAL_TAGS).toString());
         result.put(DittoHeaderDefinition.DITTO_SUDO.getKey(), String.valueOf(KNOWN_IS_SUDO));
+        result.put(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), KNOWN_TRACEPARENT);
+        result.put(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE);
         result.put(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION);
 
         return result;

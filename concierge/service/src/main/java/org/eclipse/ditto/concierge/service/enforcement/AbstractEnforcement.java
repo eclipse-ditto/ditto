@@ -29,7 +29,6 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalE
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
-import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
@@ -84,9 +83,6 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
 
     private BiFunction<Contextual<WithDittoHeaders>, Throwable, Contextual<WithDittoHeaders>> handleEnforcementCompletion() {
         return (result, throwable) -> {
-            context.getStartedTimer()
-                    .map(startedTimer -> startedTimer.tag("outcome", throwable != null ? "fail" : "success"))
-                    .ifPresent(StartedTimer::stop);
             if (null != result) {
                 final ThreadSafeDittoLoggingAdapter l = result.getLog().withCorrelationId(result);
                 final String typeHint = result.getMessageOptional()

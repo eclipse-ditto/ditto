@@ -13,12 +13,16 @@
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import java.time.Duration;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
-import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
@@ -56,8 +60,26 @@ public interface HttpPushFactory {
      * @param requestTimeout timeout of each request.
      * @return flow from request-correlationId pairs to response-correlationId pairs.
      */
+    default <T> Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> createFlow(final ActorSystem system,
+            final LoggingAdapter log,
+            final Duration requestTimeout) {
+
+        return createFlow(system, log, requestTimeout, null, null);
+    }
+
+    /**
+     * Create a flow to send HTTP(S) requests.
+     *
+     * @param <T> type of additional object flowing through flow.
+     * @param system the actor system with the default Akka HTTP configuration.
+     * @param log logger for the flow.
+     * @param requestTimeout timeout of each request.
+     * @param timer timer to measure HTTP requests.
+     * @param durationConsumer consumer of measured HTTP request durations.
+     * @return flow from request-correlationId pairs to response-correlationId pairs.
+     */
     <T> Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> createFlow(ActorSystem system, LoggingAdapter log,
-            final Duration requestTimeout);
+            Duration requestTimeout, @Nullable PreparedTimer timer, @Nullable Consumer<Duration> durationConsumer);
 
     /**
      * Create an HTTP-push-factory from a valid HTTP-push connection

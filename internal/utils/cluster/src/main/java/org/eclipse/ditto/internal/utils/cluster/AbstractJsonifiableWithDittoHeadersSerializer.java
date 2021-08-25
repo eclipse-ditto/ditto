@@ -21,19 +21,12 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonRuntimeException;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.json.cbor.BinaryToHexConverter;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -42,10 +35,20 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonRuntimeException;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.cbor.BinaryToHexConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +62,7 @@ import akka.io.BufferPool;
 import akka.io.DirectByteBufferPool;
 import akka.serialization.ByteBufferSerializer;
 import akka.serialization.SerializerWithStringManifest;
+import kamon.context.Context;
 
 /**
  * Abstract {@link SerializerWithStringManifest} which handles serializing and deserializing {@link Jsonifiable}s
@@ -140,9 +144,18 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     @Override
     public void toBinary(final Object object, final ByteBuffer buf) {
         if (object instanceof Jsonifiable) {
+            final Instant beforeSerializeInstant = Instant.now();
             final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
             final DittoHeaders dittoHeaders = getDittoHeadersOrEmpty(object);
-            jsonObjectBuilder.set(JSON_DITTO_HEADERS, dittoHeaders.toJson());
+
+            final Context context = DittoTracing.extractTraceContext(dittoHeaders);
+            final StartedTrace trace = DittoTracing.trace(context, "serialize")
+                    .startAt(beforeSerializeInstant);
+            dittoHeaders.getCorrelationId().ifPresent(trace::correlationId);
+            final DittoHeaders dittoHeadersWithTraceContext =
+                    DittoTracing.propagateContext(trace.getContext(), dittoHeaders);
+
+            jsonObjectBuilder.set(JSON_DITTO_HEADERS, dittoHeadersWithTraceContext.toJson());
 
             final JsonValue jsonValue;
 
@@ -165,13 +178,17 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                 final String errorMessage = MessageFormat.format(
                         "Could not put bytes of JSON string <{0}> into ByteBuffer due to BufferOverflow", jsonObject);
                 LOG.error(errorMessage, e);
+                trace.fail(e);
                 throw new IllegalArgumentException(errorMessage, e);
             } catch (final IOException e) {
                 final String errorMessage = MessageFormat.format(
                         "Serialization failed with {} on Jsonifiable with string representation <{}>",
                         e.getClass().getName(), jsonObject);
                 LOG.warn(errorMessage, e);
+                trace.fail(e);
                 throw new RuntimeException(errorMessage, e);
+            } finally {
+                trace.finish();
             }
         } else {
             LOG.error("Could not serialize class <{}> as it does not implement <{}>!", object.getClass(),
@@ -259,6 +276,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     private Jsonifiable<?> createJsonifiableFrom(final String manifest, final ByteBuffer bytebuffer)
             throws NotSerializableException {
 
+        final Instant beforeDeserializeInstant = Instant.now();
         final JsonValue jsonValue = deserializeFromByteBuffer(bytebuffer);
 
         final JsonObject jsonObject;
@@ -280,7 +298,16 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                 .map(DittoHeaders::newBuilder)
                 .orElseGet(DittoHeaders::newBuilder);
 
-        return deserializeJson(payload, manifest, dittoHeadersBuilder.build());
+        final DittoHeaders dittoHeaders = dittoHeadersBuilder.build();
+        final StartedTrace trace = DittoTracing.trace(dittoHeaders, "deserialize")
+                .startAt(beforeDeserializeInstant);
+        try {
+            final DittoHeaders dittoHeadersWithTraceContext =
+                    DittoTracing.propagateContext(trace.getContext(), dittoHeaders);
+            return deserializeJson(payload, manifest, dittoHeadersWithTraceContext);
+        } finally {
+            trace.finish();
+        }
     }
 
     private Jsonifiable<?> deserializeJson(final JsonObject jsonPayload, final String manifest,

@@ -39,6 +39,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.config.DefaultPingConfi
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.internal.utils.protocol.config.DefaultProtocolConfig;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
+import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 
 /**
  * This class is the implementation of {@link ConnectivityConfig} for Ditto's Connectivity service.
@@ -135,6 +136,11 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     @Override
     public MetricsConfig getMetricsConfig() {
         return serviceSpecificConfig.getMetricsConfig();
+    }
+
+    @Override
+    public TracingConfig getTracingConfig() {
+        return serviceSpecificConfig.getTracingConfig();
     }
 
     @Override

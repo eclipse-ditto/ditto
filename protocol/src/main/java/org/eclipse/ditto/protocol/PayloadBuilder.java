@@ -16,16 +16,26 @@ import java.time.Instant;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * A builder to create {@link Payload} instances.
  */
 public interface PayloadBuilder {
+
+    /**
+     * Sets the given {@code path} to this builder.
+     *
+     * @param path the value to set.
+     * @return this builder.
+     * @since 2.1.0
+     */
+    PayloadBuilder withPath(@Nullable JsonPointer path);
 
     /**
      * Sets the given {@code value} to this builder. A previously set value is replaced.

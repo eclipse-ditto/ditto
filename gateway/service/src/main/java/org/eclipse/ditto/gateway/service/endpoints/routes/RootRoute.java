@@ -35,6 +35,7 @@ import org.eclipse.ditto.gateway.service.endpoints.directives.EncodingEnsuringDi
 import org.eclipse.ditto.gateway.service.endpoints.directives.HttpsEnsuringDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.RequestResultLoggingDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.RequestTimeoutHandlingDirective;
+import org.eclipse.ditto.gateway.service.endpoints.directives.RequestTracingDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.devops.DevOpsRoute;
@@ -177,12 +178,15 @@ public final class RootRoute extends AllDirectives {
                 /* the outer handleExceptions is for handling exceptions in the directives wrapping the rootRoute
                    (which normally should not occur */
                 handleExceptions(exceptionHandler, () ->
-                        CorrelationIdEnsuringDirective.ensureCorrelationId(correlationId -> requestTimeoutHandlingDirective
-                                .handleRequestTimeout(correlationId, () ->
-                                        RequestResultLoggingDirective.logRequestResult(correlationId, () ->
-                                                innerRouteProvider.apply(correlationId)
+                        CorrelationIdEnsuringDirective.ensureCorrelationId(
+                                correlationId -> requestTimeoutHandlingDirective
+                                        .handleRequestTimeout(correlationId, () ->
+                                                RequestTracingDirective.traceRequest(correlationId, () ->
+                                                        RequestResultLoggingDirective.logRequestResult(correlationId,
+                                                                () -> innerRouteProvider.apply(correlationId)
+                                                        )
+                                                )
                                         )
-                                )
                         )
                 );
 

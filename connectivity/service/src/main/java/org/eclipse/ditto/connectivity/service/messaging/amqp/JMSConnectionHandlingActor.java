@@ -37,8 +37,8 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnauthorizedException;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableClientDisconnected;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
@@ -217,16 +217,19 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                 sender.tell(r, self);
                 log.debug("Session of connection <{}> recovered successfully.",
                         connectionContext.getConnection().getId());
-            } catch (final ConnectionFailedException | ConnectionUnauthorizedException e) {
-                sender.tell(new ImmutableConnectionFailure(origin, e, e.getMessage()), self);
+            } catch (final ConnectionFailedException e) {
+                sender.tell(ConnectionFailure.of(origin, e, null), self);
+                log.warning(e.getMessage());
+            } catch (final ConnectionUnauthorizedException e) {
+                sender.tell(ConnectionFailure.userRelated(origin, e, null), self);
                 log.warning(e.getMessage());
             } catch (final Exception e) {
-                sender.tell(new ImmutableConnectionFailure(origin, e, e.getMessage()), self);
+                sender.tell(ConnectionFailure.of(origin, e, null), self);
                 log.error("Unexpected error: {}", e.getMessage());
             }
         } else {
             log.info("Recovering session failed, no connection available.");
-            sender.tell(new ImmutableConnectionFailure(origin, null,
+            sender.tell(ConnectionFailure.of(origin, null,
                     "Session recovery failed, no connection available."), self);
         }
     }
@@ -241,7 +244,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
             disconnectAndTell(connectionOpt.get(), disconnect.getOrigin().orElse(null),
                     disconnect.isShutdownAfterDisconnect());
         } else {
-            final Object answer = new ImmutableClientDisconnected(disconnect.getOrigin().orElse(null),
+            final Object answer = ClientDisconnected.of(disconnect.getOrigin().orElse(null),
                     disconnect.isShutdownAfterDisconnect());
             getSender().tell(answer, getSelf());
         }
@@ -256,11 +259,14 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
             final AmqpClientActor.JmsConnected connectedMessage = tryConnect(origin, clientId);
             sender.tell(connectedMessage, self);
             log.debug("Connection <{}> established successfully.", connectionContext.getConnection().getId());
-        } catch (final ConnectionFailedException | ConnectionUnauthorizedException e) {
-            sender.tell(new ImmutableConnectionFailure(origin, e, e.getMessage()), self);
+        } catch (final ConnectionFailedException e) {
+            sender.tell(ConnectionFailure.of(origin, e, null), self);
+            log.warning(e.getMessage());
+        } catch (final ConnectionUnauthorizedException e) {
+            sender.tell(ConnectionFailure.userRelated(origin, e, null), self);
             log.warning(e.getMessage());
         } catch (final Exception e) {
-            sender.tell(new ImmutableConnectionFailure(origin, e, e.getMessage()), self);
+            sender.tell(ConnectionFailure.of(origin, e, null), self);
             log.error("Unexpected error: {}", e.getMessage());
         }
     }
@@ -353,6 +359,12 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         ).collect(Collectors.toList());
 
         if (!failedSources.isEmpty()) {
+            if (log.isDebugEnabled()) {
+                final String errorDetails = failedSources.values().stream()
+                        .map(error -> error.toString() + " with cause: " + error.getCause())
+                        .collect(Collectors.joining(","));
+                log.debug("Detected failures in consumer: {}", errorDetails);
+            }
             throw buildConnectionFailedException(failedSources);
         }
         return consumers;
@@ -402,6 +414,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                         .stream()
                         .map(e -> e.getKey() + ": " + e.getValue().getMessage())
                         .collect(Collectors.joining(", ")))
+                .cause(failedSources.values().stream().findAny().orElse(null))
                 .build();
     }
 
@@ -430,7 +443,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         terminateConnection(connection);
         log.info("Connection <{}> closed.", this.connectionContext.getConnection().getId());
 
-        getSender().tell(new ImmutableClientDisconnected(origin, shutdownAfterDisconnect), getSelf());
+        getSender().tell(ClientDisconnected.of(origin, shutdownAfterDisconnect), getSelf());
     }
 
 

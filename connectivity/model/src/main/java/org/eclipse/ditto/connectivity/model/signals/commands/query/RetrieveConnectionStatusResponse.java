@@ -18,15 +18,32 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.ResourceStatus;
+import org.eclipse.ditto.connectivity.model.WithConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -37,20 +54,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.connectivity.model.ResourceStatus;
-import org.eclipse.ditto.connectivity.model.WithConnectionId;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 
 /**
  * Response to a {@link RetrieveConnection} command.
@@ -95,6 +98,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * Returns a new instance of {@code RetrieveConnectionStatusResponse}.
      *
      * @param connectionId the identifier of the connection.
+     * @param client the client ID.
      * @param connectionClosedAt the instant when the connection was closed
      * @param clientStatus the {@link org.eclipse.ditto.connectivity.model.ConnectivityStatus} of the client
      * @param statusDetails the details string for the {@code clientStatus}
@@ -103,7 +107,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveConnectionStatusResponse closedResponse(final ConnectionId connectionId,
-            final String address,
+            final String client,
             final Instant connectionClosedAt,
             final ConnectivityStatus clientStatus,
             final String statusDetails,
@@ -112,7 +116,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         checkNotNull(connectionId, "Connection ID");
         checkNotNull(connectionClosedAt, "connectionClosedAt");
         final ResourceStatus resourceStatus =
-                ConnectivityModelFactory.newClientStatus(address, clientStatus, statusDetails, connectionClosedAt);
+                ConnectivityModelFactory.newClientStatus(client, clientStatus, statusDetails, connectionClosedAt);
 
         return getBuilder(connectionId, dittoHeaders)
                 .connectionStatus(clientStatus)
@@ -216,7 +220,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     }
 
     /**
-     * @return the ssh tunnne {@link org.eclipse.ditto.connectivity.model.ResourceStatus}.
+     * @return the ssh tunnel {@link org.eclipse.ditto.connectivity.model.ResourceStatus}.
      */
     public List<ResourceStatus> getSshTunnelStatus() {
         return readAddressStatus(jsonObject.getValue(JsonFields.SSH_TUNNEL_STATUS).orElse(JsonArray.empty()));
@@ -294,7 +298,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                " connectionId=" + connectionId +
+                "connectionId=" + connectionId +
                 ", jsonObject=" + jsonObject +
                 "]";
     }
@@ -334,15 +338,18 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     @NotThreadSafe
     public static final class Builder {
 
+        private static final String UNKNOWN_CLIENT = "unknown-client";
+
         private final ConnectionId connectionId;
         private final DittoHeaders dittoHeaders;
-        private ConnectivityStatus connectionStatus;
-        private ConnectivityStatus liveStatus;
+        @Nullable private ConnectivityStatus connectionStatus;
+        @Nullable private ConnectivityStatus liveStatus;
         @Nullable private Instant connectedSince;
-        private List<ResourceStatus> clientStatus;
-        private List<ResourceStatus> sourceStatus;
-        private List<ResourceStatus> targetStatus;
-        private List<ResourceStatus> sshTunnelStatus;
+        @Nullable private List<ResourceStatus> clientStatus;
+        @Nullable private List<ResourceStatus> sourceStatus;
+        @Nullable private List<ResourceStatus> targetStatus;
+        @Nullable private List<ResourceStatus> sshTunnelStatus;
+        @Nullable private Map<ResourceStatus.ResourceType, Integer> missingResources;
 
         private Builder(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
             this.connectionId = connectionId;
@@ -403,6 +410,11 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             return this;
         }
 
+        public Builder withMissingResources(final Map<ResourceStatus.ResourceType, Integer> missingResources) {
+            this.missingResources = missingResources;
+            return this;
+        }
+
         private List<ResourceStatus> addToList(@Nullable final List<ResourceStatus> existing,
                 final ResourceStatus resourceStatus) {
             final List<ResourceStatus> list = existing == null ? new ArrayList<>() : new ArrayList<>(existing);
@@ -417,6 +429,8 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID,
                     String.valueOf(connectionId));
 
+            final Instant now = Instant.now();
+
             if (connectionStatus != null) {
                 jsonObjectBuilder.set(JsonFields.CONNECTION_STATUS, connectionStatus.toString());
             }
@@ -430,30 +444,71 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             }
 
             if (clientStatus != null) {
-                jsonObjectBuilder.set(JsonFields.CLIENT_STATUS, clientStatus.stream()
+                final JsonArray jsonArray = clientStatus.stream()
                         .map(ResourceStatus::toJson)
-                        .collect(JsonCollectors.valuesToArray()));
+                        .collect(JsonCollectors.valuesToArray());
+                addTimeoutsToResourcesArray(ResourceStatus.ResourceType.CLIENT, jsonArray, () ->
+                        ConnectivityModelFactory.newClientStatus(UNKNOWN_CLIENT,
+                                ConnectivityStatus.FAILED,
+                                "Client failed to report its status within the timeout.",
+                                now
+                        ));
+                jsonObjectBuilder.set(JsonFields.CLIENT_STATUS, jsonArray);
             }
 
             if (sourceStatus != null) {
-                jsonObjectBuilder.set(JsonFields.SOURCE_STATUS, sourceStatus.stream()
+                final JsonArray jsonArray = sourceStatus.stream()
                         .map(ResourceStatus::toJson)
-                        .collect(JsonCollectors.valuesToArray()));
+                        .collect(JsonCollectors.valuesToArray());
+                addTimeoutsToResourcesArray(ResourceStatus.ResourceType.SOURCE, jsonArray, () ->
+                        ConnectivityModelFactory.newSourceStatus(UNKNOWN_CLIENT,
+                                ConnectivityStatus.FAILED,
+                                null,
+                                "Source failed to report its status within the timeout."
+                        ));
+                jsonObjectBuilder.set(JsonFields.SOURCE_STATUS, jsonArray);
             }
 
             if (targetStatus != null) {
-                jsonObjectBuilder.set(JsonFields.TARGET_STATUS, targetStatus.stream()
+                final JsonArray jsonArray = targetStatus.stream()
                         .map(ResourceStatus::toJson)
-                        .collect(JsonCollectors.valuesToArray()));
+                        .collect(JsonCollectors.valuesToArray());
+                addTimeoutsToResourcesArray(ResourceStatus.ResourceType.TARGET, jsonArray, () ->
+                        ConnectivityModelFactory.newTargetStatus(UNKNOWN_CLIENT,
+                                ConnectivityStatus.FAILED,
+                                null,
+                                "Target failed to report its status within the timeout."
+                        ));
+                jsonObjectBuilder.set(JsonFields.TARGET_STATUS, jsonArray);
             }
 
             if (sshTunnelStatus != null) {
-                jsonObjectBuilder.set(JsonFields.SSH_TUNNEL_STATUS, sshTunnelStatus.stream()
+                final JsonArray jsonArray = sshTunnelStatus.stream()
                         .map(ResourceStatus::toJson)
-                        .collect(JsonCollectors.valuesToArray()));
+                        .collect(JsonCollectors.valuesToArray());
+                addTimeoutsToResourcesArray(ResourceStatus.ResourceType.SSH_TUNNEL, jsonArray, () ->
+                        ConnectivityModelFactory.newSshTunnelStatus(UNKNOWN_CLIENT,
+                                ConnectivityStatus.FAILED,
+                                "SSH Tunnel failed to report its status within the timeout.",
+                                now
+                        ));
+                jsonObjectBuilder.set(JsonFields.SSH_TUNNEL_STATUS, jsonArray);
             }
 
             return new RetrieveConnectionStatusResponse(connectionId, jsonObjectBuilder.build(), dittoHeaders);
+        }
+
+        private void addTimeoutsToResourcesArray(final ResourceStatus.ResourceType resourceType,
+                final JsonArray jsonArray,
+                final Supplier<ResourceStatus> resourceStatusSupplier) {
+
+            if (null == missingResources) {
+                return;
+            }
+            final int missingCount = missingResources.getOrDefault(resourceType, 0);
+            IntStream.range(0, missingCount)
+                    .forEach(i -> jsonArray.add(resourceStatusSupplier.get().toJson()));
+
         }
     }
 

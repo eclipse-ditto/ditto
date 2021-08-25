@@ -16,9 +16,9 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 
-import org.eclipse.ditto.protocol.adapter.Adapter;
-import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.Adapter;
 
 /**
  * Mixin for thing message adapters.

@@ -14,19 +14,21 @@ package org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatusResponse;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -47,42 +49,40 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     private final Map<ResourceStatus.ResourceType, Integer> expectedResponses;
     private final ActorRef sender;
 
-    private RetrieveConnectionStatusResponse.Builder theResponse;
+    private final RetrieveConnectionStatusResponse.Builder responseBuilder;
 
     @SuppressWarnings("unused")
     private RetrieveConnectionStatusAggregatorActor(final Connection connection,
             final ActorRef sender, final DittoHeaders originalHeaders, final Duration timeout) {
         this.timeout = timeout;
         this.sender = sender;
-        theResponse = RetrieveConnectionStatusResponse.getBuilder(connection.getId(), originalHeaders)
+        responseBuilder = RetrieveConnectionStatusResponse.getBuilder(connection.getId(), originalHeaders)
                 .connectionStatus(connection.getConnectionStatus())
                 .liveStatus(ConnectivityStatus.UNKNOWN)
                 .connectedSince(Instant.EPOCH)
                 .clientStatus(Collections.emptyList())
                 .sourceStatus(Collections.emptyList())
-                .targetStatus(Collections.emptyList());
+                .targetStatus(Collections.emptyList())
+                .sshTunnelStatus(Collections.emptyList());
 
         expectedResponses = new EnumMap<>(ResourceStatus.ResourceType.class);
+        final int clientCount = connection.getClientCount();
         // one response per client actor
-        expectedResponses.put(ResourceStatus.ResourceType.CLIENT, connection.getClientCount());
+        expectedResponses.put(ResourceStatus.ResourceType.CLIENT, clientCount);
         if (ConnectivityStatus.OPEN.equals(connection.getConnectionStatus())) {
             // one response per source/target
             expectedResponses.put(ResourceStatus.ResourceType.TARGET,
                     connection.getTargets()
                             .stream()
-                            .mapToInt(target ->
-                                    connection.getClientCount())
+                            .mapToInt(target -> clientCount)
                             .sum());
             expectedResponses.put(ResourceStatus.ResourceType.SOURCE,
                     connection.getSources()
                             .stream()
-                            .mapToInt(source ->
-                                    connection.getClientCount()
-                                            * source.getConsumerCount()
-                                            * source.getAddresses().size())
+                            .mapToInt(source -> clientCount * source.getConsumerCount() * source.getAddresses().size())
                             .sum());
             if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
-                expectedResponses.put(ResourceStatus.ResourceType.SSH_TUNNEL, connection.getClientCount());
+                expectedResponses.put(ResourceStatus.ResourceType.SSH_TUNNEL, clientCount);
             }
         }
     }
@@ -111,7 +111,12 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     }
 
     private void handleReceiveTimeout() {
-        log.debug("RetrieveConnectionStatus timed out, sending (partial) response.");
+        final Map<ResourceStatus.ResourceType, Integer> missingResources = expectedResponses.entrySet().stream()
+                .filter(entry -> entry.getValue() > 0)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        log.warning("RetrieveConnectionStatus timed out, sending (partial) response with missing resources: <{}>",
+                missingResources);
+        responseBuilder.withMissingResources(missingResources);
         sendResponse();
         stopSelf();
     }
@@ -125,7 +130,7 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
         expectedResponses.compute(resourceStatus.getResourceType(), (type, count) -> count == null ? 0 : count - 1);
         log.debug("Received resource status from {}: {}", getSender(), resourceStatus);
         // aggregate status...
-        theResponse.withAddressStatus(resourceStatus);
+        responseBuilder.withAddressStatus(resourceStatus);
 
         // if response is complete, send back to caller
         if (getRemainingResponses() == 0) {
@@ -140,27 +145,12 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     }
 
     private void sendResponse() {
-        final List<ResourceStatus> clientStatus = theResponse.build().getClientStatus();
-        final boolean allClientsOpen = clientStatus.stream()
-                .map(ResourceStatus::getStatus)
-                .allMatch(ConnectivityStatus.OPEN::equals);
-        final boolean anyClientFailed = clientStatus.stream()
-                .map(ResourceStatus::getStatus)
-                .anyMatch(ConnectivityStatus.FAILED::equals);
-        final boolean allClientsClosed = clientStatus.stream()
-                .map(ResourceStatus::getStatus)
-                .allMatch(ConnectivityStatus.CLOSED::equals);
-
-        final ConnectivityStatus liveStatus;
-        if (allClientsOpen) {
-            liveStatus = ConnectivityStatus.OPEN;
-        } else if (anyClientFailed) {
-            liveStatus = ConnectivityStatus.FAILED;
-        } else if (allClientsClosed) {
-            liveStatus = ConnectivityStatus.CLOSED;
-        } else {
-            liveStatus = ConnectivityStatus.UNKNOWN;
-        }
+        final RetrieveConnectionStatusResponse tmpResponse = responseBuilder.build();
+        final List<ResourceStatus> clientStatus = tmpResponse.getClientStatus();
+        final ConnectivityStatus liveClientStatus = determineLiveStatus(clientStatus);
+        final ConnectivityStatus liveSourceStatus = determineLiveStatus(tmpResponse.getSourceStatus());
+        final ConnectivityStatus liveTargetStatus = determineLiveStatus(tmpResponse.getTargetStatus());
+        final ConnectivityStatus liveSshTunnelStatus = determineLiveStatus(tmpResponse.getSshTunnelStatus());
 
         final Optional<Instant> earliestConnectedSince = clientStatus.stream()
                 .filter(rs -> ConnectivityStatus.OPEN.equals(rs.getStatus()))
@@ -169,11 +159,64 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
                 .map(Optional::get)
                 .min(Instant::compareTo);
 
-        theResponse
+        final ConnectivityStatus liveStatus = calculateOverallLiveStatus(liveClientStatus, liveSourceStatus,
+                liveTargetStatus, liveSshTunnelStatus);
+
+        responseBuilder
                 .connectedSince(earliestConnectedSince.orElse(null))
                 .liveStatus(liveStatus);
-        sender.tell(theResponse.build(), getSelf());
+        sender.tell(responseBuilder.build(), getSelf());
         stopSelf();
+    }
+
+    private static ConnectivityStatus determineLiveStatus(final List<ResourceStatus> resourceStatus) {
+        final boolean allOpen = resourceStatus.stream()
+                .map(ResourceStatus::getStatus)
+                .allMatch(ConnectivityStatus.OPEN::equals);
+        final boolean anyFailed = resourceStatus.stream()
+                .map(ResourceStatus::getStatus)
+                .anyMatch(ConnectivityStatus.FAILED::equals);
+        final boolean anyMisconfigured = resourceStatus.stream()
+                .map(ResourceStatus::getStatus)
+                .anyMatch(ConnectivityStatus.MISCONFIGURED::equals);
+        final boolean allClosed = resourceStatus.stream()
+                .map(ResourceStatus::getStatus)
+                .allMatch(ConnectivityStatus.CLOSED::equals);
+
+        final ConnectivityStatus liveStatus;
+        if (allOpen) {
+            liveStatus = ConnectivityStatus.OPEN;
+        } else if (anyFailed) {
+            // hypothesis: even if any status is "misconfigured", the "failed" is stronger as the internal error
+            // outweighs the misconfiguration
+            liveStatus = ConnectivityStatus.FAILED;
+        } else if (anyMisconfigured) {
+            liveStatus = ConnectivityStatus.MISCONFIGURED;
+        } else if (allClosed) {
+            liveStatus = ConnectivityStatus.CLOSED;
+        } else {
+            liveStatus = ConnectivityStatus.UNKNOWN;
+        }
+        return liveStatus;
+    }
+
+    private static ConnectivityStatus calculateOverallLiveStatus(final ConnectivityStatus... liveStatuses) {
+        final List<ConnectivityStatus> allStatuses = Arrays.asList(liveStatuses);
+        if (allStatuses.stream().allMatch(ConnectivityStatus.OPEN::equals)) {
+            return ConnectivityStatus.OPEN;
+        }
+        if (allStatuses.contains(ConnectivityStatus.FAILED)) {
+            // hypothesis: even if other statuses are "misconfigured", the "failed" is stronger as the internal error
+            // outweighs the misconfiguration
+            return ConnectivityStatus.FAILED;
+        }
+        if (allStatuses.contains(ConnectivityStatus.MISCONFIGURED)) {
+            return ConnectivityStatus.MISCONFIGURED;
+        }
+        if (allStatuses.stream().allMatch(ConnectivityStatus.CLOSED::equals)) {
+            return ConnectivityStatus.CLOSED;
+        }
+        return ConnectivityStatus.UNKNOWN;
     }
 
     private void stopSelf() {

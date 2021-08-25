@@ -45,6 +45,7 @@ public final class GatewayHttpConfig implements HttpConfig {
     private final String hostname;
     private final int port;
     private final Set<JsonSchemaVersion> schemaVersions;
+    private final List<String> protocolHeaders;
     private final boolean forceHttps;
     private final boolean redirectToHttps;
     private final Pattern redirectToHttpsBlocklistPattern;
@@ -60,6 +61,7 @@ public final class GatewayHttpConfig implements HttpConfig {
         port = basicHttpConfig.getPort();
         coordinatedShutdownTimeout = basicHttpConfig.getCoordinatedShutdownTimeout();
         schemaVersions = Collections.unmodifiableSet(getJsonSchemaVersions(scopedConfig));
+        protocolHeaders = readProtocolHeaders(scopedConfig);
         forceHttps = scopedConfig.getBoolean(GatewayHttpConfigValue.FORCE_HTTPS.getConfigPath());
         redirectToHttps = scopedConfig.getBoolean(GatewayHttpConfigValue.REDIRECT_TO_HTTPS.getConfigPath());
         redirectToHttpsBlocklistPattern = tryToCreateBlocklistPattern(scopedConfig);
@@ -71,6 +73,10 @@ public final class GatewayHttpConfig implements HttpConfig {
         additionalAcceptedMediaTypes =
                 Set.of(scopedConfig.getString(GatewayHttpConfigValue.ADDITIONAL_ACCEPTED_MEDIA_TYPES.getConfigPath())
                         .split(","));
+    }
+
+    private static List<String> readProtocolHeaders(final ScopedConfig scopedConfig) {
+        return scopedConfig.getStringList(GatewayHttpConfigValue.PROTOCOL_HEADERS.getConfigPath());
     }
 
     private static Set<JsonSchemaVersion> getJsonSchemaVersions(final Config httpScopedConfig) {
@@ -170,6 +176,11 @@ public final class GatewayHttpConfig implements HttpConfig {
     }
 
     @Override
+    public List<String> getProtocolHeaders() {
+        return protocolHeaders;
+    }
+
+    @Override
     public boolean isForceHttps() {
         return forceHttps;
     }
@@ -221,6 +232,7 @@ public final class GatewayHttpConfig implements HttpConfig {
         final GatewayHttpConfig that = (GatewayHttpConfig) o;
         return port == that.port &&
                 Objects.equals(coordinatedShutdownTimeout, that.coordinatedShutdownTimeout) &&
+                Objects.equals(protocolHeaders, that.protocolHeaders) &&
                 forceHttps == that.forceHttps &&
                 redirectToHttps == that.redirectToHttps &&
                 enableCors == that.enableCors &&
@@ -235,9 +247,9 @@ public final class GatewayHttpConfig implements HttpConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(hostname, port, coordinatedShutdownTimeout, schemaVersions, forceHttps, redirectToHttps,
-                redirectToHttpsBlocklistPattern, enableCors, requestTimeout, actorPropsFactoryFullQualifiedClassname,
-                queryParamsAsHeaders, additionalAcceptedMediaTypes);
+        return Objects.hash(hostname, port, coordinatedShutdownTimeout, schemaVersions, protocolHeaders, forceHttps,
+                redirectToHttps, redirectToHttpsBlocklistPattern, enableCors, requestTimeout,
+                actorPropsFactoryFullQualifiedClassname, queryParamsAsHeaders, additionalAcceptedMediaTypes);
     }
 
     @Override
@@ -247,6 +259,7 @@ public final class GatewayHttpConfig implements HttpConfig {
                 ", port=" + port +
                 ", coordinatedShutdownTimeout=" + coordinatedShutdownTimeout +
                 ", schemaVersions=" + schemaVersions +
+                ", protocolHeaders=" + protocolHeaders +
                 ", forceHttps=" + forceHttps +
                 ", redirectToHttps=" + redirectToHttps +
                 ", redirectToHttpsBlocklistPattern=" + redirectToHttpsBlocklistPattern +

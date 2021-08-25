@@ -21,6 +21,7 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayServiceUnavailableException;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
@@ -28,7 +29,6 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StoppedTimer;
 import org.eclipse.ditto.internal.utils.tracing.TraceUtils;
 import org.eclipse.ditto.internal.utils.tracing.TracingTags;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayServiceUnavailableException;
 import org.slf4j.Logger;
 
 import akka.http.javadsl.model.ContentTypes;
@@ -78,8 +78,8 @@ public final class RequestTimeoutHandlingDirective {
         return Directives.extractActorSystem(actorSystem -> extractRequestContext(requestContext -> {
                     final StartedTimer timer = TraceUtils.newHttpRoundTripTimer(requestContext.getRequest()).start();
 
-            final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(correlationId);
-            logger.debug("Started mutable timer <{}>.", timer);
+                    final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(correlationId);
+                    logger.debug("Started mutable timer <{}>.", timer);
                     final Supplier<Route> innerWithTimer = () -> Directives.mapResponse(response -> {
                         final int statusCode = response.status().intValue();
                         if (timer.isRunning()) {
@@ -90,8 +90,8 @@ public final class RequestTimeoutHandlingDirective {
                         return response;
                     }, inner);
 
-            return Directives.withRequestTimeoutResponse(
-                    request -> doHandleRequestTimeout(correlationId, requestContext, timer, logger), innerWithTimer);
+                    return Directives.withRequestTimeoutResponse(request ->
+                            doHandleRequestTimeout(correlationId, requestContext, timer, logger), innerWithTimer);
                 }
         ));
     }

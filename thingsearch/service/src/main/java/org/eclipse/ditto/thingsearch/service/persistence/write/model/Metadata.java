@@ -25,11 +25,12 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
-import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 
 import akka.actor.ActorRef;
 
@@ -43,6 +44,7 @@ public final class Metadata {
     @Nullable private final PolicyId policyId;
     @Nullable private final Long policyRevision;
     @Nullable final Instant modified;
+    private final List<ThingEvent<?>> events;
     private final List<StartedTimer> timers;
     private final List<ActorRef> senders;
     private final boolean invalidateCache;
@@ -52,6 +54,7 @@ public final class Metadata {
             @Nullable final PolicyId policyId,
             @Nullable final Long policyRevision,
             @Nullable final Instant modified,
+            final List<ThingEvent<?>> events,
             final Collection<StartedTimer> timers,
             final Collection<ActorRef> senders,
             final boolean invalidateCache) {
@@ -61,6 +64,7 @@ public final class Metadata {
         this.policyId = policyId;
         this.policyRevision = policyRevision;
         this.modified = modified;
+        this.events = events;
         this.timers = List.copyOf(timers);
         this.senders = List.copyOf(senders);
         this.invalidateCache = invalidateCache;
@@ -83,7 +87,7 @@ public final class Metadata {
             @Nullable final StartedTimer timer) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, null,
-                null != timer ? List.of(timer) : List.of(), List.of(), false);
+                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false);
     }
 
     /**
@@ -101,11 +105,13 @@ public final class Metadata {
             final long thingRevision,
             @Nullable final PolicyId policyId,
             @Nullable final Long policyRevision,
+            final List<ThingEvent<?>> events,
             @Nullable final StartedTimer timer,
-            final ActorRef sender) {
+            @Nullable final ActorRef sender) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, null,
-                null != timer ? List.of(timer) : List.of(), List.of(sender), false);
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, null, events,
+                null != timer ? List.of(timer) : List.of(),
+                null != sender ? List.of(sender) : List.of(), false);
     }
 
     /**
@@ -128,7 +134,7 @@ public final class Metadata {
             final Collection<StartedTimer> timers,
             final Collection<ActorRef> senders) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, timers, senders,
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, List.of(), timers, senders,
                 false);
     }
 
@@ -151,7 +157,7 @@ public final class Metadata {
             @Nullable final StartedTimer timer) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified,
-                null != timer ? List.of(timer) : List.of(), List.of(), false);
+                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false);
     }
 
     /**
@@ -173,7 +179,7 @@ public final class Metadata {
      * @return the copy.
      */
     public Metadata invalidateCache() {
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, timers, senders, true);
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders, true);
     }
 
     /**
@@ -232,6 +238,15 @@ public final class Metadata {
     }
 
     /**
+     * Returns the known thing events.
+     *
+     * @return the known thing events.
+     */
+    public List<ThingEvent<?>> getEvents() {
+        return events;
+    }
+
+    /**
      * Returns the timers measuring the consistency lag.
      *
      * @return the timers.
@@ -273,13 +288,15 @@ public final class Metadata {
      * @param newMetadata a previous metadata record.
      * @return the new metadata with concatenated senders.
      */
-    public Metadata prependTimersAndSenders(final Metadata newMetadata) {
+    public Metadata append(final Metadata newMetadata) {
+        final List<ThingEvent<?>> newEvents =
+                Stream.concat(events.stream(), newMetadata.events.stream()).collect(Collectors.toList());
         final List<StartedTimer> newTimers =
-                Stream.concat(newMetadata.timers.stream(), timers.stream()).collect(Collectors.toList());
+                Stream.concat(timers.stream(), newMetadata.timers.stream()).collect(Collectors.toList());
         final List<ActorRef> newSenders =
-                Stream.concat(newMetadata.senders.stream(), senders.stream()).collect(Collectors.toList());
+                Stream.concat(senders.stream(), newMetadata.senders.stream()).collect(Collectors.toList());
         return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.policyId,
-                newMetadata.policyRevision, newMetadata.modified, newTimers, newSenders,
+                newMetadata.policyRevision, newMetadata.modified, newEvents, newTimers, newSenders,
                 invalidateCache || newMetadata.invalidateCache);
     }
 
@@ -322,6 +339,7 @@ public final class Metadata {
                 Objects.equals(thingId, that.thingId) &&
                 Objects.equals(policyId, that.policyId) &&
                 Objects.equals(modified, that.modified) &&
+                Objects.equals(events, that.events) &&
                 Objects.equals(timers, that.timers) &&
                 Objects.equals(senders, that.senders) &&
                 invalidateCache == that.invalidateCache;
@@ -329,7 +347,7 @@ public final class Metadata {
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, timers, senders,
+        return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
                 invalidateCache);
     }
 
@@ -341,6 +359,7 @@ public final class Metadata {
                 ", policyId=" + policyId +
                 ", policyRevision=" + policyRevision +
                 ", modified=" + modified +
+                ", events=" + events +
                 ", timers=" + timers +
                 ", senders=" + senders +
                 ", invalidateCache=" + invalidateCache +

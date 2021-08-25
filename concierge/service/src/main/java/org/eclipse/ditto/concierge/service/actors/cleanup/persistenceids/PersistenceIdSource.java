@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.concierge.service.actors.cleanup.persistenceids;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -19,18 +20,18 @@ import java.util.function.Function;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.concierge.service.common.PersistenceIdsConfig;
-import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
-import org.eclipse.ditto.policies.model.PolicyConstants;
-import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
-import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
+import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.internal.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamPids;
-import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.internal.utils.akka.controlflow.ResumeSource;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
+import org.eclipse.ditto.policies.model.PolicyConstants;
+import org.eclipse.ditto.things.api.ThingsMessagingConstants;
+import org.eclipse.ditto.things.model.ThingConstants;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -46,11 +47,17 @@ import akka.stream.javadsl.Source;
  */
 public final class PersistenceIdSource {
 
-    private static final Map<String, EntityType> PERSISTENCE_STREAMING_ACTOR_PATHS =
-            Map.of(ThingsMessagingConstants.THINGS_STREAM_PROVIDER_ACTOR_PATH, ThingConstants.ENTITY_TYPE,
-                    PoliciesMessagingConstants.POLICIES_STREAM_PROVIDER_ACTOR_PATH, PolicyConstants.ENTITY_TYPE,
-                    ConnectivityMessagingConstants.STREAM_PROVIDER_ACTOR_PATH,
-                    ConnectivityConstants.ENTITY_TYPE);
+    private static final Map<String, EntityType> PERSISTENCE_STREAMING_ACTOR_PATHS;
+
+    static {
+        PERSISTENCE_STREAMING_ACTOR_PATHS = new LinkedHashMap<>();
+        PERSISTENCE_STREAMING_ACTOR_PATHS.put(PoliciesMessagingConstants.POLICIES_STREAM_PROVIDER_ACTOR_PATH,
+                PolicyConstants.ENTITY_TYPE);
+        PERSISTENCE_STREAMING_ACTOR_PATHS.put(ThingsMessagingConstants.THINGS_STREAM_PROVIDER_ACTOR_PATH,
+                ThingConstants.ENTITY_TYPE);
+        PERSISTENCE_STREAMING_ACTOR_PATHS.put(ConnectivityMessagingConstants.STREAM_PROVIDER_ACTOR_PATH,
+                ConnectivityConstants.ENTITY_TYPE);
+    }
 
     private PersistenceIdSource() {
         throw new AssertionError();

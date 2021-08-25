@@ -16,7 +16,11 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.MessagePath;
+import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 
 /**
@@ -125,4 +129,20 @@ public interface Adapter<T extends Jsonifiable<?>> {
         return false;
     }
 
+    /**
+     * Validate an adaptable and preprocess it before converting to a signal.
+     *
+     * @param adaptable the adaptable.
+     * @return the validated and preprocessed adaptable.
+     */
+    default Adaptable validateAndPreprocess(final Adaptable adaptable) {
+        // re-parse the message path to unescape tilda and check double slashes
+        final MessagePath messagePath = adaptable.getPayload().getPath();
+        final JsonPointer parsedJsonPointer = JsonFactory.newPointer(messagePath.toString());
+        return ProtocolFactory.newAdaptableBuilder(adaptable)
+                .withPayload(ProtocolFactory.toPayloadBuilder(adaptable.getPayload())
+                        .withPath(parsedJsonPointer)
+                        .build())
+                .build();
+    }
 }

@@ -31,8 +31,6 @@ import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.base.service.devops.LogbackLoggingFacade;
-import org.eclipse.ditto.base.service.devops.DevOpsCommandsActor;
-import org.eclipse.ditto.base.service.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
@@ -41,6 +39,7 @@ import org.eclipse.ditto.internal.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.internal.utils.health.status.StatusSupplierActor;
 import org.eclipse.ditto.internal.utils.metrics.prometheus.PrometheusReporterRoute;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandSizeValidator;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
@@ -247,8 +246,9 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         Kamon.reconfigure(kamonConfig);
 
         final var metricsConfig = serviceSpecificConfig.getMetricsConfig();
+        final var tracingConfig = serviceSpecificConfig.getTracingConfig();
 
-        if (metricsConfig.isSystemMetricsEnabled()) {
+        if (metricsConfig.isSystemMetricsEnabled() || tracingConfig.isTracingEnabled()) {
             // start system metrics collection
             Kamon.init();
         }
@@ -256,6 +256,8 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
             // start prometheus reporter
             startPrometheusReporter();
         }
+
+        DittoTracing.initialize(tracingConfig);
     }
 
     private void startPrometheusReporter() {

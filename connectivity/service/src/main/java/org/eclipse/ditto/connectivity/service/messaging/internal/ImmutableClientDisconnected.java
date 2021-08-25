@@ -21,11 +21,11 @@ import akka.actor.ActorRef;
  * Immutable implementation of {@link ClientDisconnected}.
  */
 @Immutable
-public final class ImmutableClientDisconnected extends AbstractWithOrigin implements ClientDisconnected {
+final class ImmutableClientDisconnected extends AbstractWithOrigin implements ClientDisconnected {
 
     private final boolean shutdownAfterDisconnected;
 
-    public ImmutableClientDisconnected(@Nullable final ActorRef origin, final boolean shutdownAfterDisconnected) {
+    ImmutableClientDisconnected(@Nullable final ActorRef origin, final boolean shutdownAfterDisconnected) {
         super(origin);
         this.shutdownAfterDisconnected = shutdownAfterDisconnected;
     }

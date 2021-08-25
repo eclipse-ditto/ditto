@@ -71,5 +71,4 @@ public interface PreparedTimer extends Timer, ResettableMetricInstrument, Tagged
      * @return A new prepared timer with the new expiration handling.
      */
     PreparedTimer onExpiration(final Consumer<StartedTimer> additionalExpirationHandling);
-
 }

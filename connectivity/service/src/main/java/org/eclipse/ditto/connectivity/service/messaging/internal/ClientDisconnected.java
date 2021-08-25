@@ -12,11 +12,27 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.internal;
 
+import javax.annotation.Nullable;
+
+import akka.actor.ActorRef;
+
 /**
  * Messaging internal event when a
  * {@link org.eclipse.ditto.connectivity.service.messaging.BaseClientActor Client} disconnected.
  */
 public interface ClientDisconnected extends WithOrigin {
+
+    /**
+     * Creates a new ConnectionFailure of not yet known differentiation between
+     * {@link org.eclipse.ditto.connectivity.model.ConnectivityStatus#FAILED} and {@link org.eclipse.ditto.connectivity.model.ConnectivityStatus#MISCONFIGURED}.
+     *
+     * @param origin the origin ActorRef
+     * @param shutdownAfterDisconnected the cause of the Failure
+     * @return the created ClientDisconnected
+     */
+    static ClientDisconnected of(@Nullable final ActorRef origin, final boolean shutdownAfterDisconnected) {
+        return new ImmutableClientDisconnected(origin, shutdownAfterDisconnected);
+    }
 
     /**
      * @return whether the client actor should be closed after disconnecting or not.

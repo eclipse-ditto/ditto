@@ -28,6 +28,7 @@ import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 
 /**
  * This class is the implementation of {@link ConciergeConfig} for Ditto's Concierge service.
@@ -110,6 +111,11 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
     @Override
     public MetricsConfig getMetricsConfig() {
         return serviceSpecificConfig.getMetricsConfig();
+    }
+
+    @Override
+    public TracingConfig getTracingConfig() {
+        return serviceSpecificConfig.getTracingConfig();
     }
 
     @Override

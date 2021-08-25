@@ -58,16 +58,19 @@ import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConsumerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -104,11 +107,13 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
 
     @SuppressWarnings("unused")
     private AmqpConsumerActor(final Connection connection, final ConsumerData consumerData,
-            final Sink<Object, ?> inboundMappingSink, final ActorRef jmsActor) {
+            final Sink<Object, ?> inboundMappingSink, final ActorRef jmsActor,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
         super(connection,
                 checkNotNull(consumerData, "consumerData").getAddress(),
                 inboundMappingSink,
-                consumerData.getSource());
+                consumerData.getSource(),
+                connectivityStatusResolver);
 
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
@@ -137,12 +142,16 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
      * @param consumerData the consumer data.
      * @param inboundMappingSink the message mapping sink where received messages are forwarded to
      * @param jmsActor reference of the {@code JMSConnectionHandlingActor).
+     * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
+     * status.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection, final ConsumerData consumerData,
-            final Sink<Object, ?> inboundMappingSink, final ActorRef jmsActor) {
+            final Sink<Object, ?> inboundMappingSink, final ActorRef jmsActor,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
 
-        return Props.create(AmqpConsumerActor.class, connection, consumerData, inboundMappingSink, jmsActor);
+        return Props.create(AmqpConsumerActor.class, connection, consumerData, inboundMappingSink, jmsActor,
+                connectivityStatusResolver);
     }
 
     @Override
@@ -229,8 +238,8 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                 consumerData = consumerData.withMessageConsumer(messageConsumer);
             }
         } catch (final Exception e) {
-            final var failure = new ImmutableConnectionFailure(getSelf(), e,
-                    "Failed to initialize message consumers.");
+            final var failure =
+                    ConnectionFailure.of(getSelf(), e, "Failed to initialize message consumers.");
             getContext().getParent().tell(failure, getSelf());
             getContext().stop(getSelf());
         }
@@ -258,7 +267,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         // update own status
         final ResourceStatus addressStatus = ConnectivityModelFactory.newStatusUpdate(
                 InstanceIdentifierSupplier.getInstance().get(),
-                ConnectivityStatus.FAILED,
+                ConnectivityStatus.MISCONFIGURED,
                 sourceAddress,
                 "Consumer closed", Instant.now());
         handleAddressStatus(addressStatus);
@@ -296,7 +305,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
 
     private void messageConsumerFailed(final Status.Failure failure) {
         // escalate to parent
-        final ConnectionFailure connectionFailed = new ImmutableConnectionFailure(getSelf(), failure.cause(),
+        final ConnectionFailure connectionFailed = ConnectionFailure.of(getSelf(), failure.cause(),
                 "Failed to recreate closed message consumer");
         getContext().getParent().tell(connectionFailed, getSelf());
     }
@@ -304,6 +313,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
     private void handleJmsMessage(final JmsMessage message) {
         Map<String, String> headers = null;
         String correlationId = null;
+        StartedTrace trace = Traces.emptyStartedTrace();
         try {
             recordIncomingForRateLimit(message.getJMSMessageID());
             if (log.isDebugEnabled()) {
@@ -317,6 +327,10 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
             }
             headers = extractHeadersMapFromJmsMessage(message);
             correlationId = headers.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
+            trace = DittoTracing.trace(DittoTracing.extractTraceContext(headers), "amqp.consume")
+                    .correlationId(correlationId)
+                    .start();
+            headers = trace.propagateContext(headers);
             final ExternalMessageBuilder builder = ExternalMessageFactory.newExternalMessageBuilder(headers);
             final ExternalMessage externalMessage = extractPayloadFromMessage(message, builder, correlationId)
                     .withAuthorizationContext(source.getAuthorizationContext())
@@ -341,6 +355,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
             log.withCorrelationId(e)
                     .info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(),
                             e.getMessage());
+            trace.fail(e);
             if (headers != null) {
                 // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
                 // because we need a reply-to address to send the error response
@@ -355,9 +370,11 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
             } else {
                 inboundMonitor.exception(e);
             }
-
+            trace.fail(e);
             log.withCorrelationId(correlationId)
                     .error(e, "Unexpected {}: {}", e.getClass().getName(), e.getMessage());
+        } finally {
+            trace.finish();
         }
     }
 

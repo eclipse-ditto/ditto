@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.protocol;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
@@ -20,14 +22,14 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 
 /**
  * Immutable implementation of {@link Payload}.
@@ -75,7 +77,7 @@ final class ImmutablePayload implements Payload {
     public static ImmutablePayload fromJson(final JsonObject jsonObject) {
         final String readPath = jsonObject.getValueOrThrow(JsonFields.PATH);
 
-        final ImmutablePayloadBuilder payloadBuilder = getBuilder(JsonFactory.newPointer(readPath))
+        final ImmutablePayloadBuilder payloadBuilder = getBuilder(ImmutableTopicPath.newTopicOrPathPointer(readPath))
                 .withValue(jsonObject.getValue(JsonFields.VALUE).orElse(null))
                 .withExtra(jsonObject.getValue(JsonFields.EXTRA).orElse(null))
                 .withStatus(jsonObject.getValue(JsonFields.STATUS).flatMap(HttpStatus::tryGetInstance).orElse(null))
@@ -204,7 +206,7 @@ final class ImmutablePayload implements Payload {
     @NotThreadSafe
     static final class ImmutablePayloadBuilder implements PayloadBuilder {
 
-        @Nullable private final MessagePath path;
+        @Nullable private MessagePath path;
 
         @Nullable private JsonValue value;
         @Nullable private JsonObject extra;
@@ -214,20 +216,31 @@ final class ImmutablePayload implements Payload {
         @Nullable private Metadata metadata;
         @Nullable private JsonFieldSelector fields;
 
-        private ImmutablePayloadBuilder(@Nullable final JsonPointer path) {
-            if (path instanceof MessagePath) {
-                this.path = (MessagePath) path;
-            } else if (null != path) {
-                this.path = ImmutableMessagePath.of(path);
-            } else {
-                this.path = null;
-            }
+        ImmutablePayloadBuilder(final Payload payload) {
+            path = payload.getPath();
+            value = payload.getValue().orElse(null);
+            extra = payload.getExtra().orElse(null);
+            status = payload.getHttpStatus().orElse(null);
+            revision = payload.getRevision().orElse(null);
+            timestamp = payload.getTimestamp().orElse(null);
+            metadata = payload.getMetadata().orElse(null);
+            fields = payload.getFields().orElse(null);
+        }
+
+        private ImmutablePayloadBuilder(final JsonPointer path) {
+            this.path = toMessagePath(path);
             value = null;
             extra = null;
             status = null;
             timestamp = null;
             metadata = null;
             fields = null;
+        }
+
+        @Override
+        public PayloadBuilder withPath(@Nullable final JsonPointer path) {
+            this.path = toMessagePath(path);
+            return this;
         }
 
         @Override
@@ -281,6 +294,15 @@ final class ImmutablePayload implements Payload {
         @Override
         public ImmutablePayload build() {
             return new ImmutablePayload(this);
+        }
+
+        private static MessagePath toMessagePath(final JsonPointer path) {
+            checkNotNull(path, "path");
+            if (path instanceof MessagePath) {
+                return (MessagePath) path;
+            } else {
+                return ImmutableMessagePath.of(path);
+            }
         }
 
     }

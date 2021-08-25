@@ -14,10 +14,10 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultPersistenceStreamConfig;
@@ -97,7 +97,7 @@ public final class TestSearchUpdaterStream {
      * @return source of write result.
      */
     private Source<WriteResultAndErrors, NotUsed> delete(final Metadata metadata) {
-        final AbstractWriteModel writeModel = ThingDeleteModel.of(metadata);
+        final AbstractWriteModel writeModel = ThingDeleteModel.of(metadata, false);
         return Source.single(Source.single(writeModel))
                 .via(mongoSearchUpdaterFlow.start(false, 1, 1));
     }

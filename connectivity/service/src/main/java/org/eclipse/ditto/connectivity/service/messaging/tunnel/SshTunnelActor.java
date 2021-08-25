@@ -41,8 +41,11 @@ import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
+import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLoggerRegistry;
@@ -50,7 +53,6 @@ import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
-import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.Props;
@@ -72,6 +74,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
 
     private final LoggingAdapter logger;
     private final Connection connection;
+    private final ConnectivityStatusResolver connectivityStatusResolver;
     private final ConnectionLogger connectionLogger;
     private final SshClient sshClient;
     private final String sshHost;
@@ -87,10 +90,12 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
     // holds the first error that occurred
     @Nullable Throwable error = null;
 
-    private SshTunnelActor(final Connection connection) {
+    @SuppressWarnings("unused")
+    private SshTunnelActor(final Connection connection, final ConnectivityStatusResolver connectivityStatusResolver) {
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
         this.connection = connection;
+        this.connectivityStatusResolver = connectivityStatusResolver;
         sshClient = SshClientProvider.get(getContext().getSystem()).getSshClient();
 
         final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
@@ -119,8 +124,17 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
         }
     }
 
-    public static Props props(final Connection connection) {
-        return Props.create(SshTunnelActor.class, () -> new SshTunnelActor(connection));
+    /**
+     * Create Akka actor configuration Props object for the SSH tunnel actor.
+     *
+     * @param connection the connection to create the SSH tunnel for.
+     * @param connectivityStatusResolver connectivity status resolver to resolve the SSH tunnel status based on
+     * exceptions.
+     * @return the Props object.
+     */
+    public static Props props(final Connection connection,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
+        return Props.create(SshTunnelActor.class, connection, connectivityStatusResolver);
     }
 
     @Override
@@ -276,8 +290,8 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
             status = ConnectivityStatus.OPEN;
             statusDetail = "ssh tunnel established.";
         } else if (error != null) {
-            status = ConnectivityStatus.FAILED;
-            statusDetail = "ssh tunnel failed " + String.format("(reason: " + error.getMessage() + ").", error);
+            status = connectivityStatusResolver.resolve(error);
+            statusDetail = ConnectionFailure.determineFailureDescription(Instant.now(), error, "SSH tunnel failed");
         } else {
             status = ConnectivityStatus.CLOSED;
             statusDetail = "ssh tunnel closed.";

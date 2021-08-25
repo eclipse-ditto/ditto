@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
@@ -30,6 +31,8 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextC
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.internal.utils.akka.controlflow.TimeoutFlow;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
@@ -103,7 +106,8 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
             httpsConnectionContext = null;
         }
 
-        return new DefaultHttpPushFactory(connection, parallelism, httpPushConfig, httpsConnectionContext, tunnelConfigSupplier);
+        return new DefaultHttpPushFactory(connection, parallelism, httpPushConfig, httpsConnectionContext,
+                tunnelConfigSupplier);
     }
 
     @Override
@@ -155,7 +159,10 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
 
     @Override
     public <T> Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> createFlow(final ActorSystem system,
-            final LoggingAdapter log, final Duration requestTimeout) {
+            final LoggingAdapter log,
+            final Duration requestTimeout,
+            @Nullable final PreparedTimer timer,
+            @Nullable final Consumer<Duration> durationConsumer) {
 
         final Http http = Http.get(system);
         final ConnectionPoolSettings poolSettings = getConnectionPoolSettings(system);
@@ -173,9 +180,31 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         }
 
         // make requests in parallel
-        return Flow.<Pair<HttpRequest, T>>create().flatMapMerge(parallelism, request ->
-                TimeoutFlow.single(request, flow, requestTimeout, DefaultHttpPushFactory::onRequestTimeout)
-                        .async(DISPATCHER_NAME, parallelism));
+        return Flow.<Pair<HttpRequest, T>>create().flatMapMerge(parallelism, request -> {
+            final var startedTimer = timer != null ? timer.start() : null;
+            return TimeoutFlow.single(request, flow, requestTimeout, DefaultHttpPushFactory::onRequestTimeout)
+                    .map(pair -> {
+                        stopTimer(startedTimer, durationConsumer, log);
+                        return pair;
+                    })
+                    .async(DISPATCHER_NAME, parallelism);
+        });
+    }
+
+    private void stopTimer(@Nullable final StartedTimer startedTimer,
+            @Nullable final Consumer<Duration> durationConsumer,
+            final LoggingAdapter log) {
+
+        try {
+            if (startedTimer != null) {
+                final var stoppedTimer = startedTimer.stop();
+                if (durationConsumer != null) {
+                    durationConsumer.accept(stoppedTimer.getDuration());
+                }
+            }
+        } catch (final IllegalStateException e) {
+            log.debug("Ignoring exception due to stopping a stopped timer <{}>: <{}>", startedTimer, e);
+        }
     }
 
     private ConnectionPoolSettings getConnectionPoolSettings(final ActorSystem system) {

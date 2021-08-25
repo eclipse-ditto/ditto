@@ -334,6 +334,22 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             false, false, HeaderValueValidators.getJsonArrayValidator()),
 
     /**
+     * W3C traceparent header. See https://www.w3.org/TR/trace-context/#traceparent-header.
+     *
+     * @since 2.1.0
+     */
+    W3C_TRACEPARENT("traceparent", String.class,
+            true, true, HeaderValueValidators.getNoOpValidator()),
+
+    /**
+     * W3C tracestate header. See https://www.w3.org/TR/trace-context/#tracestate-header.
+     *
+     * @since 2.1.0
+     */
+    W3C_TRACESTATE("tracestate", String.class,
+            true, true, HeaderValueValidators.getNoOpValidator()),
+
+    /**
      * Internal header which may be set to ignore some preventions in the service. Can only be used in piggy-back
      * commands issued by the OPs of the service.
      *

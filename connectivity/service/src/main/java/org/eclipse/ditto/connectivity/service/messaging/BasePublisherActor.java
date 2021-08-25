@@ -64,7 +64,6 @@ import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
@@ -77,6 +76,9 @@ import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
@@ -86,6 +88,7 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.japi.pf.ReceiveBuilder;
+import kamon.context.Context;
 
 /**
  * Base class for publisher actors. Holds the map of configured targets.
@@ -122,8 +125,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final List<Target> targets = connection.getTargets();
         targets.forEach(target ->
                 resourceStatusMap.put(target,
-                        ConnectivityModelFactory.newTargetStatus(getClientId(), ConnectivityStatus.OPEN,
-                                target.getAddress(), "Started at " + Instant.now())));
+                        ConnectivityModelFactory.newTargetStatus(InstanceIdentifierSupplier.getInstance().get(),
+                                ConnectivityStatus.OPEN, target.getAddress(), "Started at " + Instant.now())));
 
         connectivityConfig = getConnectivityConfig();
         connectionConfig = connectivityConfig.getConnectionConfig();
@@ -458,15 +461,25 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             @Nullable final Target autoAckTarget = sendingContext.getAutoAckTarget().orElse(null);
             final HeaderMapping headerMapping = genericTarget.getHeaderMapping();
             final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping);
+            final Context context = DittoTracing.extractTraceContext(mappedMessage.getHeaders());
+            final StartedTrace trace = DittoTracing
+                    .trace(context, "publish")
+                    .connectionId(connection.getId())
+                    .connectionType(connection.getConnectionType())
+                    .start();
+            final ExternalMessage mappedMessageWithTraceContext =
+                    DittoTracing.propagateContext(trace.getContext(), mappedMessage,
+                            (msg, entry) -> msg.withHeader(entry.getKey(), entry.getValue()));
             final CompletionStage<SendResult> responsesFuture = publishMessage(outboundSource,
                     autoAckTarget,
                     publishTarget,
-                    mappedMessage,
+                    mappedMessageWithTraceContext,
                     maxTotalMessageSize,
                     quota
             );
+            responsesFuture.whenComplete((sr, throwable) -> trace.finish());
             // set the external message after header mapping for the result of header mapping to show up in log
-            result = new Sending(sendingContext.setExternalMessage(mappedMessage), responsesFuture,
+            result = new Sending(sendingContext.setExternalMessage(mappedMessageWithTraceContext), responsesFuture,
                     connectionIdResolver, l);
         } else {
             l.debug("Signal dropped, target address unresolved: <{}>", address);
@@ -563,7 +576,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param description description of the failure.
      */
     protected void escalate(final Throwable error, final String description) {
-        final ConnectionFailure failure = new ImmutableConnectionFailure(getSelf(), error, description);
+        final ConnectionFailure failure = ConnectionFailure.of(getSelf(), error, description);
         getContext().getParent().tell(failure, getSelf());
     }
 

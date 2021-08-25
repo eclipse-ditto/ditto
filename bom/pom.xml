@@ -27,7 +27,7 @@
 
     <properties>
         <scala.version>2.13</scala.version> <!-- for scala libraries the scala version is used in their artifactId -->
-        <scala.full.version>2.13.5</scala.full.version>
+        <scala.full.version>2.13.6</scala.full.version>
 
         <javac.source>11</javac.source>
         <javac.target>11</javac.target>
@@ -37,11 +37,11 @@
         <jackson-bom.version>2.11.4</jackson-bom.version>
         <typesafe-config.version>1.4.0</typesafe-config.version>
         <ssl-config-core.version>0.4.2</ssl-config-core.version>
-        <akka-bom.version>2.6.14</akka-bom.version>
+        <akka-bom.version>2.6.16</akka-bom.version>
         <akka-persistence-mongo.version>3.0.6</akka-persistence-mongo.version>
-        <akka-http-bom.version>10.2.4</akka-http-bom.version>
-        <akka-management.version>1.0.10</akka-management.version>
-        <akka-stream-kafka.version>2.1.0</akka-stream-kafka.version>
+        <akka-http-bom.version>10.2.5</akka-http-bom.version>
+        <akka-management.version>1.1.1</akka-management.version>
+        <akka-stream-kafka.version>2.1.1</akka-stream-kafka.version>
         <hivemq-mqtt-client.version>1.2.2</hivemq-mqtt-client.version>
         <sshd.version>2.7.0</sshd.version>
         <eddsa.version>0.3.0</eddsa.version>
@@ -59,15 +59,19 @@
         <cloundevents.version>2.0.0</cloundevents.version>
         <commons-net.version>3.8.0</commons-net.version>
 
-        <slf4j.version>1.7.30</slf4j.version>
+        <slf4j.version>1.7.31</slf4j.version>
         <logback.version>1.2.3</logback.version>
         <logstash-logback-encoder.version>6.6</logstash-logback-encoder.version>
         <janino.version>2.7.8</janino.version>
 
         <!-- ### Metrics and Tracing -->
-        <kamon-core.version>2.1.4</kamon-core.version>
-        <kamon-system-metrics.version>2.1.4</kamon-system-metrics.version>
-        <kamon-prometheus.version>2.1.4</kamon-prometheus.version>
+        <kamon.version>2.2.2</kamon.version>
+        <!-- When updating Kamon, please update the guava version below too to the used version in Kamon!
+             Guava is needed by kamon-opentelemetry (as traces are sent via gRPC library depending on Guava).
+             We need to explicitly "pin" it as a test dependency (docker-java-core) also pulls in Guava, but an older
+             version which somehow conflicts:
+        -->
+        <guava.version>30.0-android</guava.version>
 
         <jsr305.version>3.0.2</jsr305.version>
 
@@ -394,12 +398,12 @@
             <dependency>
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-core_${scala.version}</artifactId>
-                <version>${kamon-core.version}</version>
+                <version>${kamon.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-system-metrics_${scala.version}</artifactId>
-                <version>${kamon-system-metrics.version}</version>
+                <version>${kamon.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>com.github.oshi</groupId>
@@ -410,7 +414,7 @@
             <dependency>
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-prometheus_${scala.version}</artifactId>
-                <version>${kamon-prometheus.version}</version>
+                <version>${kamon.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>com.squareup.okhttp3</groupId>
@@ -421,6 +425,16 @@
                         <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.kamon</groupId>
+                <artifactId>kamon-opentelemetry_${scala.version}</artifactId>
+                <version>${kamon.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
 
             <!-- ### Compile - own artifacts ### -->

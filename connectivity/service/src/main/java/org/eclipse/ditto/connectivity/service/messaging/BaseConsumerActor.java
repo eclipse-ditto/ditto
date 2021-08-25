@@ -49,6 +49,7 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.TracingTags;
 
 import akka.NotUsed;
@@ -57,6 +58,7 @@ import akka.actor.ActorRef;
 import akka.pattern.Patterns;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
+import kamon.context.Context;
 
 /**
  * Base class for consumer actors that holds common fields and handles the address status.
@@ -71,6 +73,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final ConnectionMonitor inboundMonitor;
     protected final ConnectionMonitor inboundAcknowledgedMonitor;
     protected final ConnectionId connectionId;
+    protected final ConnectivityStatusResolver connectivityStatusResolver;
 
     private final Sink<Object, ?> inboundMappingSink;
     private final AcknowledgementConfig acknowledgementConfig;
@@ -78,12 +81,14 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     @Nullable private ResourceStatus resourceStatus;
 
     protected BaseConsumerActor(final Connection connection, final String sourceAddress,
-            final Sink<Object, ?> inboundMappingSink, final Source source) {
+            final Sink<Object, ?> inboundMappingSink, final Source source,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
         this.connectionId = checkNotNull(connection, "connection").getId();
         this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
         this.inboundMappingSink = checkNotNull(inboundMappingSink, "inboundMappingSink");
         this.source = checkNotNull(source, "source");
         this.connectionType = connection.getConnectionType();
+        this.connectivityStatusResolver = checkNotNull(connectivityStatusResolver, "connectivityStatusResolver");
         resetResourceStatus();
 
         final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
@@ -129,6 +134,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                 .tag(TracingTags.CONNECTION_ID, connectionId.toString())
                 .tag(TracingTags.CONNECTION_TYPE, connectionType.getName())
                 .start();
+        final Context traceContext = DittoTracing.extractTraceContext(acknowledgeableMessage.getMessage().getHeaders());
+        DittoTracing.wrapTimer(traceContext, timer);
 
         final Duration askTimeout = acknowledgementConfig.getCollectorFallbackAskTimeout();
         // Ask response collector actor to get the collected responses in a future
@@ -204,7 +211,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
      */
     protected final Sink<DittoRuntimeException, ?> getDittoRuntimeExceptionSink() {
         return Flow.<DittoRuntimeException, DittoRuntimeException>fromFunction(
-                message -> message.setDittoHeaders(enrichHeadersWithReplyInformation(message.getDittoHeaders())))
+                        message -> message.setDittoHeaders(enrichHeadersWithReplyInformation(message.getDittoHeaders())))
                 .via(Flow.<DittoRuntimeException, Object>fromFunction(value -> {
                     inboundMonitor.failure(value.getDittoHeaders(), value);
                     return value;

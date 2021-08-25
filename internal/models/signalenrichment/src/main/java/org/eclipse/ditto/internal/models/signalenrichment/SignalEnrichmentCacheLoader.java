@@ -16,12 +16,12 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.CacheLookupContext;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -53,10 +53,10 @@ final class SignalEnrichmentCacheLoader implements AsyncCacheLoader<CacheKey, Js
         final Optional<CacheLookupContext> contextOptional = key.getCacheLookupContext();
         final Optional<JsonFieldSelector> selectorOptional =
                 contextOptional.flatMap(CacheLookupContext::getJsonFieldSelector);
-        if (contextOptional.isPresent() && selectorOptional.isPresent()) {
+        if (contextOptional.isPresent()) {
             final CacheLookupContext context = contextOptional.get();
             final ThingId thingId = ThingId.of(key.getId());
-            final JsonFieldSelector jsonFieldSelector = selectorOptional.get();
+            final JsonFieldSelector jsonFieldSelector = selectorOptional.orElse(null);
             final DittoHeaders dittoHeaders = context.getDittoHeaders().orElseGet(DittoHeaders::empty);
             return facade.retrievePartialThing(thingId, jsonFieldSelector, dittoHeaders, null)
                     .toCompletableFuture();

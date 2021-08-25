@@ -31,6 +31,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonObject;
@@ -165,7 +166,7 @@ public final class SearchActor extends AbstractActor {
                 .info("Processing CountThings command: {}", countCommand);
         final JsonSchemaVersion version = countCommand.getImplementedSchemaVersion();
         final var queryType = "count";
-        final StartedTimer countTimer = startNewTimer(version, queryType);
+        final StartedTimer countTimer = startNewTimer(version, queryType, countCommand);
         final StartedTimer queryParsingTimer = countTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
         final ActorRef sender = getSender();
 
@@ -200,7 +201,7 @@ public final class SearchActor extends AbstractActor {
 
         final JsonSchemaVersion version = streamThings.getImplementedSchemaVersion();
         final var queryType = "query"; // same as queryThings
-        final StartedTimer searchTimer = startNewTimer(version, queryType);
+        final StartedTimer searchTimer = startNewTimer(version, queryType, streamThings);
         final StartedTimer queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
         final ActorRef sender = getSender();
         final Set<String> namespaces = streamThings.getNamespaces().orElse(null);
@@ -235,7 +236,7 @@ public final class SearchActor extends AbstractActor {
 
         final JsonSchemaVersion version = queryThings.getImplementedSchemaVersion();
         final var queryType = "query";
-        final StartedTimer searchTimer = startNewTimer(version, queryType);
+        final StartedTimer searchTimer = startNewTimer(version, queryType, queryThings);
         final StartedTimer queryParsingTimer = searchTimer.startNewSegment(QUERY_PARSING_SEGMENT_NAME);
         final ActorRef sender = getSender();
         final Set<String> namespaces = queryThings.getNamespaces().orElse(null);
@@ -348,11 +349,14 @@ public final class SearchActor extends AbstractActor {
         }
     }
 
-    private static StartedTimer startNewTimer(final JsonSchemaVersion version, final String queryType) {
-        return DittoMetrics.timer(TRACING_THINGS_SEARCH)
+    private static StartedTimer startNewTimer(final JsonSchemaVersion version, final String queryType,
+            final WithDittoHeaders withDittoHeaders) {
+        final StartedTimer startedTimer = DittoMetrics.timer(TRACING_THINGS_SEARCH)
                 .tag(QUERY_TYPE_TAG, queryType)
                 .tag(API_VERSION_TAG, version.toString())
                 .start();
+        DittoTracing.wrapTimer(DittoTracing.extractTraceContext(withDittoHeaders), startedTimer);
+        return startedTimer;
     }
 
     private static <T> Source<Query, NotUsed> createQuerySource(final Function<T, CompletionStage<Query>> parser,

@@ -139,6 +139,8 @@ post:
       $ref: '../../responses/preconditionFailed.yml'
     '413':
       $ref: '../../responses/entityTooLarge.yml'
+    '424':
+      $ref: '../../responses/dependencyFailed.yml'
   requestBody:
     content:
       application/json:

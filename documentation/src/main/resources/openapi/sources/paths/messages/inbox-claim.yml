@@ -93,6 +93,8 @@ post:
             $ref: '../../schemas/errors/advancedError.yml'
     '413':
       $ref: '../../responses/messageTooLarge.yml'
+    '424':
+      $ref: '../../responses/dependencyFailed.yml'
     '429':
       description: |-
         The user has sent too many requests in a given amount of time ("rate

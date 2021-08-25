@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 
-import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -104,8 +104,8 @@ public final class EnforcedThingMapper {
         final var nullablePolicyId = thing.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of).orElse(null);
         final var metadata = Metadata.of(thingId, thingRevision, nullablePolicyId, policyRevision,
                 Optional.ofNullable(oldMetadata).flatMap(Metadata::getModified).orElse(null),
-                Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(Collections.emptyList()),
-                Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(Collections.emptyList()));
+                Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(List.of()),
+                Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(List.of()));
 
         // hierarchical values for sorting
         final BsonValue thingCopyForSorting = JsonToBson.convert(pruneArrays(thing, maxArraySize));

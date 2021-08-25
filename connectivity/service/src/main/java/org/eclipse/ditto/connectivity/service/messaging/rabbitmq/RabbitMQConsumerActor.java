@@ -35,12 +35,17 @@ import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.PreparedTrace;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
 
 import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -70,8 +75,9 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
 
     @SuppressWarnings("unused")
     private RabbitMQConsumerActor(final Connection connection, final String sourceAddress,
-            final Sink<Object, NotUsed> inboundMappingSink, final Source source, final Channel channel) {
-        super(connection, sourceAddress, inboundMappingSink, source);
+            final Sink<Object, NotUsed> inboundMappingSink, final Source source, final Channel channel,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
+        super(connection, sourceAddress, inboundMappingSink, source, connectivityStatusResolver);
 
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
@@ -97,15 +103,21 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
      * @param sourceAddress the source address.
      * @param inboundMappingSink the mapping sink where received messages are forwarded to
      * @param source the configured connection source for the consumer actor.
-     * @param connection the connection
+     * @param channel the RabbitMQ channel.
+     * @param connection the connection.
+     * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
+     * status.
      * @return the Akka configuration Props object.
      */
-    static Props props(final String sourceAddress, final Sink<Object, NotUsed> inboundMappingSink, final Source source,
-            Channel channel,
-            final Connection connection) {
+    static Props props(final String sourceAddress,
+            final Sink<Object, NotUsed> inboundMappingSink,
+            final Source source,
+            final Channel channel,
+            final Connection connection,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
 
         return Props.create(RabbitMQConsumerActor.class, connection, sourceAddress, inboundMappingSink, source,
-                channel);
+                channel, connectivityStatusResolver);
     }
 
     @Override
@@ -125,15 +137,25 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
         final Envelope envelope = delivery.getEnvelope();
         final byte[] body = delivery.getBody();
 
+        StartedTrace trace = Traces.emptyStartedTrace();
         Map<String, String> headers = null;
         try {
-            final String correlationId = properties.getCorrelationId();
+            @Nullable final String correlationId = properties.getCorrelationId();
             if (log.isDebugEnabled()) {
                 log.withCorrelationId(correlationId)
                         .debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties,
                                 new String(body, StandardCharsets.UTF_8));
             }
             headers = extractHeadersFromMessage(properties, envelope);
+
+            final PreparedTrace preparedTrace =
+                    DittoTracing.trace(DittoTracing.extractTraceContext(headers), "rabbitmq.consume");
+            if (null != correlationId) {
+                trace = preparedTrace.correlationId(correlationId).start();
+            } else {
+                trace = preparedTrace.start();
+            }
+
             final ExternalMessageBuilder externalMessageBuilder =
                     ExternalMessageFactory.newExternalMessageBuilder(headers);
             final String contentType = properties.getContentType();
@@ -187,6 +209,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             } else {
                 inboundMonitor.failure(e);
             }
+            trace.fail(e);
         } catch (final Exception e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage());
             if (headers != null) {
@@ -194,6 +217,9 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             } else {
                 inboundMonitor.exception(e);
             }
+            trace.fail(e);
+        } finally {
+            trace.finish();
         }
     }
 

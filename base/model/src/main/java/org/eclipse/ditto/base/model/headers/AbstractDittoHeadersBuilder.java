@@ -515,6 +515,22 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S traceparent(@Nullable final CharSequence traceparent) {
+        if (traceparent != null) {
+            putCharSequence(DittoHeaderDefinition.W3C_TRACEPARENT, traceparent);
+        }
+        return myself;
+    }
+
+    @Override
+    public S tracestate(@Nullable final CharSequence tracestate) {
+        if (tracestate != null && tracestate.length() > 0) {
+            putCharSequence(DittoHeaderDefinition.W3C_TRACESTATE, tracestate);
+        }
+        return myself;
+    }
+
+    @Override
     public R build() {
         // do it here
         putMetadataHeadersToRegularHeaders();

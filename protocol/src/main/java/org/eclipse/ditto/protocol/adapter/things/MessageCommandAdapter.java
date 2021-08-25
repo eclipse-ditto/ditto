@@ -15,24 +15,22 @@ package org.eclipse.ditto.protocol.adapter.things;
 import static java.util.Objects.requireNonNull;
 
 import org.eclipse.ditto.messages.model.KnownMessageSubjects;
-import org.eclipse.ditto.protocol.adapter.AbstractAdapter;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.protocol.adapter.EmptyPathMatcher;
-import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
-import org.eclipse.ditto.protocol.mapper.SignalMapper;
-import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.EmptyPathMatcher;
+import org.eclipse.ditto.protocol.mapper.SignalMapper;
+import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
+import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 
 /**
  * Adapter for mapping a {@link MessageCommandAdapter} to and from an {@link Adaptable}.
  */
-final class MessageCommandAdapter extends AbstractAdapter<MessageCommand<?, ?>>
-        implements ThingMessageAdapter<MessageCommand<?, ?>> {
+final class MessageCommandAdapter extends AbstractMessageAdapter<MessageCommand<?, ?>> {
 
     private static final SignalMapper<MessageCommand<?, ?>>
             TO_ADAPTABLE_MAPPER = SignalMapperFactory.newMessageCommandSignalMapper();

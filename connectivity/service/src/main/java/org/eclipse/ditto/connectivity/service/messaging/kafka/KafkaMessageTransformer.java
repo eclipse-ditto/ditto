@@ -33,6 +33,8 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 
 import scala.util.Either;
 import scala.util.Left;
@@ -79,6 +81,10 @@ final class KafkaMessageTransformer {
         final Map<String, String> messageHeaders = extractMessageHeaders(consumerRecord);
         final String correlationId = messageHeaders
                 .getOrDefault(DittoHeaderDefinition.CORRELATION_ID.getKey(), UUID.randomUUID().toString());
+
+        final StartedTrace trace = DittoTracing.trace(DittoTracing.extractTraceContext(messageHeaders), "kafka.consume")
+                .correlationId(correlationId).start();
+
         try {
             final DittoLogger correlationIdScopedLogger = LOGGER.withCorrelationId(correlationId);
             correlationIdScopedLogger.debug(
@@ -104,12 +110,16 @@ final class KafkaMessageTransformer {
                         "Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(),
                         e.getMessage());
             }
+            trace.fail(e);
             return new Right<>(e.setDittoHeaders(DittoHeaders.of(messageHeaders)));
         } catch (final Exception e) {
             inboundMonitor.exception(messageHeaders, e);
             LOGGER.withCorrelationId(correlationId)
                     .error(String.format("Unexpected {%s}: {%s}", e.getClass().getName(), e.getMessage()), e);
+            trace.fail(e);
             return null; // Drop message
+        } finally {
+            trace.finish();
         }
 
     }

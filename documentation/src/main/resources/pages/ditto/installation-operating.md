@@ -173,6 +173,7 @@ Gathering logs for a running Ditto installation can be achieved by:
 * writing logs to log files: this can be done by setting the environment variable `DITTO_LOGGING_FILE_APPENDER` to `true`
    * configure the amount of log files, and the total amount of space used for logs files via these two environment 
      variables:
+       * `DITTO_LOGGING_FILE_NAME_PATTERN` (default: /var/log/ditto/<service-name>.log.%d{yyyy-MM-dd}.gz)
        * `DITTO_LOGGING_MAX_LOG_FILE_HISTORY_IN_DAYS` (default: 10) 
        * `DITTO_LOGGING_TOTAL_LOG_FILE_SIZE` (default: 1GB)
    * the format in which logging is done is "LogstashEncoder" format - that way the logfiles may easily be imported into
@@ -253,6 +254,22 @@ To put it in a nutshell, Ditto reports:
 Have a look at the 
 [example Grafana dashboards](https://github.com/eclipse/ditto/tree/master/deployment/operations/grafana-dashboards)
 and build and share new ones back to the Ditto community.
+
+## Tracing
+
+Ditto supports reading and propagating [W3C trace context](https://www.w3.org/TR/trace-context/) headers at the 
+edges of the Ditto service (e.g. Gateway and Connectivity service). Several spans are generated when a request is  
+processed and the tracing data is exported in [OpenTelemetry](https://opentelemetry.io/) format using 
+kamon-opentelemetry library.
+
+Adjust the following environment variables to configure the Ditto services to produce traces:
+* `DITTO_TRACING_ENABLED`: determines whether tracing is enabled (default:`false`) 
+* `DITTO_TRACING_SAMPLER`: defines the used sampler
+  * `always`: report all traces 
+  * `never`:  don't report any trace (default)
+  * `random`: randomly decide using the probability defined in the `DITTO_TRACING_RANDOM_SAMPLER_PROBABILITY` environment variable
+  * `adaptive`: keeps dynamic samplers for each operation while trying to achieve a set throughput goal (`DITTO_TRACING_ADAPTIVE_SAMPLER_THROUGHPUT`) 
+* `OTEL_EXPORTER_OTLP_ENDPOINT`: the OTLP endpoint where to report the gathered traces (default: `http://localhost:4317`)
 
 ## DevOps commands
 
@@ -389,8 +406,8 @@ variables. Response example:
 
 ```json
 {
-  "?": {
-    "?": {
+  "gateway": {
+    "1": {
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
@@ -405,8 +422,10 @@ variables. Response example:
           "-Dfile.encoding=UTF-8"
         ]
       }
-    },
-    "?1": {
+    }
+  },
+  "connectivity": {
+    "1": {
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
@@ -440,8 +459,8 @@ Response example:
 
 ```json
 {
-  "?": {
-    "?": {
+  "gateway": {
+    "1": {
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
@@ -529,8 +548,8 @@ The response has the following details:
 
 ```json
 {
-  "?": {
-    "?": {
+  "concierge": {
+    "1": {
       "type": "status.responses:retrieveHealth",
       "status": 200,
       "statusInfo": {
@@ -579,8 +598,8 @@ Response example:
 
 ```json
 {
-  "?": {
-    "?": {
+  "concierge": {
+    "1": {
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
@@ -638,8 +657,8 @@ piggyback command contains any error, then an error is logged and the actor's co
 
 ```json
 {
-  "?": {
-    "?": {
+  "concierge": {
+    "1": {
       "type": "common.responses:modifyConfig",
       "status": 200,
       "config": {
@@ -693,8 +712,8 @@ Response example:
 
 ```json
 {
-  "?": {
-    "?": {
+  "concierge": {
+    "1": {
       "type": "common.responses:shutdown",
       "status": 200,
       "message": "Restarting stream in <PT5760H30M5S>."
@@ -729,8 +748,8 @@ Response example:
 
 ```json
 {
-  "?": {
-    "?": {
+  "things": {
+    "1": {
       "type": "cleanup.responses:cleanupPersistence",
       "status": 200,
       "entityId": "thing:ditto:thing1"
@@ -886,7 +905,8 @@ slow. Set the timeout to a safe margin above the estimated erasure time in milli
 {
   "targetActorSelection": "/system/distributedPubSubMediator",
   "headers": {
-    "aggregate": true
+    "aggregate": true,
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "namespaces.commands:purgeNamespace",

@@ -22,11 +22,16 @@ public enum ConnectivityMdcEntryKey implements CharSequence {
     /**
      * Key of the connection ID context value.
      */
-    CONNECTION_ID("connection-id");
+    CONNECTION_ID("connection-id"),
+
+    /**
+     * Key of the connection type context value.
+     */
+    CONNECTION_TYPE("connection-type");
 
     private final String key;
 
-    private ConnectivityMdcEntryKey(final String key) {
+    ConnectivityMdcEntryKey(final String key) {
         this.key = key;
     }
 

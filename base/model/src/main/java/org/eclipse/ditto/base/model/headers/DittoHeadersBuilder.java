@@ -350,6 +350,24 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
     B removePreconditionHeaders();
 
     /**
+     * Sets the traceparent value.
+     *
+     * @param traceparent the w3c traceparent header
+     * @return The builder with w3c traceparent set
+     * @since 2.1.0
+     */
+    B traceparent(@Nullable CharSequence traceparent);
+
+    /**
+     * Sets the tracestate value.
+     *
+     * @param tracestate the w3c tracestate header
+     * @return The builder with w3c tracestate set
+     * @since 2.1.0
+     */
+    B tracestate(@Nullable CharSequence tracestate);
+
+    /**
      * Creates a DittoHeaders object containing the key-value-pairs which were put to this builder.
      *
      * @return the headers.

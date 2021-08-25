@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -49,9 +50,7 @@ import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.signing.NoOpSigning;
-import org.eclipse.ditto.internal.utils.akka.controlflow.TimeMeasuringFlow;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
@@ -167,9 +166,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 .maximumDuration(requestTimeout.plus(Duration.ofSeconds(5)))
                 .tag("id", connection.getId().toString());
 
-        final Sink<Duration, CompletionStage<Done>> logRequestTimes = Sink.<Duration>foreach(duration ->
-                connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis())
-        );
+        final Consumer<Duration> logRequestTimes =
+                duration -> connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis());
 
         final Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> requestSigningFlow =
                 Flow.<Pair<HttpRequest, HttpPushContext>>create()
@@ -179,11 +177,11 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                                     return Pair.create(signedRequest, pair.second());
                                 }));
 
-        final var httpPushFlow = factory.<HttpPushContext>createFlow(getContext().getSystem(), logger, requestTimeout);
+        final var httpPushFlow =
+                factory.<HttpPushContext>createFlow(getContext().getSystem(), logger, requestTimeout, timer,
+                        logRequestTimes);
 
-        final var httpFlowIncludingRequestSigning = requestSigningFlow.via(httpPushFlow);
-
-        return TimeMeasuringFlow.measureTimeOf(httpFlowIncludingRequestSigning, timer, logRequestTimes);
+        return requestSigningFlow.via(httpPushFlow);
     }
 
     @Override
@@ -312,24 +310,22 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return tryResponse -> {
             final Uri requestUri = stripUserInfo(request.getUri());
 
-            final ThreadSafeDittoLoggingAdapter l;
-            if (logger.isDebugEnabled()) {
-                l = logger.withCorrelationId(message.getInternalHeaders());
-            } else {
-                l = logger;
-            }
+            final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(message.getInternalHeaders());
 
             if (tryResponse.isFailure()) {
                 final Throwable error = tryResponse.toEither().left().get();
                 final String errorDescription = MessageFormat.format("Failed to send HTTP request to <{0}>.",
                         requestUri);
-                l.debug("Failed to send message <{}> due to <{}>", message, error);
+                l.info("Failed to send message due to <{}: {}>", error.getClass().getSimpleName(),
+                        error.getMessage());
+                l.debug("Failed to send message <{}> due to <{}: {}>", message, error.getClass().getSimpleName(),
+                        error.getMessage());
                 resultFuture.completeExceptionally(error);
                 escalate(error, errorDescription);
             } else {
                 final HttpResponse response = tryResponse.toEither().right().get();
-                l.debug("Sent message <{}>. Got response <{} {}>", message,
-                        response.status(), response.getHeaders());
+                l.info("Got response status <{}>", response.status());
+                l.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
 
                 toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize, ackSizeQuota)
                         .thenAccept(resultFuture::complete)
@@ -431,6 +427,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     "Live response does not target the correct thing. Expected thing ID <%s>, but no ID found",
                     messageThingId);
             handleInvalidResponse(message, commandResponse);
+            return;
         }
         final EntityId responseThingId = ((WithEntityId) commandResponse).getEntityId();
 
@@ -471,6 +468,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     final String message = String.format(LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE, commandResponse.getType(),
                             SendFeatureMessageResponse.TYPE);
                     handleInvalidResponse(message, commandResponse);
+                    return;
                 }
                 final String messageFeatureId = ((SendFeatureMessage<?>) messageCommand).getFeatureId();
                 final String responseFeatureId = ((SendFeatureMessageResponse<?>) commandResponse).getFeatureId();
@@ -560,7 +558,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     private ConnectionFailure toConnectionFailure(@Nullable final Done done, @Nullable final Throwable error) {
-        return new ImmutableConnectionFailure(getSelf(), error, "HttpPublisherActor stream terminated");
+        return ConnectionFailure.of(getSelf(), error, "HttpPublisherActor stream terminated");
     }
 
     private static DittoHeaders setDittoHeaders(final DittoHeaders dittoHeaders, final HttpResponse response) {

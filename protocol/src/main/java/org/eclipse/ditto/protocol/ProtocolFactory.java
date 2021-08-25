@@ -18,8 +18,6 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.base.model.common.DittoConstants;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -194,7 +192,7 @@ public final class ProtocolFactory {
      * @return the builder.
      */
     public static PayloadBuilder newPayloadBuilder() {
-        return newPayloadBuilder(null);
+        return newPayloadBuilder(JsonPointer.empty());
     }
 
     /**
@@ -203,8 +201,19 @@ public final class ProtocolFactory {
      * @param path the path.
      * @return the builder.
      */
-    public static PayloadBuilder newPayloadBuilder(@Nullable final JsonPointer path) {
+    public static PayloadBuilder newPayloadBuilder(final JsonPointer path) {
         return ImmutablePayload.getBuilder(path);
+    }
+
+    /**
+     * Copy the payload's content into a new {@code PayloadBuilder}.
+     *
+     * @param payload the payload.
+     * @return the builder.
+     * @since 2.1.0
+     */
+    public static PayloadBuilder toPayloadBuilder(final Payload payload) {
+        return new ImmutablePayload.ImmutablePayloadBuilder(payload);
     }
 
     /**
