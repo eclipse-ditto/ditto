@@ -24,6 +24,11 @@ import javax.annotation.Nullable;
 public interface TaggedMetricInstrument<T extends MetricInstrument> extends MetricInstrument {
 
     /**
+     * @return this instance.
+     */
+    T self();
+
+    /**
      * Adds the given tag to the timer.
      * Already existing tags with the same key will be overridden.
      *

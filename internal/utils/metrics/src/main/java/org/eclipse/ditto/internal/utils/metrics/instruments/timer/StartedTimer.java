@@ -15,7 +15,6 @@ package org.eclipse.ditto.internal.utils.metrics.instruments.timer;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import org.eclipse.ditto.internal.utils.metrics.instruments.TaggedMetricInstrument;
 
@@ -23,6 +22,11 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.TaggedMetricInstrume
  * A started Timer metric. New instances are always built as started timers. No manual start is possible/required.
  */
 public interface StartedTimer extends Timer, TaggedMetricInstrument<StartedTimer> {
+
+    @Override
+    default StartedTimer self() {
+        return this;
+    }
 
     /**
      * Stops the timer and all its segments.

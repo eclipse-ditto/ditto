@@ -25,6 +25,11 @@ import kamon.context.Context;
  */
 public interface StartedTrace extends TaggedMetricInstrument<StartedTrace>, TraceTags<StartedTrace> {
 
+    @Override
+    default StartedTrace self() {
+        return this;
+    }
+
     /**
      * Finishes the trace. Any method called after the trace is finished has no effect.
      */
