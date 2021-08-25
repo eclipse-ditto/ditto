@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
@@ -42,8 +43,11 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailu
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 
 import akka.actor.ActorRef;
+import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.actor.SupervisorStrategy;
+import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FSMStateFunctionBuilder;
 
 /**
@@ -116,6 +120,19 @@ public final class KafkaClientActor extends BaseClientActor {
                     completeTestConnectionFuture(new Status.Failure(event.getFailure().cause()));
                     return stay();
                 });
+    }
+
+    @Override
+    public SupervisorStrategy supervisorStrategy() {
+        return new OneForOneStrategy(
+                DeciderBuilder
+                        .match(MessageRejectedException.class, error -> {
+                            logger.info("Consumed message that could not be settled correctly. Consumer will restart.");
+                            return (SupervisorStrategy.Directive) SupervisorStrategy.restart();
+                        })
+                        .build()
+                        .orElse(super.supervisorStrategy().decider())
+        );
     }
 
     @Override
@@ -210,12 +227,12 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     private void startKafkaConsumer(final ConsumerData consumerData, final boolean dryRun) {
-        final DefaultKafkaConsumerSourceSupplier sourceSupplier =
-                new DefaultKafkaConsumerSourceSupplier(propertiesFactory, consumerData.getAddress(), dryRun);
+        final KafkaConsumerStreamFactory streamFactory =
+                new KafkaConsumerStreamFactory(propertiesFactory, consumerData, dryRun);
         final Props consumerActorProps =
-                KafkaConsumerActor.props(connection(), sourceSupplier,
-                        consumerData.getAddress(), getInboundMappingSink(), consumerData.getSource(),
-                        connectivityStatusResolver, dryRun);
+                KafkaConsumerActor.props(connection(), streamFactory,
+                        consumerData.getAddress(), consumerData.getSource(), getInboundMappingSink(),
+                        connectivityStatusResolver);
         final ActorRef consumerActor =
                 startChildActorConflictFree(consumerData.getActorNamePrefix(), consumerActorProps);
         kafkaConsumerActors.add(consumerActor);

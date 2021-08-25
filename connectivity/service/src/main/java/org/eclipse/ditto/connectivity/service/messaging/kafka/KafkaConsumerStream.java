@@ -12,19 +12,25 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.util.concurrent.CompletionStage;
 
-import java.util.function.Supplier;
-
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-
-import akka.kafka.javadsl.Consumer;
-import akka.stream.javadsl.Source;
+import akka.Done;
 
 /**
- * Supplier of a {@code Source<ConsumerRecord<String, String>, Consumer.Control>} used by {@code KafkaConsumerActor}
- * to consume messages from a kafka topic.
+ * A start- and stoppable kafka consumer stream.
  */
-@FunctionalInterface
-public interface KafkaConsumerSourceSupplier
-        extends Supplier<Source<ConsumerRecord<String, String>, Consumer.Control>> {
+interface KafkaConsumerStream {
+
+    /**
+     * Starts the consumer stream.
+     *
+     * @return a completion stage that completes when the stream is stopped (gracefully or exceptionally).
+     */
+    CompletionStage<Done> start();
+
+    /**
+     * Stops the consumer stream gracefully.
+     */
+    void stop();
+
 }

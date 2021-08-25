@@ -36,9 +36,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 
-import scala.util.Either;
-import scala.util.Left;
-import scala.util.Right;
+import akka.kafka.ConsumerMessage;
 
 /**
  * Transforms incoming messages from Apache Kafka to {@link org.eclipse.ditto.connectivity.api.ExternalMessage}.
@@ -62,6 +60,28 @@ final class KafkaMessageTransformer {
         this.inboundMonitor = inboundMonitor;
     }
 
+
+    /**
+     * Takes incoming kafka record and transforms the value to an {@link ExternalMessage}.
+     *
+     * @param committableMessage the committable kafka message.
+     * @return A value that is either an {@link ExternalMessageWithCommittableOffset} in case the
+     * transformation succeeded, or a {@link DittoRuntimeException} if it failed. Could also be null if an unexpected
+     * Exception occurred which should result in the message being dropped as automated recovery is expected.
+     */
+    @Nullable
+    public CommittableTransformationResult transform(
+            final ConsumerMessage.CommittableMessage<String, String> committableMessage) {
+
+        final TransformationResult result = transform(committableMessage.record());
+        if (result == null) {
+            return null;
+
+        } else {
+            return CommittableTransformationResult.of(result, committableMessage.committableOffset());
+        }
+    }
+
     /**
      * Takes incoming kafka record and transforms the value to an {@link ExternalMessage}.
      *
@@ -71,13 +91,10 @@ final class KafkaMessageTransformer {
      * Exception occurred which should result in the message being dropped as automated recovery is expected.
      */
     @Nullable
-    public Either<ExternalMessage, DittoRuntimeException> transform(
-            final ConsumerRecord<String, String> consumerRecord) {
+    public TransformationResult transform(final ConsumerRecord<String, String> consumerRecord) {
 
         LOGGER.trace("Received record from kafka: {}", consumerRecord);
 
-        final String key = consumerRecord.key();
-        final String value = consumerRecord.value();
         final Map<String, String> messageHeaders = extractMessageHeaders(consumerRecord);
         final String correlationId = messageHeaders
                 .getOrDefault(DittoHeaderDefinition.CORRELATION_ID.getKey(), UUID.randomUUID().toString());
@@ -86,6 +103,8 @@ final class KafkaMessageTransformer {
                 .correlationId(correlationId).start();
 
         try {
+            final String key = consumerRecord.key();
+            final String value = consumerRecord.value();
             final DittoLogger correlationIdScopedLogger = LOGGER.withCorrelationId(correlationId);
             correlationIdScopedLogger.debug(
                     "Transforming incoming kafka message <{}> with headers <{}> and key <{}>.",
@@ -103,7 +122,7 @@ final class KafkaMessageTransformer {
 
             inboundMonitor.success(externalMessage);
 
-            return new Left<>(externalMessage);
+            return TransformationResult.successful(externalMessage);
         } catch (final DittoRuntimeException e) {
             if (LOGGER.isDebugEnabled()) {
                 LOGGER.withCorrelationId(e).debug(
@@ -111,7 +130,7 @@ final class KafkaMessageTransformer {
                         e.getMessage());
             }
             trace.fail(e);
-            return new Right<>(e.setDittoHeaders(DittoHeaders.of(messageHeaders)));
+            return TransformationResult.failed(e.setDittoHeaders(DittoHeaders.of(messageHeaders)));
         } catch (final Exception e) {
             inboundMonitor.exception(messageHeaders, e);
             LOGGER.withCorrelationId(correlationId)

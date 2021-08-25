@@ -12,34 +12,33 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 import akka.kafka.AutoSubscription;
+import akka.kafka.ConsumerMessage;
 import akka.kafka.ConsumerSettings;
 import akka.kafka.Subscriptions;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.javadsl.Source;
 
-/**
- * Default implementation of {@code KafkaConsumerSourceProvider}.
- */
-public class DefaultKafkaConsumerSourceSupplier implements KafkaConsumerSourceSupplier {
+class AtLeastOnceKafkaConsumerSourceSupplier {
 
     final PropertiesFactory propertiesFactory;
     final String sourceAddress;
     final boolean dryRun;
 
-    DefaultKafkaConsumerSourceSupplier(
+    AtLeastOnceKafkaConsumerSourceSupplier(
             final PropertiesFactory propertiesFactory, final String sourceAddress, final boolean dryRun) {
         this.propertiesFactory = propertiesFactory;
         this.sourceAddress = sourceAddress;
         this.dryRun = dryRun;
     }
 
-    @Override
-    public Source<ConsumerRecord<String, String>, Consumer.Control> get() {
-        final ConsumerSettings<String, String> consumerSettings = propertiesFactory.getConsumerSettings(dryRun);
+    Source<ConsumerMessage.CommittableMessage<String, String>, Consumer.Control> get() {
+        final ConsumerSettings<String, String> consumerSettings = propertiesFactory.getConsumerSettings(dryRun)
+                .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         final AutoSubscription subscription = Subscriptions.topics(sourceAddress);
-        return Consumer.plainSource(consumerSettings, subscription);
+        return Consumer.committableSource(consumerSettings, subscription);
     }
+
 }
