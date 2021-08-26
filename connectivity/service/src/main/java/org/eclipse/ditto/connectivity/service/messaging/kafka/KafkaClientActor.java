@@ -25,15 +25,14 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
@@ -227,8 +226,9 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     private void startKafkaConsumer(final ConsumerData consumerData, final boolean dryRun) {
+        final ConnectionThrottlingConfig throttlingConfig = kafkaConfig.getConsumerConfig().getThrottlingConfig();
         final KafkaConsumerStreamFactory streamFactory =
-                new KafkaConsumerStreamFactory(propertiesFactory, consumerData, dryRun);
+                new KafkaConsumerStreamFactory(throttlingConfig, propertiesFactory, consumerData, dryRun);
         final Props consumerActorProps =
                 KafkaConsumerActor.props(connection(), streamFactory,
                         consumerData.getAddress(), consumerData.getSource(), getInboundMappingSink(),
@@ -260,7 +260,7 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     @Override
-    protected Optional<ThrottlingConfig> getThrottlingConfig() {
+    protected Optional<ConnectionThrottlingConfig> getThrottlingConfig() {
         return Optional.of(kafkaConfig.getConsumerConfig().getThrottlingConfig());
     }
 

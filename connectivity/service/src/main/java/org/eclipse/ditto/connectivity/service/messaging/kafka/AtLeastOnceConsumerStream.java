@@ -49,11 +49,13 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
     private final ConnectionMonitor inboundMonitor;
     private final Materializer materializer;
     private final CommitterSettings committerSettings;
+    private final int consumerMaxInflight;
     @Nullable private Consumer.Control consumerControl;
 
     AtLeastOnceConsumerStream(
             final AtLeastOnceKafkaConsumerSourceSupplier sourceSupplier,
             final CommitterSettings committerSettings,
+            final int consumerMaxInInflight,
             final KafkaMessageTransformer kafkaMessageTransformer,
             final boolean dryRun,
             final Materializer materializer,
@@ -64,6 +66,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         this.inboundMonitor = inboundMonitor;
         this.materializer = materializer;
         this.committerSettings = committerSettings;
+        this.consumerMaxInflight = consumerMaxInInflight;
         runnableKafkaStream = sourceSupplier.get()
                 .filter(committableMessage -> isNotDryRun(committableMessage.record(), dryRun))
                 .filter(committableMessage -> committableMessage.record().value() != null)
@@ -104,7 +107,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
 
     private Sink<KafkaAcknowledgableMessage, NotUsed> committerSink() {
         return Flow.of(KafkaAcknowledgableMessage.class)
-                .mapAsync(1, KafkaAcknowledgableMessage::getAcknowledgementFuture)
+                .mapAsync(consumerMaxInflight, KafkaAcknowledgableMessage::getAcknowledgementFuture)
                 .to(Committer.sink(committerSettings));
     }
 

@@ -30,11 +30,11 @@ public final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
     private static final String CONFIG_PATH = "consumer";
     private static final String ALPAKKA_PATH = "alpakka";
 
-    private final ThrottlingConfig throttlingConfig;
+    private final ConnectionThrottlingConfig throttlingConfig;
     private final Config alpakkaConfig;
 
     private DefaultKafkaConsumerConfig(final Config kafkaConsumerScopedConfig) {
-        throttlingConfig = ThrottlingConfig.of(kafkaConsumerScopedConfig);
+        throttlingConfig = ConnectionThrottlingConfig.of(kafkaConsumerScopedConfig);
         alpakkaConfig = getConfigOrEmpty(kafkaConsumerScopedConfig, ALPAKKA_PATH);
     }
 
@@ -54,7 +54,7 @@ public final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
     }
 
     @Override
-    public ThrottlingConfig getThrottlingConfig() {
+    public ConnectionThrottlingConfig getThrottlingConfig() {
         return throttlingConfig;
     }
 

@@ -22,8 +22,11 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
+
+import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
 import akka.stream.Materializer;
@@ -36,9 +39,13 @@ final class KafkaConsumerStreamFactory {
     private final PropertiesFactory propertiesFactory;
     private final AtMostOnceKafkaConsumerSourceSupplier atMostOnceKafkaConsumerSourceSupplier;
     private final AtLeastOnceKafkaConsumerSourceSupplier atLeastOnceKafkaConsumerSourceSupplier;
+    private final ConnectionThrottlingConfig throttlingConfig;
 
-    KafkaConsumerStreamFactory(final PropertiesFactory propertiesFactory, final ConsumerData consumerData,
+    KafkaConsumerStreamFactory(final ConnectionThrottlingConfig throttlingConfig,
+            final PropertiesFactory propertiesFactory,
+            final ConsumerData consumerData,
             final boolean dryRun) {
+        this.throttlingConfig = throttlingConfig;
         this.consumerData = consumerData;
         this.dryRun = dryRun;
         this.propertiesFactory = propertiesFactory;
@@ -62,6 +69,7 @@ final class KafkaConsumerStreamFactory {
         this.consumerData = consumerData;
         this.dryRun = dryRun;
         this.propertiesFactory = null;
+        this.throttlingConfig = ConnectionThrottlingConfig.of(ConfigFactory.empty());
         this.atMostOnceKafkaConsumerSourceSupplier = atMostOnceKafkaConsumerSourceSupplier;
         this.atLeastOnceKafkaConsumerSourceSupplier = atLeastOnceKafkaConsumerSourceSupplier;
     }
@@ -101,7 +109,9 @@ final class KafkaConsumerStreamFactory {
         final KafkaMessageTransformer kafkaMessageTransformer =
                 new KafkaMessageTransformer(source, address, headerEnforcementFilterFactory, inboundMonitor);
         return new AtLeastOnceConsumerStream(atLeastOnceKafkaConsumerSourceSupplier,
-                propertiesFactory.getCommitterSettings(), kafkaMessageTransformer, dryRun,
+                propertiesFactory.getCommitterSettings(),
+                throttlingConfig.getConsumerMaxInFlight(),
+                kafkaMessageTransformer, dryRun,
                 materializer, inboundMonitor, messageMappingSink, dreSink);
     }
 

@@ -29,7 +29,7 @@ public interface KafkaConsumerConfig {
      *
      * @return the config.
      */
-    ThrottlingConfig getThrottlingConfig();
+    ConnectionThrottlingConfig getThrottlingConfig();
 
     /**
      * Returns the Config for consumers needed by the Kafka client.

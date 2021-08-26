@@ -90,6 +90,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.service.config.ClientConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectionContextProvider;
 import org.eclipse.ditto.connectivity.service.config.ConnectionContextProviderFactory;
+import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
@@ -1755,7 +1756,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .run(materializer);
     }
 
-    protected Optional<ThrottlingConfig> getThrottlingConfig() {
+    protected Optional<ConnectionThrottlingConfig> getThrottlingConfig() {
         return Optional.empty();
     }
 
