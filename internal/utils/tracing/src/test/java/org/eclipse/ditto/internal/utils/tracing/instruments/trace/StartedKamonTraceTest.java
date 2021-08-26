@@ -13,6 +13,7 @@
 package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -30,24 +31,30 @@ public class StartedKamonTraceTest {
 
     @Test
     public void taggingWorks() {
-        underTest.tag("stringTag", "2");
-        underTest.tag("longTag", 2L);
-        underTest.tag("booleanTag", true);
-        underTest.tag("doubleTag", 2.0);
+        assertThatNoException().isThrownBy(() -> {
+            underTest.tag("stringTag", "2");
+            underTest.tag("longTag", 2L);
+            underTest.tag("booleanTag", true);
+            underTest.tag("doubleTag", 2.0);
+        });
     }
 
     @Test
     public void traceTags() {
-        underTest.correlationId("12345");
-        underTest.connectionType("test");
-        underTest.connectionId("connection-1");
+        assertThatNoException().isThrownBy(() -> {
+            underTest.correlationId("12345");
+            underTest.connectionType("test");
+            underTest.connectionId("connection-1");
+        });
     }
 
     @Test
     public void nullTraceTagsAreIgnored() {
-        underTest.correlationId(null);
-        underTest.connectionType(null);
-        underTest.connectionId(null);
+        assertThatNoException().isThrownBy(() -> {
+            underTest.correlationId(null);
+            underTest.connectionType(null);
+            underTest.connectionId(null);
+        });
     }
 
     @Test
