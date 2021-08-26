@@ -28,8 +28,7 @@ final class KafkaAcknowledgableMessage {
             final ConsumerMessage.CommittableOffset committableOffset) {
         this.acknowledgementFuture = new CompletableFuture<>();
         this.acknowledgeableMessage = AcknowledgeableMessage.of(message,
-                () ->
-                        acknowledgementFuture.complete(committableOffset),
+                () -> acknowledgementFuture.complete(committableOffset),
                 shouldRedeliver -> {
                     if (shouldRedeliver) {
                         acknowledgementFuture.completeExceptionally(MessageRejectedException.getInstance());

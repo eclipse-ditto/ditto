@@ -89,7 +89,6 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
                 .runWith(unexpectedMessageSink(), materializer);
     }
 
-
     @Override
     public void stop() {
         if (consumerControl != null) {
@@ -110,8 +109,6 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
     private Sink<KafkaAcknowledgableMessage, NotUsed> committerSink() {
         return Flow.of(KafkaAcknowledgableMessage.class)
                 .mapAsync(1, KafkaAcknowledgableMessage::getAcknowledgementFuture)
-                .log("yannic test")
-                .withAttributes(Attributes.logLevels(Attributes.logLevelInfo(), Attributes.logLevelInfo(), Attributes.logLevelInfo()))
                 .to(Committer.sink(committerSettings));
     }
 
