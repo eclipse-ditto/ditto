@@ -114,6 +114,7 @@ public final class EnforcedThingMapper {
         // flattened values for querying with special handling for thingId and namespace
         final BsonArray flattenedValues = EnforcedThingFlattener.flattenJson(thing, enforcer, maxArraySize);
 
+        // TODO: convert all use of Document to BsonDocument
         final Document thingDocument =
                 new Document().append(PersistenceConstants.FIELD_ID, thingId.toString())
                         .append(PersistenceConstants.FIELD_REVISION, thingRevision)
