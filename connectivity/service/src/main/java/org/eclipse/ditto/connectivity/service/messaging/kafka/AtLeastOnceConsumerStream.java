@@ -13,7 +13,6 @@
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -32,12 +31,10 @@ import org.slf4j.Logger;
 
 import akka.Done;
 import akka.NotUsed;
-import akka.japi.function.Function;
 import akka.kafka.CommitterSettings;
 import akka.kafka.ConsumerMessage;
 import akka.kafka.javadsl.Committer;
 import akka.kafka.javadsl.Consumer;
-import akka.stream.Attributes;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
@@ -100,7 +97,6 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
     private Sink<CommittableTransformationResult, ?> externalMessageSink(
             final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink) {
         return Flow.fromFunction(this::toAcknowledgeableMessage)
-                .statefulMapConcat(MessageSequentializer::new)
                 .alsoTo(committerSink())
                 .map(KafkaAcknowledgableMessage::getAcknowledgeableMessage)
                 .to(inboundMappingSink);
@@ -171,25 +167,6 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
                 "Got unexpected transformation result <{0}>. This is an internal error. " +
                         "Please contact the service team.", either
         ));
-    }
-
-    private static final class MessageSequentializer implements
-            Function<KafkaAcknowledgableMessage, Iterable<KafkaAcknowledgableMessage>> {
-
-        private transient CompletableFuture<ConsumerMessage.CommittableOffset> last;
-
-        private MessageSequentializer() {
-            last = new CompletableFuture<>();
-            last.complete(null);
-        }
-
-        @Override
-        public Iterable<KafkaAcknowledgableMessage> apply(final KafkaAcknowledgableMessage kafkaAcknowledgableMessage) {
-            final KafkaAcknowledgableMessage sequentialized = kafkaAcknowledgableMessage.commitAfter(last);
-            last = sequentialized.getAcknowledgementFuture();
-            return List.of(sequentialized);
-        }
-
     }
 
 }

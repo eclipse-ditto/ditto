@@ -38,24 +38,12 @@ final class KafkaAcknowledgableMessage {
                 });
     }
 
-    private KafkaAcknowledgableMessage(final AcknowledgeableMessage acknowledgeableMessage,
-            final CompletableFuture<ConsumerMessage.CommittableOffset> acknowledgementFuture) {
-        this.acknowledgementFuture = acknowledgementFuture;
-        this.acknowledgeableMessage = acknowledgeableMessage;
-    }
-
     AcknowledgeableMessage getAcknowledgeableMessage() {
         return acknowledgeableMessage;
     }
 
     CompletableFuture<ConsumerMessage.CommittableOffset> getAcknowledgementFuture() {
         return acknowledgementFuture;
-    }
-
-    KafkaAcknowledgableMessage commitAfter(final CompletableFuture<ConsumerMessage.CommittableOffset> precedingFuture) {
-        final CompletableFuture<ConsumerMessage.CommittableOffset> chainedFuture =
-                precedingFuture.thenCompose(result -> acknowledgementFuture);
-        return new KafkaAcknowledgableMessage(acknowledgeableMessage, chainedFuture);
     }
 
 }
