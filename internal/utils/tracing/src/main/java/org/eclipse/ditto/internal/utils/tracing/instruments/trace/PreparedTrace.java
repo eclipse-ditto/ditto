@@ -24,6 +24,11 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.TaggedMetricInstrume
  */
 public interface PreparedTrace extends TaggedMetricInstrument<PreparedTrace>, TraceTags<PreparedTrace> {
 
+    @Override
+    default PreparedTrace self() {
+        return this;
+    }
+
     /**
      * Starts the trace at the current instant.
      *

@@ -20,6 +20,11 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.TaggedMetricInstrume
  */
 public interface Counter extends ResettableMetricInstrument, TaggedMetricInstrument<Counter> {
 
+    @Override
+    default Counter self() {
+        return this;
+    }
+
     /**
      * Increments the value of the counter by one.
      *

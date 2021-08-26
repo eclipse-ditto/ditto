@@ -16,14 +16,19 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 
-import org.eclipse.ditto.internal.utils.metrics.instruments.TaggedMetricInstrument;
+import org.eclipse.ditto.internal.utils.metrics.instruments.TaggableMetricsInstrument;
 
 import kamon.context.Context;
 
 /**
  * A started trace.
  */
-public interface StartedTrace extends TaggedMetricInstrument<StartedTrace>, TraceTags<StartedTrace> {
+public interface StartedTrace extends TaggableMetricsInstrument<StartedTrace>, TraceTags<StartedTrace> {
+
+    @Override
+    default StartedTrace self() {
+        return this;
+    }
 
     /**
      * Finishes the trace. Any method called after the trace is finished has no effect.

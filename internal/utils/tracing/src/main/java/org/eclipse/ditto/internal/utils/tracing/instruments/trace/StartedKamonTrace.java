@@ -16,8 +16,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 
 import kamon.context.Context;
@@ -42,17 +40,6 @@ class StartedKamonTrace implements StartedTrace {
     public StartedTrace tags(final Map<String, String> tags) {
         tags.forEach(this::tag);
         return this;
-    }
-
-    @Nullable
-    @Override
-    public String getTag(final String key) {
-        return null;
-    }
-
-    @Override
-    public Map<String, String> getTags() {
-        return Map.of();
     }
 
     @Override
