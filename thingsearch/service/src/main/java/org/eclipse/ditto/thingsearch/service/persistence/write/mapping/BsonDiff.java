@@ -12,8 +12,14 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
+import org.bson.BsonArray;
+import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.eclipse.ditto.json.JsonPointer;
@@ -50,5 +56,43 @@ final class BsonDiff {
 
     static BsonDiff set(final int replacementSize, final int diffSize, final JsonPointer key, final BsonValue value) {
         return new BsonDiff(replacementSize, diffSize, Stream.of(Pair.create(key, value)), Stream.empty());
+    }
+
+    static BsonDiff minus(final BsonDocument minuend, final BsonDocument subtrahend) {
+        return new BsonDiffVisitor().eval(minuend).apply(subtrahend);
+    }
+
+    /**
+     * Consume this object to create an update aggregation pipeline.
+     *
+     * @return Update document.
+     */
+    List<BsonDocument> consumeAndExport() {
+        final var result = new ArrayList<BsonDocument>(2);
+        final var setDoc = consumeAndExportSet();
+        if (!setDoc.isEmpty()) {
+            result.add(setDoc);
+        }
+        final var unsetDoc = consumeAndExportUnset();
+        if (!unsetDoc.isEmpty()) {
+            result.add(unsetDoc);
+        }
+        return result;
+    }
+
+    private BsonDocument consumeAndExportSet() {
+        final BsonDocument setDocument = new BsonDocument();
+        set.forEach(pair -> setDocument.append(getPathString(pair.first()), pair.second()));
+        return new BsonDocument().append("$set", setDocument);
+    }
+
+    private BsonDocument consumeAndExportUnset() {
+        final var unsetArray = new BsonArray();
+        unset.forEach(path -> unsetArray.add(new BsonString(getPathString(path))));
+        return new BsonDocument().append("$unset", unsetArray);
+    }
+
+    private static String getPathString(final JsonPointer jsonPointer) {
+        return StreamSupport.stream(jsonPointer.spliterator(), false).collect(Collectors.joining("."));
     }
 }

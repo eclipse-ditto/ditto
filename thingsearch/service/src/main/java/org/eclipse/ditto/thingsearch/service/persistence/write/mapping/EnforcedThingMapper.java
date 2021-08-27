@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -21,9 +20,13 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.bson.BsonArray;
+import org.bson.BsonDocument;
+import org.bson.BsonInt64;
 import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.bson.Document;
+import org.bson.codecs.DecoderContext;
+import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
@@ -108,24 +111,36 @@ public final class EnforcedThingMapper {
                 Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(List.of()),
                 Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(List.of()));
 
-        // hierarchical values for sorting
-        final BsonValue thingCopyForSorting = JsonToBson.convert(pruneArrays(thing, maxArraySize));
+        final BsonDocument thingBsonDocument = toBsonDocument(thing, enforcer, maxArraySize, metadata);
 
-        // flattened values for querying with special handling for thingId and namespace
-        final BsonArray flattenedValues = EnforcedThingFlattener.flattenJson(thing, enforcer, maxArraySize);
-
-        // TODO: convert all use of Document to BsonDocument
-        final Document thingDocument =
-                new Document().append(PersistenceConstants.FIELD_ID, thingId.toString())
-                        .append(PersistenceConstants.FIELD_REVISION, thingRevision)
-                        .append(PersistenceConstants.FIELD_NAMESPACE, metadata.getNamespaceInPersistence())
-                        .append(PersistenceConstants.FIELD_GLOBAL_READ, getGlobalRead(enforcer))
-                        .append(PersistenceConstants.FIELD_POLICY_ID, metadata.getPolicyIdInPersistence())
-                        .append(PersistenceConstants.FIELD_POLICY_REVISION, policyRevision)
-                        .append(PersistenceConstants.FIELD_SORTING, thingCopyForSorting)
-                        .append(PersistenceConstants.FIELD_INTERNAL, flattenedValues);
+        // TODO: use BsonDocument in write models.
+        final Document thingDocument = BsonUtil.getCodecRegistry()
+                .get(Document.class)
+                .decode(thingBsonDocument.asBsonReader(), DecoderContext.builder().build());
 
         return ThingWriteModel.of(metadata, thingDocument);
+    }
+
+    static BsonDocument toBsonDocument(final JsonObject thing,
+            final Enforcer enforcer,
+            final int maxArraySize,
+            final Metadata metadata) {
+
+        final var thingId = metadata.getThingId();
+        final var thingRevision = metadata.getThingRevision();
+        final var policyRevision = metadata.getPolicyRevision().orElse(0L);
+        final BsonValue thingCopyForSorting = JsonToBson.convert(pruneArrays(thing, maxArraySize));
+        final BsonArray flattenedValues = EnforcedThingFlattener.flattenJson(thing, enforcer, maxArraySize);
+        return new BsonDocument().append(PersistenceConstants.FIELD_ID, new BsonString(thingId.toString()))
+                .append(PersistenceConstants.FIELD_REVISION, new BsonInt64(thingRevision))
+                .append(PersistenceConstants.FIELD_NAMESPACE,
+                        new BsonString(metadata.getNamespaceInPersistence()))
+                .append(PersistenceConstants.FIELD_GLOBAL_READ, getGlobalRead(enforcer))
+                .append(PersistenceConstants.FIELD_POLICY_ID,
+                        new BsonString(metadata.getPolicyIdInPersistence()))
+                .append(PersistenceConstants.FIELD_POLICY_REVISION, new BsonInt64(policyRevision))
+                .append(PersistenceConstants.FIELD_SORTING, thingCopyForSorting)
+                .append(PersistenceConstants.FIELD_INTERNAL, flattenedValues);
     }
 
     private static BsonArray getGlobalRead(final Enforcer enforcer) {

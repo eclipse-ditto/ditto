@@ -98,6 +98,8 @@ final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, Bson
                             diffSize += nextReplacementSize;
                         }
                         replacementSize += nextDiff.replacementSize + entry.getKey().length();
+                    } else {
+                        replacementSize += bsonSizeVisitor.eval(nextValue) + entry.getKey().length();
                     }
                 }
             }
