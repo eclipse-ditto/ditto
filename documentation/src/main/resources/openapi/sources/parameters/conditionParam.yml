@@ -11,14 +11,14 @@
 name: condition
 in: query
 description: >-
-  Defines if the request should be applied to a thing or not based on the given condition.
-  A condition can be specified using RQL syntax, e.g.
+  Defines that the request should only be applied to a thing if the given condition is met.
+  The condition can be specified using RQL syntax, e.g. if the temperature is not 23.9 update it to 23.9.
 
-  PUT /api/2/things/org.eclipse.ditto:my-fancy-car-1/features/temperature/properties/value?condition=ne(features/temperature/properties/value,23.9)
+   ```PUT /api/2/things/org.eclipse.ditto:my-fancy-car-1/features/temperature/properties/value?condition=ne(features/temperature/properties/value,23.9)```
 
-  body: 23.9
+   `body: 23.9`
 
-  #### Condition examples:
+  Further condition examples:
 
   * ```eq(features/temperature/properties/unit,"Celsius")```
 
