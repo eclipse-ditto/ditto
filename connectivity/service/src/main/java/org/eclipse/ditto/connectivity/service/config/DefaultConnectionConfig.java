@@ -34,7 +34,7 @@ import com.typesafe.config.Config;
  * This class implements {@link ConnectionConfig} for Ditto's Connectivity service.
  */
 @Immutable
-final class DefaultConnectionConfig implements ConnectionConfig {
+public final class DefaultConnectionConfig implements ConnectionConfig {
 
     private static final String CONFIG_PATH = "connection";
 
