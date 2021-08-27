@@ -1,45 +1,49 @@
 ---
-title: Conditional updates on Things
+title: Conditional updates on things
 keywords: update, conditional, condition, rql
 tags: [protocol]
 permalink: basic-conditional-updates.html
 ---
+## Defining conditions
 
+Ditto supports retrieving, modifying, and deleting things based on specific conditions of the current thing state.
+For example, if you want to update the value of an attribute, but only if the current attribute value is not already 42,
+you can specify a condition:
 
-Ditto supports modifying, deleting or retrieving things based on specific conditions of the current thing state.
-For example, we want to update a value of an attribute but only if the actual attribute value is 42.
-In this case it is possible to specify a condition when updating the attribute value:
 ```http request
 PUT /api/2/things/org.eclipse.ditto:foo1/attributes/value?condition=ne(attributes/value,42) 
 42
 ```
 
-Conditions are based on [RQL expressions](basic-rql.html) and define when a request should be applied to a Thing.
-It is possible to use any field in your Thing to define a condition.
-E.g. you can use a timestamp in case you only want to change the state of the thing if the provided value 
+Conditions are based on [RQL expressions](basic-rql.html) and define that a request should be applied to a thing 
+only if the condition is met. It is possible to use any field in your thing to define a condition. 
+E.g. you can use a timestamp in case you only want to change the state of the thing, if the provided value 
 is newer than in the last state of the thing.
 
+* If the condition specified in the request is fulfilled, the thing will be updated and an event will be emitted.
+* If the condition specified in the request is not fulfilled, the thing is not modified, and no [event/change notification](basic-changenotifications.html) is emitted.
 
-If the condition specified in the request is not fulfilled than the thing is not modified 
-and no [event/change notification](basic-changenotifications.html) is emitted.
-Otherwise, the thing will be updated normally and an event will be emitted.
+Conditional requests are supported via HTTP API, Ditto protocol and Ditto Java Client.
 
-The requester needs WRITE or READ permission on the resource which is requested and additionally needs READ permission
-on the resource specified in the condition. Otherwise, the request will fail.
+### Permissions
 
-Conditional requests are available via HTTP API, Ditto protocol and Ditto Java client.
+The requester needs READ and WRITE permission on the resources which are requested, otherwise, the request will fail.
+
+* READ permission is necessary on the resource specified in the condition, and
+* WRITE permission on the resource the get, put or delete method addresses. 
 
 
 ## Examples
 
-In this part we will show how to use conditional updates via HTTP API, Ditto protocol and Ditto Java client.
+In this part, we will show how to use conditional updates via HTTP API, Ditto protocol, and Ditto Java Client.
 The below examples assume that we have the following thing state:
+
 ```json
 {
   "thingId": "org.eclipse.ditto:fancy-thing",
   "policyId": "org.eclipse.ditto:fancy-thing",
   "attributes": {
-    "location": "Kitchen"
+    "location": "kitchen"
   },
   "features": {
     "temperature": {
@@ -53,19 +57,22 @@ The below examples assume that we have the following thing state:
 }
 ```
 
-In our example we want to update the temperature value but only if the actual value is newer than the already stored one.
-For this we use the _lastModified_ field in the temperature feature.
-In the following sections will be shown how to do the conditional update via HTTP API, Ditto protocol 
-and Ditto Java client.
+In our example we want to update the **temperature** value, but only if the current value is newer than the already stored one.
+To express this condition, we use the _lastModified_ field in the temperature feature.
+
+In the following sections, we will show how request the conditional update via HTTP API, Ditto protocol, 
+and Ditto Java Client.
 
 ### HTTP API
 
 Using the HTTP API it is possible to specify the condition via query parameter
+
 ```http request
 curl -X PUT -H 'Content-Type: application/json' /api/2/things/org.eclipse.ditto:fancy-thing/features/temperature/properties/value?condition=gt(features/temperature/properties/lastModified,2021-08-10T15:10:02.592Z) -d 19.26
 ```
 
 or via HTTP header
+
 ```http request
 curl -X PUT -H 'Content-Type: application/json' -H 'condition: gt(features/temperature/properties/lastModified,2021-08-10T15:10:02.592Z)' /api/2/things/org.eclipse.ditto:fancy-thing/features/temperature/properties/value -d 19.26
 ```
@@ -74,6 +81,7 @@ curl -X PUT -H 'Content-Type: application/json' -H 'condition: gt(features/tempe
 
 The Ditto protocol supports also conditional updates. 
 This is an example how to do a conditional update via [Ditto Protocol](protocol-specification.html) message:
+
 ```json
 {
   "topic": "org.eclipse.ditto/fancy-thing/things/twin/commands/modify",
@@ -85,9 +93,9 @@ This is an example how to do a conditional update via [Ditto Protocol](protocol-
 }
 ```
 
-### Ditto Java client
+### Ditto Java Client
 
-The third option to use conditional updates is the Ditto Java client.
+The third option to use conditional updates is the ditto-client.
 The following code snippet demonstrates how to achieve this.
 
 ```java
@@ -108,4 +116,6 @@ client.twin().forFeature(ThingId.of("org.eclipse.ditto:fancy-thing", "temperatur
    });
 ```
 
+## Further reading on RQL expressions
 
+See [RQL expressions](basic-rql.html).
