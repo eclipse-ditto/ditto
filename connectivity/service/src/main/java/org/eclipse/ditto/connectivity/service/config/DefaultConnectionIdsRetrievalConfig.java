@@ -25,7 +25,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of the config for the retrieval of connection ids.
  */
 @Immutable
-public final class DefaultConnectionIdsRetrievalConfig implements ConnectionIdsRetrievalConfig {
+final class DefaultConnectionIdsRetrievalConfig implements ConnectionIdsRetrievalConfig {
 
     private static final String CONFIG_PATH = "connection-ids-retrieval";
 

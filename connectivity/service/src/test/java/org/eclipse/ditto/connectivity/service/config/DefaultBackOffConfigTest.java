@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -11,7 +11,7 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 
-package org.eclipse.ditto.connectivity.service.messaging.backoff;
+package org.eclipse.ditto.connectivity.service.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -20,8 +20,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.connectivity.service.config.DefaultBackOffConfig;
-import org.eclipse.ditto.connectivity.service.config.TimeoutConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;

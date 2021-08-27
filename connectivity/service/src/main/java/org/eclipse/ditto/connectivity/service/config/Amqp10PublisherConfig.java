@@ -12,46 +12,41 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
-import com.typesafe.config.Config;
-
 /**
- * Contains additional configuration for throttling in scope of connections.
+ * Provides configuration settings of the AMQP 1.0 publisher.
  */
-public interface ConnectionThrottlingConfig extends ThrottlingConfig {
+@Immutable
+public interface Amqp10PublisherConfig {
 
     /**
-     * Return how many unacknowledged messages are allowed.
-     *
-     * @return the maximum number of messages in flight.
+     * @return maximum number of messages buffered at the publisher actor before dropping them.
      */
-    int getMaxInFlight();
-
+    int getMaxQueueSize();
 
     /**
-     * Returns an instance of {@code ConnectionThrottlingConfig} based on the settings of the specified Config.
-     *
-     * @param config is supposed to provide the settings at {@value #CONFIG_PATH}.
-     * @return the instance.
-     * @throws org.eclipse.ditto.internal.utils.config.DittoConfigError if {@code config} is invalid.
+     * @return the number of possible parallel message publications per publisher actor.
      */
-    static ConnectionThrottlingConfig of(final Config config) {
-        return DefaultConnectionThrottlingConfig.of(config);
-    }
-
+    int getParallelism();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
-     * {@code ConnectionThrottlingConfig}.
+     * {@code Amqp10PublisherConfig}.
      */
     enum ConfigValue implements KnownConfigValue {
 
         /**
-         * The maximum number of messages waiting for an acknowledgement per consumer.
+         * How many messages to buffer in the publisher actor before dropping them.
          */
-        MAX_IN_FLIGHT("max-in-flight", 100);
+        MAX_QUEUE_SIZE("max-queue-size", 10),
+
+        /**
+         * How many messages will be published in parallel
+         */
+        PARALLELISM("parallelism", 3);
 
         private final String path;
         private final Object defaultValue;
@@ -72,5 +67,4 @@ public interface ConnectionThrottlingConfig extends ThrottlingConfig {
         }
 
     }
-
 }

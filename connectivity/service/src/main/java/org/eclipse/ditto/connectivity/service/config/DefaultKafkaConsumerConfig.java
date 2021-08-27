@@ -16,8 +16,6 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
-
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -25,7 +23,7 @@ import com.typesafe.config.ConfigFactory;
  * This class is the default implementation of {@link KafkaConsumerConfig}.
  */
 @Immutable
-public final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
+final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
 
     private static final String CONFIG_PATH = "consumer";
     private static final String ALPAKKA_PATH = "alpakka";
@@ -65,8 +63,12 @@ public final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final DefaultKafkaConsumerConfig that = (DefaultKafkaConsumerConfig) o;
         return Objects.equals(throttlingConfig, that.throttlingConfig) &&
                 Objects.equals(alpakkaConfig, that.alpakkaConfig);

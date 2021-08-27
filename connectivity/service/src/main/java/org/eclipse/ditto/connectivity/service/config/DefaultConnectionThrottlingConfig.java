@@ -24,7 +24,7 @@ import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * This class is the hidden implementation of {@link org.eclipse.ditto.base.service.config.ThrottlingConfig}.
+ * This class is the default implementation of {@link ConnectionThrottlingConfig}.
  */
 @Immutable
 final class DefaultConnectionThrottlingConfig implements ConnectionThrottlingConfig {
@@ -34,7 +34,7 @@ final class DefaultConnectionThrottlingConfig implements ConnectionThrottlingCon
 
     private DefaultConnectionThrottlingConfig(final ScopedConfig config) {
         throttlingConfig = ThrottlingConfig.of(config);
-        consumerMaxInFlight = config.getNonNegativeIntOrThrow(ConfigValue.CONSUMER_MAX_IN_FLIGHT);
+        consumerMaxInFlight = config.getNonNegativeIntOrThrow(ConfigValue.MAX_IN_FLIGHT);
     }
 
     static ConnectionThrottlingConfig of(final Config config) {
@@ -53,7 +53,7 @@ final class DefaultConnectionThrottlingConfig implements ConnectionThrottlingCon
     }
 
     @Override
-    public int getConsumerMaxInFlight() {
+    public int getMaxInFlight() {
         return consumerMaxInFlight;
     }
 

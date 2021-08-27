@@ -23,22 +23,20 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.connectivity.model.ConnectivityException;
 import org.eclipse.ditto.json.JsonObject;
 
-
 /**
- * Thrown if a kafka message offset could not be committed due to failed acknowledgements.
- *
- * @since 1.4.0
+ * Thrown if a Kafka message offset could not be committed due to failed acknowledgements.
  */
 @Immutable
 @JsonParsableException(errorCode = MessageRejectedException.ERROR_CODE)
-public final class MessageRejectedException extends DittoRuntimeException {
+public final class MessageRejectedException extends DittoRuntimeException implements ConnectivityException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = "connectivity:kafka.message.rejected";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "kafka.message.rejected";
 
     private static final String DEFAULT_MESSAGE = "Message could not be settled and needs to be reprocessed.";
 

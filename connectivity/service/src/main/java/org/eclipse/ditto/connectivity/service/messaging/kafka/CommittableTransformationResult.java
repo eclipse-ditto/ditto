@@ -25,8 +25,8 @@ final class CommittableTransformationResult {
         this.committableOffset = committableOffset;
     }
 
-    static CommittableTransformationResult of(final TransformationResult transformationResult, final
-    ConsumerMessage.CommittableOffset committableOffset) {
+    static CommittableTransformationResult of(final TransformationResult transformationResult,
+            final ConsumerMessage.CommittableOffset committableOffset) {
         return new CommittableTransformationResult(transformationResult, committableOffset);
     }
 

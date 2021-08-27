@@ -75,13 +75,17 @@ final class MessageRateLimiter<S> {
     }
 
     static <S> MessageRateLimiter<S> of(final Amqp10Config config, final boolean enabled) {
-        return new MessageRateLimiter<>(config.getConsumerThrottlingLimit(), config.getConsumerMaxInFlight(),
-                config.getConsumerRedeliveryExpectationTimeout(), enabled);
+        return new MessageRateLimiter<>(config.getConsumerConfig().getThrottlingLimit(),
+                config.getConsumerConfig().getThrottlingConfig().getMaxInFlight(),
+                config.getConsumerConfig().getRedeliveryExpectationTimeout(),
+                enabled);
     }
 
     static <S> MessageRateLimiter<S> of(final Amqp10Config config, final MessageRateLimiter<S> existingLimiter) {
-        return new MessageRateLimiter<>(config.getConsumerThrottlingLimit(), config.getConsumerMaxInFlight(),
-                config.getConsumerRedeliveryExpectationTimeout(), existingLimiter);
+        return new MessageRateLimiter<>(config.getConsumerConfig().getThrottlingLimit(),
+                config.getConsumerConfig().getThrottlingConfig().getMaxInFlight(),
+                config.getConsumerConfig().getRedeliveryExpectationTimeout(),
+                existingLimiter);
     }
 
     /**

@@ -23,7 +23,7 @@ import com.typesafe.config.ConfigFactory;
  * This class is the default implementation of {@link KafkaCommitterConfig}.
  */
 @Immutable
-public final class DefaultKafkaCommitterConfig implements KafkaCommitterConfig {
+final class DefaultKafkaCommitterConfig implements KafkaCommitterConfig {
 
     private static final String CONFIG_PATH = "committer";
     private static final String ALPAKKA_PATH = "alpakka";
@@ -56,8 +56,12 @@ public final class DefaultKafkaCommitterConfig implements KafkaCommitterConfig {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final DefaultKafkaCommitterConfig that = (DefaultKafkaCommitterConfig) o;
         return Objects.equals(alpakkaConfig, that.alpakkaConfig);
     }

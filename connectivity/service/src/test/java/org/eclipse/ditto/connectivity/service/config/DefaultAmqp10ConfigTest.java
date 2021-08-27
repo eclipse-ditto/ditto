@@ -50,7 +50,7 @@ public final class DefaultAmqp10ConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultAmqp10Config.class,
                 areImmutable(),
-                provided(BackOffConfig.class, ThrottlingConfig.class).isAlsoImmutable(),
+                provided(BackOffConfig.class, ThrottlingConfig.class, Amqp10ConsumerConfig.class).isAlsoImmutable(),
                 assumingFields("hmacAlgorithms").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
@@ -65,24 +65,21 @@ public final class DefaultAmqp10ConfigTest {
     public void underTestReturnsDefaultValuesIfBaseConfigWasEmpty() {
         final DefaultAmqp10Config underTest = DefaultAmqp10Config.of(ConfigFactory.empty());
 
-        softly.assertThat(underTest.isConsumerRateLimitEnabled())
-                .as(Amqp10Config.Amqp10ConfigValue.CONSUMER_RATE_LIMIT_ENABLED.getConfigPath())
-                .isEqualTo(Amqp10Config.Amqp10ConfigValue.CONSUMER_RATE_LIMIT_ENABLED.getDefaultValue());
-        softly.assertThat(underTest.getConsumerMaxInFlight())
-                .as(Amqp10Config.Amqp10ConfigValue.CONSUMER_MAX_IN_FLIGHT.getConfigPath())
-                .isEqualTo(Amqp10Config.Amqp10ConfigValue.CONSUMER_MAX_IN_FLIGHT.getDefaultValue());
-        softly.assertThat(underTest.getConsumerRedeliveryExpectationTimeout())
-                .as(Amqp10Config.Amqp10ConfigValue.CONSUMER_REDELIVERY_EXPECTATION_TIMEOUT.getConfigPath())
-                .isEqualTo(Amqp10Config.Amqp10ConfigValue.CONSUMER_REDELIVERY_EXPECTATION_TIMEOUT.getDefaultValue());
+        softly.assertThat(underTest.getConsumerConfig().isRateLimitEnabled())
+                .as(Amqp10ConsumerConfig.ConfigValue.RATE_LIMIT_ENABLED.getConfigPath())
+                .isEqualTo(Amqp10ConsumerConfig.ConfigValue.RATE_LIMIT_ENABLED.getDefaultValue());
+        softly.assertThat(underTest.getConsumerConfig().getRedeliveryExpectationTimeout())
+                .as(Amqp10ConsumerConfig.ConfigValue.REDELIVERY_EXPECTATION_TIMEOUT.getConfigPath())
+                .isEqualTo(Amqp10ConsumerConfig.ConfigValue.REDELIVERY_EXPECTATION_TIMEOUT.getDefaultValue());
         softly.assertThat(underTest.getProducerCacheSize())
                 .as(Amqp10Config.Amqp10ConfigValue.PRODUCER_CACHE_SIZE.getConfigPath())
                 .isEqualTo(Amqp10Config.Amqp10ConfigValue.PRODUCER_CACHE_SIZE.getDefaultValue());
-        softly.assertThat(underTest.getMaxQueueSize())
-                .as(Amqp10Config.Amqp10ConfigValue.MAX_QUEUE_SIZE.getConfigPath())
-                .isEqualTo(Amqp10Config.Amqp10ConfigValue.MAX_QUEUE_SIZE.getDefaultValue());
-        softly.assertThat(underTest.getPublisherParallelism())
-                .as(Amqp10Config.Amqp10ConfigValue.MESSAGE_PUBLISHING_PARALLELISM.getConfigPath())
-                .isEqualTo(Amqp10Config.Amqp10ConfigValue.MESSAGE_PUBLISHING_PARALLELISM.getDefaultValue());
+        softly.assertThat(underTest.getPublisherConfig().getMaxQueueSize())
+                .as(Amqp10PublisherConfig.ConfigValue.MAX_QUEUE_SIZE.getConfigPath())
+                .isEqualTo(Amqp10PublisherConfig.ConfigValue.MAX_QUEUE_SIZE.getDefaultValue());
+        softly.assertThat(underTest.getPublisherConfig().getParallelism())
+                .as(Amqp10PublisherConfig.ConfigValue.PARALLELISM.getConfigPath())
+                .isEqualTo(Amqp10PublisherConfig.ConfigValue.PARALLELISM.getDefaultValue());
         softly.assertThat(underTest.getGlobalConnectTimeout())
                 .as(Amqp10Config.Amqp10ConfigValue.GLOBAL_CONNECT_TIMEOUT.getConfigPath())
                 .isEqualTo(Amqp10Config.Amqp10ConfigValue.GLOBAL_CONNECT_TIMEOUT.getDefaultValue());
@@ -104,23 +101,23 @@ public final class DefaultAmqp10ConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final DefaultAmqp10Config underTest = DefaultAmqp10Config.of(amqp10TestConf);
 
-        softly.assertThat(underTest.isConsumerRateLimitEnabled())
-                .as(Amqp10Config.Amqp10ConfigValue.CONSUMER_RATE_LIMIT_ENABLED.getConfigPath())
+        softly.assertThat(underTest.getConsumerConfig().isRateLimitEnabled())
+                .as(Amqp10ConsumerConfig.ConfigValue.RATE_LIMIT_ENABLED.getConfigPath())
                 .isEqualTo(false);
-        softly.assertThat(underTest.getConsumerMaxInFlight())
-                .as(Amqp10Config.Amqp10ConfigValue.CONSUMER_MAX_IN_FLIGHT.getConfigPath())
+        softly.assertThat(underTest.getConsumerConfig().getThrottlingConfig().getMaxInFlight())
+                .as(ConnectionThrottlingConfig.ConfigValue.MAX_IN_FLIGHT.getConfigPath())
                 .isEqualTo(1337);
-        softly.assertThat(underTest.getConsumerRedeliveryExpectationTimeout())
-                .as(Amqp10Config.Amqp10ConfigValue.CONSUMER_REDELIVERY_EXPECTATION_TIMEOUT.getConfigPath())
+        softly.assertThat(underTest.getConsumerConfig().getRedeliveryExpectationTimeout())
+                .as(Amqp10ConsumerConfig.ConfigValue.REDELIVERY_EXPECTATION_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(1337));
         softly.assertThat(underTest.getProducerCacheSize())
                 .as(Amqp10Config.Amqp10ConfigValue.PRODUCER_CACHE_SIZE.getConfigPath())
                 .isEqualTo(11);
-        softly.assertThat(underTest.getMaxQueueSize())
-                .as(Amqp10Config.Amqp10ConfigValue.MAX_QUEUE_SIZE.getConfigPath())
+        softly.assertThat(underTest.getPublisherConfig().getMaxQueueSize())
+                .as(Amqp10PublisherConfig.ConfigValue.MAX_QUEUE_SIZE.getConfigPath())
                 .isEqualTo(39);
-        softly.assertThat(underTest.getPublisherParallelism())
-                .as(Amqp10Config.Amqp10ConfigValue.MESSAGE_PUBLISHING_PARALLELISM.getConfigPath())
+        softly.assertThat(underTest.getPublisherConfig().getParallelism())
+                .as(Amqp10PublisherConfig.ConfigValue.PARALLELISM.getConfigPath())
                 .isEqualTo(3);
         softly.assertThat(underTest.getGlobalConnectTimeout())
                 .as(Amqp10Config.Amqp10ConfigValue.GLOBAL_CONNECT_TIMEOUT.getConfigPath())

@@ -477,11 +477,11 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
     }
 
     private boolean hasMessageRateLimiterConfigChanged(final Amqp10Config amqp10Config) {
-        return messageRateLimiter != null
-                && (messageRateLimiter.getMaxPerPeriod() != amqp10Config.getConsumerThrottlingLimit()
-                || messageRateLimiter.getMaxInFlight() != amqp10Config.getConsumerMaxInFlight()
-                || messageRateLimiter.getRedeliveryExpectationTimeout() !=
-                amqp10Config.getConsumerRedeliveryExpectationTimeout());
+        return messageRateLimiter != null && (
+                messageRateLimiter.getMaxPerPeriod() != amqp10Config.getConsumerConfig().getThrottlingLimit()
+                || messageRateLimiter.getMaxInFlight() != amqp10Config.getConsumerConfig().getThrottlingConfig().getMaxInFlight()
+                || !messageRateLimiter.getRedeliveryExpectationTimeout().equals(amqp10Config.getConsumerConfig().getRedeliveryExpectationTimeout())
+        );
     }
 
     /**

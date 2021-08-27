@@ -65,11 +65,11 @@ interface MessageRateLimiterBehavior<S> extends Actor, Timers {
      * @return the rate limiter as a part of the actor state.
      */
     default MessageRateLimiter<S> initMessageRateLimiter(final Amqp10Config config) {
-        final boolean enabled = config.isConsumerRateLimitEnabled();
+        final boolean enabled = config.getConsumerConfig().isRateLimitEnabled();
         if (enabled) {
             // schedule periodic throughput check
             timers().startPeriodicTimer(Control.CHECK_RATE_LIMIT, Control.CHECK_RATE_LIMIT,
-                    config.getConsumerThrottlingInterval());
+                    config.getConsumerConfig().getThrottlingInterval());
         }
         return MessageRateLimiter.of(config, enabled);
     }

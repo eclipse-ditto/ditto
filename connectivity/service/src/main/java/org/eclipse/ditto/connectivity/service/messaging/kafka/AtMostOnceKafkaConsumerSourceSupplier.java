@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.util.function.Supplier;
+
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import akka.kafka.AutoSubscription;
@@ -20,7 +22,8 @@ import akka.kafka.Subscriptions;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.javadsl.Source;
 
-class AtMostOnceKafkaConsumerSourceSupplier {
+class AtMostOnceKafkaConsumerSourceSupplier
+        implements Supplier<Source<ConsumerRecord<String, String>, Consumer.Control>> {
 
     final PropertiesFactory propertiesFactory;
     final String sourceAddress;
@@ -33,7 +36,8 @@ class AtMostOnceKafkaConsumerSourceSupplier {
         this.dryRun = dryRun;
     }
 
-    Source<ConsumerRecord<String, String>, Consumer.Control> get() {
+    @Override
+    public Source<ConsumerRecord<String, String>, Consumer.Control> get() {
         final ConsumerSettings<String, String> consumerSettings = propertiesFactory.getConsumerSettings(dryRun);
         final AutoSubscription subscription = Subscriptions.topics(sourceAddress);
         return Consumer.plainSource(consumerSettings, subscription);

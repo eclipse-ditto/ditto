@@ -25,7 +25,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link KafkaConfig}.
  */
 @Immutable
-public final class DefaultKafkaConfig implements KafkaConfig {
+final class DefaultKafkaConfig implements KafkaConfig {
 
     private static final String KAFKA_PATH = "kafka";
 

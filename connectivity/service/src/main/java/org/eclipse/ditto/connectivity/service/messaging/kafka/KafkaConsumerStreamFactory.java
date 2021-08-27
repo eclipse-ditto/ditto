@@ -110,7 +110,7 @@ final class KafkaConsumerStreamFactory {
                 new KafkaMessageTransformer(source, address, headerEnforcementFilterFactory, inboundMonitor);
         return new AtLeastOnceConsumerStream(atLeastOnceKafkaConsumerSourceSupplier,
                 propertiesFactory.getCommitterSettings(),
-                throttlingConfig.getConsumerMaxInFlight(),
+                throttlingConfig.getMaxInFlight(),
                 kafkaMessageTransformer, dryRun,
                 materializer, inboundMonitor, messageMappingSink, dreSink);
     }

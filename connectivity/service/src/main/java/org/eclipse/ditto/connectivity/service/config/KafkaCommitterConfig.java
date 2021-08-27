@@ -16,6 +16,9 @@ import javax.annotation.concurrent.Immutable;
 
 import com.typesafe.config.Config;
 
+/**
+ * Provides configuration settings for committing settings of the Kafka consumer.
+ */
 @Immutable
 public interface KafkaCommitterConfig {
 
