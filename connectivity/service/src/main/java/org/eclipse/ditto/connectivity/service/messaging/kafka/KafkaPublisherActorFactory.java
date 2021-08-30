@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
-import java.io.Serializable;
-
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.KafkaProducerConfig;
 
@@ -22,7 +20,7 @@ import akka.actor.Props;
 /**
  * Factory for creating {@link KafkaPublisherActor}s.
  */
-public interface KafkaPublisherActorFactory extends Serializable {
+public interface KafkaPublisherActorFactory {
 
     /**
      * Get the name that should be used for the actor that is created with {@code props}.
