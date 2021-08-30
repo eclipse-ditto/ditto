@@ -32,6 +32,9 @@ import akka.NotUsed;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Sink;
 
+/**
+ * A factory for building different {@link KafkaConsumerStream} implementations, e.g. for different quality of services.
+ */
 final class KafkaConsumerStreamFactory {
 
     private final ConsumerData consumerData;
@@ -58,7 +61,8 @@ final class KafkaConsumerStreamFactory {
     /**
      * Only used for testing purpose
      *
-     * @param atMostOnceKafkaConsumerSourceSupplier source supplier
+     * @param atMostOnceKafkaConsumerSourceSupplier source supplier for "at most once"
+     * @param atLeastOnceKafkaConsumerSourceSupplier source supplier for "at least once"
      * @param consumerData the consumer data
      * @param dryRun indicates whether the connection runs in a dry run.
      */
@@ -80,17 +84,14 @@ final class KafkaConsumerStreamFactory {
             final Sink<AcknowledgeableMessage, NotUsed> messageMappingSink,
             final Sink<DittoRuntimeException, ?> dreSink) {
 
-        final Source source = consumerData.getSource();
-        final String address = consumerData.getAddress();
-        final Enforcement enforcement = source.getEnforcement().orElse(null);
-        final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory =
-                enforcement != null
-                        ? newEnforcementFilterFactory(enforcement, newHeadersPlaceholder())
-                        : input -> null;
-        final KafkaMessageTransformer kafkaMessageTransformer =
-                new KafkaMessageTransformer(source, address, headerEnforcementFilterFactory, inboundMonitor);
-        return new AtMostOnceConsumerStream(atMostOnceKafkaConsumerSourceSupplier, kafkaMessageTransformer, dryRun,
-                materializer, inboundMonitor, messageMappingSink, dreSink);
+        final KafkaMessageTransformer kafkaMessageTransformer = buildKafkaMessageTransformer(inboundMonitor);
+        return new AtMostOnceConsumerStream(atMostOnceKafkaConsumerSourceSupplier,
+                kafkaMessageTransformer,
+                dryRun,
+                materializer,
+                inboundMonitor,
+                messageMappingSink,
+                dreSink);
     }
 
     KafkaConsumerStream newAtLeastOnceConsumerStream(
@@ -99,6 +100,19 @@ final class KafkaConsumerStreamFactory {
             final Sink<AcknowledgeableMessage, NotUsed> messageMappingSink,
             final Sink<DittoRuntimeException, ?> dreSink) {
 
+        final KafkaMessageTransformer kafkaMessageTransformer = buildKafkaMessageTransformer(inboundMonitor);
+        return new AtLeastOnceConsumerStream(atLeastOnceKafkaConsumerSourceSupplier,
+                propertiesFactory.getCommitterSettings(),
+                throttlingConfig.getMaxInFlight(),
+                kafkaMessageTransformer,
+                dryRun,
+                materializer,
+                inboundMonitor,
+                messageMappingSink,
+                dreSink);
+    }
+
+    private KafkaMessageTransformer buildKafkaMessageTransformer(final ConnectionMonitor inboundMonitor) {
         final Source source = consumerData.getSource();
         final String address = consumerData.getAddress();
         final Enforcement enforcement = source.getEnforcement().orElse(null);
@@ -106,13 +120,7 @@ final class KafkaConsumerStreamFactory {
                 enforcement != null
                         ? newEnforcementFilterFactory(enforcement, newHeadersPlaceholder())
                         : input -> null;
-        final KafkaMessageTransformer kafkaMessageTransformer =
-                new KafkaMessageTransformer(source, address, headerEnforcementFilterFactory, inboundMonitor);
-        return new AtLeastOnceConsumerStream(atLeastOnceKafkaConsumerSourceSupplier,
-                propertiesFactory.getCommitterSettings(),
-                throttlingConfig.getMaxInFlight(),
-                kafkaMessageTransformer, dryRun,
-                materializer, inboundMonitor, messageMappingSink, dreSink);
+        return new KafkaMessageTransformer(source, address, headerEnforcementFilterFactory, inboundMonitor);
     }
 
 }

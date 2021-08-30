@@ -12,16 +12,12 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
-import java.time.Instant;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.header.Header;
-import org.apache.kafka.common.header.Headers;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
@@ -36,11 +32,12 @@ import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 
+/**
+ * Kafka consumer stream with "at most once" (QoS 0) semantics.
+ */
 final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
     private static final Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(AtMostOnceConsumerStream.class);
-    private static final String TTL = "ttl";
-    private static final String CREATION_TIME = "creation-time";
 
     private final akka.stream.javadsl.Source<TransformationResult, Consumer.Control> runnableKafkaStream;
     private final ConnectionMonitor inboundMonitor;
@@ -61,7 +58,7 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
         runnableKafkaStream = sourceSupplier.get()
                 .filter(consumerRecord -> isNotDryRun(consumerRecord, dryRun))
                 .filter(consumerRecord -> consumerRecord.value() != null)
-                .filter(this::isNotExpired)
+                .filter(KafkaMessageTransformer::isNotExpired)
                 .map(kafkaMessageTransformer::transform)
                 .divertTo(this.externalMessageSink(externalMessageSink), this::isExternalMessage)
                 .divertTo(this.dittoRuntimeExceptionSink(dreSink), this::isDittoRuntimeException);
@@ -107,28 +104,6 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
     private ExternalMessage extractExternalMessage(final TransformationResult value) {
         return value.getExternalMessage().orElseThrow(); // at this point, the ExternalMessage is present
-    }
-
-    private boolean isNotExpired(final ConsumerRecord<String, String> consumerRecord) {
-        final Headers headers = consumerRecord.headers();
-        final long now = Instant.now().toEpochMilli();
-        try {
-            final Optional<Long> creationTimeOptional = Optional.ofNullable(headers.lastHeader(CREATION_TIME))
-                    .map(Header::value)
-                    .map(String::new)
-                    .map(Long::parseLong);
-            final Optional<Long> ttlOptional = Optional.ofNullable(headers.lastHeader(TTL))
-                    .map(Header::value)
-                    .map(String::new)
-                    .map(Long::parseLong);
-            if (creationTimeOptional.isPresent() && ttlOptional.isPresent()) {
-                return now - creationTimeOptional.get() >= ttlOptional.get();
-            }
-            return true;
-        } catch (final Exception e) {
-            // Errors during reading/parsing headers should not cause the message to be dropped.
-            return true;
-        }
     }
 
     private boolean isNotDryRun(final ConsumerRecord<String, String> cRecord, final boolean dryRun) {

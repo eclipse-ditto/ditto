@@ -282,7 +282,7 @@ public final class KafkaClientActor extends BaseClientActor {
                 getSelf().tell(connectionFailure, ActorRef.noSender());
             } else if (pendingStatusReportsFromStreams.isEmpty()) {
                 // all children are ready; this client actor is connected.
-                getSelf().tell((ClientConnected) () -> null, ActorRef.noSender());
+                getSelf().tell((ClientConnected) Optional::empty, ActorRef.noSender());
             }
         }
         return stay();

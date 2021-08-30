@@ -12,16 +12,12 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
-import java.time.Instant;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.header.Header;
-import org.apache.kafka.common.header.Headers;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
@@ -39,11 +35,12 @@ import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 
+/**
+ * Kafka consumer stream with "at least once" (QoS 1) semantics.
+ */
 final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
 
     private static final Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(AtLeastOnceConsumerStream.class);
-    private static final String TTL = "ttl";
-    private static final String CREATION_TIME = "creation-time";
 
     private final akka.stream.javadsl.Source<CommittableTransformationResult, Consumer.Control> runnableKafkaStream;
     private final ConnectionMonitor inboundMonitor;
@@ -70,7 +67,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         runnableKafkaStream = sourceSupplier.get()
                 .filter(committableMessage -> isNotDryRun(committableMessage.record(), dryRun))
                 .filter(committableMessage -> committableMessage.record().value() != null)
-                .filter(committableMessage -> isNotExpired(committableMessage.record()))
+                .filter(committableMessage -> KafkaMessageTransformer.isNotExpired(committableMessage.record()))
                 .map(kafkaMessageTransformer::transform)
                 .divertTo(this.externalMessageSink(inboundMappingSink), this::isExternalMessage)
                 .divertTo(this.dittoRuntimeExceptionSink(dreSink), this::isDittoRuntimeException);
@@ -121,28 +118,6 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         return new KafkaAcknowledgableMessage(externalMessage, committableOffset);
     }
 
-    private boolean isNotExpired(final ConsumerRecord<String, String> consumerRecord) {
-        final Headers headers = consumerRecord.headers();
-        final long now = Instant.now().toEpochMilli();
-        try {
-            final Optional<Long> creationTimeOptional = Optional.ofNullable(headers.lastHeader(CREATION_TIME))
-                    .map(Header::value)
-                    .map(String::new)
-                    .map(Long::parseLong);
-            final Optional<Long> ttlOptional = Optional.ofNullable(headers.lastHeader(TTL))
-                    .map(Header::value)
-                    .map(String::new)
-                    .map(Long::parseLong);
-            if (creationTimeOptional.isPresent() && ttlOptional.isPresent()) {
-                return now - creationTimeOptional.get() >= ttlOptional.get();
-            }
-            return true;
-        } catch (final Exception e) {
-            // Errors during reading/parsing headers should not cause the message to be dropped.
-            return true;
-        }
-    }
-
     private boolean isNotDryRun(final ConsumerRecord<String, String> cRecord, final boolean dryRun) {
         if (dryRun && LOGGER.isDebugEnabled()) {
             LOGGER.debug("Dropping record (key: {}, topic: {}, partition: {}, offset: {}) in dry run mode.",
@@ -166,9 +141,9 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
     }
 
     private Sink<CommittableTransformationResult, CompletionStage<Done>> unexpectedMessageSink() {
-        return Sink.foreach(either -> inboundMonitor.exception(
+        return Sink.foreach(transformationResult -> inboundMonitor.exception(
                 "Got unexpected transformation result <{0}>. This is an internal error. " +
-                        "Please contact the service team.", either
+                        "Please contact the service team.", transformationResult
         ));
     }
 

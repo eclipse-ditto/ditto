@@ -107,6 +107,19 @@ public final class KafkaValidatorTest {
     }
 
     @Test
+    public void testInvalidSourceQos() {
+        verifyConnectionConfigurationInvalidExceptionIsThrown(ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
+                        ConnectivityStatus.OPEN, "tcp://localhost:1883")
+                .sources(singletonList(ConnectivityModelFactory.newSourceBuilder()
+                        .address("events")
+                        .authorizationContext(AUTHORIZATION_CONTEXT)
+                        .qos(2)
+                        .build()))
+                .specificConfig(defaultSpecificConfig)
+                .build());
+    }
+
+    @Test
     public void testValidTargetAddress() {
         final DittoHeaders emptyDittoHeaders = DittoHeaders.empty();
         underTest.validate(getConnectionWithTarget("events"), emptyDittoHeaders, actorSystem, connectivityConfig);

@@ -12,9 +12,11 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
@@ -22,6 +24,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -46,6 +49,35 @@ final class KafkaMessageTransformer {
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(KafkaMessageTransformer.class);
 
+    /**
+     * Checks based on the Kafka headers {@code "creation-time"} and {@code "ttl"} (time to live) whether the processed
+     * record should be treated as expired message (and no longer processed as a result) or not.
+     *
+     * @param consumerRecord the Kafka record to check the headers for expiry in.
+     * @return whether the record/message is expired or not.
+     */
+    static boolean isNotExpired(final ConsumerRecord<String, String> consumerRecord) {
+        final Headers headers = consumerRecord.headers();
+        final long now = Instant.now().toEpochMilli();
+        try {
+            final Optional<Long> creationTimeOptional = Optional.ofNullable(headers.lastHeader("creation-time"))
+                    .map(Header::value)
+                    .map(String::new)
+                    .map(Long::parseLong);
+            final Optional<Long> ttlOptional = Optional.ofNullable(headers.lastHeader("ttl"))
+                    .map(Header::value)
+                    .map(String::new)
+                    .map(Long::parseLong);
+            if (creationTimeOptional.isPresent() && ttlOptional.isPresent()) {
+                return now - creationTimeOptional.get() >= ttlOptional.get();
+            }
+            return true;
+        } catch (final Exception e) {
+            // Errors during reading/parsing headers should not cause the message to be dropped.
+            return true;
+        }
+    }
+
     private final Source source;
     private final String sourceAddress;
     private final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory;
@@ -60,14 +92,15 @@ final class KafkaMessageTransformer {
         this.inboundMonitor = inboundMonitor;
     }
 
-
     /**
      * Takes incoming kafka record and transforms the value to an {@link ExternalMessage}.
      *
      * @param committableMessage the committable kafka message.
-     * @return A value that is either an {@link ExternalMessageWithCommittableOffset} in case the
-     * transformation succeeded, or a {@link DittoRuntimeException} if it failed. Could also be null if an unexpected
-     * Exception occurred which should result in the message being dropped as automated recovery is expected.
+     * @return a value containing a {@link TransformationResult} that either contains an {@link ExternalMessage} in case
+     * the transformation succeeded, or a {@link DittoRuntimeException} if it failed.
+     * Wrapped inside a {@link CommittableTransformationResult} containing a committable offset.
+     * Could also be null if an unexpected Exception occurred which should result in the message being dropped as
+     * automated recovery is expected.
      */
     @Nullable
     public CommittableTransformationResult transform(
@@ -76,7 +109,6 @@ final class KafkaMessageTransformer {
         final TransformationResult result = transform(committableMessage.record());
         if (result == null) {
             return null;
-
         } else {
             return CommittableTransformationResult.of(result, committableMessage.committableOffset());
         }
@@ -86,9 +118,10 @@ final class KafkaMessageTransformer {
      * Takes incoming kafka record and transforms the value to an {@link ExternalMessage}.
      *
      * @param consumerRecord the kafka record.
-     * @return A value that is either an {@link ExternalMessage} in case the
-     * transformation succeeded, or a {@link DittoRuntimeException} if it failed. Could also be null if an unexpected
-     * Exception occurred which should result in the message being dropped as automated recovery is expected.
+     * @return a value containing a {@link TransformationResult} that either contains an {@link ExternalMessage} in case
+     * the transformation succeeded, or a {@link DittoRuntimeException} if it failed.
+     * Could also be null if an unexpected Exception occurred which should result in the message being dropped as
+     * automated recovery is expected.
      */
     @Nullable
     public TransformationResult transform(final ConsumerRecord<String, String> consumerRecord) {

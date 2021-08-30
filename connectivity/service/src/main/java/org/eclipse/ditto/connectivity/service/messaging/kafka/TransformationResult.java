@@ -12,13 +12,20 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 
+/**
+ * Kafka transformation result containing either a {@link DittoRuntimeException} in case of a failure or an
+ * {@link ExternalMessage} in case of a successfully transformed message.
+ */
+@Immutable
 final class TransformationResult {
 
     @Nullable private final DittoRuntimeException dittoRuntimeException;
@@ -46,4 +53,29 @@ final class TransformationResult {
         return Optional.ofNullable(externalMessage);
     }
 
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final TransformationResult that = (TransformationResult) o;
+        return Objects.equals(dittoRuntimeException, that.dittoRuntimeException) &&
+                Objects.equals(externalMessage, that.externalMessage);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(dittoRuntimeException, externalMessage);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "dittoRuntimeException=" + dittoRuntimeException +
+                ", externalMessage=" + externalMessage +
+                "]";
+    }
 }

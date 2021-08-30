@@ -44,6 +44,8 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
     static final String ACTOR_NAME_PREFIX = "kafkaConsumer-";
 
+    private static final int DEFAULT_CONSUMPTION_QOS = 0;
+
     private final ThreadSafeDittoLoggingAdapter log;
     private final KafkaConsumerStream kafkaStream;
 
@@ -58,7 +60,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
         final Materializer materializer = Materializer.createMaterializer(this::getContext);
-        final Integer qos = source.getQos().orElse(0);
+        final Integer qos = source.getQos().orElse(DEFAULT_CONSUMPTION_QOS);
         if (qos.equals(1)) {
             kafkaStream = streamFactory.newAtLeastOnceConsumerStream(materializer, inboundMonitor,
                     getMessageMappingSink(), getDittoRuntimeExceptionSink());

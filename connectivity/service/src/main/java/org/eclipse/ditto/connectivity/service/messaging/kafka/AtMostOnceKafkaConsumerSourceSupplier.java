@@ -22,12 +22,16 @@ import akka.kafka.Subscriptions;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.javadsl.Source;
 
+/**
+ * Supplies a {@link Source} of {@link org.apache.kafka.clients.consumer.ConsumerRecord}s retaining a
+ * {@link akka.kafka.javadsl.Consumer.Control} in order to be able to shutdown/terminate Kafka consumption.
+ */
 class AtMostOnceKafkaConsumerSourceSupplier
         implements Supplier<Source<ConsumerRecord<String, String>, Consumer.Control>> {
 
-    final PropertiesFactory propertiesFactory;
-    final String sourceAddress;
-    final boolean dryRun;
+    private final PropertiesFactory propertiesFactory;
+    private final String sourceAddress;
+    private final boolean dryRun;
 
     AtMostOnceKafkaConsumerSourceSupplier(
             final PropertiesFactory propertiesFactory, final String sourceAddress, final boolean dryRun) {

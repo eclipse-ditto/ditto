@@ -23,12 +23,16 @@ import akka.kafka.Subscriptions;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.javadsl.Source;
 
+/**
+ * Supplies a {@link Source} of {@link akka.kafka.ConsumerMessage.CommittableMessage}s retaining a
+ * {@link akka.kafka.javadsl.Consumer.Control} in order to be able to shutdown/terminate Kafka consumption.
+ */
 class AtLeastOnceKafkaConsumerSourceSupplier
         implements Supplier<Source<ConsumerMessage.CommittableMessage<String, String>, Consumer.Control>> {
 
-    final PropertiesFactory propertiesFactory;
-    final String sourceAddress;
-    final boolean dryRun;
+    private final PropertiesFactory propertiesFactory;
+    private final String sourceAddress;
+    private final boolean dryRun;
 
     AtLeastOnceKafkaConsumerSourceSupplier(
             final PropertiesFactory propertiesFactory, final String sourceAddress, final boolean dryRun) {

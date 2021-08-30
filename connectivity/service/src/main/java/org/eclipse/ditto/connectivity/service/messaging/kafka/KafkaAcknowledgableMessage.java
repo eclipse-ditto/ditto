@@ -12,13 +12,26 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+
+import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 
 import akka.kafka.ConsumerMessage;
 
+/**
+ * Wraps an {@link AcknowledgeableMessage} and provides a future of {@link akka.kafka.ConsumerMessage.CommittableOffset}
+ * which is completed:
+ * <ul>
+ * <li><em>successfully</em> once the requested acknowledgement was issued/settled</li>
+ * <li>with a {@link MessageRejectedException} when the requested acknowledgement could not be issued and redelivery
+ * of the message is required</li>
+ * </ul>
+ */
+@Immutable
 final class KafkaAcknowledgableMessage {
 
     private final AcknowledgeableMessage acknowledgeableMessage;
@@ -46,4 +59,29 @@ final class KafkaAcknowledgableMessage {
         return acknowledgementFuture;
     }
 
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final KafkaAcknowledgableMessage that = (KafkaAcknowledgableMessage) o;
+        return Objects.equals(acknowledgeableMessage, that.acknowledgeableMessage) &&
+                Objects.equals(acknowledgementFuture, that.acknowledgementFuture);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(acknowledgeableMessage, acknowledgementFuture);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "acknowledgeableMessage=" + acknowledgeableMessage +
+                ", acknowledgementFuture=" + acknowledgementFuture +
+                "]";
+    }
 }

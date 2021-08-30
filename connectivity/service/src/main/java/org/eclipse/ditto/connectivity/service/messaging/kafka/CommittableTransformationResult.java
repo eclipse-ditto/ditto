@@ -12,8 +12,18 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.util.Objects;
+
+import javax.annotation.concurrent.Immutable;
+
 import akka.kafka.ConsumerMessage;
 
+/**
+ * Contains a {@link TransformationResult} containing either a
+ * {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException} or an
+ * {@link org.eclipse.ditto.connectivity.api.ExternalMessage} and additionally a {@code committableOffset}
+ */
+@Immutable
 final class CommittableTransformationResult {
 
     private final TransformationResult transformationResult;
@@ -38,4 +48,29 @@ final class CommittableTransformationResult {
         return committableOffset;
     }
 
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final CommittableTransformationResult that = (CommittableTransformationResult) o;
+        return Objects.equals(transformationResult, that.transformationResult) &&
+                Objects.equals(committableOffset, that.committableOffset);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(transformationResult, committableOffset);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "transformationResult=" + transformationResult +
+                ", committableOffset=" + committableOffset +
+                "]";
+    }
 }
