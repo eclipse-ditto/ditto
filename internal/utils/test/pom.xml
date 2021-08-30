@@ -27,7 +27,7 @@
     <dependencies>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
-            <artifactId>akka-actor_2.13</artifactId>
+            <artifactId>akka-actor_${scala.version}</artifactId>
         </dependency>
         <dependency>
             <groupId>org.mongodb</groupId>
