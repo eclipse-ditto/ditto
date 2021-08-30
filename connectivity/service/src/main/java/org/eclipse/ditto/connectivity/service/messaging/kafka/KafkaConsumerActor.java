@@ -118,19 +118,19 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         final ConnectivityStatus status;
         final ResourceStatus statusUpdate;
         final Instant now = Instant.now();
-        if (null == throwable) {
+        final Throwable realCause = throwable instanceof CompletionException? throwable.getCause() : throwable;
+        if (null == realCause) {
             status = ConnectivityStatus.CLOSED;
             statusUpdate = ConnectivityModelFactory.newStatusUpdate(
                     InstanceIdentifierSupplier.getInstance().get(),
                     status,
                     sourceAddress,
                     "Consumer closed", now);
-        } else if (throwable instanceof CompletionException &&
-                throwable.getCause() instanceof MessageRejectedException) {
+        } else if (realCause instanceof MessageRejectedException) {
             final MessageRejectedException cause = (MessageRejectedException) throwable.getCause();
             inboundMonitor.exception(cause);
             status = ConnectivityStatus.CLOSED;
-            self().tell(cause, ActorRef.noSender());
+            self().tell(realCause, ActorRef.noSender());
             statusUpdate = ConnectivityModelFactory.newStatusUpdate(
                     InstanceIdentifierSupplier.getInstance().get(),
                     status,
