@@ -106,7 +106,7 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
     }
 
     private ExternalMessage extractExternalMessage(final TransformationResult value) {
-        return value.getExternalMessage().get();
+        return value.getExternalMessage().orElseThrow(); // at this point, the ExternalMessage is present
     }
 
     private boolean isNotExpired(final ConsumerRecord<String, String> consumerRecord) {
@@ -131,10 +131,10 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
         }
     }
 
-    private boolean isNotDryRun(final ConsumerRecord<String, String> record, final boolean dryRun) {
+    private boolean isNotDryRun(final ConsumerRecord<String, String> cRecord, final boolean dryRun) {
         if (dryRun && LOGGER.isDebugEnabled()) {
             LOGGER.debug("Dropping record (key: {}, topic: {}, partition: {}, offset: {}) in dry run mode.",
-                    record.key(), record.topic(), record.partition(), record.offset());
+                    cRecord.key(), cRecord.topic(), cRecord.partition(), cRecord.offset());
         }
         return !dryRun;
     }
@@ -149,7 +149,7 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
     }
 
     private DittoRuntimeException extractDittoRuntimeException(final TransformationResult value) {
-        return value.getDittoRuntimeException().get();
+        return value.getDittoRuntimeException().orElseThrow(); // at this point, the DRE is present
     }
 
     private Sink<TransformationResult, CompletionStage<Done>> unexpectedMessageSink() {

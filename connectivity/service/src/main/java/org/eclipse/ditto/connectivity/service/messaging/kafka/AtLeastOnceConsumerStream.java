@@ -116,7 +116,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
     }
 
     private KafkaAcknowledgableMessage toAcknowledgeableMessage(final CommittableTransformationResult value) {
-        final ExternalMessage externalMessage = value.getTransformationResult().getExternalMessage().get();
+        final ExternalMessage externalMessage = value.getTransformationResult().getExternalMessage().orElseThrow(); // at this point, the ExternalMessage is present
         final ConsumerMessage.CommittableOffset committableOffset = value.getCommittableOffset();
         return new KafkaAcknowledgableMessage(externalMessage, committableOffset);
     }
@@ -143,10 +143,10 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         }
     }
 
-    private boolean isNotDryRun(final ConsumerRecord<String, String> record, final boolean dryRun) {
+    private boolean isNotDryRun(final ConsumerRecord<String, String> cRecord, final boolean dryRun) {
         if (dryRun && LOGGER.isDebugEnabled()) {
             LOGGER.debug("Dropping record (key: {}, topic: {}, partition: {}, offset: {}) in dry run mode.",
-                    record.key(), record.topic(), record.partition(), record.offset());
+                    cRecord.key(), cRecord.topic(), cRecord.partition(), cRecord.offset());
         }
         return !dryRun;
     }
@@ -162,7 +162,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
     }
 
     private DittoRuntimeException extractDittoRuntimeException(final CommittableTransformationResult value) {
-        return value.getTransformationResult().getDittoRuntimeException().get();
+        return value.getTransformationResult().getDittoRuntimeException().orElseThrow(); // at this point, the DRE is present
     }
 
     private Sink<CommittableTransformationResult, CompletionStage<Done>> unexpectedMessageSink() {

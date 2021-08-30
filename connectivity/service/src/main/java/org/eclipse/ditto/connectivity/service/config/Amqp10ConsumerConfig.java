@@ -41,26 +41,6 @@ public interface Amqp10ConsumerConfig {
     Duration getRedeliveryExpectationTimeout();
 
     /**
-     * Returns the consumer throttling interval meaning in which duration may the configured
-     * {@link #getThrottlingLimit() limit} be processed before throttling further messages.
-     *
-     * @return the consumer throttling interval.
-     */
-    default Duration getThrottlingInterval() {
-        return getThrottlingConfig().getInterval();
-    }
-
-    /**
-     * Returns the consumer throttling limit defining processed messages per configured
-     * {@link #getThrottlingInterval()}  interval}.
-     *
-     * @return the consumer throttling limit.
-     */
-    default int getThrottlingLimit() {
-        return getThrottlingConfig().getLimit();
-    }
-
-    /**
      * Returns the throttling config.
      *
      * @return the config.

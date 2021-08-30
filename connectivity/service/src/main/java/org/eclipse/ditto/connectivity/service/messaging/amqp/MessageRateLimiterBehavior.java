@@ -69,7 +69,7 @@ interface MessageRateLimiterBehavior<S> extends Actor, Timers {
         if (enabled) {
             // schedule periodic throughput check
             timers().startPeriodicTimer(Control.CHECK_RATE_LIMIT, Control.CHECK_RATE_LIMIT,
-                    config.getConsumerConfig().getThrottlingInterval());
+                    config.getConsumerConfig().getThrottlingConfig().getInterval());
         }
         return MessageRateLimiter.of(config, enabled);
     }

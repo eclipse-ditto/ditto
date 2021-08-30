@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Objects;
 
@@ -19,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -30,11 +32,16 @@ import com.typesafe.config.Config;
 final class DefaultConnectionThrottlingConfig implements ConnectionThrottlingConfig {
 
     private final ThrottlingConfig throttlingConfig;
-    private final int consumerMaxInFlight;
+    private final double maxInFlightFactor;
 
     private DefaultConnectionThrottlingConfig(final ScopedConfig config) {
         throttlingConfig = ThrottlingConfig.of(config);
-        consumerMaxInFlight = config.getNonNegativeIntOrThrow(ConfigValue.MAX_IN_FLIGHT);
+        maxInFlightFactor = config.getPositiveDoubleOrThrow(ConfigValue.MAX_IN_FLIGHT_FACTOR);
+        if (maxInFlightFactor < 1.0) {
+            throw new DittoConfigError(MessageFormat.format(
+                    "The double value at <{0}> must be >= 1.0 but it was <{1}>!",
+                    ConfigValue.MAX_IN_FLIGHT_FACTOR.getConfigPath(), maxInFlightFactor));
+        }
     }
 
     static ConnectionThrottlingConfig of(final Config config) {
@@ -53,8 +60,8 @@ final class DefaultConnectionThrottlingConfig implements ConnectionThrottlingCon
     }
 
     @Override
-    public int getMaxInFlight() {
-        return consumerMaxInFlight;
+    public double getMaxInFlightFactor() {
+        return maxInFlightFactor;
     }
 
     @Override
@@ -66,19 +73,19 @@ final class DefaultConnectionThrottlingConfig implements ConnectionThrottlingCon
             return false;
         }
         final DefaultConnectionThrottlingConfig that = (DefaultConnectionThrottlingConfig) o;
-        return consumerMaxInFlight == that.consumerMaxInFlight &&
+        return maxInFlightFactor == that.maxInFlightFactor &&
                 Objects.equals(throttlingConfig, that.throttlingConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(consumerMaxInFlight, throttlingConfig);
+        return Objects.hash(maxInFlightFactor, throttlingConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "consumerMaxInFlight=" + consumerMaxInFlight +
+                "maxInFlightFactor=" + maxInFlightFactor +
                 ", throttlingConfig=" + throttlingConfig +
                 "]";
     }

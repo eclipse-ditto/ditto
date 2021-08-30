@@ -104,8 +104,8 @@ public final class DefaultAmqp10ConfigTest {
         softly.assertThat(underTest.getConsumerConfig().isRateLimitEnabled())
                 .as(Amqp10ConsumerConfig.ConfigValue.RATE_LIMIT_ENABLED.getConfigPath())
                 .isEqualTo(false);
-        softly.assertThat(underTest.getConsumerConfig().getThrottlingConfig().getMaxInFlight())
-                .as(ConnectionThrottlingConfig.ConfigValue.MAX_IN_FLIGHT.getConfigPath())
+        softly.assertThat(underTest.getConsumerConfig().getThrottlingConfig().getMaxInFlightFactor())
+                .as(ConnectionThrottlingConfig.ConfigValue.MAX_IN_FLIGHT_FACTOR.getConfigPath())
                 .isEqualTo(1337);
         softly.assertThat(underTest.getConsumerConfig().getRedeliveryExpectationTimeout())
                 .as(Amqp10ConsumerConfig.ConfigValue.REDELIVERY_EXPECTATION_TIMEOUT.getConfigPath())
