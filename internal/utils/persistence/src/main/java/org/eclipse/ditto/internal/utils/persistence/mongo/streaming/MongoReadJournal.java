@@ -30,11 +30,11 @@ import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexFactory;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
@@ -46,6 +46,7 @@ import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
+import com.mongodb.client.result.DeleteResult;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
 
@@ -347,6 +348,68 @@ public class MongoReadJournal {
                 .mapConcat(pids -> pids);
     }
 
+    /**
+     * Find the smallest event sequence number of a PID.
+     *
+     * @param pid the PID to search for.
+     * @return source of the smallest event sequence number, or an empty optional.
+     */
+    public Source<Optional<Long>, NotUsed> getSmallestEventSeqNo(final String pid) {
+        return getJournal()
+                .flatMapConcat(journal -> Source.fromPublisher(
+                        journal.find(Filters.eq(J_PROCESSOR_ID, pid))
+                                .sort(Sorts.ascending(J_TO))
+                                .limit(1)
+                ))
+                .map(document -> Optional.of(document.getLong(J_TO)))
+                .orElse(Source.single(Optional.empty()));
+    }
+
+    /**
+     * Find the smallest snapshot sequence number of a PID.
+     *
+     * @param pid the PID to search for.
+     * @return source of the smallest snapshot sequence number, or an empty optional.
+     */
+    public Source<Optional<Long>, NotUsed> getSmallestSnapshotSeqNo(final String pid) {
+        return getSnapshotStore()
+                .flatMapConcat(snaps -> Source.fromPublisher(
+                        snaps.find(Filters.eq(S_PROCESSOR_ID, pid))
+                                .sort(Sorts.ascending(S_SN))
+                                .limit(1)
+                ))
+                .map(document -> Optional.of(document.getLong(S_SN)))
+                .orElse(Source.single(Optional.empty()));
+    }
+
+    /**
+     * Delete events of a PID.
+     *
+     * @param pid the PID.
+     * @param maxSeqNr maximum sequence number to delete (inclusive).
+     * @return source of the delete result.
+     */
+    public Source<DeleteResult, NotUsed> deleteEventsUpTo(final String pid, final long maxSeqNr) {
+        return getJournal()
+                .flatMapConcat(journal -> Source.fromPublisher(
+                        journal.deleteMany(Filters.and(Filters.eq(J_PROCESSOR_ID, pid), Filters.lte(J_TO, maxSeqNr)))
+                ));
+    }
+
+    /**
+     * Delete snapshots of a PID.
+     *
+     * @param pid the PID.
+     * @param maxSeqNr maximum sequence number to delete (inclusive).
+     * @return source of the delete result.
+     */
+    public Source<DeleteResult, NotUsed> deleteSnapshotsUpTo(final String pid, final long maxSeqNr) {
+        return getSnapshotStore()
+                .flatMapConcat(snaps -> Source.fromPublisher(
+                        snaps.deleteMany(Filters.and(Filters.eq(S_PROCESSOR_ID, pid), Filters.lte(S_SN, maxSeqNr)))
+                ));
+    }
+
     private Source<List<String>, NotUsed> listPidsInJournal(final MongoCollection<Document> journal,
             final String lowerBoundPid, final String tag,
             final int batchSize, final Materializer mat, final Duration maxBackOff, final int maxRestarts) {
@@ -377,10 +440,10 @@ public class MongoReadJournal {
             final String... snapshotFields) {
 
         return this.unfoldBatchedSource(lowerBoundPid,
-                mat,
-                SnapshotBatch::getMaxPid,
-                actualStartPid -> listNewestActiveSnapshotsByBatch(snapshotStore, actualStartPid, batchSize,
-                        snapshotFields))
+                        mat,
+                        SnapshotBatch::getMaxPid,
+                        actualStartPid -> listNewestActiveSnapshotsByBatch(snapshotStore, actualStartPid, batchSize,
+                                snapshotFields))
                 .mapConcat(x -> x)
                 .map(SnapshotBatch::getItems);
     }
@@ -392,18 +455,18 @@ public class MongoReadJournal {
             final Function<String, Source<T, ?>> sourceCreator) {
 
         return Source.unfoldAsync("",
-                startPid -> {
-                    final String actualStart = lowerBoundPid.compareTo(startPid) >= 0 ? lowerBoundPid : startPid;
-                    return sourceCreator.apply(actualStart)
-                            .runWith(Sink.seq(), mat)
-                            .thenApply(list -> {
-                                if (list.isEmpty()) {
-                                    return Optional.empty();
-                                } else {
-                                    return Optional.of(Pair.create(seedCreator.apply(list.get(list.size() - 1)), list));
-                                }
-                            });
-                })
+                        startPid -> {
+                            final String actualStart = lowerBoundPid.compareTo(startPid) >= 0 ? lowerBoundPid : startPid;
+                            return sourceCreator.apply(actualStart)
+                                    .runWith(Sink.seq(), mat)
+                                    .thenApply(list -> {
+                                        if (list.isEmpty()) {
+                                            return Optional.empty();
+                                        } else {
+                                            return Optional.of(Pair.create(seedCreator.apply(list.get(list.size() - 1)), list));
+                                        }
+                                    });
+                        })
                 .withAttributes(Attributes.inputBuffer(1, 1));
     }
 
@@ -448,7 +511,7 @@ public class MongoReadJournal {
                 .withMaxRestarts(maxRestarts, minBackOff);
         return RestartSource.onFailuresWithBackoff(restartSettings, () ->
                 Source.fromPublisher(journal.aggregate(pipeline)
-                        .collation(Collation.builder().locale("en_US").numericOrdering(true).build()))
+                                .collation(Collation.builder().locale("en_US").numericOrdering(true).build()))
                         .flatMapConcat(document -> {
                             final Object pid = document.get(J_ID);
                             if (pid instanceof CharSequence) {
