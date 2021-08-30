@@ -106,7 +106,7 @@ public final class DefaultAmqp10ConfigTest {
                 .isEqualTo(false);
         softly.assertThat(underTest.getConsumerConfig().getThrottlingConfig().getMaxInFlightFactor())
                 .as(ConnectionThrottlingConfig.ConfigValue.MAX_IN_FLIGHT_FACTOR.getConfigPath())
-                .isEqualTo(1337);
+                .isEqualTo(2.0);
         softly.assertThat(underTest.getConsumerConfig().getRedeliveryExpectationTimeout())
                 .as(Amqp10ConsumerConfig.ConfigValue.REDELIVERY_EXPECTATION_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(1337));
