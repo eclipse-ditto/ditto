@@ -25,22 +25,25 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.ResourceStatus;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.TestConstants;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.connectivity.model.ResourceStatus;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -145,6 +148,8 @@ public final class RetrieveConnectionStatusResponseTest {
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "closed since 123")
                                             .build()
                             ).build())
+            .set(RetrieveConnectionStatusResponse.JsonFields.SSH_TUNNEL_STATUS,
+                    JsonFactory.newArrayBuilder().build())
             .build();
 
     @Test
@@ -276,6 +281,36 @@ public final class RetrieveConnectionStatusResponseTest {
         assertThat(actual.getClientStatus()).containsAll(expected.getClientStatus());
         assertThat(actual.getSourceStatus()).containsAll(expected.getSourceStatus());
         assertThat(actual.getTargetStatus()).containsAll(expected.getTargetStatus());
+    }
+
+    @Test
+    public void missingStatuses() {
+        final Map<ResourceStatus.ResourceType, Integer> expectedMissingResources = new HashMap<>();
+        expectedMissingResources.put(ResourceStatus.ResourceType.SOURCE, 1);
+        expectedMissingResources.put(ResourceStatus.ResourceType.TARGET, 2);
+        final RetrieveConnectionStatusResponse expected =
+                RetrieveConnectionStatusResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
+                        .connectionStatus(ConnectivityStatus.OPEN)
+                        .liveStatus(ConnectivityStatus.FAILED) // failed because missing resources are included
+                        .connectedSince(IN_CONNECTION_STATUS_SINCE)
+                        .clientStatus(clientStatus)
+                        .withMissingResources(expectedMissingResources)
+                        .build();
+
+        assertThat(expected.getSourceStatus()).contains(ConnectivityModelFactory.newSourceStatus("unknown-client",
+                ConnectivityStatus.FAILED,
+                null,
+                "Source failed to report its status within the timeout."
+        ));
+        assertThat(expected.getTargetStatus()).contains(ConnectivityModelFactory.newTargetStatus("unknown-client",
+                ConnectivityStatus.FAILED,
+                null,
+                "Target failed to report its status within the timeout."
+        ), ConnectivityModelFactory.newTargetStatus("unknown-client",
+                ConnectivityStatus.FAILED,
+                null,
+                "Target failed to report its status within the timeout."
+        ));
     }
 
     @Test
