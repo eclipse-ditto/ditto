@@ -31,6 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -41,6 +42,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -1080,7 +1082,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 } else {
                     try {
                         reconnect();
-                    } catch (final ConnectionFailedException e){
+                    } catch (final ConnectionFailedException e) {
                         return goToConnecting(reconnectTimeoutStrategy.getNextTimeout())
                                 .using(data.setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
                                         .setConnectionStatusDetails(
@@ -1127,7 +1129,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             try {
                 reconnect();
                 return stay();
-            } catch (final ConnectionFailedException e){
+            } catch (final ConnectionFailedException e) {
                 return goToConnecting(reconnectTimeoutStrategy.getNextTimeout())
                         .using(data.setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
                                 .setConnectionStatusDetails(
@@ -1392,27 +1394,57 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionStatus(final RetrieveConnectionStatus command,
             final BaseClientData data) {
 
+        final ActorRef sender = getSender();
         logger.withCorrelationId(command)
                 .debug("Received RetrieveConnectionStatus for connection <{}> message from <{}>." +
                                 " Forwarding to consumers and publishers.", command.getEntityId(),
-                        getSender());
+                        sender);
 
-        // send to all children (consumers, publishers, except mapping actor)
-        getContext().getChildren().forEach(child -> {
-            final var childName = child.path().name();
-            if (!NO_ADDRESS_REPORTING_CHILD_NAMES.contains(childName)) {
+        final int numberOfProducers = connection.getTargets().size();
+        final int numberOfConsumers = connection.getSources()
+                .stream()
+                .mapToInt(source -> source.getConsumerCount() * source.getAddresses().size())
+                .sum();
+        final int expectedNumberOfChildren = numberOfProducers + numberOfConsumers;
+        final List<ActorRef> childrenToAsk = StreamSupport.stream(getContext().getChildren().spliterator(), false)
+                .filter(child -> !NO_ADDRESS_REPORTING_CHILD_NAMES.contains(child.path().name()))
+                .collect(Collectors.toList());
+        final ConnectivityStatus clientConnectionStatus = data.getConnectionStatus();
+        if (childrenToAsk.size() != expectedNumberOfChildren && clientConnectionStatus.isFailure()) {
+            logger.withCorrelationId(command)
+                    .info("Responding with static 'CLOSED' ResourceStatus for all sources and targets," +
+                            "because some children could not be started, due to a failure in the client actor.");
+            connection.getSources().stream()
+                    .map(Source::getAddresses)
+                    .flatMap(Collection::stream)
+                    .map(sourceAddress -> ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
+                            ConnectivityStatus.CLOSED,
+                            sourceAddress, "Closed because of failure in client"))
+                    .forEach(resourceStatus -> {
+                        sender.tell(resourceStatus, ActorRef.noSender());
+                    });
+            connection.getTargets().stream()
+                    .map(Target::getAddress)
+                    .map(targetAddress -> ConnectivityModelFactory.newTargetStatus(getInstanceIdentifier(),
+                            ConnectivityStatus.CLOSED,
+                            targetAddress, "Closed because of failure in client"))
+                    .forEach(resourceStatus -> {
+                        sender.tell(resourceStatus, ActorRef.noSender());
+                    });
+        } else {
+            childrenToAsk.forEach(child -> {
                 logger.withCorrelationId(command)
                         .debug("Forwarding RetrieveAddressStatus to child <{}>.", child.path());
-                child.tell(RetrieveAddressStatus.getInstance(), getSender());
-            }
-        });
+                child.tell(RetrieveAddressStatus.getInstance(), sender);
+            });
+        }
 
         final ResourceStatus clientStatus =
                 ConnectivityModelFactory.newClientStatus(getInstanceIdentifier(),
-                        data.getConnectionStatus(),
+                        clientConnectionStatus,
                         "[" + stateName().name() + "] " + data.getConnectionStatusDetails().orElse(""),
                         getInConnectionStatusSince());
-        getSender().tell(clientStatus, getSelf());
+        sender.tell(clientStatus, getSelf());
 
         return stay();
     }
@@ -1681,7 +1713,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final int processorPoolSize = theConnection.getProcessorPoolSize();
         logger.debug("Starting mapping processor actors with pool size of <{}>.", processorPoolSize);
         final Props outboundMappingProcessorActorProps =
-                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, theConnection, processorPoolSize);
+                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, theConnection,
+                        processorPoolSize);
 
         final ActorRef processorActor =
                 getContext().actorOf(outboundMappingProcessorActorProps, OutboundMappingProcessorActor.ACTOR_NAME);
