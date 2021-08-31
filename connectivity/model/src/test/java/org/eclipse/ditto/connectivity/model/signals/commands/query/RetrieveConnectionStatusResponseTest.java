@@ -148,8 +148,6 @@ public final class RetrieveConnectionStatusResponseTest {
                                             .set(ResourceStatus.JsonFields.STATUS_DETAILS, "closed since 123")
                                             .build()
                             ).build())
-            .set(RetrieveConnectionStatusResponse.JsonFields.SSH_TUNNEL_STATUS,
-                    JsonFactory.newArrayBuilder().build())
             .build();
 
     @Test
