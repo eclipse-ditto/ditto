@@ -1400,7 +1400,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                                 " Forwarding to consumers and publishers.", command.getEntityId(),
                         sender);
 
-        final int numberOfProducers = connection.getTargets().size();
+        final int numberOfProducers = connection.getTargets().isEmpty() ? 0 : 1;
         final int numberOfConsumers = connection.getSources()
                 .stream()
                 .mapToInt(source -> source.getConsumerCount() * source.getAddresses().size())
@@ -1420,17 +1420,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     .map(sourceAddress -> ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
                             ConnectivityStatus.CLOSED,
                             sourceAddress, "Closed because of failure in client"))
-                    .forEach(resourceStatus -> {
-                        sender.tell(resourceStatus, ActorRef.noSender());
-                    });
+                    .forEach(resourceStatus -> sender.tell(resourceStatus, ActorRef.noSender()));
             connection.getTargets().stream()
                     .map(Target::getAddress)
                     .map(targetAddress -> ConnectivityModelFactory.newTargetStatus(getInstanceIdentifier(),
                             ConnectivityStatus.CLOSED,
                             targetAddress, "Closed because of failure in client"))
-                    .forEach(resourceStatus -> {
-                        sender.tell(resourceStatus, ActorRef.noSender());
-                    });
+                    .forEach(resourceStatus -> sender.tell(resourceStatus, ActorRef.noSender()));
         } else {
             childrenToAsk.forEach(child -> {
                 logger.withCorrelationId(command)
