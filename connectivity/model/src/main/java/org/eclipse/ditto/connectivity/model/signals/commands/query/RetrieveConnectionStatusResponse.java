@@ -457,7 +457,9 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                                     "Client failed to report its status within the timeout.",
                                     now
                             ));
-            jsonObjectBuilder.set(JsonFields.CLIENT_STATUS, clientStatusJsonArray);
+            if (!clientStatusJsonArray.isEmpty()) {
+                jsonObjectBuilder.set(JsonFields.CLIENT_STATUS, clientStatusJsonArray);
+            }
 
             JsonArray sourceStatusJsonArray = JsonArray.empty();
             if (sourceStatus != null) {
@@ -472,7 +474,9 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                                     null,
                                     "Source failed to report its status within the timeout."
                             ));
-            jsonObjectBuilder.set(JsonFields.SOURCE_STATUS, sourceStatusJsonArray);
+            if (!sourceStatusJsonArray.isEmpty()) {
+                jsonObjectBuilder.set(JsonFields.SOURCE_STATUS, sourceStatusJsonArray);
+            }
 
             JsonArray targetStatusJsonArray = JsonArray.empty();
             if (targetStatus != null) {
@@ -487,7 +491,9 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                                     null,
                                     "Target failed to report its status within the timeout."
                             ));
-            jsonObjectBuilder.set(JsonFields.TARGET_STATUS, targetStatusJsonArray);
+            if (!targetStatusJsonArray.isEmpty()) {
+                jsonObjectBuilder.set(JsonFields.TARGET_STATUS, targetStatusJsonArray);
+            }
 
             JsonArray sshTunnelStatusJsonArray = JsonArray.empty();
             if (sshTunnelStatus != null) {
@@ -502,7 +508,9 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                                     "SSH Tunnel failed to report its status within the timeout.",
                                     now
                             ));
-            jsonObjectBuilder.set(JsonFields.SSH_TUNNEL_STATUS, sshTunnelStatusJsonArray);
+            if (!sshTunnelStatusJsonArray.isEmpty()) {
+                jsonObjectBuilder.set(JsonFields.SSH_TUNNEL_STATUS, sshTunnelStatusJsonArray);
+            }
 
             return new RetrieveConnectionStatusResponse(connectionId, jsonObjectBuilder.build(), dittoHeaders);
         }
