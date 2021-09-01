@@ -20,12 +20,12 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Immutable implementation of {@link ResourceStatus}.
@@ -63,7 +63,8 @@ final class ImmutableResourceStatus implements ResourceStatus {
      * @param inStateSince the instant since the resource is in the given state
      * @return a new instance of ImmutableResourceStatus
      */
-    public static ImmutableResourceStatus of(final ResourceType type, final String client,
+    public static ImmutableResourceStatus of(final ResourceType type,
+            final String client,
             final ConnectivityStatus status,
             @Nullable final String address,
             @Nullable final String statusDetails,

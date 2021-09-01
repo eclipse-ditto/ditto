@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,7 +23,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -351,6 +351,8 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         @Nullable private List<ResourceStatus> targetStatus;
         @Nullable private List<ResourceStatus> sshTunnelStatus;
         @Nullable private Map<ResourceStatus.ResourceType, Integer> missingResources;
+        private int configuredClientCount;
+        private boolean configuredClientCountMatchesStatusSenders = true;
 
         private Builder(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
             this.connectionId = connectionId;
@@ -411,8 +413,12 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             return this;
         }
 
-        public Builder withMissingResources(final Map<ResourceStatus.ResourceType, Integer> missingResources) {
+        public Builder withMissingResources(final Map<ResourceStatus.ResourceType, Integer> missingResources,
+                final int configuredClientCount,
+                final boolean configuredClientCountMatchesStatusSenders) {
             this.missingResources = missingResources;
+            this.configuredClientCount = configuredClientCount;
+            this.configuredClientCountMatchesStatusSenders = configuredClientCountMatchesStatusSenders;
             return this;
         }
 
@@ -429,8 +435,6 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             jsonObjectBuilder.set(CommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode());
             jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID,
                     String.valueOf(connectionId));
-
-            final Instant now = Instant.now();
 
             if (connectionStatus != null) {
                 jsonObjectBuilder.set(JsonFields.CONNECTION_STATUS, connectionStatus.toString());
@@ -450,13 +454,9 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                         .map(ResourceStatus::toJson)
                         .collect(JsonCollectors.valuesToArray());
             }
-            clientStatusJsonArray =
-                    addTimeoutsToResourcesArray(ResourceStatus.ResourceType.CLIENT, clientStatusJsonArray, () ->
-                            ConnectivityModelFactory.newClientStatus(UNKNOWN_CLIENT,
-                                    ConnectivityStatus.FAILED,
-                                    "Client failed to report its status within the timeout.",
-                                    now
-                            ));
+            clientStatusJsonArray = addMissingResourcesToResourcesArray(clientStatusJsonArray,
+                    ResourceStatus.ResourceType.CLIENT
+            );
             if (!clientStatusJsonArray.isEmpty()) {
                 jsonObjectBuilder.set(JsonFields.CLIENT_STATUS, clientStatusJsonArray);
             }
@@ -467,13 +467,9 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                         .map(ResourceStatus::toJson)
                         .collect(JsonCollectors.valuesToArray());
             }
-            sourceStatusJsonArray =
-                    addTimeoutsToResourcesArray(ResourceStatus.ResourceType.SOURCE, sourceStatusJsonArray, () ->
-                            ConnectivityModelFactory.newSourceStatus(UNKNOWN_CLIENT,
-                                    ConnectivityStatus.FAILED,
-                                    null,
-                                    "Source failed to report its status within the timeout."
-                            ));
+            sourceStatusJsonArray = addMissingResourcesToResourcesArray(sourceStatusJsonArray,
+                    ResourceStatus.ResourceType.SOURCE
+            );
             if (!sourceStatusJsonArray.isEmpty()) {
                 jsonObjectBuilder.set(JsonFields.SOURCE_STATUS, sourceStatusJsonArray);
             }
@@ -484,13 +480,9 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                         .map(ResourceStatus::toJson)
                         .collect(JsonCollectors.valuesToArray());
             }
-            targetStatusJsonArray =
-                    addTimeoutsToResourcesArray(ResourceStatus.ResourceType.TARGET, targetStatusJsonArray, () ->
-                            ConnectivityModelFactory.newTargetStatus(UNKNOWN_CLIENT,
-                                    ConnectivityStatus.FAILED,
-                                    null,
-                                    "Target failed to report its status within the timeout."
-                            ));
+            targetStatusJsonArray = addMissingResourcesToResourcesArray(targetStatusJsonArray,
+                    ResourceStatus.ResourceType.TARGET
+            );
             if (!targetStatusJsonArray.isEmpty()) {
                 jsonObjectBuilder.set(JsonFields.TARGET_STATUS, targetStatusJsonArray);
             }
@@ -501,13 +493,9 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                         .map(ResourceStatus::toJson)
                         .collect(JsonCollectors.valuesToArray());
             }
-            sshTunnelStatusJsonArray =
-                    addTimeoutsToResourcesArray(ResourceStatus.ResourceType.SSH_TUNNEL, sshTunnelStatusJsonArray, () ->
-                            ConnectivityModelFactory.newSshTunnelStatus(UNKNOWN_CLIENT,
-                                    ConnectivityStatus.FAILED,
-                                    "SSH Tunnel failed to report its status within the timeout.",
-                                    now
-                            ));
+            sshTunnelStatusJsonArray = addMissingResourcesToResourcesArray(sshTunnelStatusJsonArray,
+                    ResourceStatus.ResourceType.SSH_TUNNEL
+            );
             if (!sshTunnelStatusJsonArray.isEmpty()) {
                 jsonObjectBuilder.set(JsonFields.SSH_TUNNEL_STATUS, sshTunnelStatusJsonArray);
             }
@@ -515,21 +503,42 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             return new RetrieveConnectionStatusResponse(connectionId, jsonObjectBuilder.build(), dittoHeaders);
         }
 
-        private JsonArray addTimeoutsToResourcesArray(final ResourceStatus.ResourceType resourceType,
-                final JsonArray jsonArray,
-                final Supplier<ResourceStatus> resourceStatusSupplier) {
+        private JsonArray addMissingResourcesToResourcesArray(final JsonArray jsonArray,
+                final ResourceStatus.ResourceType resourceType) {
 
             if (null == missingResources) {
                 return jsonArray;
+            } else {
+                final int missingCount = missingResources.getOrDefault(resourceType, 0);
+                if (missingCount < 1) {
+                    return jsonArray;
+                }
+
+                final ConnectivityStatus connectivityStatus;
+                final String connectivityStatusDetails;
+                if (configuredClientCountMatchesStatusSenders) {
+                    connectivityStatus = ConnectivityStatus.FAILED;
+                    connectivityStatusDetails = MessageFormat.format(
+                            "The <{0}> failed to report its status within the timeout.", resourceType.getName());
+                } else {
+                    connectivityStatus = ConnectivityStatus.MISCONFIGURED;
+                    connectivityStatusDetails = MessageFormat.format(
+                            "The configured client count of <{0}> could not be delivered by the cluster, " +
+                                    "the <{1}> is therefore not available.", configuredClientCount,
+                            resourceType.getName());
+                }
+
+                final JsonArrayBuilder jsonArrayBuilder = jsonArray.toBuilder();
+                IntStream.range(0, missingCount)
+                        .forEach(i -> jsonArrayBuilder.add(ConnectivityModelFactory.newStatusUpdate(resourceType,
+                                UNKNOWN_CLIENT,
+                                connectivityStatus,
+                                null,
+                                connectivityStatusDetails,
+                                null
+                        ).toJson()));
+                return jsonArrayBuilder.build();
             }
-            final int missingCount = missingResources.getOrDefault(resourceType, 0);
-            if (missingCount < 1) {
-                return jsonArray;
-            }
-            final JsonArrayBuilder jsonArrayBuilder = jsonArray.toBuilder();
-            IntStream.range(0, missingCount)
-                    .forEach(i -> jsonArrayBuilder.add(resourceStatusSupplier.get().toJson()));
-            return jsonArrayBuilder.build();
         }
     }
 

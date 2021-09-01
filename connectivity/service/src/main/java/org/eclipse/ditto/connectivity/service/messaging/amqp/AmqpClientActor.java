@@ -16,11 +16,14 @@ import java.net.URI;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -240,6 +243,13 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     public void postStop() {
         ensureJmsConnectionClosed();
         super.postStop();
+    }
+
+    @Override
+    protected Set<Pattern> getExcludedAddressReportingChildNamePatterns() {
+        final Set<Pattern> excludedChildNamePatterns = new HashSet<>(super.getExcludedAddressReportingChildNamePatterns());
+        excludedChildNamePatterns.add(Pattern.compile(Pattern.quote(JMSConnectionHandlingActor.ACTOR_NAME_PREFIX) + ".*"));
+        return excludedChildNamePatterns;
     }
 
     @Override

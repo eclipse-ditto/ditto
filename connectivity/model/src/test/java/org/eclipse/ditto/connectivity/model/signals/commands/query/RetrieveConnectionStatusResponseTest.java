@@ -292,22 +292,22 @@ public final class RetrieveConnectionStatusResponseTest {
                         .liveStatus(ConnectivityStatus.FAILED) // failed because missing resources are included
                         .connectedSince(IN_CONNECTION_STATUS_SINCE)
                         .clientStatus(clientStatus)
-                        .withMissingResources(expectedMissingResources)
+                        .withMissingResources(expectedMissingResources, 1, true)
                         .build();
 
         assertThat(expected.getSourceStatus()).contains(ConnectivityModelFactory.newSourceStatus("unknown-client",
                 ConnectivityStatus.FAILED,
                 null,
-                "Source failed to report its status within the timeout."
+                "The <source> failed to report its status within the timeout."
         ));
         assertThat(expected.getTargetStatus()).contains(ConnectivityModelFactory.newTargetStatus("unknown-client",
                 ConnectivityStatus.FAILED,
                 null,
-                "Target failed to report its status within the timeout."
+                "The <target> failed to report its status within the timeout."
         ), ConnectivityModelFactory.newTargetStatus("unknown-client",
                 ConnectivityStatus.FAILED,
                 null,
-                "Target failed to report its status within the timeout."
+                "The <target> failed to report its status within the timeout."
         ));
     }
 

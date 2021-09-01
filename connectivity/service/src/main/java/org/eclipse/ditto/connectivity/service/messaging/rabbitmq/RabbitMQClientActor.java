@@ -18,12 +18,15 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
@@ -132,6 +135,13 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), proxyActor,
                 connectionActor, dittoHeaders);
+    }
+
+    @Override
+    protected Set<Pattern> getExcludedAddressReportingChildNamePatterns() {
+        final Set<Pattern> excludedChildNamePatterns = new HashSet<>(super.getExcludedAddressReportingChildNamePatterns());
+        excludedChildNamePatterns.add(Pattern.compile(RMQ_CONNECTION_ACTOR_NAME));
+        return excludedChildNamePatterns;
     }
 
     /**

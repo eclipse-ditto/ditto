@@ -41,6 +41,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -164,15 +165,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
 
-    private static final Set<String> NO_ADDRESS_REPORTING_CHILD_NAMES = Set.of(
-            OutboundMappingProcessorActor.ACTOR_NAME,
-            OutboundDispatchingActor.ACTOR_NAME
-    );
+    private static final Pattern EXCLUDED_ADDRESS_REPORTING_CHILD_NAME_PATTERN = Pattern.compile(
+            OutboundMappingProcessorActor.ACTOR_NAME + "|" + OutboundDispatchingActor.ACTOR_NAME + "|" +
+                    "StreamSupervisor-.*|subscriptionManager");
 
     protected static final Status.Success DONE = new Status.Success(Done.getInstance());
 
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
+    private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
+            "Closed because of unknown/failure/misconfiguration status in client.";
 
 
     /**
@@ -1091,8 +1093,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     }
                 }
                 return goToConnecting(reconnectTimeoutStrategy.getNextTimeout())
-                        .using(data.resetSession()
-                                .setConnectionStatus(ConnectivityStatus.FAILED)
+                        .using(data.resetSession() // don't set the state, preserve the old one (e.g. MISCONFIGURED)
                                 .setConnectionStatusDetails(timeoutMessage + " Will try to reconnect."));
             } else {
                 connectionLogger.failure(
@@ -1109,14 +1110,17 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                                                  + " Reached maximum retries and thus will not try to reconnect any longer.")
                         );
             }
+        } else {
+            // this is unexpected, as a desired "closed" connection should not get this far (trying to connect)
+            connectionLogger.failure("Connection timed out, however desired state was {0}",
+                    data.getDesiredConnectionStatus());
+            return goTo(INITIALIZED)
+                    .using(data.resetSession()
+                            .setConnectionStatus(ConnectivityStatus.FAILED)
+                            .setConnectionStatusDetails(timeoutMessage + " Desired state was: " +
+                                    data.getDesiredConnectionStatus())
+                    );
         }
-
-        connectionLogger.failure("Connection timed out.");
-        return goTo(INITIALIZED)
-                .using(data.resetSession()
-                        .setConnectionStatus(ConnectivityStatus.FAILED)
-                        .setConnectionStatusDetails(timeoutMessage)
-                );
     }
 
     private State<BaseClientState, BaseClientData> tunnelStarted(final SshTunnelActor.TunnelStarted tunnelStarted,
@@ -1415,34 +1419,52 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .stream()
                 .mapToInt(source -> source.getConsumerCount() * source.getAddresses().size())
                 .sum();
-        final int expectedNumberOfChildren = numberOfProducers + numberOfConsumers;
+        int expectedNumberOfChildren = numberOfProducers + numberOfConsumers;
+        if (getSshTunnelState().isEnabled()) {
+            expectedNumberOfChildren++;
+        }
+        final Set<Pattern> noAddressReportingChildNamePatterns = getExcludedAddressReportingChildNamePatterns();
         final List<ActorRef> childrenToAsk = StreamSupport.stream(getContext().getChildren().spliterator(), false)
-                .filter(child -> !NO_ADDRESS_REPORTING_CHILD_NAMES.contains(child.path().name()))
+                .filter(child -> noAddressReportingChildNamePatterns.stream()
+                        .noneMatch(p -> p.matcher(child.path().name()).matches()))
                 .collect(Collectors.toList());
         final ConnectivityStatus clientConnectionStatus = data.getConnectionStatus();
-        if (childrenToAsk.size() != expectedNumberOfChildren && clientConnectionStatus.isFailure()) {
-            logger.withCorrelationId(command)
-                    .info("Responding with static 'CLOSED' ResourceStatus for all sources and targets," +
-                            "because some children could not be started, due to a failure in the client actor.");
-            connection.getSources().stream()
-                    .map(Source::getAddresses)
-                    .flatMap(Collection::stream)
-                    .map(sourceAddress -> ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
-                            ConnectivityStatus.CLOSED,
-                            sourceAddress, "Closed because of failure in client"))
-                    .forEach(resourceStatus -> sender.tell(resourceStatus, ActorRef.noSender()));
-            connection.getTargets().stream()
-                    .map(Target::getAddress)
-                    .map(targetAddress -> ConnectivityModelFactory.newTargetStatus(getInstanceIdentifier(),
-                            ConnectivityStatus.CLOSED,
-                            targetAddress, "Closed because of failure in client"))
-                    .forEach(resourceStatus -> sender.tell(resourceStatus, ActorRef.noSender()));
-        } else {
-            childrenToAsk.forEach(child -> {
+        if (childrenToAsk.size() != expectedNumberOfChildren) {
+            if (clientConnectionStatus.isFailure() || clientConnectionStatus == ConnectivityStatus.UNKNOWN) {
                 logger.withCorrelationId(command)
-                        .debug("Forwarding RetrieveAddressStatus to child <{}>.", child.path());
-                child.tell(RetrieveAddressStatus.getInstance(), sender);
-            });
+                        .info("Responding early with static 'CLOSED' ResourceStatus for all sub-sources and " +
+                                "-targets and SSH tunnel, because some children could not be started, due to a " +
+                                "live status <{}> in the client actor.", clientConnectionStatus);
+                connection.getSources().stream()
+                        .map(Source::getAddresses)
+                        .flatMap(Collection::stream)
+                        .map(sourceAddress -> ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
+                                ConnectivityStatus.CLOSED,
+                                sourceAddress,
+                                CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT))
+                        .forEach(resourceStatus -> sender.tell(resourceStatus, ActorRef.noSender()));
+                connection.getTargets().stream()
+                        .map(Target::getAddress)
+                        .map(targetAddress -> ConnectivityModelFactory.newTargetStatus(getInstanceIdentifier(),
+                                ConnectivityStatus.CLOSED,
+                                targetAddress,
+                                CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT))
+                        .forEach(resourceStatus -> sender.tell(resourceStatus, ActorRef.noSender()));
+                connection.getSshTunnel().ifPresent(sshTunnel -> sender.tell(
+                        ConnectivityModelFactory.newSshTunnelStatus(getInstanceIdentifier(),
+                                ConnectivityStatus.CLOSED,
+                                CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT,
+                                Instant.now()), ActorRef.noSender())
+                );
+            } else {
+                logger.withCorrelationId(command)
+                        .warning("NOT responding early with ResourceStatus for all sub-sources and " +
+                                "-targets and SSH tunnel, having a live status <{}> in the client actor which likely " +
+                                "will cause timeout 'failures' in some of the resources.", clientConnectionStatus);
+                retrieveAddressStatusFromChilds(command, sender, childrenToAsk);
+            }
+        } else {
+            retrieveAddressStatusFromChilds(command, sender, childrenToAsk);
         }
 
         final ResourceStatus clientStatus =
@@ -1453,6 +1475,26 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         sender.tell(clientStatus, getSelf());
 
         return stay();
+    }
+
+    private void retrieveAddressStatusFromChilds(final RetrieveConnectionStatus command, final ActorRef sender,
+            final List<ActorRef> childrenToAsk) {
+        childrenToAsk.forEach(child -> {
+            logger.withCorrelationId(command)
+                    .debug("Forwarding RetrieveAddressStatus to child <{}>.", child.path());
+            child.tell(RetrieveAddressStatus.getInstance(), sender);
+        });
+    }
+
+    /**
+     * Set of regex patterns including client actor names which should not receive {@link RetrieveAddressStatus}
+     * messages in order to retrieve the current live status.
+     * May be overwritten by clients to add more actor name patterns which are started as children of the client actor.
+     *
+     * @return the set of patterns to exclude.
+     */
+    protected Set<Pattern> getExcludedAddressReportingChildNamePatterns() {
+        return Set.of(EXCLUDED_ADDRESS_REPORTING_CHILD_NAME_PATTERN);
     }
 
     private static String getInstanceIdentifier() {

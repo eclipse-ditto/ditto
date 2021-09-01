@@ -329,12 +329,36 @@ public final class ConnectivityModelFactory {
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
      * @throws NullPointerException if any parameter is {@code null}.
      */
-    public static ResourceStatus newStatusUpdate(final String client, final ConnectivityStatus status,
+    public static ResourceStatus newStatusUpdate(final String client,
+            final ConnectivityStatus status,
             @Nullable final String address,
             @Nullable final String statusDetails,
             final Instant inStatusSince) {
 
         return ImmutableResourceStatus.of(ResourceStatus.ResourceType.UNKNOWN, client, status, address,
+                statusDetails, inStatusSince);
+    }
+
+    /**
+     * Returns a new target {@code ResourceStatus}.
+     *
+     * @param resourceType the resource type, e.g. {@code client}
+     * @param client a client identifier e.g. on which node this client is running
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param address the optional address identifier
+     * @param statusDetails the optional details about the connection status
+     * @param inStatusSince the optional instant since the resource is in the described status
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     */
+    public static ResourceStatus newStatusUpdate(final ResourceStatus.ResourceType resourceType,
+            final String client,
+            final ConnectivityStatus status,
+            @Nullable final String address,
+            @Nullable final String statusDetails,
+            @Nullable final Instant inStatusSince) {
+
+        return ImmutableResourceStatus.of(resourceType, client, status, address,
                 statusDetails, inStatusSince);
     }
 

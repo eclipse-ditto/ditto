@@ -157,6 +157,7 @@ public final class ConnectionPersistenceActor
     public static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
 
     private static final Duration DEFAULT_RETRIEVE_STATUS_TIMEOUT = Duration.ofMillis(500L);
+    private static final Duration GRACE_PERIOD_NOT_RETRIEVING_CONNECTION_STATUS_AFTER_RECOVERY = Duration.ofSeconds(10);
     private static final Duration SELF_RETRIEVE_CONNECTION_STATUS_TIMEOUT = Duration.ofSeconds(30);
 
     // never retry, just escalate. ConnectionSupervisorActor will handle restarting this actor
@@ -187,6 +188,7 @@ public final class ConnectionPersistenceActor
     @Nullable private Instant loggingEnabledUntil;
     @Nullable private ActorRef clientActorRouter;
     @Nullable private Integer priority;
+    @Nullable private Instant recoveredAt;
 
     ConnectionPersistenceActor(final ConnectionId connectionId,
             final ActorRef proxyActor,
@@ -372,6 +374,7 @@ public final class ConnectionPersistenceActor
     @Override
     protected void recoveryCompleted(final RecoveryCompleted event) {
         log.info("Connection <{}> was recovered: {}", entityId, entity);
+        recoveredAt = Instant.now();
         if (entity != null && entity.getLifecycle().isEmpty()) {
             entity = entity.toBuilder().lifecycle(ConnectionLifecycle.ACTIVE).build();
         }
@@ -455,7 +458,11 @@ public final class ConnectionPersistenceActor
             getSelf().tell(new PersistEmptyEvent(emptyEvent), ActorRef.noSender());
         }
 
-        askSelfForRetrieveConnectionStatus(ping.getCorrelationId().orElse(null));
+        if (null != recoveredAt && recoveredAt.plus(GRACE_PERIOD_NOT_RETRIEVING_CONNECTION_STATUS_AFTER_RECOVERY)
+                .isBefore(Instant.now())) {
+            // only ask for connection status after initial recovery was completed + some grace period
+            askSelfForRetrieveConnectionStatus(ping.getCorrelationId().orElse(null));
+        }
     }
 
     private void askSelfForRetrieveConnectionStatus(@Nullable final String correlationId) {

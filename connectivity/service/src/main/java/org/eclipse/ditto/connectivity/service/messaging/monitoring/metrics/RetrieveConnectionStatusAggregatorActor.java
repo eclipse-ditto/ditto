@@ -17,9 +17,11 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -32,6 +34,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.Address;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.event.DiagnosticLoggingAdapter;
@@ -46,8 +49,10 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final Duration timeout;
+    private final Set<Address> uniqueStatusSenderAddresses;
     private final Map<ResourceStatus.ResourceType, Integer> expectedResponses;
     private final ActorRef sender;
+    private final int configuredClientCount;
 
     private final RetrieveConnectionStatusResponse.Builder responseBuilder;
 
@@ -65,24 +70,26 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
                 .targetStatus(Collections.emptyList())
                 .sshTunnelStatus(Collections.emptyList());
 
+        uniqueStatusSenderAddresses = new HashSet<>();
         expectedResponses = new EnumMap<>(ResourceStatus.ResourceType.class);
-        final int clientCount = connection.getClientCount();
+        configuredClientCount = connection.getClientCount();
         // one response per client actor
-        expectedResponses.put(ResourceStatus.ResourceType.CLIENT, clientCount);
+        expectedResponses.put(ResourceStatus.ResourceType.CLIENT, configuredClientCount);
         if (ConnectivityStatus.OPEN.equals(connection.getConnectionStatus())) {
             // one response per source/target
             expectedResponses.put(ResourceStatus.ResourceType.TARGET,
                     connection.getTargets()
                             .stream()
-                            .mapToInt(target -> clientCount)
+                            .mapToInt(target -> configuredClientCount)
                             .sum());
             expectedResponses.put(ResourceStatus.ResourceType.SOURCE,
                     connection.getSources()
                             .stream()
-                            .mapToInt(source -> clientCount * source.getConsumerCount() * source.getAddresses().size())
+                            .mapToInt(source -> configuredClientCount * source.getConsumerCount() *
+                                    source.getAddresses().size())
                             .sum());
             if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
-                expectedResponses.put(ResourceStatus.ResourceType.SSH_TUNNEL, clientCount);
+                expectedResponses.put(ResourceStatus.ResourceType.SSH_TUNNEL, configuredClientCount);
             }
         }
     }
@@ -116,7 +123,8 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         log.warning("RetrieveConnectionStatus timed out, sending (partial) response with missing resources: <{}>",
                 missingResources);
-        responseBuilder.withMissingResources(missingResources);
+        responseBuilder.withMissingResources(missingResources, configuredClientCount,
+                uniqueStatusSenderAddresses.size() == configuredClientCount);
         sendResponse();
         stopSelf();
     }
@@ -128,7 +136,9 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
 
     private void handleResourceStatus(final ResourceStatus resourceStatus) {
         expectedResponses.compute(resourceStatus.getResourceType(), (type, count) -> count == null ? 0 : count - 1);
-        log.debug("Received resource status from {}: {}", getSender(), resourceStatus);
+        final ActorRef statusSender = getSender();
+        uniqueStatusSenderAddresses.add(statusSender.path().address());
+        log.debug("Received resource status from {}: {}", statusSender, resourceStatus);
         // aggregate status...
         responseBuilder.withAddressStatus(resourceStatus);
 
