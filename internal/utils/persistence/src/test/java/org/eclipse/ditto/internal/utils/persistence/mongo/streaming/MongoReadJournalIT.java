@@ -165,10 +165,12 @@ public final class MongoReadJournalIT {
         assertThat(snapshots).containsExactly(
                 new Document().append("_id", "pid3")
                         .append("__lifecycle", null)
-                        .append("_modified", "2020-01-31T19:57:48.571Z"),
+                        .append("_modified", "2020-01-31T19:57:48.571Z")
+                        .append("sn", 3L),
                 new Document().append("_id", "pid4")
                         .append("__lifecycle", null)
                         .append("_modified", "1970-01-01T00:00:00.000Z")
+                        .append("sn", 4L)
         );
     }
 
@@ -225,6 +227,7 @@ public final class MongoReadJournalIT {
                 new Document().append("_id", "pid3")
                         .append("__lifecycle", null)
                         .append("_modified", "2020-01-31T19:57:48.571Z")
+                        .append("sn", 3L)
         );
 
     }
@@ -408,9 +411,9 @@ public final class MongoReadJournalIT {
         insert("test_journal", new JournalEntry("pid2").withSn(2L).getDocument());
         insert("test_journal", new JournalEntry("pid3").withSn(2L).getDocument());
 
-        final List<Long> lowestSeqNrs = Stream.of(readJournal.deleteEventsUpTo("pid1", 1),
-                        readJournal.deleteEventsUpTo("pid2", 1),
-                        readJournal.deleteEventsUpTo("pid3", 1))
+        final List<Long> lowestSeqNrs = Stream.of(readJournal.deleteEvents("pid1", 0, 1),
+                        readJournal.deleteEvents("pid2", 0, 1),
+                        readJournal.deleteEvents("pid3", 0, 1))
                 .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
                 .map(DeleteResult::getDeletedCount)
                 .collect(Collectors.toList());
@@ -468,9 +471,9 @@ public final class MongoReadJournalIT {
                 .append("s2", new Document().append("_modified", "2000-01-01T00:01:01.000Z"))
         );
 
-        final List<Long> lowestSeqNrs = Stream.of(readJournal.deleteSnapshotsUpTo("pid1", 1),
-                        readJournal.deleteSnapshotsUpTo("pid2", 1),
-                        readJournal.deleteSnapshotsUpTo("pid3", 1))
+        final List<Long> lowestSeqNrs = Stream.of(readJournal.deleteSnapshots("pid1", 0, 1),
+                        readJournal.deleteSnapshots("pid2", 0, 1),
+                        readJournal.deleteSnapshots("pid3", 0, 1))
                 .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
                 .map(DeleteResult::getDeletedCount)
                 .collect(Collectors.toList());
