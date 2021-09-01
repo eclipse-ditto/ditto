@@ -1090,27 +1090,33 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                                         .resetSession());
                     }
                 }
-                return goToConnecting(reconnectTimeoutStrategy.getNextTimeout()).using(data.resetSession()
-                        .setConnectionStatus(ConnectivityStatus.FAILED)
-                        .setConnectionStatusDetails(timeoutMessage + " Will try to reconnect."));
+                return goToConnecting(reconnectTimeoutStrategy.getNextTimeout())
+                        .using(data.resetSession()
+                                .setConnectionStatus(ConnectivityStatus.FAILED)
+                                .setConnectionStatusDetails(timeoutMessage + " Will try to reconnect."));
             } else {
                 connectionLogger.failure(
                         "Connection timed out. Reached maximum tries and thus will no longer try to reconnect.");
                 logger.info(
-                        "Connection <{}> reached maximum retries for reconnecting and thus will no longer try to reconnect.",
+                        "Connection <{}> - connection timed out - " +
+                                "reached maximum retries for reconnecting and thus will no longer try to reconnect.",
                         connectionId());
 
-                return goTo(INITIALIZED).using(data.resetSession()
-                        .setConnectionStatus(ConnectivityStatus.FAILED)
-                        .setConnectionStatusDetails(timeoutMessage +
-                                " Reached maximum retries and thus will not try to reconnect any longer."));
+                return goTo(INITIALIZED)
+                        .using(data.resetSession() // don't set the state, preserve the old one (e.g. MISCONFIGURED)
+                                .setConnectionStatusDetails(
+                                        data.getConnectionStatusDetails().orElse(timeoutMessage) // Preserve old status details
+                                                 + " Reached maximum retries and thus will not try to reconnect any longer.")
+                        );
             }
         }
 
         connectionLogger.failure("Connection timed out.");
-        return goTo(INITIALIZED).using(data.resetSession()
-                .setConnectionStatus(ConnectivityStatus.FAILED)
-                .setConnectionStatusDetails(timeoutMessage));
+        return goTo(INITIALIZED)
+                .using(data.resetSession()
+                        .setConnectionStatus(ConnectivityStatus.FAILED)
+                        .setConnectionStatusDetails(timeoutMessage)
+                );
     }
 
     private State<BaseClientState, BaseClientData> tunnelStarted(final SshTunnelActor.TunnelStarted tunnelStarted,
@@ -1359,14 +1365,18 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                         "Connection failed due to: {0}. Reached maximum tries and thus will no longer try to reconnect.",
                         event.getFailureDescription());
                 logger.info(
-                        "Connection <{}> reached maximum retries for reconnecting and thus will no longer try to reconnect.",
+                        "Connection <{}> - backoff after failure - " +
+                                "reached maximum retries for reconnecting and thus will no longer try to reconnect.",
                         connectionId());
 
-                // stay in UNKNOWN state until re-opened manually
-                return goTo(INITIALIZED).using(data.resetSession()
-                        .setConnectionStatus(connectivityStatusResolver.resolve(event))
-                        .setConnectionStatusDetails(event.getFailureDescription()
-                                + " Reached maximum retries and thus will not try to reconnect any longer."));
+                // stay in INITIALIZED state until re-opened manually
+                return goTo(INITIALIZED)
+                        .using(data.resetSession()
+                                .setConnectionStatus(connectivityStatusResolver.resolve(event))
+                                .setConnectionStatusDetails(event.getFailureDescription()
+                                        + " Reached maximum retries after backing off after failure and thus will " +
+                                        "not try to reconnect any longer.")
+                        );
             }
         }
 
