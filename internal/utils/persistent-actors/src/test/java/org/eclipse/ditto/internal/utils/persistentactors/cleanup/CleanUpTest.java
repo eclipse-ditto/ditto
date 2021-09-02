@@ -68,7 +68,7 @@ public final class CleanUpTest {
                 .thenReturn(Source.empty());
 
         final var underTest = new CleanUp(mongoReadJournal, materializer, () -> Pair.create(0, 1), 1, 1, true);
-        final var result = underTest.getCleanUpStream()
+        final var result = underTest.getCleanUpStream("")
                 .flatMapConcat(x -> x)
                 .runWith(Sink.seq(), materializer)
                 .toCompletableFuture()
@@ -96,7 +96,7 @@ public final class CleanUpTest {
 
         final var underTest = new CleanUp(mongoReadJournal, materializer, () -> Pair.create(0, 1), 1, 4, true);
 
-        final var result = underTest.getCleanUpStream()
+        final var result = underTest.getCleanUpStream("")
                 .flatMapConcat(x -> x)
                 .runWith(Sink.seq(), materializer).toCompletableFuture().join();
         final var seqNrs = result.stream()
@@ -129,7 +129,7 @@ public final class CleanUpTest {
 
         final var underTest = new CleanUp(mongoReadJournal, materializer, () -> Pair.create(0, 1), 1, 4, false);
 
-        final var result = underTest.getCleanUpStream()
+        final var result = underTest.getCleanUpStream("")
                 .flatMapConcat(x -> x)
                 .runWith(Sink.seq(), materializer).toCompletableFuture().join();
         final var seqNrs = result.stream()
@@ -170,7 +170,7 @@ public final class CleanUpTest {
         // WHEN: the instance is responsible for 1/3 of the 3 PIDs
         final var underTest = new CleanUp(mongoReadJournal, materializer, () -> Pair.create(2, 3), 1, 4, false);
 
-        final var result = underTest.getCleanUpStream()
+        final var result = underTest.getCleanUpStream("")
                 .flatMapConcat(x -> x)
                 .runWith(Sink.seq(), materializer).toCompletableFuture().join();
         final var seqNrs = result.stream()

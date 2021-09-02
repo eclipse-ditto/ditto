@@ -17,9 +17,16 @@ import java.time.Duration;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
- * TODO: remove duplication.
+ * TODO: remove duplication; rename.
  */
 interface CreditDecisionConfig {
+
+    /**
+     * Returns quiet period between cleanup streams.
+     *
+     * @return the quiet period.
+     */
+    Duration getQuietPeriod();
 
     /**
      * Returns how often credit decision is made.
@@ -47,6 +54,11 @@ interface CreditDecisionConfig {
      * Enumeration of known config keys and default values for {@code CreditDecisionConfig}
      */
     enum ConfigValue implements KnownConfigValue {
+
+        /**
+         * Quiet period.
+         */
+        QUIET_PERIOD("quiet-period", Duration.ofMinutes(3L)),
 
         /**
          * Credit decision interval.

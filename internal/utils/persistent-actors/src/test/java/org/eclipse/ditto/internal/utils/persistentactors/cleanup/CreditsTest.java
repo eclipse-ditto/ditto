@@ -36,6 +36,7 @@ import org.junit.Test;
 import com.mongodb.client.result.DeleteResult;
 
 import akka.actor.ActorSystem;
+import akka.event.Logging;
 import akka.japi.Pair;
 import akka.stream.Attributes;
 import akka.stream.Materializer;
@@ -136,7 +137,8 @@ public final class CreditsTest {
         final var cleanUp = new CleanUp(mongoReadJournal, materializer, () -> Pair.create(0, 1), 1, 4, true);
         final var underTest = new Credits(getFastCreditConfig(4), mockTimer);
 
-        final var sinkProbe = underTest.regulate(cleanUp.getCleanUpStream())
+        final var log = Logging.getLogger(actorSystem, this);
+        final var sinkProbe = underTest.regulate(cleanUp.getCleanUpStream(""), log)
                 .flatMapConcat(x -> x)
                 .toMat(TestSink.probe(actorSystem), Keep.right())
                 .withAttributes(Attributes.inputBuffer(1, 1))
@@ -155,13 +157,13 @@ public final class CreditsTest {
 
     private Pair<TestPublisher.Probe<Object>, TestSubscriber.Probe<Object>> materializeProbePair(
             final Credits credits) {
-        return credits.regulate(TestSource.probe(actorSystem))
+        return credits.regulate(TestSource.probe(actorSystem), Logging.getLogger(actorSystem, this))
                 .toMat(TestSink.probe(actorSystem), Keep.both())
                 .withAttributes(Attributes.inputBuffer(1, 1))
                 .run(materializer);
     }
 
     private static CreditDecisionConfig getFastCreditConfig(final int creditPerBatch) {
-        return new DefaultCreditDecisionConfig(Duration.ofMillis(100), Duration.ofNanos(1000), creditPerBatch);
+        return new DefaultCreditDecisionConfig(Duration.ZERO, Duration.ofMillis(100), Duration.ofNanos(1000), creditPerBatch);
     }
 }

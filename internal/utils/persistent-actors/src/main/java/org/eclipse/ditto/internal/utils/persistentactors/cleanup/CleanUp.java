@@ -55,22 +55,23 @@ public final class CleanUp {
         this.deleteFinalDeletedSnapshot = deleteFinalDeletedSnapshot;
     }
 
-    Source<Source<CleanUpResult, NotUsed>, NotUsed> getCleanUpStream() {
-        return getSnapshotRevisions().flatMapConcat(sr -> cleanUpEvents(sr).concat(cleanUpSnapshots(sr)));
+    Source<Source<CleanUpResult, NotUsed>, NotUsed> getCleanUpStream(final String lowerBound) {
+        return getSnapshotRevisions(lowerBound).flatMapConcat(sr -> cleanUpEvents(sr).concat(cleanUpSnapshots(sr)));
     }
 
-    // TODO: fault tolerance?
-    private Source<SnapshotRevision, NotUsed> getSnapshotRevisions() {
-        return readJournal.getNewestSnapshotsAbove("", readBatchSize, true, materializer)
+    private Source<SnapshotRevision, NotUsed> getSnapshotRevisions(final String lowerBound) {
+        return readJournal.getNewestSnapshotsAbove(lowerBound, readBatchSize, true, materializer)
                 .map(document -> new SnapshotRevision(document.getString(S_ID),
                         document.getLong(S_SN),
                         "DELETED".equals(document.getString(LIFECYCLE))))
-                .filter(sr -> {
-                    final var responsibility = responsibilitySupplier.get();
-                    final int denominator = responsibility.second();
-                    final int remainder = responsibility.first();
-                    return Math.abs(sr.pid.hashCode()) % denominator == remainder;
-                });
+                .filter(this::isMyResponsibility);
+    }
+
+    private boolean isMyResponsibility(final SnapshotRevision sr) {
+        final var responsibility = responsibilitySupplier.get();
+        final int denominator = responsibility.second();
+        final int remainder = responsibility.first();
+        return Math.abs(Math.abs(sr.pid.hashCode()) % denominator) == remainder;
     }
 
     private Source<Source<CleanUpResult, NotUsed>, NotUsed> cleanUpEvents(final SnapshotRevision sr) {

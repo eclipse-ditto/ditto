@@ -27,17 +27,21 @@ final class DefaultCreditDecisionConfig implements CreditDecisionConfig {
 
     private static final String CONFIG_PATH = "credit-decision";
 
+    private final Duration quietPeriod;
     private final Duration interval;
     private final Duration timerThreshold;
     private final int creditPerBatch;
 
-    DefaultCreditDecisionConfig(final Duration interval, final Duration timerThreshold, final int creditPerBatch) {
+    DefaultCreditDecisionConfig(final Duration quietPeriod, final Duration interval,
+            final Duration timerThreshold, final int creditPerBatch) {
+        this.quietPeriod = quietPeriod;
         this.interval = interval;
         this.timerThreshold = timerThreshold;
         this.creditPerBatch = creditPerBatch;
     }
 
     private DefaultCreditDecisionConfig(final ScopedConfig conf) {
+        this.quietPeriod = conf.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.QUIET_PERIOD);
         this.interval = conf.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.INTERVAL);
         this.timerThreshold = conf.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.TIMER_THRESHOLD);
         this.creditPerBatch = conf.getNonNegativeIntOrThrow(ConfigValue.CREDIT_PER_BATCH);
@@ -46,6 +50,11 @@ final class DefaultCreditDecisionConfig implements CreditDecisionConfig {
     static CreditDecisionConfig of(final Config config) {
         return new DefaultCreditDecisionConfig(
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));
+    }
+
+    @Override
+    public Duration getQuietPeriod() {
+        return quietPeriod;
     }
 
     @Override
