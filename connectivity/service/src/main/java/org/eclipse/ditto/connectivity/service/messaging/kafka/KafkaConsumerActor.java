@@ -68,6 +68,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             kafkaStream = streamFactory.newAtMostOnceConsumerStream(materializer, inboundMonitor,
                     getMessageMappingSink(), getDittoRuntimeExceptionSink());
         }
+        kafkaStream.whenComplete(this::handleStreamCompletion);
     }
 
     static Props props(final Connection connection,
@@ -78,11 +79,6 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             final ConnectivityStatusResolver connectivityStatusResolver) {
         return Props.create(KafkaConsumerActor.class, connection, streamFactory, sourceAddress, source,
                 inboundMappingSink, connectivityStatusResolver);
-    }
-
-    @Override
-    public void preStart() throws IllegalStateException {
-        kafkaStream.start().whenComplete(this::handleStreamCompletion);
     }
 
     @Override
@@ -120,7 +116,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         final ConnectivityStatus status;
         final ResourceStatus statusUpdate;
         final Instant now = Instant.now();
-        final Throwable realCause = throwable instanceof CompletionException? throwable.getCause() : throwable;
+        final Throwable realCause = throwable instanceof CompletionException ? throwable.getCause() : throwable;
         if (null == realCause) {
             status = ConnectivityStatus.CLOSED;
             statusUpdate = ConnectivityModelFactory.newStatusUpdate(

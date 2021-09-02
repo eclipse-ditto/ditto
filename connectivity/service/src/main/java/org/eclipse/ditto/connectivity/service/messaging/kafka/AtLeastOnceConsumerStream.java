@@ -14,8 +14,9 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 
-import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -33,23 +34,22 @@ import akka.kafka.javadsl.Committer;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.RunnableGraph;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
 /**
  * Kafka consumer stream with "at least once" (QoS 1) semantics.
  */
+@Immutable
 final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
 
     private static final Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(AtLeastOnceConsumerStream.class);
 
-    private final RunnableGraph<Consumer.DrainingControl<Done>> runnableKafkaStream;
     private final ConnectionMonitor inboundMonitor;
     private final Materializer materializer;
     private final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink;
     private final Sink<DittoRuntimeException, ?> dreSink;
-    @Nullable private Consumer.DrainingControl<Done> consumerControl;
+    private final Consumer.DrainingControl<Done> consumerControl;
 
     AtLeastOnceConsumerStream(
             final AtLeastOnceKafkaConsumerSourceSupplier sourceSupplier,
@@ -66,38 +66,32 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         this.inboundMappingSink = inboundMappingSink;
         this.dreSink = dreSink;
         this.materializer = materializer;
-        runnableKafkaStream = sourceSupplier.get()
+        consumerControl = sourceSupplier.get()
                 .filter(committableMessage -> isNotDryRun(committableMessage.record(), dryRun))
                 .filter(committableMessage -> committableMessage.record().value() != null)
                 .filter(committableMessage -> KafkaConsumerStream.isNotExpired(committableMessage.record()))
                 .map(kafkaMessageTransformer::transform)
                 .flatMapConcat(this::processTransformationResult)
                 .mapAsync(consumerMaxInflight, x -> x)
-                .toMat(Committer.sink(committerSettings), Consumer::createDrainingControl);
+                .toMat(Committer.sink(committerSettings), Consumer::createDrainingControl)
+                .run(materializer);
     }
 
     @Override
-    public CompletionStage<Done> start() throws IllegalStateException {
-        if (consumerControl != null) {
-            stop();
-        }
-        consumerControl = runnableKafkaStream.run(materializer);
-        return consumerControl.streamCompletion();
+    public CompletionStage<Done> whenComplete(final BiConsumer<? super Done, ? super Throwable> handleCompletion) {
+        return consumerControl.streamCompletion().whenComplete(handleCompletion);
     }
 
     @Override
-    public void stop() {
-        if (consumerControl != null) {
-            consumerControl.drainAndShutdown(materializer.executionContext());
-            consumerControl = null;
-        }
+    public CompletionStage<Done> stop() {
+        return consumerControl.drainAndShutdown(materializer.executionContext());
     }
 
     private Source<CompletableFuture<CommittableOffset>, NotUsed> processTransformationResult(
             final CommittableTransformationResult result) {
         if (isExternalMessage(result)) {
             return Source.single(result)
-                    .map(this::toAcknowledgeableMessage)
+                    .map(AtLeastOnceConsumerStream::toAcknowledgeableMessage)
                     .alsoTo(this.externalMessageSink())
                     .map(KafkaAcknowledgableMessage::getAcknowledgementFuture);
         }
@@ -109,7 +103,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
                 CompletableFuture.completedFuture(result.getCommittableOffset());
         if (isDittoRuntimeException(result)) {
             return Source.single(result)
-                    .map(this::extractDittoRuntimeException)
+                    .map(AtLeastOnceConsumerStream::extractDittoRuntimeException)
                     .alsoTo(dreSink)
                     .map(dre -> offsetFuture);
         }
@@ -124,11 +118,11 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
                 .to(inboundMappingSink);
     }
 
-    private boolean isExternalMessage(final CommittableTransformationResult transformationResult) {
+    private static boolean isExternalMessage(final CommittableTransformationResult transformationResult) {
         return transformationResult.getTransformationResult().getExternalMessage().isPresent();
     }
 
-    private KafkaAcknowledgableMessage toAcknowledgeableMessage(final CommittableTransformationResult value) {
+    private static KafkaAcknowledgableMessage toAcknowledgeableMessage(final CommittableTransformationResult value) {
         final ExternalMessage externalMessage = value.getTransformationResult()
                 .getExternalMessage()
                 .orElseThrow(); // at this point, the ExternalMessage is present
@@ -136,7 +130,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         return new KafkaAcknowledgableMessage(externalMessage, committableOffset);
     }
 
-    private boolean isNotDryRun(final ConsumerRecord<String, String> cRecord, final boolean dryRun) {
+    private static boolean isNotDryRun(final ConsumerRecord<String, String> cRecord, final boolean dryRun) {
         if (dryRun && LOGGER.isDebugEnabled()) {
             LOGGER.debug("Dropping record (key: {}, topic: {}, partition: {}, offset: {}) in dry run mode.",
                     cRecord.key(), cRecord.topic(), cRecord.partition(), cRecord.offset());
@@ -144,11 +138,11 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         return !dryRun;
     }
 
-    private boolean isDittoRuntimeException(final CommittableTransformationResult value) {
+    private static boolean isDittoRuntimeException(final CommittableTransformationResult value) {
         return value.getTransformationResult().getDittoRuntimeException().isPresent();
     }
 
-    private DittoRuntimeException extractDittoRuntimeException(final CommittableTransformationResult value) {
+    private static DittoRuntimeException extractDittoRuntimeException(final CommittableTransformationResult value) {
         return value.getTransformationResult()
                 .getDittoRuntimeException()
                 .orElseThrow(); // at this point, the DRE is present

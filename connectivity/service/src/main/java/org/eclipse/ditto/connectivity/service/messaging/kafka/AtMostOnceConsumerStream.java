@@ -13,8 +13,9 @@
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 
-import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -29,20 +30,19 @@ import akka.NotUsed;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.RunnableGraph;
 import akka.stream.javadsl.Sink;
 
 /**
  * Kafka consumer stream with "at most once" (QoS 0) semantics.
  */
+@Immutable
 final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
     private static final Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(AtMostOnceConsumerStream.class);
 
-    private final RunnableGraph<Consumer.DrainingControl<Done>> runnableKafkaStream;
     private final ConnectionMonitor inboundMonitor;
     private final Materializer materializer;
-    @Nullable private Consumer.DrainingControl<Done> consumerControl;
+    private final Consumer.DrainingControl<Done> consumerControl;
 
     AtMostOnceConsumerStream(
             final AtMostOnceKafkaConsumerSourceSupplier sourceSupplier,
@@ -55,37 +55,30 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
         this.inboundMonitor = inboundMonitor;
         this.materializer = materializer;
-        runnableKafkaStream = sourceSupplier.get()
+        consumerControl = sourceSupplier.get()
                 .filter(consumerRecord -> isNotDryRun(consumerRecord, dryRun))
                 .filter(consumerRecord -> consumerRecord.value() != null)
                 .filter(KafkaConsumerStream::isNotExpired)
                 .map(kafkaMessageTransformer::transform)
-                .divertTo(this.externalMessageSink(externalMessageSink), this::isExternalMessage)
-                .divertTo(this.dittoRuntimeExceptionSink(dreSink), this::isDittoRuntimeException)
-                .toMat(unexpectedMessageSink(), Consumer::createDrainingControl);
+                .divertTo(externalMessageSink(externalMessageSink), AtMostOnceConsumerStream::isExternalMessage)
+                .divertTo(dittoRuntimeExceptionSink(dreSink), AtMostOnceConsumerStream::isDittoRuntimeException)
+                .toMat(unexpectedMessageSink(), Consumer::createDrainingControl)
+                .run(materializer);
     }
 
     @Override
-    public CompletionStage<Done> start() throws IllegalStateException {
-        if (consumerControl != null) {
-            stop();
-        }
-        consumerControl = runnableKafkaStream.run(materializer);
-        return consumerControl.streamCompletion();
+    public CompletionStage<Done> whenComplete(final BiConsumer<? super Done, ? super Throwable> handleCompletion) {
+        return consumerControl.streamCompletion().whenComplete(handleCompletion);
     }
 
-
     @Override
-    public void stop() {
-        if (consumerControl != null) {
-            consumerControl.drainAndShutdown(materializer.executionContext());
-            consumerControl = null;
-        }
+    public CompletionStage<Done> stop() {
+        return consumerControl.drainAndShutdown(materializer.executionContext());
     }
 
     private Sink<TransformationResult, ?> externalMessageSink(
             final Sink<AcknowledgeableMessage, NotUsed> externalMessageSink) {
-        return Flow.fromFunction(this::extractExternalMessage)
+        return Flow.fromFunction(AtMostOnceConsumerStream::extractExternalMessage)
                 .map(externalMessage -> AcknowledgeableMessage.of(externalMessage, () -> {
                             // NoOp because at most once
                         },
@@ -95,15 +88,15 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
                 .to(externalMessageSink);
     }
 
-    private boolean isExternalMessage(final TransformationResult value) {
+    private static boolean isExternalMessage(final TransformationResult value) {
         return value.getExternalMessage().isPresent();
     }
 
-    private ExternalMessage extractExternalMessage(final TransformationResult value) {
+    private static ExternalMessage extractExternalMessage(final TransformationResult value) {
         return value.getExternalMessage().orElseThrow(); // at this point, the ExternalMessage is present
     }
 
-    private boolean isNotDryRun(final ConsumerRecord<String, String> cRecord, final boolean dryRun) {
+    private static boolean isNotDryRun(final ConsumerRecord<String, String> cRecord, final boolean dryRun) {
         if (dryRun && LOGGER.isDebugEnabled()) {
             LOGGER.debug("Dropping record (key: {}, topic: {}, partition: {}, offset: {}) in dry run mode.",
                     cRecord.key(), cRecord.topic(), cRecord.partition(), cRecord.offset());
@@ -112,15 +105,15 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
     }
 
     private Sink<TransformationResult, ?> dittoRuntimeExceptionSink(final Sink<DittoRuntimeException, ?> dreSink) {
-        return Flow.fromFunction(this::extractDittoRuntimeException)
+        return Flow.fromFunction(AtMostOnceConsumerStream::extractDittoRuntimeException)
                 .to(dreSink);
     }
 
-    private boolean isDittoRuntimeException(final TransformationResult value) {
+    private static boolean isDittoRuntimeException(final TransformationResult value) {
         return value.getDittoRuntimeException().isPresent();
     }
 
-    private DittoRuntimeException extractDittoRuntimeException(final TransformationResult value) {
+    private static DittoRuntimeException extractDittoRuntimeException(final TransformationResult value) {
         return value.getDittoRuntimeException().orElseThrow(); // at this point, the DRE is present
     }
 

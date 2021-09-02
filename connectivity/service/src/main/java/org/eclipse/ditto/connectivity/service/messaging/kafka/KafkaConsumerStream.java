@@ -15,6 +15,9 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
+
+import javax.annotation.concurrent.Immutable;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
@@ -25,19 +28,17 @@ import akka.Done;
 /**
  * A start- and stoppable kafka consumer stream.
  */
+@Immutable
 interface KafkaConsumerStream {
 
-    /**
-     * Starts the consumer stream.
-     *
-     * @return a completion stage that completes when the stream is stopped (gracefully or exceptionally).
-     */
-    CompletionStage<Done> start();
+    CompletionStage<Done> whenComplete(BiConsumer<? super Done, ? super Throwable> handleCompletion);
 
     /**
      * Stops the consumer stream gracefully.
+     *
+     * @return A completion stage that completes when the stream is stopped.
      */
-    void stop();
+    CompletionStage<Done> stop();
 
     /**
      * Checks based on the Kafka headers {@code "creation-time"} and {@code "ttl"} (time to live) whether the processed
