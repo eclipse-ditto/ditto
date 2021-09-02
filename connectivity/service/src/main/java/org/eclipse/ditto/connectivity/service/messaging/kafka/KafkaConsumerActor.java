@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -50,7 +51,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
     private static final int DEFAULT_CONSUMPTION_QOS = 0;
 
     private final ThreadSafeDittoLoggingAdapter log;
-    private final KafkaConsumerStream kafkaStream;
+    private RestartableKafkaConsumerStream kafkaStream;
 
     @SuppressWarnings("unused")
     private KafkaConsumerActor(final Connection connection,
@@ -65,13 +66,24 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         final Materializer materializer = Materializer.createMaterializer(this::getContext);
         final Integer qos = source.getQos().orElse(DEFAULT_CONSUMPTION_QOS);
         if (qos.equals(1)) {
-            kafkaStream = streamFactory.newAtLeastOnceConsumerStream(materializer, inboundMonitor,
-                    getMessageMappingSink(), getDittoRuntimeExceptionSink());
+            kafkaStream = new RestartableKafkaConsumerStream(
+                    () -> {
+                        final KafkaConsumerStream kafkaConsumerStream =
+                                streamFactory.newAtLeastOnceConsumerStream(materializer, inboundMonitor,
+                                        getMessageMappingSink(), getDittoRuntimeExceptionSink());
+                        kafkaConsumerStream.whenComplete(this::handleStreamCompletion);
+                        return kafkaConsumerStream;
+                    });
         } else {
-            kafkaStream = streamFactory.newAtMostOnceConsumerStream(materializer, inboundMonitor,
-                    getMessageMappingSink(), getDittoRuntimeExceptionSink());
+            kafkaStream = new RestartableKafkaConsumerStream(
+                    () -> {
+                        final KafkaConsumerStream kafkaConsumerStream =
+                                streamFactory.newAtMostOnceConsumerStream(materializer, inboundMonitor,
+                                        getMessageMappingSink(), getDittoRuntimeExceptionSink());
+                        kafkaConsumerStream.whenComplete(this::handleStreamCompletion);
+                        return kafkaConsumerStream;
+                    });
         }
-        kafkaStream.whenComplete(this::handleStreamCompletion);
     }
 
     static Props props(final Connection connection,
@@ -96,7 +108,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                 .match(ResourceStatus.class, this::handleAddressStatus)
                 .match(RetrieveAddressStatus.class, ram -> getSender().tell(getCurrentSourceStatus(), getSelf()))
                 .match(GracefulStop.class, stop -> this.shutdown())
-                .match(MessageRejectedException.class, this::escalateRejection)
+                .match(MessageRejectedException.class, this::restartStream)
                 .matchAny(unhandled -> {
                     log.info("Unhandled message: {}", unhandled);
                     unhandled(unhandled);
@@ -164,8 +176,8 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         handleAddressStatus(statusUpdate);
     }
 
-    private void escalateRejection(final MessageRejectedException ex) {
-        throw ex;
+    private void restartStream(final MessageRejectedException ex) throws ExecutionException, InterruptedException {
+        kafkaStream = kafkaStream.restart().toCompletableFuture().get();
     }
 
     private void escalate(final Throwable throwable, final String description) {

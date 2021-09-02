@@ -42,11 +42,8 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailu
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 
 import akka.actor.ActorRef;
-import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.actor.SupervisorStrategy;
-import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FSMStateFunctionBuilder;
 
 /**
@@ -135,19 +132,6 @@ public final class KafkaClientActor extends BaseClientActor {
                     completeTestConnectionFuture(new Status.Failure(event.getFailure().cause()));
                     return stay();
                 });
-    }
-
-    @Override
-    public SupervisorStrategy supervisorStrategy() {
-        return new OneForOneStrategy(
-                DeciderBuilder
-                        .match(MessageRejectedException.class, error -> {
-                            logger.info("Consumed message that could not be settled correctly. Consumer will restart.");
-                            return (SupervisorStrategy.Directive) SupervisorStrategy.restart();
-                        })
-                        .build()
-                        .orElse(super.supervisorStrategy().decider())
-        );
     }
 
     @Override
