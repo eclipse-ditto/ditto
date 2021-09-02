@@ -144,7 +144,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     @Override
     public void toBinary(final Object object, final ByteBuffer buf) {
         if (object instanceof Jsonifiable) {
-            final Instant beforeSerializeInstant = Instant.now();
+            final Instant beforeSerializeInstant = DittoTracing.getTracingInstantNow();
             final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
             final DittoHeaders dittoHeaders = getDittoHeadersOrEmpty(object);
 
@@ -276,7 +276,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     private Jsonifiable<?> createJsonifiableFrom(final String manifest, final ByteBuffer bytebuffer)
             throws NotSerializableException {
 
-        final Instant beforeDeserializeInstant = Instant.now();
+        final Instant beforeDeserializeInstant = DittoTracing.getTracingInstantNow();
         final JsonValue jsonValue = deserializeFromByteBuffer(bytebuffer);
 
         final JsonObject jsonObject;
