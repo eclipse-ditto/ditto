@@ -28,12 +28,14 @@ import org.slf4j.Logger;
 import akka.Done;
 import akka.NotUsed;
 import akka.kafka.CommitterSettings;
-import akka.kafka.ConsumerMessage;
+import akka.kafka.ConsumerMessage.CommittableOffset;
 import akka.kafka.javadsl.Committer;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.RunnableGraph;
 import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
 
 /**
  * Kafka consumer stream with "at least once" (QoS 1) semantics.
@@ -42,17 +44,17 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
 
     private static final Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(AtLeastOnceConsumerStream.class);
 
-    private final akka.stream.javadsl.Source<CommittableTransformationResult, Consumer.Control> runnableKafkaStream;
+    private final RunnableGraph<Consumer.DrainingControl<Done>> runnableKafkaStream;
     private final ConnectionMonitor inboundMonitor;
     private final Materializer materializer;
-    private final CommitterSettings committerSettings;
-    private final int consumerMaxInflight;
-    @Nullable private Consumer.Control consumerControl;
+    private final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink;
+    private final Sink<DittoRuntimeException, ?> dreSink;
+    @Nullable private Consumer.DrainingControl<Done> consumerControl;
 
     AtLeastOnceConsumerStream(
             final AtLeastOnceKafkaConsumerSourceSupplier sourceSupplier,
             final CommitterSettings committerSettings,
-            final int consumerMaxInInflight,
+            final int consumerMaxInflight,
             final KafkaMessageTransformer kafkaMessageTransformer,
             final boolean dryRun,
             final Materializer materializer,
@@ -61,16 +63,17 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
             final Sink<DittoRuntimeException, ?> dreSink) {
 
         this.inboundMonitor = inboundMonitor;
+        this.inboundMappingSink = inboundMappingSink;
+        this.dreSink = dreSink;
         this.materializer = materializer;
-        this.committerSettings = committerSettings;
-        this.consumerMaxInflight = consumerMaxInInflight;
         runnableKafkaStream = sourceSupplier.get()
                 .filter(committableMessage -> isNotDryRun(committableMessage.record(), dryRun))
                 .filter(committableMessage -> committableMessage.record().value() != null)
-                .filter(committableMessage -> KafkaMessageTransformer.isNotExpired(committableMessage.record()))
+                .filter(committableMessage -> KafkaConsumerStream.isNotExpired(committableMessage.record()))
                 .map(kafkaMessageTransformer::transform)
-                .divertTo(this.externalMessageSink(inboundMappingSink), this::isExternalMessage)
-                .divertTo(this.dittoRuntimeExceptionSink(dreSink), this::isDittoRuntimeException);
+                .flatMapConcat(this::processTransformationResult)
+                .mapAsync(consumerMaxInflight, x -> x)
+                .toMat(Committer.sink(committerSettings), Consumer::createDrainingControl);
     }
 
     @Override
@@ -78,34 +81,47 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         if (consumerControl != null) {
             stop();
         }
-        return runnableKafkaStream
-                .mapMaterializedValue(cc -> {
-                    consumerControl = cc;
-                    return cc;
-                })
-                .runWith(unexpectedMessageSink(), materializer);
+        consumerControl = runnableKafkaStream.run(materializer);
+        return consumerControl.streamCompletion();
     }
 
     @Override
     public void stop() {
         if (consumerControl != null) {
-            consumerControl.drainAndShutdown(new CompletableFuture<>(), materializer.executionContext());
+            consumerControl.drainAndShutdown(materializer.executionContext());
             consumerControl = null;
         }
     }
 
-    private Sink<CommittableTransformationResult, ?> externalMessageSink(
-            final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink) {
-        return Flow.fromFunction(this::toAcknowledgeableMessage)
-                .alsoTo(committerSink())
-                .map(KafkaAcknowledgableMessage::getAcknowledgeableMessage)
-                .to(inboundMappingSink);
+    private Source<CompletableFuture<CommittableOffset>, NotUsed> processTransformationResult(
+            final CommittableTransformationResult result) {
+        if (isExternalMessage(result)) {
+            return Source.single(result)
+                    .map(this::toAcknowledgeableMessage)
+                    .alsoTo(this.externalMessageSink())
+                    .map(KafkaAcknowledgableMessage::getAcknowledgementFuture);
+        }
+        /*
+         * For all other cases a retry for consuming this message makes no sense, so we want to commit these offsets.
+         * Therefore, we return an already completed future holding the offset to commit. No reject needed.
+         */
+        final CompletableFuture<CommittableOffset> offsetFuture =
+                CompletableFuture.completedFuture(result.getCommittableOffset());
+        if (isDittoRuntimeException(result)) {
+            return Source.single(result)
+                    .map(this::extractDittoRuntimeException)
+                    .alsoTo(dreSink)
+                    .map(dre -> offsetFuture);
+        }
+        return Source.single(result)
+                .alsoTo(unexpectedMessageSink())
+                .map(unexpected -> offsetFuture);
     }
 
-    private Sink<KafkaAcknowledgableMessage, NotUsed> committerSink() {
+    private Sink<KafkaAcknowledgableMessage, NotUsed> externalMessageSink() {
         return Flow.of(KafkaAcknowledgableMessage.class)
-                .mapAsync(consumerMaxInflight, KafkaAcknowledgableMessage::getAcknowledgementFuture)
-                .to(Committer.sink(committerSettings));
+                .map(KafkaAcknowledgableMessage::getAcknowledgeableMessage)
+                .to(inboundMappingSink);
     }
 
     private boolean isExternalMessage(final CommittableTransformationResult transformationResult) {
@@ -113,8 +129,10 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
     }
 
     private KafkaAcknowledgableMessage toAcknowledgeableMessage(final CommittableTransformationResult value) {
-        final ExternalMessage externalMessage = value.getTransformationResult().getExternalMessage().orElseThrow(); // at this point, the ExternalMessage is present
-        final ConsumerMessage.CommittableOffset committableOffset = value.getCommittableOffset();
+        final ExternalMessage externalMessage = value.getTransformationResult()
+                .getExternalMessage()
+                .orElseThrow(); // at this point, the ExternalMessage is present
+        final CommittableOffset committableOffset = value.getCommittableOffset();
         return new KafkaAcknowledgableMessage(externalMessage, committableOffset);
     }
 
@@ -126,18 +144,14 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         return !dryRun;
     }
 
-    private Sink<CommittableTransformationResult, ?> dittoRuntimeExceptionSink(
-            final Sink<DittoRuntimeException, ?> dreSink) {
-        return Flow.fromFunction(this::extractDittoRuntimeException)
-                .to(dreSink);
-    }
-
     private boolean isDittoRuntimeException(final CommittableTransformationResult value) {
         return value.getTransformationResult().getDittoRuntimeException().isPresent();
     }
 
     private DittoRuntimeException extractDittoRuntimeException(final CommittableTransformationResult value) {
-        return value.getTransformationResult().getDittoRuntimeException().orElseThrow(); // at this point, the DRE is present
+        return value.getTransformationResult()
+                .getDittoRuntimeException()
+                .orElseThrow(); // at this point, the DRE is present
     }
 
     private Sink<CommittableTransformationResult, CompletionStage<Done>> unexpectedMessageSink() {

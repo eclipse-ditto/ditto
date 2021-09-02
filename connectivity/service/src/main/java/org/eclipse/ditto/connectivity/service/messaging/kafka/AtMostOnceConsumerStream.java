@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -30,6 +29,7 @@ import akka.NotUsed;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.RunnableGraph;
 import akka.stream.javadsl.Sink;
 
 /**
@@ -39,10 +39,10 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
     private static final Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(AtMostOnceConsumerStream.class);
 
-    private final akka.stream.javadsl.Source<TransformationResult, Consumer.Control> runnableKafkaStream;
+    private final RunnableGraph<Consumer.DrainingControl<Done>> runnableKafkaStream;
     private final ConnectionMonitor inboundMonitor;
     private final Materializer materializer;
-    @Nullable private Consumer.Control consumerControl;
+    @Nullable private Consumer.DrainingControl<Done> consumerControl;
 
     AtMostOnceConsumerStream(
             final AtMostOnceKafkaConsumerSourceSupplier sourceSupplier,
@@ -58,10 +58,11 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
         runnableKafkaStream = sourceSupplier.get()
                 .filter(consumerRecord -> isNotDryRun(consumerRecord, dryRun))
                 .filter(consumerRecord -> consumerRecord.value() != null)
-                .filter(KafkaMessageTransformer::isNotExpired)
+                .filter(KafkaConsumerStream::isNotExpired)
                 .map(kafkaMessageTransformer::transform)
                 .divertTo(this.externalMessageSink(externalMessageSink), this::isExternalMessage)
-                .divertTo(this.dittoRuntimeExceptionSink(dreSink), this::isDittoRuntimeException);
+                .divertTo(this.dittoRuntimeExceptionSink(dreSink), this::isDittoRuntimeException)
+                .toMat(unexpectedMessageSink(), Consumer::createDrainingControl);
     }
 
     @Override
@@ -69,19 +70,15 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
         if (consumerControl != null) {
             stop();
         }
-        return runnableKafkaStream
-                .mapMaterializedValue(cc -> {
-                    consumerControl = cc;
-                    return cc;
-                })
-                .runWith(unexpectedMessageSink(), materializer);
+        consumerControl = runnableKafkaStream.run(materializer);
+        return consumerControl.streamCompletion();
     }
 
 
     @Override
     public void stop() {
         if (consumerControl != null) {
-            consumerControl.drainAndShutdown(new CompletableFuture<>(), materializer.executionContext());
+            consumerControl.drainAndShutdown(materializer.executionContext());
             consumerControl = null;
         }
     }
