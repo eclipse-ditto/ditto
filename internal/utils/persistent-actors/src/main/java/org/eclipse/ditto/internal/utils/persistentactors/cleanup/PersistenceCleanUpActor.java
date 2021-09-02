@@ -23,12 +23,15 @@ import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.json.JsonObject;
 
 import akka.Done;
 import akka.actor.AbstractFSM;
 import akka.actor.ActorRef;
 import akka.actor.FSM;
+import akka.actor.Props;
+import akka.cluster.Cluster;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.stream.Attributes;
 import akka.stream.Materializer;
@@ -52,9 +55,30 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
         this.credits = credits;
     }
 
-    private PersistenceCleanUpActor(final CreditDecisionConfig config) {
+    @SuppressWarnings("unused") // called by reflection
+    private PersistenceCleanUpActor(final CleanUpConfig config,
+            final MongoReadJournal mongoReadJournal,
+            final String myRole) {
+        final var cluster = Cluster.get(getContext().getSystem());
+        final var responsibilitySupplier = ClusterResponsibilitySupplier.of(cluster, myRole);
         quietPeriod = config.getQuietPeriod();
-        throw new UnsupportedOperationException("TODO");
+        cleanUp = CleanUp.of(config, mongoReadJournal, materializer, responsibilitySupplier);
+        credits = Credits.of(config);
+    }
+
+    /**
+     * Create the Props object for this actor.
+     *
+     * @param config the background clean-up config.
+     * @param mongoReadJournal the Mongo read journal for databasae operations.
+     * @param myRole the cluster role of this node among which the background cleanup responsibility is divided.
+     * @return the Props object.
+     */
+    public static Props props(final CleanUpConfig config,
+            final MongoReadJournal mongoReadJournal,
+            final String myRole) {
+
+        return Props.create(PersistenceCleanUpActor.class, config, mongoReadJournal, myRole);
     }
 
     @Override

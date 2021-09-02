@@ -163,7 +163,8 @@ public final class CreditsTest {
                 .run(materializer);
     }
 
-    private static CreditDecisionConfig getFastCreditConfig(final int creditPerBatch) {
-        return new DefaultCreditDecisionConfig(Duration.ZERO, Duration.ofMillis(100), Duration.ofNanos(1000), creditPerBatch);
+    private static CleanUpConfig getFastCreditConfig(final int creditPerBatch) {
+        return new DefaultCleanUpConfig(Duration.ZERO, Duration.ofMillis(100), Duration.ofNanos(1000),
+                creditPerBatch, 100, 100, false);
     }
 }

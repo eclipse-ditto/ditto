@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.concurrent.atomic.LongAccumulator;
 
 import org.eclipse.ditto.internal.utils.akka.controlflow.Transistor;
+import org.eclipse.ditto.internal.utils.metrics.mongo.MongoMetricsBuilder;
 
 import akka.NotUsed;
 import akka.event.LoggingAdapter;
@@ -25,13 +26,17 @@ import akka.stream.javadsl.Source;
 
 final class Credits {
 
-    private final CreditDecisionConfig creditDecisionConfig;
+    private final CleanUpConfig cleanUpConfig;
     private final LongAccumulator dbTimerNanos;
 
-    Credits(final CreditDecisionConfig creditDecisionConfig,
+    Credits(final CleanUpConfig cleanUpConfig,
             final LongAccumulator dbTimerNanos) {
-        this.creditDecisionConfig = creditDecisionConfig;
+        this.cleanUpConfig = cleanUpConfig;
         this.dbTimerNanos = dbTimerNanos;
+    }
+
+    static Credits of(final CleanUpConfig config) {
+        return new Credits(config, MongoMetricsBuilder.maxTimerNanos());
     }
 
     /**
@@ -55,7 +60,7 @@ final class Credits {
     }
 
     private Source<Integer, NotUsed> getCreditSource(final LoggingAdapter logger) {
-        return Source.tick(Duration.ZERO, creditDecisionConfig.getInterval(), Tick.TICK)
+        return Source.tick(Duration.ZERO, cleanUpConfig.getInterval(), Tick.TICK)
                 .mapMaterializedValue(cancellable -> NotUsed.getInstance())
                 .flatMapConcat(tick -> computeCredit(logger));
     }
@@ -63,9 +68,9 @@ final class Credits {
     private Source<Integer, NotUsed> computeCredit(final LoggingAdapter logger) {
         try {
             final Duration maxDuration = Duration.ofNanos(dbTimerNanos.getThenReset());
-            final Duration threshold = creditDecisionConfig.getTimerThreshold();
+            final Duration threshold = cleanUpConfig.getTimerThreshold();
             if (maxDuration.minus(threshold).isNegative()) {
-                final var credits = creditDecisionConfig.getCreditPerBatch();
+                final var credits = cleanUpConfig.getCreditsPerBatch();
                 logger.debug("Credits={} Timer={}/{}", credits, maxDuration, threshold);
                 return Source.single(credits);
             } else {

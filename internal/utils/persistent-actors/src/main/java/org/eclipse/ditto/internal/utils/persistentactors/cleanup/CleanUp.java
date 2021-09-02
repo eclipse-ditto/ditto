@@ -55,6 +55,15 @@ public final class CleanUp {
         this.deleteFinalDeletedSnapshot = deleteFinalDeletedSnapshot;
     }
 
+    static CleanUp of(final CleanUpConfig config,
+            final MongoReadJournal readJournal,
+            final Materializer materializer,
+            final Supplier<Pair<Integer, Integer>> responsibilitySupplier) {
+
+        return new CleanUp(readJournal, materializer, responsibilitySupplier, config.getReadsPerQuery(),
+                config.getWritesPerCredit(), config.shouldDeleteFinalDeletedSnapshot());
+    }
+
     Source<Source<CleanUpResult, NotUsed>, NotUsed> getCleanUpStream(final String lowerBound) {
         return getSnapshotRevisions(lowerBound).flatMapConcat(sr -> cleanUpEvents(sr).concat(cleanUpSnapshots(sr)));
     }

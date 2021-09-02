@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -14,12 +14,26 @@ package org.eclipse.ditto.internal.utils.persistentactors.cleanup;
 
 import java.time.Duration;
 
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
+import com.typesafe.config.Config;
+
 /**
- * TODO: remove duplication; rename.
+ * Config for persistence cleanup.
  */
-interface CreditDecisionConfig {
+interface CleanUpConfig {
+
+    /**
+     * Create an instance of clean-up config from HOCON.
+     *
+     * @param config the HOCON object.
+     * @return the clean-up config.
+     */
+    static CleanUpConfig of(final Config config) {
+        return new DefaultCleanUpConfig(ConfigWithFallback.newInstance(config, DefaultCleanUpConfig.CONFIG_PATH,
+                ConfigValue.values()));
+    }
 
     /**
      * Returns quiet period between cleanup streams.
@@ -48,7 +62,29 @@ interface CreditDecisionConfig {
      *
      * @return the amount of credit per decision.
      */
-    int getCreditPerBatch();
+    int getCreditsPerBatch();
+
+    /**
+     * Returns the number of snapshots to scan per MongoDB query.
+     *
+     * @return the number of snapshots to scan per query.
+     */
+    int getReadsPerQuery();
+
+    /**
+     * Returns the number of documents to delete for each credit.
+     *
+     * @return the number of documents to delete.
+     */
+    int getWritesPerCredit();
+
+    /**
+     * Whether the final deleted snapshot should be deleted.
+     * If true, the monotonicity constraint on the sequence numbers of a PID will be broken.
+     *
+     * @return whether to delete the final deleted snapshot..
+     */
+    boolean shouldDeleteFinalDeletedSnapshot();
 
     /**
      * Enumeration of known config keys and default values for {@code CreditDecisionConfig}
@@ -73,7 +109,22 @@ interface CreditDecisionConfig {
         /**
          * Amount of credit to give out per decision.
          */
-        CREDIT_PER_BATCH("credit-per-batch", 5);
+        CREDITS_PER_BATCH("credits-per-batch", 5),
+
+        /**
+         * How many snapshots to scan for each query.
+         */
+        READS_PER_QUERY("reads-per-query", 100),
+
+        /**
+         * How many delete operations to authorize for each credit.
+         */
+        WRITES_PER_CREDIT("writes-per-credit", 100),
+
+        /**
+         * Whether to delete the final deleted snapshot.
+         */
+        DELETE_FINAL_DELETED_SNAPSHOT("delete-final-deleted-snapshot", false);
 
         private final String path;
         private final Object defaultValue;
