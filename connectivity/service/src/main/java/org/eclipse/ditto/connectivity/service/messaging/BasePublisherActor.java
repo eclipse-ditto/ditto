@@ -39,6 +39,7 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.CharsetDeterminer;
+import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -76,9 +77,9 @@ import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
-import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
@@ -123,11 +124,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         this.clientId = checkNotNull(clientId, "clientId");
         resourceStatusMap = new HashMap<>();
         final List<Target> targets = connection.getTargets();
-        targets.forEach(target ->
-                resourceStatusMap.put(target,
-                        ConnectivityModelFactory.newTargetStatus(InstanceIdentifierSupplier.getInstance().get(),
-                                ConnectivityStatus.OPEN, target.getAddress(), "Started at " + Instant.now())));
-
+        targets.forEach(target -> resourceStatusMap.put(target, getTargetResourceStatus(target)));
         connectivityConfig = getConnectivityConfig();
         connectionConfig = connectivityConfig.getConnectionConfig();
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
@@ -639,4 +636,18 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 (signal instanceof ThingCommand && ProtocolAdapter.isLiveSignal(signal));
     }
 
+    private static ResourceStatus getTargetResourceStatus(final Target target) {
+        if (Placeholders.containsAnyPlaceholder(target.getAddress())) {
+            // we cannot determine the actual status of targets with placeholders, they are created on-demand
+            return ConnectivityModelFactory.newTargetStatus(InstanceIdentifierSupplier.getInstance().get(),
+                    ConnectivityStatus.UNKNOWN, target.getAddress(),
+                    "Producers for targets with placeholders are started on-demand.", Instant.now());
+        } else {
+            // for most connection types publishing to a target works without further initialization, hence the
+            // default is OPEN, which can be overwritten in the implementations
+            return ConnectivityModelFactory.newTargetStatus(InstanceIdentifierSupplier.getInstance().get(),
+                    ConnectivityStatus.OPEN, target.getAddress(), "Producer started.",
+                    Instant.now());
+        }
+    }
 }

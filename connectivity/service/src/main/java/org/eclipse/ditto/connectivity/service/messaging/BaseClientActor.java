@@ -1602,7 +1602,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
-    private static Optional<EntityId> tryExtractEntityId(Signal<?> signal) {
+    private static Optional<EntityId> tryExtractEntityId(final Signal<?> signal) {
         if (signal instanceof WithEntityId) {
             final var withEntityId = (WithEntityId) signal;
             return Optional.of(withEntityId.getEntityId());
@@ -1872,6 +1872,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                             return (SupervisorStrategy.Directive) SupervisorStrategy.resume();
                         })
                         .matchAny(error -> {
+                            logger.warning("Received unhandled exception in supervisor: [{}] {}",
+                                    error.getClass().getName(), error.getMessage());
                             self.tell(ConnectionFailure.of(getSender(), error, "exception in child"), self);
                             if (getSender().equals(tunnelActor)) {
                                 logger.debug("Restarting tunnel actor after failure: {}", error.getMessage());

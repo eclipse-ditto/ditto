@@ -339,7 +339,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final Props props = AmqpPublisherActor.props(connection(), jmsSession,
                     connectionContext.getConnectivityConfig().getConnectionConfig(), getDefaultClientId());
             amqpPublisherActor = startChildActorConflictFree(AmqpPublisherActor.ACTOR_NAME_PREFIX, props);
-            Patterns.ask(amqpPublisherActor, AmqpPublisherActor.INITIALIZE, clientAskTimeout)
+            Patterns.ask(amqpPublisherActor, AmqpPublisherActor.Control.INITIALIZE, clientAskTimeout)
                     .whenComplete((result, error) -> {
                         if (error != null) {
                             future.completeExceptionally(error);
@@ -511,6 +511,12 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final ConnectionFailure failure = statusReport.getFailure();
         connectionLogger.failure(failure.getFailureDescription());
         final ConnectivityStatus newStatus = connectivityStatusResolver.resolve(failure);
+
+        if (!statusReport.isRecoverable()) {
+            logger.debug("Unrecoverable failure occurred, triggering client actor failure handling: {}", failure);
+            getSelf().tell(failure, getSelf());
+        }
+
         return stay().using(currentData.setConnectionStatus(newStatus)
                 .setConnectionStatusDetails(failure.getFailureDescription()));
     }
@@ -804,7 +810,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             connectionLogger.failure("Connection failure: {0}", error.getMessage());
             logger.warning("Connection Failure: {}", error.getMessage());
             final ConnectionFailure failure = ConnectionFailure.of(ActorRef.noSender(), error, null);
-            self.tell(ConnectionFailureStatusReport.get(failure), ActorRef.noSender());
+            self.tell(ConnectionFailureStatusReport.get(failure, false), ActorRef.noSender());
         }
 
         @Override
@@ -813,7 +819,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             logger.warning("Connection interrupted: {}", remoteURI);
             final ConnectionFailure failure =
                     ConnectionFailure.userRelated(ActorRef.noSender(), null, "JMS Interrupted");
-            self.tell(ConnectionFailureStatusReport.get(failure), ActorRef.noSender());
+            self.tell(ConnectionFailureStatusReport.get(failure, true), ActorRef.noSender());
         }
 
         @Override

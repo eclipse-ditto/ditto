@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.amqp.status;
 
+import java.util.Objects;
+
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 
 /**
@@ -20,16 +22,50 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailu
 public final class ConnectionFailureStatusReport {
 
     private final ConnectionFailure failure;
+    private final boolean recoverable;
 
-    private ConnectionFailureStatusReport(final ConnectionFailure failure) {
+    private ConnectionFailureStatusReport(final ConnectionFailure failure, final boolean recoverable) {
         this.failure = failure;
+        this.recoverable = recoverable;
     }
 
-    public static ConnectionFailureStatusReport get(final ConnectionFailure failure) {
-        return new ConnectionFailureStatusReport(failure);
+    public static ConnectionFailureStatusReport get(final ConnectionFailure failure, final boolean recoverable) {
+        return new ConnectionFailureStatusReport(failure, recoverable);
     }
 
+    /**
+     * @return the failure
+     */
     public ConnectionFailure getFailure() {
         return failure;
+    }
+
+    /**
+     * @return whether the occurred failure is recoverable (i.e. the client handles the connection recovery) or not
+     * (connection must be closed and re-opened by the client actor)
+     */
+    public boolean isRecoverable() {
+        return recoverable;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final ConnectionFailureStatusReport that = (ConnectionFailureStatusReport) o;
+        return recoverable == that.recoverable && Objects.equals(failure, that.failure);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(failure, recoverable);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "failure=" + failure +
+                ", recoverable=" + recoverable +
+                "]";
     }
 }

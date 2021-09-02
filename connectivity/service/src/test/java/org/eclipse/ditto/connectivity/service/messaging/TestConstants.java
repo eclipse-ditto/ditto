@@ -54,19 +54,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.connectivity.service.config.ClientConfig;
-import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
-import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.TestCertificates;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ConnectivityCounterRegistry;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.UsageBasedPriorityProvider;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.FilteredAcknowledgementRequest;
@@ -77,6 +64,8 @@ import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.AddressMetric;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -101,18 +90,19 @@ import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.TargetMetrics;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
-import org.eclipse.ditto.messages.model.Message;
-import org.eclipse.ditto.messages.model.MessageDirection;
-import org.eclipse.ditto.messages.model.MessageHeaders;
-import org.eclipse.ditto.things.model.Attributes;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.JsonifiableAdaptable;
-import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
+import org.eclipse.ditto.connectivity.service.config.ClientConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
+import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.TestCertificates;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.UsageBasedPriorityProvider;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -120,10 +110,20 @@ import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.messages.model.Message;
+import org.eclipse.ditto.messages.model.MessageDirection;
+import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.JsonifiableAdaptable;
+import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.things.model.Attributes;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
@@ -328,6 +328,7 @@ public final class TestConstants {
     public static final class Sources {
 
         public static final String AMQP_SOURCE_ADDRESS = "amqp/source1";
+        public static final String REPLY_TARGET_ADDRESS = "replyTarget/{{thing:id}}";
         public static final List<Source> SOURCES_WITH_AUTH_CONTEXT =
                 singletonList(ConnectivityModelFactory.newSourceBuilder()
                         .address(AMQP_SOURCE_ADDRESS)
@@ -335,7 +336,7 @@ public final class TestConstants {
                         .consumerCount(2)
                         .index(0)
                         .replyTarget(ReplyTarget.newBuilder()
-                                .address("replyTarget/{{thing:id}}")
+                                .address(REPLY_TARGET_ADDRESS)
                                 .expectedResponseTypes(ResponseType.RESPONSE, ResponseType.ERROR, ResponseType.NACK)
                                 .headerMapping(ConnectivityModelFactory.newHeaderMapping(JsonFactory.newObjectBuilder()
                                         .set("mappedHeader1", "{{header:original-header}}")
