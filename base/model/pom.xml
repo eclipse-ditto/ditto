@@ -131,6 +131,9 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
+
+                            <!-- Excluded because Java serialization was already turned off -->
+                            <exclude>org.eclipse.ditto.base.model.common.HttpStatus</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

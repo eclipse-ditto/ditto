@@ -40,7 +40,7 @@
         <akka-bom.version>2.6.16</akka-bom.version>
         <akka-persistence-mongo.version>3.0.6</akka-persistence-mongo.version>
         <akka-http-bom.version>10.2.5</akka-http-bom.version>
-        <akka-management.version>1.1.1</akka-management.version>
+        <akka-management.version>1.0.10</akka-management.version>
         <akka-stream-kafka.version>2.1.1</akka-stream-kafka.version>
         <hivemq-mqtt-client.version>1.2.2</hivemq-mqtt-client.version>
         <sshd.version>2.7.0</sshd.version>
@@ -66,6 +66,12 @@
 
         <!-- ### Metrics and Tracing -->
         <kamon.version>2.2.2</kamon.version>
+        <!-- When updating Kamon, please update the guava version below too to the used version in Kamon!
+             Guava is needed by kamon-opentelemetry (as traces are sent via gRPC library depending on Guava).
+             We need to explicitly "pin" it as a test dependency (docker-java-core) also pulls in Guava, but an older
+             version which somehow conflicts:
+        -->
+        <guava.version>30.0-android</guava.version>
 
         <jsr305.version>3.0.2</jsr305.version>
 
@@ -217,7 +223,7 @@
             <!-- MongoDB client -->
             <dependency>
                 <groupId>org.mongodb</groupId>
-                <artifactId>mongodb-bson</artifactId>
+                <artifactId>bson</artifactId>
                 <version>${mongo-java-driver.version}</version>
             </dependency>
             <dependency>
@@ -424,6 +430,11 @@
                 <groupId>io.kamon</groupId>
                 <artifactId>kamon-opentelemetry_${scala.version}</artifactId>
                 <version>${kamon.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
 
             <!-- ### Compile - own artifacts ### -->

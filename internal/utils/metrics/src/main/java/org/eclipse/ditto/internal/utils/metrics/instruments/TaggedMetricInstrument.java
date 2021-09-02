@@ -17,66 +17,11 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 /**
- * {@link MetricInstrument} which is able to be tagged with keys and values.
+ * {@link MetricInstrument} which is able to be tagged with keys and values and can the tags can be read from.
  *
  * @param <T> the type of the MetricInstrument itself
  */
-public interface TaggedMetricInstrument<T extends MetricInstrument> extends MetricInstrument {
-
-    /**
-     * Adds the given tag to the timer.
-     * Already existing tags with the same key will be overridden.
-     *
-     * @param key They key of the tag.
-     * @param value The value of the tag.
-     * @return The TracingTimerBuilder.
-     */
-    default T tag(final String key, final long value) {
-        return tag(key, Long.toString(value));
-    }
-
-    /**
-     * Adds the given tag to the timer.
-     * Already existing tags with the same key will be overridden.
-     *
-     * @param key They key of the tag.
-     * @param value The value of the tag.
-     * @return The TracingTimerBuilder.
-     */
-    default T tag(final String key, final double value) {
-        return tag(key, Double.toString(value));
-    }
-
-    /**
-     * Adds the given tag to the timer.
-     * Already existing tags with the same key will be overridden.
-     *
-     * @param key They key of the tag.
-     * @param value The value of the tag.
-     * @return The TracingTimerBuilder.
-     */
-    default T tag(final String key, final boolean value) {
-        return tag(key, Boolean.toString(value));
-    }
-
-    /**
-     * Adds the given tag to the timer.
-     * Already existing tags with the same key will be overridden.
-     *
-     * @param key They key of the tag.
-     * @param value The value of the tag.
-     * @return The TracingTimerBuilder.
-     */
-    T tag(String key, String value);
-
-    /**
-     * Adds tags to the timer.
-     * Already existing tags with the same key will be overridden.
-     *
-     * @param tags Additional tags for this tracing.
-     * @return The TracingTimerBuilder.
-     */
-    T tags(Map<String, String> tags);
+public interface TaggedMetricInstrument<T extends MetricInstrument> extends TaggableMetricsInstrument<T> {
 
     /**
      * Gets the value of the tag with the given key.

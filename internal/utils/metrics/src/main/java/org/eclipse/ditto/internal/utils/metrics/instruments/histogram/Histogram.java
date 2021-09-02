@@ -20,6 +20,11 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.TaggedMetricInstrume
  */
 public interface Histogram extends ResettableMetricInstrument, TaggedMetricInstrument<Histogram> {
 
+    @Override
+    default Histogram self() {
+        return this;
+    }
+
     /**
      * Records the specified value in the histogram.
      *

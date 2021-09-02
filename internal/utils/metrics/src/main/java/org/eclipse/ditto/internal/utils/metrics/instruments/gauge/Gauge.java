@@ -20,6 +20,11 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.TaggedMetricInstrume
  */
 public interface Gauge extends ResettableMetricInstrument, TaggedMetricInstrument<Gauge> {
 
+    @Override
+    default Gauge self() {
+        return this;
+    }
+
     /**
      * Increments the value of the gauge by one.
      *

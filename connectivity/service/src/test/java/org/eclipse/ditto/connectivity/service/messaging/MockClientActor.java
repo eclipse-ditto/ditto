@@ -18,7 +18,6 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CheckConnectionLogsActive;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnection;
@@ -29,6 +28,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnecti
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogs;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -126,6 +126,12 @@ public class MockClientActor extends AbstractActor {
                             getSelf());
                     sender().tell(ConnectivityModelFactory.newTargetStatus("client1",
                             ConnectivityStatus.OPEN, "target1", "publisher started"),
+                            getSelf());
+                    sender().tell(ConnectivityModelFactory.newTargetStatus("client1",
+                            ConnectivityStatus.OPEN, "target2", "publisher started"),
+                            getSelf());
+                    sender().tell(ConnectivityModelFactory.newTargetStatus("client1",
+                            ConnectivityStatus.OPEN, "target3", "publisher started"),
                             getSelf());
                 })
                 .match(RetrieveConnectionLogs.class, rcl -> {

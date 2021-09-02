@@ -19,12 +19,6 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -33,6 +27,12 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * A {@link DevOpsCommandResponse} aggregating multiple {@link org.eclipse.ditto.base.model.signals.commands.CommandResponse}s.
@@ -184,7 +184,12 @@ public final class AggregatedDevOpsCommandResponse
         for (final CommandResponse<?> cmdR : commandResponses) {
             final String key = String.format("/%s/%s", calculateServiceName(cmdR), calculateInstance(cmdR, i++));
             // include both regular and special fields for devops command responses
-            final JsonObject responseJson = cmdR.toJson(schemaVersion, FieldType.regularOrSpecial());
+            final JsonValue responseJson;
+            if (cmdR instanceof ExecutePiggybackCommandResponse) {
+                responseJson = ((ExecutePiggybackCommandResponse) cmdR).getResponse();
+            } else {
+                responseJson = cmdR.toJson(schemaVersion, FieldType.regularOrSpecial());
+            }
             builder.set(key, responseJson);
         }
 
