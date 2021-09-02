@@ -12,8 +12,11 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nullable;
 
@@ -42,8 +45,8 @@ import akka.stream.javadsl.Sink;
  */
 final class KafkaConsumerActor extends BaseConsumerActor {
 
+    private static final Duration MAX_SHUTDOWN_TIMEOUT = Duration.ofSeconds(10);
     static final String ACTOR_NAME_PREFIX = "kafkaConsumer-";
-
     private static final int DEFAULT_CONSUMPTION_QOS = 0;
 
     private final ThreadSafeDittoLoggingAdapter log;
@@ -108,7 +111,19 @@ final class KafkaConsumerActor extends BaseConsumerActor {
 
     private void shutdown() {
         if (kafkaStream != null) {
-            kafkaStream.stop();
+            try {
+                kafkaStream.stop()
+                        .toCompletableFuture()
+                        .orTimeout(MAX_SHUTDOWN_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
+                        .join();
+            } catch (final CompletionException exception) {
+                final Throwable cause = exception.getCause();
+                if (cause instanceof TimeoutException) {
+                    log.warning(
+                            "Timeout when shutting down the kafka consumer stream for Connection with ID <{}>",
+                            connectionId);
+                }
+            }
         }
     }
 
