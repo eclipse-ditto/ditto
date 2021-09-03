@@ -83,18 +83,20 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
         }
         final DefaultKafkaConsumerConfig that = (DefaultKafkaConsumerConfig) o;
         return Objects.equals(throttlingConfig, that.throttlingConfig) &&
+                Objects.equals(consumerRestartBackOffConfig, that.consumerRestartBackOffConfig) &&
                 Objects.equals(alpakkaConfig, that.alpakkaConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(throttlingConfig, alpakkaConfig);
+        return Objects.hash(throttlingConfig, consumerRestartBackOffConfig, alpakkaConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "throttlingConfig=" + throttlingConfig +
+                ", consumerRestartBackOffConfig=" + consumerRestartBackOffConfig +
                 ", alpakkaConfig=" + alpakkaConfig +
                 "]";
     }
