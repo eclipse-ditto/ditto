@@ -46,6 +46,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
     private static final Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(AtLeastOnceConsumerStream.class);
 
     private final ConnectionMonitor inboundMonitor;
+    private final ConnectionMonitor ackMonitor;
     private final Materializer materializer;
     private final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink;
     private final Sink<DittoRuntimeException, ?> dreSink;
@@ -59,10 +60,12 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
             final boolean dryRun,
             final Materializer materializer,
             final ConnectionMonitor inboundMonitor,
+            final ConnectionMonitor ackMonitor,
             final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink,
             final Sink<DittoRuntimeException, ?> dreSink) {
 
         this.inboundMonitor = inboundMonitor;
+        this.ackMonitor = ackMonitor;
         this.inboundMappingSink = inboundMappingSink;
         this.dreSink = dreSink;
         this.materializer = materializer;
@@ -91,7 +94,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
             final CommittableTransformationResult result) {
         if (isExternalMessage(result)) {
             return Source.single(result)
-                    .map(AtLeastOnceConsumerStream::toAcknowledgeableMessage)
+                    .map(this::toAcknowledgeableMessage)
                     .alsoTo(this.externalMessageSink())
                     .map(KafkaAcknowledgableMessage::getAcknowledgementFuture);
         }
@@ -122,12 +125,12 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         return transformationResult.getTransformationResult().getExternalMessage().isPresent();
     }
 
-    private static KafkaAcknowledgableMessage toAcknowledgeableMessage(final CommittableTransformationResult value) {
+    private KafkaAcknowledgableMessage toAcknowledgeableMessage(final CommittableTransformationResult value) {
         final ExternalMessage externalMessage = value.getTransformationResult()
                 .getExternalMessage()
                 .orElseThrow(); // at this point, the ExternalMessage is present
         final CommittableOffset committableOffset = value.getCommittableOffset();
-        return new KafkaAcknowledgableMessage(externalMessage, committableOffset);
+        return new KafkaAcknowledgableMessage(externalMessage, committableOffset, ackMonitor);
     }
 
     private static boolean isNotDryRun(final ConsumerRecord<String, String> cRecord, final boolean dryRun) {

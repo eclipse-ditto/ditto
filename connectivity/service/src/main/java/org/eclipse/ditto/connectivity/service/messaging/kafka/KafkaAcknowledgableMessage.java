@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 
 import akka.kafka.ConsumerMessage;
 
@@ -38,14 +39,20 @@ final class KafkaAcknowledgableMessage {
     private final CompletableFuture<ConsumerMessage.CommittableOffset> acknowledgementFuture;
 
     KafkaAcknowledgableMessage(final ExternalMessage message,
-            final ConsumerMessage.CommittableOffset committableOffset) {
+            final ConsumerMessage.CommittableOffset committableOffset,
+            final ConnectionMonitor ackMonitor) {
         this.acknowledgementFuture = new CompletableFuture<>();
         this.acknowledgeableMessage = AcknowledgeableMessage.of(message,
-                () -> acknowledgementFuture.complete(committableOffset),
+                () -> {
+                    ackMonitor.success(message);
+                    acknowledgementFuture.complete(committableOffset);
+                },
                 shouldRedeliver -> {
                     if (shouldRedeliver) {
+                        ackMonitor.exception("Message was rejected and redelivery is requested.");
                         acknowledgementFuture.completeExceptionally(MessageRejectedException.getInstance());
                     } else {
+                        ackMonitor.exception("Message was rejected and no redelivery is requested.");
                         acknowledgementFuture.complete(committableOffset);
                     }
                 });

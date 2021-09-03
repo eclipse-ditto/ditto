@@ -71,7 +71,8 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                     () -> {
                         final KafkaConsumerStream kafkaConsumerStream =
                                 streamFactory.newAtLeastOnceConsumerStream(materializer, inboundMonitor,
-                                        getMessageMappingSink(), getDittoRuntimeExceptionSink());
+                                        inboundAcknowledgedMonitor, getMessageMappingSink(),
+                                        getDittoRuntimeExceptionSink());
                         kafkaConsumerStream.whenComplete(this::handleStreamCompletion);
                         return kafkaConsumerStream;
                     }, exponentialBackOffConfig);

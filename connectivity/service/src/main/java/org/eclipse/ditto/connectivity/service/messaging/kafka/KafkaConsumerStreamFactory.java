@@ -97,6 +97,7 @@ final class KafkaConsumerStreamFactory {
     KafkaConsumerStream newAtLeastOnceConsumerStream(
             final Materializer materializer,
             final ConnectionMonitor inboundMonitor,
+            final ConnectionMonitor ackMonitor,
             final Sink<AcknowledgeableMessage, NotUsed> messageMappingSink,
             final Sink<DittoRuntimeException, ?> dreSink) {
 
@@ -108,6 +109,7 @@ final class KafkaConsumerStreamFactory {
                 dryRun,
                 materializer,
                 inboundMonitor,
+                ackMonitor,
                 messageMappingSink,
                 dreSink);
     }
