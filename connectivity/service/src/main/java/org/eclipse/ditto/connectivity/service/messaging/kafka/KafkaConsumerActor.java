@@ -156,8 +156,6 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                     sourceAddress,
                     "Consumer closed", now);
         } else if (realCause instanceof MessageRejectedException) {
-            final MessageRejectedException cause = (MessageRejectedException) throwable.getCause();
-            inboundMonitor.exception(cause);
             status = ConnectivityStatus.CLOSED;
             self().tell(realCause, ActorRef.noSender());
             statusUpdate = ConnectivityModelFactory.newStatusUpdate(
