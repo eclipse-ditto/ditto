@@ -222,7 +222,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
     protected void resetResourceStatus() {
         resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
-                ConnectivityStatus.OPEN, sourceAddress, "Started at " + Instant.now());
+                ConnectivityStatus.OPEN, sourceAddress, "Consumer started.", Instant.now());
     }
 
     protected ResourceStatus getCurrentSourceStatus() {
