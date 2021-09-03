@@ -262,7 +262,6 @@ public final class ConnectivityModelFactory {
                 inStateSince);
     }
 
-
     /**
      * Returns a new source {@code ResourceStatus}.
      *
@@ -279,6 +278,28 @@ public final class ConnectivityModelFactory {
             @Nullable final String statusDetails) {
 
         return ImmutableResourceStatus.of(ResourceStatus.ResourceType.SOURCE, client, status, address, statusDetails);
+    }
+
+    /**
+     * Returns a new source {@code ResourceStatus}.
+     *
+     * @param client a client identifier e.g. on which node this client is running
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param address the address identifier
+     * @param statusDetails the optional details about the connection status
+     * @param inStatusSince the instant since the target is in the given state
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any parameter is {@code null}.
+     * @since 2.1.0
+     */
+    public static ResourceStatus newSourceStatus(final String client,
+            final ConnectivityStatus status,
+            @Nullable final String address,
+            @Nullable final String statusDetails,
+            @Nullable final Instant inStatusSince) {
+
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.SOURCE, client, status, address, statusDetails,
+                inStatusSince);
     }
 
     /**
@@ -316,7 +337,7 @@ public final class ConnectivityModelFactory {
             final ConnectivityStatus status,
             @Nullable final String address,
             @Nullable final String statusDetails,
-            final Instant inStatusSince) {
+            @Nullable final Instant inStatusSince) {
 
         return ImmutableResourceStatus.of(ResourceStatus.ResourceType.TARGET, client, status, address,
                 statusDetails, inStatusSince);

@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 
@@ -225,17 +226,20 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     }
 
     protected ResourceStatus getCurrentSourceStatus() {
+        final Optional<ResourceStatus> statusOptional = Optional.ofNullable(resourceStatus);
         return ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
-                resourceStatus != null ? resourceStatus.getStatus() : ConnectivityStatus.UNKNOWN,
+                statusOptional.map(ResourceStatus::getStatus).orElse(ConnectivityStatus.UNKNOWN),
                 sourceAddress,
-                resourceStatus != null ? resourceStatus.getStatusDetails().orElse(null) : null);
+                statusOptional.flatMap(ResourceStatus::getStatusDetails).orElse(null),
+                statusOptional.flatMap(ResourceStatus::getInStateSince).orElse(null));
     }
 
     protected void handleAddressStatus(final ResourceStatus resourceStatus) {
         if (resourceStatus.getResourceType() == ResourceStatus.ResourceType.UNKNOWN) {
             this.resourceStatus = ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
                     resourceStatus.getStatus(), sourceAddress,
-                    resourceStatus.getStatusDetails().orElse(null));
+                    resourceStatus.getStatusDetails().orElse(null),
+                    resourceStatus.getInStateSince().orElse(Instant.now()));
         } else {
             this.resourceStatus = resourceStatus;
         }

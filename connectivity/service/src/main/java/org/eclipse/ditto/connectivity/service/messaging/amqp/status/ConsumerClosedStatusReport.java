@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.amqp.status;
 
+import java.util.Objects;
+
 import javax.jms.MessageConsumer;
 
 /**
@@ -20,16 +22,50 @@ import javax.jms.MessageConsumer;
 public final class ConsumerClosedStatusReport {
 
     private final MessageConsumer messageConsumer;
+    private final Throwable cause;
 
-    private ConsumerClosedStatusReport(final MessageConsumer messageConsumer) {
+    private ConsumerClosedStatusReport(final MessageConsumer messageConsumer, final Throwable cause) {
         this.messageConsumer = messageConsumer;
+        this.cause = cause;
     }
 
-    public static ConsumerClosedStatusReport get(final MessageConsumer messageConsumer) {
-        return new ConsumerClosedStatusReport(messageConsumer);
+    public static ConsumerClosedStatusReport get(final MessageConsumer messageConsumer, final Throwable cause) {
+        return new ConsumerClosedStatusReport(messageConsumer, cause);
     }
 
+    /**
+     * @return the closed message consumer
+     */
     public MessageConsumer getMessageConsumer() {
         return messageConsumer;
+    }
+
+    /**
+     * @return the cause why the consumer was closed
+     */
+    public Throwable getCause() {
+        return cause;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final ConsumerClosedStatusReport that = (ConsumerClosedStatusReport) o;
+        return Objects.equals(messageConsumer, that.messageConsumer) &&
+                Objects.equals(cause, that.cause);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(messageConsumer, cause);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "messageConsumer=" + messageConsumer +
+                ", cause=" + cause +
+                "]";
     }
 }

@@ -522,8 +522,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     private FSM.State<BaseClientState, BaseClientData> handleConsumerClosed(
-            final ConsumerClosedStatusReport statusReport,
-            final BaseClientData currentData) {
+            final ConsumerClosedStatusReport statusReport, final BaseClientData currentData) {
 
         // broadcast event to consumers, who then decide whether the event is meant for them
         consumerByNamePrefix.forEach((namePrefix, consumerActor) -> consumerActor.tell(statusReport, getSelf()));
@@ -848,7 +847,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             connectionLogger.failure("Consumer {0} was closed: {1}", consumer, cause.getMessage());
             logger.warning("Consumer <{}> closed due to {}: {}", consumer, cause.getClass().getSimpleName(),
                     cause.getMessage());
-            self.tell(ConsumerClosedStatusReport.get(consumer), ActorRef.noSender());
+            self.tell(ConsumerClosedStatusReport.get(consumer, cause), ActorRef.noSender());
         }
 
         @Override
