@@ -16,6 +16,9 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.service.config.supervision.DefaultExponentialBackOffConfig;
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -27,12 +30,16 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
 
     private static final String CONFIG_PATH = "consumer";
     private static final String ALPAKKA_PATH = "alpakka";
+    private static final String RESTART_PATH = "restart";
 
     private final ConnectionThrottlingConfig throttlingConfig;
+    private final ExponentialBackOffConfig consumerRestartBackOffConfig;
     private final Config alpakkaConfig;
 
     private DefaultKafkaConsumerConfig(final Config kafkaConsumerScopedConfig) {
         throttlingConfig = ConnectionThrottlingConfig.of(kafkaConsumerScopedConfig);
+        consumerRestartBackOffConfig =
+                DefaultExponentialBackOffConfig.of(getConfigOrEmpty(kafkaConsumerScopedConfig, RESTART_PATH));
         alpakkaConfig = getConfigOrEmpty(kafkaConsumerScopedConfig, ALPAKKA_PATH);
     }
 
@@ -54,6 +61,11 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
     @Override
     public ConnectionThrottlingConfig getThrottlingConfig() {
         return throttlingConfig;
+    }
+
+    @Override
+    public ExponentialBackOffConfig getConsumerRestartBackOffConfig() {
+        return consumerRestartBackOffConfig;
     }
 
     @Override

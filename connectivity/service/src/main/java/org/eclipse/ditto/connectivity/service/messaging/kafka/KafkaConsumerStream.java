@@ -31,6 +31,12 @@ import akka.Done;
 @Immutable
 interface KafkaConsumerStream {
 
+    /**
+     * Allows registering a handler for stream completion.
+     *
+     * @param handleCompletion the handler
+     * @return the chained completion stage. Completes when the Stream completes and the handler finished.
+     */
     CompletionStage<Done> whenComplete(BiConsumer<? super Done, ? super Throwable> handleCompletion);
 
     /**

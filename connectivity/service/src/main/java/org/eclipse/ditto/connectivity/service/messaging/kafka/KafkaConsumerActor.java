@@ -15,12 +15,12 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
@@ -46,8 +46,8 @@ import akka.stream.javadsl.Sink;
  */
 final class KafkaConsumerActor extends BaseConsumerActor {
 
-    private static final Duration MAX_SHUTDOWN_TIMEOUT = Duration.ofSeconds(10);
     static final String ACTOR_NAME_PREFIX = "kafkaConsumer-";
+    private static final Duration MAX_SHUTDOWN_TIMEOUT = Duration.ofSeconds(10);
     private static final int DEFAULT_CONSUMPTION_QOS = 0;
 
     private final ThreadSafeDittoLoggingAdapter log;
@@ -59,7 +59,8 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             final String sourceAddress,
             final Source source,
             final Sink<Object, NotUsed> inboundMappingSink,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ExponentialBackOffConfig exponentialBackOffConfig) {
         super(connection, sourceAddress, inboundMappingSink, source, connectivityStatusResolver);
 
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
@@ -73,7 +74,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                                         getMessageMappingSink(), getDittoRuntimeExceptionSink());
                         kafkaConsumerStream.whenComplete(this::handleStreamCompletion);
                         return kafkaConsumerStream;
-                    });
+                    }, exponentialBackOffConfig);
         } else {
             kafkaStream = new RestartableKafkaConsumerStream(
                     () -> {
@@ -82,7 +83,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                                         getMessageMappingSink(), getDittoRuntimeExceptionSink());
                         kafkaConsumerStream.whenComplete(this::handleStreamCompletion);
                         return kafkaConsumerStream;
-                    });
+                    }, exponentialBackOffConfig);
         }
     }
 
@@ -91,9 +92,10 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             final String sourceAddress,
             final Source source,
             final Sink<Object, NotUsed> inboundMappingSink,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ExponentialBackOffConfig exponentialBackOffConfig) {
         return Props.create(KafkaConsumerActor.class, connection, streamFactory, sourceAddress, source,
-                inboundMappingSink, connectivityStatusResolver);
+                inboundMappingSink, connectivityStatusResolver, exponentialBackOffConfig);
     }
 
     @Override
@@ -109,6 +111,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                 .match(RetrieveAddressStatus.class, ram -> getSender().tell(getCurrentSourceStatus(), getSelf()))
                 .match(GracefulStop.class, stop -> this.shutdown())
                 .match(MessageRejectedException.class, this::restartStream)
+                .match(RestartableKafkaConsumerStream.class, this::setStream)
                 .matchAny(unhandled -> {
                     log.info("Unhandled message: {}", unhandled);
                     unhandled(unhandled);
@@ -160,7 +163,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                     InstanceIdentifierSupplier.getInstance().get(),
                     status,
                     sourceAddress,
-                    "Consumer closed", now);
+                    "Restarting because of rejected message.", now);
         } else {
             log.debug("Consumer failed with error! <{}: {}>", throwable.getClass().getSimpleName(),
                     throwable.getMessage());
@@ -176,8 +179,14 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         handleAddressStatus(statusUpdate);
     }
 
-    private void restartStream(final MessageRejectedException ex) throws ExecutionException, InterruptedException {
-        kafkaStream = kafkaStream.restart().toCompletableFuture().get();
+    private void restartStream(final MessageRejectedException ex) {
+        kafkaStream.restart().toCompletableFuture()
+                .thenAccept(newKafkaStream -> self().tell(newKafkaStream, self()));
+    }
+
+    private void setStream(final RestartableKafkaConsumerStream newKafkaStream) {
+        kafkaStream = newKafkaStream;
+        resetResourceStatus();
     }
 
     private void escalate(final Throwable throwable, final String description) {

@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnecti
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
+import org.eclipse.ditto.connectivity.service.config.KafkaConsumerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
@@ -226,13 +228,15 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     private void startKafkaConsumer(final ConsumerData consumerData, final boolean dryRun) {
-        final ConnectionThrottlingConfig throttlingConfig = kafkaConfig.getConsumerConfig().getThrottlingConfig();
+        final KafkaConsumerConfig consumerConfig = kafkaConfig.getConsumerConfig();
+        final ConnectionThrottlingConfig throttlingConfig = consumerConfig.getThrottlingConfig();
+        final ExponentialBackOffConfig consumerRestartBackOffConfig = consumerConfig.getConsumerRestartBackOffConfig();
         final KafkaConsumerStreamFactory streamFactory =
                 new KafkaConsumerStreamFactory(throttlingConfig, propertiesFactory, consumerData, dryRun);
         final Props consumerActorProps =
                 KafkaConsumerActor.props(connection(), streamFactory,
                         consumerData.getAddress(), consumerData.getSource(), getInboundMappingSink(),
-                        connectivityStatusResolver);
+                        connectivityStatusResolver, consumerRestartBackOffConfig);
         final ActorRef consumerActor =
                 startChildActorConflictFree(consumerData.getActorNamePrefix(), consumerActorProps);
         kafkaConsumerActors.add(consumerActor);

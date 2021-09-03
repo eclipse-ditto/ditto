@@ -28,6 +28,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
 import org.eclipse.ditto.base.model.common.ResponseType;
+import org.eclipse.ditto.base.service.config.supervision.DefaultExponentialBackOffConfig;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
@@ -37,6 +38,8 @@ import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTes
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.Before;
+
+import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -125,13 +128,14 @@ public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRe
         final ConsumerData consumerData = new ConsumerData(connectionSource, address, "xy");
         final KafkaConsumerStreamFactory consumerStreamFactory =
                 new KafkaConsumerStreamFactory(sourceSupplier, null, consumerData, false);
-
+        final DefaultExponentialBackOffConfig backOffConfig = DefaultExponentialBackOffConfig.of(ConfigFactory.empty());
         return KafkaConsumerActor.props(CONNECTION,
                 consumerStreamFactory,
                 address,
                 connectionSource,
                 inboundMappingSink,
-                mock(ConnectivityStatusResolver.class));
+                mock(ConnectivityStatusResolver.class),
+                backOffConfig);
     }
 
     @Override
