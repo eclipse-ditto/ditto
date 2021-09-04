@@ -23,6 +23,8 @@ import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.json.JsonObject;
 
@@ -50,6 +52,8 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
 
     private final ThreadSafeDittoLoggingAdapter logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
     private final Materializer materializer = Materializer.createMaterializer(getContext());
+    private final Counter deleteEventsCounter = DittoMetrics.counter("cleanup_delete_events");
+    private final Counter deleteSnapsCounter = DittoMetrics.counter("cleanup_delete_snapshots");
     private final Duration quietPeriod;
     private final CleanUp cleanUp;
     private final Credits credits;
@@ -75,7 +79,7 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
      * Create the Props object for this actor.
      *
      * @param config the background clean-up config.
-     * @param mongoReadJournal the Mongo read journal for databasae operations.
+     * @param mongoReadJournal the Mongo read journal for database operations.
      * @param myRole the cluster role of this node among which the background cleanup responsibility is divided.
      * @return the Props object.
      */
@@ -132,10 +136,18 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
         if (!lastPid.equals(nextPid)) {
             logger.info("Progress=<{}>", nextPid);
         }
+        switch (result.type) {
+            case SNAPSHOTS:
+                deleteSnapsCounter.increment(result.result.getDeletedCount());
+                break;
+            case EVENTS:
+            default:
+                deleteEventsCounter.increment(result.result.getDeletedCount());
+                break;
+        }
         return stay().using(nextPid);
     }
 
-    @SuppressWarnings("unused")
     private FSM.State<State, String> streamComplete(final Control streamComplete, final String lastPid) {
         final var nextQuietPeriod = randomizeQuietPeriod();
         logger.info("Stream complete. Next stream in <{}>", nextQuietPeriod);
