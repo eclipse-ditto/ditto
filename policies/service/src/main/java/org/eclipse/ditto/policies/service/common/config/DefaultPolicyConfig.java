@@ -25,6 +25,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckCo
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultSnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanUpConfig;
 
 import com.typesafe.config.Config;
 
@@ -43,6 +44,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
     private final Duration policySubjectDeletionAnnouncementGranularity;
     private final String subjectIdResolver;
     private final PolicyAnnouncementConfig policyAnnouncementConfig;
+    private final CleanUpConfig cleanUpConfig;
 
     private DefaultPolicyConfig(final ScopedConfig scopedConfig) {
         supervisorConfig = DefaultSupervisorConfig.of(scopedConfig);
@@ -55,6 +57,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
                         PolicyConfigValue.SUBJECT_DELETION_ANNOUNCEMENT_GRANULARITY);
         subjectIdResolver = scopedConfig.getString(PolicyConfigValue.SUBJECT_ID_RESOLVER.getConfigPath());
         policyAnnouncementConfig = PolicyAnnouncementConfig.of(scopedConfig);
+        cleanUpConfig = CleanUpConfig.of(scopedConfig);
     }
 
     /**
@@ -107,6 +110,11 @@ public final class DefaultPolicyConfig implements PolicyConfig {
     }
 
     @Override
+    public CleanUpConfig getCleanUpConfig() {
+        return cleanUpConfig;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -122,13 +130,15 @@ public final class DefaultPolicyConfig implements PolicyConfig {
                 Objects.equals(policySubjectDeletionAnnouncementGranularity,
                         that.policySubjectDeletionAnnouncementGranularity) &&
                 Objects.equals(subjectIdResolver, that.subjectIdResolver) &&
-                Objects.equals(policyAnnouncementConfig, that.policyAnnouncementConfig);
+                Objects.equals(policyAnnouncementConfig, that.policyAnnouncementConfig) &&
+                Objects.equals(cleanUpConfig, that.cleanUpConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, policySubjectExpiryGranularity,
-                policySubjectDeletionAnnouncementGranularity, subjectIdResolver, policyAnnouncementConfig);
+                policySubjectDeletionAnnouncementGranularity, subjectIdResolver, policyAnnouncementConfig,
+                cleanUpConfig);
     }
 
     @Override
@@ -141,7 +151,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
                 ", policySubjectDeletionAnnouncementGranularity=" + policySubjectDeletionAnnouncementGranularity +
                 ", subjectIdResolver=" + subjectIdResolver +
                 ", policyAnnouncementConfig=" + policyAnnouncementConfig +
+                ", cleanUpConfig=" + cleanUpConfig +
                 "]";
     }
-
 }

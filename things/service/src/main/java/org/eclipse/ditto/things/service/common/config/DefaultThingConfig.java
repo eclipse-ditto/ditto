@@ -24,6 +24,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckCo
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultSnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanUpConfig;
 
 import com.typesafe.config.Config;
 
@@ -38,11 +39,13 @@ public final class DefaultThingConfig implements ThingConfig {
     private final SupervisorConfig supervisorConfig;
     private final ActivityCheckConfig activityCheckConfig;
     private final SnapshotConfig snapshotConfig;
+    private final CleanUpConfig cleanUpConfig;
 
     private DefaultThingConfig(final ScopedConfig scopedConfig) {
         supervisorConfig = DefaultSupervisorConfig.of(scopedConfig);
         activityCheckConfig = DefaultActivityCheckConfig.of(scopedConfig);
         snapshotConfig = DefaultSnapshotConfig.of(scopedConfig);
+        cleanUpConfig = CleanUpConfig.of(scopedConfig);
     }
 
     /**
@@ -82,12 +85,13 @@ public final class DefaultThingConfig implements ThingConfig {
         final DefaultThingConfig that = (DefaultThingConfig) o;
         return Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
-                Objects.equals(snapshotConfig, that.snapshotConfig);
+                Objects.equals(snapshotConfig, that.snapshotConfig) &&
+                Objects.equals(cleanUpConfig, that.cleanUpConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig);
+        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, cleanUpConfig);
     }
 
     @Override
@@ -96,7 +100,12 @@ public final class DefaultThingConfig implements ThingConfig {
                 "supervisorConfig=" + supervisorConfig +
                 ", activityCheckConfig=" + activityCheckConfig +
                 ", snapshotConfig=" + snapshotConfig +
+                ", cleanUpConfig=" + cleanUpConfig +
                 "]";
     }
 
+    @Override
+    public CleanUpConfig getCleanUpConfig() {
+        return cleanUpConfig;
+    }
 }

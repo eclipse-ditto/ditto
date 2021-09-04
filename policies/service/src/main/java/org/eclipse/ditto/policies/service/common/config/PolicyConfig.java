@@ -20,12 +20,14 @@ import org.eclipse.ditto.base.service.config.supervision.WithSupervisorConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithSnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistentactors.cleanup.WithCleanUpConfig;
 
 /**
  * Provides configuration settings for policy entities.
  */
 @Immutable
-public interface PolicyConfig extends WithSupervisorConfig, WithActivityCheckConfig, WithSnapshotConfig {
+public interface PolicyConfig extends WithSupervisorConfig, WithActivityCheckConfig, WithSnapshotConfig,
+        WithCleanUpConfig {
 
     /**
      * Returns the configuration to which duration the {@code expiry} of a {@code Policy Subject} should be rounded up

@@ -46,6 +46,7 @@ import org.eclipse.ditto.internal.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
+import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanUpActor;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 
 import akka.actor.ActorRef;
@@ -120,6 +121,11 @@ public final class ConnectivityRootActor extends DittoRootActor {
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
                         actorSystem.settings().config(), connectivityConfig.getPersistenceOperationsConfig()));
+
+        final var cleanUpActorProps =
+                PersistenceCleanUpActor.props(connectivityConfig.getConnectionConfig().getCleanUpConfig(),
+                        mongoReadJournal, CLUSTER_ROLE);
+        startChildActor(PersistenceCleanUpActor.NAME, cleanUpActorProps);
 
         final ActorRef healthCheckingActor = getHealthCheckingActor(connectivityConfig, pubSubMediator);
         bindHttpStatusRoute(connectivityConfig.getHttpConfig(), healthCheckingActor);

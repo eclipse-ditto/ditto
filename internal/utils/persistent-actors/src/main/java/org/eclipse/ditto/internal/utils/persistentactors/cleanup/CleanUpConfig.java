@@ -22,7 +22,7 @@ import com.typesafe.config.Config;
 /**
  * Config for persistence cleanup.
  */
-interface CleanUpConfig {
+public interface CleanUpConfig {
 
     /**
      * Create an instance of clean-up config from HOCON.
@@ -94,22 +94,22 @@ interface CleanUpConfig {
         /**
          * Quiet period.
          */
-        QUIET_PERIOD("quiet-period", Duration.ofMinutes(3L)),
+        QUIET_PERIOD("quiet-period", Duration.ofMinutes(5L)),
 
         /**
          * Credit decision interval.
          */
-        INTERVAL("interval", Duration.ofMinutes(1L)),
+        INTERVAL("interval", Duration.ofSeconds(3L)),
 
         /**
          * Database latency threshold to give out any credit.
          */
-        TIMER_THRESHOLD("timer-threshold", Duration.ofMillis(20L)),
+        TIMER_THRESHOLD("timer-threshold", Duration.ofMillis(100L)),
 
         /**
          * Amount of credit to give out per decision.
          */
-        CREDITS_PER_BATCH("credits-per-batch", 5),
+        CREDITS_PER_BATCH("credits-per-batch", 3),
 
         /**
          * How many snapshots to scan for each query.

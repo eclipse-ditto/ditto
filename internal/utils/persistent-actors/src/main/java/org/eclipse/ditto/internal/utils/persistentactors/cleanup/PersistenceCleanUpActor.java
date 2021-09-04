@@ -43,6 +43,11 @@ import akka.stream.javadsl.Sink;
  */
 public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanUpActor.State, String> {
 
+    /**
+     * Name of this actor.
+     */
+    public static final String NAME = "persistenceCleanUp";
+
     private final ThreadSafeDittoLoggingAdapter logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
     private final Materializer materializer = Materializer.createMaterializer(getContext());
     private final Duration quietPeriod;
