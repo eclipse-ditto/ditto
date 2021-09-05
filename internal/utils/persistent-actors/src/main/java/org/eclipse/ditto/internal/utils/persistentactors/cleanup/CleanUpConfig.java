@@ -36,6 +36,21 @@ public interface CleanUpConfig {
     }
 
     /**
+     * Set values defined in the config with the config values of this object as fallback.
+     *
+     * @param config the config values to set.
+     * @return the new clean-up config object.
+     */
+    CleanUpConfig setAll(final Config config);
+
+    /**
+     * Return whether background clean-up is enabled.
+     *
+     * @return whether background clean-up is enabled.
+     */
+    boolean isEnabled();
+
+    /**
      * Returns quiet period between cleanup streams.
      *
      * @return the quiet period.
@@ -87,9 +102,21 @@ public interface CleanUpConfig {
     boolean shouldDeleteFinalDeletedSnapshot();
 
     /**
+     * Render this object as config.
+     *
+     * @return this object as config.
+     */
+    Config render();
+
+    /**
      * Enumeration of known config keys and default values for {@code CreditDecisionConfig}
      */
     enum ConfigValue implements KnownConfigValue {
+
+        /**
+         * Whether background clean-up is enabled.
+         */
+        ENABLED("enabled", true),
 
         /**
          * Quiet period.

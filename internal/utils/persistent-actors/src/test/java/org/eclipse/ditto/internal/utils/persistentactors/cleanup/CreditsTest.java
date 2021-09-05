@@ -164,7 +164,7 @@ public final class CreditsTest {
     }
 
     private static CleanUpConfig getFastCreditConfig(final int creditPerBatch) {
-        return new DefaultCleanUpConfig(Duration.ZERO, Duration.ofMillis(100), Duration.ofNanos(1000),
+        return new DefaultCleanUpConfig(true, Duration.ZERO, Duration.ofMillis(100), Duration.ofNanos(1000),
                 creditPerBatch, 100, 100, false);
     }
 }

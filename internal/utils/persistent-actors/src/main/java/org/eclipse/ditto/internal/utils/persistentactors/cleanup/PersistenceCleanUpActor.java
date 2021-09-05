@@ -13,10 +13,15 @@
 package org.eclipse.ditto.internal.utils.persistentactors.cleanup;
 
 import java.time.Duration;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.api.common.ModifyConfig;
+import org.eclipse.ditto.base.api.common.RetrieveConfig;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.akka.actors.ModifyConfigBehavior;
+import org.eclipse.ditto.internal.utils.akka.actors.RetrieveConfigBehavior;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
@@ -28,22 +33,29 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.json.JsonObject;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
 import akka.Done;
 import akka.actor.AbstractFSM;
 import akka.actor.ActorRef;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.cluster.Cluster;
+import akka.japi.Pair;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.stream.Attributes;
+import akka.stream.KillSwitches;
 import akka.stream.Materializer;
+import akka.stream.UniqueKillSwitch;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 
 /**
  * Actor to control persistence cleanup.
  */
-public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanUpActor.State, String> {
+public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanUpActor.State, String>
+        implements RetrieveConfigBehavior, ModifyConfigBehavior {
 
     /**
      * Name of this actor.
@@ -54,14 +66,22 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
     private final Materializer materializer = Materializer.createMaterializer(getContext());
     private final Counter deleteEventsCounter = DittoMetrics.counter("cleanup_delete_events");
     private final Counter deleteSnapsCounter = DittoMetrics.counter("cleanup_delete_snapshots");
-    private final Duration quietPeriod;
-    private final CleanUp cleanUp;
-    private final Credits credits;
+    private final MongoReadJournal mongoReadJournal;
+    private final Supplier<Pair<Integer, Integer>> responsibilitySupplier;
+    private CleanUpConfig config;
+    private CleanUp cleanUp;
+    private Credits credits;
+    @Nullable private UniqueKillSwitch killSwitch = null;
 
-    PersistenceCleanUpActor(final Duration quietPeriod, final CleanUp cleanUp, final Credits credits) {
-        this.quietPeriod = quietPeriod;
+    PersistenceCleanUpActor(final CleanUp cleanUp,
+            final Credits credits,
+            final MongoReadJournal mongoReadJournal,
+            final Supplier<Pair<Integer, Integer>> responsibilitySupplier) {
+        this.config = CleanUpConfig.of(ConfigFactory.empty());
         this.cleanUp = cleanUp;
         this.credits = credits;
+        this.mongoReadJournal = mongoReadJournal;
+        this.responsibilitySupplier = responsibilitySupplier;
     }
 
     @SuppressWarnings("unused") // called by reflection
@@ -69,8 +89,9 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
             final MongoReadJournal mongoReadJournal,
             final String myRole) {
         final var cluster = Cluster.get(getContext().getSystem());
-        final var responsibilitySupplier = ClusterResponsibilitySupplier.of(cluster, myRole);
-        quietPeriod = config.getQuietPeriod();
+        this.mongoReadJournal = mongoReadJournal;
+        responsibilitySupplier = ClusterResponsibilitySupplier.of(cluster, myRole);
+        this.config = config;
         cleanUp = CleanUp.of(config, mongoReadJournal, materializer, responsibilitySupplier);
         credits = Credits.of(config);
     }
@@ -93,7 +114,11 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
     @Override
     public void preStart() throws Exception {
         super.preStart();
-        startWith(State.IN_QUIET_PERIOD, "", randomizeQuietPeriod());
+        if (config.isEnabled()) {
+            startWith(State.IN_QUIET_PERIOD, "", randomizeQuietPeriod());
+        } else {
+            startWith(State.IN_QUIET_PERIOD, "");
+        }
         when(State.IN_QUIET_PERIOD, inQuietPeriod());
         when(State.RUNNING, running());
         whenUnhandled(inAnyState());
@@ -101,17 +126,27 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
     }
 
     private FSMStateFunctionBuilder<State, String> inQuietPeriod() {
-        return matchEventEquals(StateTimeout(), this::startStream);
+        return matchEventEquals(StateTimeout(), this::startStream)
+                .eventEquals(Control.SHUTDOWN, this::shutdownInQuietPeriod);
     }
 
     private FSMStateFunctionBuilder<State, String> running() {
         return matchEvent(CleanUpResult.class, this::logCleanUpResult)
                 .eventEquals(Control.STREAM_COMPLETE, this::streamComplete)
-                .eventEquals(Control.STREAM_FAILED, this::streamFailed);
+                .eventEquals(Control.STREAM_FAILED, this::streamFailed)
+                .eventEquals(Control.SHUTDOWN, this::shutdownRunningStream);
     }
 
     private FSMStateFunctionBuilder<State, String> inAnyState() {
         return matchEvent(RetrieveHealth.class, this::retrieveHealth)
+                .event(RetrieveConfig.class, (retrieveConfig, lastPid) -> {
+                    retrieveConfigBehavior().onMessage().apply(retrieveConfig);
+                    return stay();
+                })
+                .event(ModifyConfig.class, (modifyConfig, lastPid) -> {
+                    modifyConfigBehavior().onMessage().apply(modifyConfig);
+                    return stay();
+                })
                 .anyEvent((message, lastPid) -> {
                     logger.warning("Got unhandled message <{}> when state=<{}> lastPid=<{}>",
                             message, stateName().name(), lastPid);
@@ -121,12 +156,16 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
 
     private FSM.State<State, String> startStream(final StateTimeout$ stateTimeout, final String lastPid) {
         logger.info("Quiet period expired, starting stream from <{}>", lastPid);
-        credits.regulate(cleanUp.getCleanUpStream(lastPid), logger)
-                .flatMapConcat(workUnit -> workUnit)
-                .toMat(Sink.foreach(this::notifySelf), Keep.right())
-                .withAttributes(Attributes.inputBuffer(1, 1))
-                .run(materializer)
-                .handle(this::streamCompletedOrFailed);
+        final var materializedValues =
+                credits.regulate(cleanUp.getCleanUpStream(lastPid), logger)
+                        .flatMapConcat(workUnit -> workUnit)
+                        .viaMat(KillSwitches.single(), Keep.right())
+                        .toMat(Sink.foreach(this::notifySelf), Keep.both())
+                        .withAttributes(Attributes.inputBuffer(1, 1))
+                        .run(materializer);
+
+        killSwitch = materializedValues.first();
+        materializedValues.second().handle(this::streamCompletedOrFailed);
         return goTo(State.RUNNING);
     }
 
@@ -149,15 +188,45 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
     }
 
     private FSM.State<State, String> streamComplete(final Control streamComplete, final String lastPid) {
-        final var nextQuietPeriod = randomizeQuietPeriod();
-        logger.info("Stream complete. Next stream in <{}>", nextQuietPeriod);
-        return goTo(State.IN_QUIET_PERIOD).forMax(nextQuietPeriod).using("");
+        final var result = goTo(State.IN_QUIET_PERIOD).using("");
+        if (config.isEnabled()) {
+            final var nextQuietPeriod = randomizeQuietPeriod();
+            logger.info("Stream complete. Next stream in <{}>", nextQuietPeriod);
+            return result.forMax(nextQuietPeriod);
+        } else {
+            logger.info("Stream complete and disabled.");
+            return result;
+        }
     }
 
     private FSM.State<State, String> streamFailed(final Control streamComplete, final String lastPid) {
-        final var nextQuietPeriod = randomizeQuietPeriod();
-        logger.info("Stream failed. Next stream in <{}> starting from <{}>", nextQuietPeriod, lastPid);
-        return goTo(State.IN_QUIET_PERIOD).forMax(nextQuietPeriod).using(lastPid);
+        final var result = goTo(State.IN_QUIET_PERIOD).using(lastPid);
+        if (config.isEnabled()) {
+            final var nextQuietPeriod = randomizeQuietPeriod();
+            logger.info("Stream failed. Next stream in <{}> starting from <{}>", nextQuietPeriod, lastPid);
+            return result.forMax(nextQuietPeriod);
+        } else {
+            logger.info("Stream failed and disabled.");
+            return result;
+        }
+    }
+
+    private FSM.State<State, String> shutdownRunningStream(final Control shutdown, final String lastPid) {
+        logger.info("Activating kill-switch by demand: <{}>", killSwitch);
+        if (killSwitch != null) {
+            killSwitch.shutdown();
+        }
+        return stay();
+    }
+
+    private FSM.State<State, String> shutdownInQuietPeriod(final Control shutdown, final String lastPid) {
+        if (config.isEnabled()) {
+            logger.info("Starting stream in <{}> on request", config.getQuietPeriod());
+            return goTo(State.IN_QUIET_PERIOD).forMax(config.getQuietPeriod());
+        } else {
+            logger.info("Stream disabled");
+            return goTo(State.IN_QUIET_PERIOD);
+        }
     }
 
     private FSM.State<State, String> retrieveHealth(final RetrieveHealth retrieveHealth, final String lastPid) {
@@ -176,6 +245,7 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
     private Duration randomizeQuietPeriod() {
         final long divisor = 1024;
         final long multiplier = (long) (Math.random() * divisor);
+        final var quietPeriod = config.getQuietPeriod();
         return quietPeriod.plus(quietPeriod.multipliedBy(multiplier).dividedBy(divisor));
     }
 
@@ -193,9 +263,24 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
         return Done.getInstance();
     }
 
+    @Override
+    public Config getConfig() {
+        return config.render();
+    }
+
+    @Override
+    public Config setConfig(final Config config) {
+        this.config = this.config.setAll(config);
+        cleanUp = CleanUp.of(this.config, mongoReadJournal, materializer, responsibilitySupplier);
+        credits = Credits.of(this.config);
+        getSelf().tell(Control.SHUTDOWN, ActorRef.noSender());
+        return this.config.render();
+    }
+
     private enum Control {
         STREAM_COMPLETE,
-        STREAM_FAILED
+        STREAM_FAILED,
+        SHUTDOWN
     }
 
     /**

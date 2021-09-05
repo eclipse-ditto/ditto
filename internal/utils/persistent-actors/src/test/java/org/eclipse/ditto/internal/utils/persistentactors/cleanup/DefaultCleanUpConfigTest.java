@@ -47,6 +47,10 @@ public final class DefaultCleanUpConfigTest {
     public void underTestReturnsValuesOfConfigFile() {
         final var underTest = CleanUpConfig.of(CONFIG);
 
+        assertThat(underTest.isEnabled())
+                .describedAs(CleanUpConfig.ConfigValue.ENABLED.getConfigPath())
+                .isFalse();
+
         assertThat(underTest.getQuietPeriod())
                 .describedAs(CleanUpConfig.ConfigValue.QUIET_PERIOD.getConfigPath())
                 .isEqualTo(Duration.ofMinutes(1));

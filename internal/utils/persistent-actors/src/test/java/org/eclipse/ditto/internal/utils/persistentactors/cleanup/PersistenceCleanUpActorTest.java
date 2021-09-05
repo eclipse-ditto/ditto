@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.persistentactors.cleanup;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -19,20 +20,28 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
-import java.time.Duration;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.eclipse.ditto.base.api.common.ModifyConfig;
+import org.eclipse.ditto.base.api.common.ModifyConfigResponse;
+import org.eclipse.ditto.base.api.common.RetrieveConfig;
+import org.eclipse.ditto.base.api.common.RetrieveConfigResponse;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.mongodb.client.result.DeleteResult;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigRenderOptions;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -40,6 +49,7 @@ import akka.actor.ActorSystem;
 import akka.actor.FSM;
 import akka.actor.Props;
 import akka.event.Logging;
+import akka.japi.Pair;
 import akka.stream.Attributes;
 import akka.stream.KillSwitches;
 import akka.stream.javadsl.Keep;
@@ -170,6 +180,65 @@ public final class PersistenceCleanUpActorTest {
         }};
     }
 
+    @Test
+    public void retrieveConfig() {
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = childActorOf(testProps());
+            final var retrieveConfig = RetrieveConfig.of();
+            underTest.tell(retrieveConfig, getRef());
+            final var retrieveConfigResponse = expectMsgClass(RetrieveConfigResponse.class);
+            final String expectedConfigJson =
+                    CleanUpConfig.of(ConfigFactory.empty()).render().root().render(ConfigRenderOptions.concise());
+            assertThat(retrieveConfigResponse.getConfig()).isEqualTo(JsonFactory.readFrom(expectedConfigJson));
+        }};
+    }
+
+    @Test
+    public void modifyConfigInQuietPeriod() {
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = childActorOf(testProps());
+            final var modifyConfig =
+                    ModifyConfig.of(JsonObject.newBuilder().set("enabled", false).build(), DittoHeaders.empty());
+            underTest.tell(modifyConfig, getRef());
+            final var response = expectMsgClass(ModifyConfigResponse.class);
+            final var expectedConfig = CleanUpConfig.of(ConfigFactory.parseMap(Map.of("clean-up.enabled", false)));
+            assertThat(response.getConfig()).containsExactlyInAnyOrderElementsOf(
+                    JsonObject.of(expectedConfig.render().root().render(ConfigRenderOptions.concise())));
+        }};
+    }
+
+    @Test
+    public void modifyConfigWhenRunning() {
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = childActorOf(testProps());
+
+            // GIVEN a cleanup stream is running
+            final var retrieveHealth = RetrieveHealth.newInstance();
+            sourceBox.set(Source.never());
+            underTest.tell(FSM.StateTimeout$.MODULE$, ActorRef.noSender());
+            underTest.tell(retrieveHealth, getRef());
+            expectMsg(retrieveHealthResponse("RUNNING", ""));
+
+            // WHEN config is modified
+            final var modifyConfig =
+                    ModifyConfig.of(JsonObject.newBuilder().set("enabled", false).build(), DittoHeaders.empty());
+            underTest.tell(modifyConfig, getRef());
+            final var response = expectMsgClass(ModifyConfigResponse.class);
+            final var expectedConfig = CleanUpConfig.of(ConfigFactory.parseMap(Map.of("clean-up.enabled", false)));
+            assertThat(response.getConfig()).containsExactlyInAnyOrderElementsOf(
+                    JsonObject.of(expectedConfig.render().root().render(ConfigRenderOptions.concise())));
+
+            // THEN the running stream is shutdown
+            waitForResponse(this, underTest, retrieveHealthResponse("IN_QUIET_PERIOD", ""), () -> {
+                try {
+                    Thread.sleep(300L);
+                } catch (final Exception e) {
+                    throw new AssertionError(e);
+                }
+            });
+        }};
+    }
+
     private void waitForResponse(final TestKit testKit,
             final ActorRef underTest,
             final RetrieveHealthResponse expectedResponse,
@@ -189,7 +258,8 @@ public final class PersistenceCleanUpActorTest {
 
     private Props testProps() {
         return Props.create(PersistenceCleanUpActor.class,
-                () -> new PersistenceCleanUpActor(Duration.ofHours(1L), cleanUp, credits));
+                () -> new PersistenceCleanUpActor(cleanUp, credits, mock(MongoReadJournal.class),
+                        () -> Pair.create(0, 1)));
     }
 
     private static RetrieveHealthResponse retrieveHealthResponse(final String stateName, final String lastPid) {
