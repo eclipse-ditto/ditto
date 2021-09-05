@@ -638,6 +638,12 @@ public final class ConnectionPersistenceActor
                 .orElse(super.matchAnyWhenDeleted());
     }
 
+    @Override
+    protected void becomeDeletedHandler() {
+        this.cancelPeriodicPriorityUpdate();
+        super.becomeDeletedHandler();
+    }
+
     /**
      * Route search commands according to subscription ID prefix. This is necessary so that for connections with
      * client count > 1, all commands related to 1 search session are routed to the same client actor. This is achieved
@@ -855,6 +861,10 @@ public final class ConnectionPersistenceActor
         log.info("Schedule update of priority periodically in an interval of <{}>", priorityUpdateInterval);
         timers().startTimerWithFixedDelay(Control.TRIGGER_UPDATE_PRIORITY, Control.TRIGGER_UPDATE_PRIORITY,
                 priorityUpdateInterval);
+    }
+
+    private void cancelPeriodicPriorityUpdate() {
+        timers().cancel(Control.TRIGGER_UPDATE_PRIORITY);
     }
 
     private void respondWithEmptyLogs(final RetrieveConnectionLogs command, final ActorRef origin) {

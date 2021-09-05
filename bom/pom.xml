@@ -40,7 +40,7 @@
         <akka-bom.version>2.6.16</akka-bom.version>
         <akka-persistence-mongo.version>3.0.6</akka-persistence-mongo.version>
         <akka-http-bom.version>10.2.5</akka-http-bom.version>
-        <akka-management.version>1.1.1</akka-management.version>
+        <akka-management.version>1.0.10</akka-management.version>
         <akka-stream-kafka.version>2.1.1</akka-stream-kafka.version>
         <hivemq-mqtt-client.version>1.2.2</hivemq-mqtt-client.version>
         <sshd.version>2.7.0</sshd.version>
