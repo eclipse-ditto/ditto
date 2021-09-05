@@ -142,7 +142,7 @@ final class ImmutablePolicy implements Policy {
                 .map(ImmutablePolicy::tryToParseModified)
                 .orElse(null);
 
-        final JsonObject readEntries = jsonObject.getValueOrThrow(JsonFields.ENTRIES);
+        final JsonObject readEntries = jsonObject.getValue(JsonFields.ENTRIES).orElseGet(JsonObject::empty);
 
         final Function<JsonField, PolicyEntry> toPolicyEntry = jsonField -> {
             final JsonValue jsonValue = jsonField.getValue();
