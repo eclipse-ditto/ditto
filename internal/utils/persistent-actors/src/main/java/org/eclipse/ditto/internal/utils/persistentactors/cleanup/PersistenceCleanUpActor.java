@@ -32,6 +32,7 @@ import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -61,6 +62,13 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
      * Name of this actor.
      */
     public static final String NAME = "persistenceCleanUp";
+
+    /**
+     * JSON field of ModifyConfig commands that
+     */
+    private static final String SET_LAST_PID = "last-pid";
+
+    private static final Throwable KILL_SWITCH_EXCEPTION = new IllegalStateException();
 
     private final ThreadSafeDittoLoggingAdapter logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
     private final Materializer materializer = Materializer.createMaterializer(getContext());
@@ -145,7 +153,12 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
                 })
                 .event(ModifyConfig.class, (modifyConfig, lastPid) -> {
                     modifyConfigBehavior().onMessage().apply(modifyConfig);
-                    return stay();
+                    final var setLastPid = modifyConfig.getConfig()
+                            .getValue(SET_LAST_PID)
+                            .filter(JsonValue::isString)
+                            .map(JsonValue::asString);
+                    final var stay = stay();
+                    return setLastPid.map(stay::using).orElse(stay);
                 })
                 .anyEvent((message, lastPid) -> {
                     logger.warning("Got unhandled message <{}> when state=<{}> lastPid=<{}>",
@@ -191,7 +204,7 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
         final var result = goTo(State.IN_QUIET_PERIOD).using("");
         if (config.isEnabled()) {
             final var nextQuietPeriod = randomizeQuietPeriod();
-            logger.info("Stream complete. Next stream in <{}>", nextQuietPeriod);
+            logger.info("Stream complete. Next stream in <{}> from start", nextQuietPeriod);
             return result.forMax(nextQuietPeriod);
         } else {
             logger.info("Stream complete and disabled.");
@@ -203,10 +216,10 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
         final var result = goTo(State.IN_QUIET_PERIOD).using(lastPid);
         if (config.isEnabled()) {
             final var nextQuietPeriod = randomizeQuietPeriod();
-            logger.info("Stream failed. Next stream in <{}> starting from <{}>", nextQuietPeriod, lastPid);
+            logger.info("Stream failed or shutdown. Next stream in <{}> starting from <{}>", nextQuietPeriod, lastPid);
             return result.forMax(nextQuietPeriod);
         } else {
-            logger.info("Stream failed and disabled.");
+            logger.info("Stream failed or shutdown and disabled. Last PID=<{}>", lastPid);
             return result;
         }
     }
@@ -214,17 +227,18 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
     private FSM.State<State, String> shutdownRunningStream(final Control shutdown, final String lastPid) {
         logger.info("Activating kill-switch by demand: <{}>", killSwitch);
         if (killSwitch != null) {
-            killSwitch.shutdown();
+            // using ABORT to preserve lastPid
+            killSwitch.abort(KILL_SWITCH_EXCEPTION);
         }
         return stay();
     }
 
     private FSM.State<State, String> shutdownInQuietPeriod(final Control shutdown, final String lastPid) {
         if (config.isEnabled()) {
-            logger.info("Starting stream in <{}> on request", config.getQuietPeriod());
+            logger.info("Starting stream from <{}> in <{}> on request", lastPid, config.getQuietPeriod());
             return goTo(State.IN_QUIET_PERIOD).forMax(config.getQuietPeriod());
         } else {
-            logger.info("Stream disabled");
+            logger.info("Stream disabled. lastPid=<{}>", lastPid);
             return goTo(State.IN_QUIET_PERIOD);
         }
     }
@@ -257,7 +271,9 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
         if (error == null) {
             getSelf().tell(Control.STREAM_COMPLETE, ActorRef.noSender());
         } else {
-            logger.error(error, "Stream failed");
+            if (error != KILL_SWITCH_EXCEPTION) {
+                logger.error(error, "Stream failed");
+            }
             getSelf().tell(Control.STREAM_FAILED, ActorRef.noSender());
         }
         return Done.getInstance();

@@ -220,8 +220,11 @@ public final class PersistenceCleanUpActorTest {
             expectMsg(retrieveHealthResponse("RUNNING", ""));
 
             // WHEN config is modified
-            final var modifyConfig =
-                    ModifyConfig.of(JsonObject.newBuilder().set("enabled", false).build(), DittoHeaders.empty());
+            final var modifyConfig = ModifyConfig.of(JsonObject.newBuilder()
+                            .set("enabled", false)
+                            .set("last-pid", "thing:last:pid")
+                            .build(),
+                    DittoHeaders.empty());
             underTest.tell(modifyConfig, getRef());
             final var response = expectMsgClass(ModifyConfigResponse.class);
             final var expectedConfig = CleanUpConfig.of(ConfigFactory.parseMap(Map.of("clean-up.enabled", false)));
@@ -229,7 +232,7 @@ public final class PersistenceCleanUpActorTest {
                     JsonObject.of(expectedConfig.render().root().render(ConfigRenderOptions.concise())));
 
             // THEN the running stream is shutdown
-            waitForResponse(this, underTest, retrieveHealthResponse("IN_QUIET_PERIOD", ""), () -> {
+            waitForResponse(this, underTest, retrieveHealthResponse("IN_QUIET_PERIOD", "thing:last:pid"), () -> {
                 try {
                     Thread.sleep(300L);
                 } catch (final Exception e) {
@@ -244,16 +247,19 @@ public final class PersistenceCleanUpActorTest {
             final RetrieveHealthResponse expectedResponse,
             final Runnable wait) {
         final var retries = 30;
+        Object lastResponse = null;
         for (int i = 1; i <= retries; ++i) {
             underTest.tell(RetrieveHealth.newInstance(), testKit.getRef());
             final var response = testKit.expectMsgClass(RetrieveHealthResponse.class);
             if (response.equals(expectedResponse)) {
                 return;
             }
+            lastResponse = response;
             Logging.getLogger(actorSystem, this).info("Waiting {}/{}", i, retries);
             wait.run();
         }
-        throw new AssertionError("Did not receive expected response: " + expectedResponse);
+        throw new AssertionError(
+                "Did not receive expected response: " + expectedResponse + "\nlastResponse=" + lastResponse);
     }
 
     private Props testProps() {
