@@ -21,18 +21,20 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
-import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
@@ -49,6 +51,7 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyIdNotE
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
+import org.eclipse.ditto.protocol.HeaderTranslator;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
