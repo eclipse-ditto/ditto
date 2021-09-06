@@ -17,11 +17,9 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -34,7 +32,6 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.Address;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.event.DiagnosticLoggingAdapter;
@@ -49,7 +46,7 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final Duration timeout;
-    private final Set<Address> uniqueStatusSenderAddresses;
+    private final long availableConnectivityInstances;
     private final Map<ResourceStatus.ResourceType, Integer> expectedResponses;
     private final ActorRef sender;
     private final int configuredClientCount;
@@ -58,8 +55,12 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
 
     @SuppressWarnings("unused")
     private RetrieveConnectionStatusAggregatorActor(final Connection connection,
-            final ActorRef sender, final DittoHeaders originalHeaders, final Duration timeout) {
+            final ActorRef sender,
+            final DittoHeaders originalHeaders,
+            final Duration timeout,
+            final long availableConnectivityInstances) {
         this.timeout = timeout;
+        this.availableConnectivityInstances = availableConnectivityInstances;
         this.sender = sender;
         responseBuilder = RetrieveConnectionStatusResponse.getBuilder(connection.getId(), originalHeaders)
                 .connectionStatus(connection.getConnectionStatus())
@@ -70,7 +71,6 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
                 .targetStatus(Collections.emptyList())
                 .sshTunnelStatus(Collections.emptyList());
 
-        uniqueStatusSenderAddresses = new HashSet<>();
         expectedResponses = new EnumMap<>(ResourceStatus.ResourceType.class);
         configuredClientCount = connection.getClientCount();
         // one response per client actor
@@ -101,12 +101,13 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
      * @param sender the ActorRef of the sender to which to answer the response to.
      * @param originalHeaders the DittoHeaders to use for the response message.
      * @param timeout the timeout to apply in order to receive the response.
+     * @param availableConnectivityInstances the currently available connectivity service instances in the cluster.
      * @return the Akka configuration Props object
      */
     public static Props props(final Connection connection, final ActorRef sender, final DittoHeaders originalHeaders,
-            final Duration timeout) {
+            final Duration timeout, final long availableConnectivityInstances) {
         return Props.create(RetrieveConnectionStatusAggregatorActor.class, connection, sender, originalHeaders,
-                timeout);
+                timeout, availableConnectivityInstances);
     }
 
     @Override
@@ -124,7 +125,7 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
         log.warning("RetrieveConnectionStatus timed out, sending (partial) response with missing resources: <{}>",
                 missingResources);
         responseBuilder.withMissingResources(missingResources, configuredClientCount,
-                uniqueStatusSenderAddresses.size() == configuredClientCount);
+                availableConnectivityInstances >= configuredClientCount);
         sendResponse();
         stopSelf();
     }
@@ -136,9 +137,7 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
 
     private void handleResourceStatus(final ResourceStatus resourceStatus) {
         expectedResponses.compute(resourceStatus.getResourceType(), (type, count) -> count == null ? 0 : count - 1);
-        final ActorRef statusSender = getSender();
-        uniqueStatusSenderAddresses.add(statusSender.path().address());
-        log.debug("Received resource status from {}: {}", statusSender, resourceStatus);
+        log.debug("Received resource status from {}: {}", getSender(), resourceStatus);
         // aggregate status...
         responseBuilder.withAddressStatus(resourceStatus);
 

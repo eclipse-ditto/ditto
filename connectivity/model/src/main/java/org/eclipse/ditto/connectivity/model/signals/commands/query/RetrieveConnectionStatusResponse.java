@@ -352,7 +352,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         @Nullable private List<ResourceStatus> sshTunnelStatus;
         @Nullable private Map<ResourceStatus.ResourceType, Integer> missingResources;
         private int configuredClientCount;
-        private boolean configuredClientCountMatchesStatusSenders = true;
+        private boolean clusterConnectivitySizeSufficientForClientCount = true;
 
         private Builder(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
             this.connectionId = connectionId;
@@ -415,10 +415,10 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
 
         public Builder withMissingResources(final Map<ResourceStatus.ResourceType, Integer> missingResources,
                 final int configuredClientCount,
-                final boolean configuredClientCountMatchesStatusSenders) {
+                final boolean clusterConnectivitySizeSufficientForClientCount) {
             this.missingResources = missingResources;
             this.configuredClientCount = configuredClientCount;
-            this.configuredClientCountMatchesStatusSenders = configuredClientCountMatchesStatusSenders;
+            this.clusterConnectivitySizeSufficientForClientCount = clusterConnectivitySizeSufficientForClientCount;
             return this;
         }
 
@@ -516,7 +516,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
 
                 final ConnectivityStatus connectivityStatus;
                 final String connectivityStatusDetails;
-                if (configuredClientCountMatchesStatusSenders) {
+                if (clusterConnectivitySizeSufficientForClientCount) {
                     connectivityStatus = ConnectivityStatus.FAILED;
                     connectivityStatusDetails = MessageFormat.format(
                             "The <{0}> failed to report its status within the timeout.", resourceType.getName());

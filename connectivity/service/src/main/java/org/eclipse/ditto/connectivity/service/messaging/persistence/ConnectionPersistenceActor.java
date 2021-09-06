@@ -27,6 +27,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -123,6 +124,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
+import akka.cluster.Cluster;
 import akka.cluster.routing.ClusterRouterPool;
 import akka.cluster.routing.ClusterRouterPoolSettings;
 import akka.japi.pf.ReceiveBuilder;
@@ -163,6 +165,7 @@ public final class ConnectionPersistenceActor
     // never retry, just escalate. ConnectionSupervisorActor will handle restarting this actor
     private static final SupervisorStrategy ESCALATE_ALWAYS_STRATEGY = OneForOneEscalateStrategy.escalateStrategy();
 
+    private final Cluster cluster;
     private final ActorRef proxyActor;
     private final ClientActorPropsFactory propsFactory;
     final ActorRef pubSubMediator;
@@ -201,6 +204,7 @@ public final class ConnectionPersistenceActor
 
         super(connectionId, new ConnectionMongoSnapshotAdapter());
 
+        this.cluster = Cluster.get(getContext().getSystem());
         this.proxyActor = proxyActor;
         this.propsFactory = propsFactory;
         this.pubSubMediator = pubSubMediator;
@@ -971,8 +975,11 @@ public final class ConnectionPersistenceActor
         checkNotNull(entity, "Connection");
         // timeout before sending the (partial) response
         final Duration timeout = extractTimeoutFromCommand(command.getDittoHeaders());
+        final long availableConnectivityInstances = StreamSupport.stream(cluster.state().getMembers().spliterator(), false)
+                .filter(member -> member.getRoles().contains(CLUSTER_ROLE))
+                .count();
         final Props props = RetrieveConnectionStatusAggregatorActor.props(entity, sender,
-                command.getDittoHeaders(), timeout);
+                command.getDittoHeaders(), timeout, availableConnectivityInstances);
         forwardToClientActors(props, command, () -> respondWithEmptyStatus(command, sender));
     }
 
