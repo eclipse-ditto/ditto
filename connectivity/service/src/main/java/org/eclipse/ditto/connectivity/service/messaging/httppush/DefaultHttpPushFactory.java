@@ -244,10 +244,10 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
     }
 
     static int parseParallelism(final Map<String, String> specificConfig) {
-        final int parsedParallelism = Optional.ofNullable(specificConfig.get(HttpPushFactory.PARALLELISM_JSON_KEY))
+        return Optional.ofNullable(specificConfig.get(HttpPushFactory.PARALLELISM_JSON_KEY))
                 .map(Integer::valueOf)
+                .map(DefaultHttpPushFactory::determineNextPowerOfTwo)
                 .orElse(1);
-        return determineNextPowerOfTwo(parsedParallelism);
     }
 
     private static int determineNextPowerOfTwo(final int parallelism) {
