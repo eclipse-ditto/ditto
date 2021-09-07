@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -266,7 +267,7 @@ public final class MongoReadJournalIT {
         final List<String> pids =
                 readJournal.getLatestJournalEntries(2, Duration.ZERO, materializer)
                         .filter(document -> Optional.ofNullable(
-                                        document.getString(MongoReadJournal.J_EVENT_MANIFEST))
+                                document.getString(MongoReadJournal.J_EVENT_MANIFEST))
                                 .map(manifest -> !"deletedEvent".equals(manifest))
                                 .orElse(false))
                         .map(document -> document.getString(MongoReadJournal.J_EVENT_PID))
@@ -396,8 +397,8 @@ public final class MongoReadJournalIT {
         insert("test_journal", new JournalEntry("pid2").withSn(2L).getDocument());
 
         final List<Optional<Long>> lowestSeqNrs = Stream.of(readJournal.getSmallestEventSeqNo("pid1"),
-                        readJournal.getSmallestEventSeqNo("pid2"),
-                        readJournal.getSmallestEventSeqNo("pid3"))
+                readJournal.getSmallestEventSeqNo("pid2"),
+                readJournal.getSmallestEventSeqNo("pid3"))
                 .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
                 .collect(Collectors.toList());
 
@@ -412,8 +413,8 @@ public final class MongoReadJournalIT {
         insert("test_journal", new JournalEntry("pid3").withSn(2L).getDocument());
 
         final List<Long> lowestSeqNrs = Stream.of(readJournal.deleteEvents("pid1", 0, 1),
-                        readJournal.deleteEvents("pid2", 0, 1),
-                        readJournal.deleteEvents("pid3", 0, 1))
+                readJournal.deleteEvents("pid2", 0, 1),
+                readJournal.deleteEvents("pid3", 0, 1))
                 .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
                 .map(DeleteResult::getDeletedCount)
                 .collect(Collectors.toList());
@@ -440,8 +441,8 @@ public final class MongoReadJournalIT {
         );
 
         final List<Optional<Long>> lowestSeqNrs = Stream.of(readJournal.getSmallestSnapshotSeqNo("pid1"),
-                        readJournal.getSmallestSnapshotSeqNo("pid2"),
-                        readJournal.getSmallestSnapshotSeqNo("pid3"))
+                readJournal.getSmallestSnapshotSeqNo("pid2"),
+                readJournal.getSmallestSnapshotSeqNo("pid3"))
                 .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
                 .collect(Collectors.toList());
 
@@ -472,8 +473,8 @@ public final class MongoReadJournalIT {
         );
 
         final List<Long> lowestSeqNrs = Stream.of(readJournal.deleteSnapshots("pid1", 0, 1),
-                        readJournal.deleteSnapshots("pid2", 0, 1),
-                        readJournal.deleteSnapshots("pid3", 0, 1))
+                readJournal.deleteSnapshots("pid2", 0, 1),
+                readJournal.deleteSnapshots("pid3", 0, 1))
                 .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
                 .map(DeleteResult::getDeletedCount)
                 .collect(Collectors.toList());
@@ -499,19 +500,19 @@ public final class MongoReadJournalIT {
         assertThat(pids).containsExactly("pid3", "pid4", "pid6");
     }
 
-    private void insert(final String collection, final Document... documents) {
+    private void insert(final CharSequence collection, final Document... documents) {
         Source.fromPublisher(mongoClient.getCollection(collection).insertMany(Arrays.asList(documents)))
                 .runWith(Sink.ignore(), materializer)
                 .toCompletableFuture()
                 .join();
     }
 
-    private static class JournalEntry {
+    private static final class JournalEntry {
 
         private final Document document;
 
         private JournalEntry(final String pid) {
-            this.document = new Document().append("pid", pid)
+            document = new Document().append("pid", pid)
                     .append("events", new BsonArray(List.of(BsonDocument.parse(new Document()
                             .append("pid", pid)
                             .toJson())
@@ -531,7 +532,7 @@ public final class MongoReadJournalIT {
             return this;
         }
 
-        private JournalEntry withTags(final Set<String> tags) {
+        private JournalEntry withTags(final Collection<String> tags) {
             final BsonArray bsonTags = new BsonArray(tags.stream().map(BsonString::new).collect(Collectors.toList()));
             document.append("_tg", bsonTags);
             final BsonDocument event = (BsonDocument) document.get("events", List.class).get(0);
