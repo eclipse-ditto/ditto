@@ -37,7 +37,7 @@ public interface KafkaConsumerConfig {
      *
      * @return the config.
      */
-    ExponentialBackOffConfig getConsumerRestartBackOffConfig();
+    ExponentialBackOffConfig getRestartBackOffConfig();
 
     /**
      * Returns the Config for consumers needed by the Kafka client.

@@ -230,7 +230,7 @@ public final class KafkaClientActor extends BaseClientActor {
     private void startKafkaConsumer(final ConsumerData consumerData, final boolean dryRun) {
         final KafkaConsumerConfig consumerConfig = kafkaConfig.getConsumerConfig();
         final ConnectionThrottlingConfig throttlingConfig = consumerConfig.getThrottlingConfig();
-        final ExponentialBackOffConfig consumerRestartBackOffConfig = consumerConfig.getConsumerRestartBackOffConfig();
+        final ExponentialBackOffConfig consumerRestartBackOffConfig = consumerConfig.getRestartBackOffConfig();
         final KafkaConsumerStreamFactory streamFactory =
                 new KafkaConsumerStreamFactory(throttlingConfig, propertiesFactory, consumerData, dryRun);
         final Props consumerActorProps =

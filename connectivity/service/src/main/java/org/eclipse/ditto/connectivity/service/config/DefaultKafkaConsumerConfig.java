@@ -33,12 +33,12 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
     private static final String RESTART_PATH = "restart";
 
     private final ConnectionThrottlingConfig throttlingConfig;
-    private final ExponentialBackOffConfig consumerRestartBackOffConfig;
+    private final ExponentialBackOffConfig restartBackOffConfig;
     private final Config alpakkaConfig;
 
     private DefaultKafkaConsumerConfig(final Config kafkaConsumerScopedConfig) {
         throttlingConfig = ConnectionThrottlingConfig.of(kafkaConsumerScopedConfig);
-        consumerRestartBackOffConfig =
+        restartBackOffConfig =
                 DefaultExponentialBackOffConfig.of(getConfigOrEmpty(kafkaConsumerScopedConfig, RESTART_PATH));
         alpakkaConfig = getConfigOrEmpty(kafkaConsumerScopedConfig, ALPAKKA_PATH);
     }
@@ -64,8 +64,8 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
     }
 
     @Override
-    public ExponentialBackOffConfig getConsumerRestartBackOffConfig() {
-        return consumerRestartBackOffConfig;
+    public ExponentialBackOffConfig getRestartBackOffConfig() {
+        return restartBackOffConfig;
     }
 
     @Override
@@ -83,20 +83,20 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
         }
         final DefaultKafkaConsumerConfig that = (DefaultKafkaConsumerConfig) o;
         return Objects.equals(throttlingConfig, that.throttlingConfig) &&
-                Objects.equals(consumerRestartBackOffConfig, that.consumerRestartBackOffConfig) &&
+                Objects.equals(restartBackOffConfig, that.restartBackOffConfig) &&
                 Objects.equals(alpakkaConfig, that.alpakkaConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(throttlingConfig, consumerRestartBackOffConfig, alpakkaConfig);
+        return Objects.hash(throttlingConfig, restartBackOffConfig, alpakkaConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "throttlingConfig=" + throttlingConfig +
-                ", consumerRestartBackOffConfig=" + consumerRestartBackOffConfig +
+                ", restartBackOffConfig=" + restartBackOffConfig +
                 ", alpakkaConfig=" + alpakkaConfig +
                 "]";
     }
