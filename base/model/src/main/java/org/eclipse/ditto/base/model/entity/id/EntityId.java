@@ -23,15 +23,19 @@ import org.eclipse.ditto.base.model.entity.type.EntityType;
 public interface EntityId extends CharSequence, Comparable<EntityId> {
 
     /**
-     * Instantiates a {@link org.eclipse.ditto.base.model.entity.id.EntityId} based on the given entity type and entity ID.
+     * Instantiates a {@code org.eclipse.ditto.base.model.entity.id.EntityId} based on the given entity type and
+     * entity ID.
      *
-     * @param entityType The type of the entity which is identified by the given ID.
-     * @param entityId The ID of the entity.
+     * @param entityType the type of the entity which is identified by the given ID.
+     * @param entityId the ID of the entity.
      * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws EntityIdInvalidException if {@code entityIdValue} represents an invalid ID for {@code entityType}.
      * @since 2.0.0
      */
     static EntityId of(final EntityType entityType, final CharSequence entityId) {
-        return EntityIds.getEntityId(entityType, entityId);
+        final EntityIds entityIds = EntityIds.getInstance();
+        return entityIds.getEntityId(entityType, entityId);
     }
 
     @Override
@@ -53,8 +57,8 @@ public interface EntityId extends CharSequence, Comparable<EntityId> {
      * Compares the entity IDs based on their String representation.
      *
      * @param o the other entity ID.
-     * @return a negative integer, zero, or a positive integer as this object
-     * is less than, equal to, or greater than the specified object.
+     * @return a negative integer, zero, or a positive integer as this object is less than, equal to, or greater than
+     * the specified object.
      */
     @Override
     default int compareTo(final EntityId o) {

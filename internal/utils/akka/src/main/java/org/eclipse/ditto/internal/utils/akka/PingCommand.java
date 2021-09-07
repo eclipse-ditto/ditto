@@ -18,15 +18,16 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityIdJsonDeserializer;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityTypeJsonDeserializer;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.id.WithEntityId;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Internal simple "ping" command to be sent to PersistenceActors (identified by the contained {@code entityId})
@@ -39,8 +40,10 @@ public final class PingCommand implements Jsonifiable<JsonObject>, WithEntityId 
     @Nullable private final String correlationId;
     @Nullable private final JsonValue payload;
 
-    private PingCommand(final EntityId entityId, @Nullable final String correlationId,
+    private PingCommand(final EntityId entityId,
+            @Nullable final String correlationId,
             @Nullable final JsonValue payload) {
+
         this.entityId = entityId;
         this.correlationId = correlationId;
         this.payload = payload;
@@ -53,48 +56,50 @@ public final class PingCommand implements Jsonifiable<JsonObject>, WithEntityId 
      * @param correlationId an optional identifier correlating a PingCommand to a PingCommandResponse.
      * @param payload optional payload to transmit with the PingCommand.
      * @return the new PingCommand instance.
+     * @throws NullPointerException if {@code entityId} is {@code null}.
      */
-    public static PingCommand of(final EntityId entityId, @Nullable final String correlationId,
+    public static PingCommand of(final EntityId entityId,
+            @Nullable final String correlationId,
             @Nullable final JsonValue payload) {
-        return new PingCommand(entityId, correlationId, payload);
+
+        return new PingCommand(ConditionChecker.checkNotNull(entityId, "entityId"), correlationId, payload);
     }
 
     /**
-     * Creates a new {@code PingCommand} from a JSON string.
+     * Deserializes a {@code PingCommand} from the specified JSON object string argument.
      *
-     * @param jsonString the JSON string of which a new PingCommand is to be created.
-     * @return the PingCommand which was created from the given JSON string.
+     * @param jsonString string representation of the JSON object to be deserialized.
+     * @return the deserialized {@code PingCommand}.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} does not contain a JSON
-     * object or if it is not valid JSON.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonString} was not in the
-     * expected 'PingCommand'
-     * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonString} did not contain all required
+     * fields.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonString} was not in the expected format.
      */
     public static PingCommand fromJson(final String jsonString) {
         return fromJson(JsonFactory.newObject(jsonString));
     }
 
     /**
-     * Creates a new {@code PingCommand} from a JSON object.
+     * Deserializes a {@code PingCommand} from the specified {@link JsonObject} argument.
      *
-     * @param jsonObject the JSON object of which a new PingCommand is to be created.
-     * @return the PingCommand which was created from the given JSON object.
+     * @param jsonObject the JSON object to be deserialized.
+     * @return the deserialized {@code PingCommand}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws IllegalArgumentException if {@code jsonObject} is empty.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} is not valid JSON.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the expected 'PingCommand'
-     * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain all required
+     * fields.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} was not in the expected format.
      */
     public static PingCommand fromJson(final JsonObject jsonObject) {
-        final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE));
-        final EntityId extractedEntityId =
-                EntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
-        final String extractedCorrelationId = jsonObject.getValue(JsonFields.CORRELATION_ID).orElse(null);
-        final JsonValue extractedPayload = jsonObject.getValue(JsonFields.PAYLOAD).orElse(null);
+        return of(deserializeEntityId(jsonObject),
+                jsonObject.getValue(JsonFields.CORRELATION_ID).orElse(null),
+                jsonObject.getValue(JsonFields.PAYLOAD).orElse(null));
+    }
 
-        return of(extractedEntityId, extractedCorrelationId, extractedPayload);
+    private static EntityId deserializeEntityId(final JsonObject jsonObject) {
+        return EntityIdJsonDeserializer.deserializeEntityId(jsonObject,
+                JsonFields.ENTITY_ID,
+                EntityTypeJsonDeserializer.deserializeEntityType(jsonObject, JsonFields.ENTITY_TYPE));
     }
 
     @Override
@@ -103,9 +108,9 @@ public final class PingCommand implements Jsonifiable<JsonObject>, WithEntityId 
     }
 
     /**
-     * Returns the optional correlationId.
+     * Returns the optional correlation ID.
      *
-     * @return the optional correlationId.
+     * @return the optional correlation ID.
      */
     public Optional<String> getCorrelationId() {
         return Optional.ofNullable(correlationId);
@@ -122,7 +127,7 @@ public final class PingCommand implements Jsonifiable<JsonObject>, WithEntityId 
 
     @Override
     public JsonObject toJson() {
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
+        final var jsonObjectBuilder = JsonObject.newBuilder()
                 .set(JsonFields.ENTITY_TYPE, entityId.getEntityType().toString())
                 .set(JsonFields.ENTITY_ID, entityId.toString());
         if (null != correlationId) {
@@ -135,14 +140,14 @@ public final class PingCommand implements Jsonifiable<JsonObject>, WithEntityId 
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
         }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final PingCommand that = (PingCommand) o;
+        final var that = (PingCommand) o;
         return Objects.equals(entityId, that.entityId) &&
                 Objects.equals(correlationId, that.correlationId) &&
                 Objects.equals(payload, that.payload);

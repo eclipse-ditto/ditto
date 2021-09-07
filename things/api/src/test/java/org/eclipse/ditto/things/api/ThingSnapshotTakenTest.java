@@ -43,7 +43,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ThingSnapshotTakenTest {
 
-    private static final PolicyId POLICY_ID = PolicyId.of(TestConstants.Thing.POLICY_ID);
+    private static final PolicyId POLICY_ID = TestConstants.Thing.POLICY_ID;
     private static final long REVISION = 23L;
 
     private static Instant timestamp;

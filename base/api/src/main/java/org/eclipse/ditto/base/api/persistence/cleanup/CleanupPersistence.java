@@ -18,17 +18,18 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.base.model.entity.id.EntityIdJsonDeserializer;
+import org.eclipse.ditto.base.model.entity.type.EntityTypeJsonDeserializer;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommand;
 import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
  * Command for starting the cleanup (deleting stale journal-entries + snapshots) of persistence actors.
@@ -97,14 +98,14 @@ public final class CleanupPersistence
      * format.
      */
     public static CleanupPersistence fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<CleanupPersistence>(TYPE, jsonObject).deserialize(
-                () -> {
-                    final EntityType entityType =
-                            EntityType.of(jsonObject.getValueOrThrow(CleanupCommand.JsonFields.ENTITY_TYPE));
-                    final String readEntityId = jsonObject.getValueOrThrow(CleanupCommand.JsonFields.ENTITY_ID);
-                    final EntityId entityId = EntityId.of(entityType, readEntityId);
-                    return of(entityId, dittoHeaders);
-                });
+        return new CommandJsonDeserializer<CleanupPersistence>(TYPE, jsonObject)
+                .deserialize(() -> of(deserializeEntityId(jsonObject), dittoHeaders));
+    }
+
+    private static EntityId deserializeEntityId(final JsonObject jsonObject) {
+        return EntityIdJsonDeserializer.deserializeEntityId(jsonObject,
+                CleanupCommand.JsonFields.ENTITY_ID,
+                EntityTypeJsonDeserializer.deserializeEntityType(jsonObject, CleanupCommand.JsonFields.ENTITY_TYPE));
     }
 
     @Override

@@ -15,26 +15,22 @@ package org.eclipse.ditto.base.api.common.purge;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.base.api.common.CommonCommand;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityIdInvalidException;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.base.model.entity.type.EntityTypeJsonDeserializer;
 import org.eclipse.ditto.base.model.entity.type.WithEntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -42,7 +38,14 @@ import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandJsonDeserializer;
-import org.eclipse.ditto.base.api.common.CommonCommand;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Command for purging arbitrary entities.
@@ -101,17 +104,61 @@ public final class PurgeEntities extends CommonCommand<PurgeEntities> implements
      * @param jsonObject the JSON object of which the instance is to be created.
      * @param dittoHeaders the headers.
      * @return the command.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} does not contain all mandatory
+     * fields.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} cannot be deserialized as
+     * {@code PurgeEntities}.
      */
     public static PurgeEntities fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<PurgeEntities>(TYPE, jsonObject).deserialize(() -> {
-            final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE));
-            final List<EntityId> entityIds = jsonObject.getValueOrThrow(JsonFields.ENTITY_IDS).stream()
-                    .map(JsonValue::asString)
-                    .map(entityId -> EntityId.of(entityType, entityId))
-                    .collect(Collectors.toList());
-
-            return of(entityType, entityIds, dittoHeaders);
+            final var deserializedEntityType = deserializeEntityType(jsonObject);
+            return of(deserializedEntityType, deserializeEntityIds(jsonObject, deserializedEntityType), dittoHeaders);
         });
+    }
+
+    private static EntityType deserializeEntityType(final JsonObject jsonObject) {
+        return EntityTypeJsonDeserializer.deserializeEntityType(jsonObject, JsonFields.ENTITY_TYPE);
+    }
+
+    private static List<EntityId> deserializeEntityIds(final JsonObject jsonObject, final EntityType entityType) {
+        final var fieldDefinition = JsonFields.ENTITY_IDS;
+        final var entityIdJsonArray = jsonObject.getValueOrThrow(fieldDefinition);
+        final List<EntityId> result = new ArrayList<>(entityIdJsonArray.getSize());
+        var index = 0;
+        for (final var arrayItem : entityIdJsonArray) {
+            try {
+                result.add(deserializeEntityId(arrayItem, entityType));
+            } catch (final JsonParseException e) {
+                final var pattern = "Failed to deserialize value of JSON array <{0}> at index <{1,number,#}>: {2}";
+                throw JsonParseException.newBuilder()
+                        .message(MessageFormat.format(pattern, fieldDefinition.getPointer(), index, e.getMessage()))
+                        .cause(e)
+                        .build();
+            }
+            index++;
+        }
+        return result;
+    }
+
+    private static EntityId deserializeEntityId(final JsonValue jsonValue, final EntityType entityType) {
+        if (jsonValue.isString()) {
+            final var jsonValueAsString = jsonValue.asString();
+            try {
+                return EntityId.of(entityType, jsonValueAsString);
+            } catch (final EntityIdInvalidException e) {
+                throw JsonParseException.newBuilder()
+                        .message(MessageFormat.format("Failed to deserialize <{0}> as {1}: {2}",
+                                jsonValueAsString,
+                                EntityId.class.getName(),
+                                e.getMessage()))
+                        .cause(e)
+                        .build();
+            }
+        } else {
+            final var pattern = "Expected JSON value <{0}> to be a string but it was not.";
+            throw new JsonParseException(MessageFormat.format(pattern, jsonValue));
+        }
     }
 
     public static String getTopic(final EntityType entityType) {

@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
@@ -37,9 +38,10 @@ import org.junit.runners.Parameterized;
 import akka.actor.ActorRef;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
- * Tests {@link InboundMappingProcessorActor}.
+ * Tests {@link InboundMappingProcessor}.
  */
 @RunWith(Parameterized.class)
 public final class MessageMappingProcessorActorHeaderInteractionTest extends AbstractMessageMappingProcessorActorTest {
@@ -96,7 +98,7 @@ public final class MessageMappingProcessorActorHeaderInteractionTest extends Abs
 
             // transport-layer settlement based on requested-acks alone
             if (settleImmediately && !isBadRequest) {
-                collectorProbe.expectMsg(ResponseCollectorActor.setCount(0));
+                collectorProbe.expectMsg(FiniteDuration.apply(20l, TimeUnit.SECONDS), ResponseCollectorActor.setCount(0));
             } else if (isBadRequest) {
                 // bad requests should settle immediately because no command is forwarded
                 collectorProbe.expectMsgClass(DittoHeaderInvalidException.class);

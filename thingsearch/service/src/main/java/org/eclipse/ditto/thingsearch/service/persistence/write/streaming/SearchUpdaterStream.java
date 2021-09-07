@@ -79,6 +79,7 @@ public final class SearchUpdaterStream {
      * @param updaterShard shard region of search updaters.
      * @param changeQueueActor reference of the change queue actor.
      * @param database MongoDB database.
+     * @param searchUpdateMapper a custom listener for search updates.
      * @return a SearchUpdaterStream object.
      */
     public static SearchUpdaterStream of(final UpdaterConfig updaterConfig,
@@ -88,7 +89,8 @@ public final class SearchUpdaterStream {
             final ActorRef updaterShard,
             final ActorRef changeQueueActor,
             final MongoDatabase database,
-            final BlockedNamespaces blockedNamespaces) {
+            final BlockedNamespaces blockedNamespaces,
+            final SearchUpdateMapper searchUpdateMapper) {
 
         final var streamConfig = updaterConfig.getStreamConfig();
 
@@ -101,7 +103,8 @@ public final class SearchUpdaterStream {
                         actorSystem.getScheduler());
 
         final var mongoSearchUpdaterFlow = MongoSearchUpdaterFlow.of(database,
-                streamConfig.getPersistenceConfig());
+                streamConfig.getPersistenceConfig(),
+                searchUpdateMapper);
 
         final var bulkWriteResultAckFlow = BulkWriteResultAckFlow.of(updaterShard);
 

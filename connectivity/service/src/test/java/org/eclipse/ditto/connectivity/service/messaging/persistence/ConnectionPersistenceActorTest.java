@@ -21,6 +21,7 @@ import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.INS
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -340,7 +341,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            proxyActor, (a, b, c, d, dittoHeaders) -> MockClientActor.props(probe.ref(), gossipProbe.ref()));
+                            proxyActor,
+                            (a, b, c, d, dittoHeaders) -> MockClientActor.props(probe.ref(), gossipProbe.ref()));
             watch(underTest);
 
             // create closed connection
@@ -360,7 +362,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
             // forward signal once
             underTest.tell(CreateSubscription.of(DittoHeaders.empty()), getRef());
-            probe.fishForMessage(scala.concurrent.duration.Duration.apply(5, TimeUnit.SECONDS), "CreateSubscription",
+            probe.fishForMessage(scala.concurrent.duration.Duration.apply(30, TimeUnit.SECONDS), "CreateSubscription",
                     PartialFunction.fromFunction(CreateSubscription.class::isInstance));
 
             // close connection: at least 1 client actor gets the command; the other may or may not be started.
@@ -552,7 +554,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
                 for (final Map.Entry<ConnectivityCommand<?>, Consumer<Object>> command : commands) {
                     underTest.tell(command.getKey(), getRef());
-                    command.getValue().accept(expectMsgClass(Duration.ofSeconds(10), Object.class));
+                    command.getValue().accept(expectMsgClass(Duration.ofSeconds(30), Object.class));
                 }
 
                 // assert that client actor is not called for closed connection
@@ -563,19 +565,19 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         }
     }
 
-    private static void assertHostInvalid(Object response) {
+    private static void assertHostInvalid(final Object response) {
         assertThat(response).isInstanceOf(ConnectionConfigurationInvalidException.class);
         final ConnectionConfigurationInvalidException exception = (ConnectionConfigurationInvalidException) response;
         assertThat(exception).hasMessageContaining("The configured host 'invalid' is invalid");
     }
 
-    private static void assertHostBlocked(Object response) {
+    private static void assertHostBlocked(final Object response) {
         assertThat(response).isInstanceOf(ConnectionConfigurationInvalidException.class);
         final ConnectionConfigurationInvalidException e = (ConnectionConfigurationInvalidException) response;
         assertThat(e).hasMessageContaining("The configured host 'localhost' may not be used for the connection");
     }
 
-    private static void assertConnectionCreated(Object response) {
+    private static void assertConnectionCreated(final Object response) {
         assertThat(response).isInstanceOf(CreateConnectionResponse.class);
     }
 
@@ -777,7 +779,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
             // retrieve connection status
             underTest.tell(retrieveConnectionStatus, getRef());
-            final RetrieveConnectionStatusResponse response = expectMsgClass(RetrieveConnectionStatusResponse.class);
+            final RetrieveConnectionStatusResponse response =
+                    expectMsgClass(Duration.of(20l, ChronoUnit.SECONDS), RetrieveConnectionStatusResponse.class);
 
             assertThat((Object) response.getConnectionStatus()).isEqualTo(ConnectivityStatus.CLOSED);
             assertThat(response.getSourceStatus()).isEmpty();
