@@ -24,18 +24,17 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
  * Thrown if the namespaced entity ID is not valid according to
@@ -43,7 +42,7 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
  */
 @Immutable
 @JsonParsableException(errorCode = NamespacedEntityIdInvalidException.ERROR_CODE)
-public final class NamespacedEntityIdInvalidException extends DittoRuntimeException {
+public final class NamespacedEntityIdInvalidException extends EntityIdInvalidException {
 
     /**
      * Error code of this exception.
@@ -69,7 +68,8 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
             @Nullable final Throwable cause,
             @Nullable final URI href,
             @Nullable final CharSequence entityId) {
-        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+
+        super(ERROR_CODE, dittoHeaders, message, description, cause, href);
         this.entityId = entityId;
     }
 
@@ -97,7 +97,9 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
      */
     public static NamespacedEntityIdInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders,
+
+        return DittoRuntimeException.fromJson(jsonObject,
+                dittoHeaders,
                 new Builder(readEntityId(jsonObject).orElse(null)));
     }
 
@@ -112,9 +114,9 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
     }
 
     /**
-     * Returns the entity id which was invalid.
+     * Returns the entity ID which was invalid.
      *
-     * @return the invalid entity id.
+     * @return the invalid entity ID.
      */
     public Optional<CharSequence> getEntityId() {
         return Optional.ofNullable(entityId);
@@ -176,6 +178,7 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new NamespacedEntityIdInvalidException(dittoHeaders, message, description, cause, href, entityId);
         }
 
@@ -191,8 +194,7 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
          * JSON field containing the HTTP status code of the exception.
          */
         static final JsonFieldDefinition<String> ENTITY_ID =
-                JsonFactory.newStringFieldDefinition("entityId", FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("entityId", FieldType.HIDDEN, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

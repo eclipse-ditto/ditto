@@ -19,12 +19,12 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.entity.id.EntityIdInvalidException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown if a {@link ConnectionId} is invalid.
@@ -33,7 +33,7 @@ import org.eclipse.ditto.base.model.json.JsonParsableException;
  */
 @Immutable
 @JsonParsableException(errorCode = ConnectionIdInvalidException.ERROR_CODE)
-public final class ConnectionIdInvalidException extends DittoRuntimeException implements ConnectivityException {
+public final class ConnectionIdInvalidException extends EntityIdInvalidException implements ConnectivityException {
 
     /**
      * Error code of this exception.
@@ -53,7 +53,7 @@ public final class ConnectionIdInvalidException extends DittoRuntimeException im
             @Nullable final Throwable cause,
             @Nullable final URI href) {
 
-        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, dittoHeaders, message, description, cause, href);
     }
 
     /**

@@ -29,7 +29,7 @@ import org.junit.Test;
 /**
  * Tests {@link MongoPersistenceOperationsSelectionProvider}.
  */
-public class MongoPersistenceOperationsSelectionProviderTest {
+public final class MongoPersistenceOperationsSelectionProviderTest {
 
     private static final String KEY_PID = "pid";
 
@@ -66,9 +66,9 @@ public class MongoPersistenceOperationsSelectionProviderTest {
                 MongoPersistenceOperationsSelectionProvider.of(settings);
 
         final Collection<MongoPersistenceOperationsSelection> selections =
-                underTest.selectEntity(EntityId.of(THING_TYPE, ENTITY_NAME));
+                underTest.selectEntity(EntityId.of(THING_TYPE, ENTITY_NS + ":" + ENTITY_NAME));
 
-        final String pid = PERSISTENCE_ID_PREFIX + ENTITY_NAME;
+        final String pid = PERSISTENCE_ID_PREFIX + ENTITY_NS + ":" + ENTITY_NAME;
         final Document pidFilter = new Document().append(KEY_PID, new BsonString(pid));
         final MongoPersistenceOperationsSelection expectedMetadataSelection =
                 MongoPersistenceOperationsSelection.of(METADATA_COLLECTION_NAME, pidFilter);

@@ -24,6 +24,11 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.TaggedMetricInstrume
  */
 public interface PreparedTimer extends Timer, ResettableMetricInstrument, TaggedMetricInstrument<PreparedTimer> {
 
+    @Override
+    default PreparedTimer self() {
+        return this;
+    }
+
     /**
      * Starts the Timer. This method is package private so only {@link Timers} can start
      * this timer.

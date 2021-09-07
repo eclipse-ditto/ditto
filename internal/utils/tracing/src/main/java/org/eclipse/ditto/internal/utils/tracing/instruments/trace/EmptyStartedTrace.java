@@ -16,8 +16,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
 import kamon.context.Context;
 
 /**
@@ -45,17 +43,6 @@ final class EmptyStartedTrace implements StartedTrace {
     @Override
     public StartedTrace tags(final Map<String, String> tags) {
         return this;
-    }
-
-    @Nullable
-    @Override
-    public String getTag(final String key) {
-        return null;
-    }
-
-    @Override
-    public Map<String, String> getTags() {
-        return Map.of();
     }
 
     @Override

@@ -46,6 +46,7 @@ import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.WithConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -443,72 +444,92 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                 jsonObjectBuilder.set(JsonFields.CONNECTED_SINCE, connectedSince.toString());
             }
 
+            JsonArray clientStatusJsonArray = JsonArray.empty();
             if (clientStatus != null) {
-                final JsonArray jsonArray = clientStatus.stream()
+                clientStatusJsonArray = clientStatus.stream()
                         .map(ResourceStatus::toJson)
                         .collect(JsonCollectors.valuesToArray());
-                addTimeoutsToResourcesArray(ResourceStatus.ResourceType.CLIENT, jsonArray, () ->
-                        ConnectivityModelFactory.newClientStatus(UNKNOWN_CLIENT,
-                                ConnectivityStatus.FAILED,
-                                "Client failed to report its status within the timeout.",
-                                now
-                        ));
-                jsonObjectBuilder.set(JsonFields.CLIENT_STATUS, jsonArray);
+            }
+            clientStatusJsonArray =
+                    addTimeoutsToResourcesArray(ResourceStatus.ResourceType.CLIENT, clientStatusJsonArray, () ->
+                            ConnectivityModelFactory.newClientStatus(UNKNOWN_CLIENT,
+                                    ConnectivityStatus.FAILED,
+                                    "Client failed to report its status within the timeout.",
+                                    now
+                            ));
+            if (!clientStatusJsonArray.isEmpty()) {
+                jsonObjectBuilder.set(JsonFields.CLIENT_STATUS, clientStatusJsonArray);
             }
 
+            JsonArray sourceStatusJsonArray = JsonArray.empty();
             if (sourceStatus != null) {
-                final JsonArray jsonArray = sourceStatus.stream()
+                sourceStatusJsonArray = sourceStatus.stream()
                         .map(ResourceStatus::toJson)
                         .collect(JsonCollectors.valuesToArray());
-                addTimeoutsToResourcesArray(ResourceStatus.ResourceType.SOURCE, jsonArray, () ->
-                        ConnectivityModelFactory.newSourceStatus(UNKNOWN_CLIENT,
-                                ConnectivityStatus.FAILED,
-                                null,
-                                "Source failed to report its status within the timeout."
-                        ));
-                jsonObjectBuilder.set(JsonFields.SOURCE_STATUS, jsonArray);
+            }
+            sourceStatusJsonArray =
+                    addTimeoutsToResourcesArray(ResourceStatus.ResourceType.SOURCE, sourceStatusJsonArray, () ->
+                            ConnectivityModelFactory.newSourceStatus(UNKNOWN_CLIENT,
+                                    ConnectivityStatus.FAILED,
+                                    null,
+                                    "Source failed to report its status within the timeout."
+                            ));
+            if (!sourceStatusJsonArray.isEmpty()) {
+                jsonObjectBuilder.set(JsonFields.SOURCE_STATUS, sourceStatusJsonArray);
             }
 
+            JsonArray targetStatusJsonArray = JsonArray.empty();
             if (targetStatus != null) {
-                final JsonArray jsonArray = targetStatus.stream()
+                targetStatusJsonArray = targetStatus.stream()
                         .map(ResourceStatus::toJson)
                         .collect(JsonCollectors.valuesToArray());
-                addTimeoutsToResourcesArray(ResourceStatus.ResourceType.TARGET, jsonArray, () ->
-                        ConnectivityModelFactory.newTargetStatus(UNKNOWN_CLIENT,
-                                ConnectivityStatus.FAILED,
-                                null,
-                                "Target failed to report its status within the timeout."
-                        ));
-                jsonObjectBuilder.set(JsonFields.TARGET_STATUS, jsonArray);
+            }
+            targetStatusJsonArray =
+                    addTimeoutsToResourcesArray(ResourceStatus.ResourceType.TARGET, targetStatusJsonArray, () ->
+                            ConnectivityModelFactory.newTargetStatus(UNKNOWN_CLIENT,
+                                    ConnectivityStatus.FAILED,
+                                    null,
+                                    "Target failed to report its status within the timeout."
+                            ));
+            if (!targetStatusJsonArray.isEmpty()) {
+                jsonObjectBuilder.set(JsonFields.TARGET_STATUS, targetStatusJsonArray);
             }
 
+            JsonArray sshTunnelStatusJsonArray = JsonArray.empty();
             if (sshTunnelStatus != null) {
-                final JsonArray jsonArray = sshTunnelStatus.stream()
+                sshTunnelStatusJsonArray = sshTunnelStatus.stream()
                         .map(ResourceStatus::toJson)
                         .collect(JsonCollectors.valuesToArray());
-                addTimeoutsToResourcesArray(ResourceStatus.ResourceType.SSH_TUNNEL, jsonArray, () ->
-                        ConnectivityModelFactory.newSshTunnelStatus(UNKNOWN_CLIENT,
-                                ConnectivityStatus.FAILED,
-                                "SSH Tunnel failed to report its status within the timeout.",
-                                now
-                        ));
-                jsonObjectBuilder.set(JsonFields.SSH_TUNNEL_STATUS, jsonArray);
+            }
+            sshTunnelStatusJsonArray =
+                    addTimeoutsToResourcesArray(ResourceStatus.ResourceType.SSH_TUNNEL, sshTunnelStatusJsonArray, () ->
+                            ConnectivityModelFactory.newSshTunnelStatus(UNKNOWN_CLIENT,
+                                    ConnectivityStatus.FAILED,
+                                    "SSH Tunnel failed to report its status within the timeout.",
+                                    now
+                            ));
+            if (!sshTunnelStatusJsonArray.isEmpty()) {
+                jsonObjectBuilder.set(JsonFields.SSH_TUNNEL_STATUS, sshTunnelStatusJsonArray);
             }
 
             return new RetrieveConnectionStatusResponse(connectionId, jsonObjectBuilder.build(), dittoHeaders);
         }
 
-        private void addTimeoutsToResourcesArray(final ResourceStatus.ResourceType resourceType,
+        private JsonArray addTimeoutsToResourcesArray(final ResourceStatus.ResourceType resourceType,
                 final JsonArray jsonArray,
                 final Supplier<ResourceStatus> resourceStatusSupplier) {
 
             if (null == missingResources) {
-                return;
+                return jsonArray;
             }
             final int missingCount = missingResources.getOrDefault(resourceType, 0);
+            if (missingCount < 1) {
+                return jsonArray;
+            }
+            final JsonArrayBuilder jsonArrayBuilder = jsonArray.toBuilder();
             IntStream.range(0, missingCount)
-                    .forEach(i -> jsonArray.add(resourceStatusSupplier.get().toJson()));
-
+                    .forEach(i -> jsonArrayBuilder.add(resourceStatusSupplier.get().toJson()));
+            return jsonArrayBuilder.build();
         }
     }
 

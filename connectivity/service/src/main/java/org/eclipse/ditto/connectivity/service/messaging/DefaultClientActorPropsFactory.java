@@ -20,7 +20,6 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushClientActor;
-import org.eclipse.ditto.connectivity.service.messaging.kafka.DefaultKafkaPublisherActorFactory;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.HiveMqtt3ClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.HiveMqtt5ClientActor;
@@ -69,8 +68,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                 result = HiveMqtt5ClientActor.props(connection, proxyActor, connectionActor, dittoHeaders);
                 break;
             case KAFKA:
-                result = KafkaClientActor.props(connection, proxyActor, connectionActor,
-                        DefaultKafkaPublisherActorFactory.getInstance(), dittoHeaders);
+                result = KafkaClientActor.props(connection, proxyActor, connectionActor, dittoHeaders);
                 break;
             case HTTP_PUSH:
                 result = HttpPushClientActor.props(connection, connectionActor, dittoHeaders);

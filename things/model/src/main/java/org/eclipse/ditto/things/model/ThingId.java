@@ -18,6 +18,7 @@ import java.util.function.Supplier;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.id.AbstractNamespacedEntityId;
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.base.model.entity.id.TypedEntityId;
 
@@ -52,10 +53,9 @@ public final class ThingId extends AbstractNamespacedEntityId {
             return (ThingId) thingId;
         }
 
-        if (thingId instanceof AbstractNamespacedEntityId) {
-            final String namespace = ((AbstractNamespacedEntityId) thingId).getNamespace();
-            final String name = ((AbstractNamespacedEntityId) thingId).getName();
-            return new ThingId(namespace, name, false);
+        if (thingId instanceof NamespacedEntityId) {
+            final NamespacedEntityId namespacedEntityId = (NamespacedEntityId) thingId;
+            return new ThingId(namespacedEntityId.getNamespace(), namespacedEntityId.getName(), false);
         }
 
         return wrapInThingIdInvalidException(() -> new ThingId(thingId));

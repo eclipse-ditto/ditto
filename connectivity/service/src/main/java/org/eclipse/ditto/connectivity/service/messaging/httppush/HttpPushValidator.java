@@ -131,7 +131,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
 
     private void validateParallelism(final Map<String, String> specificConfig, final DittoHeaders dittoHeaders) {
 
-        final String parallelismString = specificConfig.get(HttpPushFactory.PARALLELISM);
+        final String parallelismString = specificConfig.get(HttpPushFactory.PARALLELISM_JSON_KEY);
         if (parallelismString != null) {
             try {
                 final int parallelism = Integer.parseInt(parallelismString);
@@ -150,7 +150,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         final String errorMessage = String.format("The configured value '%s' of '%s' is invalid. " +
                         "It must be a positive integer.",
                 parallelismString,
-                HttpPushFactory.PARALLELISM);
+                HttpPushFactory.PARALLELISM_JSON_KEY);
         return ConnectionConfigurationInvalidException.newBuilder(errorMessage)
                 .dittoHeaders(headers)
                 .build();

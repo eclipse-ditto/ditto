@@ -50,9 +50,12 @@ public final class TestSearchUpdaterStream {
      * @param database the MongoDB database.
      * @return the test stream.
      */
-    public static TestSearchUpdaterStream of(final MongoDatabase database) {
-        final MongoSearchUpdaterFlow mongoSearchUpdaterFlow = MongoSearchUpdaterFlow.of(database,
-                DefaultPersistenceStreamConfig.of(ConfigFactory.empty()));
+    public static TestSearchUpdaterStream of(final MongoDatabase database,
+            final SearchUpdateMapper searchUpdateMapper) {
+
+        final var mongoSearchUpdaterFlow = MongoSearchUpdaterFlow.of(database,
+                DefaultPersistenceStreamConfig.of(ConfigFactory.empty()),
+                searchUpdateMapper);
         return new TestSearchUpdaterStream(mongoSearchUpdaterFlow);
     }
 

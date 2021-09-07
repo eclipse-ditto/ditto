@@ -40,7 +40,7 @@ public interface HttpPushFactory {
     /**
      * Specific config name for the amount of concurrent HTTP requests to make.
      */
-    String PARALLELISM = "parallelism";
+    String PARALLELISM_JSON_KEY = "parallelism";
 
     /**
      * Create a request template without headers or payload for an HTTP publish target.

@@ -14,17 +14,20 @@ package org.eclipse.ditto.base.model.signals;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.Objects;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityIdJsonDeserializer;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.base.model.entity.type.EntityTypeJsonDeserializer;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
 
 /**
  * A message envelope for messages to PersistenceActors which do not contain itself an ID. Holds both an ID and the
@@ -97,19 +100,40 @@ public final class ShardedMessageEnvelope
     /**
      * Returns a new {@code ShardedMessageEnvelope} parsed from the specified {@code jsonObject}.
      *
-     * @param jsonObject the JSON object.
-     * @return the ShardedMessageEnvelope.
+     * @param jsonObject the JSON object to be deserialized.
+     * @return the deserialized {@code ShardedMessageEnvelope}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain all required
+     * fields.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} was not in the expected format.
      */
     public static ShardedMessageEnvelope fromJson(final JsonObject jsonObject) {
-        final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JSON_ID_TYPE));
-        final String extractedId = jsonObject.getValueOrThrow(JSON_ID);
-        final EntityId entityId = EntityId.of(entityType, extractedId);
-        final String extractedType = jsonObject.getValueOrThrow(JSON_TYPE);
-        final JsonObject extractedMessage = jsonObject.getValueOrThrow(JSON_MESSAGE);
-        final JsonObject jsonDittoHeaders = jsonObject.getValueOrThrow(JSON_DITTO_HEADERS);
-        final DittoHeaders extractedDittoHeaders = DittoHeaders.newBuilder(jsonDittoHeaders).build();
+        return of(deserializeEntityId(jsonObject),
+                jsonObject.getValueOrThrow(JSON_TYPE),
+                jsonObject.getValueOrThrow(JSON_MESSAGE),
+                deserializeDittoHeaders(jsonObject));
+    }
 
-        return of(entityId, extractedType, extractedMessage, extractedDittoHeaders);
+    private static EntityId deserializeEntityId(final JsonObject jsonObject) {
+        return EntityIdJsonDeserializer.deserializeEntityId(jsonObject,
+                JSON_ID,
+                EntityTypeJsonDeserializer.deserializeEntityType(jsonObject, JSON_ID_TYPE));
+    }
+
+    private static DittoHeaders deserializeDittoHeaders(final JsonObject jsonObject) {
+        final JsonFieldDefinition<JsonObject> fieldDefinition = JSON_DITTO_HEADERS;
+        final JsonObject jsonDittoHeaders = jsonObject.getValueOrThrow(fieldDefinition);
+        try {
+            return DittoHeaders.newBuilder(jsonDittoHeaders).build();
+        } catch (final RuntimeException e) {
+            throw JsonParseException.newBuilder()
+                    .message(MessageFormat.format("Failed to deserialize value of key <{0}> as {1}: {2}",
+                            fieldDefinition.getPointer(),
+                            DittoHeaders.class.getSimpleName(),
+                            e.getMessage()))
+                    .cause(e)
+                    .build();
+        }
     }
 
     /**
@@ -117,6 +141,7 @@ public final class ShardedMessageEnvelope
      *
      * @return the ID of the envelope.
      */
+    @Override
     public EntityId getEntityId() {
         return id;
     }

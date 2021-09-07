@@ -64,7 +64,7 @@ import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link MongoSearchUpdaterFlow}.
+ * Tests {@link MongoSearchUpdaterFlow}
  */
 public final class MongoSearchUpdaterFlowTest {
 
@@ -111,7 +111,7 @@ public final class MongoSearchUpdaterFlowTest {
             }).when(collection).bulkWrite(any(), any(BulkWriteOptions.class));
 
             final MongoSearchUpdaterFlow flow = MongoSearchUpdaterFlow.of(db,
-                    DefaultPersistenceStreamConfig.of(ConfigFactory.empty()));
+                    DefaultPersistenceStreamConfig.of(ConfigFactory.empty()), SearchUpdateMapper.get(actorSystem));
 
             // WHEN: 25 updates go through 32 parallel streams
 
@@ -142,7 +142,7 @@ public final class MongoSearchUpdaterFlowTest {
             // THEN: updates complete quickly
 
             try {
-                final var result = latch.await(5L, TimeUnit.SECONDS);
+                final var result = latch.await(20L, TimeUnit.SECONDS);
                 assertThat(latch.getCount()).isZero();
                 assertThat(result).isTrue();
             } catch (final InterruptedException e) {
@@ -172,7 +172,8 @@ public final class MongoSearchUpdaterFlowTest {
             // GIVEN: MongoSearchUpdaterFlow is wrapped inside a RestartSink
 
             final MongoSearchUpdaterFlow flow = MongoSearchUpdaterFlow.of(db,
-                    DefaultPersistenceStreamConfig.of(ConfigFactory.empty()));
+                    DefaultPersistenceStreamConfig.of(ConfigFactory.empty()),
+                    SearchUpdateMapper.get(actorSystem));
 
             final Sink<Source<AbstractWriteModel, NotUsed>, ?> sink =
                     flow.start(false, 1, 1).to(Sink.ignore());

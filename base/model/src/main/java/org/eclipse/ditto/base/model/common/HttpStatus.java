@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.base.model.common;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -30,9 +29,7 @@ import javax.annotation.concurrent.Immutable;
  * @since 2.0.0
  */
 @Immutable
-public final class HttpStatus implements Serializable {
-
-    private static final long serialVersionUID = -8885963617558010628L;
+public final class HttpStatus {
 
     private static final Map<Integer, HttpStatus> ASSIGNED = new HashMap<>();
 

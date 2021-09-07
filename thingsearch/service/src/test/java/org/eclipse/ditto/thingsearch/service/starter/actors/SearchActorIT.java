@@ -59,6 +59,7 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQue
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.query.QueryParser;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
+import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdateMapper;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.TestSearchUpdaterStream;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -68,6 +69,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.mongodb.reactivestreams.client.MongoCollection;
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
@@ -84,41 +86,43 @@ public final class SearchActorIT {
     private static final AuthorizationContext AUTH_CONTEXT =
             AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                     AuthorizationSubject.newInstance("ditto:ditto"));
-
-    private static QueryParser queryParser;
     private static final PolicyId POLICY_ID = PolicyId.of("default", "policy");
     @ClassRule
     public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
     private static Enforcer policyEnforcer;
     private static DittoMongoClient mongoClient;
 
+    private static Config actorsTestConfig;
+    private static QueryParser queryParser;
+
+    private ActorSystem actorSystem;
     private MongoThingsSearchPersistence readPersistence;
     private MongoCollection<Document> thingsCollection;
     private TestSearchUpdaterStream writePersistence;
 
-    private ActorSystem actorSystem;
-
     @BeforeClass
     public static void startMongoResource() {
+        final var dispatcherConfig = ConfigFactory.parseString("search-dispatcher {\n" +
+                "  type = PinnedDispatcher\n" +
+                "  executor = \"thread-pool-executor\"\n" +
+                "}\n" +
+                "search-updater-dispatcher {\n" +
+                "  type = PinnedDispatcher\n" +
+                "  executor = \"thread-pool-executor\"\n" +
+                "}");
+        actorsTestConfig = ConfigFactory.load("actors-test.conf").withFallback(dispatcherConfig);
+
         queryParser = SearchRootActor.getQueryParser(DefaultLimitsConfig.of(ConfigFactory.empty()),
-                ActorSystem.create("test-system", ConfigFactory.load("actors-test.conf")));
+                ActorSystem.create(SearchActorIT.class.getSimpleName(), actorsTestConfig));
         mongoClient = provideClientWrapper();
         policyEnforcer = PolicyEnforcers.defaultEvaluator(createPolicy());
     }
 
     @Before
     public void before() {
-        actorSystem = ActorSystem.create(getClass().getSimpleName(),
-                ConfigFactory.parseString("search-dispatcher {\n" +
-                        "  type = PinnedDispatcher\n" +
-                        "  executor = \"thread-pool-executor\"\n" +
-                        "}\n" +
-                        "search-updater-dispatcher {\n" +
-                        "  type = PinnedDispatcher\n" +
-                        "  executor = \"thread-pool-executor\"\n" +
-                        "}"));
+        actorSystem = ActorSystem.create(getClass().getSimpleName(), actorsTestConfig);
         readPersistence = provideReadPersistence();
-        writePersistence = provideWritePersistence();
+        writePersistence = provideWritePersistence(actorSystem);
         thingsCollection = mongoClient.getDefaultDatabase().getCollection(PersistenceConstants.THINGS_COLLECTION_NAME);
     }
 
@@ -129,8 +133,8 @@ public final class SearchActorIT {
         return result;
     }
 
-    private static TestSearchUpdaterStream provideWritePersistence() {
-        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase());
+    private static TestSearchUpdaterStream provideWritePersistence(final ActorSystem system) {
+        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase(), SearchUpdateMapper.get(system));
     }
 
     private static DittoMongoClient provideClientWrapper() {

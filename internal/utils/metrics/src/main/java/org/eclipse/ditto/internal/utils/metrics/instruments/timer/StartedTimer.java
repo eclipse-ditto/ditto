@@ -23,6 +23,11 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.TaggedMetricInstrume
  */
 public interface StartedTimer extends Timer, TaggedMetricInstrument<StartedTimer> {
 
+    @Override
+    default StartedTimer self() {
+        return this;
+    }
+
     /**
      * Stops the timer and all its segments.
      *

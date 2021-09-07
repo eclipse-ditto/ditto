@@ -35,18 +35,8 @@ final class ImmutableCacheKey implements CacheKey {
     private final EntityId id;
     @Nullable private final CacheLookupContext cacheLookupContext;
 
-    /**
-     * Creates a new {@code ImmutableEntityIdWithResourceType}.
-     *
-     * @param id the entity id.
-     * @param cacheLookupContext additional context information to use for the cache lookup.
-     * @throws IllegalArgumentException if resource type contains ':'.
-     */
-    private ImmutableCacheKey(
-            final EntityId id,
-            @Nullable final CacheLookupContext cacheLookupContext) {
-        // build a default entity id, so that serializing and deserializing works properly
-        this.id = EntityId.of(checkNotNull(id, "id").getEntityType(), id);
+    private ImmutableCacheKey(final EntityId id, @Nullable final CacheLookupContext cacheLookupContext) {
+        this.id = checkNotNull(id, "id");
         this.cacheLookupContext = cacheLookupContext;
     }
 
@@ -55,6 +45,7 @@ final class ImmutableCacheKey implements CacheKey {
      *
      * @param id the entity ID.
      * @return the entity ID with resource type object.
+     * @throws NullPointerException if {@code id} is {@code null}.
      */
     static CacheKey of(final EntityId id) {
         return new ImmutableCacheKey(id, null);
@@ -66,6 +57,7 @@ final class ImmutableCacheKey implements CacheKey {
      * @param id the entity ID.
      * @param cacheLookupContext additional context information to use for the cache lookup.
      * @return the entity ID with resource type object.
+     * @throws NullPointerException if {@code id} is {@code null}.
      */
     static CacheKey of(final EntityId id, final CacheLookupContext cacheLookupContext) {
         return new ImmutableCacheKey(id, cacheLookupContext);
@@ -103,14 +95,19 @@ final class ImmutableCacheKey implements CacheKey {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(@Nullable final Object o) {
         if (o instanceof ImmutableCacheKey) {
-            final ImmutableCacheKey that = (ImmutableCacheKey) o;
-            return Objects.equals(id, that.id) &&
-                    Objects.equals(cacheLookupContext, that.cacheLookupContext);
+            final var that = (ImmutableCacheKey) o;
+            return isIdEqualValueBased(that) && Objects.equals(cacheLookupContext, that.cacheLookupContext);
         } else {
             return false;
         }
+    }
+
+    // this allows working with fallback entity IDs as well without breaking caching
+    private boolean isIdEqualValueBased(final ImmutableCacheKey that) {
+        return Objects.equals(id.getEntityType(), that.id.getEntityType()) &&
+                Objects.equals(id.toString(), that.id.toString());
     }
 
     @Override

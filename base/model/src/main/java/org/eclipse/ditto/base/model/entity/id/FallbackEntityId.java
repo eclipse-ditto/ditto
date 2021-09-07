@@ -36,7 +36,7 @@ final class FallbackEntityId extends AbstractEntityId {
      * @throws NullPointerException if {@code entityId} is {@code null}.
      * @throws IllegalArgumentException if {@code entityId} is empty.
      */
-    public static EntityId of(final EntityType entityType, final CharSequence entityId) {
+    static FallbackEntityId of(final EntityType entityType, final CharSequence entityId) {
         return new FallbackEntityId(entityType, entityId);
     }
 
