@@ -16,8 +16,8 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.bson.BsonDocument;
 import org.bson.BsonString;
-import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 
@@ -50,7 +50,7 @@ public abstract class AbstractWriteModel {
      *
      * @return MongoDB write model.
      */
-    public abstract WriteModel<Document> toMongo();
+    public abstract WriteModel<BsonDocument> toMongo();
 
     /**
      * @return Metadata of this write model.

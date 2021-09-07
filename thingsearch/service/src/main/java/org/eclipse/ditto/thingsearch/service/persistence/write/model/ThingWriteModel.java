@@ -17,7 +17,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.bson.Document;
+import org.bson.BsonDocument;
 
 import com.mongodb.client.model.ReplaceOneModel;
 import com.mongodb.client.model.ReplaceOptions;
@@ -29,9 +29,9 @@ import com.mongodb.client.model.WriteModel;
 @NotThreadSafe
 public final class ThingWriteModel extends AbstractWriteModel {
 
-    private final Document thingDocument;
+    private final BsonDocument thingDocument;
 
-    private ThingWriteModel(final Metadata metadata, final Document thingDocument) {
+    private ThingWriteModel(final Metadata metadata, final BsonDocument thingDocument) {
         super(metadata);
         this.thingDocument = thingDocument;
     }
@@ -43,19 +43,19 @@ public final class ThingWriteModel extends AbstractWriteModel {
      * @param thingDocument the document to write into the search index.
      * @return a Thing write model.
      */
-    public static ThingWriteModel of(final Metadata metadata, final Document thingDocument) {
+    public static ThingWriteModel of(final Metadata metadata, final BsonDocument thingDocument) {
         return new ThingWriteModel(metadata, thingDocument);
     }
 
     @Override
-    public WriteModel<Document> toMongo() {
+    public WriteModel<BsonDocument> toMongo() {
         return new ReplaceOneModel<>(getFilter(), thingDocument, upsert());
     }
 
     /**
      * @return the Thing document to be written in the persistence.
      */
-    public Document getThingDocument() {
+    public BsonDocument getThingDocument() {
         return thingDocument;
     }
 

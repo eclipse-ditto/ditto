@@ -52,7 +52,7 @@ public final class ThingDeleteModel extends AbstractWriteModel {
     }
 
     @Override
-    public WriteModel<Document> toMongo() {
+    public WriteModel<BsonDocument> toMongo() {
         final Bson filter = getFilter();
         if (deleteImmediately || getMetadata().isShouldAcknowledge()) {
             return new DeleteOneModel<>(filter);

@@ -15,7 +15,7 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.bson.Document;
+import org.bson.BsonDocument;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -34,7 +34,6 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 import akka.NotUsed;
 import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Source;
 
 /**
@@ -53,11 +52,11 @@ final class MongoSearchUpdaterFlow {
      */
     static final String DISPATCHER_NAME = "search-updater-dispatcher";
 
-    private final MongoCollection<Document> collection;
-    private final MongoCollection<Document> collectionWithAcknowledgements;
+    private final MongoCollection<BsonDocument> collection;
+    private final MongoCollection<BsonDocument> collectionWithAcknowledgements;
     private final SearchUpdateMapper searchUpdateMapper;
 
-    private MongoSearchUpdaterFlow(final MongoCollection<Document> collection,
+    private MongoSearchUpdaterFlow(final MongoCollection<BsonDocument> collection,
             final PersistenceStreamConfig persistenceConfig,
             final SearchUpdateMapper searchUpdateMapper) {
 
@@ -79,7 +78,8 @@ final class MongoSearchUpdaterFlow {
             final PersistenceStreamConfig persistenceConfig,
             final SearchUpdateMapper searchUpdateMapper) {
 
-        return new MongoSearchUpdaterFlow(database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME),
+        return new MongoSearchUpdaterFlow(
+                database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME, BsonDocument.class),
                 persistenceConfig,
                 searchUpdateMapper);
     }
@@ -124,14 +124,14 @@ final class MongoSearchUpdaterFlow {
     private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,
             final List<AbstractWriteModel> abstractWriteModels) {
 
-        final List<WriteModel<Document>> writeModels = abstractWriteModels.stream()
+        final List<WriteModel<BsonDocument>> writeModels = abstractWriteModels.stream()
                 .map(writeModel -> {
                     ConsistencyLag.startS5MongoBulkWrite(writeModel.getMetadata());
                     return writeModel.toMongo();
                 })
                 .collect(Collectors.toList());
 
-        final MongoCollection<Document> theCollection;
+        final MongoCollection<BsonDocument> theCollection;
         if (shouldAcknowledge) {
             theCollection = collectionWithAcknowledgements;
         } else {

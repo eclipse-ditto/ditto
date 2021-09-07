@@ -24,9 +24,6 @@ import org.bson.BsonDocument;
 import org.bson.BsonInt64;
 import org.bson.BsonString;
 import org.bson.BsonValue;
-import org.bson.Document;
-import org.bson.codecs.DecoderContext;
-import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
@@ -65,7 +62,7 @@ public final class EnforcedThingMapper {
      * @return BSON document to write into the search index.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
      */
-    public static Document mapThing(final JsonObject thing, final Enforcer enforcer, final long policyRevision) {
+    public static BsonDocument mapThing(final JsonObject thing, final Enforcer enforcer, final long policyRevision) {
         return toWriteModel(thing, enforcer, policyRevision).getThingDocument();
     }
 
@@ -111,14 +108,7 @@ public final class EnforcedThingMapper {
                 Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(List.of()),
                 Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(List.of()));
 
-        final BsonDocument thingBsonDocument = toBsonDocument(thing, enforcer, maxArraySize, metadata);
-
-        // TODO: use BsonDocument in write models.
-        final Document thingDocument = BsonUtil.getCodecRegistry()
-                .get(Document.class)
-                .decode(thingBsonDocument.asBsonReader(), DecoderContext.builder().build());
-
-        return ThingWriteModel.of(metadata, thingDocument);
+        return ThingWriteModel.of(metadata, toBsonDocument(thing, enforcer, maxArraySize, metadata));
     }
 
     static BsonDocument toBsonDocument(final JsonObject thing,
