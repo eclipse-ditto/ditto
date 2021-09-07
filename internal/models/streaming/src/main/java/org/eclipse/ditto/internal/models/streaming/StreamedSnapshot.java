@@ -14,12 +14,13 @@ package org.eclipse.ditto.internal.models.streaming;
 
 import java.util.Objects;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.EntityIdJsonDeserializer;
+import org.eclipse.ditto.base.model.entity.type.EntityTypeJsonDeserializer;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Serializable message for streamed snapshots.
@@ -46,16 +47,23 @@ public final class StreamedSnapshot implements StreamingMessage, Jsonifiable<Jso
     }
 
     /**
-     * Deserialize a streamed snapshot from JSON.
+     * Deserializes a {@code StreamedSnapshot} from the specified {@link JsonObject} argument.
      *
-     * @param jsonObject the JSON representation of the streamed snapshot.
-     * @return the streamed snapshot object.
+     * @param jsonObject the JSON object to be deserialized.
+     * @return the deserialized {@code StreamedSnapshot}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain all required
+     * fields.
+     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} was not in the expected format.
      */
     public static StreamedSnapshot fromJson(final JsonObject jsonObject) {
-        final EntityType entityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE));
-        final EntityId entityId = EntityId.of(entityType, jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
-        final JsonObject snapshot = jsonObject.getValueOrThrow(JsonFields.SNAPSHOT);
-        return new StreamedSnapshot(entityId, snapshot);
+        return new StreamedSnapshot(deserializeEntityId(jsonObject), jsonObject.getValueOrThrow(JsonFields.SNAPSHOT));
+    }
+
+    private static EntityId deserializeEntityId(final JsonObject jsonObject) {
+        return EntityIdJsonDeserializer.deserializeEntityId(jsonObject,
+                JsonFields.ENTITY_ID,
+                EntityTypeJsonDeserializer.deserializeEntityType(jsonObject, JsonFields.ENTITY_TYPE));
     }
 
     /**

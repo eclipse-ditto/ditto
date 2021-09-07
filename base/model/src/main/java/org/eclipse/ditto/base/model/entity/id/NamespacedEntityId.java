@@ -19,23 +19,26 @@ import org.eclipse.ditto.base.model.entity.type.EntityType;
 /**
  * Interface for all entity IDs that contain a namespace in their string representation.
  * Every implementation of this interface needs to ensure that name and namespace are valid according to
- * {@link RegexPatterns#ENTITY_NAME_REGEX} and
- * {@link RegexPatterns#NAMESPACE_REGEX}.
+ * {@link RegexPatterns#ENTITY_NAME_REGEX} and {@link RegexPatterns#NAMESPACE_REGEX}.
  * Every implementation must ensure immutability.
  */
 @Immutable
 public interface NamespacedEntityId extends EntityId {
 
     /**
-     * Instantiates a {@link org.eclipse.ditto.base.model.entity.id.NamespacedEntityId} based on the given entity type and entity ID.
+     * Instantiates a {@code org.eclipse.ditto.base.model.entity.id.NamespacedEntityId} based on the given entity type
+     * and entity ID.
      *
-     * @param entityType The type of the entity which is identified by the given ID.
-     * @param entityId The ID of the entity.
+     * @param entityType the type of the entity which is identified by the given ID.
+     * @param entityId the ID of the entity.
      * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws EntityIdInvalidException if {@code entityIdValue} represents an invalid ID for {@code entityType}.
      * @since 2.0.0
      */
     static NamespacedEntityId of(final EntityType entityType, final CharSequence entityId) {
-        return EntityIds.getNamespacedEntityId(entityType, entityId);
+        final EntityIds entityIds = EntityIds.getInstance();
+        return entityIds.getNamespacedEntityId(entityType, entityId);
     }
 
     /**

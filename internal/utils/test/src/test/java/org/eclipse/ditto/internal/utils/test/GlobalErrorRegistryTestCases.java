@@ -14,21 +14,24 @@ package org.eclipse.ditto.internal.utils.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.atteo.classindex.ClassIndex;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;
 
 @Immutable
@@ -41,9 +44,9 @@ public abstract class GlobalErrorRegistryTestCases {
      *
      * @param sample a class that is annotated with {@link JsonParsableException}. This list should contain
      * at least one exception of each package containing an Exception in the classpath of the respective service.
-     * @param furtherSamples  further classes that are annotated with {@link JsonParsableException}.
+     * @param furtherSamples further classes that are annotated with {@link JsonParsableException}.
      */
-    protected GlobalErrorRegistryTestCases(final Class<?> sample, final Class<?> ... furtherSamples) {
+    protected GlobalErrorRegistryTestCases(final Class<?> sample, final Class<?>... furtherSamples) {
         samples = new ArrayList<>(1 + furtherSamples.length);
         samples.add(sample);
         Collections.addAll(samples, furtherSamples);
@@ -64,14 +67,13 @@ public abstract class GlobalErrorRegistryTestCases {
      */
     @Test
     public void ensureSamplesAreComplete() {
-        final Set<Package> packagesOfAnnotated =
-                getPackagesDistinct(ClassIndex.getAnnotated(JsonParsableException.class));
-        final Set<Package> packagesOfSamples = getPackagesDistinct(samples);
+        final var packagesOfAnnotated = getPackagesDistinct(ClassIndex.getAnnotated(JsonParsableException.class));
+        final var packagesOfSamples = getPackagesDistinct(samples);
 
         assertThat(packagesOfSamples).containsAll(packagesOfAnnotated);
     }
 
-    private Set<Package> getPackagesDistinct(Iterable<Class<?>> classes) {
+    private static Set<Package> getPackagesDistinct(final Iterable<Class<?>> classes) {
         return StreamSupport.stream(classes.spliterator(), false)
                 .map(Class::getPackage)
                 .collect(Collectors.toSet());
@@ -79,34 +81,38 @@ public abstract class GlobalErrorRegistryTestCases {
 
     @Test
     public void allExceptionsRegistered() {
-        final Iterable<Class<? extends DittoRuntimeException>> subclassesOfDRE =
-                ClassIndex.getSubclasses(DittoRuntimeException.class);
+        try (final var softly = new AutoCloseableSoftAssertions()) {
 
-        for (Class<? extends DittoRuntimeException> subclassOfDRE : subclassesOfDRE) {
-            if (DittoJsonException.class.equals(subclassOfDRE)) {
-                //DittoJsonException is another concept than the rest of DittoRuntimeExceptions
-                continue;
-            }
-
-            assertThat(subclassOfDRE.isAnnotationPresent(JsonParsableException.class))
-                    .as("Check that '%s' is annotated with JsonParsableException.", subclassOfDRE.getName())
-                    .isTrue();
+            // DittoJsonException is another concept than the rest of DittoRuntimeExceptions
+            subclassesOfDittoRuntimeException()
+                    .filter(subclass -> DittoJsonException.class != subclass)
+                    .filter(subclass -> !Modifier.isAbstract(subclass.getModifiers()))
+                    .forEach(subclass -> softly.assertThat(subclass.isAnnotationPresent(JsonParsableException.class))
+                            .as("Check that '%s' is annotated with 'JsonParsableException'.", subclass.getName())
+                            .isTrue());
         }
+    }
+
+    private static Stream<Class<? extends DittoRuntimeException>> subclassesOfDittoRuntimeException() {
+        final var subclasses = ClassIndex.getSubclasses(DittoRuntimeException.class);
+        return StreamSupport.stream(subclasses.spliterator(), false);
     }
 
     @Test
     public void allRegisteredExceptionsContainAMethodToParseFromJson() throws NoSuchMethodException {
-        final Iterable<Class<?>> jsonParsableExceptions = ClassIndex.getAnnotated(JsonParsableException.class);
+        final var jsonParsableExceptions = ClassIndex.getAnnotated(JsonParsableException.class);
 
-        for (Class<?> jsonParsableException : jsonParsableExceptions) {
-            final JsonParsableException annotation = jsonParsableException.getAnnotation(JsonParsableException.class);
-            assertAnnotationIsValid(annotation, jsonParsableException);
+        try (final var softly = new AutoCloseableSoftAssertions()) {
+            for (final var jsonParsableException : jsonParsableExceptions) {
+                final var annotation = jsonParsableException.getAnnotation(JsonParsableException.class);
+                final var method =
+                        jsonParsableException.getMethod(annotation.method(), JsonObject.class, DittoHeaders.class);
+
+                softly.assertThat(method)
+                        .as("Check that '%s' has correct methodName.", jsonParsableException.getName())
+                        .isNotNull();
+            }
         }
     }
 
-    private void assertAnnotationIsValid(JsonParsableException annotation, Class<?> cls) throws NoSuchMethodException {
-        assertThat(cls.getMethod(annotation.method(), JsonObject.class, DittoHeaders.class))
-                .as("Check that JsonParsableException of '%s' has correct methodName.", cls.getName())
-                .isNotNull();
-    }
 }

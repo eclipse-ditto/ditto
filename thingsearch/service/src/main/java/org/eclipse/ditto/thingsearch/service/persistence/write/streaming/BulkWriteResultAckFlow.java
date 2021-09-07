@@ -135,7 +135,7 @@ final class BulkWriteResultAckFlow {
         return UpdateThingResponse.of(
                 metadata.getThingId(),
                 metadata.getThingRevision(),
-                metadata.getPolicyId().map(PolicyId::of).orElse(null),
+                metadata.getPolicyId().orElse(null),
                 metadata.getPolicyId().flatMap(policyId -> metadata.getPolicyRevision()).orElse(null),
                 false,
                 DittoHeaders.empty()

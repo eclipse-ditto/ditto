@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.bson.Document;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
@@ -32,6 +34,7 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 import akka.NotUsed;
 import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Source;
 
 /**
@@ -42,6 +45,8 @@ final class MongoSearchUpdaterFlow {
     private static final String TRACE_THING_BULK_UPDATE = "things_search_thing_bulkUpdate";
     private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_search_thing_bulkUpdate_updates_per_bulk";
     private static final String UPDATE_TYPE_TAG = "update_type";
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(MongoSearchUpdaterFlow.class);
 
     /**
      * Config key of the dispatcher for the search updater.
@@ -50,12 +55,16 @@ final class MongoSearchUpdaterFlow {
 
     private final MongoCollection<Document> collection;
     private final MongoCollection<Document> collectionWithAcknowledgements;
+    private final SearchUpdateMapper searchUpdateMapper;
 
     private MongoSearchUpdaterFlow(final MongoCollection<Document> collection,
-            final PersistenceStreamConfig persistenceConfig) {
+            final PersistenceStreamConfig persistenceConfig,
+            final SearchUpdateMapper searchUpdateMapper) {
+
         this.collection = collection;
-        this.collectionWithAcknowledgements = collection.withWriteConcern(
+        collectionWithAcknowledgements = collection.withWriteConcern(
                 persistenceConfig.getWithAcknowledgementsWriteConcern());
+        this.searchUpdateMapper = searchUpdateMapper;
     }
 
     /**
@@ -63,14 +72,17 @@ final class MongoSearchUpdaterFlow {
      *
      * @param database the MongoDB database.
      * @param persistenceConfig the persistence configuration for the search updater stream.
+     * @param searchUpdateMapper the mapper for custom processing on search updates.
      * @return the MongoSearchUpdaterFlow object.
      */
     public static MongoSearchUpdaterFlow of(final MongoDatabase database,
-            final PersistenceStreamConfig persistenceConfig) {
-        return new MongoSearchUpdaterFlow(database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME),
-                persistenceConfig);
-    }
+            final PersistenceStreamConfig persistenceConfig,
+            final SearchUpdateMapper searchUpdateMapper) {
 
+        return new MongoSearchUpdaterFlow(database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME),
+                persistenceConfig,
+                searchUpdateMapper);
+    }
 
     /**
      * Create a new flow through the search persistence.
@@ -93,6 +105,16 @@ final class MongoSearchUpdaterFlow {
 
         final Flow<List<AbstractWriteModel>, WriteResultAndErrors, NotUsed> writeFlow =
                 Flow.<List<AbstractWriteModel>>create()
+                        .map(writeModels -> {
+                            try {
+                                return searchUpdateMapper.processWriteModels(writeModels);
+                            } catch (final Exception e) {
+                                LOGGER.error(
+                                        "Skipping mapping of search update write models because an unexpected error occurred.",
+                                        e);
+                                return writeModels;
+                            }
+                        })
                         .flatMapMerge(parallelism, writeModels ->
                                 executeBulkWrite(shouldAcknowledge, writeModels).async(DISPATCHER_NAME, parallelism));
 
@@ -101,6 +123,7 @@ final class MongoSearchUpdaterFlow {
 
     private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,
             final List<AbstractWriteModel> abstractWriteModels) {
+
         final List<WriteModel<Document>> writeModels = abstractWriteModels.stream()
                 .map(writeModel -> {
                     ConsistencyLag.startS5MongoBulkWrite(writeModel.getMetadata());
@@ -110,9 +133,9 @@ final class MongoSearchUpdaterFlow {
 
         final MongoCollection<Document> theCollection;
         if (shouldAcknowledge) {
-            theCollection = this.collectionWithAcknowledgements;
+            theCollection = collectionWithAcknowledgements;
         } else {
-            theCollection = this.collection;
+            theCollection = collection;
         }
 
         final var bulkWriteTimer = startBulkWriteTimer(writeModels);

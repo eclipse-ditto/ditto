@@ -33,6 +33,7 @@ import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
 import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;
+import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdateMapper;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.TestSearchUpdaterStream;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
@@ -114,7 +115,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
     }
 
     private TestSearchUpdaterStream provideWritePersistence() {
-        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase());
+        return TestSearchUpdaterStream.of(mongoClient.getDefaultDatabase(), SearchUpdateMapper.get(actorSystem));
     }
 
     private static DittoMongoClient provideClientWrapper() {

@@ -18,6 +18,7 @@ import java.util.function.Supplier;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.id.AbstractNamespacedEntityId;
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.base.model.entity.id.TypedEntityId;
 
@@ -37,38 +38,32 @@ public final class PolicyId extends AbstractNamespacedEntityId {
     }
 
     /**
-     * Returns a {@link PolicyId} based on the given policyId CharSequence. May return the same instance as
-     * the parameter if the given parameter is already a PolicyId. Skips validation if the given
-     * {@code policyId} is an instance of NamespacedEntityId.
+     * Returns a {@code PolicyId} based on the given policyId CharSequence.
+     * May return the same instance as the parameter if the given parameter is already a PolicyId.
+     * Skips validation if the given {@code policyId} is an instance of NamespacedEntityId.
      *
      * @param policyId The policy ID.
      * @return the policy ID.
      */
     public static PolicyId of(final CharSequence policyId) {
-
         if (policyId instanceof PolicyId) {
             return (PolicyId) policyId;
         }
 
-        if (policyId instanceof AbstractNamespacedEntityId) {
-            final String namespace = ((AbstractNamespacedEntityId) policyId).getNamespace();
-            final String name = ((AbstractNamespacedEntityId) policyId).getName();
-            return new PolicyId(namespace, name, false);
+        if (policyId instanceof NamespacedEntityId) {
+            final NamespacedEntityId namespacedEntityId = (NamespacedEntityId) policyId;
+            return new PolicyId(namespacedEntityId.getNamespace(), namespacedEntityId.getName(), false);
         }
 
         return wrapInPolicyIdInvalidException(() -> new PolicyId(policyId));
     }
 
-    public static PolicyId of(final PolicyId policyId) {
-        return policyId;
-    }
-
     /**
-     * Creates a new {@link PolicyId} with the given namespace and name.
+     * Creates a new {@code PolicyId} with the given namespace and name.
      *
      * @param namespace the namespace of the policy.
      * @param policyName the name of the policy.
-     * @return the created instance of {@link PolicyId}
+     * @return the created instance of {@code PolicyId}
      */
     public static PolicyId of(final String namespace, final String policyName) {
         return wrapInPolicyIdInvalidException(() -> new PolicyId(namespace, policyName, true));

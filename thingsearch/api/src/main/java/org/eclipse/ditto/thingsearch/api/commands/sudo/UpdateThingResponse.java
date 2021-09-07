@@ -19,6 +19,12 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -26,15 +32,9 @@ import org.eclipse.ditto.json.JsonFieldMarker;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommandResponse;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
@@ -47,8 +47,8 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 @AllValuesAreNonnullByDefault
 @JsonParsableCommandResponse(type = UpdateThingResponse.TYPE)
 // When making this a ThingSearchCommand, beware that it is WithId but actually yes.
-public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThingResponse> implements
-        SignalWithEntityId<UpdateThingResponse> {
+public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThingResponse>
+        implements SignalWithEntityId<UpdateThingResponse> {
 
     /**
      * Type of this command.
