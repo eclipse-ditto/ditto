@@ -12,123 +12,86 @@
  */
 package org.eclipse.ditto.base.model.entity.id;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import javax.annotation.Nullable;
 
-import org.atteo.classindex.ClassIndex;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 
 /**
  * Factory class to instantiate the correct entity type based on the given {@link org.eclipse.ditto.base.model.entity.type.EntityType}.
- * Uses Reflection to find all EntityIds annotated with {@link org.eclipse.ditto.base.model.entity.id.TypedEntityId} and expects one static method
- * which accepts a {@link CharSequence} and returns something which is a subtype of itself.
+ * Uses Reflection to find all EntityIds annotated with {@link org.eclipse.ditto.base.model.entity.id.TypedEntityId} and
+ * expects one static method which accepts a {@link CharSequence} and returns something which is a subtype of itself.
  */
 final class EntityIds {
 
-    /**
-     * Holds all instantiation methods for entity IDs with known entity types (including NamespacedEntityIds).
-     */
-    private static final Map<String, Method> ID_FACTORIES;
+    @Nullable private static EntityIds instance = null;
 
-    /**
-     * Holds all instantiation methods for namespaced entity IDs with known entity types.
-     */
-    private static final Map<String, Method> NAMESPACED_ID_FACTORIES;
+    private final BaseEntityIdFactory<EntityId> entityIdFactory;
+    private final BaseEntityIdFactory<NamespacedEntityId> namespacedEntityIdFactory;
 
-    static {
-        ID_FACTORIES = getFactoriesFor(EntityId.class);
-        NAMESPACED_ID_FACTORIES = getFactoriesFor(NamespacedEntityId.class);
-    }
+    private EntityIds(final BaseEntityIdFactory<EntityId> entityIdFactory,
+            final BaseEntityIdFactory<NamespacedEntityId> namespacedEntityIdFactory) {
 
-    private EntityIds() {
-        throw new AssertionError("Should never be called");
+        this.entityIdFactory = entityIdFactory;
+        this.namespacedEntityIdFactory = namespacedEntityIdFactory;
     }
 
     /**
-     * Best effort to initialize the most concrete type of a {@link org.eclipse.ditto.base.model.entity.id.NamespacedEntityId} based on the given entityType.
+     * Returns an <em>singleton</em> instance of {@code EntityIds}.
      *
-     * @param entityType The type of the entity which should be identified by the given entity ID.
-     * @param entityId The ID of an entity.
+     * @return the singleton instance.
+     */
+    static EntityIds getInstance() {
+        EntityIds result = instance;
+        if (null == result) {
+            result = newInstance(EntityIdFactory.newInstance(), NamespacedEntityIdFactory.newInstance());
+            instance = result;
+        }
+        return result;
+    }
+
+    /**
+     * Returns a new instance of {@code EntityIds}.
+     *
+     * @param entityIdFactory factory for creating {@link EntityId}s with known entity types
+     * (including {@code NamespacedEntityId}s).
+     * @param namespacedEntityIdFactory factory for creating {@link NamespacedEntityId}s with known entity types.
+     * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    static EntityIds newInstance(final BaseEntityIdFactory<EntityId> entityIdFactory,
+            final BaseEntityIdFactory<NamespacedEntityId> namespacedEntityIdFactory) {
+
+        return new EntityIds(ConditionChecker.checkNotNull(entityIdFactory, "entityIdFactory"),
+                ConditionChecker.checkNotNull(namespacedEntityIdFactory, "namespacedEntityIdFactory"));
+    }
+
+    /**
+     * Best effort to initialize the most concrete type of a {@link org.eclipse.ditto.base.model.entity.id.NamespacedEntityId}
+     * based on the given entityType.
+     *
+     * @param entityType the type of the entity which should be identified by the given entity ID.
+     * @param entityIdValue the ID of an entity.
      * @return the namespaced entity ID.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws EntityIdInvalidException if {@code entityIdValue} represents an invalid ID for {@code entityType}.
      */
-    public static NamespacedEntityId getNamespacedEntityId(final EntityType entityType, final CharSequence entityId) {
-        return Optional.ofNullable(NAMESPACED_ID_FACTORIES.get(entityType.toString()))
-                .map(method -> {
-                    try {
-                        return (NamespacedEntityId) method.invoke(null, entityId);
-                    } catch (IllegalAccessException | InvocationTargetException e) {
-                        Logger.getLogger(EntityIds.class.getName()).log(Level.WARNING,
-                                String.format("Encountered exception <%s>: <%s>", e.getClass().getSimpleName(),
-                                        e.getMessage()), e);
-
-                        return null;
-                    }
-                }).orElseGet(() -> {
-                    Logger.getLogger(EntityIds.class.getName()).warning(
-                            String.format("Could not find implementation for entity ID with type <%s>. " +
-                                    "This indicates an architectural flaw, because the ID seems not to be on the classpath",
-                            entityType));
-                    return FallbackNamespacedEntityId.of(entityType, entityId);
-                });
+    public NamespacedEntityId getNamespacedEntityId(final EntityType entityType, final CharSequence entityIdValue) {
+        return namespacedEntityIdFactory.getEntityId(entityType, entityIdValue);
     }
 
     /**
-     * Best effort to initialize the most concrete type of a {@link org.eclipse.ditto.base.model.entity.id.EntityId} based on the given entityType.
+     * Best effort to initialize the most concrete type of a {@link org.eclipse.ditto.base.model.entity.id.EntityId}
+     * based on the given entityType.
      *
      * @param entityType The type of the entity which should be identified by the given entity ID.
-     * @param entityId The ID of an entity.
+     * @param entityIdValue The ID of an entity.
      * @return the entity ID.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws EntityIdInvalidException if {@code entityIdValue} represents an invalid ID for {@code entityType}.
      */
-    public static EntityId getEntityId(final EntityType entityType, final CharSequence entityId) {
-        return Optional.ofNullable(ID_FACTORIES.get(entityType.toString()))
-                .map(method -> {
-                    try {
-                        return (EntityId) method.invoke(null, entityId);
-                    } catch (IllegalAccessException | InvocationTargetException e) {
-                        Logger.getLogger(EntityIds.class.getName()).log(Level.WARNING,
-                                String.format("Encountered exception <%s>: <%s>", e.getClass().getSimpleName(),
-                                        e.getMessage()), e);
-
-                        return null;
-                    }
-                }).orElseGet(() -> {
-                    Logger.getLogger(EntityIds.class.getName()).warning(
-                            String.format("Could not find implementation for entity ID with type <%s>. " +
-                                    "This indicates an architectural flaw, because the ID seems not to be on the classpath",
-                                    entityType));
-                    return FallbackEntityId.of(entityType, entityId);
-                });
-    }
-
-    private static Map<String, Method> getFactoriesFor(final Class<?> baseClass) {
-        return StreamSupport.stream(ClassIndex.getAnnotated(TypedEntityId.class).spliterator(), false)
-                .filter(baseClass::isAssignableFrom)
-                .collect(Collectors.<Class<?>, String, Method>toMap(
-                        classToInstantiate -> classToInstantiate.getAnnotation(TypedEntityId.class).type(),
-                        EntityIds::getFactoryMethodWithCharSequenceParameter));
-    }
-
-    private static Method getFactoryMethodWithCharSequenceParameter(final Class<?> classToInstantiate) {
-        return Arrays.stream(classToInstantiate.getMethods())
-                .filter(innerMethod -> Modifier.isStatic(innerMethod.getModifiers()))
-                .filter(innerMethod -> innerMethod.getParameterCount() == 1)
-                .filter(innerMethod -> innerMethod.getParameterTypes()[0].isAssignableFrom(CharSequence.class))
-                .filter(innerMethod -> classToInstantiate.isAssignableFrom(innerMethod.getReturnType()))
-                .findAny()
-                .orElseThrow(() -> {
-                    final String message = String.format(
-                            "Could not find required instantiation method <of> with parameter <CharSequence>" +
-                                    " for class <%s>", classToInstantiate.getSimpleName());
-                    throw new IllegalArgumentException(message);
-                });
+    public EntityId getEntityId(final EntityType entityType, final CharSequence entityIdValue) {
+        return entityIdFactory.getEntityId(entityType, entityIdValue);
     }
 
 }

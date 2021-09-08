@@ -115,6 +115,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final Sink<AcknowledgeableMessage, NotUsed> getMessageMappingSink() {
         return Flow.fromFunction(this::withSender)
                 .map(Object.class::cast)
+                .recoverWithRetries(-1, Throwable.class, akka.stream.javadsl.Source::empty)
                 .to(inboundMappingSink);
     }
 
@@ -219,6 +220,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                     inboundMonitor.failure(value.getDittoHeaders(), value);
                     return value;
                 }))
+                .recoverWithRetries(-1, Throwable.class, akka.stream.javadsl.Source::empty)
                 .to(inboundMappingSink);
     }
 

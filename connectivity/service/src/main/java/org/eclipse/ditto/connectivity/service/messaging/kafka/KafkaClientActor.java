@@ -60,7 +60,6 @@ public final class KafkaClientActor extends BaseClientActor {
     private final List<ActorRef> kafkaConsumerActors;
     private final KafkaConfig kafkaConfig;
 
-    @SuppressWarnings("unused") // used by `props` via reflection
     private KafkaClientActor(final Connection connection,
             @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor,
@@ -76,17 +75,34 @@ public final class KafkaClientActor extends BaseClientActor {
         pendingStatusReportsFromStreams = new HashSet<>();
     }
 
+    @SuppressWarnings("unused") // used by `props` via reflection
+    private KafkaClientActor(final Connection connection,
+            @Nullable final ActorRef proxyActor,
+            final ActorRef connectionActor,
+            final DittoHeaders dittoHeaders) {
+
+        this(connection, proxyActor, connectionActor, DefaultKafkaPublisherActorFactory.getInstance(), dittoHeaders);
+    }
+
     /**
      * Creates Akka configuration object for this actor.
      *
      * @param connection the connection.
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
-     * @param factory factory for creating a kafka publisher actor.
      * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection,
+            @Nullable final ActorRef proxyActor,
+            final ActorRef connectionActor,
+            final DittoHeaders dittoHeaders) {
+
+        return Props.create(KafkaClientActor.class, validateConnection(connection), proxyActor, connectionActor,
+                dittoHeaders);
+    }
+
+    static Props propsForTests(final Connection connection,
             @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor,
             final KafkaPublisherActorFactory factory,

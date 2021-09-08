@@ -19,13 +19,13 @@ import java.time.Duration;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupCommandResponse;
+import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingConstants;
-import org.eclipse.ditto.base.api.persistence.cleanup.CleanupCommandResponse;
-import org.eclipse.ditto.base.api.persistence.cleanup.CleanupPersistence;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -48,10 +48,12 @@ import akka.testkit.javadsl.TestKit;
 public class AbstractPersistentActorWithTimersAndCleanupTest {
 
     private static final int SNAPSHOT_THRESHOLD = 5;
-    private ActorSystem actorSystem;
+    private static final String NAMESPACE = "com.example";
 
     @Rule
     public TestName name = new TestName();
+
+    private ActorSystem actorSystem;
 
     @Before
     public void init() {
@@ -115,7 +117,8 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 8, dilated(Duration.ofSeconds(10)));
 
             persistenceActor.tell(
-                    CleanupPersistence.of(extractEntityIdFromPersistenceId(MockJournalPlugin.FAIL_DELETE_MESSAGE), DittoHeaders.empty()),
+                    CleanupPersistence.of(extractEntityIdFromPersistenceId(MockJournalPlugin.FAIL_DELETE_MESSAGE),
+                            DittoHeaders.empty()),
                     getRef());
             final CleanupCommandResponse<?> cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
 
@@ -225,34 +228,38 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
         }};
     }
 
-    private void modifyDummyAndWaitForSnapshotSuccess(final TestKit testKit,
-            final ActorRef persistenceActor, final int times, final Duration waitTimeout) {
+    private static void modifyDummyAndWaitForSnapshotSuccess(final TestKit testKit,
+            final ActorRef persistenceActor,
+            final int times,
+            final Duration waitTimeout) {
+
         IntStream.range(0, times).forEach(i -> persistenceActor.tell("SAVE", ActorRef.noSender()));
         IntStream.range(0, times / SNAPSHOT_THRESHOLD).forEach(i -> testKit.expectMsgClass(waitTimeout,
                 SaveSnapshotSuccess.class));
     }
 
-    private void verifyPersistencePluginCalledWithCorrectArguments(final String persistenceId, final int toSn) {
+    private static void verifyPersistencePluginCalledWithCorrectArguments(final String persistenceId, final int toSn) {
         verifyPersistencePluginCalledWithCorrectArguments(persistenceId, toSn, toSn);
     }
 
-    private void verifyPersistencePluginCalledWithCorrectArguments(final String persistenceId, final int snapsSn,
+    private static void verifyPersistencePluginCalledWithCorrectArguments(final String persistenceId,
+            final int snapsSn,
             final int journalSn) {
 
         MockSnapshotStorePlugin.verify(persistenceId, snapsSn);
         MockJournalPlugin.verify(persistenceId, journalSn);
     }
 
-    private void resetMocks() {
+    private static void resetMocks() {
         MockSnapshotStorePlugin.reset();
         MockJournalPlugin.reset();
     }
 
     private String persistenceId() {
-        return ThingConstants.ENTITY_TYPE + ":" + name.getMethodName();
+        return ThingConstants.ENTITY_TYPE + ":" + NAMESPACE + ":" + name.getMethodName();
     }
 
-    private EntityId extractEntityIdFromPersistenceId(final String persistenceId) {
+    private static EntityId extractEntityIdFromPersistenceId(final String persistenceId) {
         final int indexOfSeparator = persistenceId.indexOf(':');
         if (indexOfSeparator < 0) {
             final String message =
@@ -264,7 +271,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
         return EntityId.of(type, id);
     }
 
-    static class DummyPersistentActor extends AbstractPersistentActorWithTimersAndCleanup {
+    static final class DummyPersistentActor extends AbstractPersistentActorWithTimersAndCleanup {
 
         private final String persistenceId;
         private final long staleEventsKept;
@@ -280,8 +287,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
         }
 
         static Props props(final String persistenceId, final long staleEventsKept) {
-            return Props.create(
-                    DummyPersistentActor.class,
+            return Props.create(DummyPersistentActor.class,
                     (Creator<DummyPersistentActor>) () -> new DummyPersistentActor(persistenceId, staleEventsKept));
         }
 

@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.internal.utils.tracing.instruments.trace;
 
-import org.eclipse.ditto.internal.utils.metrics.instruments.TaggedMetricInstrument;
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.internal.utils.metrics.instruments.TaggableMetricsInstrument;
 import org.eclipse.ditto.internal.utils.tracing.TracingTags;
 
 /**
@@ -20,7 +22,7 @@ import org.eclipse.ditto.internal.utils.tracing.TracingTags;
  *
  * @param <T> the type of the implementing class
  */
-public interface TraceTags<T extends TaggedMetricInstrument<T>> extends TaggedMetricInstrument<T> {
+public interface TraceTags<T extends TaggableMetricsInstrument<T>> extends TaggableMetricsInstrument<T> {
 
     /**
      * Adds a {@link TracingTags#CORRELATION_ID} tag to the trace.
@@ -28,7 +30,10 @@ public interface TraceTags<T extends TaggedMetricInstrument<T>> extends TaggedMe
      * @param correlationId the correlation ID to add to the trace
      * @return the new TaggedMetricInstrument instance containing the tag
      */
-    default T correlationId(final CharSequence correlationId) {
+    default T correlationId(@Nullable final CharSequence correlationId) {
+        if (null == correlationId) {
+            return self();
+        }
         return tag(TracingTags.CORRELATION_ID, correlationId.toString());
     }
 
@@ -38,7 +43,10 @@ public interface TraceTags<T extends TaggedMetricInstrument<T>> extends TaggedMe
      * @param connectionId the connection ID to add to the trace
      * @return the new TaggedMetricInstrument instance containing the tag
      */
-    default T connectionId(final CharSequence connectionId) {
+    default T connectionId(@Nullable final CharSequence connectionId) {
+        if (null == connectionId) {
+            return self();
+        }
         return tag(TracingTags.CONNECTION_ID, connectionId.toString());
     }
 
@@ -48,7 +56,10 @@ public interface TraceTags<T extends TaggedMetricInstrument<T>> extends TaggedMe
      * @param connectionType the connection type to add to the trace
      * @return the new TaggedMetricInstrument instance containing the tag
      */
-    default T connectionType(final CharSequence connectionType) {
+    default T connectionType(@Nullable final CharSequence connectionType) {
+        if (null == connectionType) {
+            return self();
+        }
         return tag(TracingTags.CONNECTION_TYPE, connectionType.toString());
     }
 

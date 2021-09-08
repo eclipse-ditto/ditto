@@ -60,7 +60,6 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.model.HttpRequest;
@@ -194,7 +193,9 @@ public final class HttpPublisherErrorTest {
                                     .thenAccept(unused -> killSwitch.shutdown());
                             return NotUsed.getInstance();
                         });
-        binding = Http.get(actorSystem).bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", port), mat)
+        binding = Http.get(actorSystem)
+                .newServerAt("127.0.0.1", port)
+                .bindFlow(handler)
                 .toCompletableFuture()
                 .join();
     }

@@ -224,7 +224,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
 
     private Props getKafkaClientActorProps(final ActorRef ref, final Status.Status status,
             final Connection connection) {
-        return KafkaClientActor.props(connection, ref, ref,
+        return KafkaClientActor.propsForTests(connection, ref, ref,
                 new KafkaPublisherActorFactory() {
                     @Override
                     public String getActorName() {
