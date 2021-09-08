@@ -786,11 +786,10 @@ public final class ThingCommandEnforcement
                     policyEnforcer.hasPartialPermissions(thingResourceKey, authorizationContext, Permission.READ);
         }
 
-        dittoHeaders.getCondition().ifPresent(condition -> {
-            if (!(command instanceof CreateThing)) {
-                enforceReadPermissionOnCondition(condition, policyEnforcer, authorizationContext, dittoHeaders);
-            }
-        });
+        final var condition = dittoHeaders.getCondition();
+        if (!(command instanceof CreateThing) && condition.isPresent()) {
+            enforceReadPermissionOnCondition(condition.get(), policyEnforcer, dittoHeaders);
+        }
 
         if (commandAuthorized) {
             return AbstractEnforcement.addEffectedReadSubjectsToThingSignal(command, policyEnforcer);
@@ -801,18 +800,19 @@ public final class ThingCommandEnforcement
 
     private static void enforceReadPermissionOnCondition(final String condition,
             final Enforcer policyEnforcer,
-            final AuthorizationContext authorizationContext,
             final DittoHeaders dittoHeaders) {
 
-        final RootNode rootNode = validateCondition(condition, dittoHeaders);
-        final Set<ResourceKey> resourceKeyList = determineResourceKeys(rootNode, dittoHeaders);
-        if (!policyEnforcer.hasUnrestrictedPermissions(resourceKeyList, authorizationContext, Permission.READ)) {
+        final var authorizationContext = dittoHeaders.getAuthorizationContext();
+        final var rootNode = tryParseRqlCondition(condition, dittoHeaders);
+        final var resourceKey = determineResourceKeys(rootNode, dittoHeaders);
+
+        if (!policyEnforcer.hasUnrestrictedPermissions(resourceKey, authorizationContext, Permission.READ)) {
             throw ThingConditionFailedException.newBuilderForInsufficientPermission(condition)
                     .build();
         }
     }
 
-    private static RootNode validateCondition(final String condition, final DittoHeaders dittoHeaders) {
+    private static RootNode tryParseRqlCondition(final String condition, final DittoHeaders dittoHeaders) {
         try {
             return RqlPredicateParser.getInstance().parse(condition);
         } catch (final ParserException e) {
@@ -823,21 +823,23 @@ public final class ThingCommandEnforcement
     }
 
     private static Set<ResourceKey> determineResourceKeys(final RootNode rootNode, final DittoHeaders dittoHeaders) {
-        final FieldNamesPredicateVisitor visitor = new FieldNamesPredicateVisitor();
+        final var visitor = FieldNamesPredicateVisitor.getNewInstance();
         visitor.visit(rootNode);
-        final Set<String> extractedFieldNames = visitor.getFieldNames();
+        final var extractedFieldNames = visitor.getFieldNames();
 
         return extractedFieldNames.stream()
-                .map(fieldName -> {
-                    try {
-                        return PoliciesResourceType.thingResource(fieldName);
-                    } catch (JsonPointerInvalidException e) {
-                        throw ThingConditionInvalidException.newBuilder(fieldName, e.getDescription().orElse(""))
-                                .dittoHeaders(dittoHeaders)
-                                .build();
-                    }
-                })
+                .map(fieldName -> tryGetResourceKey(fieldName, dittoHeaders))
                 .collect(Collectors.toSet());
+    }
+
+    private static ResourceKey tryGetResourceKey(final String fieldName, final DittoHeaders dittoHeaders) {
+        try {
+            return PoliciesResourceType.thingResource(fieldName);
+        } catch (final JsonPointerInvalidException e) {
+            throw ThingConditionInvalidException.newBuilder(fieldName, e.getDescription().orElse(""))
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
 
     private static boolean enforceMergeThingCommand(final Enforcer policyEnforcer,

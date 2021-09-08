@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.rql.query.things;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -31,10 +32,23 @@ import org.eclipse.ditto.rql.model.predicates.ast.SingleComparisonNode;
 @NotThreadSafe
 public final class FieldNamesPredicateVisitor implements PredicateVisitor {
 
-    private final Set<String> fieldNames = new HashSet<>();
+    private final Set<String> fieldNames;
 
+    private FieldNamesPredicateVisitor() {
+        fieldNames = new HashSet<>();
+    }
+
+    public static FieldNamesPredicateVisitor getNewInstance() {
+        return new FieldNamesPredicateVisitor();
+    }
+
+    /**
+     * Returns all names from all fields visited by this visitor.
+     *
+     * @return all field names.
+     */
     public Set<String> getFieldNames() {
-        return fieldNames;
+        return Collections.unmodifiableSet(fieldNames);
     }
 
     @Override
