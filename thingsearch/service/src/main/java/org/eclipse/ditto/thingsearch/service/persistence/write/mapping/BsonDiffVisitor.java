@@ -71,6 +71,9 @@ final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, Bson
             if (!oldValue.isDocument()) {
                 return BsonDiff.set(bsonSizeVisitor.eval(value), key, value);
             }
+            if (value.equals(oldValue)) {
+                return BsonDiff.empty(bsonSizeVisitor.eval(value));
+            }
             final var oldDocument = oldValue.asDocument();
             Stream<Pair<JsonPointer, BsonValue>> set = Stream.empty();
             Stream<JsonPointer> unset = Stream.empty();
