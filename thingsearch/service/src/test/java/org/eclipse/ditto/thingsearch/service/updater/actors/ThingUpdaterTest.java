@@ -29,6 +29,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
+import org.eclipse.ditto.thingsearch.service.common.config.DefaultUpdaterConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.junit.After;
 import org.junit.Before;
@@ -276,7 +277,8 @@ public final class ThingUpdaterTest {
     }
 
     private ActorRef createThingUpdaterActor() {
-        return actorSystem.actorOf(ThingUpdater.props(pubSubTestProbe.ref(), changeQueueTestProbe.ref()),
+        return actorSystem.actorOf(ThingUpdater.props(pubSubTestProbe.ref(), changeQueueTestProbe.ref(),
+                        DefaultUpdaterConfig.of(ConfigFactory.empty())),
                 THING_ID.toString());
     }
 

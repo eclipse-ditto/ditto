@@ -42,6 +42,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.BsonDiff;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
@@ -70,6 +71,7 @@ final class ThingUpdater extends AbstractActor {
     private final ThingId thingId;
     private final ShutdownBehaviour shutdownBehaviour;
     private final ActorRef changeQueueActor;
+    private final double forceUpdateProbability;
 
     // state of Thing and Policy
     private long thingRevision = -1L;
@@ -80,7 +82,9 @@ final class ThingUpdater extends AbstractActor {
     @Nullable AbstractWriteModel lastWriteModel = null;
 
     @SuppressWarnings("unused") //It is used via reflection. See props method.
-    private ThingUpdater(final ActorRef pubSubMediator, final ActorRef changeQueueActor) {
+    private ThingUpdater(final ActorRef pubSubMediator,
+            final ActorRef changeQueueActor,
+            final double forceUpdateProbability) {
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         final var dittoSearchConfig = DittoSearchConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -88,6 +92,7 @@ final class ThingUpdater extends AbstractActor {
         thingId = tryToGetThingId();
         shutdownBehaviour = ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
         this.changeQueueActor = changeQueueActor;
+        this.forceUpdateProbability = forceUpdateProbability;
 
         getContext().setReceiveTimeout(dittoSearchConfig.getUpdaterConfig().getMaxIdleTime());
     }
@@ -97,11 +102,14 @@ final class ThingUpdater extends AbstractActor {
      *
      * @param pubSubMediator Akka pub-sub mediator.
      * @param changeQueueActor reference of the change queue actor.
+     * @param updaterConfig the updater config.
      * @return the Akka configuration Props object
      */
-    static Props props(final ActorRef pubSubMediator, final ActorRef changeQueueActor) {
+    static Props props(final ActorRef pubSubMediator, final ActorRef changeQueueActor,
+            final UpdaterConfig updaterConfig) {
 
-        return Props.create(ThingUpdater.class, pubSubMediator, changeQueueActor);
+        return Props.create(ThingUpdater.class, pubSubMediator, changeQueueActor,
+                updaterConfig.getForceUpdateProbability());
     }
 
     @Override
@@ -123,7 +131,8 @@ final class ThingUpdater extends AbstractActor {
 
     private void onNextWriteModel(final AbstractWriteModel nextWriteModel) {
         final WriteModel<BsonDocument> mongoWriteModel;
-        if (lastWriteModel instanceof ThingWriteModel && nextWriteModel instanceof ThingWriteModel) {
+        final boolean forceUpdate = Math.random() < forceUpdateProbability;
+        if (!forceUpdate && lastWriteModel instanceof ThingWriteModel && nextWriteModel instanceof ThingWriteModel) {
             final var last = (ThingWriteModel) lastWriteModel;
             final var next = (ThingWriteModel) nextWriteModel;
             final var diff = BsonDiff.minus(next.getThingDocument(), last.getThingDocument());
@@ -139,7 +148,11 @@ final class ThingUpdater extends AbstractActor {
             }
         } else {
             mongoWriteModel = nextWriteModel.toMongo();
-            log.debug("Using replacement <{}>", mongoWriteModel);
+            if (forceUpdate) {
+                log.debug("Using replacement (forceUpdate) <{}>", mongoWriteModel);
+            } else {
+                log.debug("Using replacement <{}>", mongoWriteModel);
+            }
         }
         getSender().tell(mongoWriteModel, getSelf());
         lastWriteModel = nextWriteModel;
