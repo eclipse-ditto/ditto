@@ -122,6 +122,9 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
     private Props getConsumerActorProps(final MessageConsumer messageConsumer,
             final ActorRef jmsActor, final String address, final Sink<Object, NotUsed> inboundMappingSink,
             final PayloadMapping payloadMapping) {
+        final ConnectivityStatusResolver statusResolver = mock(ConnectivityStatusResolver.class);
+        when(statusResolver.resolve(any(Exception.class))).thenReturn(ConnectivityStatus.MISCONFIGURED);
+
         final ConsumerData mockConsumerData =
                 consumerData(address, messageConsumer, ConnectivityModelFactory.newSourceBuilder()
                         .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
@@ -134,7 +137,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                                 .build())
                         .build());
         return AmqpConsumerActor.props(CONNECTION, mockConsumerData, inboundMappingSink,
-                jmsActor, mock(ConnectivityStatusResolver.class));
+                jmsActor, statusResolver);
     }
 
     @Override
@@ -429,7 +432,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                 // signal closed consumer to consumer actor
                 underTest.tell(ConsumerClosedStatusReport.get(messageConsumer,
                         new ProviderSecurityException(errorMessage)), getRef());
-                verify(messageConsumer).close();
+                verify(messageConsumer, Mockito.timeout(100)).close();
 
                 // verify the actual state ist reflected in the source resource status
                 verifyResourceStatus(underTest, errorMessage, ConnectivityStatus.MISCONFIGURED);
