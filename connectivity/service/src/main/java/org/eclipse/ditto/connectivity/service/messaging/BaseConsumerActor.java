@@ -81,8 +81,10 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
     @Nullable private ResourceStatus resourceStatus;
 
-    protected BaseConsumerActor(final Connection connection, final String sourceAddress,
-            final Sink<Object, ?> inboundMappingSink, final Source source,
+    protected BaseConsumerActor(final Connection connection,
+            final String sourceAddress,
+            final Sink<Object, ?> inboundMappingSink,
+            final Source source,
             final ConnectivityStatusResolver connectivityStatusResolver) {
         this.connectionId = checkNotNull(connection, "connection").getId();
         this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");

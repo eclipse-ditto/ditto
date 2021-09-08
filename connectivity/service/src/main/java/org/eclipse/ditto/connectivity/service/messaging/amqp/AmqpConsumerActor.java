@@ -49,7 +49,6 @@ import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
@@ -162,7 +161,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                 .match(JmsMessage.class, this::handleJmsMessage)
                 .match(ResourceStatus.class, this::handleAddressStatus)
                 .match(RetrieveAddressStatus.class, ras -> getSender().tell(getCurrentSourceStatus(), getSelf()))
-                .match(Control.class, Control.CREATE_CONSUMER::equals, this::createMessageConsumer)
+                .matchEquals(Control.CREATE_CONSUMER, this::createMessageConsumer)
                 .match(ConsumerClosedStatusReport.class, this::matchesOwnConsumer, this::handleConsumerClosed)
                 .match(ConsumerClosedStatusReport.class, this::handleNonMatchingConsumerClosed)
                 .match(CreateMessageConsumerResponse.class, this::messageConsumerCreated)
@@ -274,14 +273,15 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         final String statusDetails = buildStatusDetailsFromStatusReport(event);
         final ResourceStatus addressStatus =
                 ConnectivityModelFactory.newStatusUpdate(InstanceIdentifierSupplier.getInstance().get(),
-                        ConnectivityStatus.MISCONFIGURED, sourceAddress, statusDetails, Instant.now());
+                        connectivityStatusResolver.resolve(event.getCause()), sourceAddress, statusDetails,
+                        Instant.now());
         handleAddressStatus(addressStatus);
 
         // destroy current message consumer in any case
         destroyMessageConsumer();
 
         log.info("Consumer for destination '{}' was closed. Will try to recreate after some backoff.", sourceAddress);
-        backOffActor.tell(BackOffActor.createBackOffWithAnswerMessage(AmqpConsumerActor.Control.CREATE_CONSUMER),
+        backOffActor.tell(BackOffActor.createBackOffWithAnswerMessage(Control.CREATE_CONSUMER),
                 getSelf());
     }
 
@@ -541,10 +541,10 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
     /**
      * Actor control messages.
      */
-    enum Control {
+    private enum Control {
         /**
          * Triggers creation of a new message consumer.
          */
-        CREATE_CONSUMER;
+        CREATE_CONSUMER
     }
 }

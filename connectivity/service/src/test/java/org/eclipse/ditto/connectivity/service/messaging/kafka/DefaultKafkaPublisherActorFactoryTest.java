@@ -13,7 +13,9 @@
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,7 +38,8 @@ public final class DefaultKafkaPublisherActorFactoryTest {
 
     @Test
     public void testProps() {
-        assertThat(underTest.props(null, null, null, false, "clientId")).isNotNull();
+        assertThat(underTest.props(null, null, null, false, "clientId",
+                mock(ConnectivityStatusResolver.class))).isNotNull();
     }
 
 }

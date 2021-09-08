@@ -65,6 +65,7 @@ import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ProducerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
@@ -237,7 +238,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                             .build(),
                     session,
                     loadConnectionConfig(),
-                    "clientId");
+                    "clientId",
+                    mock(ConnectivityStatusResolver.class));
             final ActorRef publisherActor = actorSystem.actorOf(props);
 
             publisherCreated(this, publisherActor);
@@ -256,7 +258,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             // --> 4 calls to createProducer in total after 10 seconds
             for (int i = 0; i < 3; i++) {
                 // trigger closing of producer
-                publisherActor.tell(ProducerClosedStatusReport.get(messageProducer), getRef());
+                publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, new IllegalStateException("test")), getRef());
                 final int wantedNumberOfInvocations = i + 2;
                 final long millis =
                         1_000 // initial backoff
@@ -298,7 +300,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                             .build(),
                     session,
                     loadConnectionConfig(),
-                    "clientId");
+                    "clientId",
+                    mock(ConnectivityStatusResolver.class));
             final ActorRef publisherActor = actorSystem.actorOf(props);
             publisherCreated(this, publisherActor);
 
@@ -309,9 +312,9 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             verify(session, timeout(1_000)).createProducer(any(Destination.class));
 
             // and trigger closing of producer multiple times
-            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer), getRef());
-            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer), getRef());
-            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer), getRef());
+            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, new IllegalStateException("test")), getRef());
+            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, new IllegalStateException("test")), getRef());
+            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, new IllegalStateException("test")), getRef());
 
             // check that createProducer is called only twice in the next 10 seconds (once for the initial create, once for the backoff)
             verify(session, after(10_000).times(2)).createProducer(any(Destination.class));
@@ -325,6 +328,10 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                 final TestProbe probe = new TestProbe(actorSystem);
                 setupMocks(probe);
 
+                final ConnectivityStatusResolver connectivityStatusResolver = mock(ConnectivityStatusResolver.class);
+                final IllegalStateException illegalStateException = new IllegalStateException("test");
+                when(connectivityStatusResolver.resolve(illegalStateException)).thenReturn(ConnectivityStatus.FAILED);
+
                 final Props props = AmqpPublisherActor.props(
                         TestConstants.createConnection()
                                 .toBuilder()
@@ -335,7 +342,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                 .build(),
                         session,
                         loadConnectionConfig(),
-                        "clientId");
+                        "clientId",
+                        connectivityStatusResolver);
                 final ActorRef publisherActor = actorSystem.actorOf(props);
                 publisherCreated(this, publisherActor);
 
@@ -347,7 +355,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                 verify(session, timeout(1_000)).createProducer(any(Destination.class));
 
                 // and trigger closing of producer multiple times
-                publisherActor.tell(ProducerClosedStatusReport.get(messageProducer), getRef());
+                publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, illegalStateException), getRef());
 
                 assertTargetResourceStatus(publisherActor, Map.of(getOutboundAddress(), ConnectivityStatus.FAILED,
                         getOutboundAddress() + "/{{ thing:id }}", ConnectivityStatus.UNKNOWN));
@@ -389,7 +397,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                             .build(),
                     session,
                     loadConnectionConfig(),
-                    "clientId");
+                    "clientId",
+                    mock(ConnectivityStatusResolver.class));
 
             final ActorRef publisherActor = actorSystem.actorOf(props);
             publisherCreated(this, publisherActor);
@@ -460,7 +469,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return AmqpPublisherActor.props(TestConstants.createConnection(), session, loadConnectionConfig(), "clientId");
+        return AmqpPublisherActor.props(TestConstants.createConnection(), session, loadConnectionConfig(), "clientId",
+                mock(ConnectivityStatusResolver.class));
     }
 
     @Override

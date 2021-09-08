@@ -104,6 +104,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     protected final ConnectivityConfig connectivityConfig;
     protected final ConnectionConfig connectionConfig;
     protected final ConnectionLogger connectionLogger;
+    protected final ConnectivityStatusResolver connectivityStatusResolver;
 
     /**
      * Common logger for all sub-classes of BasePublisherActor as its MDC already contains the connection ID.
@@ -119,7 +120,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private final String clientId;
     protected final ExpressionResolver connectionIdResolver;
 
-    protected BasePublisherActor(final Connection connection, final String clientId) {
+    protected BasePublisherActor(final Connection connection,
+            final String clientId,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
         this.connection = checkNotNull(connection, "connection");
         this.clientId = checkNotNull(clientId, "clientId");
         resourceStatusMap = new HashMap<>();
@@ -130,6 +133,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         final MonitoringLoggerConfig loggerConfig = monitoringConfig.logger();
         this.connectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
+        this.connectivityStatusResolver = checkNotNull(connectivityStatusResolver, "connectivityStatusResolver");
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connection);
         responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(connection);

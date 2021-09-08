@@ -337,7 +337,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         stopChildActor(amqpPublisherActor);
         if (null != jmsSession) {
             final Props props = AmqpPublisherActor.props(connection(), jmsSession,
-                    connectionContext.getConnectivityConfig().getConnectionConfig(), getDefaultClientId());
+                    connectionContext.getConnectivityConfig().getConnectionConfig(), getDefaultClientId(),
+                    connectivityStatusResolver);
             amqpPublisherActor = startChildActorConflictFree(AmqpPublisherActor.ACTOR_NAME_PREFIX, props);
             Patterns.ask(amqpPublisherActor, AmqpPublisherActor.Control.INITIALIZE, clientAskTimeout)
                     .whenComplete((result, error) -> {
@@ -513,7 +514,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final ConnectivityStatus newStatus = connectivityStatusResolver.resolve(failure);
 
         if (!statusReport.isRecoverable()) {
-            logger.debug("Unrecoverable failure occurred, triggering client actor failure handling: {}", failure);
+            logger.info("Unrecoverable failure occurred, triggering client actor failure handling: {}", failure);
             getSelf().tell(failure, getSelf());
         }
 
@@ -855,7 +856,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             connectionLogger.failure("Producer {0} was closed: {1}", producer.toString(), cause.getMessage());
             logger.warning("Producer <{}> closed due to {}: {}", producer, cause.getClass().getSimpleName(),
                     cause.getMessage());
-            self.tell(ProducerClosedStatusReport.get(producer), ActorRef.noSender());
+            self.tell(ProducerClosedStatusReport.get(producer, cause), ActorRef.noSender());
         }
 
     }

@@ -49,8 +49,12 @@ public final class ConsumerClosedStatusReport {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final ConsumerClosedStatusReport that = (ConsumerClosedStatusReport) o;
         return Objects.equals(messageConsumer, that.messageConsumer) &&
                 Objects.equals(cause, that.cause);

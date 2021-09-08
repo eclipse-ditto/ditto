@@ -125,7 +125,8 @@ public final class HiveMqtt5ClientActor
     @Override
     ActorRef startPublisherActor(final Connection connection, final Mqtt5AsyncClient client) {
         final Props publisherActorProps =
-                HiveMqtt5PublisherActor.props(connection, client, isDryRun(), getDefaultClientId());
+                HiveMqtt5PublisherActor.props(connection, client, isDryRun(), getDefaultClientId(),
+                        connectivityStatusResolver);
         return startChildActorConflictFree(HiveMqtt5PublisherActor.NAME, publisherActorProps);
     }
 

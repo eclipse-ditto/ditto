@@ -60,6 +60,7 @@ import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ProducerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.backoff.BackOffActor;
@@ -110,10 +111,13 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private boolean isInBackOffMode;
 
     @SuppressWarnings("unused")
-    private AmqpPublisherActor(final Connection connection, final Session session,
-            final ConnectionConfig connectionConfig, final String clientId) {
+    private AmqpPublisherActor(final Connection connection,
+            final Session session,
+            final ConnectionConfig connectionConfig,
+            final String clientId,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
 
-        super(connection, clientId);
+        super(connection, clientId, connectivityStatusResolver);
         this.session = checkNotNull(session, "session");
 
         final Executor jmsDispatcher = JMSConnectionHandlingActor.getOwnDispatcher(getContext().system());
@@ -170,18 +174,21 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      * @param session the jms session
      * @param connectionConfig configuration for all connections.
      * @param clientId identifier of the client actor.
+     * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
+     * status.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection, final Session session, final ConnectionConfig connectionConfig,
-            final String clientId) {
-        return Props.create(AmqpPublisherActor.class, connection, session, connectionConfig, clientId);
+            final String clientId, final ConnectivityStatusResolver connectivityStatusResolver) {
+        return Props.create(AmqpPublisherActor.class, connection, session, connectionConfig, clientId,
+                connectivityStatusResolver);
     }
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder.match(ProducerClosedStatusReport.class, this::handleProducerClosedStatusReport)
-                .match(Control.class, Control.START_PRODUCER::equals, this::handleStartProducer)
-                .match(Control.class, Control.INITIALIZE::equals, this::initialize);
+                .matchEquals(Control.START_PRODUCER, this::handleStartProducer)
+                .matchEquals(Control.INITIALIZE, this::initialize);
     }
 
     private void initialize(final Control initialize) {
@@ -197,6 +204,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private void handleProducerClosedStatusReport(final ProducerClosedStatusReport report) {
         if (!isInBackOffMode) {
             final MessageProducer producer = report.getMessageProducer();
+            final Throwable cause = report.getCause();
             final String genericLogInfo = "Will try to re-establish the static targets after some cool-down period.";
             logger.info("Got closed AMQP 1.0 producer '{}'. {}", producer, genericLogInfo);
             connectionLogger.failure("Targets were closed due to an error in the target. {0}", genericLogInfo);
@@ -209,8 +217,10 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 backOff();
                 // update resource status of closed targets
                 final String statusDetails =
-                        String.format("Producer for destination '%s' closed due to error.", destination);
-                updateTargetResourceStatusForDestination(destination, ConnectivityStatus.FAILED, statusDetails);
+                        String.format("Producer for destination '%s' was closed.", destination);
+
+                updateTargetResourceStatusForDestination(destination,
+                        connectivityStatusResolver.resolve(cause), statusDetails);
             });
 
             // dynamic targets are not recreated, they are opened on-demand with the next message, no need to backoff
@@ -551,6 +561,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         /**
          * Message to trigger the creation of the static message producers.
          */
-        START_PRODUCER;
+        START_PRODUCER
     }
 }

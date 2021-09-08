@@ -19,6 +19,7 @@ import java.util.Optional;
 import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
@@ -35,8 +36,8 @@ public final class HiveMqtt3PublisherActor extends AbstractMqttPublisherActor<Mq
 
     @SuppressWarnings("squid:UnusedPrivateConstructor") // used by akka
     private HiveMqtt3PublisherActor(final Connection connection, final Mqtt3Client client, final boolean dryRun,
-            final String clientId) {
-        super(connection, client.toAsync()::publish, dryRun, clientId);
+            final String clientId, final ConnectivityStatusResolver connectivityStatusResolver) {
+        super(connection, client.toAsync()::publish, dryRun, clientId, connectivityStatusResolver);
     }
 
     /**
@@ -46,11 +47,14 @@ public final class HiveMqtt3PublisherActor extends AbstractMqttPublisherActor<Mq
      * @param client the HiveMQ client.
      * @param dryRun whether this publisher is only created for a test or not.
      * @param clientId identifier of the client actor.
+     * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
+     * status.
      * @return the Props object.
      */
     public static Props props(final Connection connection, final Mqtt3Client client, final boolean dryRun,
-            final String clientId) {
-        return Props.create(HiveMqtt3PublisherActor.class, connection, client, dryRun, clientId);
+            final String clientId, final ConnectivityStatusResolver connectivityStatusResolver) {
+        return Props.create(HiveMqtt3PublisherActor.class, connection, client, dryRun, clientId,
+                connectivityStatusResolver);
     }
 
     @Override
