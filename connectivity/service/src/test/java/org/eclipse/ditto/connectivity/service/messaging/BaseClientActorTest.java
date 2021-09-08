@@ -132,7 +132,16 @@ public final class BaseClientActorTest {
     }
 
     @Test
-    public void reconnectsInConnectingStateAfterBackoffWhenMultipleFailuresReceived() {
+    public void reconnectsInConnectingStateAfterBackoffWhenMultipleFailuresAreReceived() {
+        reconnectsAfterBackoffWhenMultipleFailuresReceived(false);
+    }
+
+    @Test
+    public void reconnectsFromConnectedStateAfterBackoffWhenMultipleFailuresAreReceived() {
+        reconnectsAfterBackoffWhenMultipleFailuresReceived(true);
+    }
+
+    private void reconnectsAfterBackoffWhenMultipleFailuresReceived(final boolean initialConnectionSucceeds) {
         new TestKit(actorSystem) {{
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
@@ -143,6 +152,16 @@ public final class BaseClientActorTest {
             whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()),
                     getRef());
             thenExpectConnectClientCalled();
+
+            if (initialConnectionSucceeds) {
+                // simulate initial connection succeeds i.e. state is CONNECTED when first failure occurs
+                andConnectionSuccessful(dummyClientActor, getRef());
+                expectMsg(CONNECTED_STATUS);
+                andConnectionNotSuccessful(dummyClientActor);
+                thenExpectConnectClientCalledAfterTimeout(
+                        connectivityConfig.getClientConfig().getConnectingMinTimeout());
+            }
+
             final int nrOfBackoffs = 4;
             final long start = System.currentTimeMillis();
             for (int i = 0; i < nrOfBackoffs; i++) {
