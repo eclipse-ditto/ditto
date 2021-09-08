@@ -217,10 +217,12 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 backOff();
                 // update resource status of closed targets
                 final String statusDetails =
-                        String.format("Producer for destination '%s' was closed.", destination);
+                        String.format("Producer for destination '%s' was closed", destination);
+                final String fullDescriptionWithCause = ConnectionFailure.determineFailureDescription(Instant.now(),
+                        cause, statusDetails);
 
                 updateTargetResourceStatusForDestination(destination,
-                        connectivityStatusResolver.resolve(cause), statusDetails);
+                        connectivityStatusResolver.resolve(cause), fullDescriptionWithCause);
             });
 
             // dynamic targets are not recreated, they are opened on-demand with the next message, no need to backoff
