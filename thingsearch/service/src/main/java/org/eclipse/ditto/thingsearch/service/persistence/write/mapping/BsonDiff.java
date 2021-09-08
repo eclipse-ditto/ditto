@@ -29,7 +29,7 @@ import akka.japi.Pair;
 /**
  * Diff between 2 BSON documents.
  */
-final class BsonDiff {
+public final class BsonDiff {
 
     final int replacementSize;
     final int diffSize;
@@ -58,7 +58,14 @@ final class BsonDiff {
         return new BsonDiff(replacementSize, diffSize, Stream.of(Pair.create(key, value)), Stream.empty());
     }
 
-    static BsonDiff minus(final BsonDocument minuend, final BsonDocument subtrahend) {
+    /**
+     * Compute the difference between 2 BSON documents.
+     *
+     * @param minuend the target BSON document.
+     * @param subtrahend the starting BSON document.
+     * @return the change to edit the starting BSON document into the target BSON document.
+     */
+    public static BsonDiff minus(final BsonDocument minuend, final BsonDocument subtrahend) {
         return new BsonDiffVisitor().eval(minuend).apply(subtrahend);
     }
 
@@ -67,7 +74,7 @@ final class BsonDiff {
      *
      * @return Update document.
      */
-    List<BsonDocument> consumeAndExport() {
+    public List<BsonDocument> consumeAndExport() {
         final var result = new ArrayList<BsonDocument>(2);
         final var setDoc = consumeAndExportSet();
         if (!setDoc.isEmpty()) {
@@ -78,6 +85,10 @@ final class BsonDiff {
             result.add(unsetDoc);
         }
         return result;
+    }
+
+    public boolean isDiffSmaller() {
+        return diffSize < replacementSize;
     }
 
     private BsonDocument consumeAndExportSet() {

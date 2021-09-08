@@ -12,7 +12,10 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 
+import java.time.Duration;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
@@ -23,6 +26,8 @@ import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.WriteModel;
+
+import akka.pattern.Patterns;
 
 /**
  * Interface for write models of Thing changes for MongoDB.
@@ -51,6 +56,22 @@ public abstract class AbstractWriteModel {
      * @return MongoDB write model.
      */
     public abstract WriteModel<BsonDocument> toMongo();
+
+    /**
+     * Convert this into a MongoDB write model taking previous updates cached at the origin into consideration.
+     *
+     * @return either the MongoDB write model of this object or an incremental update converting
+     */
+    @SuppressWarnings("unchecked")
+    public CompletionStage<WriteModel<BsonDocument>> toIncrementalMongo() {
+        final var origin = metadata.getOrigin();
+        if (origin.isPresent()) {
+            return Patterns.ask(origin.orElseThrow(), this, Duration.ofSeconds(10L))
+                    .thenApply(reply -> (WriteModel<BsonDocument>) reply);
+        } else {
+            return CompletableFuture.completedStage(toMongo());
+        }
+    }
 
     /**
      * @return Metadata of this write model.

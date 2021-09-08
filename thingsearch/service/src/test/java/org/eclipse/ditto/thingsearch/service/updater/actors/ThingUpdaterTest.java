@@ -181,7 +181,8 @@ public final class ThingUpdaterTest {
                 final PolicyId policyId = PolicyId.of(THING_ID);
                 underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId, newPolicyRevision)),
                         ActorRef.noSender());
-                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId, newPolicyRevision, null));
+                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId, newPolicyRevision, null)
+                        .withOrigin(underTest));
 
                 underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId, REVISION)),
                         ActorRef.noSender());
@@ -202,11 +203,13 @@ public final class ThingUpdaterTest {
                 // establish policy ID
                 underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId1, 99L)),
                         ActorRef.noSender());
-                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId1, 99L, null));
+                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId1, 99L, null)
+                        .withOrigin(underTest));
 
                 underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId2, 9L)),
                         ActorRef.noSender());
-                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId2, 9L, null));
+                changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId2, 9L, null)
+                        .withOrigin(underTest));
             }
         };
     }
