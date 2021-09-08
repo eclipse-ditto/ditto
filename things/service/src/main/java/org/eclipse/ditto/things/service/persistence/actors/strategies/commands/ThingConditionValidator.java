@@ -14,7 +14,7 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.function.Predicate;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -22,32 +22,17 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
-import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
-import scala.util.Either;
-import scala.util.Left;
-import scala.util.Right;
 
 @Immutable
 final class ThingConditionValidator {
 
-    private static final ThingConditionValidator INSTANCE = new ThingConditionValidator();
-
     private ThingConditionValidator() {
-    }
-
-    /**
-     * Returns the ThingConditionValidator instance.
-     *
-     * @return the ThingConditionValidator instance.
-     */
-    public static ThingConditionValidator getInstance() {
-        return INSTANCE;
     }
 
     /**
@@ -58,33 +43,39 @@ final class ThingConditionValidator {
      * @param entity the actual thing entity.
      * @return either void or the ThingConditionFailedException in case the condition couldN't be validated.
      */
-    public Either<Void, ThingConditionFailedException> validate(final Command<?> command,
-            @Nullable final String condition, @Nullable final Thing entity) {
+    public static Optional<ThingConditionFailedException> validate(final Command<?> command,
+            final String condition, @Nullable final Thing entity) {
+
         checkNotNull(command, "Command");
 
-        if (isDefined(command, entity) && (condition != null && entity != null)) {
-                final DittoHeaders dittoHeaders = command.getDittoHeaders();
-                final Criteria criteria = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance())
-                        .filterCriteria(condition, dittoHeaders);
-                final Predicate<Thing> predicate = ThingPredicateVisitor.apply(criteria);
-                if (!predicate.test(entity)) {
-                    return new Right<>(ThingConditionFailedException.newBuilder(condition)
-                            .dittoHeaders(dittoHeaders)
-                            .build());
-                }
+        final Optional<ThingConditionFailedException> result;
+        if (!(command instanceof CreateThing) && entity != null) {
+            result = validateConditionForEntity(condition, entity, command.getDittoHeaders());
+        } else {
+            result = Optional.empty();
         }
-        return new Left<>(null);
+        return result;
     }
 
-    /**
-     * Checks if the validation should be applied.
-     *
-     * @param command the command used for checking if validation should be applied.
-     * @param entity the entity to check the condition against.
-     * @return @{code true} if the command should be applied otherwise @{code false}.
-     */
-    private boolean isDefined(final Command<?> command, @Nullable final Thing entity) {
-        return !(command instanceof CreateThing) && entity != null;
+    private static Optional<ThingConditionFailedException> validateConditionForEntity(final String condition,
+            final Thing entity,
+            final DittoHeaders dittoHeaders) {
+
+        final var criteria = QueryFilterCriteriaFactory
+                .modelBased(RqlPredicateParser.getInstance())
+                .filterCriteria(condition, dittoHeaders);
+
+        final var predicate = ThingPredicateVisitor.apply(criteria);
+
+        final ThingConditionFailedException validationError;
+        if (predicate.test(entity)) {
+            validationError = null;
+        } else {
+            validationError = ThingConditionFailedException.newBuilder(condition)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        return Optional.ofNullable(validationError);
     }
 
 }

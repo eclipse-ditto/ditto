@@ -18,7 +18,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
@@ -30,10 +29,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-
-import scala.util.Either;
 
 /**
  * Abstract base class for {@link org.eclipse.ditto.things.model.signals.commands.ThingCommand} strategies.
@@ -48,11 +44,8 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
     private static final ConditionalHeadersValidator VALIDATOR =
             ThingsConditionalHeadersValidatorProvider.getInstance();
 
-    private final ThingConditionValidator thingConditionValidator;
-
     protected AbstractThingCommandStrategy(final Class<C> theMatchingClass) {
         super(theMatchingClass);
-        this.thingConditionValidator = ThingConditionValidator.getInstance();
     }
 
     @Override
@@ -73,25 +66,21 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
     public Result<ThingEvent<?>> apply(final Context<ThingId> context, @Nullable final Thing entity,
             final long nextRevision, final C command) {
 
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final String condition = dittoHeaders.getCondition().orElse(null);
+        final var loggerWithCorrelationId = context.getLog().withCorrelationId(command);
+        final var thingConditionFailed = command.getDittoHeaders()
+                .getCondition()
+                .flatMap(condition -> ThingConditionValidator.validate(command, condition, entity));
 
-        context.getLog().withCorrelationId(command)
-                .debug("Validating condition <{}> on command <{}>.", condition, command);
-        final Either<Void, ThingConditionFailedException> validate =
-                thingConditionValidator.validate(command, condition, entity);
-
-        if (validate.isRight()) {
-            final ThingConditionFailedException thingConditionFailedException = validate.right().get();
-
-            context.getLog().withCorrelationId(command)
-                    .debug("Validating condition failed with exception <{}>.",
-                            thingConditionFailedException.getMessage());
-            return ResultFactory.newErrorResult(thingConditionFailedException, command);
+        final Result<ThingEvent<?>> result;
+        if (thingConditionFailed.isPresent()) {
+            final var conditionFailedException = thingConditionFailed.get();
+            loggerWithCorrelationId.debug("Validating condition failed with exception <{}>.",
+                    conditionFailedException.getMessage());
+            result = ResultFactory.newErrorResult(conditionFailedException, command);
+        } else {
+            result = super.apply(context, entity, nextRevision, command);
         }
-        context.getLog().withCorrelationId(command).debug("Validating condition succeeded.");
-
-        return super.apply(context, entity, nextRevision, command);
+        return result;
     }
 
     @Override

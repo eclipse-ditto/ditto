@@ -19,11 +19,10 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException;
+import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.junit.Rule;
 import org.junit.Test;
-
-import scala.util.Either;
 
 /**
  * Tests the {@link ThingConditionValidator}.
@@ -33,8 +32,6 @@ public class ThingConditionValidatorTest {
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
-    private static final ThingConditionValidator underTest = ThingConditionValidator.getInstance();
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ThingConditionValidator.class, areImmutable());
@@ -42,23 +39,53 @@ public class ThingConditionValidatorTest {
 
     @Test
     public void validationSucceeds() {
-        final ModifyThing modifyThing = ModifyThing.of(TestConstants.Thing.THING_ID, TestConstants.Thing.THING_V2,
-                null, DittoHeaders.empty());
-        final String condition = "eq(attributes/maker,\"Bosch\")";
-        final Either<Void, ThingConditionFailedException> validate =
-                underTest.validate(modifyThing, condition, TestConstants.Thing.THING_V2);
-        softly.assertThat(validate.isLeft()).isTrue();
+        final var modifyThing = ModifyThing.of(
+                TestConstants.Thing.THING_ID,
+                TestConstants.Thing.THING_V2,
+                null,
+                DittoHeaders.empty());
+
+        final var condition = "eq(attributes/maker,\"Bosch\")";
+        final var validationError =
+                ThingConditionValidator.validate(modifyThing, condition, TestConstants.Thing.THING_V2);
+        softly.assertThat(validationError).isEmpty();
     }
 
     @Test
     public void validationFails() {
-        final ModifyThing modifyThing = ModifyThing.of(TestConstants.Thing.THING_ID, TestConstants.Thing.THING_V2,
+        final var modifyThing = ModifyThing.of(
+                TestConstants.Thing.THING_ID,
+                TestConstants.Thing.THING_V2,
                 null, DittoHeaders.empty());
-        final String condition = "eq(attributes/maker,\"NotBosch\")";
-        final Either<Void, ThingConditionFailedException> validate =
-                underTest.validate(modifyThing, condition, TestConstants.Thing.THING_V2);
-        softly.assertThat(validate.isRight()).isTrue();
-        softly.assertThat(validate.right().get()).isInstanceOf(ThingConditionFailedException.class);
+
+        final var condition = "eq(attributes/maker,\"NotBosch\")";
+        final var validationError =
+                ThingConditionValidator.validate(modifyThing, condition, TestConstants.Thing.THING_V2);
+        softly.assertThat(validationError).isPresent();
+        softly.assertThat(validationError.get()).isInstanceOf(ThingConditionFailedException.class);
+    }
+
+    @Test
+    public void noValidationErrorExpectedForCreateThing() {
+        final var modifyThing = CreateThing.of(
+                TestConstants.Thing.THING_V2,
+                null,
+                DittoHeaders.empty());
+
+        final var condition = "eq(attributes/maker,\"NotBosch\")";
+        final var validationError =
+                ThingConditionValidator.validate(modifyThing, condition, TestConstants.Thing.THING_V2);
+        softly.assertThat(validationError).isEmpty();
+    }
+
+    @Test
+    public void noValidationErrorExpectedForNullEntity() {
+        final var modifyThing = ModifyThing.of(TestConstants.Thing.THING_ID, TestConstants.Thing.THING_V2,
+                null, DittoHeaders.empty());
+        final var condition = "eq(attributes/maker,\"NotBosch\")";
+        final var validationError =
+                ThingConditionValidator.validate(modifyThing, condition, null);
+        softly.assertThat(validationError).isEmpty();
     }
 
 }
