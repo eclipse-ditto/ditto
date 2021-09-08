@@ -93,6 +93,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
     private static final String ANOTHER_ADDRESS = "anotherAddress";
     private static final String REPLY_TARGET_ADDRESS = TestConstants.Sources.REPLY_TARGET_ADDRESS
             .replaceAll("\\Q{{thing:id}}\\E", THING_ID.toString());
+    private static final IllegalStateException TEST_EXCEPTION = new IllegalStateException("test");
 
     private JmsSession session;
     private MessageProducer messageProducer;
@@ -100,12 +101,16 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
     private JmsQueue outboundDestination;
     private JmsQueue anotherDestination;
     private JmsQueue repliesDestination;
+    private ConnectivityStatusResolver connectivityStatusResolver;
 
     @Override
     protected void setupMocks(final TestProbe probe) throws JMSException {
         session = mock(JmsSession.class);
         messageProducer = mock(MessageProducer.class);
         repliesMessageProducer = mock(MessageProducer.class);
+        connectivityStatusResolver = mock(ConnectivityStatusResolver.class);
+        when(connectivityStatusResolver.resolve(TEST_EXCEPTION)).thenReturn(ConnectivityStatus.FAILED);
+        when(connectivityStatusResolver.resolve(any(Throwable.class))).thenReturn(ConnectivityStatus.FAILED);
         outboundDestination = new JmsQueue(getOutboundAddress());
         anotherDestination = new JmsQueue(ANOTHER_ADDRESS);
         repliesDestination = new JmsQueue(REPLY_TARGET_ADDRESS);
@@ -239,7 +244,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                     session,
                     loadConnectionConfig(),
                     "clientId",
-                    mock(ConnectivityStatusResolver.class));
+                    connectivityStatusResolver);
             final ActorRef publisherActor = actorSystem.actorOf(props);
 
             publisherCreated(this, publisherActor);
@@ -258,7 +263,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             // --> 4 calls to createProducer in total after 10 seconds
             for (int i = 0; i < 3; i++) {
                 // trigger closing of producer
-                publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, new IllegalStateException("test")), getRef());
+                publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, TEST_EXCEPTION), getRef());
                 final int wantedNumberOfInvocations = i + 2;
                 final long millis =
                         1_000 // initial backoff
@@ -301,7 +306,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                     session,
                     loadConnectionConfig(),
                     "clientId",
-                    mock(ConnectivityStatusResolver.class));
+                    connectivityStatusResolver);
             final ActorRef publisherActor = actorSystem.actorOf(props);
             publisherCreated(this, publisherActor);
 
@@ -312,9 +317,9 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             verify(session, timeout(1_000)).createProducer(any(Destination.class));
 
             // and trigger closing of producer multiple times
-            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, new IllegalStateException("test")), getRef());
-            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, new IllegalStateException("test")), getRef());
-            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, new IllegalStateException("test")), getRef());
+            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, TEST_EXCEPTION), getRef());
+            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, TEST_EXCEPTION), getRef());
+            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, TEST_EXCEPTION), getRef());
 
             // check that createProducer is called only twice in the next 10 seconds (once for the initial create, once for the backoff)
             verify(session, after(10_000).times(2)).createProducer(any(Destination.class));
@@ -327,10 +332,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             {
                 final TestProbe probe = new TestProbe(actorSystem);
                 setupMocks(probe);
-
-                final ConnectivityStatusResolver connectivityStatusResolver = mock(ConnectivityStatusResolver.class);
-                final IllegalStateException illegalStateException = new IllegalStateException("test");
-                when(connectivityStatusResolver.resolve(illegalStateException)).thenReturn(ConnectivityStatus.FAILED);
 
                 final Props props = AmqpPublisherActor.props(
                         TestConstants.createConnection()
@@ -355,7 +356,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                 verify(session, timeout(1_000)).createProducer(any(Destination.class));
 
                 // and trigger closing of producer multiple times
-                publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, illegalStateException), getRef());
+                publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, TEST_EXCEPTION), getRef());
 
                 assertTargetResourceStatus(publisherActor, Map.of(getOutboundAddress(), ConnectivityStatus.FAILED,
                         getOutboundAddress() + "/{{ thing:id }}", ConnectivityStatus.UNKNOWN));
@@ -398,7 +399,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                     session,
                     loadConnectionConfig(),
                     "clientId",
-                    mock(ConnectivityStatusResolver.class));
+                    connectivityStatusResolver);
 
             final ActorRef publisherActor = actorSystem.actorOf(props);
             publisherCreated(this, publisherActor);
@@ -470,7 +471,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected Props getPublisherActorProps() {
         return AmqpPublisherActor.props(TestConstants.createConnection(), session, loadConnectionConfig(), "clientId",
-                mock(ConnectivityStatusResolver.class));
+                connectivityStatusResolver);
     }
 
     @Override
