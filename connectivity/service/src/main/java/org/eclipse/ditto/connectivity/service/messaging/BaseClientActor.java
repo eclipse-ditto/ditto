@@ -1461,10 +1461,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                         .warning("NOT responding early with ResourceStatus for all sub-sources and " +
                                 "-targets and SSH tunnel, having a live status <{}> in the client actor which likely " +
                                 "will cause timeout 'failures' in some of the resources.", clientConnectionStatus);
-                retrieveAddressStatusFromChilds(command, sender, childrenToAsk);
+                retrieveAddressStatusFromChildren(command, sender, childrenToAsk);
             }
         } else {
-            retrieveAddressStatusFromChilds(command, sender, childrenToAsk);
+            retrieveAddressStatusFromChildren(command, sender, childrenToAsk);
         }
 
         final ResourceStatus clientStatus =
@@ -1477,7 +1477,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
-    private void retrieveAddressStatusFromChilds(final RetrieveConnectionStatus command, final ActorRef sender,
+    private void retrieveAddressStatusFromChildren(final RetrieveConnectionStatus command, final ActorRef sender,
             final List<ActorRef> childrenToAsk) {
         childrenToAsk.forEach(child -> {
             logger.withCorrelationId(command)
