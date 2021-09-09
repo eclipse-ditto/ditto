@@ -55,13 +55,13 @@ import akka.stream.javadsl.Sink;
 /**
  * Actor to control persistence cleanup.
  */
-public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanUpActor.State, String>
+public final class PersistenceCleanupActor extends AbstractFSM<PersistenceCleanupActor.State, String>
         implements RetrieveConfigBehavior, ModifyConfigBehavior {
 
     /**
      * Name of this actor.
      */
-    public static final String NAME = "persistenceCleanUp";
+    public static final String NAME = "persistenceCleanup";
 
     /**
      * JSON field of ModifyConfig commands that
@@ -76,47 +76,48 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
     private final Counter deleteSnapsCounter = DittoMetrics.counter("cleanup_delete_snapshots");
     private final MongoReadJournal mongoReadJournal;
     private final Supplier<Pair<Integer, Integer>> responsibilitySupplier;
-    private CleanUpConfig config;
-    private CleanUp cleanUp;
+
+    private CleanupConfig config;
+    private Cleanup cleanup;
     private Credits credits;
     @Nullable private UniqueKillSwitch killSwitch = null;
 
-    PersistenceCleanUpActor(final CleanUp cleanUp,
+    PersistenceCleanupActor(final Cleanup cleanup,
             final Credits credits,
             final MongoReadJournal mongoReadJournal,
             final Supplier<Pair<Integer, Integer>> responsibilitySupplier) {
-        this.config = CleanUpConfig.of(ConfigFactory.empty());
-        this.cleanUp = cleanUp;
+        this.config = CleanupConfig.of(ConfigFactory.empty());
+        this.cleanup = cleanup;
         this.credits = credits;
         this.mongoReadJournal = mongoReadJournal;
         this.responsibilitySupplier = responsibilitySupplier;
     }
 
     @SuppressWarnings("unused") // called by reflection
-    private PersistenceCleanUpActor(final CleanUpConfig config,
+    private PersistenceCleanupActor(final CleanupConfig config,
             final MongoReadJournal mongoReadJournal,
             final String myRole) {
         final var cluster = Cluster.get(getContext().getSystem());
         this.mongoReadJournal = mongoReadJournal;
         responsibilitySupplier = ClusterResponsibilitySupplier.of(cluster, myRole);
         this.config = config;
-        cleanUp = CleanUp.of(config, mongoReadJournal, materializer, responsibilitySupplier);
+        cleanup = Cleanup.of(config, mongoReadJournal, materializer, responsibilitySupplier);
         credits = Credits.of(config);
     }
 
     /**
      * Create the Props object for this actor.
      *
-     * @param config the background clean-up config.
+     * @param config the background cleanup config.
      * @param mongoReadJournal the Mongo read journal for database operations.
      * @param myRole the cluster role of this node among which the background cleanup responsibility is divided.
      * @return the Props object.
      */
-    public static Props props(final CleanUpConfig config,
+    public static Props props(final CleanupConfig config,
             final MongoReadJournal mongoReadJournal,
             final String myRole) {
 
-        return Props.create(PersistenceCleanUpActor.class, config, mongoReadJournal, myRole);
+        return Props.create(PersistenceCleanupActor.class, config, mongoReadJournal, myRole);
     }
 
     @Override
@@ -139,7 +140,7 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
     }
 
     private FSMStateFunctionBuilder<State, String> running() {
-        return matchEvent(CleanUpResult.class, this::logCleanUpResult)
+        return matchEvent(CleanupResult.class, this::logCleanupResult)
                 .eventEquals(Control.STREAM_COMPLETE, this::streamComplete)
                 .eventEquals(Control.STREAM_FAILED, this::streamFailed)
                 .eventEquals(Control.SHUTDOWN, this::shutdownRunningStream);
@@ -170,7 +171,7 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
     private FSM.State<State, String> startStream(final StateTimeout$ stateTimeout, final String lastPid) {
         logger.info("Quiet period expired, starting stream from <{}>", lastPid);
         final var materializedValues =
-                credits.regulate(cleanUp.getCleanUpStream(lastPid), logger)
+                credits.regulate(cleanup.getCleanupStream(lastPid), logger)
                         .flatMapConcat(workUnit -> workUnit)
                         .viaMat(KillSwitches.single(), Keep.right())
                         .toMat(Sink.foreach(this::notifySelf), Keep.both())
@@ -182,8 +183,8 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
         return goTo(State.RUNNING);
     }
 
-    private FSM.State<State, String> logCleanUpResult(final CleanUpResult result, final String lastPid) {
-        logger.debug("CleanUpResult=<{}>", result);
+    private FSM.State<State, String> logCleanupResult(final CleanupResult result, final String lastPid) {
+        logger.debug("CleanupResult=<{}>", result);
         final var nextPid = result.snapshotRevision.pid;
         if (!lastPid.equals(nextPid)) {
             logger.info("Progress=<{}>", nextPid);
@@ -263,7 +264,7 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
         return quietPeriod.plus(quietPeriod.multipliedBy(multiplier).dividedBy(divisor));
     }
 
-    private void notifySelf(final CleanUpResult result) {
+    private void notifySelf(final CleanupResult result) {
         getSelf().tell(result, ActorRef.noSender());
     }
 
@@ -287,7 +288,7 @@ public final class PersistenceCleanUpActor extends AbstractFSM<PersistenceCleanU
     @Override
     public Config setConfig(final Config config) {
         this.config = this.config.setAll(config);
-        cleanUp = CleanUp.of(this.config, mongoReadJournal, materializer, responsibilitySupplier);
+        cleanup = Cleanup.of(this.config, mongoReadJournal, materializer, responsibilitySupplier);
         credits = Credits.of(this.config);
         getSelf().tell(Control.SHUTDOWN, ActorRef.noSender());
         return this.config.render();

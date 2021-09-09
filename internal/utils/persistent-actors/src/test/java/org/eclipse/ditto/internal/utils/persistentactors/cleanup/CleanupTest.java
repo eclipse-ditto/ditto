@@ -42,9 +42,9 @@ import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link CleanUp}.
+ * Tests {@link Cleanup}.
  */
-public final class CleanUpTest {
+public final class CleanupTest {
 
     private final ActorSystem actorSystem = ActorSystem.create();
 
@@ -67,8 +67,8 @@ public final class CleanUpTest {
         when(mongoReadJournal.getNewestSnapshotsAbove(any(), anyInt(), eq(true), any(), any()))
                 .thenReturn(Source.empty());
 
-        final var underTest = new CleanUp(mongoReadJournal, materializer, () -> Pair.create(0, 1), 1, 1, true);
-        final var result = underTest.getCleanUpStream("")
+        final var underTest = new Cleanup(mongoReadJournal, materializer, () -> Pair.create(0, 1), 1, 1, true);
+        final var result = underTest.getCleanupStream("")
                 .flatMapConcat(x -> x)
                 .runWith(Sink.seq(), materializer)
                 .toCompletableFuture()
@@ -94,15 +94,15 @@ public final class CleanUpTest {
                 invocation.<Long>getArgument(1) * 1000L + invocation.<Long>getArgument(2) * 10L)))
                 .when(mongoReadJournal).deleteSnapshots(any(), anyLong(), anyLong());
 
-        final var underTest = new CleanUp(mongoReadJournal, materializer, () -> Pair.create(0, 1), 1, 4, true);
+        final var underTest = new Cleanup(mongoReadJournal, materializer, () -> Pair.create(0, 1), 1, 4, true);
 
-        final var result = underTest.getCleanUpStream("")
+        final var result = underTest.getCleanupStream("")
                 .flatMapConcat(x -> x)
                 .runWith(Sink.seq(), materializer).toCompletableFuture().join();
         final var seqNrs = result.stream()
-                .map(cleanUpResult -> cleanUpResult.result.getDeletedCount())
+                .map(cleanupResult -> cleanupResult.result.getDeletedCount())
                 .collect(Collectors.toList());
-        final var types = result.stream().map(cleanUpResult -> cleanUpResult.type.name()).collect(Collectors.toList());
+        final var types = result.stream().map(cleanupResult -> cleanupResult.type.name()).collect(Collectors.toList());
 
         assertThat(seqNrs).containsExactly(3033L, 3437L, 3841L, 4245L, 4649L, 39420L, 43460L, 47500L);
         assertThat(types).containsExactly("EVENTS", "EVENTS", "EVENTS", "EVENTS", "EVENTS", "SNAPSHOTS", "SNAPSHOTS",
@@ -127,15 +127,15 @@ public final class CleanUpTest {
                 invocation.<Long>getArgument(1) * 1000L + invocation.<Long>getArgument(2) * 10L)))
                 .when(mongoReadJournal).deleteSnapshots(any(), anyLong(), anyLong());
 
-        final var underTest = new CleanUp(mongoReadJournal, materializer, () -> Pair.create(0, 1), 1, 4, false);
+        final var underTest = new Cleanup(mongoReadJournal, materializer, () -> Pair.create(0, 1), 1, 4, false);
 
-        final var result = underTest.getCleanUpStream("")
+        final var result = underTest.getCleanupStream("")
                 .flatMapConcat(x -> x)
                 .runWith(Sink.seq(), materializer).toCompletableFuture().join();
         final var seqNrs = result.stream()
-                .map(cleanUpResult -> cleanUpResult.result.getDeletedCount())
+                .map(cleanupResult -> cleanupResult.result.getDeletedCount())
                 .collect(Collectors.toList());
-        final var types = result.stream().map(cleanUpResult -> cleanUpResult.type.name()).collect(Collectors.toList());
+        final var types = result.stream().map(cleanupResult -> cleanupResult.type.name()).collect(Collectors.toList());
 
         assertThat(seqNrs).containsExactly(3033L, 3437L, 3841L, 4245L, 4649L, 38410L, 42450L, 46490L);
         assertThat(types).containsExactly("EVENTS", "EVENTS", "EVENTS", "EVENTS", "EVENTS", "SNAPSHOTS", "SNAPSHOTS",
@@ -168,17 +168,17 @@ public final class CleanUpTest {
                 .when(mongoReadJournal).deleteSnapshots(any(), anyLong(), anyLong());
 
         // WHEN: the instance is responsible for 1/3 of the 3 PIDs
-        final var underTest = new CleanUp(mongoReadJournal, materializer, () -> Pair.create(2, 3), 1, 4, false);
+        final var underTest = new Cleanup(mongoReadJournal, materializer, () -> Pair.create(2, 3), 1, 4, false);
 
-        final var result = underTest.getCleanUpStream("")
+        final var result = underTest.getCleanupStream("")
                 .flatMapConcat(x -> x)
                 .runWith(Sink.seq(), materializer).toCompletableFuture().join();
         final var seqNrs = result.stream()
-                .map(cleanUpResult -> cleanUpResult.result.getDeletedCount())
+                .map(cleanupResult -> cleanupResult.result.getDeletedCount())
                 .collect(Collectors.toList());
-        final var types = result.stream().map(cleanUpResult -> cleanUpResult.type.name()).collect(Collectors.toList());
+        final var types = result.stream().map(cleanupResult -> cleanupResult.type.name()).collect(Collectors.toList());
         final var pids =
-                result.stream().map(cleanUpResult -> cleanUpResult.snapshotRevision.pid).collect(Collectors.toSet());
+                result.stream().map(cleanupResult -> cleanupResult.snapshotRevision.pid).collect(Collectors.toSet());
 
         // THEN: exactly 1 PID was cleaned up
         assertThat(seqNrs).containsExactly(3033L, 3437L, 3841L, 4245L, 4649L, 38410L, 42450L, 46490L);

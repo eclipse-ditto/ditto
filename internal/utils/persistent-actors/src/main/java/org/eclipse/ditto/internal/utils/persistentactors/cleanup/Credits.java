@@ -26,16 +26,16 @@ import akka.stream.javadsl.Source;
 
 final class Credits {
 
-    private final CleanUpConfig cleanUpConfig;
+    private final CleanupConfig cleanupConfig;
     private final LongAccumulator dbTimerNanos;
 
-    Credits(final CleanUpConfig cleanUpConfig,
+    Credits(final CleanupConfig cleanupConfig,
             final LongAccumulator dbTimerNanos) {
-        this.cleanUpConfig = cleanUpConfig;
+        this.cleanupConfig = cleanupConfig;
         this.dbTimerNanos = dbTimerNanos;
     }
 
-    static Credits of(final CleanUpConfig config) {
+    static Credits of(final CleanupConfig config) {
         return new Credits(config, MongoMetricsBuilder.maxTimerNanos());
     }
 
@@ -60,7 +60,7 @@ final class Credits {
     }
 
     private Source<Integer, NotUsed> getCreditSource(final LoggingAdapter logger) {
-        return Source.tick(Duration.ZERO, cleanUpConfig.getInterval(), Tick.TICK)
+        return Source.tick(Duration.ZERO, cleanupConfig.getInterval(), Tick.TICK)
                 .mapMaterializedValue(cancellable -> NotUsed.getInstance())
                 .flatMapConcat(tick -> computeCredit(logger));
     }
@@ -68,9 +68,9 @@ final class Credits {
     private Source<Integer, NotUsed> computeCredit(final LoggingAdapter logger) {
         try {
             final Duration maxDuration = Duration.ofNanos(dbTimerNanos.getThenReset());
-            final Duration threshold = cleanUpConfig.getTimerThreshold();
+            final Duration threshold = cleanupConfig.getTimerThreshold();
             if (maxDuration.minus(threshold).isNegative()) {
-                final var credits = cleanUpConfig.getCreditsPerBatch();
+                final var credits = cleanupConfig.getCreditsPerBatch();
                 logger.debug("Credits={} Timer={}/{}", credits, maxDuration, threshold);
                 return Source.single(credits);
             } else {

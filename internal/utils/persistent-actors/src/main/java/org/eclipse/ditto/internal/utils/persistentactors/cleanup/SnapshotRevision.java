@@ -36,14 +36,14 @@ final class SnapshotRevision {
 
     @Override
     public int hashCode() {
-        return Objects.hash(pid, sn);
+        return Objects.hash(pid, sn, isDeleted);
     }
 
     @Override
     public boolean equals(final Object other) {
         if (other instanceof SnapshotRevision) {
             final var that = (SnapshotRevision) other;
-            return Objects.equals(pid, that.pid) && sn == that.sn;
+            return Objects.equals(pid, that.pid) && sn == that.sn && isDeleted == that.isDeleted;
         } else {
             return false;
         }

@@ -27,7 +27,7 @@ import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
-import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanUpActor;
+import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanupActor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.PolicyAnnouncementPubSubFactory;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
@@ -99,9 +99,9 @@ public final class PoliciesRootActor extends DittoRootActor {
                 PoliciesMessagingConstants.SHARD_REGION, log);
 
         final var cleanUpActorProps =
-                PersistenceCleanUpActor.props(policiesConfig.getPolicyConfig().getCleanUpConfig(), mongoReadJournal,
+                PersistenceCleanupActor.props(policiesConfig.getPolicyConfig().getCleanupConfig(), mongoReadJournal,
                         CLUSTER_ROLE);
-        startChildActor(PersistenceCleanUpActor.NAME, cleanUpActorProps);
+        startChildActor(PersistenceCleanupActor.NAME, cleanUpActorProps);
 
         final var healthCheckConfig = policiesConfig.getHealthCheckConfig();
         final var hcBuilder =

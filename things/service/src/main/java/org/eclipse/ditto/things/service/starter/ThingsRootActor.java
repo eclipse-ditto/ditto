@@ -26,7 +26,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanUpActor;
+import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanupActor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.ThingEventPubSubFactory;
@@ -107,9 +107,9 @@ public final class ThingsRootActor extends DittoRootActor {
         final ActorRef snapshotStreamingActor =
                 ThingsPersistenceStreamingActorCreator.startSnapshotStreamingActor(this::startChildActor);
 
-        final Props cleanUpActorProps = PersistenceCleanUpActor.props(thingsConfig.getThingConfig().getCleanUpConfig(),
+        final Props cleanUpActorProps = PersistenceCleanupActor.props(thingsConfig.getThingConfig().getCleanupConfig(),
                 newMongoReadJournal(thingsConfig.getMongoDbConfig(), actorSystem), CLUSTER_ROLE);
-        startChildActor(PersistenceCleanUpActor.NAME, cleanUpActorProps);
+        startChildActor(PersistenceCleanupActor.NAME, cleanUpActorProps);
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
         pubSubMediator.tell(DistPubSubAccess.put(eventStreamingActor), getSelf());

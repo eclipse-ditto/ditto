@@ -24,9 +24,9 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 @Immutable
-final class DefaultCleanUpConfig implements CleanUpConfig {
+final class DefaultCleanupConfig implements CleanupConfig {
 
-    static final String CONFIG_PATH = "clean-up";
+    static final String CONFIG_PATH = "cleanup";
 
     private final boolean enabled;
     private final Duration quietPeriod;
@@ -37,7 +37,7 @@ final class DefaultCleanUpConfig implements CleanUpConfig {
     private final int writesPerCredit;
     private final boolean deleteFinalDeletedSnapshot;
 
-    DefaultCleanUpConfig(final boolean enabled,
+    DefaultCleanupConfig(final boolean enabled,
             final Duration quietPeriod,
             final Duration interval,
             final Duration timerThreshold,
@@ -55,7 +55,7 @@ final class DefaultCleanUpConfig implements CleanUpConfig {
         this.deleteFinalDeletedSnapshot = deleteFinalDeletedSnapshot;
     }
 
-    DefaultCleanUpConfig(final ScopedConfig conf) {
+    DefaultCleanupConfig(final ScopedConfig conf) {
         this.enabled = conf.getBoolean(ConfigValue.ENABLED.getConfigPath());
         this.quietPeriod = conf.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.QUIET_PERIOD);
         this.interval = conf.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.INTERVAL);
@@ -82,8 +82,8 @@ final class DefaultCleanUpConfig implements CleanUpConfig {
     }
 
     @Override
-    public CleanUpConfig setAll(final Config config) {
-        return CleanUpConfig.of(config.withFallback(render()).atKey(CONFIG_PATH));
+    public CleanupConfig setAll(final Config config) {
+        return CleanupConfig.of(config.withFallback(render()).atKey(CONFIG_PATH));
     }
 
     @Override
@@ -128,8 +128,8 @@ final class DefaultCleanUpConfig implements CleanUpConfig {
 
     @Override
     public boolean equals(final Object o) {
-        if (o instanceof DefaultCleanUpConfig) {
-            final DefaultCleanUpConfig that = (DefaultCleanUpConfig) o;
+        if (o instanceof DefaultCleanupConfig) {
+            final DefaultCleanupConfig that = (DefaultCleanupConfig) o;
             return enabled == that.enabled &&
                     Objects.equals(quietPeriod, that.quietPeriod) &&
                     Objects.equals(interval, that.interval) &&

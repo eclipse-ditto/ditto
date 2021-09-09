@@ -24,7 +24,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckCo
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultSnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanUpConfig;
+import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanupConfig;
 
 import com.typesafe.config.Config;
 
@@ -39,13 +39,13 @@ public final class DefaultThingConfig implements ThingConfig {
     private final SupervisorConfig supervisorConfig;
     private final ActivityCheckConfig activityCheckConfig;
     private final SnapshotConfig snapshotConfig;
-    private final CleanUpConfig cleanUpConfig;
+    private final CleanupConfig cleanUpConfig;
 
     private DefaultThingConfig(final ScopedConfig scopedConfig) {
         supervisorConfig = DefaultSupervisorConfig.of(scopedConfig);
         activityCheckConfig = DefaultActivityCheckConfig.of(scopedConfig);
         snapshotConfig = DefaultSnapshotConfig.of(scopedConfig);
-        cleanUpConfig = CleanUpConfig.of(scopedConfig);
+        cleanUpConfig = CleanupConfig.of(scopedConfig);
     }
 
     /**
@@ -105,7 +105,7 @@ public final class DefaultThingConfig implements ThingConfig {
     }
 
     @Override
-    public CleanUpConfig getCleanUpConfig() {
+    public CleanupConfig getCleanupConfig() {
         return cleanUpConfig;
     }
 }

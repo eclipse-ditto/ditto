@@ -58,21 +58,21 @@ import akka.stream.testkit.javadsl.TestSource;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link PersistenceCleanUpActor}.
+ * Tests {@link PersistenceCleanupActor}.
  */
-public final class PersistenceCleanUpActorTest {
+public final class PersistenceCleanupActorTest {
 
     private final ActorSystem actorSystem = ActorSystem.create();
-    private final AtomicReference<Source<Source<CleanUpResult, NotUsed>, NotUsed>> sourceBox =
+    private final AtomicReference<Source<Source<CleanupResult, NotUsed>, NotUsed>> sourceBox =
             new AtomicReference<>(Source.empty());
-    private CleanUp cleanUp;
+    private Cleanup cleanup;
     private Credits credits;
 
     @Before
     public void init() {
-        cleanUp = mock(CleanUp.class);
+        cleanup = mock(Cleanup.class);
         credits = mock(Credits.class);
-        doAnswer(inv -> Source.empty()).when(cleanUp).getCleanUpStream(any());
+        doAnswer(inv -> Source.empty()).when(cleanup).getCleanupStream(any());
         doAnswer(inv -> sourceBox.get()).when(credits).regulate(any(), any());
     }
 
@@ -87,7 +87,7 @@ public final class PersistenceCleanUpActorTest {
             final ActorRef underTest = childActorOf(testProps());
             final var retrieveHealth = RetrieveHealth.newInstance();
             final var probeSource =
-                    TestSource.<Source<CleanUpResult, NotUsed>>probe(actorSystem);
+                    TestSource.<Source<CleanupResult, NotUsed>>probe(actorSystem);
             final var probeSourcePair = probeSource.preMaterialize(actorSystem);
             final var probe = probeSourcePair.first();
             sourceBox.set(probeSourcePair.second());
@@ -108,15 +108,15 @@ public final class PersistenceCleanUpActorTest {
             final ActorRef underTest = childActorOf(testProps());
             final var retrieveHealth = RetrieveHealth.newInstance();
             final var probeSource =
-                    TestSource.<Source<CleanUpResult, NotUsed>>probe(actorSystem);
+                    TestSource.<Source<CleanupResult, NotUsed>>probe(actorSystem);
             final var probeSourcePair = probeSource.preMaterialize(actorSystem);
             final var probe = probeSourcePair.first();
             sourceBox.set(probeSourcePair.second());
             underTest.tell(FSM.StateTimeout$.MODULE$, ActorRef.noSender());
             probe.expectRequest();
 
-            probe.sendNext(Source.single(new CleanUpResult(
-                    CleanUpResult.Type.SNAPSHOTS,
+            probe.sendNext(Source.single(new CleanupResult(
+                    CleanupResult.Type.SNAPSHOTS,
                     new SnapshotRevision("thing:p:id", 1234, true),
                     DeleteResult.acknowledged(4)
             )));
@@ -127,14 +127,14 @@ public final class PersistenceCleanUpActorTest {
             waitForResponse(this, underTest, retrieveHealthResponse("IN_QUIET_PERIOD", ""), probe::expectNoMsg);
 
             // THEN the starting PID is reset
-            final var killSwitchPair = Source.<Source<CleanUpResult, NotUsed>>never()
+            final var killSwitchPair = Source.<Source<CleanupResult, NotUsed>>never()
                     .viaMat(KillSwitches.single(), Keep.right())
                     .preMaterialize(actorSystem);
             sourceBox.set(killSwitchPair.second());
             underTest.tell(FSM.StateTimeout$.MODULE$, ActorRef.noSender());
             underTest.tell(retrieveHealth, getRef());
             expectMsg(retrieveHealthResponse("RUNNING", ""));
-            verify(cleanUp, timeout(5000L).times(2)).getCleanUpStream(eq(""));
+            verify(cleanup, timeout(5000L).times(2)).getCleanupStream(eq(""));
             killSwitchPair.first().shutdown();
         }};
     }
@@ -148,7 +148,7 @@ public final class PersistenceCleanUpActorTest {
             final ActorRef underTest = childActorOf(testProps());
             final var retrieveHealth = RetrieveHealth.newInstance();
             final var probeSource =
-                    TestSource.<Source<CleanUpResult, NotUsed>>probe(actorSystem);
+                    TestSource.<Source<CleanupResult, NotUsed>>probe(actorSystem);
             final var probeSourcePair = probeSource.preMaterialize(actorSystem);
             final var probe = probeSourcePair.first();
             sourceBox.set(probeSourcePair.second());
@@ -156,8 +156,8 @@ public final class PersistenceCleanUpActorTest {
             probe.expectRequest();
 
             final var pid = "thing:p:id";
-            probe.sendNext(Source.single(new CleanUpResult(
-                    CleanUpResult.Type.SNAPSHOTS,
+            probe.sendNext(Source.single(new CleanupResult(
+                    CleanupResult.Type.SNAPSHOTS,
                     new SnapshotRevision(pid, 1234, true),
                     DeleteResult.acknowledged(4)
             )));
@@ -168,14 +168,14 @@ public final class PersistenceCleanUpActorTest {
             waitForResponse(this, underTest, retrieveHealthResponse("IN_QUIET_PERIOD", pid), probe::expectNoMsg);
 
             // THEN the starting PID is set to the last successful pid
-            final var killSwitchPair = Source.<Source<CleanUpResult, NotUsed>>never()
+            final var killSwitchPair = Source.<Source<CleanupResult, NotUsed>>never()
                     .viaMat(KillSwitches.single(), Keep.right())
                     .preMaterialize(actorSystem);
             sourceBox.set(killSwitchPair.second());
             underTest.tell(FSM.StateTimeout$.MODULE$, ActorRef.noSender());
             underTest.tell(retrieveHealth, getRef());
             expectMsg(retrieveHealthResponse("RUNNING", pid));
-            verify(cleanUp, timeout(5000L)).getCleanUpStream(eq(pid));
+            verify(cleanup, timeout(5000L)).getCleanupStream(eq(pid));
             killSwitchPair.first().shutdown();
         }};
     }
@@ -188,7 +188,7 @@ public final class PersistenceCleanUpActorTest {
             underTest.tell(retrieveConfig, getRef());
             final var retrieveConfigResponse = expectMsgClass(RetrieveConfigResponse.class);
             final String expectedConfigJson =
-                    CleanUpConfig.of(ConfigFactory.empty()).render().root().render(ConfigRenderOptions.concise());
+                    CleanupConfig.of(ConfigFactory.empty()).render().root().render(ConfigRenderOptions.concise());
             assertThat(retrieveConfigResponse.getConfig()).isEqualTo(JsonFactory.readFrom(expectedConfigJson));
         }};
     }
@@ -201,7 +201,7 @@ public final class PersistenceCleanUpActorTest {
                     ModifyConfig.of(JsonObject.newBuilder().set("enabled", false).build(), DittoHeaders.empty());
             underTest.tell(modifyConfig, getRef());
             final var response = expectMsgClass(ModifyConfigResponse.class);
-            final var expectedConfig = CleanUpConfig.of(ConfigFactory.parseMap(Map.of("clean-up.enabled", false)));
+            final var expectedConfig = CleanupConfig.of(ConfigFactory.parseMap(Map.of("cleanup.enabled", false)));
             assertThat(response.getConfig()).containsExactlyInAnyOrderElementsOf(
                     JsonObject.of(expectedConfig.render().root().render(ConfigRenderOptions.concise())));
         }};
@@ -227,7 +227,7 @@ public final class PersistenceCleanUpActorTest {
                     DittoHeaders.empty());
             underTest.tell(modifyConfig, getRef());
             final var response = expectMsgClass(ModifyConfigResponse.class);
-            final var expectedConfig = CleanUpConfig.of(ConfigFactory.parseMap(Map.of("clean-up.enabled", false)));
+            final var expectedConfig = CleanupConfig.of(ConfigFactory.parseMap(Map.of("cleanup.enabled", false)));
             assertThat(response.getConfig()).containsExactlyInAnyOrderElementsOf(
                     JsonObject.of(expectedConfig.render().root().render(ConfigRenderOptions.concise())));
 
@@ -263,8 +263,8 @@ public final class PersistenceCleanUpActorTest {
     }
 
     private Props testProps() {
-        return Props.create(PersistenceCleanUpActor.class,
-                () -> new PersistenceCleanUpActor(cleanUp, credits, mock(MongoReadJournal.class),
+        return Props.create(PersistenceCleanupActor.class,
+                () -> new PersistenceCleanupActor(cleanup, credits, mock(MongoReadJournal.class),
                         () -> Pair.create(0, 1)));
     }
 

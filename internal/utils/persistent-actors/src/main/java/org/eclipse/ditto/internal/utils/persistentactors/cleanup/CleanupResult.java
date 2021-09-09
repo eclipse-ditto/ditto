@@ -19,13 +19,13 @@ import javax.annotation.concurrent.Immutable;
 import com.mongodb.client.result.DeleteResult;
 
 @Immutable
-final class CleanUpResult {
+final class CleanupResult {
 
     final Type type;
     final SnapshotRevision snapshotRevision;
     final DeleteResult result;
 
-    CleanUpResult(final Type type, final SnapshotRevision snapshotRevision, final DeleteResult result) {
+    CleanupResult(final Type type, final SnapshotRevision snapshotRevision, final DeleteResult result) {
         this.type = type;
         this.snapshotRevision = snapshotRevision;
         this.result = result;
@@ -47,8 +47,8 @@ final class CleanUpResult {
 
     @Override
     public boolean equals(final Object other) {
-        if (other instanceof CleanUpResult) {
-            final var that = (CleanUpResult) other;
+        if (other instanceof CleanupResult) {
+            final var that = (CleanupResult) other;
             return type == that.type && Objects.equals(snapshotRevision, that.snapshotRevision) && Objects.equals(result, that.result);
         } else {
             return false;

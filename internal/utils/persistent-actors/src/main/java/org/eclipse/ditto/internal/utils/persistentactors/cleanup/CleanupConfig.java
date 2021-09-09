@@ -22,16 +22,16 @@ import com.typesafe.config.Config;
 /**
  * Config for persistence cleanup.
  */
-public interface CleanUpConfig {
+public interface CleanupConfig {
 
     /**
-     * Create an instance of clean-up config from HOCON.
+     * Create an instance of cleanup config from HOCON.
      *
      * @param config the HOCON object.
-     * @return the clean-up config.
+     * @return the cleanup config.
      */
-    static CleanUpConfig of(final Config config) {
-        return new DefaultCleanUpConfig(ConfigWithFallback.newInstance(config, DefaultCleanUpConfig.CONFIG_PATH,
+    static CleanupConfig of(final Config config) {
+        return new DefaultCleanupConfig(ConfigWithFallback.newInstance(config, DefaultCleanupConfig.CONFIG_PATH,
                 ConfigValue.values()));
     }
 
@@ -39,14 +39,14 @@ public interface CleanUpConfig {
      * Set values defined in the config with the config values of this object as fallback.
      *
      * @param config the config values to set.
-     * @return the new clean-up config object.
+     * @return the new cleanup config object.
      */
-    CleanUpConfig setAll(final Config config);
+    CleanupConfig setAll(final Config config);
 
     /**
-     * Return whether background clean-up is enabled.
+     * Return whether background cleanup is enabled.
      *
-     * @return whether background clean-up is enabled.
+     * @return whether background cleanup is enabled.
      */
     boolean isEnabled();
 
@@ -114,7 +114,7 @@ public interface CleanUpConfig {
     enum ConfigValue implements KnownConfigValue {
 
         /**
-         * Whether background clean-up is enabled.
+         * Whether background cleanup is enabled.
          */
         ENABLED("enabled", true),
 

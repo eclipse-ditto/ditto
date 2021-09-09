@@ -31,7 +31,7 @@ import akka.stream.javadsl.Source;
 /**
  * An Akka stream to handle background cleanup regulated by insert times.
  */
-public final class CleanUp {
+final class Cleanup {
 
     private final MongoReadJournal readJournal;
     private final Materializer materializer;
@@ -40,7 +40,7 @@ public final class CleanUp {
     private final int deleteBatchSize;
     private final boolean deleteFinalDeletedSnapshot;
 
-    CleanUp(final MongoReadJournal readJournal,
+    Cleanup(final MongoReadJournal readJournal,
             final Materializer materializer,
             final Supplier<Pair<Integer, Integer>> responsibilitySupplier,
             final int readBatchSize,
@@ -55,16 +55,16 @@ public final class CleanUp {
         this.deleteFinalDeletedSnapshot = deleteFinalDeletedSnapshot;
     }
 
-    static CleanUp of(final CleanUpConfig config,
+    static Cleanup of(final CleanupConfig config,
             final MongoReadJournal readJournal,
             final Materializer materializer,
             final Supplier<Pair<Integer, Integer>> responsibilitySupplier) {
 
-        return new CleanUp(readJournal, materializer, responsibilitySupplier, config.getReadsPerQuery(),
+        return new Cleanup(readJournal, materializer, responsibilitySupplier, config.getReadsPerQuery(),
                 config.getWritesPerCredit(), config.shouldDeleteFinalDeletedSnapshot());
     }
 
-    Source<Source<CleanUpResult, NotUsed>, NotUsed> getCleanUpStream(final String lowerBound) {
+    Source<Source<CleanupResult, NotUsed>, NotUsed> getCleanupStream(final String lowerBound) {
         return getSnapshotRevisions(lowerBound).flatMapConcat(sr -> cleanUpEvents(sr).concat(cleanUpSnapshots(sr)));
     }
 
@@ -83,7 +83,7 @@ public final class CleanUp {
         return Math.abs(Math.abs(sr.pid.hashCode()) % denominator) == remainder;
     }
 
-    private Source<Source<CleanUpResult, NotUsed>, NotUsed> cleanUpEvents(final SnapshotRevision sr) {
+    private Source<Source<CleanupResult, NotUsed>, NotUsed> cleanUpEvents(final SnapshotRevision sr) {
         // leave 1 event for each snapshot to store the "always alive" tag
         return readJournal.getSmallestEventSeqNo(sr.pid).flatMapConcat(minSnOpt -> {
             if (minSnOpt.isEmpty() || minSnOpt.orElseThrow() >= sr.sn) {
@@ -92,13 +92,13 @@ public final class CleanUp {
                 final List<Long> upperBounds = getSnUpperBoundsPerBatch(minSnOpt.orElseThrow(), sr.sn);
                 return Source.from(upperBounds).map(upperBound -> Source.lazily(() ->
                         readJournal.deleteEvents(sr.pid, upperBound - deleteBatchSize + 1, upperBound)
-                                .map(result -> new CleanUpResult(CleanUpResult.Type.EVENTS, sr, result))
+                                .map(result -> new CleanupResult(CleanupResult.Type.EVENTS, sr, result))
                 ).mapMaterializedValue(ignored -> NotUsed.getInstance()));
             }
         });
     }
 
-    private Source<Source<CleanUpResult, NotUsed>, NotUsed> cleanUpSnapshots(final SnapshotRevision sr) {
+    private Source<Source<CleanupResult, NotUsed>, NotUsed> cleanUpSnapshots(final SnapshotRevision sr) {
         return readJournal.getSmallestSnapshotSeqNo(sr.pid).flatMapConcat(minSnOpt -> {
             if (minSnOpt.isEmpty() || (minSnOpt.orElseThrow() >= sr.sn && !deleteFinalDeletedSnapshot)) {
                 return Source.empty();
@@ -107,7 +107,7 @@ public final class CleanUp {
                 final List<Long> upperBounds = getSnUpperBoundsPerBatch(minSnOpt.orElseThrow(), maxSnToDelete);
                 return Source.from(upperBounds).map(upperBound -> Source.lazily(() ->
                         readJournal.deleteSnapshots(sr.pid, upperBound - deleteBatchSize + 1, upperBound)
-                                .map(result -> new CleanUpResult(CleanUpResult.Type.SNAPSHOTS, sr, result))
+                                .map(result -> new CleanupResult(CleanupResult.Type.SNAPSHOTS, sr, result))
                 ).mapMaterializedValue(ignored -> NotUsed.getInstance()));
             }
         });

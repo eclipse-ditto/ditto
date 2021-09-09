@@ -27,7 +27,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckCo
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultSnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanUpConfig;
+import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanupConfig;
 
 import com.typesafe.config.Config;
 
@@ -48,7 +48,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final SupervisorConfig supervisorConfig;
     private final SnapshotConfig snapshotConfig;
     private final DefaultAcknowledgementConfig acknowledgementConfig;
-    private final CleanUpConfig cleanUpConfig;
+    private final CleanupConfig cleanUpConfig;
     private final Amqp10Config amqp10Config;
     private final Amqp091Config amqp091Config;
     private final MqttConfig mqttConfig;
@@ -73,7 +73,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         supervisorConfig = DefaultSupervisorConfig.of(config);
         snapshotConfig = DefaultSnapshotConfig.of(config);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(config);
-        cleanUpConfig = CleanUpConfig.of(config);
+        cleanUpConfig = CleanupConfig.of(config);
         amqp10Config = DefaultAmqp10Config.of(config);
         amqp091Config = DefaultAmqp091Config.of(config);
         mqttConfig = DefaultMqttConfig.of(config);
@@ -210,7 +210,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     }
 
     @Override
-    public CleanUpConfig getCleanUpConfig() {
+    public CleanupConfig getCleanupConfig() {
         return cleanUpConfig;
     }
 

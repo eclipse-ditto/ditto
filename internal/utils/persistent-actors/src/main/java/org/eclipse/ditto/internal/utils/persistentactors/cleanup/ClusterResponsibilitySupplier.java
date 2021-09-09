@@ -51,6 +51,12 @@ public final class ClusterResponsibilitySupplier implements Supplier<Pair<Intege
         return new ClusterResponsibilitySupplier(cluster, myRole);
     }
 
+    /**
+     * Returns a pair where the first integer is the index of the cluster node itself and the second is the number of
+     * all cluster nodes with the same role.
+     *
+     * @return the pair of index and count.
+     */
     @Override
     public Pair<Integer, Integer> get() {
         final List<UniqueAddress> membersOfMyRole =

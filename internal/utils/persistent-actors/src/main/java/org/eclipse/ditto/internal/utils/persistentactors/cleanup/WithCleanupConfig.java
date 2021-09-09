@@ -13,14 +13,14 @@
 package org.eclipse.ditto.internal.utils.persistentactors.cleanup;
 
 /**
- * Interface for persistence config containing a clean-up config section.
+ * Interface for persistence config containing a cleanup config section.
  */
-public interface WithCleanUpConfig {
+public interface WithCleanupConfig {
 
     /**
      * Returns the configuration settings for background cleanup.
      *
-     * @return the clean-up config.
+     * @return the cleanup config.
      */
-    CleanUpConfig getCleanUpConfig();
+    CleanupConfig getCleanupConfig();
 }

@@ -17,12 +17,12 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.service.config.supervision.WithSupervisorConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithSnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.cleanup.WithCleanUpConfig;
+import org.eclipse.ditto.internal.utils.persistentactors.cleanup.WithCleanupConfig;
 
 /**
  * Provides configuration settings for thing entities.
  */
 @Immutable
 public interface ThingConfig extends WithSupervisorConfig, WithActivityCheckConfig, WithSnapshotConfig,
-        WithCleanUpConfig {
+        WithCleanupConfig {
 }

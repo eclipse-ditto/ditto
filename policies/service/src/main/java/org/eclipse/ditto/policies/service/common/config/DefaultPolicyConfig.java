@@ -25,7 +25,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckCo
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultSnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
-import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanUpConfig;
+import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanupConfig;
 
 import com.typesafe.config.Config;
 
@@ -44,7 +44,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
     private final Duration policySubjectDeletionAnnouncementGranularity;
     private final String subjectIdResolver;
     private final PolicyAnnouncementConfig policyAnnouncementConfig;
-    private final CleanUpConfig cleanUpConfig;
+    private final CleanupConfig cleanUpConfig;
 
     private DefaultPolicyConfig(final ScopedConfig scopedConfig) {
         supervisorConfig = DefaultSupervisorConfig.of(scopedConfig);
@@ -57,7 +57,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
                         PolicyConfigValue.SUBJECT_DELETION_ANNOUNCEMENT_GRANULARITY);
         subjectIdResolver = scopedConfig.getString(PolicyConfigValue.SUBJECT_ID_RESOLVER.getConfigPath());
         policyAnnouncementConfig = PolicyAnnouncementConfig.of(scopedConfig);
-        cleanUpConfig = CleanUpConfig.of(scopedConfig);
+        cleanUpConfig = CleanupConfig.of(scopedConfig);
     }
 
     /**
@@ -110,7 +110,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
     }
 
     @Override
-    public CleanUpConfig getCleanUpConfig() {
+    public CleanupConfig getCleanupConfig() {
         return cleanUpConfig;
     }
 
