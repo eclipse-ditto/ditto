@@ -71,7 +71,6 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         this.materializer = materializer;
         consumerControl = sourceSupplier.get()
                 .filter(committableMessage -> isNotDryRun(committableMessage.record(), dryRun))
-                .filter(committableMessage -> committableMessage.record().value() != null)
                 .filter(committableMessage -> KafkaConsumerStream.isNotExpired(committableMessage.record()))
                 .map(kafkaMessageTransformer::transform)
                 .flatMapConcat(this::processTransformationResult)
