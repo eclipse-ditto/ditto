@@ -36,7 +36,7 @@ final class FallbackNamespacedEntityId extends AbstractNamespacedEntityId {
      * @throws org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException if {@code entityId} is {@code null}.
      * @throws org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException if {@code entityId} is empty.
      */
-    public static NamespacedEntityId of(final EntityType entityType, final CharSequence entityId) {
+    static FallbackNamespacedEntityId of(final EntityType entityType, final CharSequence entityId) {
         return new FallbackNamespacedEntityId(entityType, entityId);
     }
 

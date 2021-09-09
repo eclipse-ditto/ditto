@@ -347,9 +347,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         stopChildActor(amqpPublisherActor);
         if (null != jmsSession) {
             final Props props = AmqpPublisherActor.props(connection(), jmsSession,
-                    connectionContext.getConnectivityConfig().getConnectionConfig(), getDefaultClientId());
+                    connectionContext.getConnectivityConfig().getConnectionConfig(), getDefaultClientId(),
+                    connectivityStatusResolver);
             amqpPublisherActor = startChildActorConflictFree(AmqpPublisherActor.ACTOR_NAME_PREFIX, props);
-            Patterns.ask(amqpPublisherActor, AmqpPublisherActor.INITIALIZE, clientAskTimeout)
+            Patterns.ask(amqpPublisherActor, AmqpPublisherActor.Control.INITIALIZE, clientAskTimeout)
                     .whenComplete((result, error) -> {
                         if (error != null) {
                             future.completeExceptionally(error);
@@ -521,13 +522,18 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final ConnectionFailure failure = statusReport.getFailure();
         connectionLogger.failure(failure.getFailureDescription());
         final ConnectivityStatus newStatus = connectivityStatusResolver.resolve(failure);
+
+        if (!statusReport.isRecoverable()) {
+            logger.info("Unrecoverable failure occurred, triggering client actor failure handling: {}", failure);
+            getSelf().tell(failure, getSelf());
+        }
+
         return stay().using(currentData.setConnectionStatus(newStatus)
                 .setConnectionStatusDetails(failure.getFailureDescription()));
     }
 
     private FSM.State<BaseClientState, BaseClientData> handleConsumerClosed(
-            final ConsumerClosedStatusReport statusReport,
-            final BaseClientData currentData) {
+            final ConsumerClosedStatusReport statusReport, final BaseClientData currentData) {
 
         // broadcast event to consumers, who then decide whether the event is meant for them
         consumerByNamePrefix.forEach((namePrefix, consumerActor) -> consumerActor.tell(statusReport, getSelf()));
@@ -814,7 +820,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             connectionLogger.failure("Connection failure: {0}", error.getMessage());
             logger.warning("Connection Failure: {}", error.getMessage());
             final ConnectionFailure failure = ConnectionFailure.of(ActorRef.noSender(), error, null);
-            self.tell(ConnectionFailureStatusReport.get(failure), ActorRef.noSender());
+            self.tell(ConnectionFailureStatusReport.get(failure, false), ActorRef.noSender());
         }
 
         @Override
@@ -823,7 +829,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             logger.warning("Connection interrupted: {}", remoteURI);
             final ConnectionFailure failure =
                     ConnectionFailure.userRelated(ActorRef.noSender(), null, "JMS Interrupted");
-            self.tell(ConnectionFailureStatusReport.get(failure), ActorRef.noSender());
+            self.tell(ConnectionFailureStatusReport.get(failure, true), ActorRef.noSender());
         }
 
         @Override
@@ -852,7 +858,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             connectionLogger.failure("Consumer {0} was closed: {1}", consumer, cause.getMessage());
             logger.warning("Consumer <{}> closed due to {}: {}", consumer, cause.getClass().getSimpleName(),
                     cause.getMessage());
-            self.tell(ConsumerClosedStatusReport.get(consumer), ActorRef.noSender());
+            self.tell(ConsumerClosedStatusReport.get(consumer, cause), ActorRef.noSender());
         }
 
         @Override
@@ -860,7 +866,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             connectionLogger.failure("Producer {0} was closed: {1}", producer.toString(), cause.getMessage());
             logger.warning("Producer <{}> closed due to {}: {}", producer, cause.getClass().getSimpleName(),
                     cause.getMessage());
-            self.tell(ProducerClosedStatusReport.get(producer), ActorRef.noSender());
+            self.tell(ProducerClosedStatusReport.get(producer, cause), ActorRef.noSender());
         }
 
     }

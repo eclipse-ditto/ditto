@@ -20,8 +20,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
-import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 
 import akka.actor.ActorSystem;
@@ -40,7 +40,7 @@ public interface HttpPushFactory {
     /**
      * Specific config name for the amount of concurrent HTTP requests to make.
      */
-    String PARALLELISM = "parallelism";
+    String PARALLELISM_JSON_KEY = "parallelism";
 
     /**
      * Create a request template without headers or payload for an HTTP publish target.

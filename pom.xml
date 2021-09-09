@@ -187,24 +187,24 @@
     </developers>
 
     <modules>
-        <module>bom</module>
-        <module>legal</module>
-        <module>documentation</module>
-        <module>json</module>
-        <module>json-cbor</module>
-        <module>protocol</module>
-        <module>utils</module>
-        <module>internal</module>
-        <module>policies</module>
-        <module>things</module>
         <module>base</module>
+        <module>bom</module>
         <module>concierge</module>
         <module>connectivity</module>
+        <module>documentation</module>
         <module>gateway</module>
-        <module>thingsearch</module>
-        <module>rql</module>
+        <module>internal</module>
+        <module>json</module>
+        <module>json-cbor</module>
         <module>jwt</module>
+        <module>legal</module>
         <module>messages</module>
+        <module>policies</module>
+        <module>protocol</module>
+        <module>rql</module>
+        <module>things</module>
+        <module>thingsearch</module>
+        <module>utils</module>
     </modules>
 
     <properties>

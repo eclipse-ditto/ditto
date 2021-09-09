@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.utils.pubsub.actors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -122,15 +123,15 @@ public final class AckUpdaterTest {
 
             // THEN: it is an error to declare different ack labels under the same group name.
             underTest.tell(DeclareAcks.of(s1.ref(), "g1", Set.of("a2", "a3")), getRef());
-            expectMsgClass(AcknowledgementLabelNotUniqueException.class);
+            expectMsgClass(Duration.of(5l, ChronoUnit.SECONDS), AcknowledgementLabelNotUniqueException.class);
 
             // THEN: it is an error to declare intersecting ack labels without a group.
             underTest.tell(DeclareAcks.of(s1.ref(), null, Set.of("a2", "a3")), getRef());
-            expectMsgClass(AcknowledgementLabelNotUniqueException.class);
+            expectMsgClass(Duration.of(5l, ChronoUnit.SECONDS), AcknowledgementLabelNotUniqueException.class);
 
             // THEN: it is an error to declare intersecting ack labels under a different group.
             underTest.tell(DeclareAcks.of(s1.ref(), "g2", Set.of("a2", "a3")), getRef());
-            expectMsgClass(AcknowledgementLabelNotUniqueException.class);
+            expectMsgClass(Duration.of(5l, ChronoUnit.SECONDS), AcknowledgementLabelNotUniqueException.class);
         }};
     }
 

@@ -229,12 +229,12 @@ public final class ConnectivityModelFactory {
      * @param statusDetails the optional details about the connection status
      * @param inStateSince the instant since the resource is in the given state
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
-     * @throws NullPointerException if any parameter is {@code null}.
+     * @throws NullPointerException if any non-nullable argument is {@code null}.
      */
     public static ResourceStatus newClientStatus(final String client,
             final ConnectivityStatus status,
             @Nullable final String statusDetails,
-            final Instant inStateSince) {
+            @Nullable final Instant inStateSince) {
 
         return ImmutableResourceStatus.of(ResourceStatus.ResourceType.CLIENT, client, status, null, statusDetails,
                 inStateSince);
@@ -249,8 +249,7 @@ public final class ConnectivityModelFactory {
      * @param statusDetails the optional details about the connection status
      * @param inStateSince the instant since the resource is in the given state
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
-     * @throws NullPointerException if any parameter is {@code null}.
-     *
+     * @throws NullPointerException if any non-nullable argument is {@code null}.
      * @since 2.0.0
      */
     public static ResourceStatus newSshTunnelStatus(final String client,
@@ -261,7 +260,6 @@ public final class ConnectivityModelFactory {
         return ImmutableResourceStatus.of(ResourceStatus.ResourceType.SSH_TUNNEL, client, status, null, statusDetails,
                 inStateSince);
     }
-
 
     /**
      * Returns a new source {@code ResourceStatus}.
@@ -282,6 +280,28 @@ public final class ConnectivityModelFactory {
     }
 
     /**
+     * Returns a new source {@code ResourceStatus}.
+     *
+     * @param client a client identifier e.g. on which node this client is running
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param address the address identifier
+     * @param statusDetails the optional details about the connection status
+     * @param inStatusSince the instant since the target is in the given state
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any non-nullable argument is {@code null}.
+     * @since 2.1.0
+     */
+    public static ResourceStatus newSourceStatus(final String client,
+            final ConnectivityStatus status,
+            @Nullable final String address,
+            @Nullable final String statusDetails,
+            @Nullable final Instant inStatusSince) {
+
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.SOURCE, client, status, address, statusDetails,
+                inStatusSince);
+    }
+
+    /**
      * Returns a new target {@code ResourceStatus}.
      *
      * @param client a client identifier e.g. on which node this client is running
@@ -298,6 +318,28 @@ public final class ConnectivityModelFactory {
 
         return ImmutableResourceStatus.of(ResourceStatus.ResourceType.TARGET, client, status, address,
                 statusDetails);
+    }
+
+    /**
+     * Returns a new target {@code ResourceStatus}.
+     *
+     * @param client a client identifier e.g. on which node this client is running
+     * @param status the ConnectionStatus of the source metrics to create
+     * @param address the address identifier
+     * @param statusDetails the optional details about the connection status
+     * @param inStatusSince the instant since the target is in the given state
+     * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
+     * @throws NullPointerException if any non-nullable argument is {@code null}.
+     * @since 2.1.0
+     */
+    public static ResourceStatus newTargetStatus(final String client,
+            final ConnectivityStatus status,
+            @Nullable final String address,
+            @Nullable final String statusDetails,
+            @Nullable final Instant inStatusSince) {
+
+        return ImmutableResourceStatus.of(ResourceStatus.ResourceType.TARGET, client, status, address,
+                statusDetails, inStatusSince);
     }
 
     /**
@@ -327,13 +369,13 @@ public final class ConnectivityModelFactory {
      * @param statusDetails the optional details about the connection status
      * @param inStatusSince the instant since the resource is in the described status
      * @return a new AddressMetric which is initialised with the extracted data from {@code jsonObject}.
-     * @throws NullPointerException if any parameter is {@code null}.
+     * @throws NullPointerException if any non-nullable argument is {@code null}.
      */
     public static ResourceStatus newStatusUpdate(final String client,
             final ConnectivityStatus status,
             @Nullable final String address,
             @Nullable final String statusDetails,
-            final Instant inStatusSince) {
+            @Nullable final Instant inStatusSince) {
 
         return ImmutableResourceStatus.of(ResourceStatus.ResourceType.UNKNOWN, client, status, address,
                 statusDetails, inStatusSince);

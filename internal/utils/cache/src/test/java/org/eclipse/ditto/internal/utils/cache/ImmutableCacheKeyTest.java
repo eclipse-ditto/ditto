@@ -30,7 +30,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Tests {@link ImmutableCacheKey}.
  */
-public class ImmutableCacheKeyTest {
+public final class ImmutableCacheKeyTest {
 
     private static final EntityType THING_TYPE = EntityType.of("thing");
     private static final EntityId ENTITY_ID = EntityId.of(THING_TYPE, "entity:id");
@@ -48,6 +48,9 @@ public class ImmutableCacheKeyTest {
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ImmutableCacheKey.class)
+                .withPrefabValues(EntityId.class,
+                        new OtherEntityIdImplementation("blue"),
+                        new OtherEntityIdImplementation("green"))
                 .verify();
     }
 
@@ -68,22 +71,19 @@ public class ImmutableCacheKeyTest {
 
     @Test
     public void testSerializationWithDifferentType() {
-        final OtherEntityIdImplementation otherImplementation = new OtherEntityIdImplementation("entity:id");
-        final CacheKey original = ImmutableCacheKey.of(otherImplementation);
-        // as the entity id inside ImmutableEntityIdWithResourceType is updated to type default entity id, we have this
-        // side-effect:
-        assertThat((CharSequence) original.getId()).isNotEqualTo(otherImplementation);
+        final var otherImplementation = new OtherEntityIdImplementation("entity:id");
+        final var originalCacheKey = ImmutableCacheKey.of(otherImplementation);
 
-        final String serialized = original.toString();
-        final CacheKey deserialized = ImmutableCacheKey.readFrom(serialized);
+        final var serialized = originalCacheKey.toString();
+        final var deserialized = ImmutableCacheKey.readFrom(serialized);
 
-        assertThat(deserialized).isEqualTo(original);
+        assertThat(deserialized).isEqualTo(originalCacheKey);
     }
 
     /**
      * Implementation of {@link EntityId} to support verifying serialization and deserialization are working properly.
      */
-    private static class OtherEntityIdImplementation implements EntityId {
+    private static final class OtherEntityIdImplementation implements EntityId {
 
         private final String id;
 
@@ -100,9 +100,11 @@ public class ImmutableCacheKeyTest {
 
         @Override
         public boolean equals(@Nullable final Object o) {
-            if (this == o) return true;
+            if (this == o) {
+                return true;
+            }
             if (o == null || getClass() != o.getClass()) return false;
-            final OtherEntityIdImplementation that = (OtherEntityIdImplementation) o;
+            final var that = (OtherEntityIdImplementation) o;
             return Objects.equals(id, that.id);
         }
 
@@ -115,6 +117,7 @@ public class ImmutableCacheKeyTest {
         public EntityType getEntityType() {
             return THING_TYPE;
         }
+
     }
 
 }

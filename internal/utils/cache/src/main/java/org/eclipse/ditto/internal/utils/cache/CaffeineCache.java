@@ -38,7 +38,7 @@ import com.github.benmanes.caffeine.cache.Policy;
 public class CaffeineCache<K, V> implements Cache<K, V> {
 
     @Nullable private final MetricsStatsCounter metricStatsCounter;
-    private final BiFunction<? super K, Executor, CompletableFuture<V>> asyncLoad;
+    private final BiFunction<K, Executor, CompletableFuture<? extends V>> asyncLoad;
     private final AsyncCache<K, V> asyncCache;
     private final com.github.benmanes.caffeine.cache.Cache<K, V> synchronousCacheView;
 
@@ -54,9 +54,22 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         } else {
             this.metricStatsCounter = null;
         }
-        asyncLoad = loader != null ? loader::asyncLoad : (k, e) -> CompletableFuture.completedFuture(null);
+        asyncLoad = getLoaderFunction(loader);
         this.asyncCache = loader != null ? caffeine.buildAsync(loader) : caffeine.buildAsync();
         this.synchronousCacheView = asyncCache.synchronous();
+    }
+
+    private BiFunction<K, Executor, CompletableFuture<? extends V>> getLoaderFunction(
+            @Nullable final AsyncCacheLoader<K, V> loader) {
+        return loader != null ?
+                (k, e) -> {
+                    try {
+                        return loader.asyncLoad(k, e);
+                    } catch (final Exception ex) {
+                        return CompletableFuture.completedFuture(null);
+                    }
+                } :
+                (k, e) -> CompletableFuture.completedFuture(null);
     }
 
     @SuppressWarnings({"squid:S2583", "ConstantConditions"})

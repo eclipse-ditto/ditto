@@ -974,16 +974,18 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 connectionContext.getConnectivityConfig().getClientConfig().getConnectingMinTimeout();
         if (canConnectViaSocket(connection)) {
             doConnectClient(connection, sender);
-            return goToConnecting(connectingTimeout).using(setSession(data, sender, dittoHeaders));
+            return goToConnecting(connectingTimeout).using(setSession(data, sender, dittoHeaders).resetFailureCount());
         } else {
             cleanupResourcesForConnection();
             final DittoRuntimeException error = newConnectionFailedException(dittoHeaders);
             sender.tell(new Status.Failure(error), getSelf());
             return goToConnecting(connectingTimeout)
-                    .using(data.setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
+                    .using(data.resetSession()
+                            .resetFailureCount()
+                            .setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
                             .setConnectionStatusDetails(
                                     ConnectionFailure.determineFailureDescription(Instant.now(), error, null))
-                            .resetSession());
+                    );
         }
     }
 
@@ -1086,15 +1088,17 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                         reconnect();
                     } catch (final ConnectionFailedException e) {
                         return goToConnecting(reconnectTimeoutStrategy.getNextTimeout())
-                                .using(data.setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
+                                .using(data.resetSession()
+                                        .resetFailureCount()
+                                        .setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
                                         .setConnectionStatusDetails(
-                                                ConnectionFailure.determineFailureDescription(Instant.now(), e, null))
-                                        .resetSession());
+                                                ConnectionFailure.determineFailureDescription(Instant.now(), e, null)));
                     }
                 }
                 return goToConnecting(reconnectTimeoutStrategy.getNextTimeout())
-                        .using(data.resetSession() // don't set the state, preserve the old one (e.g. MISCONFIGURED)
-                                .setConnectionStatusDetails(timeoutMessage + " Will try to reconnect."));
+                        .using(data.resetSession()  // don't set the state, preserve the old one (e.g. MISCONFIGURED)
+                                .resetFailureCount()
+.setConnectionStatusDetails(timeoutMessage + " Will try to reconnect."));
             } else {
                 connectionLogger.failure(
                         "Connection timed out. Reached maximum tries and thus will no longer try to reconnect.");
@@ -1104,10 +1108,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                         connectionId());
 
                 return goTo(INITIALIZED)
-                        .using(data.resetSession() // don't set the state, preserve the old one (e.g. MISCONFIGURED)
-                                .setConnectionStatusDetails(
-                                        data.getConnectionStatusDetails().orElse(timeoutMessage) // Preserve old status details
-                                                 + " Reached maximum retries and thus will not try to reconnect any longer.")
+                        .using(data.resetSession()
+                                .resetFailureCount()
+                                // don't set the state, preserve the old one (e.g. MISCONFIGURED)
+                                // Preserve old status details
+                                .setConnectionStatusDetails(data.getConnectionStatusDetails().orElse(timeoutMessage) +
+                                        " Reached maximum retries and thus will not try to reconnect any longer.")
                         );
             }
         } else {
@@ -1116,6 +1122,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     data.getDesiredConnectionStatus());
             return goTo(INITIALIZED)
                     .using(data.resetSession()
+                            .resetFailureCount()
                             .setConnectionStatus(ConnectivityStatus.FAILED)
                             .setConnectionStatusDetails(timeoutMessage + " Desired state was: " +
                                     data.getDesiredConnectionStatus())
@@ -1240,8 +1247,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             connectionLogger.success("Connection successful.");
             data.getSessionSenders().forEach(origin -> origin.first().tell(new Status.Success(CONNECTED), getSelf()));
             return goTo(CONNECTED).using(data.resetSession()
-                    .setConnectionStatus(ConnectivityStatus.OPEN)
-                    .setConnectionStatusDetails("Connected at " + Instant.now()));
+                            .resetFailureCount()
+                            .setConnectionStatus(ConnectivityStatus.OPEN)
+                            .setConnectionStatusDetails("Connected at " + Instant.now())
+                    );
         } else {
             getSelf().tell(initializationResult.getFailure(), ActorRef.noSender());
             return stay();
@@ -1347,13 +1356,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         dittoProtocolSub.removeSubscriber(getSelf());
         if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
             if (reconnectTimeoutStrategy.canReconnect()) {
-                if (data.getConnectionStatus().isFailure()) {
-                    connectionLogger.failure("Connection failed due to: {0}. Reconnect was already triggered.",
-                            event.getFailureDescription());
-                    logger.info("Connection failed: {}. Reconnect was already triggered.", event);
-                    return stay().using(data.resetSession()
-                            .setConnectionStatus(connectivityStatusResolver.resolve(event))
-                            .setConnectionStatusDetails(event.getFailureDescription()));
+                if (data.getFailureCount() > 0) {
+                    connectionLogger.failure(
+                            "Reconnection attempt <{0}> failed due to: {1}. Reconnect after backoff was " +
+                                    "already triggered.", data.getFailureCount(), event.getFailureDescription());
+                    logger.info("Reconnection attempt <{}> failed: {}. Reconnect was already triggered.",
+                            data.getFailureCount(), event);
+                    return stay().using(data.increaseFailureCount());
                 } else {
                     final Duration nextBackoff = reconnectTimeoutStrategy.getNextBackoff();
                     final var errorMessage =
@@ -1361,8 +1370,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     connectionLogger.failure(errorMessage, event.getFailureDescription());
                     logger.info("Connection failed: {}. Reconnect after {}.", event, nextBackoff);
                     return goToConnecting(nextBackoff).using(data.resetSession()
-                            .setConnectionStatus(connectivityStatusResolver.resolve(event))
-                            .setConnectionStatusDetails(event.getFailureDescription()));
+                                    .increaseFailureCount()
+                                    .setConnectionStatus(connectivityStatusResolver.resolve(event))
+                                    .setConnectionStatusDetails(event.getFailureDescription())
+                            );
                 }
             } else {
                 connectionLogger.failure(
@@ -1682,7 +1693,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
-    private static Optional<EntityId> tryExtractEntityId(Signal<?> signal) {
+    private static Optional<EntityId> tryExtractEntityId(final Signal<?> signal) {
         if (signal instanceof WithEntityId) {
             final var withEntityId = (WithEntityId) signal;
             return Optional.of(withEntityId.getEntityId());
@@ -1953,6 +1964,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                             return (SupervisorStrategy.Directive) SupervisorStrategy.resume();
                         })
                         .matchAny(error -> {
+                            logger.warning("Received unhandled exception in supervisor: [{}] {}",
+                                    error.getClass().getName(), error.getMessage());
                             self.tell(ConnectionFailure.of(getSender(), error, "exception in child"), self);
                             if (getSender().equals(tunnelActor)) {
                                 logger.debug("Restarting tunnel actor after failure: {}", error.getMessage());
