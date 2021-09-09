@@ -73,4 +73,5 @@ final class CommittableTransformationResult {
                 ", committableOffset=" + committableOffset +
                 "]";
     }
+
 }

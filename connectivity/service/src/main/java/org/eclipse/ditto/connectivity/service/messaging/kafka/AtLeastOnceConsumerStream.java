@@ -71,7 +71,6 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         this.materializer = materializer;
         consumerControl = sourceSupplier.get()
                 .filter(committableMessage -> isNotDryRun(committableMessage.record(), dryRun))
-                .filter(committableMessage -> KafkaConsumerStream.isNotExpired(committableMessage.record()))
                 .map(kafkaMessageTransformer::transform)
                 .flatMapConcat(this::processTransformationResult)
                 .mapAsync(consumerMaxInflight, x -> x)
@@ -91,6 +90,13 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
 
     private Source<CompletableFuture<CommittableOffset>, NotUsed> processTransformationResult(
             final CommittableTransformationResult result) {
+
+        if (isExpired(result)) {
+            return Source.single(result)
+                    .map(CommittableTransformationResult::getCommittableOffset)
+                    .map(CompletableFuture::completedFuture);
+        }
+
         if (isExternalMessage(result)) {
             return Source.single(result)
                     .map(this::toAcknowledgeableMessage)
@@ -118,6 +124,10 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         return Flow.of(KafkaAcknowledgableMessage.class)
                 .map(KafkaAcknowledgableMessage::getAcknowledgeableMessage)
                 .to(inboundMappingSink);
+    }
+
+    private static boolean isExpired(final CommittableTransformationResult transformationResult) {
+        return transformationResult.getTransformationResult().isExpired();
     }
 
     private static boolean isExternalMessage(final CommittableTransformationResult transformationResult) {

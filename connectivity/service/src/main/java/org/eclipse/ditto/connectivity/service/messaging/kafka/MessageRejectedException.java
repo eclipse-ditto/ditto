@@ -79,7 +79,7 @@ public final class MessageRejectedException extends DittoRuntimeException implem
     }
 
     @Override
-    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+    public MessageRejectedException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
                 .message(getMessage())
                 .description(getDescription().orElse(null))

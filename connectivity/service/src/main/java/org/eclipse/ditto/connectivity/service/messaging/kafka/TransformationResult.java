@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.time.Instant;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -27,6 +29,9 @@ import org.eclipse.ditto.connectivity.api.ExternalMessage;
  */
 @Immutable
 final class TransformationResult {
+
+    private static final String CREATION_TIME = "creation-time";
+    private static final String TTL = "ttl";
 
     @Nullable private final DittoRuntimeException dittoRuntimeException;
     @Nullable private final ExternalMessage externalMessage;
@@ -51,6 +56,33 @@ final class TransformationResult {
 
     Optional<ExternalMessage> getExternalMessage() {
         return Optional.ofNullable(externalMessage);
+    }
+
+    /**
+     * Checks based on the Kafka headers {@code "creation-time"} and {@code "ttl"} (time to live) whether the message
+     * should be treated as expired message (and no longer processed) or not.
+     *
+     * @return whether the message is expired or not.
+     */
+    boolean isExpired() {
+        final Map<String, String> headers = Optional.ofNullable(externalMessage).map(ExternalMessage::getHeaders)
+                .or(() -> Optional.ofNullable(dittoRuntimeException).map(DittoRuntimeException::getDittoHeaders))
+                .orElseGet(Map::of);
+        final long now = Instant.now().toEpochMilli();
+        try {
+            final Optional<Long> creationTimeOptional = Optional.ofNullable(headers.get(CREATION_TIME))
+                    .map(Long::parseLong);
+            final Optional<Long> ttlOptional = Optional.ofNullable(headers.get(TTL))
+                    .map(Long::parseLong);
+            if (creationTimeOptional.isPresent() && ttlOptional.isPresent()) {
+                final long timeSinceCreation = now - creationTimeOptional.get();
+                return timeSinceCreation >= ttlOptional.get();
+            }
+            return false;
+        } catch (final Exception e) {
+            // Errors during reading/parsing headers should not cause the message to be dropped.
+            return false;
+        }
     }
 
     @Override

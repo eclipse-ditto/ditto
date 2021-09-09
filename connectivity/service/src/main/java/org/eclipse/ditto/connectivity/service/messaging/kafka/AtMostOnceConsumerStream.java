@@ -57,8 +57,8 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
         this.materializer = materializer;
         consumerControl = sourceSupplier.get()
                 .filter(consumerRecord -> isNotDryRun(consumerRecord, dryRun))
-                .filter(KafkaConsumerStream::isNotExpired)
                 .map(kafkaMessageTransformer::transform)
+                .filter(result -> !result.isExpired())
                 .divertTo(externalMessageSink(externalMessageSink), AtMostOnceConsumerStream::isExternalMessage)
                 .divertTo(dittoRuntimeExceptionSink(dreSink), AtMostOnceConsumerStream::isDittoRuntimeException)
                 .toMat(unexpectedMessageSink(), Consumer::createDrainingControl)
