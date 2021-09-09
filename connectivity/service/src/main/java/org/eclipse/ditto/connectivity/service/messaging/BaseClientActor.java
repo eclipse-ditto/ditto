@@ -978,10 +978,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final DittoRuntimeException error = newConnectionFailedException(dittoHeaders);
             sender.tell(new Status.Failure(error), getSelf());
             return goToConnecting(connectingTimeout)
-                    .using(data.setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
+                    .using(data.resetSession()
+                            .resetFailureCount()
+                            .setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
                             .setConnectionStatusDetails(
                                     ConnectionFailure.determineFailureDescription(Instant.now(), error, null))
-                            .resetSession().resetFailureCount());
+                    );
         }
     }
 
@@ -1106,11 +1108,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
                 return goTo(INITIALIZED)
                         .using(data.resetSession()
+                                .resetFailureCount()
                                 // don't set the state, preserve the old one (e.g. MISCONFIGURED)
                                 // Preserve old status details
                                 .setConnectionStatusDetails(data.getConnectionStatusDetails().orElse(timeoutMessage) +
                                         " Reached maximum retries and thus will not try to reconnect any longer.")
-                                .resetFailureCount()
                         );
             }
         }
@@ -1241,9 +1243,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             connectionLogger.success("Connection successful.");
             data.getSessionSenders().forEach(origin -> origin.first().tell(new Status.Success(CONNECTED), getSelf()));
             return goTo(CONNECTED).using(data.resetSession()
-                    .setConnectionStatus(ConnectivityStatus.OPEN)
-                    .setConnectionStatusDetails("Connected at " + Instant.now())
-                    .resetFailureCount());
+                            .resetFailureCount()
+                            .setConnectionStatus(ConnectivityStatus.OPEN)
+                            .setConnectionStatusDetails("Connected at " + Instant.now())
+                    );
         } else {
             getSelf().tell(initializationResult.getFailure(), ActorRef.noSender());
             return stay();
@@ -1351,9 +1354,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             if (reconnectTimeoutStrategy.canReconnect()) {
                 if (data.getFailureCount() > 0) {
                     connectionLogger.failure(
-                            "Connection failed due to: {0}. Reconnect after backoff was already triggered.",
-                            event.getFailureDescription());
-                    logger.info("Connection failed: {}. Reconnect was already triggered.", event);
+                            "Reconnection attempt <{0}> failed due to: {1}. Reconnect after backoff was " +
+                                    "already triggered.", data.getFailureCount(), event.getFailureDescription());
+                    logger.info("Reconnection attempt <{}> failed: {}. Reconnect was already triggered.",
+                            data.getFailureCount(), event);
                     return stay().using(data.increaseFailureCount());
                 } else {
                     final Duration nextBackoff = reconnectTimeoutStrategy.getNextBackoff();
@@ -1362,9 +1366,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     connectionLogger.failure(errorMessage, event.getFailureDescription());
                     logger.info("Connection failed: {}. Reconnect after {}.", event, nextBackoff);
                     return goToConnecting(nextBackoff).using(data.resetSession()
-                            .setConnectionStatus(connectivityStatusResolver.resolve(event))
-                            .setConnectionStatusDetails(event.getFailureDescription())
-                            .increaseFailureCount());
+                                    .increaseFailureCount()
+                                    .setConnectionStatus(connectivityStatusResolver.resolve(event))
+                                    .setConnectionStatusDetails(event.getFailureDescription())
+                            );
                 }
             } else {
                 connectionLogger.failure(
