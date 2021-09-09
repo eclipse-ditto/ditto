@@ -460,16 +460,18 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                 final ModifyThing modifyThingViaNewConsumer = proxyActor.expectMsgClass(ModifyThing.class);
                 assertThat((CharSequence) modifyThingViaNewConsumer.getEntityId()).isEqualTo(
                         TestConstants.Things.THING_ID);
-
             }
 
             private void verifyResourceStatus(final ActorRef underTest, final String statusMessage,
                     final ConnectivityStatus expected) {
-                underTest.tell(RetrieveAddressStatus.getInstance(), getRef());
-                final var status = expectMsgClass(ResourceStatus.class);
-                assertThat((Object) status.getStatus()).isEqualTo(expected);
-                assertThat(status.getStatusDetails())
-                        .hasValueSatisfying(details -> assertThat(details).contains(statusMessage));
+                Awaitility.await("expecting resource status to be " + expected)
+                        .untilAsserted(() -> {
+                            underTest.tell(RetrieveAddressStatus.getInstance(), getRef());
+                            final var status = expectMsgClass(ResourceStatus.class);
+                            assertThat((Object) status.getStatus()).isEqualTo(expected);
+                            assertThat(status.getStatusDetails())
+                                    .hasValueSatisfying(details -> assertThat(details).contains(statusMessage));
+                        });
             }
 
             private MessageConsumer prepareMessageConsumer(final AtomicReference<MessageListener> ref)
