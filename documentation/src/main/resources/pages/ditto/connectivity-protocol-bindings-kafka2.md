@@ -105,6 +105,17 @@ These headers may be used in a source header mapping:
 }
 ```
 
+#### Message expiration
+
+In the Ditto implementation for consuming messages from Kafka we also added a feature for message expiration. This way a device can express for how long a message is valid to be processed.
+To use this feature, two headers are relevant:
+* `creation-time`: Epoch millis value when the message was created.
+* `ttl`: Number milliseconds the message should be considered as valid.
+
+When Ditto consumes such a message it checks whether the amount of milliseconds since `creation-time` is larger than specified by `ttl`.
+If so, the message will be ignored.
+If this is not the case or the headers are not specified at all, the message will be processed normally.
+
 ### Target format
 
 A Kafka 2.x connection requires the protocol configuration target object to have an `address` property.
