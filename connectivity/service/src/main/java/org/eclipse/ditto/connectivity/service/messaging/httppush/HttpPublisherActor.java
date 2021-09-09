@@ -414,7 +414,18 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         "CommandResponse <{0}> created from HTTP response with Status <{1}> and body <{2}>.",
                         result, response.status(), body);
             }
-            return new SendResult(result, dittoHeaders);
+            final MessageSendingFailedException sendFailure;
+            if (!httpStatus.isSuccess()) {
+                final String message =
+                        String.format("Got non success status code: <%s> and body: <%s>", httpStatus.getCode(), body);
+                sendFailure = MessageSendingFailedException.newBuilder()
+                        .message(message)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+            } else {
+                sendFailure = null;
+            }
+            return new SendResult(result, sendFailure, dittoHeaders);
         });
     }
 

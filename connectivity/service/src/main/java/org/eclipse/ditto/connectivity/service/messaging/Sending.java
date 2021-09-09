@@ -89,7 +89,7 @@ final class Sending implements SendingOrDropped {
                     .or(() -> ackFromNullResponse)
                     .or(() -> Optional.ofNullable(result).flatMap(SendResult::getCommandResponse));
 
-            updateSendMonitor(getSentFailure(error, ackFromNullResponse.isPresent()));
+            updateSendMonitor(getSentFailure(error, result, ackFromNullResponse.isPresent()));
             responseOrAlternatives.ifPresent(commandResponse -> updateAckMonitor(getAckFailure(commandResponse)));
             return responseOrAlternatives.orElse(null);
         }));
@@ -113,9 +113,18 @@ final class Sending implements SendingOrDropped {
     }
 
     @Nullable
-    private Exception getSentFailure(@Nullable final Throwable error, boolean isAckFromNullResponse) {
-        if (null != error) {
-            return getRootCause(error);
+    private Exception getSentFailure(@Nullable final Throwable error, @Nullable SendResult result,
+            boolean isAckFromNullResponse) {
+        final Optional<Throwable> messageSendingFailedException =
+                Optional.ofNullable(result)
+                        .flatMap(SendResult::getSendFailure)
+                        .map(Throwable.class::cast);
+        final Throwable sendingFailure = Optional.ofNullable(error)
+                .or(() -> messageSendingFailedException)
+                .orElse(null);
+
+        if (null != sendingFailure) {
+            return getRootCause(sendingFailure);
         } else if (isAckFromNullResponse) {
             return getNullAckException();
         } else {
@@ -157,7 +166,8 @@ final class Sending implements SendingOrDropped {
 
         final Optional<AcknowledgementLabel> autoAckLabel = sendingContext.getAutoAckTarget()
                 .flatMap(Target::getIssuedAcknowledgementLabel)
-                .flatMap(ackLabel -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel));
+                .flatMap(
+                        ackLabel -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel));
 
         final Signal<?> source = sendingContext.getMappedOutboundSignal().getSource();
         final Optional<EntityId> entityIdOptional =
