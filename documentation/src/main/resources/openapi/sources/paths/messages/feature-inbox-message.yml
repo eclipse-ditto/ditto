@@ -88,7 +88,5 @@ post:
       $ref: '../../responses/messageTooLarge.yml'
     '424':
       $ref: '../../responses/dependencyFailed.yml'
-    '503':
-      $ref: '../../responses/messageTimeout.yml'
   requestBody:
     $ref: '../../requests/payload.yml'
