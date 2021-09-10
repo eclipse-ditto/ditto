@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,28 +10,34 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.concierge.service.actors.cleanup.messages;
+package org.eclipse.ditto.internal.utils.persistentactors.cleanup;
 
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.junit.Test;
 
+import com.mongodb.client.result.DeleteResult;
+
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Tests {@link CreditDecision}.
+ * Unit test for {@link CleanupResult}.
  */
-public final class CreditDecisionTest {
+public final class CleanupResultTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(CreditDecision.class, areImmutable());
+        assertInstancesOf(CleanupResult.class, areImmutable(),
+                provided(DeleteResult.class, SnapshotRevision.class).areAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(CreditDecision.class).verify();
+        EqualsVerifier.forClass(CleanupResult.class)
+                .usingGetClass()
+                .verify();
     }
 
 }

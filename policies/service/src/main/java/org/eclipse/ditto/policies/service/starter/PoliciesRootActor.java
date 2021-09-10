@@ -27,6 +27,7 @@ import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
+import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanupActor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.PolicyAnnouncementPubSubFactory;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
@@ -85,8 +86,9 @@ public final class PoliciesRootActor extends DittoRootActor {
                 .start(PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps, shardingSettings,
                         ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
 
-        startClusterSingletonActor(PersistencePingActor.props(policiesShardRegion,
-                policiesConfig.getPingConfig(), MongoReadJournal.newInstance(actorSystem)),
+        final var mongoReadJournal = MongoReadJournal.newInstance(actorSystem);
+        startClusterSingletonActor(
+                PersistencePingActor.props(policiesShardRegion, policiesConfig.getPingConfig(), mongoReadJournal),
                 PersistencePingActor.ACTOR_NAME);
 
         startChildActor(PolicyPersistenceOperationsActor.ACTOR_NAME,
@@ -96,6 +98,10 @@ public final class PoliciesRootActor extends DittoRootActor {
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(policiesShardRegion,
                 PoliciesMessagingConstants.SHARD_REGION, log);
 
+        final var cleanupConfig = policiesConfig.getPolicyConfig().getCleanupConfig();
+        final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
+        startChildActor(PersistenceCleanupActor.NAME, cleanupActorProps);
+
         final var healthCheckConfig = policiesConfig.getHealthCheckConfig();
         final var hcBuilder =
                 HealthCheckingActorOptions.getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval());
@@ -104,12 +110,10 @@ public final class PoliciesRootActor extends DittoRootActor {
         }
 
         final var healthCheckingActorOptions = hcBuilder.build();
-        final var healthCheckingActorProps = DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
-                MongoHealthChecker.props()
-        );
+        final var healthCheckingActorProps =
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props());
         final ActorRef healthCheckingActor =
                 startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
-
         bindHttpStatusRoute(policiesConfig.getHttpConfig(), healthCheckingActor);
     }
 

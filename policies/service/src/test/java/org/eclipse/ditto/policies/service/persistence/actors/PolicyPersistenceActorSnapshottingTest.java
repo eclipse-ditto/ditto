@@ -26,25 +26,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
 import org.bson.BsonDocument;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.events.AbstractEventsourcedEvent;
+import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
+import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.test.Retry;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyLifecycle;
 import org.eclipse.ditto.policies.model.PolicyRevision;
-import org.eclipse.ditto.policies.service.persistence.serializer.DefaultPolicyMongoEventAdapter;
-import org.eclipse.ditto.policies.service.persistence.serializer.PolicyMongoSnapshotAdapter;
-import org.eclipse.ditto.policies.service.persistence.testhelper.Assertions;
-import org.eclipse.ditto.policies.service.persistence.testhelper.PoliciesJournalTestHelper;
-import org.eclipse.ditto.policies.service.persistence.testhelper.PoliciesSnapshotTestHelper;
-import org.eclipse.ditto.internal.utils.persistence.SnapshotAdapter;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
-import org.eclipse.ditto.internal.utils.test.Retry;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
@@ -54,11 +51,14 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
-import org.eclipse.ditto.base.model.signals.events.AbstractEventsourcedEvent;
-import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.policies.model.signals.events.PolicyCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyModified;
+import org.eclipse.ditto.policies.service.persistence.serializer.DefaultPolicyMongoEventAdapter;
+import org.eclipse.ditto.policies.service.persistence.serializer.PolicyMongoSnapshotAdapter;
+import org.eclipse.ditto.policies.service.persistence.testhelper.Assertions;
+import org.eclipse.ditto.policies.service.persistence.testhelper.PoliciesJournalTestHelper;
+import org.eclipse.ditto.policies.service.persistence.testhelper.PoliciesSnapshotTestHelper;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -85,7 +85,8 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     private DefaultPolicyMongoEventAdapter eventAdapter;
     private PoliciesJournalTestHelper<EventsourcedEvent<?>> journalTestHelper;
     private PoliciesSnapshotTestHelper<Policy> snapshotTestHelper;
-    private Map<Class<? extends Command<?>>, BiFunction<Command<?>, Long, EventsourcedEvent<?>>> commandToEventMapperRegistry;
+    private Map<Class<? extends Command<?>>, BiFunction<Command<?>, Long, EventsourcedEvent<?>>>
+            commandToEventMapperRegistry;
     private DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub = Mockito.mock(DistributedPub.class);
 
     @Override
@@ -166,7 +167,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 underTest.tell(deletePolicy, getRef());
                 expectMsgEquals(DeletePolicyResponse.of(policyId, dittoHeadersV2));
 
-                final Policy expectedDeletedSnapshot = policyCreated.toBuilder()
+                final Policy expectedDeletedSnapshot = PoliciesModelFactory.newPolicyBuilder()
                         .setRevision(2)
                         .setLifecycle(PolicyLifecycle.DELETED)
                         .build();
@@ -418,7 +419,8 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
 
     private EventsourcedEvent<?> toEvent(final Command<?> command, final long revision) {
         final Class<? extends Command> clazz = command.getClass();
-        final BiFunction<Command<?>, Long, EventsourcedEvent<?>> commandToEventFunction = commandToEventMapperRegistry.get(clazz);
+        final BiFunction<Command<?>, Long, EventsourcedEvent<?>> commandToEventFunction =
+                commandToEventMapperRegistry.get(clazz);
         if (commandToEventFunction == null) {
             throw new UnsupportedOperationException("Mapping not yet implemented for type: " + clazz);
         }
