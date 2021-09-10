@@ -191,7 +191,7 @@ public final class Metadata {
      *
      * @return the copy.
      */
-    public Metadata withOrigin(final ActorRef origin) {
+    public Metadata withOrigin(@Nullable final ActorRef origin) {
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
                 invalidateCache, origin);
     }

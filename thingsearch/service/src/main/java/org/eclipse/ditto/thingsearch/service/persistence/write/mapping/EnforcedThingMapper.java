@@ -104,9 +104,10 @@ public final class EnforcedThingMapper {
         final long thingRevision = thing.getValueOrThrow(Thing.JsonFields.REVISION);
         final var nullablePolicyId = thing.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of).orElse(null);
         final var metadata = Metadata.of(thingId, thingRevision, nullablePolicyId, policyRevision,
-                Optional.ofNullable(oldMetadata).flatMap(Metadata::getModified).orElse(null),
-                Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(List.of()),
-                Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(List.of()));
+                        Optional.ofNullable(oldMetadata).flatMap(Metadata::getModified).orElse(null),
+                        Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(List.of()),
+                        Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(List.of()))
+                .withOrigin(Optional.ofNullable(oldMetadata).flatMap(Metadata::getOrigin).orElse(null));
 
         return ThingWriteModel.of(metadata, toBsonDocument(thing, enforcer, maxArraySize, metadata));
     }

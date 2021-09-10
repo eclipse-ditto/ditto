@@ -135,6 +135,7 @@ final class MongoSearchUpdaterFlow {
                                 .handle((result, error) -> {
                                     if (result != null) {
                                         ConsistencyLag.startS5MongoBulkWrite(model.getMetadata());
+                                        LOGGER.debug("MongoWriteModel={}", result);
                                         return result;
                                     } else {
                                         LOGGER.error("Failed to compute write model " + model, error);

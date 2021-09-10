@@ -78,11 +78,11 @@ public final class BsonDiff {
         final var result = new ArrayList<BsonDocument>(2);
         final var setDoc = consumeAndExportSet();
         if (!setDoc.isEmpty()) {
-            result.add(setDoc);
+            result.add(new BsonDocument().append("$set", setDoc));
         }
-        final var unsetDoc = consumeAndExportUnset();
-        if (!unsetDoc.isEmpty()) {
-            result.add(unsetDoc);
+        final var unsetArray = consumeAndExportUnset();
+        if (!unsetArray.isEmpty()) {
+            result.add(new BsonDocument().append("$unset", unsetArray));
         }
         return result;
     }
@@ -94,13 +94,13 @@ public final class BsonDiff {
     private BsonDocument consumeAndExportSet() {
         final BsonDocument setDocument = new BsonDocument();
         set.forEach(pair -> setDocument.append(getPathString(pair.first()), pair.second()));
-        return new BsonDocument().append("$set", setDocument);
+        return setDocument;
     }
 
-    private BsonDocument consumeAndExportUnset() {
+    private BsonArray consumeAndExportUnset() {
         final var unsetArray = new BsonArray();
         unset.forEach(path -> unsetArray.add(new BsonString(getPathString(path))));
-        return new BsonDocument().append("$unset", unsetArray);
+        return unsetArray;
     }
 
     private static String getPathString(final JsonPointer jsonPointer) {
