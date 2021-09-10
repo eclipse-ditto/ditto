@@ -39,13 +39,13 @@ public final class DefaultThingConfig implements ThingConfig {
     private final SupervisorConfig supervisorConfig;
     private final ActivityCheckConfig activityCheckConfig;
     private final SnapshotConfig snapshotConfig;
-    private final CleanupConfig cleanUpConfig;
+    private final CleanupConfig cleanupConfig;
 
     private DefaultThingConfig(final ScopedConfig scopedConfig) {
         supervisorConfig = DefaultSupervisorConfig.of(scopedConfig);
         activityCheckConfig = DefaultActivityCheckConfig.of(scopedConfig);
         snapshotConfig = DefaultSnapshotConfig.of(scopedConfig);
-        cleanUpConfig = CleanupConfig.of(scopedConfig);
+        cleanupConfig = CleanupConfig.of(scopedConfig);
     }
 
     /**
@@ -86,12 +86,12 @@ public final class DefaultThingConfig implements ThingConfig {
         return Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
-                Objects.equals(cleanUpConfig, that.cleanUpConfig);
+                Objects.equals(cleanupConfig, that.cleanupConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, cleanUpConfig);
+        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, cleanupConfig);
     }
 
     @Override
@@ -100,12 +100,12 @@ public final class DefaultThingConfig implements ThingConfig {
                 "supervisorConfig=" + supervisorConfig +
                 ", activityCheckConfig=" + activityCheckConfig +
                 ", snapshotConfig=" + snapshotConfig +
-                ", cleanUpConfig=" + cleanUpConfig +
+                ", cleanupConfig=" + cleanupConfig +
                 "]";
     }
 
     @Override
     public CleanupConfig getCleanupConfig() {
-        return cleanUpConfig;
+        return cleanupConfig;
     }
 }

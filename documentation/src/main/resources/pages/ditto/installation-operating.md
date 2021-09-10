@@ -516,7 +516,7 @@ Connectivity instance has an actor coordinating a portion of the background clea
 piggyback-commands to query its state and configuration, modify its configuration, and restart the background cleanup
 process.
 
-Each command is sent to the actor selection `/user/<SERVICE_NAME>Root/persistenceCleanUp`, where
+Each command is sent to the actor selection `/user/<SERVICE_NAME>Root/persistenceCleanup`, where
 `SERVICE_NAME` is `things`, `policies` or `connectivity`:
 
 `POST /devops/piggygack/<SERVICE_NAME>?timeout=10s`
@@ -527,7 +527,7 @@ Each command is sent to the actor selection `/user/<SERVICE_NAME>Root/persistenc
 
 ```json
 {
-  "targetActorSelection": "/user/<SERVICE_NAME>Root/persistenceCleanUp",
+  "targetActorSelection": "/user/<SERVICE_NAME>Root/persistenceCleanup",
   "headers": {},
   "piggybackCommand": {
     "type": "status.commands:retrieveHealth"
@@ -568,7 +568,7 @@ The response has the following details:
 
 ```json
 {
-  "targetActorSelection": "/user/<SERVICE_NAME>Root/persistenceCleanUp",
+  "targetActorSelection": "/user/<SERVICE_NAME>Root/persistenceCleanup",
   "headers": {},
   "piggybackCommand": {
     "type": "common.commands:retrieveConfig"
@@ -610,7 +610,7 @@ Set the special key `last-pid` to set the lower bound of PIDs to clean up in the
 
 ```json
 {
-  "targetActorSelection": "/user/<SERVICE_NAME>Root/persistenceCleanUp",
+  "targetActorSelection": "/user/<SERVICE_NAME>Root/persistenceCleanup",
   "headers": {
     "aggregate": false,
     "is-grouped-topic": true

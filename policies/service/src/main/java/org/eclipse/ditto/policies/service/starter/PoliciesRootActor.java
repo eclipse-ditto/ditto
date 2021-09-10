@@ -98,10 +98,9 @@ public final class PoliciesRootActor extends DittoRootActor {
         retrieveStatisticsDetailsResponseSupplier = RetrieveStatisticsDetailsResponseSupplier.of(policiesShardRegion,
                 PoliciesMessagingConstants.SHARD_REGION, log);
 
-        final var cleanUpActorProps =
-                PersistenceCleanupActor.props(policiesConfig.getPolicyConfig().getCleanupConfig(), mongoReadJournal,
-                        CLUSTER_ROLE);
-        startChildActor(PersistenceCleanupActor.NAME, cleanUpActorProps);
+        final var cleanupConfig = policiesConfig.getPolicyConfig().getCleanupConfig();
+        final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
+        startChildActor(PersistenceCleanupActor.NAME, cleanupActorProps);
 
         final var healthCheckConfig = policiesConfig.getHealthCheckConfig();
         final var hcBuilder =

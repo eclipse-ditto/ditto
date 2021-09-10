@@ -122,12 +122,11 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
                         actorSystem.settings().config(), connectivityConfig.getPersistenceOperationsConfig()));
 
-        final var cleanUpActorProps =
-                PersistenceCleanupActor.props(connectivityConfig.getConnectionConfig().getCleanupConfig(),
-                        mongoReadJournal, CLUSTER_ROLE);
-        startChildActor(PersistenceCleanupActor.NAME, cleanUpActorProps);
+        final var cleanupConfig = connectivityConfig.getConnectionConfig().getCleanupConfig();
+        final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
+        startChildActor(PersistenceCleanupActor.NAME, cleanupActorProps);
 
-        final ActorRef healthCheckingActor = getHealthCheckingActor(connectivityConfig, pubSubMediator);
+        final ActorRef healthCheckingActor = getHealthCheckingActor(connectivityConfig);
         bindHttpStatusRoute(connectivityConfig.getHttpConfig(), healthCheckingActor);
     }
 
@@ -189,8 +188,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
         ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, name, props);
     }
 
-    private ActorRef getHealthCheckingActor(final ConnectivityConfig connectivityConfig,
-            final ActorRef pubSubMediator) {
+    private ActorRef getHealthCheckingActor(final ConnectivityConfig connectivityConfig) {
         final HealthCheckConfig healthCheckConfig = connectivityConfig.getHealthCheckConfig();
         final HealthCheckingActorOptions.Builder hcBuilder =
                 HealthCheckingActorOptions.getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval());

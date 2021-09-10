@@ -44,7 +44,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
     private final Duration policySubjectDeletionAnnouncementGranularity;
     private final String subjectIdResolver;
     private final PolicyAnnouncementConfig policyAnnouncementConfig;
-    private final CleanupConfig cleanUpConfig;
+    private final CleanupConfig cleanupConfig;
 
     private DefaultPolicyConfig(final ScopedConfig scopedConfig) {
         supervisorConfig = DefaultSupervisorConfig.of(scopedConfig);
@@ -57,7 +57,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
                         PolicyConfigValue.SUBJECT_DELETION_ANNOUNCEMENT_GRANULARITY);
         subjectIdResolver = scopedConfig.getString(PolicyConfigValue.SUBJECT_ID_RESOLVER.getConfigPath());
         policyAnnouncementConfig = PolicyAnnouncementConfig.of(scopedConfig);
-        cleanUpConfig = CleanupConfig.of(scopedConfig);
+        cleanupConfig = CleanupConfig.of(scopedConfig);
     }
 
     /**
@@ -111,7 +111,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
 
     @Override
     public CleanupConfig getCleanupConfig() {
-        return cleanUpConfig;
+        return cleanupConfig;
     }
 
     @Override
@@ -131,14 +131,14 @@ public final class DefaultPolicyConfig implements PolicyConfig {
                         that.policySubjectDeletionAnnouncementGranularity) &&
                 Objects.equals(subjectIdResolver, that.subjectIdResolver) &&
                 Objects.equals(policyAnnouncementConfig, that.policyAnnouncementConfig) &&
-                Objects.equals(cleanUpConfig, that.cleanUpConfig);
+                Objects.equals(cleanupConfig, that.cleanupConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, policySubjectExpiryGranularity,
                 policySubjectDeletionAnnouncementGranularity, subjectIdResolver, policyAnnouncementConfig,
-                cleanUpConfig);
+                cleanupConfig);
     }
 
     @Override
@@ -151,7 +151,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
                 ", policySubjectDeletionAnnouncementGranularity=" + policySubjectDeletionAnnouncementGranularity +
                 ", subjectIdResolver=" + subjectIdResolver +
                 ", policyAnnouncementConfig=" + policyAnnouncementConfig +
-                ", cleanUpConfig=" + cleanUpConfig +
+                ", cleanUpConfig=" + cleanupConfig +
                 "]";
     }
 }
