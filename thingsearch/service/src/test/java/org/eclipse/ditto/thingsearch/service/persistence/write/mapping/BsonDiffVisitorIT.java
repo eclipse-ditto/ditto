@@ -73,13 +73,13 @@ public class BsonDiffVisitorIT {
         enforcer = PolicyEnforcers.defaultEvaluator(
                 PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy", "id"))
                         .forLabel("grant-root")
-                        .setSubject("grant:root", SubjectType.GENERATED)
+                        .setSubject("grant:" + "root".repeat(20), SubjectType.GENERATED)
                         .setGrantedPermissions(THING, "/", Permission.READ)
                         .forLabel("grant-d")
-                        .setSubject("grant:d.e", SubjectType.GENERATED)
+                        .setSubject("grant:" + "dx.e".repeat(20), SubjectType.GENERATED)
                         .setGrantedPermissions(THING, "/d/e", Permission.READ)
                         .forLabel("revoke")
-                        .setSubject("revoke:d.e", SubjectType.GENERATED)
+                        .setSubject("revoke:" + "dx.e".repeat(20), SubjectType.GENERATED)
                         .setRevokedPermissions(THING, "/d/e", Permission.READ)
                         .build());
     }
@@ -91,7 +91,6 @@ public class BsonDiffVisitorIT {
         cleanupAction(() -> TestKit.shutdownActorSystem(system));
     }
 
-    // use aggregation update. classic updates do not support $arrayElementAt.
     @Test
     public void testAggregationUpdate() {
         final var collection = client.getCollection("test");
@@ -101,7 +100,7 @@ public class BsonDiffVisitorIT {
                 Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
 
         final JsonObject prevThing = getThing1();
-        final JsonObject nextThing = getThing2();
+        final JsonObject nextThing = getThing2(); // Thing1 with some fields updated
 
         final BsonDocument prevThingDoc =
                 EnforcedThingMapper.toBsonDocument(prevThing, enforcer, maxArraySize, metadata);
@@ -109,13 +108,50 @@ public class BsonDiffVisitorIT {
         final BsonDocument nextThingDoc =
                 EnforcedThingMapper.toBsonDocument(nextThing, enforcer, maxArraySize, metadata);
 
-        final BsonDiff diff = BsonDiff.minus(nextThingDoc, prevThingDoc);
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
 
         final List<BsonDocument> updateDoc = diff.consumeAndExport();
 
         assertThat(updateDoc.toString().length())
                 .describedAs("Incremental update should be less than half as large as replacement")
                 .isLessThan(nextThingDoc.toString().length() / 2);
+
+        run(collection.insertOne(toDocument(prevThingDoc)));
+        run(collection.updateOne(new Document(), updateDoc));
+
+        final BsonDocument incrementalUpdateResult = toBsonDocument(run(collection.find()).get(0));
+
+        assertThat(incrementalUpdateResult)
+                .describedAs("Incremental update result")
+                .isEqualTo(nextThingDoc);
+    }
+
+    @Test
+    public void testArrayConcat() {
+        final var collection = client.getCollection("test");
+
+        final int maxArraySize = 99;
+        final Metadata metadata =
+                Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
+
+        final JsonObject prevThing = getThing1();
+        final JsonObject nextThing = getThing3(); // identical to Thing1 with fields rearranged and slightly edited
+
+        final BsonDocument prevThingDoc =
+                EnforcedThingMapper.toBsonDocument(prevThing, enforcer, maxArraySize, metadata);
+
+        final BsonDocument nextThingDoc =
+                EnforcedThingMapper.toBsonDocument(nextThing, enforcer, maxArraySize, metadata);
+
+        assertThat(prevThingDoc).isNotEqualTo(nextThingDoc);
+
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+
+        final List<BsonDocument> updateDoc = diff.consumeAndExport();
+
+        assertThat(updateDoc.toString().length())
+                .describedAs("Incremental update should be less than 1/10 as large as replacement")
+                .isLessThan(nextThingDoc.toString().length() / 10);
 
         run(collection.insertOne(toDocument(prevThingDoc)));
         run(collection.updateOne(new Document(), updateDoc));
@@ -179,6 +215,23 @@ public class BsonDiffVisitorIT {
                 "    \"k\": 6.0,\n" +
                 "    \"l\": 5,\n" +
                 "    \"m\": \"MESSAGE\"\n" +
+                "  }\n" +
+                "}");
+    }
+
+    private static JsonObject getThing3() {
+        return JsonFactory.newObject("{\n" +
+                "  \"thingId\":\"solar.system:pluto\"," +
+                "  \"_namespace\":\"solar.system\"," +
+                "  \"a\": [ {\"b\": \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"}, true ],\n" +
+                "  \"d\": {\n" +
+                "    \"j\": true,\n" +
+                "    \"k\": 6.0,\n" +
+                "    \"l\": 123456789012,\n" +
+                "    \"e\": {\n" +
+                "      \"f\": \"h\",\n" +
+                "      \"h\": \"lorem ipsum dolor sit amet\"\n" +
+                "    }\n" +
                 "  }\n" +
                 "}");
     }

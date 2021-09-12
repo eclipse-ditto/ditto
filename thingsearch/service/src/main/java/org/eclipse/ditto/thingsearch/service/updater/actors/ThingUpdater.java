@@ -135,7 +135,7 @@ final class ThingUpdater extends AbstractActor {
         if (!forceUpdate && lastWriteModel instanceof ThingWriteModel && nextWriteModel instanceof ThingWriteModel) {
             final var last = (ThingWriteModel) lastWriteModel;
             final var next = (ThingWriteModel) nextWriteModel;
-            final var diff = BsonDiff.minus(next.getThingDocument(), last.getThingDocument());
+            final var diff = BsonDiff.minusThingDocs(next.getThingDocument(), last.getThingDocument());
             if (diff.isDiffSmaller()) {
                 final var aggregationPipeline = diff.consumeAndExport();
                 mongoWriteModel = new UpdateOneModel<>(new BsonDocument(), aggregationPipeline);

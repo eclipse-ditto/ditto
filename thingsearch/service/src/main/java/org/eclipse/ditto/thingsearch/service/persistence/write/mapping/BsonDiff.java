@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_INTERNAL;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -70,6 +72,42 @@ public final class BsonDiff {
     }
 
     /**
+     * Compute the difference between 2 Thing index documents.
+     *
+     * @param minuend the minuend document.
+     * @param subtrahend the subtrahend document.
+     * @return the difference.
+     */
+    public static BsonDiff minusThingDocs(final BsonDocument minuend, final BsonDocument subtrahend) {
+        // compute the internal array diff especially to find similar elements by internal key
+        final var minuendInternal = minuend.getArray(FIELD_INTERNAL);
+        final var subtrahendInternal = subtrahend.getArray(FIELD_INTERNAL);
+        final var diffInternal = BsonArrayDiff.diffInternalArray(minuendInternal, subtrahendInternal);
+        // compute the rest of the diff without the internal array
+        final var minuendWithoutInternal = minuend.clone();
+        final var subtrahendWithoutInternal = subtrahend.clone();
+        minuendWithoutInternal.remove(FIELD_INTERNAL);
+        subtrahendWithoutInternal.remove(FIELD_INTERNAL);
+        final var diffWithoutInternal = minus(minuendWithoutInternal, subtrahendWithoutInternal);
+        return diffWithoutInternal.concat(diffInternal);
+    }
+
+    /**
+     * Concatenate 2 diffs.
+     *
+     * @param that the other diff.
+     * @return the concatenation.
+     */
+    public BsonDiff concat(final BsonDiff that) {
+        return new BsonDiff(
+                replacementSize + that.replacementSize,
+                diffSize + that.diffSize,
+                Stream.concat(set, that.set),
+                Stream.concat(unset, that.unset)
+        );
+    }
+
+    /**
      * Consume this object to create an update aggregation pipeline.
      *
      * @return Update document.
@@ -87,8 +125,22 @@ public final class BsonDiff {
         return result;
     }
 
+    /**
+     * Test if the diff size is smaller than the replacement size.
+     *
+     * @return whether the diff size is smaller.
+     */
     public boolean isDiffSmaller() {
         return diffSize < replacementSize;
+    }
+
+    /**
+     * Destroy this object and convert the set and unset fields into lists.
+     *
+     * @return exported set and unset lists.
+     */
+    BsonDiffList consumeAndExportToList() {
+        return new BsonDiffList(set.collect(Collectors.toList()), unset.collect(Collectors.toList()));
     }
 
     private BsonDocument consumeAndExportSet() {
