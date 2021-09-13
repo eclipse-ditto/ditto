@@ -92,7 +92,7 @@ final class Cleanup {
                 return Source.empty();
             } else {
                 final List<Long> upperBounds = getSnUpperBoundsPerBatch(minSnOpt.orElseThrow(), sr.sn);
-                return Source.from(upperBounds).map(upperBound -> Source.lazily(() ->
+                return Source.from(upperBounds).map(upperBound -> Source.lazySource(() ->
                         readJournal.deleteEvents(sr.pid, upperBound - deleteBatchSize + 1, upperBound)
                                 .map(result -> new CleanupResult(CleanupResult.Type.EVENTS, sr, result))
                 ).mapMaterializedValue(ignored -> NotUsed.getInstance()));
@@ -107,7 +107,7 @@ final class Cleanup {
             } else {
                 final long maxSnToDelete = deleteFinalDeletedSnapshot && sr.isDeleted ? sr.sn + 1 : sr.sn;
                 final List<Long> upperBounds = getSnUpperBoundsPerBatch(minSnOpt.orElseThrow(), maxSnToDelete);
-                return Source.from(upperBounds).map(upperBound -> Source.lazily(() ->
+                return Source.from(upperBounds).map(upperBound -> Source.lazySource(() ->
                         readJournal.deleteSnapshots(sr.pid, upperBound - deleteBatchSize + 1, upperBound)
                                 .map(result -> new CleanupResult(CleanupResult.Type.SNAPSHOTS, sr, result))
                 ).mapMaterializedValue(ignored -> NotUsed.getInstance()));

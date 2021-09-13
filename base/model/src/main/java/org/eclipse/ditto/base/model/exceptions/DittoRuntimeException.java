@@ -48,10 +48,8 @@ public abstract class DittoRuntimeException extends RuntimeException
         implements Jsonifiable.WithPredicate<JsonObject, JsonField>, DittoHeadersSettable<DittoRuntimeException>,
         WithManifest {
 
-    private static final long serialVersionUID = -7010323324132561106L;
-
     private final String errorCode;
-    private final HttpStatus httpStatus;
+    private final transient HttpStatus httpStatus;
     private final String description;
     private final URI href;
     private final transient DittoHeaders dittoHeaders; // not serializable!

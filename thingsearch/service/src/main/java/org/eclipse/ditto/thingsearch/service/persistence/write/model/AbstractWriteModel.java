@@ -67,7 +67,7 @@ public abstract class AbstractWriteModel {
         final var origin = metadata.getOrigin();
         if (origin.isPresent()) {
             return Patterns.ask(origin.orElseThrow(), this, Duration.ofSeconds(10L))
-                    .thenApply(reply -> (WriteModel<BsonDocument>) reply);
+                    .thenApply(WriteModel.class::cast);
         } else {
             return CompletableFuture.completedStage(toMongo());
         }

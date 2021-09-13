@@ -125,7 +125,7 @@ final class BsonArrayDiff {
                     final BsonDiff diff = BsonDiff.minus(element.asDocument(), subtrahend.get(k).asDocument());
                     final BsonDiffList diffList = diff.consumeAndExportToList();
                     final var diffInPipeline = diffList.toBsonInPipeline(getSubtrahendElement(subtrahendExpr, k));
-                    final var diffSizeIsBetter = diffInPipeline.map(bsonSizeVisitor::eval)
+                    final boolean diffSizeIsBetter = diffInPipeline.map(bsonSizeVisitor::eval)
                             .map(diffSize -> diffSize < replaceSize)
                             .orElse(false);
                     if (diffSizeIsBetter) {

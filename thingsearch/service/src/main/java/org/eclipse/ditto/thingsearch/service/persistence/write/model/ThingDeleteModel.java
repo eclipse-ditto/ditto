@@ -18,7 +18,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.bson.BsonDateTime;
 import org.bson.BsonDocument;
-import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 

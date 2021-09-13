@@ -152,7 +152,7 @@ final class MongoSearchUpdaterFlow {
                 .collect(Collectors.toList());
 
         final var allFutures = CompletableFuture.allOf(writeModelFutures.toArray(CompletableFuture[]::new));
-        return allFutures.thenApply(_void ->
+        return allFutures.thenApply(aVoid ->
                 writeModelFutures.stream().flatMap(future -> future.join().stream()).collect(Collectors.toList())
         );
     }

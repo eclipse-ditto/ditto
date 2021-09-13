@@ -44,7 +44,6 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
     private final DefaultEnforcementConfig enforcementConfig;
     private final DefaultCachesConfig cachesConfig;
     private final DefaultThingsAggregatorConfig thingsAggregatorConfig;
-    private final PersistenceCleanupConfig persistenceCleanupConfig;
 
     private DittoConciergeConfig(final ScopedConfig dittoScopedConfig) {
         serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
@@ -53,7 +52,6 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
         enforcementConfig = DefaultEnforcementConfig.of(serviceSpecificConfig);
         cachesConfig = DefaultCachesConfig.of(serviceSpecificConfig);
         thingsAggregatorConfig = DefaultThingsAggregatorConfig.of(serviceSpecificConfig);
-        persistenceCleanupConfig = DefaultPersistenceCleanupConfig.of(serviceSpecificConfig);
     }
 
     /**
@@ -81,11 +79,6 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
     @Override
     public ThingsAggregatorConfig getThingsAggregatorConfig() {
         return thingsAggregatorConfig;
-    }
-
-    @Override
-    public PersistenceCleanupConfig getPersistenceCleanupConfig() {
-        return persistenceCleanupConfig;
     }
 
     @Override
@@ -142,14 +135,13 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
                 healthCheckConfig.equals(that.healthCheckConfig) &&
                 enforcementConfig.equals(that.enforcementConfig) &&
                 cachesConfig.equals(that.cachesConfig) &&
-                thingsAggregatorConfig.equals(that.thingsAggregatorConfig) &&
-                persistenceCleanupConfig.equals(that.persistenceCleanupConfig);
+                thingsAggregatorConfig.equals(that.thingsAggregatorConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(serviceSpecificConfig, mongoDbConfig, healthCheckConfig, enforcementConfig, cachesConfig,
-                thingsAggregatorConfig, persistenceCleanupConfig);
+                thingsAggregatorConfig);
     }
 
     @Override
@@ -161,8 +153,6 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
                 ", enforcementConfig=" + enforcementConfig +
                 ", cachesConfig=" + cachesConfig +
                 ", thingsAggregatorConfig=" + thingsAggregatorConfig +
-                ", persistenceCleanupConfig=" + persistenceCleanupConfig +
                 "]";
     }
-
 }

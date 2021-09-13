@@ -407,7 +407,7 @@ public final class HttpStatus {
     public static final HttpStatus NETWORK_CONNECT_TIMEOUT = assign(599);
 
     private final int code;
-    private final transient Category category;
+    private final Category category;
 
     private HttpStatus(final int code, final Category category) {
         this.code = code;
