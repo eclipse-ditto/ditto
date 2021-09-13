@@ -503,12 +503,12 @@ public final class HttpStatus {
             return false;
         }
         final HttpStatus that = (HttpStatus) o;
-        return code == that.code;
+        return code == that.code && category == that.category;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(code);
+        return Objects.hash(code, category);
     }
 
     @Override

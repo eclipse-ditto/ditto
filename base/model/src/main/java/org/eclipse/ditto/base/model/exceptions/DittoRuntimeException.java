@@ -49,7 +49,7 @@ public abstract class DittoRuntimeException extends RuntimeException
         WithManifest {
 
     private final String errorCode;
-    private final transient HttpStatus httpStatus;
+    private final HttpStatus httpStatus;
     private final String description;
     private final URI href;
     private final transient DittoHeaders dittoHeaders; // not serializable!
