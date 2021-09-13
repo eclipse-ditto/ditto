@@ -28,11 +28,11 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
-
 @Immutable
 final class ThingConditionValidator {
 
     private ThingConditionValidator() {
+        throw new AssertionError();
     }
 
     /**
