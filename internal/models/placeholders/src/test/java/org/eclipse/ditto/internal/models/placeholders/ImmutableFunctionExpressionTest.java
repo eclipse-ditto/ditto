@@ -40,7 +40,8 @@ public class ImmutableFunctionExpressionTest {
             "substring-after",
             "lower",
             "upper",
-            "delete"
+            "delete",
+            "replace"
     )));
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
 
