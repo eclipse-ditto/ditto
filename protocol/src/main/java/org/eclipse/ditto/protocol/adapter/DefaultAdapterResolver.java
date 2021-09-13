@@ -12,6 +12,10 @@
  */
 package org.eclipse.ditto.protocol.adapter;
 
+import static org.eclipse.ditto.protocol.TopicPath.Channel.LIVE;
+import static org.eclipse.ditto.protocol.TopicPath.Channel.NONE;
+import static org.eclipse.ditto.protocol.TopicPath.Channel.TWIN;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
@@ -24,13 +28,40 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
+import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
+import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
+import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
+import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.UnknownChannelException;
+import org.eclipse.ditto.protocol.UnknownSignalException;
 import org.eclipse.ditto.protocol.adapter.connectivity.ConnectivityCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
+import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
+import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommandResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingMerged;
+import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
+import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 /**
  * Implements the logic to select the correct {@link org.eclipse.ditto.protocol.adapter.Adapter} from a given {@link org.eclipse.ditto.protocol.Adaptable}.
@@ -38,6 +69,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 final class DefaultAdapterResolver implements AdapterResolver {
 
     private final Function<Adaptable, Adapter<?>> resolver;
+    private final AdapterResolverBySignal resolverBySignal;
 
     DefaultAdapterResolver(final ThingCommandAdapterProvider thingsAdapters,
             final PolicyCommandAdapterProvider policiesAdapters,
@@ -49,12 +81,19 @@ final class DefaultAdapterResolver implements AdapterResolver {
         adapters.addAll(connectivityAdapters.getAdapters());
         adapters.addAll(acknowledgementAdapters.getAdapters());
         resolver = computeResolver(adapters);
+        resolverBySignal = new AdapterResolverBySignal(thingsAdapters, policiesAdapters, connectivityAdapters,
+                acknowledgementAdapters);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public Adapter<? extends Signal<?>> getAdapter(final Adaptable adaptable) {
         return (Adapter<? extends Signal<?>>) resolver.apply(adaptable);
+    }
+
+    @Override
+    public Adapter<Signal<?>> getAdapter(final Signal<?> signal, final TopicPath.Channel channel) {
+        return resolverBySignal.resolve(signal, channel);
     }
 
     private static boolean isResponse(final Adaptable adaptable) {
@@ -268,7 +307,8 @@ final class DefaultAdapterResolver implements AdapterResolver {
         private final Function<Adapter<?>, Set<T>> getSupportedEnums;
         private final Function<Adaptable, Optional<T>> extractEnum;
 
-        private ForEnumOptional(final Class<T> enumClass, final T[] enumValues,
+        private ForEnumOptional(final Class<T> enumClass,
+                final T[] enumValues,
                 final Function<Adapter<?>, Set<T>> getSupportedEnums,
                 final Function<Adaptable, Optional<T>> extractEnum) {
             this.enumClass = enumClass;
@@ -428,6 +468,156 @@ final class DefaultAdapterResolver implements AdapterResolver {
 
         private static <T> Function<T, Set<Bool>> composeAsSet(final Predicate<T> predicate) {
             return t -> EnumSet.of(Bool.of(predicate.test(t)));
+        }
+    }
+
+    private static final class AdapterResolverBySignal {
+
+        private final ThingCommandAdapterProvider thingsAdapters;
+        private final PolicyCommandAdapterProvider policiesAdapters;
+        private final ConnectivityCommandAdapterProvider connectivityAdapters;
+        private final AcknowledgementAdapterProvider acknowledgementAdapters;
+
+        private AdapterResolverBySignal(final ThingCommandAdapterProvider thingsAdapters,
+                final PolicyCommandAdapterProvider policiesAdapters,
+                final ConnectivityCommandAdapterProvider connectivityAdapters,
+                final AcknowledgementAdapterProvider acknowledgementAdapters) {
+
+            this.thingsAdapters = thingsAdapters;
+            this.policiesAdapters = policiesAdapters;
+            this.connectivityAdapters = connectivityAdapters;
+            this.acknowledgementAdapters = acknowledgementAdapters;
+        }
+
+        @SuppressWarnings("unchecked")
+        public <T extends Signal<?>> Adapter<T> resolve(final T signal, final TopicPath.Channel channel) {
+            if (signal instanceof MessageCommand) {
+                validateChannel(channel, signal, LIVE);
+                return (Adapter<T>) thingsAdapters.getMessageCommandAdapter();
+            }
+            if (signal instanceof MessageCommandResponse) {
+                validateChannel(channel, signal, LIVE);
+                return (Adapter<T>) thingsAdapters.getMessageCommandResponseAdapter();
+            }
+            if (signal instanceof ThingSearchCommand) {
+                validateNotLive(signal);
+                return (Adapter<T>) thingsAdapters.getSearchCommandAdapter();
+            }
+            if (signal instanceof MergeThing) {
+                validateChannel(channel, signal, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getMergeCommandAdapter();
+            }
+            if (signal instanceof MergeThingResponse) {
+                validateChannel(channel, signal, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getMergeCommandResponseAdapter();
+            }
+            if (signal instanceof ThingModifyCommand) {
+                validateChannel(channel, signal, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getModifyCommandAdapter();
+            }
+            if (signal instanceof ThingModifyCommandResponse) {
+                validateChannel(channel, signal, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getModifyCommandResponseAdapter();
+            }
+            if (signal instanceof ThingQueryCommand) {
+                validateChannel(channel, signal, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getQueryCommandAdapter();
+            }
+            if (signal instanceof ThingQueryCommandResponse) {
+                validateChannel(channel, signal, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getQueryCommandResponseAdapter();
+            }
+            if (signal instanceof RetrieveThings) {
+                validateChannel(channel, signal, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getRetrieveThingsCommandAdapter();
+            }
+            if (signal instanceof RetrieveThingsResponse) {
+                validateChannel(channel, signal, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getRetrieveThingsCommandResponseAdapter();
+            }
+            if (signal instanceof ThingErrorResponse) {
+                validateChannel(channel, signal, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getErrorResponseAdapter();
+            }
+            if (signal instanceof ThingMerged) {
+                validateChannel(channel, signal, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getMergedEventAdapter();
+            }
+            if (signal instanceof ThingEvent) {
+                validateChannel(channel, signal, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getEventAdapter();
+            }
+            if (signal instanceof SubscriptionEvent) {
+                validateNotLive(signal);
+                return (Adapter<T>) thingsAdapters.getSubscriptionEventAdapter();
+            }
+            if (signal instanceof SearchErrorResponse) {
+                validateNotLive(signal);
+                return (Adapter<T>) thingsAdapters.getSearchErrorResponseAdapter();
+            }
+
+            if (signal instanceof PolicyModifyCommand) {
+                validateChannel(channel, signal, NONE);
+                return (Adapter<T>) policiesAdapters.getModifyCommandAdapter();
+            }
+            if (signal instanceof PolicyModifyCommandResponse) {
+                validateChannel(channel, signal, NONE);
+                return (Adapter<T>) policiesAdapters.getModifyCommandResponseAdapter();
+            }
+            if (signal instanceof PolicyQueryCommand) {
+                validateChannel(channel, signal, NONE);
+                return (Adapter<T>) policiesAdapters.getQueryCommandAdapter();
+            }
+            if (signal instanceof PolicyQueryCommandResponse) {
+                validateChannel(channel, signal, NONE);
+                return (Adapter<T>) policiesAdapters.getQueryCommandResponseAdapter();
+            }
+            if (signal instanceof PolicyErrorResponse) {
+                validateChannel(channel, signal, NONE);
+                return (Adapter<T>) policiesAdapters.getErrorResponseAdapter();
+            }
+            if (signal instanceof PolicyAnnouncement) {
+                validateChannel(channel, signal, NONE);
+                return (Adapter<T>) policiesAdapters.getAnnouncementAdapter();
+            }
+
+            if (signal instanceof ConnectivityAnnouncement) {
+                validateChannel(channel, signal, NONE);
+                return (Adapter<T>)  connectivityAdapters.getAnnouncementAdapter();
+            }
+
+            if (signal instanceof Acknowledgement) {
+                validateChannel(channel, signal, LIVE, TWIN);
+                return (Adapter<T>) acknowledgementAdapters.getAcknowledgementAdapter();
+            }
+            if (signal instanceof Acknowledgements) {
+                validateChannel(channel, signal, LIVE, TWIN);
+                return (Adapter<T>) acknowledgementAdapters.getAcknowledgementsAdapter();
+            }
+
+            throw UnknownSignalException.newBuilder(signal.getName())
+                    .dittoHeaders(signal.getDittoHeaders())
+                    .build();
+        }
+
+        private void validateChannel(final TopicPath.Channel channel,
+                final Signal<?> signal, final TopicPath.Channel... supportedChannels) {
+            if (!Arrays.asList(supportedChannels).contains(channel)) {
+                throw unknownChannelException(signal, channel);
+            }
+        }
+
+        private void validateNotLive(final Signal<?> signal) {
+            if (ProtocolAdapter.isLiveSignal(signal)) {
+                throw unknownChannelException(signal, LIVE);
+            }
+        }
+
+        private UnknownChannelException unknownChannelException(final Signal<?> signal,
+                final TopicPath.Channel channel) {
+            return UnknownChannelException.newBuilder(channel, signal.getType())
+                    .dittoHeaders(signal.getDittoHeaders())
+                    .build();
         }
     }
 }

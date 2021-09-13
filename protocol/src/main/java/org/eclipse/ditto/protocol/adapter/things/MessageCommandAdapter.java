@@ -15,29 +15,25 @@ package org.eclipse.ditto.protocol.adapter.things;
 import static java.util.Objects.requireNonNull;
 
 import org.eclipse.ditto.messages.model.KnownMessageSubjects;
-import org.eclipse.ditto.protocol.adapter.AbstractAdapter;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.protocol.adapter.EmptyPathMatcher;
-import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
-import org.eclipse.ditto.protocol.mapper.SignalMapper;
-import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.protocol.adapter.EmptyPathMatcher;
+import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
+import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 
 /**
  * Adapter for mapping a {@link MessageCommandAdapter} to and from an {@link Adaptable}.
  */
 final class MessageCommandAdapter extends AbstractMessageAdapter<MessageCommand<?, ?>> {
 
-    private static final SignalMapper<MessageCommand<?, ?>>
-            TO_ADAPTABLE_MAPPER = SignalMapperFactory.newMessageCommandSignalMapper();
-
     private MessageCommandAdapter(final HeaderTranslator headerTranslator) {
-        super(MappingStrategiesFactory.getMessageCommandMappingStrategies(), headerTranslator,
+        super(MappingStrategiesFactory.getMessageCommandMappingStrategies(),
+                SignalMapperFactory.newMessageCommandSignalMapper(),
+                headerTranslator,
                 EmptyPathMatcher.getInstance());
     }
 
@@ -49,11 +45,6 @@ final class MessageCommandAdapter extends AbstractMessageAdapter<MessageCommand<
      */
     public static MessageCommandAdapter of(final HeaderTranslator headerTranslator) {
         return new MessageCommandAdapter(requireNonNull(headerTranslator));
-    }
-
-    @Override
-    public Adaptable toAdaptable(final MessageCommand<?, ?> t) {
-        return toAdaptable(t, TopicPath.Channel.LIVE);
     }
 
     @Override
@@ -75,11 +66,6 @@ final class MessageCommandAdapter extends AbstractMessageAdapter<MessageCommand<
         } else {
             return SendThingMessage.TYPE;
         }
-    }
-
-    @Override
-    public Adaptable mapSignalToAdaptable(final MessageCommand<?, ?> command, final TopicPath.Channel channel) {
-        return TO_ADAPTABLE_MAPPER.mapSignalToAdaptable(command, channel);
     }
 
 }

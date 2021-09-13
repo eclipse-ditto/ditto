@@ -13,13 +13,13 @@
 package org.eclipse.ditto.protocol.mapper;
 
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
-import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
-import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
@@ -28,7 +28,10 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 /**
  * Factory class that instantiates all available {@link SignalMapper}s.
@@ -45,16 +48,24 @@ public final class SignalMapperFactory {
         return new ThingModifySignalMapper();
     }
 
-    public static SignalMapper<MergeThing> newThingMergeSignalMapper() {
-        return new ThingMergeSignalMapper();
-    }
-
     public static SignalMapper<ThingModifyCommandResponse<?>> newThingModifyResponseSignalMapper() {
         return new ThingModifyResponseSignalMapper();
     }
 
+    public static SignalMapper<ThingEvent<?>> newThingEventSignalMapper() {
+        return new ThingEventSignalMapper();
+    }
+
+    public static SignalMapper<MergeThing> newThingMergeSignalMapper() {
+        return new ThingMergeSignalMapper();
+    }
+
     public static SignalMapper<MergeThingResponse> newThingMergeResponseSignalMapper() {
         return new ThingMergeResponseSignalMapper();
+    }
+
+    public static SignalMapper<ThingMerged> newThingMergedEventSignalMapper() {
+        return new ThingMergedEventSignalMapper();
     }
 
     public static SignalMapper<ThingQueryCommand<?>> newThingQuerySignalMapper() {
@@ -63,6 +74,10 @@ public final class SignalMapperFactory {
 
     public static SignalMapper<ThingQueryCommandResponse<?>> newThingQueryResponseSignalMapper() {
         return new ThingQueryResponseSignalMapper();
+    }
+
+    public static SignalMapper<SubscriptionEvent<?>> newSubscriptionEventSignalMapper() {
+        return new SubscriptionEventSignalMapper();
     }
 
     public static SignalMapper<RetrieveThings> newRetrieveThingsSignalMapper() {

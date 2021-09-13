@@ -246,8 +246,8 @@ public final class DittoProtocolAdapterParameterizedTest {
         when(policyCommandAdapterProvider.getErrorResponseAdapter())
                 .thenReturn(policyErrorResponseAdapter);
 
-        final AdapterResolver adapterResolver = mock(AdapterResolver.class);
-
+        final AdapterResolver adapterResolver = new DefaultAdapterResolver(thingCommandAdapterProvider,
+                policyCommandAdapterProvider, connectivityCommandAdapterProvider, acknowledgementAdapterProvider);
         underTest = DittoProtocolAdapter.newInstance(HeaderTranslator.empty(), thingCommandAdapterProvider,
                 policyCommandAdapterProvider, connectivityCommandAdapterProvider, acknowledgementAdapterProvider,
                 adapterResolver);

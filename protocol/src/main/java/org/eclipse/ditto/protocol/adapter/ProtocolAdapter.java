@@ -16,14 +16,15 @@ import static org.eclipse.ditto.protocol.TopicPath.Channel.LIVE;
 import static org.eclipse.ditto.protocol.TopicPath.Channel.NONE;
 import static org.eclipse.ditto.protocol.TopicPath.Channel.TWIN;
 
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.announcements.Announcement;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.protocol.TopicPath;
 
 /**
  * A protocol adapter provides methods for mapping {@link Signal} instances to an {@link org.eclipse.ditto.protocol.Adaptable}.
@@ -58,6 +59,15 @@ public interface ProtocolAdapter {
      * @since 1.1.0
      */
     Adaptable toAdaptable(Signal<?> signal, TopicPath.Channel channel);
+
+    /**
+     * Maps the given {@code Signal} to its {@code TopicPath}.
+     *
+     * @param signal the signal.
+     * @return the topic path.
+     * @since 2.1.0
+     */
+    TopicPath toTopicPath(Signal<?> signal);
 
     /**
      * Retrieve the header translator responsible for this protocol adapter.
@@ -104,10 +114,13 @@ public interface ProtocolAdapter {
     static TopicPath.Channel determineDefaultChannel(final Signal<?> signal) {
         if (signal instanceof PolicyCommand || signal instanceof PolicyCommandResponse) {
             return NONE;
+        } else if (signal instanceof Announcement) {
+            return NONE;
         } else if (signal instanceof MessageCommand || signal instanceof MessageCommandResponse) {
             return LIVE;
         } else {
             return TWIN;
         }
     }
+
 }

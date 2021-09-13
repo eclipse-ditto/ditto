@@ -12,12 +12,22 @@
  */
 package org.eclipse.ditto.protocol.adapter;
 
+import java.util.Collections;
+import java.util.Set;
+
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.ErrorRegistry;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
+import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.Payload;
@@ -25,9 +35,7 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuildable;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
-import org.eclipse.ditto.base.model.signals.ErrorRegistry;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
+import org.eclipse.ditto.things.model.ThingConstants;
 
 /**
  * Adapter for mapping a {@link ErrorResponse} to and from an {@link org.eclipse.ditto.protocol.Adaptable}.
@@ -79,7 +87,7 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
     @Override
     public Adaptable toAdaptable(final T errorResponse, final TopicPath.Channel channel) {
 
-        final TopicPathBuilder topicPathBuilder = getTopicPathBuilder(errorResponse);
+        final TopicPath topicPath = getTopicPath(errorResponse, channel);
 
         final Payload payload = Payload.newBuilder(errorResponse.getResourcePath())
                 .withStatus(errorResponse.getHttpStatus())
@@ -88,6 +96,77 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
                         .orElse(JsonFactory.nullObject())) // only use the error payload
                 .build();
 
+        final DittoHeaders responseHeaders =
+                ProtocolFactory.newHeadersWithJsonContentType(errorResponse.getDittoHeaders());
+
+        return Adaptable.newBuilder(topicPath)
+                .withPayload(payload)
+                .withHeaders(DittoHeaders.of(headerTranslator.toExternalHeaders(responseHeaders)))
+                .build();
+    }
+
+    @Override
+    public Set<TopicPath.Action> getActions() {
+        return Collections.emptySet();
+    }
+
+    @Override
+    public TopicPath toTopicPath(final T t, final TopicPath.Channel channel) {
+        return getTopicPath(t, channel);
+    }
+
+    /**
+     * Implementations must provide a {@link TopicPathBuilder} for the given {@code errorResponse}.
+     *
+     * @param errorResponse the processed error response
+     * @return the {@link TopicPathBuilder} used to processed the given {@code errorResponse}
+     * @deprecated no longer used as of Ditto 2.1.0,use
+     * {@link #getTopicPath(org.eclipse.ditto.base.model.signals.commands.ErrorResponse, org.eclipse.ditto.protocol.TopicPath.Channel)} instead
+     */
+    @Deprecated
+    public TopicPathBuilder getTopicPathBuilder(final T errorResponse) {
+        final TopicPath topicPath = getTopicPath(errorResponse, TopicPath.Channel.NONE);
+        final EntityType entityType;
+        switch (topicPath.getGroup()) {
+            case THINGS:
+                entityType = ThingConstants.ENTITY_TYPE;
+                break;
+            case POLICIES:
+                entityType = PolicyConstants.ENTITY_TYPE;
+                break;
+            case CONNECTIONS:
+                entityType = ConnectivityConstants.ENTITY_TYPE;
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown group " + topicPath.getGroup());
+        }
+        return ProtocolFactory.newTopicPathBuilder(
+                NamespacedEntityId.of(entityType, topicPath.getNamespace() + ":" + topicPath.getEntityName()));
+    }
+
+    /**
+     * Implementations must provide a {@link TopicPath} for the given {@code errorResponse}.
+     *
+     * @param errorResponse the processed error response
+     * @param channel the channel to used for determining the topic path.
+     * @return the {@link TopicPath} used to processed the given {@code errorResponse}
+     * @since 2.1.0
+     */
+    public abstract TopicPath getTopicPath(T errorResponse, TopicPath.Channel channel);
+
+    /**
+     * Implementations can build the {@link ErrorResponse} from the given parameters.
+     *
+     * @param topicPath the {@link TopicPath} used to build the error response
+     * @param exception the {@link DittoRuntimeException} used to build the error response
+     * @param dittoHeaders the {@link DittoHeaders} used to build the error response
+     * @return the built error response
+     */
+    public abstract T buildErrorResponse(TopicPath topicPath, DittoRuntimeException exception,
+            DittoHeaders dittoHeaders);
+
+    protected static TopicPathBuildable addChannelToTopicPathBuilder(final TopicPathBuilder topicPathBuilder,
+            final TopicPath.Channel channel) {
         final TopicPathBuildable topicPathBuildable;
         if (channel == TopicPath.Channel.TWIN) {
             topicPathBuildable = topicPathBuilder.twin().errors();
@@ -98,32 +177,6 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
         } else {
             throw new IllegalArgumentException("Unknown Channel '" + channel + "'");
         }
-
-        final DittoHeaders responseHeaders =
-                ProtocolFactory.newHeadersWithJsonContentType(errorResponse.getDittoHeaders());
-
-        return Adaptable.newBuilder(topicPathBuildable.build())
-                .withPayload(payload)
-                .withHeaders(DittoHeaders.of(headerTranslator.toExternalHeaders(responseHeaders)))
-                .build();
+        return topicPathBuildable;
     }
-
-    /**
-     * Implementations must provide a {@link TopicPathBuilder} for the given {@code errorResponse}.
-     *
-     * @param errorResponse the processed error response
-     * @return the {@link TopicPathBuilder} used to processed the given {@code errorResponse}
-     */
-    public abstract TopicPathBuilder getTopicPathBuilder(final T errorResponse);
-
-    /**
-     * Implementations can build the {@link ErrorResponse} from the given parameters.
-     *
-     * @param topicPath the {@link TopicPath} used to build the error response
-     * @param exception the {@link DittoRuntimeException} used to build the error response
-     * @param dittoHeaders the {@link DittoHeaders} used to build the error response
-     * @return the built error response
-     */
-    public abstract T buildErrorResponse(final TopicPath topicPath, final DittoRuntimeException exception,
-            final DittoHeaders dittoHeaders);
 }

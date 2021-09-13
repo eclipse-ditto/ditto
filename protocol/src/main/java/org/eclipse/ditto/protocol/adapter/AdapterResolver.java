@@ -12,8 +12,9 @@
  */
 package org.eclipse.ditto.protocol.adapter;
 
-import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.TopicPath;
 
 /**
  * Resolves the matching {@link Adapter} for the given {@link org.eclipse.ditto.protocol.Adaptable}.
@@ -21,12 +22,20 @@ import org.eclipse.ditto.base.model.signals.Signal;
 interface AdapterResolver {
 
     /**
-     * Select the correct {@link Adapter} (e.g. things/policy, query/modify/...) for the given
-     * {@link org.eclipse.ditto.protocol.Adaptable}.
+     * Select the correct {@link Adapter} (e.g. things/policy, query/modify/...) for the given {@link Adaptable}.
      *
-     * @param adaptable the adaptable that is converted to a {@link Signal}
-     * @return the appropriate {@link org.eclipse.ditto.protocol.Adaptable} capable of converting the {@link org.eclipse.ditto.protocol.Adaptable} to a {@link Signal}
+     * @param adaptable the adaptable that is converted to a {@link Signal}.
+     * @return the appropriate {@link Adaptable} capable of converting the {@link Adaptable} to a {@link Signal}
      */
     Adapter<? extends Signal<?>> getAdapter(Adaptable adaptable);
 
+    /**
+     * Select the correct {@link Adapter} (e.g. things/policy, query/modify/...) for the given {@link Signal}.
+     *
+     * @param signal the signal that should be converted via the returned {@link Adapter}.
+     * @param channel the channel to retrieve the adapter for.
+     * @return the appropriate {@link Adaptable} capable of converting the passed {@link Signal}
+     * @since 2.1.0
+     */
+     Adapter<Signal<?>> getAdapter(Signal<?> signal, TopicPath.Channel channel);
 }
