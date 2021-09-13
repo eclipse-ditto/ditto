@@ -804,9 +804,9 @@ public final class ThingCommandEnforcement
 
         final var authorizationContext = dittoHeaders.getAuthorizationContext();
         final var rootNode = tryParseRqlCondition(condition, dittoHeaders);
-        final var resourceKey = determineResourceKeys(rootNode, dittoHeaders);
+        final var resourceKeys = determineResourceKeys(rootNode, dittoHeaders);
 
-        if (!policyEnforcer.hasUnrestrictedPermissions(resourceKey, authorizationContext, Permission.READ)) {
+        if (!policyEnforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.READ)) {
             throw ThingConditionFailedException.newBuilderForInsufficientPermission(condition)
                     .build();
         }
