@@ -138,7 +138,7 @@ final class ThingUpdater extends AbstractActor {
             final var diff = BsonDiff.minusThingDocs(next.getThingDocument(), last.getThingDocument());
             if (diff.isDiffSmaller()) {
                 final var aggregationPipeline = diff.consumeAndExport();
-                mongoWriteModel = new UpdateOneModel<>(new BsonDocument(), aggregationPipeline);
+                mongoWriteModel = new UpdateOneModel<>(nextWriteModel.getFilter(), aggregationPipeline);
                 log.debug("Using incremental update <{}>", mongoWriteModel);
             } else {
                 mongoWriteModel = nextWriteModel.toMongo();

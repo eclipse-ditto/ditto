@@ -80,7 +80,9 @@ final class Cleanup {
         final var responsibility = responsibilitySupplier.get();
         final int denominator = responsibility.second();
         final int remainder = responsibility.first();
-        return Math.abs(Math.abs(sr.pid.hashCode()) % denominator) == remainder;
+        final int hashCode = sr.pid.hashCode();
+        final int nonNegativeHashCode = hashCode == Integer.MIN_VALUE ? 0 : hashCode < 0 ? -hashCode : hashCode;
+        return nonNegativeHashCode % denominator == remainder;
     }
 
     private Source<Source<CleanupResult, NotUsed>, NotUsed> cleanUpEvents(final SnapshotRevision sr) {
