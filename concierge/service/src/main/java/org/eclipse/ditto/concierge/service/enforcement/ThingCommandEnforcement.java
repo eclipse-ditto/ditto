@@ -25,6 +25,7 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -44,6 +45,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
+import org.eclipse.ditto.internal.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.internal.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
@@ -166,15 +168,39 @@ public final class ThingCommandEnforcement
     private CompletionStage<Contextual<WithDittoHeaders>> doEnforce(
             final Entry<CacheKey> enforcerKeyEntry, final Entry<Enforcer> enforcerEntry) {
 
-        if (!enforcerEntry.exists()) {
-            return enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry);
+        if (enforcerEntry.exists()) {
+            if (keyEntryForDeletedThing(enforcerKeyEntry)) {
+                if (isRetrieveCommandForDeletedThing()) {
+                    final EntityId policyId = enforcerKeyEntry.getValueOrThrow().getId();
+                    final Contextual<WithDittoHeaders> enforcementResult = enforceThingCommandByPolicyEnforcer(signal(),
+                            PolicyId.of(policyId),
+                            enforcerEntry.getValueOrThrow());
+                    return CompletableFuture.completedFuture(enforcementResult);
+                } else {
+                    return enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry);
+                }
+            } else {
+                final EntityId policyId = enforcerKeyEntry.getValueOrThrow().getId();
+                final Contextual<WithDittoHeaders> enforcementResult = enforceThingCommandByPolicyEnforcer(signal(),
+                        PolicyId.of(policyId),
+                        enforcerEntry.getValueOrThrow());
+                return CompletableFuture.completedFuture(enforcementResult);
+            }
         } else {
-            final EntityId policyId = enforcerKeyEntry.getValueOrThrow().getId();
-            final Contextual<WithDittoHeaders> enforcementResult = enforceThingCommandByPolicyEnforcer(signal(),
-                    PolicyId.of(policyId),
-                    enforcerEntry.getValueOrThrow());
-            return CompletableFuture.completedFuture(enforcementResult);
+            return enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry);
         }
+    }
+
+    private boolean isRetrieveCommandForDeletedThing() {
+        return (signal() instanceof RetrieveThing) && signal().getDittoHeaders().shouldRetrieveDeleted();
+    }
+
+    private boolean keyEntryForDeletedThing(final Entry<CacheKey> enforcerKeyEntry) {
+        return enforcerKeyEntry.exists() && enforcerKeyEntry.getValueOrThrow()
+                .getCacheLookupContext()
+                .flatMap(CacheLookupContext::getPersistenceLifecycle)
+                .map(x -> PersistenceLifecycle.DELETED == x)
+                .orElse(false);
     }
 
     /**
@@ -187,7 +213,7 @@ public final class ThingCommandEnforcement
     private CompletionStage<Contextual<WithDittoHeaders>> enforceThingCommandByNonexistentEnforcer(
             final Entry<CacheKey> enforcerKeyEntry) {
 
-        if (enforcerKeyEntry.exists()) {
+        if (enforcerKeyEntry.exists() && !keyEntryForDeletedThing(enforcerKeyEntry)) {
             // Thing exists but its policy is deleted.
             final var thingId = signal().getEntityId();
             final EntityId policyId = enforcerKeyEntry.getValueOrThrow().getId();
@@ -500,9 +526,9 @@ public final class ThingCommandEnforcement
         final var thingCacheKey = CacheKey.of(thingId);
         thingIdCache.invalidate(thingCacheKey);
         pubSubMediator().tell(DistPubSubAccess.sendToAll(
-                ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
-                InvalidateCacheEntry.of(thingCacheKey),
-                true),
+                        ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
+                        InvalidateCacheEntry.of(thingCacheKey),
+                        true),
                 self());
     }
 
@@ -510,9 +536,9 @@ public final class ThingCommandEnforcement
         final var policyCacheKey = CacheKey.of(policyId);
         policyEnforcerCache.invalidate(policyCacheKey);
         pubSubMediator().tell(DistPubSubAccess.sendToAll(
-                ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
-                InvalidateCacheEntry.of(policyCacheKey),
-                true),
+                        ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
+                        InvalidateCacheEntry.of(policyCacheKey),
+                        true),
                 self());
     }
 
@@ -596,8 +622,8 @@ public final class ThingCommandEnforcement
                     .thenApply(createThing -> {
                         final Optional<JsonObject> initialPolicyOptional = createThing.getInitialPolicy();
                         return initialPolicyOptional.map(
-                                initialPolicy -> enforceCreateThingByOwnInlinedPolicyOrThrow(createThing,
-                                        initialPolicy))
+                                        initialPolicy -> enforceCreateThingByOwnInlinedPolicyOrThrow(createThing,
+                                                initialPolicy))
                                 .orElseGet(() -> enforceCreateThingByAuthorizationContext(createThing));
                     });
         } else {

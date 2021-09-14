@@ -339,7 +339,16 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 2.1.0
      */
-    DITTO_SUDO("ditto-sudo", boolean.class, false, false, HeaderValueValidators.getBooleanValidator());
+    DITTO_SUDO("ditto-sudo", boolean.class, false, false, HeaderValueValidators.getBooleanValidator()),
+
+
+    /**
+     * Internal header to indicate that the query command is meant to also retrieve deleted entities.
+     *
+     * @since 2.1.0
+     */
+    DITTO_RETRIEVE_DELETED("ditto-retrieve-deleted", boolean.class, false, false,
+            HeaderValueValidators.getBooleanValidator());
 
     /**
      * Map to speed up lookup of header definition by key.

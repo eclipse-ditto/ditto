@@ -110,7 +110,7 @@ public final class CachingSignalEnrichmentFacade implements
             final long minAcceptableSeqNr) {
         if (minAcceptableSeqNr < 0) {
             final var cacheKey =
-                    CacheKey.of(thingId, CacheFactory.newCacheLookupContext(DittoHeaders.empty(), null));
+                    CacheKey.of(thingId, CacheFactory.newCacheLookupContext(DittoHeaders.empty(), null, null));
             extraFieldsCache.invalidate(cacheKey);
             return doCacheLookup(cacheKey, DittoHeaders.empty());
         } else {
@@ -136,7 +136,7 @@ public final class CachingSignalEnrichmentFacade implements
         }
 
         final var idWithResourceType =
-                CacheKey.of(thingId, CacheFactory.newCacheLookupContext(dittoHeaders, enhancedFieldSelector));
+                CacheKey.of(thingId, CacheFactory.newCacheLookupContext(dittoHeaders, enhancedFieldSelector, null));
 
         return smartUpdateCachedObject(enhancedFieldSelector, idWithResourceType, concernedSignals,
                 invalidateCacheOnPolicyChange, minAcceptableSeqNr);
@@ -218,8 +218,8 @@ public final class CachingSignalEnrichmentFacade implements
             return doCacheLookup(idWithResourceType, dittoHeaders);
         }
 
-        // there are ThingDeleted or ThingCreated events: perform smart update ignoring the cache entry
-        if (thingEvents.get(0) instanceof ThingDeleted || thingEvents.get(0) instanceof ThingCreated) {
+        // there are ThingCreated events: perform smart update ignoring the cache entry
+        if (thingEvents.get(0) instanceof ThingCreated) {
             return handleNextExpectedThingEvents(enhancedFieldSelector, idWithResourceType, thingEvents,
                     JsonObject.empty(), invalidateCacheOnPolicyChange)
                     .toCompletableFuture();
@@ -284,7 +284,9 @@ public final class CachingSignalEnrichmentFacade implements
                     jsonObject = JsonFactory.mergeJsonValues(mergePatch, jsonObject).asObject();
                     break;
                 case DELETE:
-                    if (resourcePath.isEmpty()) {
+                    if (thingEvent instanceof ThingDeleted) {
+                        // NoOp because we just want to keep the original known thing.
+                    } else if (resourcePath.isEmpty()) {
                         jsonObject = JsonObject.empty();
                     } else {
                         jsonObject = jsonObject.remove(resourcePath);

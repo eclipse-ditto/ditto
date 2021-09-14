@@ -49,7 +49,7 @@ final class SudoRetrieveThingStrategy extends AbstractThingCommandStrategy<SudoR
     public boolean isDefined(final Context<ThingId> context, @Nullable final Thing thing,
             final SudoRetrieveThing command) {
         final boolean thingExists = Optional.ofNullable(thing)
-                .map(t -> !t.isDeleted())
+                .map(t -> command.getDittoHeaders().shouldRetrieveDeleted() || !t.isDeleted())
                 .orElse(false);
 
         return Objects.equals(context.getState(), command.getEntityId()) && thingExists;

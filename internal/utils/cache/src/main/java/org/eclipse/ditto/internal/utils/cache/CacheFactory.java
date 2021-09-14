@@ -19,10 +19,11 @@ import java.util.concurrent.Executor;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
-import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.json.JsonFieldSelector;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -53,11 +54,13 @@ public final class CacheFactory {
      *
      * @param dittoHeaders the DittoHeaders to use in the cache lookup context.
      * @param jsonFieldSelector the JsonFieldSelector to use in the cache lookup context.
+     * @param persistenceLifecycle the persistence lifecycle of the looked up entity.
      * @return the created context.
      */
     public static CacheLookupContext newCacheLookupContext(
-            @Nullable final DittoHeaders dittoHeaders, @Nullable final JsonFieldSelector jsonFieldSelector) {
-        return ImmutableCacheLookupContext.of(dittoHeaders, jsonFieldSelector);
+            @Nullable final DittoHeaders dittoHeaders, @Nullable final JsonFieldSelector jsonFieldSelector,
+            @Nullable final PersistenceLifecycle persistenceLifecycle) {
+        return ImmutableCacheLookupContext.of(dittoHeaders, jsonFieldSelector, persistenceLifecycle);
     }
 
     /**

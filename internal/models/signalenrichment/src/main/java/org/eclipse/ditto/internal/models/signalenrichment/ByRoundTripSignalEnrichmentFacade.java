@@ -22,14 +22,15 @@ import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
@@ -68,14 +69,10 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
             final DittoHeaders dittoHeaders,
             @Nullable final Signal<?> concernedSignal) {
 
-        if (concernedSignal instanceof ThingDeleted && !(ProtocolAdapter.isLiveSignal(concernedSignal))) {
-            // twin deleted events should not be enriched, return empty JsonObject
-            return CompletableFuture.completedFuture(JsonObject.empty());
-        }
-
         // remove channel header to prevent looping on live messages
         final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = dittoHeaders.toBuilder()
-                .channel(null);
+                .channel(null)
+                .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(), "true");
         if (dittoHeaders.getCorrelationId().isEmpty()) {
             dittoHeadersBuilder.correlationId(Optional.ofNullable(concernedSignal)
                     .map(Signal::getDittoHeaders)

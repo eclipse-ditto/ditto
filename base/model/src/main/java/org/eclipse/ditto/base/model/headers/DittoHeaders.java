@@ -197,6 +197,14 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     boolean isSudo();
 
     /**
+     * Indicates whether a query command is meant to also retrieve deleted entities
+     *
+     * @return True if the command is is meant to also retrieve deleted entities, otherwise false.
+     * @since 2.1.0
+     */
+    boolean shouldRetrieveDeleted();
+
+    /**
      * Returns the id of the originating session (e.g. WebSocket, AMQP, ...)
      *
      * @return the "origin" value.

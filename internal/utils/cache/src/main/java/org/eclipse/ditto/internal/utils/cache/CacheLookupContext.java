@@ -16,8 +16,9 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonFieldSelector;
 
 /**
  * Additional context provided for cache lookups using {@link CacheKey} as caching key.
@@ -38,5 +39,10 @@ public interface CacheLookupContext {
      * @return the optional JsonFieldSelector.
      */
     Optional<JsonFieldSelector> getJsonFieldSelector();
+
+    /**
+     * @return The persistence lifecycle of the entity if known.
+     */
+    Optional<PersistenceLifecycle> getPersistenceLifecycle();
 
 }

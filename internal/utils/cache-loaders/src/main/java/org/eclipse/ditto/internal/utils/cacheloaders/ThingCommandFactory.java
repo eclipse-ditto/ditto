@@ -18,6 +18,7 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
@@ -66,11 +67,13 @@ final class ThingCommandFactory {
                                 .schemaVersion(headers.getImplementedSchemaVersion())
                                 .correlationId("sudoRetrieveThing-" +
                                         headers.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString()))
+                                .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(), "true")
                                 .build()
                         )
                         .orElseGet(() ->
                                 DittoHeaders.newBuilder()
                                         .correlationId("sudoRetrieveThing-" + UUID.randomUUID().toString())
+                                        .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(), "true")
                                         .build())
         );
     }

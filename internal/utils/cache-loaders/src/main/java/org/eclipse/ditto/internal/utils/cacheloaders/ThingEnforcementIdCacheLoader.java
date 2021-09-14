@@ -20,8 +20,10 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
@@ -75,7 +77,11 @@ public final class ThingEnforcementIdCacheLoader implements AsyncCacheLoader<Cac
             final long revision = thing.getRevision().map(ThingRevision::toLong)
                     .orElseThrow(badThingResponse("no revision"));
             final var policyId = thing.getPolicyEntityId().orElseThrow(badThingResponse("no PolicyId"));
-            final var resourceKey = CacheKey.of(policyId);
+            final PersistenceLifecycle persistenceLifecycle =
+                    thing.getLifecycle().map(Enum::name).flatMap(PersistenceLifecycle::forName).orElse(null);
+            final CacheLookupContext newCacheLookupContext =
+                    CacheFactory.newCacheLookupContext(null, null, persistenceLifecycle);
+            final var resourceKey = CacheKey.of(policyId, newCacheLookupContext);
             return Entry.of(revision, resourceKey);
         } else if (response instanceof ThingNotAccessibleException) {
             return Entry.nonexistent();
