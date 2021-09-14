@@ -199,6 +199,7 @@
         <module>jwt</module>
         <module>legal</module>
         <module>messages</module>
+        <module>placeholders</module>
         <module>policies</module>
         <module>protocol</module>
         <module>rql</module>

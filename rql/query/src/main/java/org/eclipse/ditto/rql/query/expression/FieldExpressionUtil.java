@@ -43,17 +43,28 @@ public final class FieldExpressionUtil {
      */
     public static final String FIELD_NAME_NAMESPACE = "namespace";
 
+    /**
+     * Definition field name.
+     * @since 2.1.0
+     */
+    public static final String FIELD_NAME_DEFINITION = "definition";
+
+    /**
+     * Topic action field name.
+     * @since 2.1.0
+     */
+    public static final String FIELD_NAME_TOPIC_ACTION = "topic:action";
+
     private static final String REGEX_FIELD_START = "^";
     private static final String REGEX_FIELD_END = "(/|\\z)";
     private static final String FIELD_NAME_ATTRIBUTES_PREFIX = "attributes/";
-    private static final String FIELD_NAME_DEFINITION_PREFIX = "definition/";
 
     private FieldExpressionUtil() {
         throw new AssertionError();
     }
 
     /**
-     * Wraps the given field in an regex with a startsWith and an '/' or end-of-line part.
+     * Wraps the given field in a regex with a startsWith and an '/' or end-of-line part.
      *
      * @param field the field to wrap
      * @return the wrapped field
@@ -95,13 +106,13 @@ public final class FieldExpressionUtil {
     }
 
     /**
-     * Checks if the given field name is an definition field name.
+     * Checks if the given field name is a definition field name.
      *
      * @param fieldName the field name
-     * @return {@code true}, if the field name is an attribute field name
+     * @return {@code true}, if the field name is a definition field name
      */
     public static boolean isDefinitionFieldName(final String fieldName) {
-        return requireNonNull(fieldName).startsWith(FIELD_NAME_DEFINITION_PREFIX);
+        return requireNonNull(fieldName).equals(FIELD_NAME_DEFINITION);
     }
 
     /**
@@ -112,6 +123,22 @@ public final class FieldExpressionUtil {
      */
     public static String addAttributesPrefix(final String fieldName) {
         return FIELD_NAME_ATTRIBUTES_PREFIX + requireNonNull(fieldName);
+    }
+
+    /**
+     * Checks if the given field name is a topic field name.
+     * Currently supported topics:
+     * <ul>
+     * <li><code>topic:action</code></li>
+     * </ul>
+     *
+     * @param fieldName the field name
+     * @return {@code true}, if the field name is an attribute field name
+     * @since 2.1.0
+     */
+    public static boolean isTopicFieldName(final String fieldName) {
+        // for now, only "topic:action" is supported:
+        return requireNonNull(fieldName).equals(FIELD_NAME_TOPIC_ACTION);
     }
 
     /**

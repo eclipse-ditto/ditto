@@ -12,7 +12,12 @@
  */
 package org.eclipse.ditto.rql.query.expression;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
+
+import org.eclipse.ditto.placeholders.Expression;
+import org.eclipse.ditto.placeholders.Placeholder;
 
 /**
  * Factory for creating {@link FieldExpression}s for thing search.
@@ -32,10 +37,39 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
     }
 
     /**
+     * Creates a ThingsFieldExpressionFactory with custom field mappings and additional {@code placeholders} to also
+     * accept when validating if an RQL query contains supported fields.
+     *
+     * @param simpleFieldMappings the field mappings to apply.
+     * @param placeholders the {@code Placeholder}s to also respect for supported fields in the RQL
+     * @return the created ThingsFieldExpressionFactory
+     * @since 2.1.0
+     */
+    static ThingsFieldExpressionFactory of(final Map<String, String> simpleFieldMappings,
+            final Collection<Placeholder<?>> placeholders) {
+        final Map<String, String> combinedFieldMappings = new HashMap<>(simpleFieldMappings);
+        placeholders.forEach(placeholder ->
+                placeholder.getSupportedNames()
+                        .stream()
+                        .map(name -> placeholder.getPrefix() + Expression.SEPARATOR + name)
+                        .forEach(combinedPlaceholder ->
+                                combinedFieldMappings.put(combinedPlaceholder, combinedPlaceholder))
+        );
+        return new ThingsFieldExpressionFactoryImpl(combinedFieldMappings);
+    }
+
+    /**
      * @return a filter expression for the given namespace
      */
     default FilterFieldExpression filterByNamespace() {
         return filterBy(FieldExpressionUtil.FIELD_NAME_NAMESPACE);
+    }
+
+    /**
+     * @return a filter expression for a given topic action
+     */
+    default FilterFieldExpression filterByTopicAction() {
+        return filterBy(FieldExpressionUtil.FIELD_NAME_TOPIC_ACTION);
     }
 
     /**
@@ -178,10 +212,26 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
     }
 
     /**
+     * @return a filter expression for the "definition" field.
+     * @since 2.1.0
+     */
+    default FilterFieldExpression filterByDefinition() {
+        return filterBy(FieldExpressionUtil.FIELD_NAME_DEFINITION);
+    }
+
+    /**
      * @return a sortOptions expression for the "thingId" field.
      */
     default SortFieldExpression sortByThingId() {
         return sortBy(FieldExpressionUtil.FIELD_NAME_THING_ID);
+    }
+
+    /**
+     * @return a sortOptions expression for the "definition" field.
+     * @since 2.1.0
+     */
+    default SortFieldExpression sortByDefinition() {
+        return sortBy(FieldExpressionUtil.FIELD_NAME_DEFINITION);
     }
 
 }

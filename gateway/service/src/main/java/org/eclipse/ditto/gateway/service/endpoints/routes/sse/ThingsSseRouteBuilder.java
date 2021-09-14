@@ -55,6 +55,8 @@ import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SearchSource;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.things.model.Thing;
@@ -105,6 +107,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private static final Counter THINGS_SSE_COUNTER = getCounterFor(PATH_THINGS);
     private static final Counter SEARCH_SSE_COUNTER = getCounterFor(PATH_SEARCH);
 
+    private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
+
     /**
      * Timeout asking the local streaming actor.
      */
@@ -149,7 +153,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             final ActorRef pubSubMediator) {
         checkNotNull(streamingActor, "streamingActor");
         final var queryFilterCriteriaFactory =
-                QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance());
+                QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
+                        TopicPathPlaceholder.getInstance());
 
         return new ThingsSseRouteBuilder(streamingActor, streamingConfig, queryFilterCriteriaFactory, pubSubMediator);
     }
@@ -370,7 +375,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                         .map(session -> jsonifiable.retrieveExtraFields(facade)
                                 .thenApply(extra ->
                                         Optional.of(session.mergeThingWithExtra(event, extra))
-                                                .filter(session::matchesFilter)
+                                                .filter(thing -> session.matchesFilter(thing,
+                                                        PROTOCOL_ADAPTER.toTopicPath(event)))
                                                 .map(thing -> toNonemptyThingJson(thing, event, fields))
                                                 .orElseGet(Collections::emptyList)
                                 )

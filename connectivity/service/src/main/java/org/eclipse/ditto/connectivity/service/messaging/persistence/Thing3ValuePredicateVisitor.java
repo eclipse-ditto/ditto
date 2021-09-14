@@ -12,12 +12,16 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.criteria.Predicate;
 import org.eclipse.ditto.rql.query.criteria.visitors.CriteriaVisitor;
@@ -36,10 +40,13 @@ import org.eclipse.ditto.things.model.Thing;
 final class Thing3ValuePredicateVisitor implements CriteriaVisitor<Function<Thing, Trilean>> {
 
     private final Set<JsonPointer> unknownFields;
+    private final List<PlaceholderResolver<?>> placeholderResolvers;
 
-    private Thing3ValuePredicateVisitor(final Set<JsonPointer> unknownFields) {
-        // only internally instantiable
+    private Thing3ValuePredicateVisitor(final Set<JsonPointer> unknownFields,
+            final Collection<PlaceholderResolver<?>> placeholderResolvers) {
+        // only internally instantiable, therefore no copying + immutability of fields
         this.unknownFields = unknownFields;
+        this.placeholderResolvers = new ArrayList<>(placeholderResolvers);
     }
 
     /**
@@ -48,12 +55,35 @@ final class Thing3ValuePredicateVisitor implements CriteriaVisitor<Function<Thin
      * @param criteria the criteria.
      * @param unknownFields the set of unknown fields that shall not falsify the criteria evaluation result.
      * @param partialThing the partial thing.
+     * @param placeholderResolvers additional {@code PlaceholderResolver}s to use in order to resolve placeholders in
+     * the form {@code prefix:name}.
      * @return whether the criteria may evaluate to true after replacing 'ignoredFields' by unknown values in
      * 'partialThing'.
      */
-    static boolean couldBeTrue(final Criteria criteria, final Set<JsonPointer> unknownFields,
-            final Thing partialThing) {
-        return Trilean.FALSE != criteria.accept(new Thing3ValuePredicateVisitor(unknownFields)).apply(partialThing);
+    static boolean couldBeTrue(final Criteria criteria,
+            final Set<JsonPointer> unknownFields,
+            final Thing partialThing,
+            final PlaceholderResolver<?>... placeholderResolvers) {
+        return couldBeTrue(criteria, unknownFields, partialThing, Arrays.asList(placeholderResolvers));
+    }
+
+    /**
+     * Evaluate criteria against a partial thing to see whether it could be true.
+     *
+     * @param criteria the criteria.
+     * @param unknownFields the set of unknown fields that shall not falsify the criteria evaluation result.
+     * @param partialThing the partial thing.
+     * @param placeholderResolvers additional {@code PlaceholderResolver}s to use in order to resolve placeholders in
+     * the form {@code prefix:name}.
+     * @return whether the criteria may evaluate to true after replacing 'ignoredFields' by unknown values in
+     * 'partialThing'.
+     */
+    static boolean couldBeTrue(final Criteria criteria,
+            final Set<JsonPointer> unknownFields,
+            final Thing partialThing,
+            final Collection<PlaceholderResolver<?>> placeholderResolvers) {
+        return Trilean.FALSE != criteria.accept(new Thing3ValuePredicateVisitor(unknownFields, placeholderResolvers))
+                .apply(partialThing);
     }
 
     @Override
@@ -70,7 +100,7 @@ final class Thing3ValuePredicateVisitor implements CriteriaVisitor<Function<Thin
     public Function<Thing, Trilean> visitExists(final ExistsFieldExpression fieldExpression) {
         return thing -> isUnknownField(fieldExpression)
                 ? Trilean.UNKNOWN
-                : Trilean.lift(ExistsThingPredicateVisitor.apply(fieldExpression).test(thing));
+                : Trilean.lift(ExistsThingPredicateVisitor.apply(fieldExpression, placeholderResolvers).test(thing));
     }
 
     @Override

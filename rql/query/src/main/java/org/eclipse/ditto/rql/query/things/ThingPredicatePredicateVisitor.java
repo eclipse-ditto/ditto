@@ -13,6 +13,10 @@
 package org.eclipse.ditto.rql.query.things;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -22,11 +26,14 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.placeholders.Expression;
+import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.rql.query.criteria.visitors.PredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 
 /**
- * A Java {@link Predicate} based PredicateVisitor for evaluating whether {@link Thing}s match a given filter.
+ * A Java {@link Predicate} based PredicateVisitor for evaluating whether {@link Thing}s or additionally added
+ * {@code PlaceholderResolver}s matches a given filter.
  */
 public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Function<String, Predicate<Thing>>> {
 
@@ -34,8 +41,11 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
 
     private static ThingPredicatePredicateVisitor instance;
 
-    private ThingPredicatePredicateVisitor() {
-        // only internally instantiable
+    private final List<PlaceholderResolver<?>> additionalPlaceholderResolvers;
+
+    private ThingPredicatePredicateVisitor(final Collection<PlaceholderResolver<?>> additionalPlaceholderResolvers) {
+        this.additionalPlaceholderResolvers = Collections.unmodifiableList(
+                new ArrayList<>(additionalPlaceholderResolvers));
     }
 
     /**
@@ -45,9 +55,33 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
      */
     public static ThingPredicatePredicateVisitor getInstance() {
         if (null == instance) {
-            instance = new ThingPredicatePredicateVisitor();
+            instance = new ThingPredicatePredicateVisitor(Collections.emptyList());
         }
         return instance;
+    }
+
+    /**
+     * Creates a new instance of {@code ThingPredicatePredicateVisitor} with additional custom placeholder resolvers.
+     *
+     * @param additionalPlaceholderResolvers the additional {@code PlaceholderResolver} to use for resolving
+     * placeholders in RQL predicates.
+     * @return the created instance.
+     */
+    public static ThingPredicatePredicateVisitor createInstance(
+            final Collection<PlaceholderResolver<?>> additionalPlaceholderResolvers) {
+        return new ThingPredicatePredicateVisitor(additionalPlaceholderResolvers);
+    }
+
+    /**
+     * Creates a new instance of {@code ThingPredicatePredicateVisitor} with additional custom placeholder resolvers.
+     *
+     * @param additionalPlaceholderResolvers the additional {@code PlaceholderResolver} to use for resolving
+     * placeholders in RQL predicates.
+     * @return the created instance.
+     */
+    public static ThingPredicatePredicateVisitor createInstance(
+            final PlaceholderResolver<?>... additionalPlaceholderResolvers) {
+        return createInstance(Arrays.asList(additionalPlaceholderResolvers));
     }
 
     /**
@@ -197,8 +231,29 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
                         .isPresent();
     }
 
-    private static Optional<JsonValue> getThingField(final CharSequence fieldName, final Thing thing) {
-        return thing.toJson(p -> true).getValue(fieldName);
+    private Optional<JsonValue> getThingField(final CharSequence fieldName, final Thing thing) {
+        return Optional.ofNullable(
+                thing.toJson(p -> true)
+                        .getValue(fieldName) // first, try resolving via the thing
+                        .orElseGet(() -> {// if that returns nothing, try resolving using the placeholder resolvers:
+                            final String[] fieldNameSplit = fieldName.toString().split(Expression.SEPARATOR, 2);
+                            if (fieldNameSplit.length > 1) {
+                                final String placeholderPrefix = fieldNameSplit[0];
+                                final String placeholderName = fieldNameSplit[1];
+                                return additionalPlaceholderResolvers.stream()
+                                        .filter(pr -> placeholderPrefix.equals(pr.getPrefix()))
+                                        .filter(pr -> pr.supports(placeholderName))
+                                        .map(pr -> pr.resolve(placeholderName))
+                                        .filter(Optional::isPresent)
+                                        .map(Optional::get)
+                                        .map(JsonValue::of)
+                                        .findFirst()
+                                        .orElse(null);
+                            } else {
+                                return null;
+                            }
+                        })
+        );
     }
 
     private static Optional<Object> mapJsonValueToJava(final JsonValue jsonValue) {

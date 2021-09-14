@@ -33,8 +33,8 @@ import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperFactory;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
-import org.eclipse.ditto.internal.models.placeholders.Placeholder;
-import org.eclipse.ditto.internal.models.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.placeholders.Placeholder;
+import org.eclipse.ditto.placeholders.PlaceholderFilter;
 
 import akka.actor.ActorSystem;
 

@@ -13,7 +13,8 @@
 package org.eclipse.ditto.connectivity.api.placeholders;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.internal.models.placeholders.Placeholder;
+import org.eclipse.ditto.placeholders.Placeholder;
+import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 
 public final class ConnectivityPlaceholders {
 
@@ -60,7 +61,7 @@ public final class ConnectivityPlaceholders {
      * @return the singleton instance of {@link TopicPathPlaceholder}
      */
     public static TopicPathPlaceholder newTopicPathPlaceholder() {
-        return ImmutableTopicPathPlaceholder.INSTANCE;
+        return TopicPathPlaceholder.getInstance();
     }
 
     /**

@@ -18,7 +18,7 @@ import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Aut
 import static org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaHeader.KAFKA_KEY;
 import static org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaHeader.KAFKA_TIMESTAMP;
 import static org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaHeader.KAFKA_TOPIC;
-import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
+import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -44,7 +44,7 @@ import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.junit.Before;
 import org.junit.Test;
 

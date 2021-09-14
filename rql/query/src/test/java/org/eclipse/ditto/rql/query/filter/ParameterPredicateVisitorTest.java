@@ -18,13 +18,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.rql.model.predicates.ast.LogicalNode;
+import org.eclipse.ditto.rql.model.predicates.ast.RootNode;
+import org.eclipse.ditto.rql.model.predicates.ast.SingleComparisonNode;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.rql.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.rql.model.predicates.ast.LogicalNode;
-import org.eclipse.ditto.rql.model.predicates.ast.RootNode;
-import org.eclipse.ditto.rql.model.predicates.ast.SingleComparisonNode;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,6 +36,10 @@ public final class ParameterPredicateVisitorTest {
     private static final String KNOWN_FIELD_NAME = FieldExpressionUtil.FIELD_NAME_THING_ID;
     private static final String KNOWN_FIELD_VALUE_1 = "value1";
     private static final String KNOWN_FIELD_VALUE_2 = "value2";
+
+    private static final String KNOWN_TOPIC = FieldExpressionUtil.FIELD_NAME_TOPIC_ACTION;
+    private static final String KNOWN_TOPIC_VALUE_CREATED = "created";
+    private static final String KNOWN_TOPIC_VALUE_DELETED = "deleted";
 
     private ParameterPredicateVisitor visitorUnderTest;
     private CriteriaFactory cf;
@@ -193,6 +197,17 @@ public final class ParameterPredicateVisitorTest {
         visitorUnderTest.visit(filterNode);
 
         final Criteria expectedCrit = cf.fieldCriteria(ef.filterBy(KNOWN_FIELD_NAME), cf.le(KNOWN_FIELD_VALUE_1));
+        Assertions.assertThat(visitorUnderTest.getCriteria()).containsExactly(expectedCrit);
+    }
+
+    @Test
+    public void filterNodeUsingTopic() {
+        final SingleComparisonNode filterNode =
+                new SingleComparisonNode(SingleComparisonNode.Type.EQ, KNOWN_TOPIC, KNOWN_TOPIC_VALUE_CREATED);
+
+        visitorUnderTest.visit(filterNode);
+
+        final Criteria expectedCrit = cf.fieldCriteria(ef.filterBy(KNOWN_TOPIC), cf.eq(KNOWN_TOPIC_VALUE_CREATED));
         Assertions.assertThat(visitorUnderTest.getCriteria()).containsExactly(expectedCrit);
     }
 

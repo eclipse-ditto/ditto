@@ -146,6 +146,9 @@ final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpressionFac
         if (FieldExpressionUtil.isDefinitionFieldName(propertyName)) {
             return new SimpleFieldExpressionImpl(propertyName);
         }
+        if (FieldExpressionUtil.isTopicFieldName(propertyName)) {
+            return new SimpleFieldExpressionImpl(propertyName);
+        }
 
         final String fieldName = simpleFieldMappings.get(propertyName);
         if (fieldName != null) {

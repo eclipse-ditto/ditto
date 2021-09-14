@@ -19,13 +19,14 @@ import java.util.Set;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.placeholders.Placeholder;
+import org.eclipse.ditto.rql.model.ParserException;
+import org.eclipse.ditto.rql.model.predicates.PredicateParser;
+import org.eclipse.ditto.rql.model.predicates.ast.RootNode;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.rql.query.things.ModelBasedThingsFieldExpressionFactory;
-import org.eclipse.ditto.rql.model.ParserException;
-import org.eclipse.ditto.rql.model.predicates.PredicateParser;
-import org.eclipse.ditto.rql.model.predicates.ast.RootNode;
 
 /**
  * The place for query filter manipulations
@@ -65,6 +66,19 @@ public final class QueryFilterCriteriaFactory {
      */
     public static QueryFilterCriteriaFactory modelBased(final PredicateParser predicateParser) {
         return of(ModelBasedThingsFieldExpressionFactory.getInstance(), predicateParser);
+    }
+
+    /**
+     * Retrieve the unique model-based query filter criteria factory.
+     *
+     * @param predicateParser the PredicateParser to use for parsing RQL strings.
+     * @param placeholders the {@link Placeholder}s to accept when parsing the fields of RQL strings.
+     * @return the model-based query filter criteria factory.
+     * @since 2.1.0
+     */
+    public static QueryFilterCriteriaFactory modelBased(final PredicateParser predicateParser,
+            final Placeholder<?>... placeholders) {
+        return of(ModelBasedThingsFieldExpressionFactory.createInstance(placeholders), predicateParser);
     }
 
     /**

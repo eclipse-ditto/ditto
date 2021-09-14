@@ -80,6 +80,11 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.PlaceholderResolver;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
@@ -117,6 +122,9 @@ public final class OutboundMappingProcessorActor
      * The name of the dispatcher that runs all mapping tasks and all message handling of this actor and its children.
      */
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
+
+    private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
+    private static final TopicPathPlaceholder TOPIC_PATH_PLACEHOLDER = TopicPathPlaceholder.getInstance();
 
     private final ThreadSafeDittoLoggingAdapter dittoLoggingAdapter;
 
@@ -181,9 +189,7 @@ public final class OutboundMappingProcessorActor
         final boolean customAckRequested = requestedAcks.stream()
                 .anyMatch(request -> !DittoAcknowledgementLabel.contains(request.getLabel()));
 
-        final Optional<EntityId> entityIdWithType = extractEntityId(signal)
-                .filter(EntityId.class::isInstance)
-                .map(EntityId.class::cast);
+        final Optional<EntityId> entityIdWithType = extractEntityId(signal);
         if (customAckRequested && entityIdWithType.isPresent()) {
             final List<AcknowledgementLabel> weakAckLabels = requestedAcks.stream()
                     .map(AcknowledgementRequest::getLabel)
@@ -638,13 +644,17 @@ public final class OutboundMappingProcessorActor
         if (filter.isPresent() && extraFields.isPresent()) {
             // evaluate filter criteria again if signal enrichment is involved.
             final Signal<?> signal = outboundSignalWithExtra.getSource();
+            final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
+            final PlaceholderResolver<TopicPath> topicPathPlaceholderResolver = PlaceholderFactory.newPlaceholderResolver(
+                    TOPIC_PATH_PLACEHOLDER, topicPath);
             final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-            final Criteria criteria = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance())
-                    .filterCriteria(filter.get(), dittoHeaders);
+            final Criteria criteria = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
+                            topicPathPlaceholderResolver
+                    ).filterCriteria(filter.get(), dittoHeaders);
             return outboundSignalWithExtra.getExtra()
                     .flatMap(extra -> ThingEventToThingConverter
                             .mergeThingWithExtraFields(signal, extraFields.get(), extra)
-                            .filter(ThingPredicateVisitor.apply(criteria))
+                            .filter(ThingPredicateVisitor.apply(criteria, topicPathPlaceholderResolver))
                             .map(thing -> outboundSignalWithExtra))
                     .map(Collections::singletonList)
                     .orElse(List.of());
