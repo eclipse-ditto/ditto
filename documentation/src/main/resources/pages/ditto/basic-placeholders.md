@@ -119,3 +119,4 @@ The following functions are provided by Ditto out of the box:
 | `fn:substring-after`  | `(String givenString)` | Parses the result of the previous expression and passes along only the characters _after_ the first occurrence of `givenString`.<br/>If `givenString` is not contained, this function will resolve to `empty`. | `fn:substring-after(':')`<br/>`fn:substring-after(":")` |
 | `fn:lower`    | `()` | Makes the String result of the previous expression lowercase in total. | `fn:lower()` |
 | `fn:upper`    | `()` | Makes the String result of the previous expression uppercase in total. | `fn:upper()` |
+| `fn:replace`  | `(String from, String to)`     | Replaces a string with another using Java's `String::replace` method. | `fn:replace('foo', 'bar')` |
