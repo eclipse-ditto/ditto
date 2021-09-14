@@ -1059,7 +1059,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private State<BaseClientState, BaseClientData> testingConnectionFailed(final ConnectionFailure event,
             final BaseClientData data) {
-        logger.info("{} failed: <{}>", stateName(), event.getFailure());
+        logger.info("{} failed: <{}>", stateName(), event);
         cleanupResourcesForConnection();
         data.getSessionSenders().forEach(sender ->
                 sender.first().tell(getStatusToReport(event.getFailure(), sender.second()), getSelf()));
@@ -1319,7 +1319,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final BaseClientData data) {
 
         return ifEventUpToDate(event, () -> {
-            logger.info("{} failed: <{}>", stateName(), event.getFailure());
+            logger.info("{} failed: <{}>", stateName(), event);
 
             cleanupResourcesForConnection();
             data.getSessionSenders().forEach(sender ->
@@ -1368,10 +1368,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     final var errorMessage =
                             String.format("Connection failed due to: {0}. Will reconnect after %s.", nextBackoff);
                     connectionLogger.failure(errorMessage, event.getFailureDescription());
-                    logger.info("Connection failed: {}. Reconnect after {}.", event, nextBackoff);
-                    return goToConnecting(nextBackoff).using(data.resetSession()
-                                    .increaseFailureCount()
-                                    .setConnectionStatus(connectivityStatusResolver.resolve(event))
+                    final ConnectivityStatus resolvedStatus = connectivityStatusResolver.resolve(event);
+                    logger.info("Connection failed: {}. Reconnect after: {}. Resolved status: {}. " +
+                                    "Going to 'CONNECTING'", event, nextBackoff, resolvedStatus);
+                    return goToConnecting(nextBackoff).using(data.increaseFailureCount()
+                                    .setConnectionStatus(resolvedStatus)
                                     .setConnectionStatusDetails(event.getFailureDescription())
                             );
                 }
