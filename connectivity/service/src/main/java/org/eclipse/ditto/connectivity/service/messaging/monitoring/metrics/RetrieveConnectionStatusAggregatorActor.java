@@ -188,6 +188,9 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
         final boolean anyMisconfigured = resourceStatus.stream()
                 .map(ResourceStatus::getStatus)
                 .anyMatch(ConnectivityStatus.MISCONFIGURED::equals);
+        final boolean anyUnknown = resourceStatus.stream()
+                .map(ResourceStatus::getStatus)
+                .anyMatch(ConnectivityStatus.UNKNOWN::equals);
         final boolean allClosed = resourceStatus.stream()
                 .map(ResourceStatus::getStatus)
                 .allMatch(ConnectivityStatus.CLOSED::equals);
@@ -203,6 +206,12 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
             liveStatus = ConnectivityStatus.MISCONFIGURED;
         } else if (allClosed) {
             liveStatus = ConnectivityStatus.CLOSED;
+        } else if (anyUnknown) {
+            final boolean allClientsOpen = resourceStatus.stream()
+                    .filter(p -> p.getResourceType() == ResourceStatus.ResourceType.CLIENT)
+                    .map(ResourceStatus::getStatus)
+                    .allMatch(ConnectivityStatus.OPEN::equals);
+            liveStatus = allClientsOpen ? ConnectivityStatus.OPEN : ConnectivityStatus.UNKNOWN;
         } else {
             liveStatus = ConnectivityStatus.UNKNOWN;
         }
