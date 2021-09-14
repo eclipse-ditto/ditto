@@ -29,6 +29,8 @@ import org.eclipse.ditto.things.model.ThingException;
 
 /**
  * Thrown when validating a condition on a Thing or one of its sub-entities is failing.
+ *
+ * @since 2.1.0
  */
 @Immutable
 @JsonParsableException(errorCode = ThingConditionFailedException.ERROR_CODE)
@@ -52,6 +54,8 @@ public final class ThingConditionFailedException extends DittoRuntimeException i
     private static final String DESCRIPTION_FOR_INSUFFICIENT_PERMISSION =
             "Check if you have sufficient permissions to access the specified resource (READ permission is required).";
 
+    private static final long serialVersionUID = -7691746640682353615L;
+
     private ThingConditionFailedException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
@@ -61,35 +65,35 @@ public final class ThingConditionFailedException extends DittoRuntimeException i
     }
 
     /**
-     * A mutable builder for a {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException}.
+     * A mutable builder.
      *
      * @param condition the condition to apply for the request.
      * @return the builder.
      */
-    public static Builder newBuilder(final String condition) {
-        return new Builder(condition);
+    public static DittoRuntimeExceptionBuilder<ThingConditionFailedException> newBuilder(final String condition, final DittoHeaders dittoHeaders) {
+        return new Builder(condition).dittoHeaders(dittoHeaders);
     }
 
     /**
-     * A mutable builder for a {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException}.
+     * A mutable builder.
      *
      * @param condition the condition to apply for the request.
      * @return the builder.
      */
     public static DittoRuntimeExceptionBuilder<ThingConditionFailedException> newBuilderForInsufficientPermission(
-            final String condition) {
-        return new Builder(condition)
+            final String condition, final DittoHeaders dittoHeaders) {
+        return newBuilder(condition, dittoHeaders)
                 .message(MessageFormat.format(MESSAGE_TEMPLATE_FOR_INSUFFICIENT_PERMISSION, condition))
                 .description(DESCRIPTION_FOR_INSUFFICIENT_PERMISSION);
     }
 
     /**
-     * Constructs a new {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException}
+     * Constructs a new {@code ThingConditionFailedException}
      * object with the exception message extracted from the given JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException}.
+     * @return the new {@code ThingConditionFailedException}.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected

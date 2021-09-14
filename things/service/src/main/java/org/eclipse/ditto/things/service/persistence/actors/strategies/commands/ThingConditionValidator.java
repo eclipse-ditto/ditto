@@ -71,8 +71,7 @@ final class ThingConditionValidator {
         if (predicate.test(entity)) {
             validationError = null;
         } else {
-            validationError = ThingConditionFailedException.newBuilder(condition)
-                    .dittoHeaders(dittoHeaders)
+            validationError = ThingConditionFailedException.newBuilder(condition, dittoHeaders)
                     .build();
         }
         return Optional.ofNullable(validationError);

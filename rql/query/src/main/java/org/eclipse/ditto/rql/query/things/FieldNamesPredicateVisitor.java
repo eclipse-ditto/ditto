@@ -28,6 +28,8 @@ import org.eclipse.ditto.rql.model.predicates.ast.SingleComparisonNode;
 
 /**
  * Visitor for extracting fields of an RQL expression.
+ *
+ * @since 2.1.0
  */
 @NotThreadSafe
 public final class FieldNamesPredicateVisitor implements PredicateVisitor {
