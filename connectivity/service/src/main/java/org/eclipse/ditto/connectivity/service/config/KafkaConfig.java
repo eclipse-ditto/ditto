@@ -28,6 +28,13 @@ public interface KafkaConfig {
     KafkaConsumerConfig getConsumerConfig();
 
     /**
+     * Returns the configuration for committing Kafka messages.
+     *
+     * @return the configuration.
+     */
+    KafkaCommitterConfig getCommitterConfig();
+
+    /**
      * Returns the configuration for Kafka producer.
      *
      * @return the configuration.

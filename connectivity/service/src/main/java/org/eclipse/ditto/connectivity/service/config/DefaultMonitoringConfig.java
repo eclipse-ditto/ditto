@@ -27,7 +27,7 @@ import com.typesafe.config.Config;
  * Config reader that provides access to the monitoring config values of a connection.
  */
 @Immutable
-public final class DefaultMonitoringConfig implements MonitoringConfig {
+final class DefaultMonitoringConfig implements MonitoringConfig {
 
     private static final String CONFIG_PATH = "monitoring";
 

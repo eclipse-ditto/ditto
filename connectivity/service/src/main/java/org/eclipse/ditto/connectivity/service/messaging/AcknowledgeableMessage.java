@@ -56,4 +56,11 @@ public final class AcknowledgeableMessage {
         return message;
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "message=" + message +
+                "]";
+    }
+
 }

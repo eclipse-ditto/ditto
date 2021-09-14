@@ -27,7 +27,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link Amqp091Config}.
  */
 @Immutable
-public final class DefaultAmqp091Config implements Amqp091Config {
+final class DefaultAmqp091Config implements Amqp091Config {
 
     private static final String CONFIG_PATH = "amqp091";
 

@@ -19,6 +19,7 @@ import java.util.Set;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
+import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 
 /**
  * Rate limiter for unacknowledged messages and total messages.
@@ -54,18 +55,18 @@ final class MessageRateLimiter<S> {
      */
     private int consumedInPeriod = 0;
 
-    private MessageRateLimiter(final int maxPerPeriod, final int maxInFlight,
+    private MessageRateLimiter(final ConnectionThrottlingConfig connectionThrottlingConfig,
             final Duration redeliveryExpectationTimeout, final boolean enabled) {
-        this.maxPerPeriod = Math.max(maxPerPeriod, 1);
-        this.maxInFlight = Math.max(maxInFlight, 1);
+        this.maxPerPeriod = connectionThrottlingConfig.getLimit();
+        this.maxInFlight = connectionThrottlingConfig.getMaxInFlight();
         this.redeliveryExpectationTimeout = maxDuration(redeliveryExpectationTimeout, Duration.ofSeconds(1L));
         this.enabled = enabled;
     }
 
-    private MessageRateLimiter(final int maxPerPeriod, final int maxInFlight,
+    private MessageRateLimiter(final ConnectionThrottlingConfig connectionThrottlingConfig,
             final Duration redeliveryExpectationTimeout, final MessageRateLimiter<S> existingLimiter) {
-        this.maxPerPeriod = Math.max(maxPerPeriod, 1);
-        this.maxInFlight = Math.max(maxInFlight, 1);
+        this.maxPerPeriod = connectionThrottlingConfig.getLimit();
+        this.maxInFlight = connectionThrottlingConfig.getMaxInFlight();
         this.redeliveryExpectationTimeout = maxDuration(redeliveryExpectationTimeout, Duration.ofSeconds(1L));
         this.enabled = existingLimiter.enabled;
         this.isConsumerOpen = existingLimiter.isConsumerOpen;
@@ -75,13 +76,15 @@ final class MessageRateLimiter<S> {
     }
 
     static <S> MessageRateLimiter<S> of(final Amqp10Config config, final boolean enabled) {
-        return new MessageRateLimiter<>(config.getConsumerThrottlingLimit(), config.getConsumerMaxInFlight(),
-                config.getConsumerRedeliveryExpectationTimeout(), enabled);
+        return new MessageRateLimiter<>(config.getConsumerConfig().getThrottlingConfig(),
+                config.getConsumerConfig().getRedeliveryExpectationTimeout(),
+                enabled);
     }
 
     static <S> MessageRateLimiter<S> of(final Amqp10Config config, final MessageRateLimiter<S> existingLimiter) {
-        return new MessageRateLimiter<>(config.getConsumerThrottlingLimit(), config.getConsumerMaxInFlight(),
-                config.getConsumerRedeliveryExpectationTimeout(), existingLimiter);
+        return new MessageRateLimiter<>(config.getConsumerConfig().getThrottlingConfig(),
+                config.getConsumerConfig().getRedeliveryExpectationTimeout(),
+                existingLimiter);
     }
 
     /**

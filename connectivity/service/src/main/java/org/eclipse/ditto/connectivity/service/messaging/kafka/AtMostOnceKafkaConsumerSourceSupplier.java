@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.util.function.Supplier;
+
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import akka.kafka.AutoSubscription;
@@ -21,15 +23,17 @@ import akka.kafka.javadsl.Consumer;
 import akka.stream.javadsl.Source;
 
 /**
- * Default implementation of {@code KafkaConsumerSourceProvider}.
+ * Supplies a {@link Source} of {@link org.apache.kafka.clients.consumer.ConsumerRecord}s retaining a
+ * {@link akka.kafka.javadsl.Consumer.Control} in order to be able to shutdown/terminate Kafka consumption.
  */
-public class DefaultKafkaConsumerSourceSupplier implements KafkaConsumerSourceSupplier {
+class AtMostOnceKafkaConsumerSourceSupplier
+        implements Supplier<Source<ConsumerRecord<String, String>, Consumer.Control>> {
 
-    final PropertiesFactory propertiesFactory;
-    final String sourceAddress;
-    final boolean dryRun;
+    private final PropertiesFactory propertiesFactory;
+    private final String sourceAddress;
+    private final boolean dryRun;
 
-    DefaultKafkaConsumerSourceSupplier(
+    AtMostOnceKafkaConsumerSourceSupplier(
             final PropertiesFactory propertiesFactory, final String sourceAddress, final boolean dryRun) {
         this.propertiesFactory = propertiesFactory;
         this.sourceAddress = sourceAddress;
@@ -42,4 +46,5 @@ public class DefaultKafkaConsumerSourceSupplier implements KafkaConsumerSourceSu
         final AutoSubscription subscription = Subscriptions.topics(sourceAddress);
         return Consumer.plainSource(consumerSettings, subscription);
     }
+
 }
