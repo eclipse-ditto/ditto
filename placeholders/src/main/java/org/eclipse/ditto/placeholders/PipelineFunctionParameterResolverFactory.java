@@ -260,7 +260,7 @@ final class PipelineFunctionParameterResolverFactory {
             final List<PipelineElement> parameters = new ArrayList<>(amount);
             for (int parameterIndex = startIndex; parameterIndex < startIndex + amount; parameterIndex++) {
                 final Optional<PipelineElement> applied = apply(matcher, parameterIndex, resolver);
-                if (!optional && applied.isEmpty()) {
+                if (!optional && !applied.isPresent()) {
                     throw PlaceholderFunctionSignatureInvalidException.newBuilder(
                             paramsIncludingParentheses,
                             pipelineFunction).build();
