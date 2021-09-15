@@ -26,7 +26,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link BackOffConfig}.
  */
 @Immutable
-public final class DefaultBackOffConfig implements BackOffConfig {
+final class DefaultBackOffConfig implements BackOffConfig {
 
     private static final String CONFIG_PATH = "backoff";
 

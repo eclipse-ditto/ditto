@@ -13,7 +13,6 @@
 package org.eclipse.ditto.internal.utils.persistentactors;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.concurrent.ThreadLocalRandom;
 
 import javax.annotation.Nullable;
@@ -22,6 +21,7 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
@@ -55,13 +55,11 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     @Nullable private ActorRef child;
 
     private final ExponentialBackOffConfig exponentialBackOffConfig;
-    private Instant lastRestart;
-    private Duration restartDelay;
+    private ExponentialBackOff backOff;
 
     protected AbstractPersistenceSupervisor() {
         exponentialBackOffConfig = getExponentialBackOffConfig();
-        lastRestart = Instant.now();
-        restartDelay = Duration.ZERO; // set to min backoff on next child termination
+        backOff = ExponentialBackOff.initial(exponentialBackOffConfig);
     }
 
     /**
@@ -179,35 +177,14 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
             log.warning("Persistence actor for entity with ID <{}> terminated abnormally.", entityId);
         }
         child = null;
-        restartDelay = calculateRestartDelay();
+        backOff = backOff.calculateNextBackOff();
+        final Duration restartDelay = backOff.getRestartDelay();
         getTimers().startSingleTimer(Control.START_CHILD, Control.START_CHILD, restartDelay);
     }
 
     private Duration getCorruptedReceiveTimeout() {
         return randomize(exponentialBackOffConfig.getCorruptedReceiveTimeout(),
                 exponentialBackOffConfig.getRandomFactor());
-    }
-
-    private Duration calculateRestartDelay() {
-        final Duration minBackOff = exponentialBackOffConfig.getMin();
-        final Duration maxBackOff = exponentialBackOffConfig.getMax();
-        final Instant now = Instant.now();
-        final Duration sinceLastError = Duration.between(lastRestart, now);
-        lastRestart = now;
-        if (maxBackOff.minus(sinceLastError.dividedBy(2L)).isNegative()) {
-            // no restart for 2*maxBackOff; reset to minBackOff.
-            return minBackOff;
-        } else {
-            // increase delay.
-            final double randomFactor = exponentialBackOffConfig.getRandomFactor();
-            return calculateNextBackOff(minBackOff, restartDelay, maxBackOff, randomFactor);
-        }
-    }
-
-    private static Duration calculateNextBackOff(final Duration minBackOff, final Duration restartDelay,
-            final Duration maxBackOff, final double randomFactor) {
-        final Duration nextBackoff = restartDelay.plus(randomize(restartDelay, randomFactor));
-        return boundDuration(minBackOff, nextBackoff, maxBackOff);
     }
 
     /**
@@ -220,16 +197,6 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     private static Duration randomize(final Duration base, final double randomFactor) {
         final double multiplier = 1.0 + ThreadLocalRandom.current().nextDouble() * randomFactor;
         return Duration.ofMillis((long) (base.toMillis() * multiplier));
-    }
-
-    private static Duration boundDuration(final Duration min, final Duration duration, final Duration max) {
-        if (duration.minus(min).isNegative()) {
-            return min;
-        } else if (max.minus(duration).isNegative()) {
-            return max;
-        } else {
-            return duration;
-        }
     }
 
     /**

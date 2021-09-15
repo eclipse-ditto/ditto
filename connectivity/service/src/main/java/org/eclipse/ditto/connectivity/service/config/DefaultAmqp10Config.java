@@ -18,7 +18,6 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 
@@ -32,17 +31,12 @@ import com.typesafe.config.ConfigFactory;
 public final class DefaultAmqp10Config implements Amqp10Config, WithStringMapDecoding {
 
     private static final String CONFIG_PATH = "amqp10";
-    private static final String CONSUMER_PATH = "consumer";
     private static final String BACKOFF_PATH = "backoff";
 
-    private final boolean consumerRateLimitEnabled;
-    private final int consumerMaxInFlight;
-    private final Duration consumerRedeliveryExpectationTimeout;
+    private final Amqp10ConsumerConfig consumerConfig;
+    private final Amqp10PublisherConfig publisherConfig;
     private final int producerCacheSize;
     private final BackOffConfig backOffConfig;
-    private final ThrottlingConfig consumerThrottlingConfig;
-    private final int maxQueueSize;
-    private final int messagePublishingParallelism;
     private final Duration globalConnectTimeout;
     private final Duration globalSendTimeout;
     private final Duration globalRequestTimeout;
@@ -50,19 +44,12 @@ public final class DefaultAmqp10Config implements Amqp10Config, WithStringMapDec
     private final Map<String, String> hmacAlgorithms;
 
     private DefaultAmqp10Config(final ScopedConfig config) {
-        consumerRateLimitEnabled = config.getBoolean(Amqp10ConfigValue.CONSUMER_RATE_LIMIT_ENABLED.getConfigPath());
-        consumerMaxInFlight = config.getNonNegativeIntOrThrow(Amqp10ConfigValue.CONSUMER_MAX_IN_FLIGHT);
-        consumerRedeliveryExpectationTimeout =
-                config.getNonNegativeAndNonZeroDurationOrThrow(Amqp10ConfigValue.CONSUMER_REDELIVERY_EXPECTATION_TIMEOUT);
+        consumerConfig = DefaultAmqp10ConsumerConfig.of(config);
+        publisherConfig = DefaultAmqp10PublisherConfig.of(config);
         producerCacheSize = config.getPositiveIntOrThrow(Amqp10ConfigValue.PRODUCER_CACHE_SIZE);
         backOffConfig = DefaultBackOffConfig.of(config.hasPath(BACKOFF_PATH)
                 ? config
                 : ConfigFactory.parseString(BACKOFF_PATH + "={}"));
-        consumerThrottlingConfig = ThrottlingConfig.of(config.hasPath(CONSUMER_PATH)
-                ? config.getConfig(CONSUMER_PATH)
-                : ConfigFactory.empty());
-        maxQueueSize = config.getNonNegativeIntOrThrow(Amqp10ConfigValue.MAX_QUEUE_SIZE);
-        messagePublishingParallelism = config.getNonNegativeIntOrThrow(Amqp10ConfigValue.MESSAGE_PUBLISHING_PARALLELISM);
         globalConnectTimeout = config.getNonNegativeDurationOrThrow(Amqp10ConfigValue.GLOBAL_CONNECT_TIMEOUT);
         globalSendTimeout = config.getNonNegativeDurationOrThrow(Amqp10ConfigValue.GLOBAL_SEND_TIMEOUT);
         globalRequestTimeout = config.getNonNegativeDurationOrThrow(Amqp10ConfigValue.GLOBAL_REQUEST_TIMEOUT);
@@ -83,23 +70,13 @@ public final class DefaultAmqp10Config implements Amqp10Config, WithStringMapDec
     }
 
     @Override
-    public boolean isConsumerRateLimitEnabled() {
-        return consumerRateLimitEnabled;
+    public Amqp10ConsumerConfig getConsumerConfig() {
+        return consumerConfig;
     }
 
     @Override
-    public int getConsumerMaxInFlight() {
-        return consumerMaxInFlight;
-    }
-
-    @Override
-    public Duration getConsumerRedeliveryExpectationTimeout() {
-        return consumerRedeliveryExpectationTimeout;
-    }
-
-    @Override
-    public ThrottlingConfig getConsumerThrottlingConfig() {
-        return consumerThrottlingConfig;
+    public Amqp10PublisherConfig getPublisherConfig() {
+        return publisherConfig;
     }
 
     @Override
@@ -110,16 +87,6 @@ public final class DefaultAmqp10Config implements Amqp10Config, WithStringMapDec
     @Override
     public BackOffConfig getBackOffConfig() {
         return backOffConfig;
-    }
-
-    @Override
-    public int getMaxQueueSize() {
-        return maxQueueSize;
-    }
-
-    @Override
-    public int getPublisherParallelism() {
-        return messagePublishingParallelism;
     }
 
     @Override
@@ -156,15 +123,11 @@ public final class DefaultAmqp10Config implements Amqp10Config, WithStringMapDec
             return false;
         }
         final DefaultAmqp10Config that = (DefaultAmqp10Config) o;
-        return consumerRateLimitEnabled == that.consumerRateLimitEnabled &&
-                consumerMaxInFlight == that.consumerMaxInFlight &&
+        return Objects.equals(consumerConfig, that.consumerConfig) &&
+                Objects.equals(publisherConfig, that.publisherConfig) &&
                 producerCacheSize == that.producerCacheSize &&
                 globalPrefetchPolicyAllCount == that.globalPrefetchPolicyAllCount &&
-                Objects.equals(consumerRedeliveryExpectationTimeout, that.consumerRedeliveryExpectationTimeout) &&
                 Objects.equals(backOffConfig, that.backOffConfig) &&
-                maxQueueSize == that.maxQueueSize &&
-                messagePublishingParallelism == that.messagePublishingParallelism &&
-                Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig) &&
                 Objects.equals(globalConnectTimeout, that.globalConnectTimeout) &&
                 Objects.equals(globalSendTimeout, that.globalSendTimeout) &&
                 Objects.equals(globalRequestTimeout, that.globalRequestTimeout) &&
@@ -173,23 +136,17 @@ public final class DefaultAmqp10Config implements Amqp10Config, WithStringMapDec
 
     @Override
     public int hashCode() {
-        return Objects.hash(consumerRateLimitEnabled, consumerMaxInFlight, consumerRedeliveryExpectationTimeout,
-                producerCacheSize, backOffConfig, consumerThrottlingConfig, maxQueueSize,
-                messagePublishingParallelism, globalConnectTimeout, globalSendTimeout, globalRequestTimeout,
-                globalPrefetchPolicyAllCount, hmacAlgorithms);
+        return Objects.hash(consumerConfig, publisherConfig, producerCacheSize, backOffConfig, globalConnectTimeout,
+                globalSendTimeout, globalRequestTimeout, globalPrefetchPolicyAllCount, hmacAlgorithms);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "consumerRateLimitEnabled=" + consumerRateLimitEnabled +
-                ", consumerMaxInFlight=" + consumerMaxInFlight +
-                ", consumerRedeliveryExpectationTimeout=" + consumerRedeliveryExpectationTimeout +
+                "consumerConfig=" + consumerConfig +
+                ", publisherConfig=" + publisherConfig +
                 ", producerCacheSize=" + producerCacheSize +
                 ", backOffConfig=" + backOffConfig +
-                ", consumerThrottlingConfig=" + consumerThrottlingConfig +
-                ", maxQueueSize=" + maxQueueSize +
-                ", messagePublishingParallelism=" + messagePublishingParallelism +
                 ", globalConnectTimeout=" + globalConnectTimeout +
                 ", globalSendTimeout=" + globalSendTimeout +
                 ", globalRequestTimeout=" + globalRequestTimeout +

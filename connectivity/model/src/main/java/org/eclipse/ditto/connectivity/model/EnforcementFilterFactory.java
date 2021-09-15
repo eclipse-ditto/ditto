@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.model;
 
+import javax.annotation.Nullable;
+
 /**
  * Factory that creates {@link EnforcementFilter}s. As part of the creation the input value is resolved and can
  * later be matched against other values.
@@ -27,5 +29,6 @@ public interface EnforcementFilterFactory<I, M> {
      * @param input the source from which the input value is resolved
      * @return a new instance of an {@link EnforcementFilter}
      */
+    @Nullable
     EnforcementFilter<M> getFilter(I input);
 }
