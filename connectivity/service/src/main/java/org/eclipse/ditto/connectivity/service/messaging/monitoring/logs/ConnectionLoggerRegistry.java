@@ -213,7 +213,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             resetForConnectionId(connectionId);
         } catch (final Exception e) {
             LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
-                    .error("Failed muting loggers for connection <{}>. Reason: <{}>", connectionId, e);
+                    .error("Failed muting loggers for connection <{}>. Reason: <{}>.", connectionId, e);
         }
     }
 
@@ -233,7 +233,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             startMetadata(connectionId);
         } catch (final Exception e) {
             LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
-                    .error("Failed unmuting loggers for connection <{}>. Reason: <{}>", connectionId, e);
+                    .error("Failed unmuting loggers for connection <{}>. Reason: <{}>.", connectionId, e);
         }
     }
 
@@ -269,7 +269,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             initLogger(connectionId);
         } catch (final Exception e) {
             LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
-                    .error("Failed initializing loggers for connection <{}>. Reason: <{}>", connectionId, e);
+                    .error("Failed initializing loggers for connection <{}>. Reason: <{}>.", connectionId, e);
         }
     }
 
@@ -297,7 +297,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             resetForConnectionId(connectionId);
         } catch (final Exception e) {
             LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
-                    .error("Failed resetting loggers for connection <{}>. Reason: <{}>", connectionId, e);
+                    .error("Failed resetting loggers for connection <{}>. Reason: <{}>.", connectionId, e);
         }
     }
 

@@ -100,7 +100,7 @@ public final class ExceptionalConnectionLogger implements ConnectionLogger {
 
     @Override
     public void clear() {
-        logger.trace("Not clearing logs since logger is exceptional");
+        logger.trace("Not clearing logs since logger is exceptional.");
     }
 
     @Override

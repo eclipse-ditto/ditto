@@ -160,7 +160,7 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
         try {
             runnable.run();
         } catch (final Exception e) {
-            logger.error("Encountered exception: <{}> in connection logger: <{}>. Switching delegate to: <{}>", e,
+            logger.error("Encountered exception: <{}> in connection logger: <{}>. Switching delegate to: <{}>.", e,
                     this, ExceptionalConnectionLogger.class.getSimpleName());
             delegate = ConnectionLoggerFactory.newExceptionalLogger(connectionId, e);
         }
