@@ -24,7 +24,6 @@ import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.internal.utils.health.config.PersistenceConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -93,7 +92,7 @@ public final class ConciergeRootActor extends DittoRootActor {
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
 
         return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props())
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, null)
         );
     }
 
