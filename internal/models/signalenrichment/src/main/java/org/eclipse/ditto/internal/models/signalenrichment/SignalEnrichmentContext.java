@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.cache;
+package org.eclipse.ditto.internal.models.signalenrichment;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -18,26 +18,23 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.json.JsonFieldSelector;
 
 /**
- * Immutable implementation of {@link CacheLookupContext}.
+ * Immutable implementation of {@link org.eclipse.ditto.internal.utils.cache.CacheLookupContext}.
  */
 @Immutable
-final class ImmutableCacheLookupContext implements CacheLookupContext {
+final class SignalEnrichmentContext implements CacheLookupContext {
 
     @Nullable private final DittoHeaders dittoHeaders;
     @Nullable private final JsonFieldSelector jsonFieldSelector;
-    @Nullable private final PersistenceLifecycle persistenceLifecycle;
 
-    private ImmutableCacheLookupContext(@Nullable final DittoHeaders dittoHeaders,
-            @Nullable final JsonFieldSelector jsonFieldSelector,
-            @Nullable final PersistenceLifecycle persistenceLifecycle) {
+    private SignalEnrichmentContext(@Nullable final DittoHeaders dittoHeaders,
+            @Nullable final JsonFieldSelector jsonFieldSelector) {
         this.dittoHeaders = dittoHeaders;
         this.jsonFieldSelector = jsonFieldSelector;
-        this.persistenceLifecycle = persistenceLifecycle;
     }
 
     /**
@@ -46,29 +43,31 @@ final class ImmutableCacheLookupContext implements CacheLookupContext {
      *
      * @param dittoHeaders the DittoHeaders to use as key in the cache lookup context.
      * @param jsonFieldSelector the JsonFieldSelector to use in the cache lookup context.
-     * @param persistenceLifecycle the persistence lifecycle of the looked up entity.
      * @return the created context.
      */
-    static CacheLookupContext of(@Nullable final DittoHeaders dittoHeaders,
-            @Nullable final JsonFieldSelector jsonFieldSelector,
-            @Nullable final PersistenceLifecycle persistenceLifecycle) {
+    static SignalEnrichmentContext of(@Nullable final DittoHeaders dittoHeaders,
+            @Nullable final JsonFieldSelector jsonFieldSelector) {
 
-        return new ImmutableCacheLookupContext(dittoHeaders, jsonFieldSelector, persistenceLifecycle);
+        return new SignalEnrichmentContext(dittoHeaders, jsonFieldSelector);
     }
 
-    @Override
+    /**
+     * Returns the optional DittoHeaders this context provides.
+     *
+     * @return the optional DittoHeaders.
+     */
     public Optional<DittoHeaders> getDittoHeaders() {
         return Optional.ofNullable(dittoHeaders);
     }
 
-    @Override
+
+    /**
+     * Returns the optional JsonFieldSelector this context provides.
+     *
+     * @return the optional JsonFieldSelector.
+     */
     public Optional<JsonFieldSelector> getJsonFieldSelector() {
         return Optional.ofNullable(jsonFieldSelector);
-    }
-
-    @Override
-    public Optional<PersistenceLifecycle> getPersistenceLifecycle() {
-        return Optional.ofNullable(persistenceLifecycle);
     }
 
     @Override
@@ -79,15 +78,14 @@ final class ImmutableCacheLookupContext implements CacheLookupContext {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final ImmutableCacheLookupContext that = (ImmutableCacheLookupContext) o;
+        final SignalEnrichmentContext that = (SignalEnrichmentContext) o;
         return Objects.equals(dittoHeaders, that.dittoHeaders) &&
-                Objects.equals(jsonFieldSelector, that.jsonFieldSelector) &&
-                Objects.equals(persistenceLifecycle, that.persistenceLifecycle);
+                Objects.equals(jsonFieldSelector, that.jsonFieldSelector);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(dittoHeaders, jsonFieldSelector, persistenceLifecycle);
+        return Objects.hash(dittoHeaders, jsonFieldSelector);
     }
 
     @Override
@@ -95,7 +93,6 @@ final class ImmutableCacheLookupContext implements CacheLookupContext {
         return getClass().getSimpleName() + " [" +
                 "dittoHeaders=" + dittoHeaders +
                 ", jsonFieldSelector=" + jsonFieldSelector +
-                ", persistenceLifecycle=" + persistenceLifecycle +
                 "]";
     }
 }

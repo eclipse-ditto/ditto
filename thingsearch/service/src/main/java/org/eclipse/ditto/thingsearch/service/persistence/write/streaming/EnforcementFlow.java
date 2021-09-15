@@ -26,6 +26,7 @@ import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
@@ -65,13 +66,13 @@ final class EnforcementFlow {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final CachingSignalEnrichmentFacade thingsFacade;
-    private final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache;
+    private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
     private final Duration cacheRetryDelay;
     private final int maxArraySize;
     private final boolean deleteImmediately;
 
     private EnforcementFlow(final ActorRef thingsShardRegion,
-            final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
+            final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
             final AskWithRetryConfig askWithRetryConfig,
             final StreamCacheConfig streamCacheConfig,
             final int maxArraySize,
@@ -106,9 +107,9 @@ final class EnforcementFlow {
         final var streamCacheConfig = updaterStreamConfig.getCacheConfig();
         final var deleteImmediately = updaterStreamConfig.isDeleteImmediately();
 
-        final AsyncCacheLoader<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
+        final AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askWithRetryConfig, scheduler, policiesShardRegion);
-        final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache =
+        final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, streamCacheConfig,
                                 "things-search_enforcementflow_enforcer_cache_policy", cacheDispatcher)
                         .projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
@@ -118,8 +119,8 @@ final class EnforcementFlow {
                 deleteImmediately);
     }
 
-    private static CacheKey getPolicyCacheKey(final PolicyId policyId) {
-        return CacheKey.of(policyId);
+    private static EnforcementCacheKey getPolicyCacheKey(final PolicyId policyId) {
+        return EnforcementCacheKey.of(policyId);
     }
 
     /**
@@ -254,7 +255,7 @@ final class EnforcementFlow {
     }
 
     private Source<Entry<Enforcer>, NotUsed> readCachedEnforcer(final Metadata metadata,
-            final CacheKey policyId, final int iteration) {
+            final EnforcementCacheKey policyId, final int iteration) {
 
         final Source<Entry<Enforcer>, ?> lazySource = Source.lazySource(() -> {
             final CompletionStage<Source<Entry<Enforcer>, NotUsed>> enforcerFuture = policyEnforcerCache.get(policyId)

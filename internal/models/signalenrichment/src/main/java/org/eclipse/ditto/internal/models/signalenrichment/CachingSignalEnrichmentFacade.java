@@ -53,7 +53,7 @@ public final class CachingSignalEnrichmentFacade implements
     private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory
             .getThreadSafeLogger(CachingSignalEnrichmentFacade.class);
 
-    private final Cache<CacheKey, JsonObject> extraFieldsCache;
+    private final Cache<SignalEnrichmentCacheKey, JsonObject> extraFieldsCache;
 
     private CachingSignalEnrichmentFacade(
             final SignalEnrichmentFacade cacheLoaderFacade,
@@ -110,7 +110,7 @@ public final class CachingSignalEnrichmentFacade implements
             final long minAcceptableSeqNr) {
         if (minAcceptableSeqNr < 0) {
             final var cacheKey =
-                    CacheKey.of(thingId, CacheFactory.newCacheLookupContext(DittoHeaders.empty(), null, null));
+                    SignalEnrichmentCacheKey.of(thingId, SignalEnrichmentContext.of(DittoHeaders.empty(), null));
             extraFieldsCache.invalidate(cacheKey);
             return doCacheLookup(cacheKey, DittoHeaders.empty());
         } else {
@@ -135,8 +135,8 @@ public final class CachingSignalEnrichmentFacade implements
                     .build();
         }
 
-        final var idWithResourceType =
-                CacheKey.of(thingId, CacheFactory.newCacheLookupContext(dittoHeaders, enhancedFieldSelector, null));
+        final var idWithResourceType = SignalEnrichmentCacheKey.of(thingId,
+                SignalEnrichmentContext.of(dittoHeaders, enhancedFieldSelector));
 
         return smartUpdateCachedObject(enhancedFieldSelector, idWithResourceType, concernedSignals,
                 invalidateCacheOnPolicyChange, minAcceptableSeqNr);
@@ -185,7 +185,7 @@ public final class CachingSignalEnrichmentFacade implements
         return Optional.of(events);
     }
 
-    private CompletableFuture<JsonObject> doCacheLookup(final CacheKey idWithResourceType,
+    private CompletableFuture<JsonObject> doCacheLookup(final SignalEnrichmentCacheKey idWithResourceType,
             final DittoHeaders dittoHeaders) {
 
         LOGGER.withCorrelationId(dittoHeaders)
@@ -196,7 +196,7 @@ public final class CachingSignalEnrichmentFacade implements
 
     private CompletableFuture<JsonObject> smartUpdateCachedObject(
             @Nullable final JsonFieldSelector enhancedFieldSelector,
-            final CacheKey idWithResourceType,
+            final SignalEnrichmentCacheKey idWithResourceType,
             final List<? extends Signal<?>> concernedSignals,
             final boolean invalidateCacheOnPolicyChange,
             final long minAcceptableSeqNr) {
@@ -266,7 +266,7 @@ public final class CachingSignalEnrichmentFacade implements
 
     private CompletionStage<JsonObject> handleNextExpectedThingEvents(
             @Nullable final JsonFieldSelector enhancedFieldSelector,
-            final CacheKey idWithResourceType,
+            final SignalEnrichmentCacheKey idWithResourceType,
             final List<ThingEvent<?>> thingEvents,
             final JsonObject cachedJsonObject,
             final boolean invalidateCacheOnPolicyChange) {

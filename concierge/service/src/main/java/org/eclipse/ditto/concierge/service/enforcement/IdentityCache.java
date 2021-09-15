@@ -10,58 +10,59 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.cacheloaders;
+package org.eclipse.ditto.concierge.service.enforcement;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 
 import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 
 /**
  * Cache that returns the key as result.
  */
-public final class IdentityCache implements Cache<CacheKey, Entry<CacheKey>> {
+final class IdentityCache implements Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> {
 
     /**
      * The single instance of this cache.
      */
-    public static final IdentityCache INSTANCE = new IdentityCache();
+    static final IdentityCache INSTANCE = new IdentityCache();
 
     private IdentityCache() {
 
     }
 
     @Override
-    public CompletableFuture<Optional<Entry<CacheKey>>> get(final CacheKey key) {
+    public CompletableFuture<Optional<Entry<EnforcementCacheKey>>> get(final EnforcementCacheKey key) {
         return CompletableFuture.completedFuture(getBlocking(key));
     }
 
     @Override
-    public CompletableFuture<Optional<Entry<CacheKey>>> getIfPresent(final CacheKey key) {
+    public CompletableFuture<Optional<Entry<EnforcementCacheKey>>> getIfPresent(final EnforcementCacheKey key) {
         return get(key);
     }
 
     @Override
-    public Optional<Entry<CacheKey>> getBlocking(final CacheKey key) {
+    public Optional<Entry<EnforcementCacheKey>> getBlocking(final EnforcementCacheKey key) {
         return Optional.of(Entry.permanent(key));
     }
 
     @Override
-    public boolean invalidate(final CacheKey key) {
+    public boolean invalidate(final EnforcementCacheKey key) {
         // do nothing
         return false;
     }
 
     @Override
-    public void put(final CacheKey key, final Entry<CacheKey> value) {
+    public void put(final EnforcementCacheKey key, final Entry<EnforcementCacheKey> value) {
         // do nothing
     }
 
     @Override
-    public ConcurrentMap<CacheKey, Entry<CacheKey>> asMap() {
+    public ConcurrentMap<EnforcementCacheKey, Entry<EnforcementCacheKey>> asMap() {
         throw new UnsupportedOperationException("IdentityCache may not be viewed as map");
     }
+
 }

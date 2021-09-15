@@ -27,7 +27,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.model.ResourceKey;
@@ -203,7 +203,7 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
     /**
      * @return the entity ID.
      */
-    protected CacheKey entityId() {
+    protected EnforcementCacheKey entityId() {
         return context.getCacheKey();
     }
 

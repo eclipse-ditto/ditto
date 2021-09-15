@@ -44,12 +44,10 @@ import org.eclipse.ditto.concierge.service.enforcement.placeholders.references.R
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
-import org.eclipse.ditto.internal.utils.cache.CacheLookupContext;
-import org.eclipse.ditto.internal.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
-import org.eclipse.ditto.internal.utils.cacheloaders.IdentityCache;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementContext;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.json.JsonFactory;
@@ -128,16 +126,16 @@ public final class ThingCommandEnforcement
     private final ActorRef policiesShardRegion;
     private final EnforcerRetriever<Enforcer> thingEnforcerRetriever;
     private final EnforcerRetriever<Enforcer> policyEnforcerRetriever;
-    private final Cache<CacheKey, Entry<CacheKey>> thingIdCache;
-    private final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache;
+    private final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache;
+    private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
     private final PreEnforcer preEnforcer;
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
 
     private ThingCommandEnforcement(final Contextual<ThingCommand<?>> data,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
-            final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
-            final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
+            final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
+            final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
             final PreEnforcer preEnforcer) {
 
         super(data, ThingQueryCommandResponse.class);
@@ -166,7 +164,7 @@ public final class ThingCommandEnforcement
     }
 
     private CompletionStage<Contextual<WithDittoHeaders>> doEnforce(
-            final Entry<CacheKey> enforcerKeyEntry, final Entry<Enforcer> enforcerEntry) {
+            final Entry<EnforcementCacheKey> enforcerKeyEntry, final Entry<Enforcer> enforcerEntry) {
 
         if (enforcerEntry.exists()) {
             if (keyEntryForDeletedThing(enforcerKeyEntry)) {
@@ -195,10 +193,10 @@ public final class ThingCommandEnforcement
         return (signal() instanceof RetrieveThing) && signal().getDittoHeaders().shouldRetrieveDeleted();
     }
 
-    private boolean keyEntryForDeletedThing(final Entry<CacheKey> enforcerKeyEntry) {
+    private boolean keyEntryForDeletedThing(final Entry<EnforcementCacheKey> enforcerKeyEntry) {
         return enforcerKeyEntry.exists() && enforcerKeyEntry.getValueOrThrow()
                 .getCacheLookupContext()
-                .flatMap(CacheLookupContext::getPersistenceLifecycle)
+                .flatMap(EnforcementContext::getPersistenceLifecycle)
                 .map(x -> PersistenceLifecycle.DELETED == x)
                 .orElse(false);
     }
@@ -211,7 +209,7 @@ public final class ThingCommandEnforcement
      * @return the completionStage of the contextual including message and receiver
      */
     private CompletionStage<Contextual<WithDittoHeaders>> enforceThingCommandByNonexistentEnforcer(
-            final Entry<CacheKey> enforcerKeyEntry) {
+            final Entry<EnforcementCacheKey> enforcerKeyEntry) {
 
         if (enforcerKeyEntry.exists() && !keyEntryForDeletedThing(enforcerKeyEntry)) {
             // Thing exists but its policy is deleted.
@@ -471,7 +469,7 @@ public final class ThingCommandEnforcement
     private CompletionStage<Contextual<WithDittoHeaders>> enforceCreateThingForNonexistentThingWithPolicyId(
             final CreateThing command, final PolicyId policyId) {
 
-        final var policyCacheKey = CacheKey.of(policyId);
+        final var policyCacheKey = EnforcementCacheKey.of(policyId);
         return policyEnforcerRetriever.retrieve(policyCacheKey, (policyIdEntry, policyEnforcerEntry) -> {
             if (policyEnforcerEntry.exists()) {
                 final Contextual<WithDittoHeaders> enforcementResult =
@@ -523,7 +521,7 @@ public final class ThingCommandEnforcement
      * @param thingId the ID of the Thing to invalidate caches for.
      */
     private void invalidateThingCaches(final ThingId thingId) {
-        final var thingCacheKey = CacheKey.of(thingId);
+        final var thingCacheKey = EnforcementCacheKey.of(thingId);
         thingIdCache.invalidate(thingCacheKey);
         pubSubMediator().tell(DistPubSubAccess.sendToAll(
                         ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
@@ -533,7 +531,7 @@ public final class ThingCommandEnforcement
     }
 
     private void invalidatePolicyCache(final PolicyId policyId) {
-        final var policyCacheKey = CacheKey.of(policyId);
+        final var policyCacheKey = EnforcementCacheKey.of(policyId);
         policyEnforcerCache.invalidate(policyCacheKey);
         pubSubMediator().tell(DistPubSubAccess.sendToAll(
                         ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
@@ -1076,8 +1074,8 @@ public final class ThingCommandEnforcement
 
         private final ActorRef thingsShardRegion;
         private final ActorRef policiesShardRegion;
-        private final Cache<CacheKey, Entry<CacheKey>> thingIdCache;
-        private final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache;
+        private final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache;
+        private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
         private final PreEnforcer preEnforcer;
 
         /**
@@ -1091,8 +1089,8 @@ public final class ThingCommandEnforcement
          */
         public Provider(final ActorRef thingsShardRegion,
                 final ActorRef policiesShardRegion,
-                final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
-                final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
+                final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
+                final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
                 @Nullable final PreEnforcer preEnforcer) {
 
             this.thingsShardRegion = requireNonNull(thingsShardRegion);

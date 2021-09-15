@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.internal.utils.cacheloaders;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
@@ -20,9 +19,9 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.internal.utils.cache.CacheLookupContext;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,23 +58,10 @@ final class ThingCommandFactory {
     static SudoRetrieveThing sudoRetrieveThing(final ThingId thingId,
             @Nullable final CacheLookupContext cacheLookupContext) {
         LOGGER.debug("Sending SudoRetrieveThing for Thing with ID <{}>", thingId);
-        return SudoRetrieveThing.withOriginalSchemaVersion(thingId,
-                Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getJsonFieldSelector).orElse(null),
-                Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getDittoHeaders)
-                        .map(headers -> DittoHeaders.newBuilder()
-                                .authorizationContext(headers.getAuthorizationContext())
-                                .schemaVersion(headers.getImplementedSchemaVersion())
-                                .correlationId("sudoRetrieveThing-" +
-                                        headers.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString()))
-                                .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(), "true")
-                                .build()
-                        )
-                        .orElseGet(() ->
-                                DittoHeaders.newBuilder()
-                                        .correlationId("sudoRetrieveThing-" + UUID.randomUUID().toString())
-                                        .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(), "true")
-                                        .build())
-        );
+        return SudoRetrieveThing.withOriginalSchemaVersion(thingId, DittoHeaders.newBuilder()
+                .correlationId("sudoRetrieveThing-" + UUID.randomUUID().toString())
+                .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(), "true")
+                .build());
     }
 
 }

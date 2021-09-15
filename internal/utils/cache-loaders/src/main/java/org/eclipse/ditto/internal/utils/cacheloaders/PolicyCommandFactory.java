@@ -12,16 +12,14 @@
  */
 package org.eclipse.ditto.internal.utils.cacheloaders;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
-import org.eclipse.ditto.internal.utils.cache.CacheLookupContext;
+import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
  * Creates commands to access the Policies service.
@@ -40,9 +38,8 @@ final class PolicyCommandFactory {
      * @param cacheLookupContext the context to apply when doing the cache lookup.
      * @return the created command.
      */
-    static SudoRetrievePolicy sudoRetrievePolicy(final EntityId policyId,
-            @Nullable final CacheLookupContext cacheLookupContext) {
-        return sudoRetrievePolicy(PolicyId.of(policyId), cacheLookupContext);
+    static SudoRetrievePolicy sudoRetrievePolicy(final EntityId policyId, @Nullable final EnforcementContext context) {
+        return sudoRetrievePolicy(PolicyId.of(policyId), context);
     }
 
     /**
@@ -52,21 +49,11 @@ final class PolicyCommandFactory {
      * @param cacheLookupContext the context to apply when doing the cache lookup.
      * @return the created command.
      */
-    static SudoRetrievePolicy sudoRetrievePolicy(final PolicyId policyId,
-            @Nullable final CacheLookupContext cacheLookupContext) {
+    static SudoRetrievePolicy sudoRetrievePolicy(final PolicyId policyId, @Nullable final EnforcementContext context) {
         return SudoRetrievePolicy.of(policyId,
-                Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getDittoHeaders)
-                        .map(headers -> DittoHeaders.newBuilder()
-                                .authorizationContext(headers.getAuthorizationContext())
-                                .schemaVersion(headers.getImplementedSchemaVersion())
-                                .correlationId("sudoRetrievePolicy-" +
-                                        headers.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString()))
-                                .build()
-                        )
-                        .orElseGet(() ->
-                                DittoHeaders.newBuilder()
-                                        .correlationId("sudoRetrievePolicy-" + UUID.randomUUID().toString())
-                                        .build()));
+                DittoHeaders.newBuilder()
+                        .correlationId("sudoRetrievePolicy-" + UUID.randomUUID().toString())
+                        .build());
     }
 
 }

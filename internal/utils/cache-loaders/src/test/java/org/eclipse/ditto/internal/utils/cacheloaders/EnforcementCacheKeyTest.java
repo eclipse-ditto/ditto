@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.cache;
+package org.eclipse.ditto.internal.utils.cacheloaders;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -30,24 +30,25 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Tests {@link ImmutableCacheKey}.
  */
-public final class ImmutableCacheKeyTest {
+public final class EnforcementCacheKeyTest {
 
     private static final EntityType THING_TYPE = EntityType.of("thing");
     private static final EntityId ENTITY_ID = EntityId.of(THING_TYPE, "entity:id");
-    private static final CacheKey CACHE_KEY = ImmutableCacheKey.of(ENTITY_ID);
+    private static final EnforcementCacheKey CACHE_KEY = EnforcementCacheKey.of(ENTITY_ID);
     private static final String EXPECTED_SERIALIZED_ENTITY_ID =
-            String.join(ImmutableCacheKey.DELIMITER, THING_TYPE, ENTITY_ID);
+            String.join(EnforcementCacheKey.DELIMITER, THING_TYPE, ENTITY_ID);
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableCacheKey.class,
+        assertInstancesOf(EnforcementCacheKey.class,
                 areImmutable(),
-                provided(EntityId.class, CacheLookupContext.class).isAlsoImmutable());
+                provided(EntityId.class, EnforcementContext.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableCacheKey.class)
+        EqualsVerifier.forClass(EnforcementCacheKey.class)
+                .withIgnoredFields("context")
                 .withPrefabValues(EntityId.class,
                         new OtherEntityIdImplementation("blue"),
                         new OtherEntityIdImplementation("green"))
@@ -66,16 +67,16 @@ public final class ImmutableCacheKeyTest {
 
     @Test
     public void testDeserialization() {
-        assertThat(ImmutableCacheKey.readFrom(EXPECTED_SERIALIZED_ENTITY_ID)).isEqualTo(CACHE_KEY);
+        assertThat(EnforcementCacheKey.readFrom(EXPECTED_SERIALIZED_ENTITY_ID)).isEqualTo(CACHE_KEY);
     }
 
     @Test
     public void testSerializationWithDifferentType() {
         final var otherImplementation = new OtherEntityIdImplementation("entity:id");
-        final var originalCacheKey = ImmutableCacheKey.of(otherImplementation);
+        final var originalCacheKey = EnforcementCacheKey.of(otherImplementation);
 
         final var serialized = originalCacheKey.toString();
-        final var deserialized = ImmutableCacheKey.readFrom(serialized);
+        final var deserialized = EnforcementCacheKey.readFrom(serialized);
 
         assertThat(deserialized).isEqualTo(originalCacheKey);
     }
@@ -93,9 +94,7 @@ public final class ImmutableCacheKeyTest {
 
         @Override
         public String toString() {
-            return getClass().getSimpleName() + " [" +
-                    "id=" + id +
-                    "]";
+            return id;
         }
 
         @Override
