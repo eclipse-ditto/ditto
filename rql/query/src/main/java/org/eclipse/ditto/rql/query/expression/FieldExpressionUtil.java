@@ -49,12 +49,6 @@ public final class FieldExpressionUtil {
      */
     public static final String FIELD_NAME_DEFINITION = "definition";
 
-    /**
-     * Topic action field name.
-     * @since 2.1.0
-     */
-    public static final String FIELD_NAME_TOPIC_ACTION = "topic:action";
-
     private static final String REGEX_FIELD_START = "^";
     private static final String REGEX_FIELD_END = "(/|\\z)";
     private static final String FIELD_NAME_ATTRIBUTES_PREFIX = "attributes/";
@@ -79,7 +73,7 @@ public final class FieldExpressionUtil {
      * @param fieldName the field name
      * @return {@code true}, if the field name is a feature property field name
      */
-    public static Optional<FeatureField> parseFeatureField(final String fieldName) {
+    static Optional<FeatureField> parseFeatureField(final String fieldName) {
         final FeatureField field = new FeatureField(requireNonNull(fieldName));
         return field.isFeatureField() ? Optional.of(field) : Optional.empty();
     }
@@ -90,7 +84,7 @@ public final class FieldExpressionUtil {
      * @param fieldName the field name
      * @return {@code true}, if the field name is an attribute field name
      */
-    public static boolean isAttributeFieldName(final String fieldName) {
+    static boolean isAttributeFieldName(final String fieldName) {
         return requireNonNull(fieldName).startsWith(FIELD_NAME_ATTRIBUTES_PREFIX);
     }
 
@@ -100,19 +94,8 @@ public final class FieldExpressionUtil {
      * @param attributesFieldName the field name
      * @return the field name without prefix
      */
-    public static String stripAttributesPrefix(final String attributesFieldName) {
+    static String stripAttributesPrefix(final String attributesFieldName) {
         return requireNonNull(attributesFieldName).substring(FIELD_NAME_ATTRIBUTES_PREFIX.length());
-
-    }
-
-    /**
-     * Checks if the given field name is a definition field name.
-     *
-     * @param fieldName the field name
-     * @return {@code true}, if the field name is a definition field name
-     */
-    public static boolean isDefinitionFieldName(final String fieldName) {
-        return requireNonNull(fieldName).equals(FIELD_NAME_DEFINITION);
     }
 
     /**
@@ -121,24 +104,8 @@ public final class FieldExpressionUtil {
      * @param fieldName the field name
      * @return the field name with prefix
      */
-    public static String addAttributesPrefix(final String fieldName) {
+    static String addAttributesPrefix(final String fieldName) {
         return FIELD_NAME_ATTRIBUTES_PREFIX + requireNonNull(fieldName);
-    }
-
-    /**
-     * Checks if the given field name is a topic field name.
-     * Currently supported topics:
-     * <ul>
-     * <li><code>topic:action</code></li>
-     * </ul>
-     *
-     * @param fieldName the field name
-     * @return {@code true}, if the field name is an attribute field name
-     * @since 2.1.0
-     */
-    public static boolean isTopicFieldName(final String fieldName) {
-        // for now, only "topic:action" is supported:
-        return requireNonNull(fieldName).equals(FIELD_NAME_TOPIC_ACTION);
     }
 
     /**

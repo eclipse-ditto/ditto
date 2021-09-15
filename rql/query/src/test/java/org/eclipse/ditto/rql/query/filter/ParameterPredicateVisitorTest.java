@@ -37,10 +37,6 @@ public final class ParameterPredicateVisitorTest {
     private static final String KNOWN_FIELD_VALUE_1 = "value1";
     private static final String KNOWN_FIELD_VALUE_2 = "value2";
 
-    private static final String KNOWN_TOPIC = FieldExpressionUtil.FIELD_NAME_TOPIC_ACTION;
-    private static final String KNOWN_TOPIC_VALUE_CREATED = "created";
-    private static final String KNOWN_TOPIC_VALUE_DELETED = "deleted";
-
     private ParameterPredicateVisitor visitorUnderTest;
     private CriteriaFactory cf;
     private ThingsFieldExpressionFactory ef;
@@ -197,17 +193,6 @@ public final class ParameterPredicateVisitorTest {
         visitorUnderTest.visit(filterNode);
 
         final Criteria expectedCrit = cf.fieldCriteria(ef.filterBy(KNOWN_FIELD_NAME), cf.le(KNOWN_FIELD_VALUE_1));
-        Assertions.assertThat(visitorUnderTest.getCriteria()).containsExactly(expectedCrit);
-    }
-
-    @Test
-    public void filterNodeUsingTopic() {
-        final SingleComparisonNode filterNode =
-                new SingleComparisonNode(SingleComparisonNode.Type.EQ, KNOWN_TOPIC, KNOWN_TOPIC_VALUE_CREATED);
-
-        visitorUnderTest.visit(filterNode);
-
-        final Criteria expectedCrit = cf.fieldCriteria(ef.filterBy(KNOWN_TOPIC), cf.eq(KNOWN_TOPIC_VALUE_CREATED));
         Assertions.assertThat(visitorUnderTest.getCriteria()).containsExactly(expectedCrit);
     }
 

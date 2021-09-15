@@ -66,13 +66,6 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
     }
 
     /**
-     * @return a filter expression for a given topic action
-     */
-    default FilterFieldExpression filterByTopicAction() {
-        return filterBy(FieldExpressionUtil.FIELD_NAME_TOPIC_ACTION);
-    }
-
-    /**
      * Return an "exist" field expression for the given feature ID.
      *
      * @param featureId the feature ID.

@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.rql.query.things;
 
-import static org.eclipse.ditto.rql.query.expression.FieldExpressionUtil.FIELD_NAMESPACE;
-import static org.eclipse.ditto.rql.query.expression.FieldExpressionUtil.FIELD_NAME_THING_ID;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,10 +37,11 @@ public final class ModelBasedThingsFieldExpressionFactory implements ThingsField
 
     static {
         final Map<String, String> hashMap = new HashMap<>();
-        hashMap.put(FIELD_NAME_THING_ID, FIELD_NAME_THING_ID);
-        hashMap.put(FIELD_NAMESPACE, FIELD_NAMESPACE);
+        addMapping(hashMap, Thing.JsonFields.ID);
+        addMapping(hashMap, Thing.JsonFields.NAMESPACE);
         addMapping(hashMap, Thing.JsonFields.POLICY_ID);
         addMapping(hashMap, Thing.JsonFields.REVISION);
+        addMapping(hashMap, Thing.JsonFields.CREATED);
         addMapping(hashMap, Thing.JsonFields.MODIFIED);
         addMapping(hashMap, Thing.JsonFields.DEFINITION);
         filteringSimpleFieldMappings = Collections.unmodifiableMap(hashMap);

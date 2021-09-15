@@ -47,6 +47,7 @@ public final class ThingsFieldExpressionFactoryImplTest {
     static {
         SIMPLE_FIELD_MAPPINGS.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
         SIMPLE_FIELD_MAPPINGS.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
+        SIMPLE_FIELD_MAPPINGS.put(FieldExpressionUtil.FIELD_NAME_DEFINITION, FieldExpressionUtil.FIELD_NAME_DEFINITION);
     }
 
     private final ThingsFieldExpressionFactory ef = ThingsFieldExpressionFactory.of(SIMPLE_FIELD_MAPPINGS);

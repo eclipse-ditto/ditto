@@ -31,6 +31,9 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
@@ -491,112 +494,155 @@ final class DefaultAdapterResolver implements AdapterResolver {
 
         @SuppressWarnings("unchecked")
         public <T extends Signal<?>> Adapter<T> resolve(final T signal, final TopicPath.Channel channel) {
-            if (signal instanceof MessageCommand) {
-                validateChannel(channel, signal, LIVE);
-                return (Adapter<T>) thingsAdapters.getMessageCommandAdapter();
+
+            if (signal instanceof Event) {
+                return resolveEvent((Event<?>) signal, channel);
             }
-            if (signal instanceof MessageCommandResponse) {
-                validateChannel(channel, signal, LIVE);
-                return (Adapter<T>) thingsAdapters.getMessageCommandResponseAdapter();
+            if (signal instanceof CommandResponse) {
+                return resolveCommandResponse((CommandResponse<?>) signal, channel);
             }
-            if (signal instanceof ThingSearchCommand) {
-                validateNotLive(signal);
-                return (Adapter<T>) thingsAdapters.getSearchCommandAdapter();
-            }
-            if (signal instanceof MergeThing) {
-                validateChannel(channel, signal, LIVE, TWIN);
-                return (Adapter<T>) thingsAdapters.getMergeCommandAdapter();
-            }
-            if (signal instanceof MergeThingResponse) {
-                validateChannel(channel, signal, LIVE, TWIN);
-                return (Adapter<T>) thingsAdapters.getMergeCommandResponseAdapter();
-            }
-            if (signal instanceof ThingModifyCommand) {
-                validateChannel(channel, signal, LIVE, TWIN);
-                return (Adapter<T>) thingsAdapters.getModifyCommandAdapter();
-            }
-            if (signal instanceof ThingModifyCommandResponse) {
-                validateChannel(channel, signal, LIVE, TWIN);
-                return (Adapter<T>) thingsAdapters.getModifyCommandResponseAdapter();
-            }
-            if (signal instanceof ThingQueryCommand) {
-                validateChannel(channel, signal, LIVE, TWIN);
-                return (Adapter<T>) thingsAdapters.getQueryCommandAdapter();
-            }
-            if (signal instanceof ThingQueryCommandResponse) {
-                validateChannel(channel, signal, LIVE, TWIN);
-                return (Adapter<T>) thingsAdapters.getQueryCommandResponseAdapter();
-            }
-            if (signal instanceof RetrieveThings) {
-                validateChannel(channel, signal, LIVE, TWIN);
-                return (Adapter<T>) thingsAdapters.getRetrieveThingsCommandAdapter();
-            }
-            if (signal instanceof RetrieveThingsResponse) {
-                validateChannel(channel, signal, LIVE, TWIN);
-                return (Adapter<T>) thingsAdapters.getRetrieveThingsCommandResponseAdapter();
-            }
-            if (signal instanceof ThingErrorResponse) {
-                validateChannel(channel, signal, LIVE, TWIN);
-                return (Adapter<T>) thingsAdapters.getErrorResponseAdapter();
-            }
-            if (signal instanceof ThingMerged) {
-                validateChannel(channel, signal, LIVE, TWIN);
-                return (Adapter<T>) thingsAdapters.getMergedEventAdapter();
-            }
-            if (signal instanceof ThingEvent) {
-                validateChannel(channel, signal, LIVE, TWIN);
-                return (Adapter<T>) thingsAdapters.getEventAdapter();
-            }
-            if (signal instanceof SubscriptionEvent) {
-                validateNotLive(signal);
-                return (Adapter<T>) thingsAdapters.getSubscriptionEventAdapter();
-            }
-            if (signal instanceof SearchErrorResponse) {
-                validateNotLive(signal);
-                return (Adapter<T>) thingsAdapters.getSearchErrorResponseAdapter();
+            if (signal instanceof Command) {
+                return resolveCommand((Command<?>) signal, channel);
             }
 
-            if (signal instanceof PolicyModifyCommand) {
-                validateChannel(channel, signal, NONE);
-                return (Adapter<T>) policiesAdapters.getModifyCommandAdapter();
-            }
-            if (signal instanceof PolicyModifyCommandResponse) {
-                validateChannel(channel, signal, NONE);
-                return (Adapter<T>) policiesAdapters.getModifyCommandResponseAdapter();
-            }
-            if (signal instanceof PolicyQueryCommand) {
-                validateChannel(channel, signal, NONE);
-                return (Adapter<T>) policiesAdapters.getQueryCommandAdapter();
-            }
-            if (signal instanceof PolicyQueryCommandResponse) {
-                validateChannel(channel, signal, NONE);
-                return (Adapter<T>) policiesAdapters.getQueryCommandResponseAdapter();
-            }
-            if (signal instanceof PolicyErrorResponse) {
-                validateChannel(channel, signal, NONE);
-                return (Adapter<T>) policiesAdapters.getErrorResponseAdapter();
-            }
             if (signal instanceof PolicyAnnouncement) {
                 validateChannel(channel, signal, NONE);
                 return (Adapter<T>) policiesAdapters.getAnnouncementAdapter();
             }
-
             if (signal instanceof ConnectivityAnnouncement) {
                 validateChannel(channel, signal, NONE);
                 return (Adapter<T>)  connectivityAdapters.getAnnouncementAdapter();
             }
 
-            if (signal instanceof Acknowledgement) {
-                validateChannel(channel, signal, LIVE, TWIN);
+            throw UnknownSignalException.newBuilder(signal.getName())
+                    .dittoHeaders(signal.getDittoHeaders())
+                    .build();
+        }
+
+        @SuppressWarnings("unchecked")
+        private <T extends Signal<?>> Adapter<T> resolveEvent(final Event<?> event, final TopicPath.Channel channel) {
+            if (event instanceof ThingMerged) {
+                validateChannel(channel, event, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getMergedEventAdapter();
+            }
+            if (event instanceof ThingEvent) {
+                validateChannel(channel, event, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getEventAdapter();
+            }
+            if (event instanceof SubscriptionEvent) {
+                validateNotLive(event);
+                return (Adapter<T>) thingsAdapters.getSubscriptionEventAdapter();
+            }
+
+            throw UnknownSignalException.newBuilder(event.getName())
+                    .dittoHeaders(event.getDittoHeaders())
+                    .build();
+        }
+
+        @SuppressWarnings("unchecked")
+        private <T extends Signal<?>> Adapter<T> resolveCommandResponse(
+                final CommandResponse<?> commandResponse, final TopicPath.Channel channel) {
+
+            if (commandResponse instanceof RetrieveThingsResponse) {
+                validateChannel(channel, commandResponse, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getRetrieveThingsCommandResponseAdapter();
+            }
+            if (commandResponse instanceof MergeThingResponse) {
+                validateChannel(channel, commandResponse, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getMergeCommandResponseAdapter();
+            }
+            if (commandResponse instanceof ThingModifyCommandResponse) {
+                validateChannel(channel, commandResponse, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getModifyCommandResponseAdapter();
+            }
+            if (commandResponse instanceof ThingQueryCommandResponse) {
+                validateChannel(channel, commandResponse, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getQueryCommandResponseAdapter();
+            }
+            if (commandResponse instanceof ThingErrorResponse) {
+                validateChannel(channel, commandResponse, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getErrorResponseAdapter();
+            }
+
+            if (commandResponse instanceof MessageCommandResponse) {
+                validateChannel(channel, commandResponse, LIVE);
+                return (Adapter<T>) thingsAdapters.getMessageCommandResponseAdapter();
+            }
+
+            if (commandResponse instanceof PolicyModifyCommandResponse) {
+                validateChannel(channel, commandResponse, NONE);
+                return (Adapter<T>) policiesAdapters.getModifyCommandResponseAdapter();
+            }
+            if (commandResponse instanceof PolicyQueryCommandResponse) {
+                validateChannel(channel, commandResponse, NONE);
+                return (Adapter<T>) policiesAdapters.getQueryCommandResponseAdapter();
+            }
+            if (commandResponse instanceof PolicyErrorResponse) {
+                validateChannel(channel, commandResponse, NONE);
+                return (Adapter<T>) policiesAdapters.getErrorResponseAdapter();
+            }
+
+            if (commandResponse instanceof SearchErrorResponse) {
+                validateNotLive(commandResponse);
+                return (Adapter<T>) thingsAdapters.getSearchErrorResponseAdapter();
+            }
+
+            if (commandResponse instanceof Acknowledgement) {
+                validateChannel(channel, commandResponse, LIVE, TWIN);
                 return (Adapter<T>) acknowledgementAdapters.getAcknowledgementAdapter();
             }
-            if (signal instanceof Acknowledgements) {
-                validateChannel(channel, signal, LIVE, TWIN);
+            if (commandResponse instanceof Acknowledgements) {
+                validateChannel(channel, commandResponse, LIVE, TWIN);
                 return (Adapter<T>) acknowledgementAdapters.getAcknowledgementsAdapter();
             }
 
-            throw UnknownSignalException.newBuilder(signal.getName())
-                    .dittoHeaders(signal.getDittoHeaders())
+            throw UnknownSignalException.newBuilder(commandResponse.getName())
+                    .dittoHeaders(commandResponse.getDittoHeaders())
+                    .build();
+        }
+
+        @SuppressWarnings("unchecked")
+        private <T extends Signal<?>> Adapter<T> resolveCommand(final Command<?> command,
+                final TopicPath.Channel channel) {
+
+            if (command instanceof MessageCommand) {
+                validateChannel(channel, command, LIVE);
+                return (Adapter<T>) thingsAdapters.getMessageCommandAdapter();
+            }
+
+            if (command instanceof MergeThing) {
+                validateChannel(channel, command, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getMergeCommandAdapter();
+            }
+            if (command instanceof ThingModifyCommand) {
+                validateChannel(channel, command, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getModifyCommandAdapter();
+            }
+            if (command instanceof RetrieveThings) {
+                validateChannel(channel, command, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getRetrieveThingsCommandAdapter();
+            }
+            if (command instanceof ThingQueryCommand) {
+                validateChannel(channel, command, LIVE, TWIN);
+                return (Adapter<T>) thingsAdapters.getQueryCommandAdapter();
+            }
+
+            if (command instanceof ThingSearchCommand) {
+                validateNotLive(command);
+                return (Adapter<T>) thingsAdapters.getSearchCommandAdapter();
+            }
+
+            if (command instanceof PolicyModifyCommand) {
+                validateChannel(channel, command, NONE);
+                return (Adapter<T>) policiesAdapters.getModifyCommandAdapter();
+            }
+            if (command instanceof PolicyQueryCommand) {
+                validateChannel(channel, command, NONE);
+                return (Adapter<T>) policiesAdapters.getQueryCommandAdapter();
+            }
+
+            throw UnknownSignalException.newBuilder(command.getName())
+                    .dittoHeaders(command.getDittoHeaders())
                     .build();
         }
 

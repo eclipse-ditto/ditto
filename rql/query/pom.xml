@@ -108,6 +108,12 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
+                            <!-- those should never have been public, as they are only used package internally and are no API: -->
+                            <exclude>org.eclipse.ditto.rql.query.expression.FieldExpressionUtil#parseFeatureField(java.lang.String)</exclude>
+                            <exclude>org.eclipse.ditto.rql.query.expression.FieldExpressionUtil#isAttributeFieldName(java.lang.String)</exclude>
+                            <exclude>org.eclipse.ditto.rql.query.expression.FieldExpressionUtil#stripAttributesPrefix(java.lang.String)</exclude>
+                            <exclude>org.eclipse.ditto.rql.query.expression.FieldExpressionUtil#addAttributesPrefix(java.lang.String)</exclude>
+                            <exclude>org.eclipse.ditto.rql.query.expression.FieldExpressionUtil#isDefinitionFieldName(java.lang.String)</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

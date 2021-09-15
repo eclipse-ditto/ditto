@@ -62,6 +62,7 @@ public final class ExistsThingPredicateVisitor implements ExistsFieldExpressionV
      * @param additionalPlaceholderResolvers the additional {@code PlaceholderResolver} to use for resolving
      * placeholders in RQL "exists" predicates.
      * @return the Predicate of a thing to test.
+     * @since 2.1.0
      */
     public static Predicate<Thing> apply(final ExistsFieldExpression expression,
             final Collection<PlaceholderResolver<?>> additionalPlaceholderResolvers) {
@@ -76,6 +77,7 @@ public final class ExistsThingPredicateVisitor implements ExistsFieldExpressionV
      * @param additionalPlaceholderResolvers the additional {@code PlaceholderResolver} to use for resolving
      * placeholders in RQL "exists" predicates.
      * @return the Predicate of a thing to test.
+     * @since 2.1.0
      */
     public static Predicate<Thing> apply(final ExistsFieldExpression expression,
             final PlaceholderResolver<?>... additionalPlaceholderResolvers) {
