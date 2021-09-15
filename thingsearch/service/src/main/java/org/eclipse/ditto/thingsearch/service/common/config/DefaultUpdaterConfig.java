@@ -35,6 +35,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     private final Duration maxIdleTime;
     private final Duration shardingStatePollInterval;
     private final boolean eventProcessingActive;
+    private final double forceUpdateProbability;
     private final BackgroundSyncConfig backgroundSyncConfig;
     private final StreamConfig streamConfig;
 
@@ -44,6 +45,8 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 updaterScopedConfig.getNonNegativeDurationOrThrow(UpdaterConfigValue.SHARDING_STATE_POLL_INTERVAL);
         eventProcessingActive =
                 updaterScopedConfig.getBoolean(UpdaterConfigValue.EVENT_PROCESSING_ACTIVE.getConfigPath());
+        forceUpdateProbability =
+                updaterScopedConfig.getDouble(UpdaterConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath());
         backgroundSyncConfig = DefaultBackgroundSyncConfig.fromUpdaterConfig(updaterScopedConfig);
         streamConfig = DefaultStreamConfig.of(updaterScopedConfig);
     }
@@ -76,6 +79,11 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     }
 
     @Override
+    public double getForceUpdateProbability() {
+        return forceUpdateProbability;
+    }
+
+    @Override
     public BackgroundSyncConfig getBackgroundSyncConfig() {
         return backgroundSyncConfig;
     }
@@ -97,13 +105,14 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
         return eventProcessingActive == that.eventProcessingActive &&
                 Objects.equals(maxIdleTime, that.maxIdleTime) &&
                 Objects.equals(shardingStatePollInterval, that.shardingStatePollInterval) &&
+                Double.compare(forceUpdateProbability, that.forceUpdateProbability) == 0 &&
                 Objects.equals(backgroundSyncConfig, that.backgroundSyncConfig) &&
                 Objects.equals(streamConfig, that.streamConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxIdleTime, shardingStatePollInterval, eventProcessingActive,
+        return Objects.hash(maxIdleTime, shardingStatePollInterval, eventProcessingActive, forceUpdateProbability,
                 backgroundSyncConfig, streamConfig);
     }
 
@@ -113,6 +122,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 "maxIdleTime=" + maxIdleTime +
                 ", shardingStatePollInterval=" + shardingStatePollInterval +
                 ", eventProcessingActive=" + eventProcessingActive +
+                ", forceUpdateProbability=" + forceUpdateProbability +
                 ", backgroundSyncConfig=" + backgroundSyncConfig +
                 ", streamConfig=" + streamConfig +
                 "]";

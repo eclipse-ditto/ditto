@@ -100,12 +100,12 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final var blockedNamespaces = BlockedNamespaces.of(actorSystem);
         final ActorRef changeQueueActor = startChildActor(ChangeQueueActor.ACTOR_NAME, ChangeQueueActor.props());
 
-        final var thingUpdaterProps = ThingUpdater.props(pubSubMediator, changeQueueActor);
-
         final var updaterConfig = searchConfig.getUpdaterConfig();
         if (!updaterConfig.isEventProcessingActive()) {
             log.warning("Event processing is disabled!");
         }
+
+        final var thingUpdaterProps = ThingUpdater.props(pubSubMediator, changeQueueActor, updaterConfig);
 
         final ActorRef thingsShard = shardRegionFactory.getThingsShardRegion(numberOfShards);
         final ActorRef policiesShard = shardRegionFactory.getPoliciesShardRegion(numberOfShards);

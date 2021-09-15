@@ -13,9 +13,11 @@
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
-import org.bson.Document;
+import org.bson.BsonDocument;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
@@ -32,9 +34,9 @@ import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.NotUsed;
+import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Source;
 
 /**
@@ -53,11 +55,11 @@ final class MongoSearchUpdaterFlow {
      */
     static final String DISPATCHER_NAME = "search-updater-dispatcher";
 
-    private final MongoCollection<Document> collection;
-    private final MongoCollection<Document> collectionWithAcknowledgements;
+    private final MongoCollection<BsonDocument> collection;
+    private final MongoCollection<BsonDocument> collectionWithAcknowledgements;
     private final SearchUpdateMapper searchUpdateMapper;
 
-    private MongoSearchUpdaterFlow(final MongoCollection<Document> collection,
+    private MongoSearchUpdaterFlow(final MongoCollection<BsonDocument> collection,
             final PersistenceStreamConfig persistenceConfig,
             final SearchUpdateMapper searchUpdateMapper) {
 
@@ -79,7 +81,8 @@ final class MongoSearchUpdaterFlow {
             final PersistenceStreamConfig persistenceConfig,
             final SearchUpdateMapper searchUpdateMapper) {
 
-        return new MongoSearchUpdaterFlow(database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME),
+        return new MongoSearchUpdaterFlow(
+                database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME, BsonDocument.class),
                 persistenceConfig,
                 searchUpdateMapper);
     }
@@ -115,29 +118,56 @@ final class MongoSearchUpdaterFlow {
                                 return writeModels;
                             }
                         })
+                        .mapAsync(1, this::toIncrementalMongo)
                         .flatMapMerge(parallelism, writeModels ->
                                 executeBulkWrite(shouldAcknowledge, writeModels).async(DISPATCHER_NAME, parallelism));
 
         return batchFlow.via(writeFlow);
     }
 
-    private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,
-            final List<AbstractWriteModel> abstractWriteModels) {
+    private CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>> toIncrementalMongo(
+            final List<AbstractWriteModel> models) {
 
-        final List<WriteModel<Document>> writeModels = abstractWriteModels.stream()
-                .map(writeModel -> {
-                    ConsistencyLag.startS5MongoBulkWrite(writeModel.getMetadata());
-                    return writeModel.toMongo();
-                })
+        final var writeModelFutures = models.stream()
+                .<CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>>>map(model ->
+                        model.toIncrementalMongo()
+                                .thenApply(mongoWriteModel -> List.of(Pair.create(model, mongoWriteModel)))
+                                .handle((result, error) -> {
+                                    if (result != null) {
+                                        ConsistencyLag.startS5MongoBulkWrite(model.getMetadata());
+                                        LOGGER.debug("MongoWriteModel={}", result);
+                                        return result;
+                                    } else {
+                                        LOGGER.error("Failed to compute write model " + model, error);
+                                        try {
+                                            model.getMetadata().getTimers().forEach(StartedTimer::stop);
+                                        } catch (final Exception e) {
+                                            // tolerate stopping stopped timers
+                                        }
+                                        return List.of();
+                                    }
+                                })
+                )
+                .map(CompletionStage::toCompletableFuture)
                 .collect(Collectors.toList());
 
-        final MongoCollection<Document> theCollection;
+        final var allFutures = CompletableFuture.allOf(writeModelFutures.toArray(CompletableFuture[]::new));
+        return allFutures.thenApply(aVoid ->
+                writeModelFutures.stream().flatMap(future -> future.join().stream()).collect(Collectors.toList())
+        );
+    }
+
+    private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,
+            final List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>> pairs) {
+
+        final MongoCollection<BsonDocument> theCollection;
         if (shouldAcknowledge) {
             theCollection = collectionWithAcknowledgements;
         } else {
             theCollection = collection;
         }
-
+        final var abstractWriteModels = pairs.stream().map(Pair::first).collect(Collectors.toList());
+        final var writeModels = pairs.stream().map(Pair::second).collect(Collectors.toList());
         final var bulkWriteTimer = startBulkWriteTimer(writeModels);
 
         return Source.fromPublisher(theCollection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))

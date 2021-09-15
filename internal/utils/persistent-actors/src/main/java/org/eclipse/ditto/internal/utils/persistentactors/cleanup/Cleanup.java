@@ -80,7 +80,9 @@ final class Cleanup {
         final var responsibility = responsibilitySupplier.get();
         final int denominator = responsibility.second();
         final int remainder = responsibility.first();
-        return Math.abs(Math.abs(sr.pid.hashCode()) % denominator) == remainder;
+        final int hashCode = sr.pid.hashCode();
+        final int nonNegativeHashCode = hashCode == Integer.MIN_VALUE ? 0 : hashCode < 0 ? -hashCode : hashCode;
+        return nonNegativeHashCode % denominator == remainder;
     }
 
     private Source<Source<CleanupResult, NotUsed>, NotUsed> cleanUpEvents(final SnapshotRevision sr) {
@@ -90,7 +92,7 @@ final class Cleanup {
                 return Source.empty();
             } else {
                 final List<Long> upperBounds = getSnUpperBoundsPerBatch(minSnOpt.orElseThrow(), sr.sn);
-                return Source.from(upperBounds).map(upperBound -> Source.lazily(() ->
+                return Source.from(upperBounds).map(upperBound -> Source.lazySource(() ->
                         readJournal.deleteEvents(sr.pid, upperBound - deleteBatchSize + 1, upperBound)
                                 .map(result -> new CleanupResult(CleanupResult.Type.EVENTS, sr, result))
                 ).mapMaterializedValue(ignored -> NotUsed.getInstance()));
@@ -105,7 +107,7 @@ final class Cleanup {
             } else {
                 final long maxSnToDelete = deleteFinalDeletedSnapshot && sr.isDeleted ? sr.sn + 1 : sr.sn;
                 final List<Long> upperBounds = getSnUpperBoundsPerBatch(minSnOpt.orElseThrow(), maxSnToDelete);
-                return Source.from(upperBounds).map(upperBound -> Source.lazily(() ->
+                return Source.from(upperBounds).map(upperBound -> Source.lazySource(() ->
                         readJournal.deleteSnapshots(sr.pid, upperBound - deleteBatchSize + 1, upperBound)
                                 .map(result -> new CleanupResult(CleanupResult.Type.SNAPSHOTS, sr, result))
                 ).mapMaterializedValue(ignored -> NotUsed.getInstance()));

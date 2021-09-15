@@ -20,19 +20,19 @@ import static org.eclipse.ditto.policies.model.PoliciesResourceType.THING;
 
 import java.util.stream.Collectors;
 
-import org.bson.Document;
+import org.bson.BsonDocument;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
+import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectType;
-import org.eclipse.ditto.policies.api.Permission;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.junit.Test;
 
 /**
@@ -130,7 +130,7 @@ public final class EnforcedThingFlattenerTest {
         final EnforcedThingFlattener underTest = new EnforcedThingFlattener("thing:id", enforcer, -1);
 
         final String result = underTest.eval(inputJson)
-                .map(Document::toJson)
+                .map(BsonDocument::toJson)
                 .collect(Collectors.joining(",", "[", "]"));
 
         assertThat(JsonFactory.newArray(result)).isEqualTo(expectedOutputJson);
@@ -194,7 +194,7 @@ public final class EnforcedThingFlattenerTest {
         final EnforcedThingFlattener underTest = new EnforcedThingFlattener("thing:id", emptyEnforcer, -1);
 
         final String result = underTest.eval(inputJson)
-                .map(Document::toJson)
+                .map(BsonDocument::toJson)
                 .collect(Collectors.joining(",", "[", "]"));
 
         assertThat(JsonFactory.newArray(result)).isEqualTo(expectedOutputJson);
@@ -225,7 +225,7 @@ public final class EnforcedThingFlattenerTest {
         final EnforcedThingFlattener underTest = new EnforcedThingFlattener("thing:id", emptyEnforcer, -1);
 
         final String result = underTest.eval(inputJson)
-                .map(Document::toJson)
+                .map(BsonDocument::toJson)
                 .collect(Collectors.joining(",", "[", "]"));
 
         assertThat(JsonFactory.newArray(result)).isEqualTo(expectedOutputJson);
@@ -250,7 +250,7 @@ public final class EnforcedThingFlattenerTest {
                 ).build();
 
         final JsonArray result = underTest.eval(inputJson)
-                .map(Document::toJson)
+                .map(BsonDocument::toJson)
                 .map(JsonFactory::readFrom)
                 .collect(JsonCollectors.valuesToArray());
 
@@ -276,7 +276,7 @@ public final class EnforcedThingFlattenerTest {
                 ).build();
 
         final JsonArray result = underTest.eval(inputJson)
-                .map(Document::toJson)
+                .map(BsonDocument::toJson)
                 .map(JsonFactory::readFrom)
                 .collect(JsonCollectors.valuesToArray());
 
