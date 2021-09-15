@@ -14,6 +14,8 @@
 package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -22,13 +24,14 @@ import java.util.Collection;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.LogEntry;
+import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogs;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionLogs;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -102,7 +105,6 @@ public final class DefaultMuteableConnectionLoggerTest {
         verifyZeroInteractions(delegate);
     }
 
-
     @Test
     public void success() {
         final DefaultMuteableConnectionLogger unmuted = unmuted();
@@ -163,6 +165,21 @@ public final class DefaultMuteableConnectionLoggerTest {
     }
 
     @Test
+    public void exceptionInLoggingLeadsToExceptionalDelegate() {
+        final var randomConnectionId = TestConstants.createRandomConnectionId();
+        final var mockDelegate = Mockito.mock(ConnectionLogger.class);
+        final var exception = new IllegalArgumentException();
+        final var expected = logger(randomConnectionId, new ExceptionalConnectionLogger(randomConnectionId, exception));
+        expected.unmute();
+        doThrow(exception).when(mockDelegate).success(INFO_PROVIDER);
+        final var underTest = logger(randomConnectionId, mockDelegate);
+        underTest.unmute();
+
+        assertThatNoException().as("Exception is not propagated").isThrownBy(() -> underTest.success(INFO_PROVIDER));
+        assertThat(underTest).as("delegate changes to ExceptionalConnectionLogger").isEqualTo(expected);
+    }
+
+    @Test
     public void testEqualsAndHashcode() {
         EqualsVerifier.forClass(DefaultMuteableConnectionLogger.class)
                 .suppress(Warning.NONFINAL_FIELDS)
@@ -178,6 +195,12 @@ public final class DefaultMuteableConnectionLoggerTest {
 
     private DefaultMuteableConnectionLogger logger() {
         return new DefaultMuteableConnectionLogger(TestConstants.createRandomConnectionId(), delegate);
+    }
+
+    private static DefaultMuteableConnectionLogger logger(final ConnectionId connectionId,
+            final ConnectionLogger delegate) {
+
+        return new DefaultMuteableConnectionLogger(connectionId, delegate);
     }
 
 }

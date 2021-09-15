@@ -40,7 +40,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -56,6 +55,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
@@ -174,7 +174,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
 
-
     /**
      * Common logger for all sub-classes of BaseClientActor as its MDC already contains the connection ID.
      */
@@ -212,8 +211,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
 
-    protected BaseClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
+    protected BaseClientActor(final Connection connection,
+            @Nullable final ActorRef proxyActor,
+            final ActorRef connectionActor,
+            final DittoHeaders dittoHeaders) {
+
         final ActorSystem system = getContext().getSystem();
         materializer = Materializer.createMaterializer(system);
         this.connection = checkNotNull(connection, "connection");
@@ -221,7 +223,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // this is retrieve via the extension for each baseClientActor in order to not pass it as constructor arg
         //  as all constructor arguments need to be serializable as the BaseClientActor is started behind a cluster
         //  router
-        this.dittoProtocolSub = DittoProtocolSub.get(system);
+        dittoProtocolSub = DittoProtocolSub.get(system);
         actorUUID = UUID.randomUUID().toString();
 
         final var connectionId = connection.getId();
@@ -293,7 +295,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // start with UNKNOWN state but send self OpenConnection because client actors are never created closed
         final BaseClientData startingData =
                 BaseClientData.BaseClientDataBuilder.from(connection.getId(), connection, ConnectivityStatus.UNKNOWN,
-                                ConnectivityStatus.OPEN, "initialized", Instant.now())
+                        ConnectivityStatus.OPEN, "initialized", Instant.now())
                         .build();
         startWith(UNKNOWN, startingData);
 
@@ -500,19 +502,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     protected void cleanupFurtherResourcesOnConnectionTimeout(final BaseClientState state) {
         // do nothing by default
-    }
-
-    /**
-     * Check whether a {@code ClientConnected}, {@code ClientDisconnected} or {@code ConnectionFailed} is up to date.
-     * All events are interpreted as up-to-date by default.
-     *
-     * @param event an event from somewhere.
-     * @param state the current actor state.
-     * @param sender sender of the event.
-     * @return whether the event is up-to-date and should be interpreted.
-     */
-    protected boolean isEventUpToDate(final Object event, final BaseClientState state, final ActorRef sender) {
-        return true;
     }
 
     /**
@@ -729,7 +718,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inUnknownState() {
         return matchEventEquals(Control.INIT_COMPLETE, (init, baseClientData) -> completeInitialization())
                 .event(ConnectionContext.class, this::initializeByConnectionContext)
-                .event(RuntimeException.class, this::failInitialization)
+                .event(RuntimeException.class, BaseClientActor::failInitialization)
                 .anyEvent((o, baseClientData) -> {
                     stash();
                     return stay();
@@ -748,7 +737,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      *
      * @return an FSM function builder
      */
-    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectedState() {
+    private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectedState() {
         return matchEvent(OpenConnection.class, this::openConnection)
                 .event(CloseConnection.class, this::connectionAlreadyClosed)
                 .event(TestConnection.class, this::testConnection);
@@ -805,9 +794,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      *
      * @return an FSM function builder
      */
-    protected FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectingState() {
+    private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inDisconnectingState() {
         return matchEventEquals(StateTimeout(), (event, data) -> connectionTimedOut(data))
-                .eventEquals(SEND_DISCONNECT_ANNOUNCEMENT, (event, data) -> this.sendDisconnectAnnouncement(data))
+                .eventEquals(SEND_DISCONNECT_ANNOUNCEMENT, (event, data) -> sendDisconnectAnnouncement(data))
                 .event(Disconnect.class, this::disconnect)
                 .event(ConnectionFailure.class, this::connectingConnectionFailed)
                 .event(ClientDisconnected.class, this::clientDisconnected);
@@ -887,7 +876,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
-    private FSM.State<BaseClientState, BaseClientData> failInitialization(final RuntimeException error,
+    private static FSM.State<BaseClientState, BaseClientData> failInitialization(final RuntimeException error,
             final BaseClientData data) {
 
         // throw the error to trigger escalating supervision strategy
@@ -901,13 +890,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return closeConnection(CloseConnection.of(connectionId(), DittoHeaders.empty()), data, true);
     }
 
-    private FSM.State<BaseClientState, BaseClientData> closeConnection(final CloseConnection closeConnection,
+    private FSM.State<BaseClientState, BaseClientData> closeConnection(final WithDittoHeaders closeConnection,
             final BaseClientData data) {
         return closeConnection(closeConnection, data, false);
     }
 
-    private FSM.State<BaseClientState, BaseClientData> closeConnection(final CloseConnection closeConnection,
-            final BaseClientData data, boolean shutdownAfterDisconnect) {
+    private FSM.State<BaseClientState, BaseClientData> closeConnection(final WithDittoHeaders closeConnection,
+            final BaseClientData data, final boolean shutdownAfterDisconnect) {
 
         final ActorRef sender = getSender();
 
@@ -948,7 +937,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .using(data.setConnectionStatusDetails("disconnecting connection at " + Instant.now()));
     }
 
-    private FSM.State<BaseClientState, BaseClientData> openConnection(final OpenConnection openConnection,
+    private FSM.State<BaseClientState, BaseClientData> openConnection(final WithDittoHeaders openConnection,
             final BaseClientData data) {
 
         final ActorRef sender = getSender();
@@ -1105,8 +1094,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 return goTo(INITIALIZED)
                         .using(data.resetSession() // don't set the state, preserve the old one (e.g. MISCONFIGURED)
                                 .setConnectionStatusDetails(
-                                        data.getConnectionStatusDetails().orElse(timeoutMessage) // Preserve old status details
-                                                 + " Reached maximum retries and thus will not try to reconnect any longer.")
+                                        data.getConnectionStatusDetails().orElse(timeoutMessage)
+                                                // Preserve old status details
+                                                +
+                                                " Reached maximum retries and thus will not try to reconnect any longer.")
                         );
             }
         }
@@ -1178,7 +1169,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stateData().getSshTunnelState();
     }
 
-    private State<BaseClientState, BaseClientData> openConnectionInConnectingState(final OpenConnection openConnection,
+    private State<BaseClientState, BaseClientData> openConnectionInConnectingState(
+            final WithDittoHeaders openConnection,
             final BaseClientData data) {
 
         final ActorRef origin = getSender();
@@ -1198,12 +1190,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final ClientConnected clientConnected,
             final BaseClientData data) {
 
-        return ifEventUpToDate(clientConnected, () -> {
-            allocateResourcesOnConnection(clientConnected);
-            Patterns.pipe(startPublisherAndConsumerActors(clientConnected), getContext().getDispatcher())
-                    .to(getSelf());
-            return stay().using(data);
-        });
+        allocateResourcesOnConnection(clientConnected);
+        Patterns.pipe(startPublisherAndConsumerActors(clientConnected), getContext().getDispatcher())
+                .to(getSelf());
+        return stay().using(data);
     }
 
     /**
@@ -1274,7 +1264,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private State<BaseClientState, BaseClientData> clientDisconnected(final ClientDisconnected event,
             final BaseClientData data) {
 
-        return ifEventUpToDate(event, () -> {
             connectionLogger.success("Disconnected successfully.");
 
             cleanupResourcesForConnection();
@@ -1291,7 +1280,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             } else {
                 return goTo(DISCONNECTED).using(nextStateData);
             }
-        });
     }
 
     private void tellTunnelActor(final SshTunnelActor.TunnelControl control) {
@@ -1305,7 +1293,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private State<BaseClientState, BaseClientData> connectingConnectionFailed(final ConnectionFailure event,
             final BaseClientData data) {
 
-        return ifEventUpToDate(event, () -> {
             logger.info("{} failed: <{}>", stateName(), event.getFailure());
 
             cleanupResourcesForConnection();
@@ -1313,20 +1300,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     sender.first().tell(getStatusToReport(event.getFailure(), sender.second()), getSelf()));
 
             return backoffAfterFailure(event, data);
-        });
     }
 
     private State<BaseClientState, BaseClientData> connectedConnectionFailed(final ConnectionFailure event,
             final BaseClientData data) {
-
-        return ifEventUpToDate(event, () -> {
 
             // do not bother to disconnect gracefully - the other end of the connection is probably dead
             cleanupResourcesForConnection();
             cleanupFurtherResourcesOnConnectionTimeout(stateName());
 
             return backoffAfterFailure(event, data);
-        });
     }
 
     /**
@@ -1386,19 +1369,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                         .setConnectionStatus(connectivityStatusResolver.resolve(event))
                         .setConnectionStatusDetails(event.getFailureDescription())
                 );
-    }
-
-    private State<BaseClientState, BaseClientData> ifEventUpToDate(final Object event,
-            final Supplier<State<BaseClientState, BaseClientData>> thenExecute) {
-
-        final BaseClientState state = stateName();
-        final ActorRef sender = getSender();
-        if (isEventUpToDate(event, state, sender)) {
-            return thenExecute.get();
-        } else {
-            logger.warning("Received stale event <{}> at state <{}>", event, state);
-            return stay();
-        }
     }
 
     private FSM.State<BaseClientState, BaseClientData> retrieveConnectionStatus(final RetrieveConnectionStatus command,
@@ -1511,8 +1481,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .debug("Received checkLoggingActive message for connection <{}>." +
                         " Checking if logging for connection is expired.", connectionId);
 
-        if (connectionLoggerRegistry.isLoggingExpired(connectionId, command.getTimestamp())) {
-            connectionLoggerRegistry.muteForConnection(connectionId);
+        if (ConnectionLoggerRegistry.isLoggingExpired(connectionId, command.getTimestamp())) {
+            ConnectionLoggerRegistry.muteForConnection(connectionId);
             getSender().tell(LoggingExpired.of(connectionId), ActorRef.noSender());
         }
 
@@ -1572,7 +1542,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                         .build();
             default:
                 final String signalType = signal instanceof Signal
-                        ? ((Signal<?>) signal).getType()
+                        ? ((WithType) signal).getType()
                         : "unknown"; // no need to disclose Java class of signal to clients
                 return ConnectionSignalIllegalException.newBuilder(connectionId())
                         .illegalSignalForState(signalType, state.name().toLowerCase())
@@ -1610,7 +1580,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return false;
     }
 
-    private FSM.State<BaseClientState, BaseClientData> handleSignal(final Signal<?> signal,
+    private FSM.State<BaseClientState, BaseClientData> handleSignal(final WithDittoHeaders signal,
             final BaseClientData data) {
         if (stateName() == CONNECTED) {
             outboundDispatchingActor.tell(signal, getSender());
@@ -1640,7 +1610,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
-    private static Optional<EntityId> tryExtractEntityId(Signal<?> signal) {
+    private static Optional<EntityId> tryExtractEntityId(final Signal<?> signal) {
         if (signal instanceof WithEntityId) {
             final var withEntityId = (WithEntityId) signal;
             return Optional.of(withEntityId.getEntityId());
@@ -1812,7 +1782,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return getContext().actorOf(props, SubscriptionManager.ACTOR_NAME);
     }
 
-    private FSM.State<BaseClientState, BaseClientData> forwardThingSearchCommand(final ThingSearchCommand<?> command,
+    private FSM.State<BaseClientState, BaseClientData> forwardThingSearchCommand(final WithDittoHeaders command,
             final BaseClientData data) {
         // Tell subscriptionManager to send search events to messageMappingProcessorActor.
         // See javadoc of
@@ -1908,15 +1878,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                             logger.warning("Received unhandled DittoRuntimeException <{}>. " +
                                     "Telling outbound mapping processor about it.", error);
                             outboundDispatchingActor.tell(error, ActorRef.noSender());
-                            return (SupervisorStrategy.Directive) SupervisorStrategy.resume();
+                            return SupervisorStrategy.resume();
                         })
                         .matchAny(error -> {
                             self.tell(ConnectionFailure.of(getSender(), error, "exception in child"), self);
                             if (getSender().equals(tunnelActor)) {
                                 logger.debug("Restarting tunnel actor after failure: {}", error.getMessage());
-                                return (SupervisorStrategy.Directive) SupervisorStrategy.restart();
+                                return SupervisorStrategy.restart();
                             } else {
-                                return (SupervisorStrategy.Directive) SupervisorStrategy.stop();
+                                return SupervisorStrategy.stop();
                             }
                         }).build()
         );
@@ -2007,8 +1977,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private static void pipeConnectionContextToSelfAndRegisterForChanges(
             final ConnectionContextProvider connectionContextProvider,
-            final Connection connection, final DittoHeaders dittoHeaders,
-            final ActorRef self, final ExecutionContext executionContext) {
+            final Connection connection,
+            final DittoHeaders dittoHeaders,
+            final ActorRef self,
+            final ExecutionContext executionContext) {
 
         final CompletionStage<Object> messageToSelfFuture =
                 connectionContextProvider.getConnectionContext(connection, dittoHeaders)
