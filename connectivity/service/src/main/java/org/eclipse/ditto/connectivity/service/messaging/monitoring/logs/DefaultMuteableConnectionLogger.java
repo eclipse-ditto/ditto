@@ -30,27 +30,31 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 
 /**
  * Default implementation of {@link MuteableConnectionLogger}.
- * This implementation is not threadsafe since it ain't really of a big importance if a log message gets lost during activation of the logger.
+ * This implementation is not threadsafe since it ain't really of a big importance if a log message gets lost
+ * during activation of the logger.
+ * <p>
+ * In case of an exception this implementation switches it's delegate to an {@link ExceptionalConnectionLogger}.
  */
 @NotThreadSafe
 final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger {
 
     private final ThreadSafeDittoLogger logger;
     private final ConnectionId connectionId;
-    private final ConnectionLogger delegate;
+    private ConnectionLogger delegate;
     private boolean active;
 
     /**
      * Create a new mutable connection logger that is currently muted.
+     *
      * @param connectionId the connection for which the logger is logging.
      * @param delegate the delegate to call while the logger is unmuted
      */
     DefaultMuteableConnectionLogger(final ConnectionId connectionId, final ConnectionLogger delegate) {
         this.connectionId = connectionId;
-        this.logger = DittoLoggerFactory.getThreadSafeLogger(DefaultMuteableConnectionLogger.class)
+        logger = DittoLoggerFactory.getThreadSafeLogger(DefaultMuteableConnectionLogger.class)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
         this.delegate = delegate;
-        this.active = false;
+        active = false;
     }
 
     @Override
@@ -73,7 +77,7 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
     @Override
     public void success(final ConnectionMonitor.InfoProvider infoProvider) {
         if (active) {
-            delegate.success(infoProvider);
+            wrapInExceptionHandling(() -> delegate.success(infoProvider));
         } else {
             logTraceWithCorrelationId("Not logging success since logger is muted.", infoProvider);
         }
@@ -82,17 +86,20 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
     @Override
     public void success(final ConnectionMonitor.InfoProvider infoProvider, final String message,
             final Object... messageArguments) {
+
         if (active) {
-            delegate.success(infoProvider, message, messageArguments);
+            wrapInExceptionHandling(() -> delegate.success(infoProvider, message, messageArguments));
         } else {
             logTraceWithCorrelationId("Not logging success since logger is muted.", infoProvider);
         }
     }
 
     @Override
-    public void failure(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final DittoRuntimeException exception) {
+    public void failure(final ConnectionMonitor.InfoProvider infoProvider,
+            @Nullable final DittoRuntimeException exception) {
+
         if (active) {
-            delegate.failure(infoProvider, exception);
+            wrapInExceptionHandling(() -> delegate.failure(infoProvider, exception));
         } else {
             logTraceWithCorrelationId("Not logging failure since logger is muted.", infoProvider);
         }
@@ -101,8 +108,9 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
     @Override
     public void failure(final ConnectionMonitor.InfoProvider infoProvider, final String message,
             final Object... messageArguments) {
+
         if (active) {
-            delegate.failure(infoProvider, message, messageArguments);
+            wrapInExceptionHandling(() -> delegate.failure(infoProvider, message, messageArguments));
         } else {
             logTraceWithCorrelationId("Not logging failure since logger is muted.", infoProvider);
         }
@@ -111,7 +119,7 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
     @Override
     public void exception(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final Exception exception) {
         if (active) {
-            delegate.exception(infoProvider, exception);
+            wrapInExceptionHandling(() -> delegate.exception(infoProvider, exception));
         } else {
             logTraceWithCorrelationId("Not logging exception since logger is muted.", infoProvider);
         }
@@ -120,8 +128,9 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
     @Override
     public void exception(final ConnectionMonitor.InfoProvider infoProvider, final String message,
             final Object... messageArguments) {
+
         if (active) {
-            delegate.exception(infoProvider, message, messageArguments);
+            wrapInExceptionHandling(() -> delegate.exception(infoProvider, message, messageArguments));
         } else {
             logTraceWithCorrelationId("Not logging exception since logger is muted.", infoProvider);
         }
@@ -129,7 +138,7 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
 
     @Override
     public void clear() {
-        delegate.clear();
+        wrapInExceptionHandling(() -> delegate.clear());
     }
 
     @Override
@@ -147,11 +156,25 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
         }
     }
 
-    private void logTraceWithCorrelationId(final String message, final ConnectionMonitor.InfoProvider infoProvider, final Object... messageArguments) {
+    private void wrapInExceptionHandling(final Runnable runnable) {
+        try {
+            runnable.run();
+        } catch (final Exception e) {
+            logger.error("Encountered exception: <{}> in connection logger: <{}>. Switching delegate to: <{}>.", e,
+                    this, ExceptionalConnectionLogger.class.getSimpleName());
+            delegate = ConnectionLoggerFactory.newExceptionalLogger(connectionId, e);
+        }
+    }
+
+    private void logTraceWithCorrelationId(final String message,
+            final ConnectionMonitor.InfoProvider infoProvider,
+            final Object... messageArguments) {
+
         if (logger.isTraceEnabled()) {
             logger.withCorrelationId(infoProvider.getCorrelationId()).trace(message, messageArguments);
         }
     }
+
 
     @Override
     public boolean equals(@Nullable final Object o) {

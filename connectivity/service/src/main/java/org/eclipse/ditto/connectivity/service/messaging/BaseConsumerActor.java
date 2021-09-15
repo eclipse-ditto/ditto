@@ -80,14 +80,17 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
     @Nullable private ResourceStatus resourceStatus;
 
-    protected BaseConsumerActor(final Connection connection, final String sourceAddress,
-            final Sink<Object, ?> inboundMappingSink, final Source source,
+    protected BaseConsumerActor(final Connection connection,
+            final String sourceAddress,
+            final Sink<Object, ?> inboundMappingSink,
+            final Source source,
             final ConnectivityStatusResolver connectivityStatusResolver) {
-        this.connectionId = checkNotNull(connection, "connection").getId();
+
+        connectionId = checkNotNull(connection, "connection").getId();
         this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
         this.inboundMappingSink = checkNotNull(inboundMappingSink, "inboundMappingSink");
         this.source = checkNotNull(source, "source");
-        this.connectionType = connection.getConnectionType();
+        connectionType = connection.getConnectionType();
         this.connectivityStatusResolver = checkNotNull(connectivityStatusResolver, "connectivityStatusResolver");
         resetResourceStatus();
 
@@ -251,7 +254,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         return externalMessageBuilder.build();
     }
 
-    protected DittoHeaders enrichHeadersWithReplyInformation(final DittoHeaders headers) {
+    private DittoHeaders enrichHeadersWithReplyInformation(final DittoHeaders headers) {
         return source.getReplyTarget()
                 .<DittoHeaders>map(replyTarget -> headers.toBuilder()
                         .replyTarget(source.getIndex())
