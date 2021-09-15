@@ -125,9 +125,9 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         final Amqp10Config config = connectionConfig.getAmqp10Config();
         final Materializer materializer = Materializer.createMaterializer(this::getContext);
         final Pair<SourceQueueWithComplete<Pair<ExternalMessage, AmqpMessageContext>>, UniqueKillSwitch> materialized =
-                Source.<Pair<ExternalMessage, AmqpMessageContext>>queue(config.getMaxQueueSize(),
+                Source.<Pair<ExternalMessage, AmqpMessageContext>>queue(config.getPublisherConfig().getMaxQueueSize(),
                                 OverflowStrategy.dropNew())
-                        .mapAsync(config.getPublisherParallelism(), msg -> triggerPublishAsync(msg, jmsDispatcher))
+                        .mapAsync(config.getPublisherConfig().getParallelism(), msg -> triggerPublishAsync(msg, jmsDispatcher))
                         .recover(new PFBuilder<Throwable, Object>()
                                 // the "Done" instance is not used, this just means to not fail the stream for any Throwables
                                 .matchAny(x -> Done.getInstance())

@@ -47,7 +47,8 @@ public class DefaultKafkaConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultKafkaConfig.class,
                 areImmutable(),
-                provided(KafkaConsumerConfig.class, KafkaProducerConfig.class).areAlsoImmutable());
+                provided(KafkaConsumerConfig.class, KafkaProducerConfig.class,
+                        KafkaCommitterConfig.class).areAlsoImmutable());
     }
 
     @Test

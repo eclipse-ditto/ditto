@@ -32,7 +32,7 @@ enum KafkaHeader implements Function<ConsumerRecord<String, String>, Optional<St
     /**
      * The timestamp of the received record.
      */
-    KAFKA_TIMESTAMP("kafka.timestamp", record -> Long.toString(record.timestamp())),
+    KAFKA_TIMESTAMP("kafka.timestamp", kRecord -> Long.toString(kRecord.timestamp())),
     /**
      * The key of the received record (or null if not specified).
      */

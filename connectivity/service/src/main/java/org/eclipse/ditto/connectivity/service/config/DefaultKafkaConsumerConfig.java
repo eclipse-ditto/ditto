@@ -16,7 +16,8 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
+import org.eclipse.ditto.base.service.config.supervision.DefaultExponentialBackOffConfig;
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -25,16 +26,20 @@ import com.typesafe.config.ConfigFactory;
  * This class is the default implementation of {@link KafkaConsumerConfig}.
  */
 @Immutable
-public final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
+final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
 
     private static final String CONFIG_PATH = "consumer";
     private static final String ALPAKKA_PATH = "alpakka";
+    private static final String RESTART_PATH = "restart";
 
-    private final ThrottlingConfig throttlingConfig;
+    private final ConnectionThrottlingConfig throttlingConfig;
+    private final ExponentialBackOffConfig restartBackOffConfig;
     private final Config alpakkaConfig;
 
     private DefaultKafkaConsumerConfig(final Config kafkaConsumerScopedConfig) {
-        throttlingConfig = ThrottlingConfig.of(kafkaConsumerScopedConfig);
+        throttlingConfig = ConnectionThrottlingConfig.of(kafkaConsumerScopedConfig);
+        restartBackOffConfig =
+                DefaultExponentialBackOffConfig.of(getConfigOrEmpty(kafkaConsumerScopedConfig, RESTART_PATH));
         alpakkaConfig = getConfigOrEmpty(kafkaConsumerScopedConfig, ALPAKKA_PATH);
     }
 
@@ -54,8 +59,13 @@ public final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
     }
 
     @Override
-    public ThrottlingConfig getThrottlingConfig() {
+    public ConnectionThrottlingConfig getThrottlingConfig() {
         return throttlingConfig;
+    }
+
+    @Override
+    public ExponentialBackOffConfig getRestartBackOffConfig() {
+        return restartBackOffConfig;
     }
 
     @Override
@@ -65,22 +75,28 @@ public final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final DefaultKafkaConsumerConfig that = (DefaultKafkaConsumerConfig) o;
         return Objects.equals(throttlingConfig, that.throttlingConfig) &&
+                Objects.equals(restartBackOffConfig, that.restartBackOffConfig) &&
                 Objects.equals(alpakkaConfig, that.alpakkaConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(throttlingConfig, alpakkaConfig);
+        return Objects.hash(throttlingConfig, restartBackOffConfig, alpakkaConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "throttlingConfig=" + throttlingConfig +
+                ", restartBackOffConfig=" + restartBackOffConfig +
                 ", alpakkaConfig=" + alpakkaConfig +
                 "]";
     }

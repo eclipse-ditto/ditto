@@ -12,12 +12,17 @@
  */
 package org.eclipse.ditto.policies.service.persistence.serializer;
 
+import java.util.Optional;
+
 import javax.annotation.concurrent.ThreadSafe;
 
+import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
+import org.eclipse.ditto.policies.model.PolicyLifecycle;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -32,6 +37,25 @@ public final class PolicyMongoSnapshotAdapter extends AbstractMongoSnapshotAdapt
      */
     public PolicyMongoSnapshotAdapter() {
         super(LoggerFactory.getLogger(PolicyMongoSnapshotAdapter.class));
+    }
+
+    @Override
+    protected boolean isDeleted(final Policy snapshotEntity) {
+        return snapshotEntity.hasLifecycle(PolicyLifecycle.DELETED);
+    }
+
+    @Override
+    protected JsonField getDeletedLifecycleJsonField() {
+        final var field = Policy.JsonFields.LIFECYCLE;
+        return JsonField.newInstance(field.getPointer().getRoot().orElseThrow(),
+                JsonValue.of(PolicyLifecycle.DELETED.name()), field);
+    }
+
+    @Override
+    protected Optional<JsonField> getRevisionJsonField(final Policy entity) {
+        final var field = Policy.JsonFields.REVISION;
+        return entity.getRevision().map(revision ->
+                JsonField.newInstance(field.getPointer().getRoot().orElseThrow(), JsonValue.of(revision.toLong())));
     }
 
     @Override

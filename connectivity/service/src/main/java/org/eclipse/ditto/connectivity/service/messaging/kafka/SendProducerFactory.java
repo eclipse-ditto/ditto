@@ -15,7 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import akka.kafka.javadsl.SendProducer;
 
 /**
- * Creates Kafka {@code SendProducer}s.
+ * Creates Kafka {@link SendProducer}s.
  */
 @FunctionalInterface
 interface SendProducerFactory {

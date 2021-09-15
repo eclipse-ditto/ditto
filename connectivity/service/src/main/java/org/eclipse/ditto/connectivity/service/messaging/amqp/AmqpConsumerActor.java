@@ -53,6 +53,7 @@ import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
+import org.eclipse.ditto.connectivity.service.config.Amqp10ConsumerConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
@@ -500,11 +501,13 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
     }
 
     private boolean hasMessageRateLimiterConfigChanged(final Amqp10Config amqp10Config) {
-        return messageRateLimiter != null
-                && (messageRateLimiter.getMaxPerPeriod() != amqp10Config.getConsumerThrottlingLimit()
-                || messageRateLimiter.getMaxInFlight() != amqp10Config.getConsumerMaxInFlight()
-                || messageRateLimiter.getRedeliveryExpectationTimeout() !=
-                amqp10Config.getConsumerRedeliveryExpectationTimeout());
+        if (messageRateLimiter == null) {
+            return false;
+        }
+        final Amqp10ConsumerConfig consumerConfig = amqp10Config.getConsumerConfig();
+        return messageRateLimiter.getMaxPerPeriod() != consumerConfig.getThrottlingConfig().getLimit()
+        || messageRateLimiter.getMaxInFlight() != consumerConfig.getThrottlingConfig().getMaxInFlight()
+        || !messageRateLimiter.getRedeliveryExpectationTimeout().equals(consumerConfig.getRedeliveryExpectationTimeout());
     }
 
     /**

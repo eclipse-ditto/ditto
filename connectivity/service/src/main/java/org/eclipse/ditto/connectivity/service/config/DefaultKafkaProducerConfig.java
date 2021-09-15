@@ -25,7 +25,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link KafkaProducerConfig}.
  */
 @Immutable
-public final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
+final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
 
     private static final String CONFIG_PATH = "producer";
     private static final String ALPAKKA_PATH = "alpakka";

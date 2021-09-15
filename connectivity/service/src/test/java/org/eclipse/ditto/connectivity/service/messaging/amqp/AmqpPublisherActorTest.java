@@ -163,7 +163,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
             publisherCreated(this, publisherActor);
 
-            final int queueSize = connectionConfig.getMaxQueueSize() + connectionConfig.getPublisherParallelism();
+            final int queueSize = connectionConfig.getPublisherConfig().getMaxQueueSize() +
+                    connectionConfig.getPublisherConfig().getParallelism();
 
             //Act
             final OutboundSignal.MultiMapped multiMapped = newMultiMappedThingDeleted(dittoHeaders, ack, getRef());
@@ -185,7 +186,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             );
 
             // Check that message sending attempts eventually agree with the parallelism.
-            verify(messageProducer, timeout(10_000).times(connectionConfig.getPublisherParallelism()))
+            verify(messageProducer, timeout(10_000).times(connectionConfig.getPublisherConfig().getParallelism()))
                     .send(any(JmsMessage.class), any(CompletionListener.class));
         }};
 
