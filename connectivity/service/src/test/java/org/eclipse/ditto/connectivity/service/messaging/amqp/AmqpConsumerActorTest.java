@@ -377,6 +377,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
     @Test
     public void closedMessageConsumerFailConnection() throws JMSException {
         new TestKit(actorSystem) {{
+            final ConnectivityStatusResolver connectivityStatusResolver = mock(ConnectivityStatusResolver.class);
+            when(connectivityStatusResolver.resolve(any(Throwable.class))).thenReturn(ConnectivityStatus.MISCONFIGURED);
 
             final var messageConsumer = Mockito.mock(MessageConsumer.class);
             final var source = Mockito.mock(Source.class);
@@ -390,11 +392,15 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                             consumerData("foo123", messageConsumer, source),
                             mappingSink,
                             getRef(),
-                            mock(ConnectivityStatusResolver.class))));
+                            connectivityStatusResolver)));
 
             final var failure = expectMsgClass(ConnectionFailure.class);
             assertThat(failure.getFailure().cause()).isEqualTo(error);
-            expectTerminated(underTest);
+
+            // verify resource status is up-to-date after setMessageListener has thrown an exception
+            underTest.tell(RetrieveAddressStatus.getInstance(), getRef());
+            final ResourceStatus resourceStatus = expectMsgClass(ResourceStatus.class);
+            assertThat((Object) resourceStatus.getStatus()).isEqualTo(ConnectivityStatus.MISCONFIGURED);
         }};
     }
 
