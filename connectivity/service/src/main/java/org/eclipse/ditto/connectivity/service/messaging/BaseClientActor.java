@@ -57,7 +57,6 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
@@ -176,7 +175,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
     private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
             "Closed because of unknown/failure/misconfiguration status in client.";
-
 
     /**
      * Common logger for all sub-classes of BaseClientActor as its MDC already contains the connection ID.
@@ -1099,7 +1097,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 return goToConnecting(reconnectTimeoutStrategy.getNextTimeout())
                         .using(data.resetSession()  // don't set the state, preserve the old one (e.g. MISCONFIGURED)
                                 .resetFailureCount()
-.setConnectionStatusDetails(timeoutMessage + " Will try to reconnect."));
+                                .setConnectionStatusDetails(timeoutMessage + " Will try to reconnect."));
             } else {
                 connectionLogger.failure(
                         "Connection timed out. Reached maximum tries and thus will no longer try to reconnect.");
@@ -1245,6 +1243,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final InitializationResult initializationResult, final BaseClientData data) {
 
         if (initializationResult.isSuccess()) {
+            logger.debug("Initialization of consumers, publisher and subscriptions successful, going to CONNECTED.");
             connectionLogger.success("Connection successful.");
             data.getSessionSenders().forEach(origin -> origin.first().tell(new Status.Success(CONNECTED), getSelf()));
             return goTo(CONNECTED).using(data.resetSession()
@@ -1253,6 +1252,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                             .setConnectionStatusDetails("Connected at " + Instant.now())
                     );
         } else {
+            logger.info("Initialization of consumers, publisher and subscriptions failed: {}. Staying in CONNECTING " +
+                    "state to continue with connection recovery after backoff.", initializationResult.getFailure());
             getSelf().tell(initializationResult.getFailure(), ActorRef.noSender());
             return stay();
         }
@@ -1371,11 +1372,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     connectionLogger.failure(errorMessage, event.getFailureDescription());
                     final ConnectivityStatus resolvedStatus = connectivityStatusResolver.resolve(event);
                     logger.info("Connection failed: {}. Reconnect after: {}. Resolved status: {}. " +
-                                    "Going to 'CONNECTING'", event, nextBackoff, resolvedStatus);
+                            "Going to 'CONNECTING'", event, nextBackoff, resolvedStatus);
                     return goToConnecting(nextBackoff).using(data.increaseFailureCount()
-                                    .setConnectionStatus(resolvedStatus)
-                                    .setConnectionStatusDetails(event.getFailureDescription())
-                            );
+                            .setConnectionStatus(resolvedStatus)
+                            .setConnectionStatusDetails(event.getFailureDescription())
+                    );
                 }
             } else {
                 connectionLogger.failure(

@@ -240,10 +240,14 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                 consumerData = consumerData.withMessageConsumer(messageConsumer);
             }
         } catch (final Exception e) {
-            final var failure =
-                    ConnectionFailure.of(getSelf(), e, "Failed to initialize message consumers.");
+            final ResourceStatus resourceStatus =
+                    ConnectivityModelFactory.newStatusUpdate(InstanceIdentifierSupplier.getInstance().get(),
+                            connectivityStatusResolver.resolve(e), sourceAddress,
+                            "Initialization of message consumer failed: " + e.getMessage(),
+                            Instant.now());
+            handleAddressStatus(resourceStatus);
+            final var failure = ConnectionFailure.of(getSelf(), e, "Failed to initialize message consumers.");
             getContext().getParent().tell(failure, getSelf());
-            getContext().stop(getSelf());
         }
     }
 

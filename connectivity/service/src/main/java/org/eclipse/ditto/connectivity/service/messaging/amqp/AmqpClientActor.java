@@ -43,6 +43,7 @@ import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
@@ -64,6 +65,7 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectClient;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.DisconnectClient;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RecoverSession;
+import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
@@ -111,6 +113,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private final boolean recoverSessionOnSessionClosed;
     private final boolean recoverSessionOnConnectionRestored;
     private final Duration clientAskTimeout;
+    private final Duration initialConsumerResourceStatusAskTimeout;
     private ActorRef amqpPublisherActor;
 
     /*
@@ -140,6 +143,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled(connection);
         recoverSessionOnConnectionRestored = isRecoverSessionOnConnectionRestoredEnabled(connection);
         clientAskTimeout = connectionConfig.getClientActorAskTimeout();
+        initialConsumerResourceStatusAskTimeout = amqp10Config.getInitialConsumerStatusAskTimeout();
     }
 
     /*
@@ -159,6 +163,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled(connection);
         recoverSessionOnConnectionRestored = isRecoverSessionOnConnectionRestoredEnabled(connection);
         clientAskTimeout = Duration.ofSeconds(10L);
+        initialConsumerResourceStatusAskTimeout = Duration.ofMillis(500L);
     }
 
     /**
@@ -374,7 +379,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         if (clientConnected instanceof JmsConnected) {
             final JmsConnected c = (JmsConnected) clientConnected;
             final ActorRef jmsActor = getConnectConnectionHandler(connection());
-            startCommandConsumers(c.consumerList, jmsActor);
+            return startCommandConsumers(c.consumerList, jmsActor)
+                    .thenApply(ignored -> new Status.Success(Done.getInstance()));
         }
         return CompletableFuture.completedFuture(new Status.Success(Done.getInstance()));
     }
@@ -417,18 +423,44 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         return amqpPublisherActor;
     }
 
-    private void startCommandConsumers(final List<ConsumerData> consumers, final ActorRef jmsActor) {
+    private CompletionStage<Object> startCommandConsumers(final List<ConsumerData> consumers, final ActorRef jmsActor) {
         if (isConsuming()) {
             stopCommandConsumers();
-            consumers.forEach(consumer -> startCommandConsumer(consumer, getInboundMappingSink(), jmsActor));
+            final CompletionStage<Object> completionStage = consumers.stream()
+                    .map(consumer -> startCommandConsumer(consumer, getInboundMappingSink(), jmsActor))
+                    .map(this::retrieveAddressStatusFromConsumerActor)
+                    .reduce(CompletableFuture.completedStage(Done.getInstance()),
+                            // not interested in the actual result, just if it failed or not
+                            (stage, reply) -> stage.thenCompose(unused -> reply));
             connectionLogger.success("Subscriptions {0} initialized successfully.", consumers);
             logger.info("Subscribed Connection <{}> to sources: {}", connectionId(), consumers);
+            return completionStage;
         } else {
             logger.debug("Not starting consumers, no sources were configured.");
+            return CompletableFuture.completedStage(Done.getInstance());
         }
     }
 
-    private void startCommandConsumer(final ConsumerData consumer, final Sink<Object, NotUsed> inboundMappingSink,
+    private CompletionStage<Object> retrieveAddressStatusFromConsumerActor(final ActorRef ref) {
+        return Patterns.ask(ref, RetrieveAddressStatus.getInstance(), initialConsumerResourceStatusAskTimeout)
+                .thenApply(reply -> {
+                    if (reply instanceof ResourceStatus) {
+                        final ResourceStatus resourceStatus = (ResourceStatus) reply;
+                        // if status of the consumer actors is not OPEN after initialization, we must fail the stage
+                        // with an exception, otherwise the client actor wil go to CONNECTED state, despite the
+                        // failure that occurred in the consumer
+                        if (resourceStatus.getStatus() != ConnectivityStatus.OPEN) {
+                            final String msg = String.format("Resource status of consumer is not OPEN, but %s: %s",
+                                    resourceStatus.getStatus(),
+                                    resourceStatus.getStatusDetails().orElse("(no status details provided)"));
+                            throw new IllegalStateException(msg);
+                        }
+                    }
+                    return reply;
+                });
+    }
+
+    private ActorRef startCommandConsumer(final ConsumerData consumer, final Sink<Object, NotUsed> inboundMappingSink,
             final ActorRef jmsActor) {
         final String namePrefix = consumer.getActorNamePrefix();
         final Props props = AmqpConsumerActor.props(connection(), consumer, inboundMappingSink, jmsActor,
@@ -436,6 +468,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         final ActorRef child = startChildActorConflictFree(namePrefix, props);
         consumerByNamePrefix.put(namePrefix, child);
+        return child;
     }
 
     private void stopCommandConsumers() {
