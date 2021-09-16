@@ -172,7 +172,7 @@ public class BsonDiffVisitorIT {
                 Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
 
         final JsonObject prevThing = getThing1();
-        final JsonObject nextThing = getThing4(); // identical to Thing1 with an extra field with emtpy object as value
+        final JsonObject nextThing = getThing4(); // identical to Thing1 with an extra fields with emtpy object as value
 
         final BsonDocument prevThingDoc =
                 EnforcedThingMapper.toBsonDocument(prevThing, enforcer, maxArraySize, metadata);
@@ -187,8 +187,8 @@ public class BsonDiffVisitorIT {
         final List<BsonDocument> updateDoc = diff.consumeAndExport();
 
         assertThat(updateDoc.toString().length())
-                .describedAs("Incremental update should be less than 1/10 as large as replacement")
-                .isLessThan(nextThingDoc.toString().length() / 10);
+                .describedAs("Incremental update should be less than 1/8 as large as replacement")
+                .isLessThan(nextThingDoc.toString().length() / 8);
 
         run(collection.insertOne(toDocument(prevThingDoc)));
         run(collection.updateOne(new Document(), updateDoc));
@@ -286,7 +286,8 @@ public class BsonDiffVisitorIT {
                 "    \"j\": true,\n" +
                 "    \"k\": 6.0,\n" +
                 "    \"l\": 123456789012,\n" +
-                "    \"m\": {}\n" +
+                "    \"m\": {},\n" +
+                "    \"n\": {\"o\":{}}\n" +
                 "  }\n" +
                 "}");
     }
