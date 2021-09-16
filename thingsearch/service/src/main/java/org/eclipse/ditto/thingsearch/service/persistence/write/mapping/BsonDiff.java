@@ -33,6 +33,8 @@ import akka.japi.Pair;
  */
 public final class BsonDiff {
 
+    private static final String LITERAL = "$literal";
+
     final int replacementSize;
     final int diffSize;
     final Stream<Pair<JsonPointer, BsonValue>> set;
@@ -145,7 +147,7 @@ public final class BsonDiff {
 
     private BsonDocument consumeAndExportSet() {
         final BsonDocument setDocument = new BsonDocument();
-        set.forEach(pair -> setDocument.append(getPathString(pair.first()), pair.second()));
+        set.forEach(pair -> setDocument.append(getPathString(pair.first()), toSetValue(pair.second())));
         return setDocument;
     }
 
@@ -153,6 +155,12 @@ public final class BsonDiff {
         final var unsetArray = new BsonArray();
         unset.forEach(path -> unsetArray.add(new BsonString(getPathString(path))));
         return unsetArray;
+    }
+
+    private static BsonValue toSetValue(final BsonValue value) {
+        return value.isDocument() && value.asDocument().isEmpty()
+                ? new BsonDocument().append(LITERAL, value)
+                : value;
     }
 
     private static String getPathString(final JsonPointer jsonPointer) {
