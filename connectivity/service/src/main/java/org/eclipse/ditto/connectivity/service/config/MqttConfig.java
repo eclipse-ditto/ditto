@@ -83,10 +83,21 @@ public interface MqttConfig {
     Duration getReconnectMinTimeoutForMqttBrokerInitiatedDisconnect();
 
     /**
+     * @return maximum number of messages buffered at the publisher actor before dropping them.
+     * @since 2.1.0
+     */
+    int getOutboundQueueSize();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code MqttConfig}.
      */
     enum MqttConfigValue implements KnownConfigValue {
+
+        /**
+         * How many messages to buffer in the publisher actor before dropping them.
+         */
+        OUTBOUND_QUEUE_SIZE("outbound-queue-size", 1000),
 
         /**
          * The number of threads to use for the underlying event loop of the MQTT client.
