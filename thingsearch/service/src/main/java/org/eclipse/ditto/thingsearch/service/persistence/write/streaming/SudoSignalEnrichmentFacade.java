@@ -57,8 +57,7 @@ final class SudoSignalEnrichmentFacade implements SignalEnrichmentFacade {
             final DittoHeaders dittoHeaders,
             @Nullable final Signal<?> concernedSignal) {
 
-        final DittoHeaders headersWithCorrelationId = DittoHeaders.newBuilder().randomCorrelationId().build();
-        final SudoRetrieveThing command = SudoRetrieveThing.of(thingId, headersWithCorrelationId);
+        final SudoRetrieveThing command = SudoRetrieveThing.of(thingId, dittoHeaders);
         return Patterns.ask(commandHandler, command, askTimeout).thenCompose(SudoSignalEnrichmentFacade::extractThing);
     }
 

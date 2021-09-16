@@ -27,7 +27,6 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -108,13 +107,14 @@ public final class CachingSignalEnrichmentFacade implements
      */
     public CompletionStage<JsonObject> retrieveThing(final ThingId thingId, final List<ThingEvent<?>> events,
             final long minAcceptableSeqNr) {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
         if (minAcceptableSeqNr < 0) {
             final var cacheKey =
-                    SignalEnrichmentCacheKey.of(thingId, SignalEnrichmentContext.of(DittoHeaders.empty(), null));
+                    SignalEnrichmentCacheKey.of(thingId, SignalEnrichmentContext.of(dittoHeaders, null));
             extraFieldsCache.invalidate(cacheKey);
-            return doCacheLookup(cacheKey, DittoHeaders.empty());
+            return doCacheLookup(cacheKey, dittoHeaders);
         } else {
-            return doRetrievePartialThing(thingId, null, DittoHeaders.empty(), events, false, minAcceptableSeqNr);
+            return doRetrievePartialThing(thingId, null, dittoHeaders, events, false, minAcceptableSeqNr);
         }
     }
 
@@ -135,10 +135,10 @@ public final class CachingSignalEnrichmentFacade implements
                     .build();
         }
 
-        final var idWithResourceType = SignalEnrichmentCacheKey.of(thingId,
+        final var cacheKey = SignalEnrichmentCacheKey.of(thingId,
                 SignalEnrichmentContext.of(dittoHeaders, enhancedFieldSelector));
 
-        return smartUpdateCachedObject(enhancedFieldSelector, idWithResourceType, concernedSignals,
+        return smartUpdateCachedObject(enhancedFieldSelector, cacheKey, concernedSignals,
                 invalidateCacheOnPolicyChange, minAcceptableSeqNr);
     }
 
@@ -185,18 +185,18 @@ public final class CachingSignalEnrichmentFacade implements
         return Optional.of(events);
     }
 
-    private CompletableFuture<JsonObject> doCacheLookup(final SignalEnrichmentCacheKey idWithResourceType,
+    private CompletableFuture<JsonObject> doCacheLookup(final SignalEnrichmentCacheKey cacheKey,
             final DittoHeaders dittoHeaders) {
 
         LOGGER.withCorrelationId(dittoHeaders)
-                .debug("Looking up cache entry for <{}>", idWithResourceType);
-        return extraFieldsCache.get(idWithResourceType)
+                .debug("Looking up cache entry for <{}>", cacheKey);
+        return extraFieldsCache.get(cacheKey)
                 .thenApply(optionalJsonObject -> optionalJsonObject.orElseGet(JsonObject::empty));
     }
 
     private CompletableFuture<JsonObject> smartUpdateCachedObject(
             @Nullable final JsonFieldSelector enhancedFieldSelector,
-            final SignalEnrichmentCacheKey idWithResourceType,
+            final SignalEnrichmentCacheKey cacheKey,
             final List<? extends Signal<?>> concernedSignals,
             final boolean invalidateCacheOnPolicyChange,
             final long minAcceptableSeqNr) {
@@ -207,26 +207,26 @@ public final class CachingSignalEnrichmentFacade implements
 
         // there are twin events, but their sequence numbers have gaps or do not reach the min acceptable seq nr
         if (thingEventsOptional.isEmpty()) {
-            extraFieldsCache.invalidate(idWithResourceType);
-            return doCacheLookup(idWithResourceType, dittoHeaders);
+            extraFieldsCache.invalidate(cacheKey);
+            return doCacheLookup(cacheKey, dittoHeaders);
         }
 
         final var thingEvents = thingEventsOptional.orElseThrow();
 
         // there are no twin event; return the cached thing
         if (thingEvents.isEmpty()) {
-            return doCacheLookup(idWithResourceType, dittoHeaders);
+            return doCacheLookup(cacheKey, dittoHeaders);
         }
 
         // there are ThingCreated events: perform smart update ignoring the cache entry
         if (thingEvents.get(0) instanceof ThingCreated) {
-            return handleNextExpectedThingEvents(enhancedFieldSelector, idWithResourceType, thingEvents,
+            return handleNextExpectedThingEvents(enhancedFieldSelector, cacheKey, thingEvents,
                     JsonObject.empty(), invalidateCacheOnPolicyChange)
                     .toCompletableFuture();
         }
 
         // there are twin events; perform smart update
-        return doCacheLookup(idWithResourceType, dittoHeaders).thenCompose(cachedJsonObject -> {
+        return doCacheLookup(cacheKey, dittoHeaders).thenCompose(cachedJsonObject -> {
             final long cachedRevision = cachedJsonObject.getValue(Thing.JsonFields.REVISION).orElse(0L);
             final var relevantEvents = thingEvents.stream()
                     .filter(e -> e.getRevision() > cachedRevision)
@@ -237,13 +237,13 @@ public final class CachingSignalEnrichmentFacade implements
             } else if (cachedRevision + 1 == getFirst(relevantEvents).getRevision()) {
                 // the cache entry was already present and the first thingEvent was the next expected revision no
                 // -> we have all information necessary to calculate it without making another roundtrip
-                return handleNextExpectedThingEvents(enhancedFieldSelector, idWithResourceType, relevantEvents,
+                return handleNextExpectedThingEvents(enhancedFieldSelector, cacheKey, relevantEvents,
                         cachedJsonObject, invalidateCacheOnPolicyChange);
             } else {
                 // the cache entry was already present, but we missed sth and need to invalidate the cache
                 // and to another cache lookup (via roundtrip)
-                extraFieldsCache.invalidate(idWithResourceType);
-                return doCacheLookup(idWithResourceType, dittoHeaders);
+                extraFieldsCache.invalidate(cacheKey);
+                return doCacheLookup(cacheKey, dittoHeaders);
             }
         });
     }
@@ -266,7 +266,7 @@ public final class CachingSignalEnrichmentFacade implements
 
     private CompletionStage<JsonObject> handleNextExpectedThingEvents(
             @Nullable final JsonFieldSelector enhancedFieldSelector,
-            final SignalEnrichmentCacheKey idWithResourceType,
+            final SignalEnrichmentCacheKey cacheKey,
             final List<ThingEvent<?>> thingEvents,
             final JsonObject cachedJsonObject,
             final boolean invalidateCacheOnPolicyChange) {
@@ -315,9 +315,9 @@ public final class CachingSignalEnrichmentFacade implements
                         .isPresent();
                 if (shouldInvalidate) {
                     // invalidate the cache
-                    extraFieldsCache.invalidate(idWithResourceType);
+                    extraFieldsCache.invalidate(cacheKey);
                     // and to another cache lookup (via roundtrip):
-                    return doCacheLookup(idWithResourceType, thingEvent.getDittoHeaders());
+                    return doCacheLookup(cacheKey, thingEvent.getDittoHeaders());
                 }
             }
         }
@@ -327,7 +327,7 @@ public final class CachingSignalEnrichmentFacade implements
                 ? jsonObjectBuilder.build()
                 : jsonObjectBuilder.build().get(enhancedFieldSelector);
         // update local cache with enhanced object:
-        extraFieldsCache.put(idWithResourceType, enhancedJsonObject);
+        extraFieldsCache.put(cacheKey, enhancedJsonObject);
         return CompletableFuture.completedFuture(enhancedJsonObject);
     }
 

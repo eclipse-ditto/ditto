@@ -35,7 +35,7 @@ final class PolicyCommandFactory {
      * Creates a sudo command for retrieving a policy.
      *
      * @param policyId the policyId.
-     * @param cacheLookupContext the context to apply when doing the cache lookup.
+     * @param context the context to apply when doing the cache lookup.
      * @return the created command.
      */
     static SudoRetrievePolicy sudoRetrievePolicy(final EntityId policyId, @Nullable final EnforcementContext context) {
@@ -46,13 +46,13 @@ final class PolicyCommandFactory {
      * Creates a sudo command for retrieving a policy.
      *
      * @param policyId the policyId.
-     * @param cacheLookupContext the context to apply when doing the cache lookup.
+     * @param context the context to apply when doing the cache lookup.
      * @return the created command.
      */
     static SudoRetrievePolicy sudoRetrievePolicy(final PolicyId policyId, @Nullable final EnforcementContext context) {
         return SudoRetrievePolicy.of(policyId,
                 DittoHeaders.newBuilder()
-                        .correlationId("sudoRetrievePolicy-" + UUID.randomUUID().toString())
+                        .correlationId("sudoRetrievePolicy-" + UUID.randomUUID())
                         .build());
     }
 

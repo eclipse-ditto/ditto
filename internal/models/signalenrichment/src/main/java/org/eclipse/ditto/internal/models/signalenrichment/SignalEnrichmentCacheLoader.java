@@ -16,12 +16,10 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
-import org.eclipse.ditto.internal.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -57,7 +55,7 @@ final class SignalEnrichmentCacheLoader implements AsyncCacheLoader<SignalEnrich
             final SignalEnrichmentContext context = contextOptional.get();
             final ThingId thingId = ThingId.of(key.getId());
             final JsonFieldSelector jsonFieldSelector = selectorOptional.orElse(null);
-            final DittoHeaders dittoHeaders = context.getDittoHeaders().orElseGet(DittoHeaders::empty);
+            final DittoHeaders dittoHeaders = context.getDittoHeaders();
             return facade.retrievePartialThing(thingId, jsonFieldSelector, dittoHeaders, null)
                     .toCompletableFuture();
         } else {

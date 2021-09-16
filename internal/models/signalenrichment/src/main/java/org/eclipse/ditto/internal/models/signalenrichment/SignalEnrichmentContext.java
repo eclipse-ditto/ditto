@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.internal.models.signalenrichment;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.Objects;
 import java.util.Optional;
 
@@ -23,43 +25,43 @@ import org.eclipse.ditto.internal.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.json.JsonFieldSelector;
 
 /**
- * Immutable implementation of {@link org.eclipse.ditto.internal.utils.cache.CacheLookupContext}.
+ * Immutable implementation of {@link org.eclipse.ditto.internal.utils.cache.CacheLookupContext} in scope of the
+ * signal enrichment caching.
  */
 @Immutable
 final class SignalEnrichmentContext implements CacheLookupContext {
 
-    @Nullable private final DittoHeaders dittoHeaders;
+    private final DittoHeaders dittoHeaders;
     @Nullable private final JsonFieldSelector jsonFieldSelector;
 
-    private SignalEnrichmentContext(@Nullable final DittoHeaders dittoHeaders,
+    private SignalEnrichmentContext(final DittoHeaders dittoHeaders,
             @Nullable final JsonFieldSelector jsonFieldSelector) {
-        this.dittoHeaders = dittoHeaders;
+        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders");
         this.jsonFieldSelector = jsonFieldSelector;
     }
 
     /**
-     * Creates a new CacheLookupContext from the passed optional {@code dittoHeaders} and {@code jsonFieldSelector}
+     * Creates a new SignalEnrichmentContext from the passed optional {@code dittoHeaders} and {@code jsonFieldSelector}
      * retaining the for caching relevant {@code dittoHeaders} from the passed ones.
      *
      * @param dittoHeaders the DittoHeaders to use as key in the cache lookup context.
      * @param jsonFieldSelector the JsonFieldSelector to use in the cache lookup context.
      * @return the created context.
      */
-    static SignalEnrichmentContext of(@Nullable final DittoHeaders dittoHeaders,
+    static SignalEnrichmentContext of(final DittoHeaders dittoHeaders,
             @Nullable final JsonFieldSelector jsonFieldSelector) {
 
         return new SignalEnrichmentContext(dittoHeaders, jsonFieldSelector);
     }
 
     /**
-     * Returns the optional DittoHeaders this context provides.
+     * Returns the DittoHeaders this context provides.
      *
-     * @return the optional DittoHeaders.
+     * @return the DittoHeaders.
      */
-    public Optional<DittoHeaders> getDittoHeaders() {
-        return Optional.ofNullable(dittoHeaders);
+    public DittoHeaders getDittoHeaders() {
+        return dittoHeaders;
     }
-
 
     /**
      * Returns the optional JsonFieldSelector this context provides.

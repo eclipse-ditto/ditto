@@ -78,8 +78,8 @@ public final class ThingEnforcementIdCacheLoader
             final var policyId = thing.getPolicyEntityId().orElseThrow(badThingResponse("no PolicyId"));
             final PersistenceLifecycle persistenceLifecycle =
                     thing.getLifecycle().map(Enum::name).flatMap(PersistenceLifecycle::forName).orElse(null);
-            final EnforcementContext newCacheLookupContext = EnforcementContext.of(persistenceLifecycle);
-            final var resourceKey = EnforcementCacheKey.of(policyId, newCacheLookupContext);
+            final EnforcementContext newEnforcementContext = EnforcementContext.of(persistenceLifecycle);
+            final var resourceKey = EnforcementCacheKey.of(policyId, newEnforcementContext);
             return Entry.of(revision, resourceKey);
         } else if (response instanceof ThingNotAccessibleException) {
             return Entry.nonexistent();

@@ -19,7 +19,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.slf4j.Logger;
@@ -40,27 +39,25 @@ final class ThingCommandFactory {
      * Creates a sudo command for retrieving a thing.
      *
      * @param thingId the thingId.
-     * @param cacheLookupContext the context to apply when doing the cache lookup.
+     * @param context the context to apply when doing the cache lookup.
      * @return the created command.
      */
-    static SudoRetrieveThing sudoRetrieveThing(final EntityId thingId,
-            @Nullable final CacheLookupContext cacheLookupContext) {
-        return sudoRetrieveThing(ThingId.of(thingId), cacheLookupContext);
+    static SudoRetrieveThing sudoRetrieveThing(final EntityId thingId, @Nullable final EnforcementContext context) {
+        return sudoRetrieveThing(ThingId.of(thingId), context);
     }
 
     /**
      * Creates a sudo command for retrieving a thing.
      *
      * @param thingId the thingId.
-     * @param cacheLookupContext the context to apply when doing the cache lookup.
+     * @param context the context to apply when doing the cache lookup.
      * @return the created command.
      */
-    static SudoRetrieveThing sudoRetrieveThing(final ThingId thingId,
-            @Nullable final CacheLookupContext cacheLookupContext) {
+    static SudoRetrieveThing sudoRetrieveThing(final ThingId thingId, @Nullable final EnforcementContext context) {
         LOGGER.debug("Sending SudoRetrieveThing for Thing with ID <{}>", thingId);
         return SudoRetrieveThing.withOriginalSchemaVersion(thingId, DittoHeaders.newBuilder()
-                .correlationId("sudoRetrieveThing-" + UUID.randomUUID().toString())
-                .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(), "true")
+                .correlationId("sudoRetrieveThing-" + UUID.randomUUID())
+                .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(), Boolean.TRUE.toString())
                 .build());
     }
 

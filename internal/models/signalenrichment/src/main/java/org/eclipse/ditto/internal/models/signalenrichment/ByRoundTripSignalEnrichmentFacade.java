@@ -29,11 +29,9 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 
 import akka.actor.ActorSelection;
 import akka.pattern.Patterns;
@@ -72,7 +70,7 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
         // remove channel header to prevent looping on live messages
         final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = dittoHeaders.toBuilder()
                 .channel(null)
-                .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(), "true");
+                .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(), Boolean.TRUE.toString());
         if (dittoHeaders.getCorrelationId().isEmpty()) {
             dittoHeadersBuilder.correlationId(Optional.ofNullable(concernedSignal)
                     .map(Signal::getDittoHeaders)

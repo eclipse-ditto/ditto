@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -22,7 +22,8 @@ import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.internal.utils.cache.CacheLookupContext;
 
 /**
- * Immutable implementation of {@link org.eclipse.ditto.internal.utils.cache.CacheLookupContext}.
+ * Immutable implementation of {@link org.eclipse.ditto.internal.utils.cache.CacheLookupContext} in scope of the
+ * policy enforcement caching.
  */
 @Immutable
 public final class EnforcementContext implements CacheLookupContext {
@@ -34,8 +35,7 @@ public final class EnforcementContext implements CacheLookupContext {
     }
 
     /**
-     * Creates a new CacheLookupContext from the passed optional {@code dittoHeaders} and {@code jsonFieldSelector}
-     * retaining the for caching relevant {@code dittoHeaders} from the passed ones.
+     * Creates a new EnforcementContext from the passed optional {@code persistenceLifecycle}.
      *
      * @param persistenceLifecycle the persistence lifecycle of the looked up entity.
      * @return the created context.

@@ -25,6 +25,9 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 
+/**
+ * Implementation for a {@link CacheKey} used in scope of policy enforcement.
+ */
 @Immutable
 public final class EnforcementCacheKey implements CacheKey<EnforcementContext> {
 
@@ -80,8 +83,12 @@ public final class EnforcementCacheKey implements CacheKey<EnforcementContext> {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final EnforcementCacheKey that = (EnforcementCacheKey) o;
         return isIdEqualValueBased(that);
     }

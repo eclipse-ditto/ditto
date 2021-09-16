@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -24,17 +24,19 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 
 /**
- * Implementation of {@code EntityIdWithResourceType}.
+ * Implementation for a {@link CacheKey} used in scope of signal enrichment.
  */
 @Immutable
 final class SignalEnrichmentCacheKey implements CacheKey<SignalEnrichmentContext> {
 
-    private final EntityId id;
-    @Nullable private final SignalEnrichmentContext cacheLookupContext;
+    static final String DELIMITER = ":";
 
-    private SignalEnrichmentCacheKey(final EntityId id, @Nullable final SignalEnrichmentContext cacheLookupContext) {
+    private final EntityId id;
+    @Nullable private final SignalEnrichmentContext context;
+
+    private SignalEnrichmentCacheKey(final EntityId id, @Nullable final SignalEnrichmentContext context) {
         this.id = checkNotNull(id, "id");
-        this.cacheLookupContext = cacheLookupContext;
+        this.context = context;
     }
 
     /**
@@ -45,7 +47,7 @@ final class SignalEnrichmentCacheKey implements CacheKey<SignalEnrichmentContext
      * @return the entity ID with resource type object.
      * @throws NullPointerException if {@code id} is {@code null}.
      */
-    static SignalEnrichmentCacheKey of(final EntityId id, final SignalEnrichmentContext cacheLookupContext) {
+    static SignalEnrichmentCacheKey of(final EntityId id, @Nullable final SignalEnrichmentContext cacheLookupContext) {
         return new SignalEnrichmentCacheKey(id, cacheLookupContext);
     }
 
@@ -56,29 +58,35 @@ final class SignalEnrichmentCacheKey implements CacheKey<SignalEnrichmentContext
 
     @Override
     public Optional<SignalEnrichmentContext> getCacheLookupContext() {
-        return Optional.ofNullable(cacheLookupContext);
+        return Optional.ofNullable(context);
     }
-
 
     @Override
     public boolean equals(@Nullable final Object o) {
         if (o instanceof SignalEnrichmentCacheKey) {
             final var that = (SignalEnrichmentCacheKey) o;
-            return isIdEqualValueBased(that) && Objects.equals(cacheLookupContext, that.cacheLookupContext);
+            return isIdEqualValueBased(that) && Objects.equals(context, that.context);
         } else {
             return false;
         }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, context);
+    }
+
+    @Override
+    public String toString() {
+        // cache context is not in the string representation
+        // because it is used for serialization and cache context is local
+        return String.format("%s%s%s", id.getEntityType(), DELIMITER, id);
     }
 
     // this allows working with fallback entity IDs as well without breaking caching
     private boolean isIdEqualValueBased(final SignalEnrichmentCacheKey that) {
         return Objects.equals(id.getEntityType(), that.id.getEntityType()) &&
                 Objects.equals(id.toString(), that.id.toString());
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, cacheLookupContext);
     }
 
 }
