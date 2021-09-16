@@ -109,7 +109,8 @@ final class Thing3ValuePredicateVisitor implements CriteriaVisitor<Function<Thin
             if (isUnknownField(fieldExpression)) {
                 return Trilean.UNKNOWN;
             } else {
-                final ThingPredicatePredicateVisitor ppVisitor = ThingPredicatePredicateVisitor.getInstance();
+                final ThingPredicatePredicateVisitor ppVisitor = ThingPredicatePredicateVisitor
+                        .createInstance(placeholderResolvers);
                 return Trilean.lift(
                         FilterThingPredicateVisitor.apply(fieldExpression, predicate.accept(ppVisitor)).test(thing)
                 );

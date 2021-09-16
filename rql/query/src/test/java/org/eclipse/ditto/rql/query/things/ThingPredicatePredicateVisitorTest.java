@@ -33,9 +33,9 @@ import org.junit.Test;
  */
 public final class ThingPredicatePredicateVisitorTest {
 
-    private final static ThingPredicatePredicateVisitor sut = ThingPredicatePredicateVisitor.getInstance();
-
     private static final String KNOWN_PLACEHOLDER_VALUE = "baZingA";
+
+    private final static ThingPredicatePredicateVisitor sut = ThingPredicatePredicateVisitor.getInstance();
     private final static ThingPredicatePredicateVisitor sutWithPlaceholderResolver =
             ThingPredicatePredicateVisitor.createInstance(PlaceholderFactory.newPlaceholderResolver(
                     new ThingPredicateTestPlaceholder(), KNOWN_PLACEHOLDER_VALUE));

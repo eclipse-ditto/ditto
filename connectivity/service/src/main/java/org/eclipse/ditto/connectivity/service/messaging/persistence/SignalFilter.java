@@ -52,6 +52,7 @@ import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
@@ -154,22 +155,27 @@ public final class SignalFilter {
 
     private static boolean matchesFilterBeforeEnrichment(final FilteredTopic filteredTopic, final Signal<?> signal) {
         final Optional<String> filterOptional = filteredTopic.getFilter();
-        if (filterOptional.isPresent() && signal instanceof ThingEvent) {
+        if (filterOptional.isPresent()) {
             // match filter ignoring "extraFields"
-            return ThingEventToThingConverter.thingEventToThing((ThingEvent<?>) signal)
-                    .filter(thing -> {
-                        final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
-                        final PlaceholderResolver<TopicPath> topicPathPlaceholderResolver =
-                                PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER, topicPath);
-                        final Criteria criteria = parseCriteria(filterOptional.get(), signal.getDittoHeaders(),
-                                topicPathPlaceholderResolver);
-                        final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
-                                .map(JsonFieldSelector::getPointers)
-                                .orElse(Collections.emptySet());
-                        return Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, thing,
-                                topicPathPlaceholderResolver);
-                    })
-                    .isPresent();
+
+            final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
+            final PlaceholderResolver<TopicPath> topicPathPlaceholderResolver =
+                    PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER, topicPath);
+            final Criteria criteria = parseCriteria(filterOptional.get(), signal.getDittoHeaders(),
+                    topicPathPlaceholderResolver);
+            final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
+                    .map(JsonFieldSelector::getPointers)
+                    .orElse(Collections.emptySet());
+            if (signal instanceof ThingEvent) {
+                return ThingEventToThingConverter.thingEventToThing((ThingEvent<?>) signal)
+                        .filter(thing -> Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, thing,
+                                topicPathPlaceholderResolver))
+                        .isPresent();
+            } else {
+                final Thing emptyThing = Thing.newBuilder().build();
+                return Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, emptyThing,
+                        topicPathPlaceholderResolver);
+            }
         } else {
             return true;
         }
