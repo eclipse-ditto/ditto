@@ -22,12 +22,13 @@ import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithActivityCheckConfig;
+import org.eclipse.ditto.internal.utils.persistentactors.cleanup.WithCleanupConfig;
 
 /**
  * Provides configuration settings for Connectivity service's connection behaviour.
  */
 @Immutable
-public interface ConnectionConfig extends WithSupervisorConfig, WithActivityCheckConfig {
+public interface ConnectionConfig extends WithSupervisorConfig, WithActivityCheckConfig, WithCleanupConfig {
 
     /**
      * Returns the amount of time for how long the connection actor waits for response from client actors.

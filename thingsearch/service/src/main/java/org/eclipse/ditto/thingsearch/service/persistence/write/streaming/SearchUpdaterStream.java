@@ -102,9 +102,8 @@ public final class SearchUpdaterStream {
                 EnforcementFlow.of(streamConfig, thingsShard, policiesShard, messageDispatcher,
                         actorSystem.getScheduler());
 
-        final var mongoSearchUpdaterFlow = MongoSearchUpdaterFlow.of(database,
-                streamConfig.getPersistenceConfig(),
-                searchUpdateMapper);
+        final var mongoSearchUpdaterFlow =
+                MongoSearchUpdaterFlow.of(database, streamConfig.getPersistenceConfig(), searchUpdateMapper);
 
         final var bulkWriteResultAckFlow = BulkWriteResultAckFlow.of(updaterShard);
 
@@ -163,7 +162,7 @@ public final class SearchUpdaterStream {
                                 Attributes.logLevelInfo(),
                                 Attributes.logLevelWarning(),
                                 Attributes.logLevelError()))
-                        .to(Sink.<String>ignore());
+                        .to(Sink.ignore());
 
         final var backOffConfig = persistenceConfig.getExponentialBackOffConfig();
         return RestartSink.withBackoff(

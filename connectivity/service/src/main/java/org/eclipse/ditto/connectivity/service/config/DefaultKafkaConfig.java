@@ -25,16 +25,18 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link KafkaConfig}.
  */
 @Immutable
-public final class DefaultKafkaConfig implements KafkaConfig {
+final class DefaultKafkaConfig implements KafkaConfig {
 
     private static final String KAFKA_PATH = "kafka";
 
     private final KafkaConsumerConfig consumerConfig;
     private final KafkaProducerConfig producerConfig;
+    private final KafkaCommitterConfig committerConfig;
 
     private DefaultKafkaConfig(final ScopedConfig kafkaScopedConfig) {
         consumerConfig = KafkaConsumerConfig.of(kafkaScopedConfig);
         producerConfig = KafkaProducerConfig.of(kafkaScopedConfig);
+        committerConfig = KafkaCommitterConfig.of(kafkaScopedConfig);
     }
 
     /**
@@ -59,17 +61,23 @@ public final class DefaultKafkaConfig implements KafkaConfig {
     }
 
     @Override
+    public KafkaCommitterConfig getCommitterConfig() {
+        return committerConfig;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultKafkaConfig that = (DefaultKafkaConfig) o;
         return Objects.equals(consumerConfig, that.consumerConfig) &&
-                Objects.equals(producerConfig, that.producerConfig);
+                Objects.equals(producerConfig, that.producerConfig) &&
+                Objects.equals(committerConfig, that.committerConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(consumerConfig, producerConfig);
+        return Objects.hash(consumerConfig, producerConfig, committerConfig);
     }
 
     @Override
@@ -77,6 +85,7 @@ public final class DefaultKafkaConfig implements KafkaConfig {
         return getClass().getSimpleName() + " [" +
                 "consumerConfig=" + consumerConfig +
                 ", producerConfig=" + producerConfig +
+                ", committerConfig=" + committerConfig +
                 "]";
     }
 }

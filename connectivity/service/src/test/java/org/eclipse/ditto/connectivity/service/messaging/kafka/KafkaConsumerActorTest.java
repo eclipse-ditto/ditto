@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.header;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +28,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
 import org.eclipse.ditto.base.model.common.ResponseType;
+import org.eclipse.ditto.base.service.config.supervision.DefaultExponentialBackOffConfig;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
@@ -36,6 +38,8 @@ import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTes
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.Before;
+
+import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -107,20 +111,31 @@ public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRe
         ));
         final HeaderMapping mappingWithSpecialKafkaHeaders = ConnectivityModelFactory.newHeaderMapping(map);
 
-        return KafkaConsumerActor.props(CONNECTION, () -> source, "kafka", inboundMappingSink,
-                ConnectivityModelFactory.newSourceBuilder()
-                        .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
-                        .address("kafka")
-                        .enforcement(ENFORCEMENT)
-                        .headerMapping(mappingWithSpecialKafkaHeaders)
-                        .payloadMapping(payloadMapping)
-                        .replyTarget(ReplyTarget.newBuilder()
-                                .address("foo")
-                                .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
-                                .build())
-                        .build(),
+        final AtMostOnceKafkaConsumerSourceSupplier sourceSupplier = mock(AtMostOnceKafkaConsumerSourceSupplier.class);
+        when(sourceSupplier.get()).thenReturn(source);
+        final String address = "kafka";
+        final org.eclipse.ditto.connectivity.model.Source connectionSource = ConnectivityModelFactory.newSourceBuilder()
+                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                .address(address)
+                .enforcement(ENFORCEMENT)
+                .headerMapping(mappingWithSpecialKafkaHeaders)
+                .payloadMapping(payloadMapping)
+                .replyTarget(ReplyTarget.newBuilder()
+                        .address("foo")
+                        .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
+                        .build())
+                .build();
+        final ConsumerData consumerData = new ConsumerData(connectionSource, address, "xy");
+        final KafkaConsumerStreamFactory consumerStreamFactory =
+                new KafkaConsumerStreamFactory(sourceSupplier, null, consumerData, false);
+        final DefaultExponentialBackOffConfig backOffConfig = DefaultExponentialBackOffConfig.of(ConfigFactory.empty());
+        return KafkaConsumerActor.props(CONNECTION,
+                consumerStreamFactory,
+                address,
+                connectionSource,
+                inboundMappingSink,
                 mock(ConnectivityStatusResolver.class),
-                false);
+                backOffConfig);
     }
 
     @Override

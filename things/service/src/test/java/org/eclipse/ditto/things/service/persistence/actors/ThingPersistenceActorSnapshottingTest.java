@@ -16,14 +16,15 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
+import org.eclipse.ditto.internal.utils.test.Retry;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.internal.utils.test.Retry;
 import org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
@@ -34,7 +35,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
-import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
@@ -95,7 +95,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 underTest.tell(deleteThing, getRef());
                 expectMsgEquals(DeleteThingResponse.of(thingId, dittoHeadersV2));
 
-                final Thing expectedDeletedSnapshot = toDeletedThing(thingCreated, 2);
+                final Thing expectedDeletedSnapshot = toDeletedThing(2);
                 assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));
                 final EventsourcedEvent<?> expectedDeletedEvent = toEvent(deleteThing, expectedDeletedSnapshot);
                 // created-event has been deleted due to snapshot

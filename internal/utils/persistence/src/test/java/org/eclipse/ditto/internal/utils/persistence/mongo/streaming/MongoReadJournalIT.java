@@ -16,10 +16,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
@@ -36,6 +38,7 @@ import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+import com.mongodb.client.result.DeleteResult;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -163,10 +166,12 @@ public final class MongoReadJournalIT {
         assertThat(snapshots).containsExactly(
                 new Document().append("_id", "pid3")
                         .append("__lifecycle", null)
-                        .append("_modified", "2020-01-31T19:57:48.571Z"),
+                        .append("_modified", "2020-01-31T19:57:48.571Z")
+                        .append("sn", 3L),
                 new Document().append("_id", "pid4")
                         .append("__lifecycle", null)
                         .append("_modified", "1970-01-01T00:00:00.000Z")
+                        .append("sn", 4L)
         );
     }
 
@@ -223,6 +228,7 @@ public final class MongoReadJournalIT {
                 new Document().append("_id", "pid3")
                         .append("__lifecycle", null)
                         .append("_modified", "2020-01-31T19:57:48.571Z")
+                        .append("sn", 3L)
         );
 
     }
@@ -385,6 +391,98 @@ public final class MongoReadJournalIT {
     }
 
     @Test
+    public void findLowestEventSeqNr() {
+        insert("test_journal", new JournalEntry("pid1").withSn(1L).getDocument());
+        insert("test_journal", new JournalEntry("pid2").withSn(1L).getDocument());
+        insert("test_journal", new JournalEntry("pid2").withSn(2L).getDocument());
+
+        final List<Optional<Long>> lowestSeqNrs = Stream.of(readJournal.getSmallestEventSeqNo("pid1"),
+                readJournal.getSmallestEventSeqNo("pid2"),
+                readJournal.getSmallestEventSeqNo("pid3"))
+                .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
+                .collect(Collectors.toList());
+
+        assertThat(lowestSeqNrs).containsExactly(Optional.of(1L), Optional.of(1L), Optional.empty());
+    }
+
+    @Test
+    public void deleteEventsUpTo() {
+        insert("test_journal", new JournalEntry("pid1").withSn(1L).getDocument());
+        insert("test_journal", new JournalEntry("pid2").withSn(1L).getDocument());
+        insert("test_journal", new JournalEntry("pid2").withSn(2L).getDocument());
+        insert("test_journal", new JournalEntry("pid3").withSn(2L).getDocument());
+
+        final List<Long> lowestSeqNrs = Stream.of(readJournal.deleteEvents("pid1", 0, 1),
+                readJournal.deleteEvents("pid2", 0, 1),
+                readJournal.deleteEvents("pid3", 0, 1))
+                .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
+                .map(DeleteResult::getDeletedCount)
+                .collect(Collectors.toList());
+
+        assertThat(lowestSeqNrs).containsExactly(1L, 1L, 0L);
+    }
+
+    @Test
+    public void findLowestSnapshotSeqNr() {
+        insert("test_snaps", new Document()
+                .append("pid", "pid1")
+                .append("sn", 1L)
+                .append("s2", new Document().append("_modified", "2020-02-29T23:59:59.999Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid2")
+                .append("sn", 1L)
+                .append("s2", new Document().append("_modified", "1999-01-01:00:00:00.000Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid2")
+                .append("sn", 2L)
+                .append("s2", new Document().append("_modified", "2000-01-01T00:01:01.000Z"))
+        );
+
+        final List<Optional<Long>> lowestSeqNrs = Stream.of(readJournal.getSmallestSnapshotSeqNo("pid1"),
+                readJournal.getSmallestSnapshotSeqNo("pid2"),
+                readJournal.getSmallestSnapshotSeqNo("pid3"))
+                .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
+                .collect(Collectors.toList());
+
+        assertThat(lowestSeqNrs).containsExactly(Optional.of(1L), Optional.of(1L), Optional.empty());
+    }
+
+    @Test
+    public void deleteSnapshotsUpTo() {
+        insert("test_snaps", new Document()
+                .append("pid", "pid1")
+                .append("sn", 1L)
+                .append("s2", new Document().append("_modified", "2020-02-29T23:59:59.999Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid2")
+                .append("sn", 1L)
+                .append("s2", new Document().append("_modified", "1999-01-01:00:00:00.000Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid2")
+                .append("sn", 2L)
+                .append("s2", new Document().append("_modified", "2000-01-01T00:01:01.000Z"))
+        );
+        insert("test_snaps", new Document()
+                .append("pid", "pid3")
+                .append("sn", 2L)
+                .append("s2", new Document().append("_modified", "2000-01-01T00:01:01.000Z"))
+        );
+
+        final List<Long> lowestSeqNrs = Stream.of(readJournal.deleteSnapshots("pid1", 0, 1),
+                readJournal.deleteSnapshots("pid2", 0, 1),
+                readJournal.deleteSnapshots("pid3", 0, 1))
+                .flatMap(source -> source.runWith(Sink.seq(), materializer).toCompletableFuture().join().stream())
+                .map(DeleteResult::getDeletedCount)
+                .collect(Collectors.toList());
+
+        assertThat(lowestSeqNrs).containsExactly(1L, 1L, 0L);
+    }
+
+    @Test
     public void extractJournalPidsAboveALowerBoundWithSpecificTag() {
         final Set<String> tagged = Set.of("always-live");
         insert("test_journal", new JournalEntry("pid1").withSn(1L).withTags(tagged).getDocument());
@@ -402,19 +500,19 @@ public final class MongoReadJournalIT {
         assertThat(pids).containsExactly("pid3", "pid4", "pid6");
     }
 
-    private void insert(final String collection, final Document... documents) {
+    private void insert(final CharSequence collection, final Document... documents) {
         Source.fromPublisher(mongoClient.getCollection(collection).insertMany(Arrays.asList(documents)))
                 .runWith(Sink.ignore(), materializer)
                 .toCompletableFuture()
                 .join();
     }
 
-    private static class JournalEntry {
+    private static final class JournalEntry {
 
         private final Document document;
 
         private JournalEntry(final String pid) {
-            this.document = new Document().append("pid", pid)
+            document = new Document().append("pid", pid)
                     .append("events", new BsonArray(List.of(BsonDocument.parse(new Document()
                             .append("pid", pid)
                             .toJson())
@@ -434,7 +532,7 @@ public final class MongoReadJournalIT {
             return this;
         }
 
-        private JournalEntry withTags(final Set<String> tags) {
+        private JournalEntry withTags(final Collection<String> tags) {
             final BsonArray bsonTags = new BsonArray(tags.stream().map(BsonString::new).collect(Collectors.toList()));
             document.append("_tg", bsonTags);
             final BsonDocument event = (BsonDocument) document.get("events", List.class).get(0);

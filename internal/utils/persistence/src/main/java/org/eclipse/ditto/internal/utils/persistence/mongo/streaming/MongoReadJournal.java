@@ -30,11 +30,11 @@ import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.Index;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexFactory;
 import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
@@ -46,6 +46,7 @@ import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
+import com.mongodb.client.result.DeleteResult;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
 
@@ -78,13 +79,13 @@ import akka.stream.javadsl.Source;
  * </ul>
  */
 @AllValuesAreNonnullByDefault
-public class MongoReadJournal {
+public final class MongoReadJournal {
     // not a final class to test with Mockito
 
     /**
      * ID field of documents delivered by the read journal.
      */
-    public static final String J_ID = JournallingFieldNames$.MODULE$.ID();
+    private static final String J_ID = JournallingFieldNames$.MODULE$.ID();
     public static final String S_ID = J_ID;
 
     /**
@@ -102,20 +103,38 @@ public class MongoReadJournal {
     private static final String JOURNAL_COLLECTION_NAME_KEY = "overrides.journal-collection";
     private static final String SNAPS_COLLECTION_NAME_KEY = "overrides.snaps-collection";
 
+    /**
+     * Document field of PID in journals.
+     */
     private static final String J_PROCESSOR_ID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
+
+    /**
+     * Document field of the highest event sequence number in journals.
+     */
     private static final String J_TO = JournallingFieldNames$.MODULE$.TO();
     private static final String J_TAGS = JournallingFieldNames$.MODULE$.TAGS();
-    private static final String S_PROCESSOR_ID = SnapshottingFieldNames$.MODULE$.PROCESSOR_ID();
-    private static final String S_SN = SnapshottingFieldNames$.MODULE$.SEQUENCE_NUMBER();
 
-    // Not working: SnapshottingFieldNames.V2$.MODULE$.SERIALIZED()
+    /**
+     * Document field of PID in snapshot stores.
+     */
+    private static final String S_PROCESSOR_ID = SnapshottingFieldNames$.MODULE$.PROCESSOR_ID();
+
+    /**
+     * Document field of the sequence number of snapshots.
+     */
+    public static final String S_SN = SnapshottingFieldNames$.MODULE$.SEQUENCE_NUMBER();
+
     private static final String S_SERIALIZED_SNAPSHOT = "s2";
-    private static final String LIFECYCLE = "__lifecycle";
+
+    /**
+     * Document field of lifecycle of snapshots.
+     */
+    public static final String LIFECYCLE = "__lifecycle";
 
     private static final String J_EVENT = JournallingFieldNames$.MODULE$.EVENTS();
     public static final String J_EVENT_PID = JournallingFieldNames$.MODULE$.PROCESSOR_ID();
     public static final String J_EVENT_MANIFEST = JournallingFieldNames$.MODULE$.MANIFEST();
-    public static final String J_EVENT_SN = JournallingFieldNames$.MODULE$.SEQUENCE_NUMBER();
+    private static final String J_EVENT_SN = JournallingFieldNames$.MODULE$.SEQUENCE_NUMBER();
 
     private static final Duration MAX_BACK_OFF_DURATION = Duration.ofSeconds(128L);
 
@@ -127,8 +146,11 @@ public class MongoReadJournal {
     private final DittoMongoClient mongoClient;
     private final IndexInitializer indexInitializer;
 
-    private MongoReadJournal(final String journalCollection, final String snapsCollection,
-            final DittoMongoClient mongoClient, final ActorSystem actorSystem) {
+    private MongoReadJournal(final String journalCollection,
+            final String snapsCollection,
+            final DittoMongoClient mongoClient,
+            final ActorSystem actorSystem) {
+
         this.journalCollection = journalCollection;
         this.snapsCollection = snapsCollection;
         this.mongoClient = mongoClient;
@@ -158,6 +180,7 @@ public class MongoReadJournal {
      */
     public static MongoReadJournal newInstance(final Config config, final DittoMongoClient mongoClient,
             final ActorSystem actorSystem) {
+
         final String autoStartJournalKey = extractAutoStartConfigKey(config, AKKA_PERSISTENCE_JOURNAL_AUTO_START);
         final String autoStartSnapsKey = extractAutoStartConfigKey(config, AKKA_PERSISTENCE_SNAPS_AUTO_START);
         final String journalCollection =
@@ -193,7 +216,7 @@ public class MongoReadJournal {
         final int maxRestarts = computeMaxRestarts(maxIdleTime);
         return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(journal ->
-                        listPidsInJournal(journal, "", "", batchSize, mat, MAX_BACK_OFF_DURATION, maxRestarts)
+                        listPidsInJournal(journal, "", "", batchSize, mat, maxRestarts)
                 )
                 .mapConcat(pids -> pids);
     }
@@ -215,24 +238,21 @@ public class MongoReadJournal {
         final int maxRestarts = computeMaxRestarts(maxIdleTime);
         return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(
-                        journal -> listLatestJournalEntries(journal, "", "", batchSize, MAX_BACK_OFF_DURATION, mat,
+                        journal -> listLatestJournalEntries(journal, batchSize, mat,
                                 maxRestarts, J_EVENT_PID, J_EVENT_SN, J_EVENT_MANIFEST))
                 .mapConcat(pids -> pids);
     }
 
     private Source<List<Document>, NotUsed> listLatestJournalEntries(final MongoCollection<Document> journal,
-            final String lowerBoundPid,
-            final String tag,
             final int batchSize,
-            final Duration maxBackoff,
             final Materializer mat,
             final int maxRestarts,
             final String... journalFields) {
 
-        return this.unfoldBatchedSource(lowerBoundPid,
+        return unfoldBatchedSource("",
                 mat,
                 document -> document.getString(J_ID),
-                actualStartPid -> listLatestJournalEntries(journal, actualStartPid, tag, batchSize, maxBackoff,
+                actualStartPid -> listLatestJournalEntries(journal, actualStartPid, "", batchSize,
                         maxRestarts, journalFields));
     }
 
@@ -249,14 +269,15 @@ public class MongoReadJournal {
      * @return Source of all persistence IDs such that each element contains the persistence IDs in {@code batchSize}
      * events that do not occur in prior buckets.
      */
-    public Source<String, NotUsed> getJournalPidsWithTag(final String tag, final int batchSize,
+    public Source<String, NotUsed> getJournalPidsWithTag(final String tag,
+            final int batchSize,
             final Duration maxIdleTime,
             final Materializer mat) {
 
         final int maxRestarts = computeMaxRestarts(maxIdleTime);
         return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(journal ->
-                        listPidsInJournal(journal, "", tag, batchSize, mat, MAX_BACK_OFF_DURATION, maxRestarts)
+                        listPidsInJournal(journal, "", tag, batchSize, mat, maxRestarts)
                 )
                 .mapConcat(pids -> pids);
     }
@@ -279,7 +300,7 @@ public class MongoReadJournal {
         final int maxRestarts = computeMaxRestarts(maxIdleTime);
         return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(journal ->
-                        listPidsInJournalOrderedByPriorityTag(journal, tag, MAX_BACK_OFF_DURATION, maxRestarts)
+                        listPidsInJournalOrderedByPriorityTag(journal, tag, maxRestarts)
                 );
     }
 
@@ -297,7 +318,7 @@ public class MongoReadJournal {
         return getJournal()
                 .withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(journal ->
-                        listPidsInJournal(journal, lowerBoundPid, "", batchSize, mat, MAX_BACK_OFF_DURATION, 0)
+                        listPidsInJournal(journal, lowerBoundPid, "", batchSize, mat, 0)
                 )
                 .mapConcat(pids -> pids);
     }
@@ -313,12 +334,14 @@ public class MongoReadJournal {
      * @return Source of all persistence IDs such that each element contains the persistence IDs in {@code batchSize}
      * events that do not occur in prior buckets.
      */
-    public Source<String, NotUsed> getJournalPidsAboveWithTag(final String lowerBoundPid, final String tag,
-            final int batchSize, final Materializer mat) {
+    public Source<String, NotUsed> getJournalPidsAboveWithTag(final String lowerBoundPid,
+            final String tag,
+            final int batchSize,
+            final Materializer mat) {
 
         return getJournal().withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(journal ->
-                        listPidsInJournal(journal, lowerBoundPid, tag, batchSize, mat, MAX_BACK_OFF_DURATION, 0)
+                        listPidsInJournal(journal, lowerBoundPid, tag, batchSize, mat, 0)
                 )
                 .mapConcat(pids -> pids);
     }
@@ -338,28 +361,123 @@ public class MongoReadJournal {
             final Materializer mat,
             final String... snapshotFields) {
 
+        return getNewestSnapshotsAbove(lowerBoundPid, batchSize, false, mat, snapshotFields);
+    }
+
+
+    /**
+     * Retrieve all latest snapshots with unique PIDs in snapshot store above a lower bound.
+     * Does not limit database access in any way.
+     *
+     * @param lowerBoundPid the lower-bound PID.
+     * @param batchSize how many snapshots to read in 1 query.
+     * @param includeDeleted whether to include deleted snapshots.
+     * @param mat the materializer.
+     * @param snapshotFields snapshot fields to project out.
+     * @return source of newest snapshots with unique PIDs.
+     */
+    public Source<Document, NotUsed> getNewestSnapshotsAbove(final String lowerBoundPid,
+            final int batchSize,
+            final boolean includeDeleted,
+            final Materializer mat,
+            final String... snapshotFields) {
+
         return getSnapshotStore()
                 .withAttributes(Attributes.inputBuffer(1, 1))
                 .flatMapConcat(snapshotStore ->
-                        listNewestSnapshots(snapshotStore, lowerBoundPid, batchSize, mat,
+                        listNewestSnapshots(snapshotStore, lowerBoundPid, batchSize, includeDeleted, mat,
                                 snapshotFields)
                 )
                 .mapConcat(pids -> pids);
     }
 
+    /**
+     * Find the smallest event sequence number of a PID.
+     *
+     * @param pid the PID to search for.
+     * @return source of the smallest event sequence number, or an empty optional.
+     */
+    public Source<Optional<Long>, NotUsed> getSmallestEventSeqNo(final String pid) {
+        return getJournal()
+                .flatMapConcat(journal -> Source.fromPublisher(
+                        journal.find(Filters.eq(J_PROCESSOR_ID, pid))
+                                .sort(Sorts.ascending(J_TO))
+                                .limit(1)
+                ))
+                .map(document -> Optional.of(document.getLong(J_TO)))
+                .orElse(Source.single(Optional.empty()));
+    }
+
+    /**
+     * Find the smallest snapshot sequence number of a PID.
+     *
+     * @param pid the PID to search for.
+     * @return source of the smallest snapshot sequence number, or an empty optional.
+     */
+    public Source<Optional<Long>, NotUsed> getSmallestSnapshotSeqNo(final String pid) {
+        return getSnapshotStore()
+                .flatMapConcat(snaps -> Source.fromPublisher(
+                        snaps.find(Filters.eq(S_PROCESSOR_ID, pid))
+                                .sort(Sorts.ascending(S_SN))
+                                .limit(1)
+                ))
+                .map(document -> Optional.of(document.getLong(S_SN)))
+                .orElse(Source.single(Optional.empty()));
+    }
+
+    /**
+     * Delete events of a PID.
+     *
+     * @param pid the PID.
+     * @param minSeqNr minimum sequence number to delete (inclusive).
+     * @param maxSeqNr maximum sequence number to delete (inclusive).
+     * @return source of the delete result.
+     */
+    public Source<DeleteResult, NotUsed> deleteEvents(final String pid, final long minSeqNr, final long maxSeqNr) {
+        return getJournal()
+                .flatMapConcat(journal -> Source.fromPublisher(
+                        journal.deleteMany(Filters.and(Filters.eq(J_PROCESSOR_ID, pid),
+                                Filters.gte(J_TO, minSeqNr),
+                                Filters.lte(J_TO, maxSeqNr)))
+                ));
+    }
+
+    /**
+     * Delete snapshots of a PID.
+     *
+     * @param pid the PID.
+     * @param minSeqNr minimum sequence number to delete (inclusive).
+     * @param maxSeqNr maximum sequence number to delete (inclusive).
+     * @return source of the delete result.
+     */
+    public Source<DeleteResult, NotUsed> deleteSnapshots(final String pid, final long minSeqNr, final long maxSeqNr) {
+        return getSnapshotStore()
+                .flatMapConcat(snaps -> Source.fromPublisher(
+                        snaps.deleteMany(Filters.and(Filters.eq(S_PROCESSOR_ID, pid),
+                                Filters.gte(S_SN, minSeqNr),
+                                Filters.lte(S_SN, maxSeqNr)))
+                ));
+    }
+
     private Source<List<String>, NotUsed> listPidsInJournal(final MongoCollection<Document> journal,
-            final String lowerBoundPid, final String tag,
-            final int batchSize, final Materializer mat, final Duration maxBackOff, final int maxRestarts) {
+            final String lowerBoundPid,
+            final String tag,
+            final int batchSize,
+            final Materializer mat,
+            final int maxRestarts) {
 
         return unfoldBatchedSource(lowerBoundPid, mat, Function.identity(), actualStartPid ->
-                listJournalPidsAbove(journal, actualStartPid, tag, batchSize, maxBackOff, maxRestarts)
+                listJournalPidsAbove(journal, actualStartPid, tag, batchSize, maxRestarts)
         );
     }
 
-    private Source<String, NotUsed> listJournalPidsAbove(final MongoCollection<Document> journal, final String startPid,
-            final String tag, final int batchSize, final Duration maxBackOff, final int maxRestarts) {
+    private Source<String, NotUsed> listJournalPidsAbove(final MongoCollection<Document> journal,
+            final String startPid,
+            final String tag,
+            final int batchSize,
+            final int maxRestarts) {
 
-        return listLatestJournalEntries(journal, startPid, tag, batchSize, maxBackOff, maxRestarts, J_EVENT_PID)
+        return listLatestJournalEntries(journal, startPid, tag, batchSize, maxRestarts, J_EVENT_PID)
                 .flatMapConcat(document -> {
                     final Object pid = document.get(J_EVENT_PID);
                     if (pid instanceof CharSequence) {
@@ -373,14 +491,15 @@ public class MongoReadJournal {
     private Source<List<Document>, NotUsed> listNewestSnapshots(final MongoCollection<Document> snapshotStore,
             final String lowerBoundPid,
             final int batchSize,
+            final boolean includeDeleted,
             final Materializer mat,
             final String... snapshotFields) {
 
-        return this.unfoldBatchedSource(lowerBoundPid,
+        return unfoldBatchedSource(lowerBoundPid,
                 mat,
                 SnapshotBatch::getMaxPid,
                 actualStartPid -> listNewestActiveSnapshotsByBatch(snapshotStore, actualStartPid, batchSize,
-                        snapshotFields))
+                        includeDeleted, snapshotFields))
                 .mapConcat(x -> x)
                 .map(SnapshotBatch::getItems);
     }
@@ -407,8 +526,10 @@ public class MongoReadJournal {
                 .withAttributes(Attributes.inputBuffer(1, 1));
     }
 
-    private Source<String, NotUsed> listPidsInJournalOrderedByPriorityTag(final MongoCollection<Document> journal,
-            final String tag, final Duration maxBackOff, final int maxRestarts) {
+    private static Source<String, NotUsed> listPidsInJournalOrderedByPriorityTag(
+            final MongoCollection<Document> journal,
+            final String tag,
+            final int maxRestarts) {
 
         final List<Bson> pipeline = new ArrayList<>(4);
         // optional match stages: consecutive match stages are optimized together ($match + $match coalescence)
@@ -444,7 +565,8 @@ public class MongoReadJournal {
         final Duration minBackOff = Duration.ofSeconds(1L);
         final double randomFactor = 0.1;
 
-        final RestartSettings restartSettings = RestartSettings.create(minBackOff, maxBackOff, randomFactor)
+        final RestartSettings restartSettings = RestartSettings.create(minBackOff,
+                MongoReadJournal.MAX_BACK_OFF_DURATION, randomFactor)
                 .withMaxRestarts(maxRestarts, minBackOff);
         return RestartSource.onFailuresWithBackoff(restartSettings, () ->
                 Source.fromPublisher(journal.aggregate(pipeline)
@@ -460,9 +582,12 @@ public class MongoReadJournal {
         );
     }
 
-    private Source<Document, NotUsed> listLatestJournalEntries(final MongoCollection<Document> journal,
-            final String startPid, final String tag, final int batchSize, final Duration maxBackOff,
-            final int maxRestarts, final String... fieldNames) {
+    private static Source<Document, NotUsed> listLatestJournalEntries(final MongoCollection<Document> journal,
+            final String startPid,
+            final String tag,
+            final int batchSize,
+            final int maxRestarts,
+            final String... fieldNames) {
 
         final List<Bson> pipeline = new ArrayList<>(6);
         // optional match stages: consecutive match stages are optimized together ($match + $match coalescence)
@@ -488,14 +613,15 @@ public class MongoReadJournal {
         final Duration minBackOff = Duration.ofSeconds(1L);
         final double randomFactor = 0.1;
 
-        final RestartSettings restartSettings = RestartSettings.create(minBackOff, maxBackOff, randomFactor)
+        final RestartSettings restartSettings = RestartSettings.create(minBackOff,
+                MongoReadJournal.MAX_BACK_OFF_DURATION, randomFactor)
                 .withMaxRestarts(maxRestarts, minBackOff);
         return RestartSource.onFailuresWithBackoff(restartSettings, () ->
                 Source.fromPublisher(journal.aggregate(pipeline))
         );
     }
 
-    private List<BsonField> toFirstJournalEntryFields(final String... journalFields) {
+    private static List<BsonField> toFirstJournalEntryFields(final String... journalFields) {
         return Arrays.stream(journalFields)
                 .map(fieldName -> {
                     final String serializedFieldName = String.format("$%s.%s", J_EVENT, fieldName);
@@ -506,7 +632,7 @@ public class MongoReadJournal {
                 .collect(Collectors.toList());
     }
 
-    private int computeMaxRestarts(final Duration maxDuration) {
+    private static int computeMaxRestarts(final Duration maxDuration) {
         if (MAX_BACK_OFF_DURATION.minus(maxDuration).isNegative()) {
             // maxBackOff < maxDuration: backOff at least 7 times (1+2+4+8+16+32+64=127s)
             return Math.max(7, 6 + (int) (maxDuration.toMillis() / MAX_BACK_OFF_DURATION.toMillis()));
@@ -517,10 +643,11 @@ public class MongoReadJournal {
         }
     }
 
-    private Source<SnapshotBatch, NotUsed> listNewestActiveSnapshotsByBatch(
+    private static Source<SnapshotBatch, NotUsed> listNewestActiveSnapshotsByBatch(
             final MongoCollection<Document> snapshotStore,
             final String startPid,
             final int batchSize,
+            final boolean includeDeleted,
             final String... snapshotFields) {
 
         final List<Bson> pipeline = new ArrayList<>(5);
@@ -542,6 +669,7 @@ public class MongoReadJournal {
         pipeline.add(Aggregates.sort(Sorts.ascending(S_ID)));
 
         // group stage 2: filter out pids whose latest snapshot is a deleted snapshot, but retain max encountered pid
+        // ---- or ---- : include latest deleted snapshots
         final String maxPid = "m";
         final String items = "i";
         pipeline.add(Aggregates.group(null,
@@ -549,19 +677,22 @@ public class MongoReadJournal {
                 Accumulators.push(
                         items,
                         new Document().append("$cond", new Document()
-                                .append("if", new Document().append("$ne", Arrays.asList("$" + LIFECYCLE, "DELETED")))
+                                .append("if",
+                                        new Document().append("$ne", Arrays.asList("$" + LIFECYCLE, "DELETED")))
                                 .append("then", "$$CURRENT")
-                                .append("else", null)
+                                .append("else", includeDeleted ? "$$CURRENT" : null)
                         ))
         ));
 
         // remove null entries by projection
-        pipeline.add(Aggregates.project(new Document()
-                .append(maxPid, 1)
-                .append(items, new Document()
-                        .append("$setDifference", Arrays.asList("$" + items, Collections.singletonList(null)))
-                )
-        ));
+        if (!includeDeleted) {
+            pipeline.add(Aggregates.project(new Document()
+                    .append(maxPid, 1)
+                    .append(items, new Document()
+                            .append("$setDifference", Arrays.asList("$" + items, Collections.singletonList(null)))
+                    )
+            ));
+        }
 
         return Source.fromPublisher(snapshotStore.aggregate(pipeline))
                 .flatMapConcat(document -> {
@@ -581,13 +712,17 @@ public class MongoReadJournal {
      * @param snapshotFields fields of a serialized snapshot to project.
      * @return list of group stage field accumulators.
      */
-    private List<BsonField> asFirstSnapshotBsonFields(final String... snapshotFields) {
-        return Stream.concat(Stream.of(LIFECYCLE), Arrays.stream(snapshotFields))
-                .map(fieldName -> {
-                    final String serializedFieldName = String.format("$%s.%s", S_SERIALIZED_SNAPSHOT, fieldName);
-                    return Accumulators.first(fieldName, serializedFieldName);
-                })
-                .collect(Collectors.toList());
+    private static List<BsonField> asFirstSnapshotBsonFields(final String... snapshotFields) {
+        final Stream<BsonField> snFieldStream = Stream.of(Accumulators.first(S_SN, "$" + S_SN));
+        final Stream<BsonField> snapshotFieldStream =
+                Stream.concat(Stream.of(LIFECYCLE), Arrays.stream(snapshotFields))
+                        .map(fieldName -> {
+                            final String serializedFieldName =
+                                    String.format("$%s.%s", S_SERIALIZED_SNAPSHOT, fieldName);
+                            return Accumulators.first(fieldName, serializedFieldName);
+                        });
+
+        return Stream.concat(snFieldStream, snapshotFieldStream).collect(Collectors.toList());
     }
 
     private Source<MongoCollection<Document>, NotUsed> getJournal() {

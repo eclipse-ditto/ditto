@@ -23,11 +23,15 @@ import java.util.Map;
 import java.util.function.BiFunction;
 
 import org.bson.BsonDocument;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.events.AbstractEventsourcedEvent;
+import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.ThingId;
@@ -35,21 +39,17 @@ import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.ThingRevision;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.assertions.DittoThingsAssertions;
-import org.eclipse.ditto.things.service.persistence.serializer.ThingMongoEventAdapter;
-import org.eclipse.ditto.things.service.persistence.testhelper.Assertions;
-import org.eclipse.ditto.things.service.persistence.testhelper.ThingsJournalTestHelper;
-import org.eclipse.ditto.things.service.persistence.testhelper.ThingsSnapshotTestHelper;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
-import org.eclipse.ditto.base.model.signals.events.AbstractEventsourcedEvent;
-import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
+import org.eclipse.ditto.things.service.persistence.serializer.ThingMongoEventAdapter;
+import org.eclipse.ditto.things.service.persistence.testhelper.Assertions;
+import org.eclipse.ditto.things.service.persistence.testhelper.ThingsJournalTestHelper;
+import org.eclipse.ditto.things.service.persistence.testhelper.ThingsSnapshotTestHelper;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -81,7 +81,8 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
     private ThingsJournalTestHelper<ThingEvent<?>> journalTestHelper;
     private ThingsSnapshotTestHelper<Thing> snapshotTestHelper;
 
-    private Map<Class<? extends Command<?>>, BiFunction<Command<?>, Thing, EventsourcedEvent<?>>> commandToEventMapperRegistry;
+    private Map<Class<? extends Command<?>>, BiFunction<Command<?>, Thing, EventsourcedEvent<?>>>
+            commandToEventMapperRegistry;
 
     Config createNewDefaultTestConfig() {
         return ConfigFactory.empty()
@@ -158,8 +159,7 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
                 .build();
 
         DittoThingsAssertions.assertThat(actualThing)
-                .hasEqualJson(expectedComparisonThing, FIELD_SELECTOR, IS_MODIFIED.negate())
-                .isModified(); // we cannot check exact timestamp
+                .hasEqualJson(expectedComparisonThing, FIELD_SELECTOR, IS_MODIFIED.negate());
     }
 
     void assertSnapshotsEmpty(final ThingId thingId) {
@@ -187,8 +187,11 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
         });
     }
 
-    static Thing toDeletedThing(final Thing thing, final int newRevision) {
-        return thing.toBuilder().setRevision(newRevision).setLifecycle(ThingLifecycle.DELETED).build();
+    static Thing toDeletedThing(final int newRevision) {
+        return ThingsModelFactory.newThingBuilder()
+                .setRevision(newRevision)
+                .setLifecycle(ThingLifecycle.DELETED)
+                .build();
     }
 
     EventsourcedEvent<?> toEvent(final Command<?> command, final Thing templateThing) {
@@ -205,7 +208,7 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
         retryOnAssertionError(() -> {
             final List<Thing> snapshots = snapshotTestHelper.getAllSnapshotsAscending(thingId);
             Assertions.assertListWithIndexInfo(snapshots,
-                    PersistenceActorTestBaseWithSnapshotting::assertThingInSnapshot)
+                            PersistenceActorTestBaseWithSnapshotting::assertThingInSnapshot)
                     .isEqualTo(expectedSnapshots);
         });
     }

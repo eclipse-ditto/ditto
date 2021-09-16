@@ -47,6 +47,14 @@ public interface UpdaterConfig {
     boolean isEventProcessingActive();
 
     /**
+     * Get the probability to perform a force update even when incremental update is possible to guarantee eventual
+     * consistency.
+     *
+     * @return the force update probability.
+     */
+    double getForceUpdateProbability();
+
+    /**
      * Returns configuration for the background sync actor.
      *
      * @return the config.
@@ -80,7 +88,12 @@ public interface UpdaterConfig {
         /**
          * Determines whether event processing should be active.
          */
-        EVENT_PROCESSING_ACTIVE("event-processing-active", true);
+        EVENT_PROCESSING_ACTIVE("event-processing-active", true),
+
+        /**
+         * Probability to do a replacement update regardless whether incremental update is possible.
+         */
+        FORCE_UPDATE_PROBABILITY("force-update-probability", 0.01);
 
         private final String path;
         private final Object defaultValue;

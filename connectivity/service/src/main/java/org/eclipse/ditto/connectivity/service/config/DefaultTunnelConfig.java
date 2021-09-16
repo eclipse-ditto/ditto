@@ -26,7 +26,7 @@ import com.typesafe.config.Config;
  * This class is the default implementation of {@link TunnelConfig}.
  */
 @Immutable
-public final class DefaultTunnelConfig implements TunnelConfig {
+final class DefaultTunnelConfig implements TunnelConfig {
 
     private static final String CONFIG_PATH = "tunnel";
 

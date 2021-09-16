@@ -48,6 +48,7 @@ public final class Metadata {
     private final List<StartedTimer> timers;
     private final List<ActorRef> senders;
     private final boolean invalidateCache;
+    @Nullable final ActorRef origin;
 
     private Metadata(final ThingId thingId,
             final long thingRevision,
@@ -57,7 +58,8 @@ public final class Metadata {
             final List<ThingEvent<?>> events,
             final Collection<StartedTimer> timers,
             final Collection<ActorRef> senders,
-            final boolean invalidateCache) {
+            final boolean invalidateCache,
+            @Nullable final ActorRef origin) {
 
         this.thingId = thingId;
         this.thingRevision = thingRevision;
@@ -68,6 +70,7 @@ public final class Metadata {
         this.timers = List.copyOf(timers);
         this.senders = List.copyOf(senders);
         this.invalidateCache = invalidateCache;
+        this.origin = origin;
     }
 
     /**
@@ -87,7 +90,7 @@ public final class Metadata {
             @Nullable final StartedTimer timer) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, null,
-                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false);
+                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, null);
     }
 
     /**
@@ -111,7 +114,7 @@ public final class Metadata {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, null, events,
                 null != timer ? List.of(timer) : List.of(),
-                null != sender ? List.of(sender) : List.of(), false);
+                null != sender ? List.of(sender) : List.of(), false, null);
     }
 
     /**
@@ -135,7 +138,7 @@ public final class Metadata {
             final Collection<ActorRef> senders) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, List.of(), timers, senders,
-                false);
+                false, null);
     }
 
     /**
@@ -157,7 +160,7 @@ public final class Metadata {
             @Nullable final StartedTimer timer) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified,
-                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false);
+                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, null);
     }
 
     /**
@@ -179,7 +182,27 @@ public final class Metadata {
      * @return the copy.
      */
     public Metadata invalidateCache() {
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders, true);
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders, true,
+                origin);
+    }
+
+    /**
+     * Create a copy of this metadata with origin.
+     *
+     * @return the copy.
+     */
+    public Metadata withOrigin(@Nullable final ActorRef origin) {
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
+                invalidateCache, origin);
+    }
+
+    /**
+     * Return the ThingUpdater that created this object, if any.
+     *
+     * @return The ThingUpdater.
+     */
+    public Optional<ActorRef> getOrigin() {
+        return Optional.ofNullable(origin);
     }
 
     /**
@@ -297,7 +320,7 @@ public final class Metadata {
                 Stream.concat(senders.stream(), newMetadata.senders.stream()).collect(Collectors.toList());
         return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.policyId,
                 newMetadata.policyRevision, newMetadata.modified, newEvents, newTimers, newSenders,
-                invalidateCache || newMetadata.invalidateCache);
+                invalidateCache || newMetadata.invalidateCache, newMetadata.origin);
     }
 
     /**
@@ -342,13 +365,14 @@ public final class Metadata {
                 Objects.equals(events, that.events) &&
                 Objects.equals(timers, that.timers) &&
                 Objects.equals(senders, that.senders) &&
-                invalidateCache == that.invalidateCache;
+                invalidateCache == that.invalidateCache &&
+                Objects.equals(origin, that.origin);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateCache);
+                invalidateCache, origin);
     }
 
     @Override
@@ -363,6 +387,7 @@ public final class Metadata {
                 ", timers=" + timers +
                 ", senders=" + senders +
                 ", invalidateCache=" + invalidateCache +
+                ", origin=" + origin +
                 "]";
     }
 

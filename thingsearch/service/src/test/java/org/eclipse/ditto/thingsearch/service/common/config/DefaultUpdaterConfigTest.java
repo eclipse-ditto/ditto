@@ -76,9 +76,14 @@ public final class DefaultUpdaterConfigTest {
                 .as(UpdaterConfigValue.EVENT_PROCESSING_ACTIVE.getConfigPath())
                 .isEqualTo(
                         updaterScopedRawConfig.getBoolean(UpdaterConfigValue.EVENT_PROCESSING_ACTIVE.getConfigPath()));
+
         softly.assertThat(underTest.getMaxIdleTime())
                 .as(UpdaterConfigValue.MAX_IDLE_TIME.getConfigPath())
                 .isEqualTo(updaterScopedRawConfig.getDuration(UpdaterConfigValue.MAX_IDLE_TIME.getConfigPath()));
+
+        softly.assertThat(underTest.getForceUpdateProbability())
+                .as(UpdaterConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath())
+                .isEqualTo(0.125);
     }
 
 }

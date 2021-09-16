@@ -163,7 +163,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
                 persistenceActorUnderTest.tell(deleteThing, getRef());
                 final DeleteThingResponse deleteThingResponse = expectMsgClass(DeleteThingResponse.class);
 
-                final Thing expectedDeletedSnapshot = toDeletedThing(createdThing, 2);
+                final Thing expectedDeletedSnapshot = toDeletedThing(2);
                 assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));
                 final EventsourcedEvent<?> deletedEvent = toEvent(deleteThing, expectedDeletedSnapshot);
                 expectedEvents.add(deletedEvent);
