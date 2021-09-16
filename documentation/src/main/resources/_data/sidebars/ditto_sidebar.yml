@@ -206,14 +206,14 @@ entries:
           - title: RQL expressions
             url: /basic-rql.html
             output: web
+          - title: Conditional requests
+            url: /basic-conditional-requests.html
+            output: web
           - title: Search
             url: /basic-search.html
             output: web
           - title: Acknowledgements / QoS
             url: /basic-acknowledgements.html
-            output: web
-          - title: Conditional updates
-            url: /basic-conditional-updates.html
             output: web
 
       - title: Advanced concepts

@@ -1,7 +1,7 @@
 ---
 title: "Support conditional requests for things resources"
 published: true
-permalink: 2021-08-25-conditional-requests.html
+permalink: 2021-09-16-conditional-requests.html
 layout: post
 author: stefan_maute
 tags: [blog, http, protocol, rql]
@@ -39,6 +39,8 @@ HTTP status code 412 Precondition Failed. There will also be no event emitted fo
 
 If the given condition is invalid, the request will fail with HTTP status code 400 Bad Request. 
 
+More documentation for this feature can be found here: [Conditional Requests](basic-conditional-requests.html)
+
 ### Permissions for conditional requests
 
 In order to execute a conditional request, the authorized subject needs to have WRITE permission at the resource
@@ -46,7 +48,9 @@ that should be changed by the request.
 
 Additionally, the authorized subject needs to have READ permission 
 at the resource used in the specified condition.
-Given the condition from the introduction `condition=eq(attributes/location,"Wonderland")` read access on the single attribute would be sufficient. However, the condition can also be more complex, or include other sub-structures of the thing. Then of course, the authorized subject needs READ permission on all parameters of the specific condition.
+Given the condition from the introduction `condition=eq(attributes/location,"Wonderland")` read access on the single attribute would be sufficient. 
+However, the condition can also be more complex, or include other sub-structures of the thing. 
+Then of course, the authorized subject needs READ permission on all parameters of the specific condition.
 
 ## Examples
 The following sub-sections will show how to use conditional requests via the HTTP API, the Ditto protocol, 
@@ -154,7 +158,7 @@ After the request was successfully performed, the thing will look like this:
 
 ## Conditional request via Ditto protocol
 It is also possible to use conditional requests via the Ditto protocol.
-Applying the following Ditto command to the existing thing will lead to the same result as in the above HTTP example.   
+Applying the following Ditto command to the existing thing will lead to the same result as in the above HTTP example.
 
 ```json
 {

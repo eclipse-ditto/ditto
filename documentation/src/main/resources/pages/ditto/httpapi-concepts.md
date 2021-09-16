@@ -508,6 +508,9 @@ strong entity-tag to a weak entity-tag and use it in a Conditional Header, Ditto
 However, we discourage the usage of weak entity-tags, because in the context of Ditto they only add unnecessary
 complexity.
 
+In addition to the `ETag` header Ditto supports conditional requests with a `condition` header for further information
+see [Conditional Requests](basic-conditional-requests.html) 
+
 ### Exempted fields
 
 Assuming you have a thing with an associated policy. When querying the thing with
