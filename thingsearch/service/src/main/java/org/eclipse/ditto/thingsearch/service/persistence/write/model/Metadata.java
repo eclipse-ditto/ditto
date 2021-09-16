@@ -384,7 +384,7 @@ public final class Metadata {
                 ", policyRevision=" + policyRevision +
                 ", modified=" + modified +
                 ", events=" + events +
-                ", timers=" + timers +
+                ", timers=[" + timers.size() + " timers]" +
                 ", senders=" + senders +
                 ", invalidateCache=" + invalidateCache +
                 ", origin=" + origin +
