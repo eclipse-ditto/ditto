@@ -48,7 +48,8 @@ that should be changed by the request.
 
 Additionally, the authorized subject needs to have READ permission 
 at the resource used in the specified condition.
-Given the condition from the introduction `condition=eq(attributes/location,"Wonderland")` read access on the single attribute would be sufficient. 
+Given the condition from the introduction `condition=eq(attributes/location,"Wonderland")`, 
+read access on the single attribute would be sufficient. 
 However, the condition can also be more complex, or include other sub-structures of the thing. 
 Then of course, the authorized subject needs READ permission on all parameters of the specific condition.
 
@@ -199,7 +200,7 @@ final Thing THING = ThingsModelFactory.newThingBuilder()
 // initialize the ditto-client
 final DittoClient dittoClient = ... ;
 
-dittoClient.twin().update(THING, Options.Modify.condition("gt(features/water-tank/properties/status/lastModified,"2021-08-25T12:40:00")")).
+dittoClient.twin().update(THING, Options.condition("gt(features/water-tank/properties/status/lastModified,"2021-08-25T12:40:00")")).
         .whenComplete(((adaptable, throwable) -> {
             if (throwable != null) {
                 LOGGER.error("Received error while sending conditional update: '{}' ", throwable.toString());

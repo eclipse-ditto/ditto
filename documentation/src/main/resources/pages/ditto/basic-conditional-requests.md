@@ -6,9 +6,9 @@ permalink: basic-conditional-requests.html
 ---
 
 Ditto already supports [Conditional Requests](httpapi-concepts.html#conditional-requests) as defined in [RFC-7232](https://tools.ietf.org/html/rfc7232) 
-where the `If-Match` and `If-None-Match` header can be used to specify if a request should be applied or not.
+where the `If-Match` and `If-None-Match` headers can be used to specify if a request should be applied or not.
 With the `condition` header it is possible to specify a condition based on the state of the actual thing.
-It is possible to combine both headers within one request. If you use both headers keep in mind that the ETag headers are evaluated first.   
+It is possible to combine both headers within one request. If you use both headers keep in mind that the ETag header is evaluated first.   
 
 ## Defining conditions
 
@@ -29,7 +29,7 @@ is newer than in the last state of the thing.
 * If the condition specified in the request is fulfilled, the thing will be updated and an event will be emitted.
 * If the condition specified in the request is not fulfilled, the thing is not modified, and no [event/change notification](basic-changenotifications.html) is emitted.
 
-Conditional requests are supported via HTTP API, Websocket, Ditto protocol and Ditto Java Client.
+Conditional requests are supported by HTTP API, WebSocket, Ditto protocol and Ditto Java Client.
 
 ### Permissions
 
@@ -67,7 +67,7 @@ In our example we want to update the **temperature** value, but only if the curr
 To express this condition, we use the _lastModified_ field in the temperature feature.
 
 In the following sections, we will show how request the conditional update via HTTP API, Ditto protocol, 
-and Ditto Java Client which is based on the Websocket protocol.
+and Ditto Java Client which is based on the WebSocket protocol.
 
 ### HTTP API
 
@@ -105,19 +105,18 @@ The third option to use conditional updates is the ditto-client.
 The following code snippet demonstrates how to achieve this.
 
 ```java
-DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-   .condition("gt(features/temperature/properties/lastModified,2021-08-10T15:10:02.592Z)")
-   .build();
-
-client.twin().forFeature(ThingId.of("org.eclipse.ditto:fancy-thing", "temperature"))
-   .putProperty("value", 42, Options.dittoHeaders(dittoHeaders))
-   .whenComplete((ununsed, throwable) -> {
-        if (throwable != null) {
-            System.out.println("Property update was not successfull: " + throwable.getMessage());
-        } else {
-            System.out.println("Updating the property was successful.");
-        }  
-   });
+final Option<String> option =
+        Options.condition("gt(features/temperature/properties/lastModified,\"2021-08-10T15:10:02.592Z\")")
+        
+client.twin().forFeature(ThingId.of("org.eclipse.ditto:fancy-thing"), "temperature")
+        .putProperty("value", 42, option)
+        .whenComplete((ununsed, throwable) -> {
+            if (throwable != null) {
+                System.out.println("Property update was not successfull: " + throwable.getMessage());
+            } else {
+                System.out.println("Updating the property was successful.");
+            }
+        });
 ```
 
 ## Further reading on RQL expressions
