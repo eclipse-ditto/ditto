@@ -38,7 +38,10 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-auth-context"}, Java type: {@link JsonObject}.
      * </p>
      */
-    AUTHORIZATION_CONTEXT("ditto-auth-context", JsonObject.class, false, false,
+    AUTHORIZATION_CONTEXT("ditto-auth-context",
+            JsonObject.class,
+            false,
+            false,
             HeaderValueValidators.getJsonObjectValidator()),
 
     /**
@@ -90,7 +93,10 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    READ_REVOKED_SUBJECTS("ditto-read-revoked-subjects", JsonArray.class, false, false,
+    READ_REVOKED_SUBJECTS("ditto-read-revoked-subjects",
+            JsonArray.class,
+            false,
+            false,
             HeaderValueValidators.getJsonArrayValidator()),
 
     /**
@@ -142,7 +148,11 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "If-Match"}, Java type: {@link String}.
      * </p>
      */
-    IF_MATCH("if-match", EntityTagMatchers.class, String.class, true, false,
+    IF_MATCH("if-match",
+            EntityTagMatchers.class,
+            String.class,
+            true,
+            false,
             HeaderValueValidators.getEntityTagMatchersValidator()),
 
     /**
@@ -151,7 +161,11 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "If-None-Match"}, Java type: {@link String}.
      * </p>
      */
-    IF_NONE_MATCH("if-none-match", EntityTagMatchers.class, String.class, true, false,
+    IF_NONE_MATCH("if-none-match",
+            EntityTagMatchers.class,
+            String.class,
+            true,
+            false,
             HeaderValueValidators.getEntityTagMatchersValidator()),
 
     /**
@@ -169,7 +183,10 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.2.0
      */
-    EXPECTED_RESPONSE_TYPES("ditto-expected-response-types", JsonArray.class, false, false,
+    EXPECTED_RESPONSE_TYPES("ditto-expected-response-types",
+            JsonArray.class,
+            false,
+            false,
             HeaderValueValidators.getJsonArrayValidator()),
 
     /**
@@ -178,7 +195,10 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-inbound-payload-mapper"}, Java type: {@link String}.
      * </p>
      */
-    INBOUND_PAYLOAD_MAPPER("ditto-inbound-payload-mapper", String.class, false, false,
+    INBOUND_PAYLOAD_MAPPER("ditto-inbound-payload-mapper",
+            String.class,
+            false,
+            false,
             HeaderValueValidators.getNoOpValidator()),
 
     /**
@@ -198,7 +218,10 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    REQUESTED_ACKS("requested-acks", JsonArray.class, true, true,
+    REQUESTED_ACKS("requested-acks",
+            JsonArray.class,
+            true,
+            true,
             HeaderValueValidators.getRequestedAcksValueValidator()),
 
     /**
@@ -221,8 +244,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    TIMEOUT("timeout", DittoDuration.class, String.class, true, true,
-            HeaderValueValidators.getTimeoutValueValidator()),
+    TIMEOUT("timeout", DittoDuration.class, String.class, true, true, HeaderValueValidators.getTimeoutValueValidator()),
 
     /**
      * Header definition for the entity ID related to the command/event/response/error.
@@ -232,8 +254,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    ENTITY_ID("ditto-entity-id", String.class, false, false,
-            HeaderValueValidators.getNoOpValidator()),
+    ENTITY_ID("ditto-entity-id", String.class, false, false, HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Header definition for the response header defining which authentication method that should be used
@@ -244,8 +265,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    WWW_AUTHENTICATE("www-authenticate", String.class, false, true,
-            HeaderValueValidators.getNoOpValidator()),
+    WWW_AUTHENTICATE("www-authenticate", String.class, false, true, HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Header definition for the response header defining the HTTP "Location" where a new resource was created.
@@ -255,8 +275,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    LOCATION("location", String.class, true, true,
-            HeaderValueValidators.getNoOpValidator()),
+    LOCATION("location", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Header definition for the Ditto connection ID in automatic acknowledgements.
@@ -286,7 +305,10 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.3.0
      */
-    ALLOW_POLICY_LOCKOUT("allow-policy-lockout", boolean.class, true, false,
+    ALLOW_POLICY_LOCKOUT("allow-policy-lockout",
+            boolean.class,
+            true,
+            false,
             HeaderValueValidators.getBooleanValidator()),
 
     /**
@@ -305,8 +327,11 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 2.0.0
      */
-    POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY("ditto-policy-enforcer-invalidated-preemptively", boolean.class,
-            false, false, HeaderValueValidators.getBooleanValidator()),
+    POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY("ditto-policy-enforcer-invalidated-preemptively",
+            boolean.class,
+            false,
+            false,
+            HeaderValueValidators.getBooleanValidator()),
 
     /**
      * Internal header which may be set by PersistenceActors in order to declare tags to be stored by the event
@@ -314,24 +339,25 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 2.0.0
      */
-    EVENT_JOURNAL_TAGS("ditto-event-journal-tags", JsonArray.class,
-            false, false, HeaderValueValidators.getJsonArrayValidator()),
+    EVENT_JOURNAL_TAGS("ditto-event-journal-tags",
+            JsonArray.class,
+            false,
+            false,
+            HeaderValueValidators.getJsonArrayValidator()),
 
     /**
      * W3C traceparent header. See https://www.w3.org/TR/trace-context/#traceparent-header.
      *
      * @since 2.1.0
      */
-    W3C_TRACEPARENT("traceparent", String.class,
-            true, true, HeaderValueValidators.getNoOpValidator()),
+    W3C_TRACEPARENT("traceparent", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
 
     /**
      * W3C tracestate header. See https://www.w3.org/TR/trace-context/#tracestate-header.
      *
      * @since 2.1.0
      */
-    W3C_TRACESTATE("tracestate", String.class,
-            true, true, HeaderValueValidators.getNoOpValidator()),
+    W3C_TRACESTATE("tracestate", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Internal header which may be set to ignore some preventions in the service. Can only be used in piggy-back
