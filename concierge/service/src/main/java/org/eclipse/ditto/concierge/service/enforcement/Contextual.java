@@ -30,7 +30,6 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
-import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -244,12 +243,6 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 responseReceivers, askFuture);
     }
 
-    Contextual<T> withTimer(final StartedTimer startedTimer) {
-        return new Contextual<>(message, self, sender, scheduler, executor, pubSubMediator, conciergeForwarder,
-                askWithRetryConfig, log, cacheKey, receiver, receiverWrapperFunction, responseReceivers,
-                askFuture);
-    }
-
     Contextual<T> withReceiver(@Nullable final ActorRef receiver) {
         return new Contextual<>(message, self, sender, scheduler, executor, pubSubMediator, conciergeForwarder,
                 askWithRetryConfig, log, cacheKey, receiver, receiverWrapperFunction, responseReceivers,
@@ -257,6 +250,12 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     }
 
     Contextual<T> withReceiverWrapperFunction(final Function<Object, Object> receiverWrapperFunction) {
+        return new Contextual<>(message, self, sender, scheduler, executor, pubSubMediator, conciergeForwarder,
+                askWithRetryConfig, log, cacheKey, receiver, receiverWrapperFunction, responseReceivers,
+                askFuture);
+    }
+
+    public Contextual<T> withAskWithRetryConfig(final AskWithRetryConfig askWithRetryConfig) {
         return new Contextual<>(message, self, sender, scheduler, executor, pubSubMediator, conciergeForwarder,
                 askWithRetryConfig, log, cacheKey, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture);
