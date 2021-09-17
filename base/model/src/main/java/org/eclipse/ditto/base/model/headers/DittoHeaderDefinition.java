@@ -121,10 +121,10 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     /**
      * Header definition for channel value meaning distinguishing between live/twin.
      * <p>
-     * Key: {@code "ditto-channel"}, Java type: {@link String}.
+     * Key: {@code "channel"}, Java type: {@link String}.
      * </p>
      */
-    CHANNEL("ditto-channel", String.class, true, false, HeaderValueValidators.getDittoChannelValidator()),
+    CHANNEL("channel", String.class, true, false, HeaderValueValidators.getDittoChannelValidator()),
 
     /**
      * Header definition for origin value that is set to the id of the originating session.
