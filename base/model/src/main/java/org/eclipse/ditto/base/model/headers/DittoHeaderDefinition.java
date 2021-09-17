@@ -124,7 +124,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-channel"}, Java type: {@link String}.
      * </p>
      */
-    CHANNEL("ditto-channel", String.class, false, false, HeaderValueValidators.getNoOpValidator()),
+    CHANNEL("ditto-channel", String.class, false, false, HeaderValueValidators.getDittoChannelValidator()),
 
     /**
      * Header definition for origin value that is set to the id of the originating session.

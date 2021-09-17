@@ -15,7 +15,6 @@ package org.eclipse.ditto.base.model.headers;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
-import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaders;
 
 /**
  * Provides validators for header values.
@@ -170,6 +169,19 @@ public final class HeaderValueValidators {
      */
     static ValueValidator getMetadataHeadersValidator() {
         return MetadataHeadersValueValidator.getInstance();
+    }
+
+    /**
+     * Returns a validator for checking if a normalized CharSequence is equal to
+     * {@value DittoChannelValueValidator#DITTO_CHANNEL_TWIN} or {@value DittoChannelValueValidator#DITTO_CHANNEL_LIVE}.
+     * Normalized in this context means trimmed and converted to lower case.
+     * Normalization is temporarily conducted by the returned validator for validation only.
+     *
+     * @return the validator.
+     * @since 2.1.0
+     */
+    static ValueValidator getDittoChannelValidator() {
+        return DittoChannelValueValidator.getInstance();
     }
 
 }
