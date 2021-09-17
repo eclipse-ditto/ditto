@@ -17,6 +17,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
 
@@ -249,7 +250,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 askFuture);
     }
 
-    Contextual<T> withReceiverWrapperFunction(final Function<Object, Object> receiverWrapperFunction) {
+    Contextual<T> withReceiverWrapperFunction(final UnaryOperator<Object> receiverWrapperFunction) {
         return new Contextual<>(message, self, sender, scheduler, executor, pubSubMediator, conciergeForwarder,
                 askWithRetryConfig, log, cacheKey, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture);
