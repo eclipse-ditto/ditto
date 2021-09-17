@@ -108,12 +108,12 @@ Using the HTTP API the condition can either be specified via HTTP Header or via 
 In this section, we will show how to use both options.
 
 ### Conditional request with HTTP Header
-```http request
+```
 curl -X PATCH -H 'Content-Type: application/json' -H 'condition: gt(features/water-tank/properties/status/lastModified,"2021-08-25T12:40:00")' /api/2/things/org.eclipse.ditto:coffeebrewer/features/water-tank/properties/properties/temperature -d '{ temperature: 45.26, "lastModified": "'"$(date +%Y-%m-%dT%H:%M:%S)"'" }'
 ```
 
 ### Conditional request with HTTP query parameter
-```http request
+```
 curl -X PATCH -H 'Content-Type: application/json' /api/2/things/org.eclipse.ditto:coffeebrewer/features/water-tank/properties/status/temperature?condition=gt(features/water-tank/properties/status/lastModified,"2021-08-25T12:40:00") -d '{ temperature: 45.26, "lastModified": "'"$(date +%Y-%m-%dT%H:%M:%S)"'" }'
 ```
 
