@@ -1373,7 +1373,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     final ConnectivityStatus resolvedStatus = connectivityStatusResolver.resolve(event);
                     logger.info("Connection failed: {}. Reconnect after: {}. Resolved status: {}. " +
                             "Going to 'CONNECTING'", event, nextBackoff, resolvedStatus);
-                    return goToConnecting(nextBackoff).using(data.increaseFailureCount()
+                    return goToConnecting(nextBackoff).using(data.resetSession()
+                            .increaseFailureCount()
                             .setConnectionStatus(resolvedStatus)
                             .setConnectionStatusDetails(event.getFailureDescription())
                     );
