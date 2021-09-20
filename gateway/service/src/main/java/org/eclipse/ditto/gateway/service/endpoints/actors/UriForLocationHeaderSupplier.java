@@ -14,8 +14,8 @@ package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.json.JsonPointer;
 
 import akka.http.javadsl.model.HttpMethod;
 import akka.http.javadsl.model.HttpRequest;
@@ -31,7 +31,9 @@ final class UriForLocationHeaderSupplier implements Supplier<Uri> {
     private final EntityId entityId;
     private final JsonPointer resourcePath;
 
-    UriForLocationHeaderSupplier(final HttpRequest httpRequest, final EntityId entityId, final JsonPointer resourcePath) {
+    UriForLocationHeaderSupplier(final HttpRequest httpRequest, final EntityId entityId,
+            final JsonPointer resourcePath) {
+
         this.httpRequest = httpRequest;
         this.entityId = entityId;
         this.resourcePath = resourcePath;
@@ -43,13 +45,20 @@ final class UriForLocationHeaderSupplier implements Supplier<Uri> {
         if (isRequestIdempotent()) {
             return requestUri;
         }
-        return Uri.create(removeTrailingSlash(getLocationUriString(removeEntityId(requestUri.toString()))))
-                .query(Query.EMPTY);
+        final var uriWithoutEntityIdString = prepareUriForLocationHeaderConcat(requestUri);
+        final var locationHeaderString = concatLocationHeader(uriWithoutEntityIdString);
+        return Uri.create(locationHeaderString).query(Query.EMPTY);
     }
 
     private boolean isRequestIdempotent() {
         final HttpMethod requestMethod = httpRequest.method();
         return requestMethod.isIdempotent();
+    }
+
+    private String prepareUriForLocationHeaderConcat(final Uri requestUri) {
+        final var uriWithoutEntityId = removeEntityId(requestUri.toString());
+        // handles requests without entityId with trailing slash (i.e. POST api/things/)
+        return removeTrailingSlash(uriWithoutEntityId);
     }
 
     private String removeEntityId(final String requestUri) {
@@ -69,6 +78,11 @@ final class UriForLocationHeaderSupplier implements Supplier<Uri> {
             return createdLocationUri.substring(0, createdLocationUri.length() - 1);
         }
         return createdLocationUri;
+    }
+
+    private String concatLocationHeader(final String requestUri) {
+        final var locationUriString = getLocationUriString(requestUri);
+        return removeTrailingSlash(locationUriString);
     }
 
     private String getLocationUriString(final String requestUri) {

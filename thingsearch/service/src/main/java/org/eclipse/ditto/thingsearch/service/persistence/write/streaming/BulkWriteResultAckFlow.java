@@ -107,6 +107,7 @@ final class BulkWriteResultAckFlow {
     private void acknowledgeFailures(final List<Metadata> metadataList) {
         errorsCounter.increment(metadataList.size());
         for (final Metadata metadata : metadataList) {
+            metadata.sendNAck(); // also stops timer even if no acknowledgement is requested
             final UpdateThingResponse response = createFailureResponse(metadata);
             metadata.getOrigin().ifPresentOrElse(
                     origin -> origin.tell(response, ActorRef.noSender()),
@@ -114,7 +115,6 @@ final class BulkWriteResultAckFlow {
                         final ShardedMessageEnvelope envelope =
                                 ShardedMessageEnvelope.of(response.getEntityId(), response.getType(), response.toJson(),
                                         response.getDittoHeaders());
-                        metadata.sendNAck();
                         updaterShard.tell(envelope, ActorRef.noSender());
                     }
             );

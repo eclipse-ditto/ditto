@@ -30,6 +30,8 @@ import akka.japi.Pair;
  */
 final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, BsonDiff>> {
 
+    private static final String LITERAL = "$literal";
+
     private final BsonSizeVisitor bsonSizeVisitor = new BsonSizeVisitor();
 
     @Override
@@ -68,8 +70,8 @@ final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, Bson
     @Override
     public Function<BsonValue, BsonDiff> object(final JsonPointer key, final BsonDocument value) {
         return oldValue -> {
-            if (!oldValue.isDocument()) {
-                return BsonDiff.set(bsonSizeVisitor.eval(value), key, value);
+            if (!oldValue.isDocument() || value.isEmpty()) {
+                return BsonDiff.set(bsonSizeVisitor.eval(value), key, literal(value));
             }
             if (value.equals(oldValue)) {
                 return BsonDiff.empty(bsonSizeVisitor.eval(value));
@@ -83,7 +85,7 @@ final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, Bson
                 final JsonPointer nextKey = key.addLeaf(JsonKey.of(entry.getKey()));
                 final var nextValue = entry.getValue();
                 if (!oldDocument.containsKey(entry.getKey())) {
-                    set = Stream.concat(set, Stream.of(Pair.create(nextKey, nextValue)));
+                    set = Stream.concat(set, Stream.of(Pair.create(nextKey, literal(nextValue))));
                     final var nextSize = bsonSizeVisitor.eval(nextValue);
                     diffSize += nextKey.length() + nextSize;
                     replacementSize += nextSize + entry.getKey().length();
@@ -97,7 +99,7 @@ final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, Bson
                             unset = Stream.concat(unset, nextDiff.unset);
                             diffSize += nextDiff.diffSize;
                         } else {
-                            set = Stream.concat(set, Stream.of(Pair.create(nextKey, nextValue)));
+                            set = Stream.concat(set, Stream.of(Pair.create(nextKey, literal(nextValue))));
                             diffSize += nextReplacementSize;
                         }
                         replacementSize += nextDiff.replacementSize + entry.getKey().length();
@@ -115,5 +117,9 @@ final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, Bson
             diffSize += deletedKeys.stream().mapToInt(JsonPointer::length).sum();
             return new BsonDiff(replacementSize, diffSize, set, unset);
         };
+    }
+
+    private static BsonValue literal(final BsonValue value) {
+        return value.isDocument() ? new BsonDocument().append(LITERAL, value) : value;
     }
 }

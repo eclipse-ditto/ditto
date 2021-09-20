@@ -15,8 +15,8 @@ package org.eclipse.ditto.concierge.service.enforcement;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
 
@@ -307,7 +307,7 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
      */
     protected <S extends WithDittoHeaders> Contextual<S> withMessageToReceiver(final S message,
             final ActorRef receiver,
-            final Function<Object, Object> wrapperFunction) {
+            final UnaryOperator<Object> wrapperFunction) {
 
         return context.setMessage(message).withReceiver(receiver).withReceiverWrapperFunction(wrapperFunction);
     }

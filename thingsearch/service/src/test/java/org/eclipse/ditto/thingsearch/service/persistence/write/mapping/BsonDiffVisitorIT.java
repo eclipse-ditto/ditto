@@ -163,6 +163,74 @@ public class BsonDiffVisitorIT {
                 .isEqualTo(nextThingDoc);
     }
 
+    @Test
+    public void testSetEmptyObject() {
+        final var collection = client.getCollection("test");
+
+        final int maxArraySize = 99;
+        final Metadata metadata =
+                Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
+
+        final JsonObject prevThing = getThing1();
+        final JsonObject nextThing = getThing4(); // identical to Thing1 with an extra fields with emtpy object as value
+
+        final BsonDocument prevThingDoc =
+                EnforcedThingMapper.toBsonDocument(prevThing, enforcer, maxArraySize, metadata);
+
+        final BsonDocument nextThingDoc =
+                EnforcedThingMapper.toBsonDocument(nextThing, enforcer, maxArraySize, metadata);
+
+        assertThat(prevThingDoc).isNotEqualTo(nextThingDoc);
+
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+
+        final List<BsonDocument> updateDoc = diff.consumeAndExport();
+
+        assertThat(updateDoc.toString().length())
+                .describedAs("Incremental update should be less than 1/8 as large as replacement")
+                .isLessThan(nextThingDoc.toString().length() / 8);
+
+        run(collection.insertOne(toDocument(prevThingDoc)));
+        run(collection.updateOne(new Document(), updateDoc));
+
+        final BsonDocument incrementalUpdateResult = toBsonDocument(run(collection.find()).get(0));
+
+        assertThat(incrementalUpdateResult)
+                .describedAs("Incremental update result")
+                .isEqualTo(nextThingDoc);
+    }
+
+    @Test
+    public void testEmptyUpdate() {
+        final var collection = client.getCollection("test");
+
+        final int maxArraySize = 99;
+        final Metadata metadata =
+                Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
+
+        final JsonObject thing = getThing1();
+
+        final BsonDocument thingDoc =
+                EnforcedThingMapper.toBsonDocument(thing, enforcer, maxArraySize, metadata);
+
+        final BsonDiff diff = BsonDiff.minusThingDocs(thingDoc, thingDoc);
+
+        final List<BsonDocument> updateDoc = diff.consumeAndExport();
+
+        assertThat(updateDoc.toString().length())
+                .describedAs("Incremental update should be less than 1/20 as large as replacement")
+                .isLessThan(thingDoc.toString().length() / 20);
+
+        run(collection.insertOne(toDocument(thingDoc)));
+        run(collection.updateOne(new Document(), updateDoc));
+
+        final BsonDocument incrementalUpdateResult = toBsonDocument(run(collection.find()).get(0));
+
+        assertThat(incrementalUpdateResult)
+                .describedAs("Incremental update result")
+                .isEqualTo(thingDoc);
+    }
+
     private <T> List<T> run(final Publisher<T> publisher) {
         return Source.fromPublisher(publisher).runWith(Sink.seq(), system).toCompletableFuture().join();
     }
@@ -232,6 +300,25 @@ public class BsonDiffVisitorIT {
                 "      \"f\": \"h\",\n" +
                 "      \"h\": \"lorem ipsum dolor sit amet\"\n" +
                 "    }\n" +
+                "  }\n" +
+                "}");
+    }
+
+    private static JsonObject getThing4() {
+        return JsonFactory.newObject("{\n" +
+                "  \"thingId\":\"solar.system:pluto\"," +
+                "  \"_namespace\":\"solar.system\"," +
+                "  \"a\": [ {\"b\": \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"}, true ],\n" +
+                "  \"d\": {\n" +
+                "    \"e\": {\n" +
+                "      \"f\": \"g\",\n" +
+                "      \"h\": \"lorem ipsum dolor sit amet\"\n" +
+                "    },\n" +
+                "    \"j\": true,\n" +
+                "    \"k\": 6.0,\n" +
+                "    \"l\": 123456789012,\n" +
+                "    \"m\": {},\n" +
+                "    \"n\": {\"o\":{}}\n" +
                 "  }\n" +
                 "}");
     }
