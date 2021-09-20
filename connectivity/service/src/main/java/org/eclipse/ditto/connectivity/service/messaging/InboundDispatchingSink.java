@@ -162,9 +162,8 @@ public final class InboundDispatchingSink
                 ConnectivityPlaceholders.newConnectionIdPlaceholder(),
                 connection.getId());
 
-        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
 
-        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
+        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(connection);
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
         acknowledgementConfig = connectivityConfig.getConnectionConfig().getAcknowledgementConfig();

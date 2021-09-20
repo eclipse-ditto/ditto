@@ -95,6 +95,12 @@ public final class DefaultAmqp10ConfigTest {
         softly.assertThat(underTest.getHmacAlgorithms())
                 .as(Amqp10Config.Amqp10ConfigValue.HMAC_ALGORITHMS.getConfigPath())
                 .isEqualTo(Amqp10Config.Amqp10ConfigValue.HMAC_ALGORITHMS.getDefaultValue());
+        softly.assertThat(underTest.getConsumerConfig().getThrottlingConfig().getInterval())
+                .as(ThrottlingConfig.ConfigValue.INTERVAL.getConfigPath())
+                .isEqualTo(ThrottlingConfig.ConfigValue.INTERVAL.getDefaultValue());
+        softly.assertThat(underTest.getConsumerConfig().getThrottlingConfig().getLimit())
+                .as(ThrottlingConfig.ConfigValue.LIMIT.getConfigPath())
+                .isEqualTo(ThrottlingConfig.ConfigValue.LIMIT.getDefaultValue());
     }
 
     @Test
@@ -110,6 +116,12 @@ public final class DefaultAmqp10ConfigTest {
         softly.assertThat(underTest.getConsumerConfig().getRedeliveryExpectationTimeout())
                 .as(Amqp10ConsumerConfig.ConfigValue.REDELIVERY_EXPECTATION_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(1337));
+        softly.assertThat(underTest.getConsumerConfig().getThrottlingConfig().getLimit())
+                .as(ThrottlingConfig.ConfigValue.LIMIT.getConfigPath())
+                .isEqualTo(4711);
+        softly.assertThat(underTest.getConsumerConfig().getThrottlingConfig().getInterval())
+                .as(ThrottlingConfig.ConfigValue.INTERVAL.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(42));
         softly.assertThat(underTest.getProducerCacheSize())
                 .as(Amqp10Config.Amqp10ConfigValue.PRODUCER_CACHE_SIZE.getConfigPath())
                 .isEqualTo(11);

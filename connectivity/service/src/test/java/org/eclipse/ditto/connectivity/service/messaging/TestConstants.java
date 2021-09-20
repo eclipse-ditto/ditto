@@ -560,7 +560,7 @@ public final class TestConstants {
         private static final Instant LAST_MESSAGE_AT = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 
         private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
-                ConnectivityCounterRegistry.newInstance();
+                ConnectivityCounterRegistry.newInstance(CONNECTIVITY_CONFIG);
 
         public static final ConnectionId ID = ConnectionId.of("myConnectionId");
 

@@ -247,7 +247,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         connectionContext = DittoConnectionContext.of(connection, staticConnectivityConfig);
 
         final var monitoringConfig = staticConnectivityConfig.getMonitoringConfig();
-        connectionCounterRegistry = ConnectivityCounterRegistry.newInstance();
+        connectionCounterRegistry = ConnectivityCounterRegistry.newInstance(staticConnectivityConfig);
         connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
         connectionLoggerRegistry.initForConnection(connection);
         connectionCounterRegistry.initForConnection(connection);
@@ -377,6 +377,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
 
     @Override
     public void onConnectivityConfigModified(final ConnectivityConfig modifiedConfig) {
+        connectionCounterRegistry.onConnectivityConfigModified(connection, modifiedConfig);
         final var modifiedContext = connectionContext.withConnectivityConfig(modifiedConfig);
         if (hasInboundMapperConfigChanged(modifiedConfig)) {
             logger.debug("Config changed for InboundMappingProcessor, recreating it.");

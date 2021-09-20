@@ -14,6 +14,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.monitoring;
 
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 
 /**
  * Registry that provides monitors for the different use cases inside a connection.

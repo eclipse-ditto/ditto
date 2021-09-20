@@ -34,9 +34,9 @@ final class DefaultConnectionThrottlingConfig implements ConnectionThrottlingCon
     private final ThrottlingConfig throttlingConfig;
     private final double maxInFlightFactor;
 
-    private DefaultConnectionThrottlingConfig(final ScopedConfig config) {
-        throttlingConfig = ThrottlingConfig.of(config);
+    private DefaultConnectionThrottlingConfig(final ScopedConfig config, final ThrottlingConfig throttlingConfig) {
         maxInFlightFactor = config.getPositiveDoubleOrThrow(ConfigValue.MAX_IN_FLIGHT_FACTOR);
+        this.throttlingConfig = throttlingConfig;
         if (maxInFlightFactor < 1.0) {
             throw new DittoConfigError(MessageFormat.format(
                     "The double value at <{0}> must be >= 1.0 but it was <{1}>!",
@@ -45,8 +45,9 @@ final class DefaultConnectionThrottlingConfig implements ConnectionThrottlingCon
     }
 
     static ConnectionThrottlingConfig of(final Config config) {
+        final ThrottlingConfig throttlingConfig = ThrottlingConfig.of(config);
         return new DefaultConnectionThrottlingConfig(
-                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()), throttlingConfig);
     }
 
     @Override
@@ -66,14 +67,10 @@ final class DefaultConnectionThrottlingConfig implements ConnectionThrottlingCon
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof DefaultConnectionThrottlingConfig)) {
-            return false;
-        }
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         final DefaultConnectionThrottlingConfig that = (DefaultConnectionThrottlingConfig) o;
-        return maxInFlightFactor == that.maxInFlightFactor &&
+        return Double.compare(that.maxInFlightFactor, maxInFlightFactor) == 0 &&
                 Objects.equals(throttlingConfig, that.throttlingConfig);
     }
 

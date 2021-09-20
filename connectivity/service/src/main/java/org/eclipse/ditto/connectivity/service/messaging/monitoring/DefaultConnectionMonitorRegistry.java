@@ -24,6 +24,7 @@ import org.eclipse.ditto.connectivity.model.LogCategory;
 import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.connectivity.model.MetricDirection;
 import org.eclipse.ditto.connectivity.model.MetricType;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ConnectivityCounterRegistry;
@@ -44,15 +45,16 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
 
     /**
      * Builds a new {@code DefaultConnectionMonitorRegistry} from a configuration.
-     * @param config the configuration to  use.
+     * @param connectivityConfig the configuration to  use.
      * @return a new instance of {@code DefaultConnectionMonitorRegistry}.
-     * @throws java.lang.NullPointerException if {@code config} is null.
+     * @throws java.lang.NullPointerException if {@code connectivityConfig} is null.
      */
-    public static DefaultConnectionMonitorRegistry fromConfig(final MonitoringConfig config) {
-        checkNotNull(config);
+    public static DefaultConnectionMonitorRegistry fromConfig(final ConnectivityConfig connectivityConfig) {
+        checkNotNull(connectivityConfig);
 
-        final ConnectionLoggerRegistry loggerRegistry = ConnectionLoggerRegistry.fromConfig(config.logger());
-        final ConnectivityCounterRegistry counterRegistry = ConnectivityCounterRegistry.newInstance();
+        final ConnectionLoggerRegistry loggerRegistry =
+                ConnectionLoggerRegistry.fromConfig(connectivityConfig.getMonitoringConfig().logger());
+        final ConnectivityCounterRegistry counterRegistry = ConnectivityCounterRegistry.newInstance(connectivityConfig);
 
         return new DefaultConnectionMonitorRegistry(loggerRegistry, counterRegistry);
     }

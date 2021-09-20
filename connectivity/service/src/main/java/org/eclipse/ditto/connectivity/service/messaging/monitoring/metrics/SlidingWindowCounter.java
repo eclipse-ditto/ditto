@@ -15,12 +15,15 @@ package org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 
@@ -32,32 +35,45 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 public final class SlidingWindowCounter {
 
     private final Clock clock;
-    private final MeasurementWindow[] windows;
+
+    // There are two different windows (usually they are the same), which allow recording using a single window
+    // (e.g. history of 1 day with a resolution of 1 minute) and generate multiple measurements from it
+    // (e.g. last 1 minute, 1 hour, 1 day).
+    private final MeasurementWindow[] windowsForRecording;
+    private final MeasurementWindow[] windowsForReporting;
+
     private final ConcurrentMap<Long, Long> successMeasurements = new ConcurrentHashMap<>();
     private final ConcurrentMap<Long, Long> failureMeasurements = new ConcurrentHashMap<>();
 
     private final AtomicLong lastSuccessTimestamp = new AtomicLong(Instant.EPOCH.toEpochMilli());
     private final AtomicLong lastFailureTimestamp = new AtomicLong(Instant.EPOCH.toEpochMilli());
     private final Duration minResolution;
-
     private final Counter metricsCounter;
+    @Nullable private final MetricsAlert metricsAlert;
+    private final long maximumPerSlot;
+    private final boolean cleanUpEnabled;
 
-    /**
-     * Instantiates a new {@link SlidingWindowCounter} that records the measurements for the given time windows.
-     *
-     * @param metricsCounter counter used for internal monitoring
-     * @param windows the time windows to record
-     */
-    SlidingWindowCounter(final Counter metricsCounter,
-            final Clock clock, final MeasurementWindow... windows) {
-        this.metricsCounter = metricsCounter;
-        this.clock = clock;
-        this.windows = windows;
+    private SlidingWindowCounter(final SlidingWindowCounterBuilder builder) {
+        this.metricsCounter = builder.metricsCounter;
+        this.clock = builder.clock;
+        this.metricsAlert = builder.metricsAlert;
+        this.cleanUpEnabled = builder.cleanUpEnabled;
+        this.windowsForRecording = builder.recordingMeasurementWindows;
+        this.windowsForReporting = builder.reportingMeasurementWindows;
+        this.maximumPerSlot = builder.maximumPerSlot;
 
-        minResolution = Stream.of(windows)
+        minResolution = Stream.of(windowsForRecording)
                 .map(MeasurementWindow::getResolution)
                 .min(Duration::compareTo)
                 .orElse(Duration.ofMinutes(5));
+    }
+
+    /**
+     * @param metricsCounter the metricsCounter to use
+     * @return a new SlidingWindowCounterBuilder instance
+     */
+    static SlidingWindowCounterBuilder newBuilder(final Counter metricsCounter) {
+        return new SlidingWindowCounterBuilder(metricsCounter);
     }
 
     /**
@@ -111,7 +127,7 @@ public final class SlidingWindowCounter {
         }
 
         // if diff between current and last timestamp is too large, cleanup old measurements
-        if (previousTimestamp > ts - minResolution.toMillis()) {
+        if (cleanUpEnabled && previousTimestamp > ts - minResolution.toMillis()) {
             cleanUpOldMeasurements();
         }
     }
@@ -121,9 +137,12 @@ public final class SlidingWindowCounter {
     }
 
     private void incrementMeasurements(final long ts, final Map<Long, Long> measurements) {
-        for (final MeasurementWindow window : windows) {
+        for (final MeasurementWindow window : windowsForRecording) {
             final long slot = getSlot(ts, window.getResolution().toMillis());
-            measurements.compute(slot, (key, value) -> (value == null) ? 1 : value + 1);
+            final long newValue = measurements.compute(slot, (key, value) -> (value == null) ? 1 : value + 1);
+            if (metricsAlert != null && metricsAlert.evaluateCondition(window, ts, newValue)) {
+                metricsAlert.triggerAction(ts, newValue);
+            }
         }
     }
 
@@ -136,9 +155,9 @@ public final class SlidingWindowCounter {
         measurements.entrySet().removeIf(e -> isOld(e.getKey()));
     }
 
-    private boolean isOld(long slot) {
+    private boolean isOld(final long slot) {
         final long now = clock.instant().toEpochMilli();
-        for (final MeasurementWindow window : windows) {
+        for (final MeasurementWindow window : windowsForRecording) {
             final long resolutionInMs = window.getResolution().toMillis();
             final long windowInMs = window.getWindow().toMillis();
             // max slot is the current slot for this window
@@ -174,7 +193,7 @@ public final class SlidingWindowCounter {
     private Map<Duration, Long> getCounts(final Map<Long, Long> measurements) {
         final Map<Duration, Long> result = new HashMap<>();
         final long now = clock.instant().toEpochMilli();
-        for (final MeasurementWindow window : windows) {
+        for (final MeasurementWindow window : windowsForReporting) {
             // min is where we start to sum up the slots
             final long windowInMs = window.getWindow().toMillis();
             final long resolutionInMs = window.getResolution().toMillis();
@@ -183,9 +202,9 @@ public final class SlidingWindowCounter {
             final long max = getSlot(now, resolutionInMs);
             long sum = 0;
             for (final Map.Entry<Long, Long> e : measurements.entrySet()) {
-                long slot = e.getKey();
+                final long slot = e.getKey();
                 if (slot > min && slot <= max) {
-                    sum += e.getValue();
+                    sum += Math.min(maximumPerSlot, e.getValue());
                 }
             }
             result.put(window.getWindow(), sum);
@@ -205,18 +224,86 @@ public final class SlidingWindowCounter {
         measurements.clear();
     }
 
-    private long getSlot(long ts, final long resolutionInMs) {
+    private long getSlot(final long ts, final long resolutionInMs) {
         return ts / resolutionInMs;
+    }
+
+    /**
+     * Builder of SlidingWindowCounters.
+     */
+    static final class SlidingWindowCounterBuilder {
+
+        private final Counter metricsCounter;
+        private Clock clock = Clock.systemUTC();
+        private MetricsAlert metricsAlert = null;
+        private boolean cleanUpEnabled = true;
+        private MeasurementWindow[] recordingMeasurementWindows;
+        private MeasurementWindow[] reportingMeasurementWindows;
+        private long maximumPerSlot = Long.MAX_VALUE;
+
+        public SlidingWindowCounterBuilder(final Counter metricsCounter) {
+            this.metricsCounter = metricsCounter;
+        }
+
+        public SlidingWindowCounterBuilder clock(final Clock clock) {
+            this.clock = clock;
+            return this;
+        }
+
+        public SlidingWindowCounterBuilder metricsAlert(@Nullable final MetricsAlert metricsAlert) {
+            this.metricsAlert = metricsAlert;
+            return this;
+        }
+
+        public SlidingWindowCounterBuilder cleanUpEnabled(final boolean cleanUpEnabled) {
+            this.cleanUpEnabled = cleanUpEnabled;
+            return this;
+        }
+
+        public SlidingWindowCounterBuilder recordingMeasurementWindows(
+                final MeasurementWindow... recordingMeasurementWindows) {
+            this.recordingMeasurementWindows = recordingMeasurementWindows;
+            return this;
+        }
+
+        public SlidingWindowCounterBuilder reportingMeasurementWindows(
+                final MeasurementWindow... reportingMeasurementWindows) {
+            this.reportingMeasurementWindows = reportingMeasurementWindows;
+            return this;
+        }
+
+        public SlidingWindowCounterBuilder measurementWindows(
+                final MeasurementWindow... measurementWindows) {
+            this.reportingMeasurementWindows = measurementWindows;
+            this.recordingMeasurementWindows = measurementWindows;
+            return this;
+        }
+
+        public SlidingWindowCounterBuilder maximumPerSlot(final long maximumPerSlot) {
+            this.maximumPerSlot = maximumPerSlot;
+            return this;
+        }
+
+        public SlidingWindowCounter build() {
+            return new SlidingWindowCounter(this);
+        }
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
+                "clock=" + clock +
+                ", windowsForRecording=" + Arrays.toString(windowsForRecording) +
+                ", windowsForReporting=" + Arrays.toString(windowsForReporting) +
                 ", successMeasurements=" + successMeasurements +
                 ", failureMeasurements=" + failureMeasurements +
                 ", lastSuccessTimestamp=" + lastSuccessTimestamp +
                 ", lastFailureTimestamp=" + lastFailureTimestamp +
+                ", minResolution=" + minResolution +
+                ", metricsCounter=" + metricsCounter +
+                ", metricsAlert=" + metricsAlert +
+                ", maximumPerSlot=" + maximumPerSlot +
+                ", cleanUpEnabled=" + cleanUpEnabled +
                 "]";
     }
-
 }
