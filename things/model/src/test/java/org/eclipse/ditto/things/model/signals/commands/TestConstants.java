@@ -356,9 +356,7 @@ public final class TestConstants {
          * A known {@code ThingConditionFailedException}.
          */
         public static final ThingConditionFailedException THING_CONDITION_FAILED_EXCEPTION =
-                ThingConditionFailedException
-                        .newBuilder("eq(attributes/attr1,42)", EMPTY_DITTO_HEADERS)
-                        .build();
+                ThingConditionFailedException.newBuilder(EMPTY_DITTO_HEADERS).build();
 
         /**
          * A known {@code ThingConditionInvalidException}.

@@ -13,7 +13,6 @@
 package org.eclipse.ditto.things.model.signals.commands.exceptions;
 
 import java.net.URI;
-import java.text.MessageFormat;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -41,11 +40,11 @@ public final class ThingConditionFailedException extends DittoRuntimeException i
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "condition.failed";
 
-    private static final String MESSAGE_TEMPLATE_CONDITION_NOT_MET =
-            "The specified condition ''{0}'' does not match the state of the requested Thing.";
+    private static final String MESSAGE_CONDITION_NOT_MET =
+            "The specified condition does not match the state of the requested Thing.";
 
-    private static final String MESSAGE_TEMPLATE_FOR_INSUFFICIENT_PERMISSION =
-            "The specified resource in the condition ''{0}'' could not be found " +
+    private static final String MESSAGE_FOR_INSUFFICIENT_PERMISSION =
+            "The specified resource in the condition could not be found " +
                     "or the requester had insufficient permissions to access it.";
 
     private static final String DEFAULT_DESCRIPTION = "The provided condition did not match the actual Thing state. " +
@@ -67,23 +66,24 @@ public final class ThingConditionFailedException extends DittoRuntimeException i
     /**
      * A mutable builder.
      *
-     * @param condition the condition to apply for the request.
+     * @param dittoHeaders the headers to apply for the request.
      * @return the builder.
      */
-    public static DittoRuntimeExceptionBuilder<ThingConditionFailedException> newBuilder(final String condition, final DittoHeaders dittoHeaders) {
-        return new Builder(condition).dittoHeaders(dittoHeaders);
+    public static DittoRuntimeExceptionBuilder<ThingConditionFailedException> newBuilder(
+            final DittoHeaders dittoHeaders) {
+        return new Builder().dittoHeaders(dittoHeaders);
     }
 
     /**
      * A mutable builder.
      *
-     * @param condition the condition to apply for the request.
+     * @param dittoHeaders the headers to apply for the request.
      * @return the builder.
      */
     public static DittoRuntimeExceptionBuilder<ThingConditionFailedException> newBuilderForInsufficientPermission(
-            final String condition, final DittoHeaders dittoHeaders) {
-        return newBuilder(condition, dittoHeaders)
-                .message(MessageFormat.format(MESSAGE_TEMPLATE_FOR_INSUFFICIENT_PERMISSION, condition))
+            final DittoHeaders dittoHeaders) {
+        return newBuilder(dittoHeaders)
+                .message(MESSAGE_FOR_INSUFFICIENT_PERMISSION)
                 .description(DESCRIPTION_FOR_INSUFFICIENT_PERMISSION);
     }
 
@@ -123,12 +123,8 @@ public final class ThingConditionFailedException extends DittoRuntimeException i
             extends DittoRuntimeExceptionBuilder<ThingConditionFailedException> {
 
         private Builder() {
+            message(MESSAGE_CONDITION_NOT_MET);
             description(DEFAULT_DESCRIPTION);
-        }
-
-        private Builder(final String condition) {
-            this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE_CONDITION_NOT_MET, condition));
         }
 
         @Override

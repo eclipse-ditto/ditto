@@ -807,8 +807,7 @@ public final class ThingCommandEnforcement
         final var resourceKeys = determineResourceKeys(rootNode, dittoHeaders);
 
         if (!policyEnforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.READ)) {
-            throw ThingConditionFailedException.newBuilderForInsufficientPermission(condition, dittoHeaders)
-                    .build();
+            throw ThingConditionFailedException.newBuilderForInsufficientPermission(dittoHeaders).build();
         }
     }
 
