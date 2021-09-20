@@ -12,7 +12,8 @@ It is possible to combine both headers within one request. If you use both heade
 
 ## Defining conditions
 
-Ditto supports retrieving, modifying, and deleting things based on specific conditions of the current thing state.
+Ditto supports retrieving, modifying, and deleting things based on specific conditions of the current persisted twin state.
+Conditions are not intended to be used for message dispatching.
 For example, if you want to update the value of an attribute, but only if the current attribute value is not already 42,
 you can specify a condition:
 
@@ -31,12 +32,9 @@ is newer than in the last state of the thing.
 
 Conditional requests are supported by HTTP API, WebSocket, Ditto protocol and Ditto Java Client.
 
-### Permissions
+### Permissions for conditions
 
-The requester needs READ and WRITE permission on the resources which are requested, otherwise, the request will fail.
-
-* READ permission is necessary on the resource specified in the condition, and
-* WRITE permission on the resource the get, put or delete method addresses. 
+READ permission is necessary on the resource specified in the condition, otherwise, the request will fail.
 
 
 ## Examples

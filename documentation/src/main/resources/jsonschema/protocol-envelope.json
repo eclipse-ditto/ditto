@@ -61,6 +61,10 @@
           "description": "Determines the schema version of the payload.",
           "minimum": 1,
           "maximum": 2
+        },
+        "condition": {
+          "type": "string",
+          "description": "The `condition` header which should be valid RQL syntax."
         }
       },
       "required": [ "correlation-id" ]
