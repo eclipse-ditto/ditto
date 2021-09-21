@@ -34,4 +34,5 @@ public interface FeatureExpression extends ExistsFieldExpression {
      * @return the feature id.
      */
     String getFeatureId();
+
 }

@@ -65,4 +65,5 @@ public final class ThingPredicateVisitor implements CriteriaVisitor<Predicate<Th
     public Predicate<Thing> visitOr(final List<Predicate<Thing>> disjoints) {
         return thing -> disjoints.stream().anyMatch(p -> p.test(thing));
     }
+
 }

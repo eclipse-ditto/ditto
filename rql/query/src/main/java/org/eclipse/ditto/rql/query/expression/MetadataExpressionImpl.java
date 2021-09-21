@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -12,39 +12,46 @@
  */
 package org.eclipse.ditto.rql.query.expression;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.rql.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.rql.query.expression.visitors.FieldExpressionVisitor;
+import org.eclipse.ditto.rql.query.expression.visitors.FilterFieldExpressionVisitor;
 
 /**
- * Immutable implementation of {@link FeatureIdDesiredPropertiesExpression}.
+ * Immutable implementation of {@link MetadataExpression}.
  */
 @Immutable
-final class FeatureIdDesiredPropertiesExpressionImpl implements FeatureIdDesiredPropertiesExpression {
+final class MetadataExpressionImpl implements MetadataExpression {
 
-    private final String featureId;
+    private final String key;
 
-    FeatureIdDesiredPropertiesExpressionImpl(final String featureId) {
-        this.featureId = ConditionChecker.checkNotNull(featureId, "featureId");
+    MetadataExpressionImpl(final String key) {
+        this.key = requireNonNull(key);
+    }
+
+    @Override
+    public String getKey() {
+        return key;
+    }
+
+    @Override
+    public <T> T acceptFilterVisitor(final FilterFieldExpressionVisitor<T> visitor) {
+        return visitor.visitMetadata(key);
     }
 
     @Override
     public <T> T acceptExistsVisitor(final ExistsFieldExpressionVisitor<T> visitor) {
-        return visitor.visitFeatureDesiredProperties(featureId);
+        return visitor.visitMetadata(key);
     }
 
     @Override
     public <T> T accept(final FieldExpressionVisitor<T> visitor) {
-        return visitor.visitFeatureDesiredProperties(featureId);
-    }
-
-    @Override
-    public String getFeatureId() {
-        return featureId;
+        return visitor.visitMetadata(key);
     }
 
     @Override
@@ -55,19 +62,19 @@ final class FeatureIdDesiredPropertiesExpressionImpl implements FeatureIdDesired
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final FeatureIdDesiredPropertiesExpressionImpl that = (FeatureIdDesiredPropertiesExpressionImpl) o;
-        return featureId.equals(that.featureId);
+        final MetadataExpressionImpl that = (MetadataExpressionImpl) o;
+        return Objects.equals(key, that.key);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(featureId);
+        return Objects.hash(key);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "featureId=" + featureId +
+                "key=" + key +
                 "]";
     }
 

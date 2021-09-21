@@ -186,6 +186,16 @@ public final class PersistenceConstants {
      */
     public static final String FIELD_PATH_MODIFIED = FIELD_SORTING + DOT + FIELD_MODIFIED;
 
+    /**
+     * Field name for thing metadata.
+     */
+    public static final String FIELD_METADATA = "_metadata";
+
+    /**
+     * Path for thing metadata.
+     */
+    public static final String FIELD_METADATA_PATH = SLASH + FIELD_METADATA + SLASH;
+
     private PersistenceConstants() {
     }
 

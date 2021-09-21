@@ -140,6 +140,11 @@ final class Thing3ValuePredicateVisitor implements CriteriaVisitor<Function<Thin
             return JsonPointer.empty().addLeaf(JsonKey.of(fieldName));
         }
 
+        @Override
+        public JsonPointer visitMetadata(final String key) {
+            return Thing.JsonFields.METADATA.getPointer().append(JsonPointer.of(key));
+        }
+
     }
 
 }

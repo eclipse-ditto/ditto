@@ -13,27 +13,27 @@
 package org.eclipse.ditto.rql.query.expression;
 
 /**
- * Expression for an attribute.
+ * Expression for metadata.
  *
- * @since 2.0.0
+ * @since 2.1.0
  */
-public interface AttributeExpression extends FilterFieldExpression, SortFieldExpression, ExistsFieldExpression {
+public interface MetadataExpression extends FilterFieldExpression, ExistsFieldExpression {
 
     /**
-     * Creates an expression for an attribute.
+     * Creates an expression for metadata.
      *
-     * @param key the attribute key.
-     * @return the created AttributeExpression
+     * @param key the metadata key.
+     * @return the created MetadataExpression
      * @throws NullPointerException if {@code key} is {@code null}.
      */
-    static AttributeExpression of(final String key) {
-        return new AttributeExpressionImpl(key);
+    static MetadataExpression of(final String key) {
+        return new MetadataExpressionImpl(key);
     }
 
     /**
-     * Returns the attribute key.
+     * Returns the metadata key.
      *
-     * @return the attribute key
+     * @return the metadata key
      */
     String getKey();
 

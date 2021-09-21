@@ -37,6 +37,8 @@ public final class FieldNamesPredicateVisitorTest {
                 .containsExactlyInAnyOrder("features/*/definition");
         softly.assertThat(extractFieldsFromRql("eq(/attributes/complex,\"!#$%&'(features)*+,/:;=?@[\\\\]{|}\\\" äaZ0\")"))
                 .containsExactlyInAnyOrder("/attributes/complex");
+        softly.assertThat(extractFieldsFromRql("or(eq(_metadata/attributes/manufacturer,1),exists(_metadata))"))
+                .containsExactlyInAnyOrder("_metadata/attributes/manufacturer", "_metadata");
     }
 
     private static Set<String> extractFieldsFromRql(final String filter) {
@@ -44,4 +46,5 @@ public final class FieldNamesPredicateVisitorTest {
         fieldNameVisitor.visit(RqlPredicateParser.parse(filter));
         return fieldNameVisitor.getFieldNames();
     }
+
 }

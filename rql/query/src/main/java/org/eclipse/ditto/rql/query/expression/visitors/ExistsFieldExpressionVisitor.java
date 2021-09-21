@@ -37,4 +37,6 @@ public interface ExistsFieldExpressionVisitor<T> extends SortFieldExpressionVisi
     @Override
     T visitSimple(String fieldName);
 
+    T visitMetadata(String key);
+
 }

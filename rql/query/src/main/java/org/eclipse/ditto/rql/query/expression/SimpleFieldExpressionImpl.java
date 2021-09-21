@@ -83,4 +83,5 @@ final class SimpleFieldExpressionImpl implements SimpleFieldExpression {
                 "fieldName=" + fieldName +
                 "]";
     }
+
 }

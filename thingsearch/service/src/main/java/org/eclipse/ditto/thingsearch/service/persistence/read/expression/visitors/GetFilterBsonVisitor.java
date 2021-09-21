@@ -99,6 +99,11 @@ public class GetFilterBsonVisitor extends AbstractFieldBsonCreator implements Fi
         return predicateFunction.apply(fieldName);
     }
 
+    @Override
+    public Bson visitMetadata(final String key) {
+        return matchKeyValue(PersistenceConstants.FIELD_METADATA_PATH + key);
+    }
+
     private Bson matchKeyValue(final String key) {
         final Bson keyValueFilter = Filters.and(Filters.eq(PersistenceConstants.FIELD_INTERNAL_KEY, key), valueFilter);
         return Filters.elemMatch(PersistenceConstants.FIELD_INTERNAL,
@@ -106,4 +111,5 @@ public class GetFilterBsonVisitor extends AbstractFieldBsonCreator implements Fi
                         .map(authBson -> Filters.and(keyValueFilter, authBson))
                         .orElse(keyValueFilter));
     }
+
 }

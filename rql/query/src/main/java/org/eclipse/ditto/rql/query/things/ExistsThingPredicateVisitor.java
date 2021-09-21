@@ -77,4 +77,11 @@ public final class ExistsThingPredicateVisitor implements ExistsFieldExpressionV
         return thing -> thing.toJson().getValue(fieldName).isPresent();
     }
 
+    @Override
+    public Predicate<Thing> visitMetadata(final String key) {
+        return thing -> thing.getMetadata()
+                .map(metadata -> metadata.contains(key))
+                .orElse(false);
+    }
+
 }

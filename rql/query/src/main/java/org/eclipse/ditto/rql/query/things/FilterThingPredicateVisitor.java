@@ -58,4 +58,9 @@ public final class FilterThingPredicateVisitor implements FilterFieldExpressionV
         return predicateFunction.apply(fieldName);
     }
 
+    @Override
+    public Predicate<Thing> visitMetadata(final String key) {
+        return predicateFunction.apply("_metadata/" + key);
+    }
+
 }
