@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.base.model.common.HttpStatus.SERVICE_UNAVAILABLE;
+import static org.mockito.Mockito.mock;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -54,6 +55,7 @@ import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaProducerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
@@ -99,14 +101,15 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     protected Props getPublisherActorProps() {
         final Connection connection = TestConstants.createConnection();
         final String clientId = UUID.randomUUID().toString();
-        return KafkaPublisherActor.props(connection, kafkaConfig, mockSendProducerFactory, false, clientId);
+        return KafkaPublisherActor.props(connection, kafkaConfig, mockSendProducerFactory, false, clientId,
+                mock(ConnectivityStatusResolver.class));
     }
 
     protected Props getPublisherActorPropsWithDebugEnabled() {
         final Connection connectionWithDebugEnabled = TestConstants.createConnectionWithDebugEnabled();
         final String clientId = UUID.randomUUID().toString();
         return KafkaPublisherActor.props(connectionWithDebugEnabled, kafkaConfig, mockSendProducerFactory, false,
-                clientId);
+                clientId, mock(ConnectivityStatusResolver.class));
     }
 
     @Override

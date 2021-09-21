@@ -15,9 +15,11 @@ package org.eclipse.ditto.connectivity.service.messaging.amqp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,6 +38,7 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageProducer;
 
+import org.apache.qpid.jms.JmsQueue;
 import org.apache.qpid.jms.JmsSession;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.JmsTextMessage;
@@ -54,14 +57,18 @@ import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
+import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ProducerClosedStatusReport;
+import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.protocol.Adaptable;
@@ -83,15 +90,41 @@ import akka.testkit.javadsl.TestKit;
 public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AmqpPublisherActorTest.class);
+    private static final String ANOTHER_ADDRESS = "anotherAddress";
+    private static final String REPLY_TARGET_ADDRESS = TestConstants.Sources.REPLY_TARGET_ADDRESS
+            .replaceAll("\\Q{{thing:id}}\\E", THING_ID.toString());
+    private static final IllegalStateException TEST_EXCEPTION = new IllegalStateException("test");
 
     private JmsSession session;
     private MessageProducer messageProducer;
+    private MessageProducer repliesMessageProducer;
+    private JmsQueue outboundDestination;
+    private JmsQueue anotherDestination;
+    private JmsQueue repliesDestination;
+    private ConnectivityStatusResolver connectivityStatusResolver;
 
     @Override
     protected void setupMocks(final TestProbe probe) throws JMSException {
         session = mock(JmsSession.class);
         messageProducer = mock(MessageProducer.class);
-        when(session.createProducer(any(Destination.class))).thenReturn(messageProducer);
+        repliesMessageProducer = mock(MessageProducer.class);
+        connectivityStatusResolver = mock(ConnectivityStatusResolver.class);
+        when(connectivityStatusResolver.resolve(TEST_EXCEPTION)).thenReturn(ConnectivityStatus.FAILED);
+        when(connectivityStatusResolver.resolve(any(Throwable.class))).thenReturn(ConnectivityStatus.FAILED);
+        outboundDestination = new JmsQueue(getOutboundAddress());
+        anotherDestination = new JmsQueue(ANOTHER_ADDRESS);
+        repliesDestination = new JmsQueue(REPLY_TARGET_ADDRESS);
+        when(session.createProducer(any(Destination.class)))
+                .thenAnswer((Answer<MessageProducer>) invocation -> {
+                    final Destination destination = invocation.getArgument(0);
+                    if (outboundDestination.equals(destination)) {
+                        return messageProducer;
+                    } else if (repliesDestination.equals(destination)) {
+                        return repliesMessageProducer;
+                    } else {
+                        return mock(MessageProducer.class);
+                    }
+                });
         when(session.createTextMessage(anyString())).thenAnswer((Answer<JmsMessage>) invocation -> {
             final String argument = invocation.getArgument(0);
             final AmqpJmsTextMessageFacade facade = new AmqpJmsTextMessageFacade() {{
@@ -205,19 +238,23 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             final Props props = AmqpPublisherActor.props(TestConstants.createConnection()
                             .toBuilder()
                             .setSources(Collections.emptyList())
-                            .setTargets(Collections.singletonList(
-                                    TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())))
+                            .setTargets(List.of(
+                                    TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress()),
+                                    TestConstants.Targets.TWIN_TARGET.withAddress(ANOTHER_ADDRESS)))
                             .build(),
                     session,
                     loadConnectionConfig(),
-                    "clientId");
+                    "clientId",
+                    connectivityStatusResolver);
             final ActorRef publisherActor = actorSystem.actorOf(props);
+
+            publisherCreated(this, publisherActor);
 
             publisherActor.tell(multiMapped, getRef());
             publisherActor.tell(multiMapped, getRef());
 
             // producer is cached so created only once
-            verify(session, timeout(1_000).times(1)).createProducer(any(Destination.class));
+            verify(session, timeout(1_000).times(1)).createProducer(eq(outboundDestination));
             verify(messageProducer, timeout(1000).times(2)).send(any(Message.class), any(CompletionListener.class));
 
             // check that backoff works properly, we expect 4 invocations after 10 seconds
@@ -227,7 +264,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             // --> 4 calls to createProducer in total after 10 seconds
             for (int i = 0; i < 3; i++) {
                 // trigger closing of producer
-                publisherActor.tell(ProducerClosedStatusReport.get(messageProducer), getRef());
+                publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, TEST_EXCEPTION), getRef());
                 final int wantedNumberOfInvocations = i + 2;
                 final long millis =
                         1_000 // initial backoff
@@ -235,8 +272,11 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                 + 500; // give the producer some time to recover
                 LOGGER.info("Want {} invocations after {}ms.", wantedNumberOfInvocations, millis);
                 verify(session, after(millis)
-                        .times(wantedNumberOfInvocations)).createProducer(any(Destination.class));
+                        .times(wantedNumberOfInvocations)).createProducer(eq(outboundDestination));
             }
+
+            // verify an unrelated destination/target is only created once
+            verify(session, times(1)).createProducer(eq(anotherDestination));
         }};
     }
 
@@ -266,7 +306,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                             .build(),
                     session,
                     loadConnectionConfig(),
-                    "clientId");
+                    "clientId",
+                    connectivityStatusResolver);
             final ActorRef publisherActor = actorSystem.actorOf(props);
             publisherCreated(this, publisherActor);
 
@@ -277,14 +318,98 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             verify(session, timeout(1_000)).createProducer(any(Destination.class));
 
             // and trigger closing of producer multiple times
-            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer), getRef());
-            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer), getRef());
-            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer), getRef());
+            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, TEST_EXCEPTION), getRef());
+            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, TEST_EXCEPTION), getRef());
+            publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, TEST_EXCEPTION), getRef());
 
             // check that createProducer is called only twice in the next 10 seconds (once for the initial create, once for the backoff)
             verify(session, after(10_000).times(2)).createProducer(any(Destination.class));
         }};
     }
+
+    @Test
+    public void producerClosedIsReflectedInTargetResourceStatus() throws Exception {
+        new TestKit(actorSystem) {
+            {
+                final TestProbe probe = new TestProbe(actorSystem);
+                setupMocks(probe);
+
+                final Props props = AmqpPublisherActor.props(
+                        TestConstants.createConnection()
+                                .toBuilder()
+                                .setTargets(
+                                        List.of(TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress()),
+                                                TestConstants.Targets.TWIN_TARGET.withAddress(
+                                                        getOutboundAddress() + "/{{ thing:id }}")))
+                                .build(),
+                        session,
+                        loadConnectionConfig(),
+                        "clientId",
+                        connectivityStatusResolver);
+                final ActorRef publisherActor = actorSystem.actorOf(props);
+                publisherCreated(this, publisherActor);
+
+                assertTargetResourceStatus(publisherActor,
+                        Map.of(getOutboundAddress(), ConnectivityStatus.OPEN,
+                                getOutboundAddress() + "/{{ thing:id }}", ConnectivityStatus.UNKNOWN));
+
+                // producer is cached so created only once
+                verify(session, timeout(1_000)).createProducer(any(Destination.class));
+
+                // and trigger closing of producer multiple times
+                publisherActor.tell(ProducerClosedStatusReport.get(messageProducer, TEST_EXCEPTION), getRef());
+
+                assertTargetResourceStatus(publisherActor, Map.of(getOutboundAddress(), ConnectivityStatus.FAILED,
+                        getOutboundAddress() + "/{{ thing:id }}", ConnectivityStatus.UNKNOWN));
+
+                // check that createProducer is called only twice in the next 10 seconds (once for the initial create, once for the backoff)
+                verify(session, after(10_000).times(2)).createProducer(any(Destination.class));
+
+                assertTargetResourceStatus(publisherActor, Map.of(getOutboundAddress(), ConnectivityStatus.OPEN,
+                        getOutboundAddress() + "/{{ thing:id }}", ConnectivityStatus.UNKNOWN));
+            }
+
+            private void assertTargetResourceStatus(final ActorRef publisherActor,
+                    final Map<String, ConnectivityStatus> expectedStatus) {
+                publisherActor.tell(RetrieveAddressStatus.getInstance(), getRef());
+
+                receiveN(2).forEach(o -> {
+                    assertThat(o).isInstanceOf(ResourceStatus.class);
+                    final ResourceStatus resourceStatus = (ResourceStatus) o;
+                    final ConnectivityStatus expected = expectedStatus.get(resourceStatus.getAddress().orElseThrow());
+                    assertThat((Object) resourceStatus.getStatus()).isEqualTo(expected);
+                });
+            }
+        };
+    }
+
+
+    @Test
+    public void multipleTargetsWithSameAddressCreateProducerOnlyOnce() throws Exception {
+        new TestKit(actorSystem) {{
+            final TestProbe probe = new TestProbe(actorSystem);
+            setupMocks(probe);
+
+            final Props props = AmqpPublisherActor.props(
+                    TestConstants.createConnection()
+                            .toBuilder()
+                            .setTargets(
+                                    List.of(TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress()),
+                                            TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())))
+                            .build(),
+                    session,
+                    loadConnectionConfig(),
+                    "clientId",
+                    connectivityStatusResolver);
+
+            final ActorRef publisherActor = actorSystem.actorOf(props);
+            publisherCreated(this, publisherActor);
+
+            // check that createProducer is called only once
+            verify(session, after(1_000).times(1)).createProducer(any(Destination.class));
+        }};
+    }
+
 
     @Test
     public void testPublishMessageWithAmqpProperties() throws Exception {
@@ -346,7 +471,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return AmqpPublisherActor.props(TestConstants.createConnection(), session, loadConnectionConfig(), "clientId");
+        return AmqpPublisherActor.props(TestConstants.createConnection(), session, loadConnectionConfig(), "clientId",
+                connectivityStatusResolver);
     }
 
     @Override
@@ -389,7 +515,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected void verifyPublishedMessageToReplyTarget() throws Exception {
         final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
-        verify(messageProducer, timeout(1000)).send(messageCaptor.capture(), any(CompletionListener.class));
+        verify(repliesMessageProducer, timeout(1000)).send(messageCaptor.capture(), any(CompletionListener.class));
         final Message message = messageCaptor.getValue();
 
         assertThat(message.getJMSCorrelationID()).isEqualTo(TestConstants.CORRELATION_ID);
@@ -408,7 +534,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected void publisherCreated(final TestKit kit, final ActorRef publisherActor) {
-        publisherActor.tell(AmqpPublisherActor.INITIALIZE, kit.getRef());
+        publisherActor.tell(AmqpPublisherActor.Control.INITIALIZE, kit.getRef());
         kit.expectMsgClass(Status.Success.class);
     }
 

@@ -112,6 +112,13 @@ public interface Amqp10Config {
     Map<String, String> getHmacAlgorithms();
 
     /**
+     * The client actor asks all consumer actors after starting them for their resource status with this timeout.
+     *
+     * @return initial consumer resource status ask timeout
+     */
+    Duration getInitialConsumerStatusAskTimeout();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code Amqp10Config}.
      */
@@ -145,7 +152,13 @@ public interface Amqp10Config {
         /**
          * HMAC request-signing algorithms.
          */
-        HMAC_ALGORITHMS("hmac-algorithms", Map.of());
+        HMAC_ALGORITHMS("hmac-algorithms", Map.of()),
+
+        /**
+         * Initial consumer resource status ask timeout.
+         */
+        INITIAL_CONSUMER_RESOURCE_STATUS_ASK_TIMEOUT("initial-consumer-resource-status-ask-timeout",
+                Duration.ofMillis(500));
 
         private final String path;
         private final Object defaultValue;

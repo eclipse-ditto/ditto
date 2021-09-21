@@ -49,7 +49,6 @@ import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
@@ -62,6 +61,7 @@ import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConsumerClosedStatusReport;
+import org.eclipse.ditto.connectivity.service.messaging.backoff.BackOffActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
@@ -93,6 +93,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
 
     private final ThreadSafeDittoLoggingAdapter log;
     private final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory;
+    private final ActorRef backOffActor;
 
     private MessageRateLimiter<String> messageRateLimiter;
 
@@ -104,7 +105,6 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
     @Nullable
     private MessageConsumer messageConsumer;
     private ConnectivityConfig connectivityConfig;
-
 
     @SuppressWarnings("unused")
     private AmqpConsumerActor(final Connection connection, final ConsumerData consumerData,
@@ -129,6 +129,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         jmsActorAskTimeout = connectionConfig.getClientActorAskTimeout();
 
         messageRateLimiter = initMessageRateLimiter(amqp10Config);
+        backOffActor = getContext().actorOf(BackOffActor.props(amqp10Config.getBackOffConfig()));
 
         final Enforcement enforcement = consumerData.getSource().getEnforcement().orElse(null);
         headerEnforcementFilterFactory = enforcement != null
@@ -161,7 +162,9 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                 .match(JmsMessage.class, this::handleJmsMessage)
                 .match(ResourceStatus.class, this::handleAddressStatus)
                 .match(RetrieveAddressStatus.class, ras -> getSender().tell(getCurrentSourceStatus(), getSelf()))
+                .matchEquals(Control.CREATE_CONSUMER, this::createMessageConsumer)
                 .match(ConsumerClosedStatusReport.class, this::matchesOwnConsumer, this::handleConsumerClosed)
+                .match(ConsumerClosedStatusReport.class, this::handleNonMatchingConsumerClosed)
                 .match(CreateMessageConsumerResponse.class, this::messageConsumerCreated)
                 .match(Status.Failure.class, this::messageConsumerFailed)
                 .build();
@@ -183,7 +186,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         getConnectivityConfigProvider()
                 .registerForConnectivityConfigChanges(consumerData.getConnectionContext(), getSelf())
                 .exceptionally(e -> {
-                    log.error(e, "Failed to register for connectivity connfig changes");
+                    log.error(e, "Failed to register for connectivity config changes");
                     return null;
                 });
         initMessageConsumer();
@@ -215,15 +218,13 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
     @Override
     public void stopMessageConsumerDueToRateLimit(final String reason) {
         inboundMonitor.getCounter().recordFailure();
-        inboundMonitor.getLogger()
-                .failure("Source <{0}> is rate-limited due to {1}.", sourceAddress, reason);
+        inboundMonitor.getLogger().failure("Source <{0}> is rate-limited due to {1}.", sourceAddress, reason);
         stopMessageConsumer();
     }
 
     @Override
     public void startMessageConsumerDueToRateLimit() {
-        inboundMonitor.getLogger()
-                .success("Rate limit on source <{0}> is lifted.", sourceAddress);
+        inboundMonitor.getLogger().success("Rate limit on source <{0}> is lifted.", sourceAddress);
         startMessageConsumer();
     }
 
@@ -239,10 +240,14 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                 consumerData = consumerData.withMessageConsumer(messageConsumer);
             }
         } catch (final Exception e) {
-            final var failure =
-                    ConnectionFailure.of(getSelf(), e, "Failed to initialize message consumers.");
+            final ResourceStatus resourceStatus =
+                    ConnectivityModelFactory.newStatusUpdate(InstanceIdentifierSupplier.getInstance().get(),
+                            connectivityStatusResolver.resolve(e), sourceAddress,
+                            "Initialization of message consumer failed: " + e.getMessage(),
+                            Instant.now());
+            handleAddressStatus(resourceStatus);
+            final var failure = ConnectionFailure.of(getSelf(), e, "Failed to initialize message consumers.");
             getContext().getParent().tell(failure, getSelf());
-            getContext().stop(getSelf());
         }
     }
 
@@ -263,19 +268,41 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         return messageConsumer != null && messageConsumer.equals(event.getMessageConsumer());
     }
 
+    private void handleNonMatchingConsumerClosed(final ConsumerClosedStatusReport event) {
+        log.debug("Received ConsumerClosedStatusReport which is handled by another consumer actor. Ignoring.");
+    }
+
     private void handleConsumerClosed(final ConsumerClosedStatusReport event) {
         // consumer closed
         // update own status
-        final ResourceStatus addressStatus = ConnectivityModelFactory.newStatusUpdate(
-                InstanceIdentifierSupplier.getInstance().get(),
-                ConnectivityStatus.MISCONFIGURED,
-                sourceAddress,
-                "Consumer closed", Instant.now());
+        final String statusDetails = buildStatusDetailsFromStatusReport(event);
+        final ResourceStatus addressStatus =
+                ConnectivityModelFactory.newStatusUpdate(InstanceIdentifierSupplier.getInstance().get(),
+                        connectivityStatusResolver.resolve(event.getCause()), sourceAddress, statusDetails,
+                        Instant.now());
         handleAddressStatus(addressStatus);
 
         // destroy current message consumer in any case
         destroyMessageConsumer();
 
+        log.info("Consumer for destination '{}' was closed. Will try to recreate after some backoff.", sourceAddress);
+        backOffActor.tell(BackOffActor.createBackOffWithAnswerMessage(Control.CREATE_CONSUMER),
+                getSelf());
+    }
+
+    private String buildStatusDetailsFromStatusReport(final ConsumerClosedStatusReport event) {
+        if (event.getCause() != null) {
+            final Throwable cause = event.getCause();
+            final String causeClass = cause.getClass().getName();
+            final String causeMessage = cause.getMessage();
+            return String.format("Consumer closed. Cause: [%s] %s", causeClass, causeMessage);
+        } else {
+            return "Consumer closed.";
+        }
+    }
+
+    private void createMessageConsumer(final Control createConsumer) {
+        log.debug("Trying to create consumer for destination '{}'.", sourceAddress);
         /* ask JMSConnectionHandlingActor for a new consumer */
         final CreateMessageConsumer createMessageConsumer = new CreateMessageConsumer(consumerData);
         final CompletionStage<Object> responseFuture =
@@ -292,7 +319,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
 
     private void messageConsumerCreated(final CreateMessageConsumerResponse response) {
         if (consumerData.equals(response.consumerData)) {
-            log.info("Consumer <{}> created", response.messageConsumer);
+            log.info("Consumer for destination '{}' created.", sourceAddress);
             destroyMessageConsumer();
             messageConsumer = response.messageConsumer;
             initMessageConsumer();
@@ -516,5 +543,15 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
             this.consumerData = consumerData;
             this.messageConsumer = messageConsumer;
         }
+    }
+
+    /**
+     * Actor control messages.
+     */
+    private enum Control {
+        /**
+         * Triggers creation of a new message consumer.
+         */
+        CREATE_CONSUMER
     }
 }

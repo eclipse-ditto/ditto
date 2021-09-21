@@ -21,14 +21,14 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.connectivity.service.config.javascript.JavaScriptConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
-import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.connectivity.service.mapping.AbstractMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.connectivity.service.mapping.PayloadMapper;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.protocol.Adaptable;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.RhinoException;
@@ -93,7 +93,12 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
         try {
             // create scope once and load the required libraries in order to get best performance:
             contextFactory.call(cx -> {
-                final Scriptable scope = cx.initSafeStandardObjects(); // that one disables "print, exit, quit", etc.
+                final Scriptable scope;
+                if (javaScriptConfig.isAllowUnsafeStandardObjects()) {
+                    scope = cx.initStandardObjects();
+                } else {
+                    scope = cx.initSafeStandardObjects(); // that one disables "print, exit, quit", etc.
+                }
                 initLibraries(cx, scope);
                 return scope;
             });

@@ -32,6 +32,7 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttHeader;
 
@@ -63,7 +64,8 @@ public class HiveMqtt5PublisherActorTest extends AbstractMqttPublisherActorTest 
 
     @Override
     protected Props getPublisherActorProps() {
-        return HiveMqtt5PublisherActor.props(TestConstants.createConnection(), mqtt5Client, false, "clientId");
+        return HiveMqtt5PublisherActor.props(TestConstants.createConnection(), mqtt5Client, false, "clientId",
+                mock(ConnectivityStatusResolver.class));
     }
 
     @Override

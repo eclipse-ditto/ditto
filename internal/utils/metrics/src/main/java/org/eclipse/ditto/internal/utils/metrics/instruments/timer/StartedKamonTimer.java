@@ -17,12 +17,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import kamon.Kamon;
 
 /**
  * Kamon based implementation of {@link StartedTimer}.
@@ -48,9 +49,11 @@ final class StartedKamonTimer implements StartedTimer {
         this.onStopHandlers = new ArrayList<>();
         this.stoppedTimer = null;
         this.startNanoTime = System.nanoTime();
-        this.startInstant = Instant.now();
+        this.startInstant = Kamon.clock().toInstant(startNanoTime);
 
-        if (!this.tags.containsKey(SEGMENT_TAG)) {tag(SEGMENT_TAG, "overall");}
+        if (!this.tags.containsKey(SEGMENT_TAG)) {
+            tag(SEGMENT_TAG, "overall");
+        }
     }
 
     static StartedTimer fromPreparedTimer(final PreparedTimer preparedTimer) {
