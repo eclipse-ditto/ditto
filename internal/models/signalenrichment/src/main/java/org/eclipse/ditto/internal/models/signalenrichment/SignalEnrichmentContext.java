@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.cache;
+package org.eclipse.ditto.internal.models.signalenrichment;
+
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -18,44 +20,54 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.cache.CacheLookupContext;
+import org.eclipse.ditto.json.JsonFieldSelector;
 
 /**
- * Immutable implementation of {@link CacheLookupContext}.
+ * Immutable implementation of {@link org.eclipse.ditto.internal.utils.cache.CacheLookupContext} in scope of the
+ * signal enrichment caching.
  */
 @Immutable
-final class ImmutableCacheLookupContext implements CacheLookupContext {
+final class SignalEnrichmentContext implements CacheLookupContext {
 
-    @Nullable private final DittoHeaders dittoHeaders;
+    private final DittoHeaders dittoHeaders;
     @Nullable private final JsonFieldSelector jsonFieldSelector;
 
-    private ImmutableCacheLookupContext(@Nullable final DittoHeaders dittoHeaders,
+    private SignalEnrichmentContext(final DittoHeaders dittoHeaders,
             @Nullable final JsonFieldSelector jsonFieldSelector) {
-        this.dittoHeaders = dittoHeaders;
+        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders");
         this.jsonFieldSelector = jsonFieldSelector;
     }
 
     /**
-     * Creates a new CacheLookupContext from the passed optional {@code dittoHeaders} and {@code jsonFieldSelector}
+     * Creates a new SignalEnrichmentContext from the passed optional {@code dittoHeaders} and {@code jsonFieldSelector}
      * retaining the for caching relevant {@code dittoHeaders} from the passed ones.
      *
      * @param dittoHeaders the DittoHeaders to use as key in the cache lookup context.
      * @param jsonFieldSelector the JsonFieldSelector to use in the cache lookup context.
      * @return the created context.
      */
-    static CacheLookupContext of(@Nullable final DittoHeaders dittoHeaders,
+    static SignalEnrichmentContext of(final DittoHeaders dittoHeaders,
             @Nullable final JsonFieldSelector jsonFieldSelector) {
 
-        return new ImmutableCacheLookupContext(dittoHeaders, jsonFieldSelector);
+        return new SignalEnrichmentContext(dittoHeaders, jsonFieldSelector);
     }
 
-    @Override
-    public Optional<DittoHeaders> getDittoHeaders() {
-        return Optional.ofNullable(dittoHeaders);
+    /**
+     * Returns the DittoHeaders this context provides.
+     *
+     * @return the DittoHeaders.
+     */
+    public DittoHeaders getDittoHeaders() {
+        return dittoHeaders;
     }
 
-    @Override
+    /**
+     * Returns the optional JsonFieldSelector this context provides.
+     *
+     * @return the optional JsonFieldSelector.
+     */
     public Optional<JsonFieldSelector> getJsonFieldSelector() {
         return Optional.ofNullable(jsonFieldSelector);
     }
@@ -68,7 +80,7 @@ final class ImmutableCacheLookupContext implements CacheLookupContext {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final ImmutableCacheLookupContext that = (ImmutableCacheLookupContext) o;
+        final SignalEnrichmentContext that = (SignalEnrichmentContext) o;
         return Objects.equals(dittoHeaders, that.dittoHeaders) &&
                 Objects.equals(jsonFieldSelector, that.jsonFieldSelector);
     }

@@ -280,7 +280,7 @@ public final class AskWithRetryTest {
 
     @Test
     public void ensureRetryStrategyBackoffDelayDoesRetryOnAskTimeoutUntilSuccess() {
-        final Duration askTimeout = Duration.ofMillis(50);
+        final Duration askTimeout = Duration.ofMillis(100);
         final int retryAttempts = 4;
         final Duration minDelay = Duration.ofMillis(100);
         final Duration maxDelay = Duration.ofSeconds(2);

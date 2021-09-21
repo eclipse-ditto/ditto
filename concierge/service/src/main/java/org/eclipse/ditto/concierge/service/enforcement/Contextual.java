@@ -29,7 +29,7 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 
 import akka.actor.ActorRef;
@@ -53,7 +53,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     private final AskWithRetryConfig askWithRetryConfig;
     private final ThreadSafeDittoLoggingAdapter log;
 
-    @Nullable private final CacheKey cacheKey;
+    @Nullable private final EnforcementCacheKey cacheKey;
     @Nullable private final ActorRef receiver;
     @Nullable private final Function<Object, Object> receiverWrapperFunction;
 
@@ -73,7 +73,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
             final ActorRef conciergeForwarder,
             final AskWithRetryConfig askWithRetryConfig,
             final ThreadSafeDittoLoggingAdapter log,
-            @Nullable final CacheKey cacheKey,
+            @Nullable final EnforcementCacheKey cacheKey,
             @Nullable final ActorRef receiver,
             @Nullable final Function<Object, Object> receiverWrapperFunction,
             @Nullable final Cache<String, ActorRef> responseReceivers,
@@ -214,7 +214,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         return log;
     }
 
-    CacheKey getCacheKey() {
+    EnforcementCacheKey getCacheKey() {
         if (cacheKey == null) {
             throw new IllegalStateException("Contextual: cacheKey was null where it should not have been");
         }
@@ -263,7 +263,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     }
 
     @Nullable
-    private static CacheKey cacheKeyFor(@Nullable final WithDittoHeaders signal) {
+    private static EnforcementCacheKey cacheKeyFor(@Nullable final WithDittoHeaders signal) {
 
         if (signal == null) {
             return null;
@@ -271,7 +271,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
             return null;
         } else {
             return WithEntityId.getEntityIdOfType(EntityId.class, signal)
-                    .map(CacheKey::of)
+                    .map(EnforcementCacheKey::of)
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Contextual: processed WithDittoHeaders message did not implement " +
                                     "WithResource or WithEntityId: " + signal.getClass().getSimpleName()));

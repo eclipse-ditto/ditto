@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.concierge.api;
+package org.eclipse.ditto.concierge.service;
 
 import java.util.Map;
 
@@ -18,15 +18,15 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.concierge.service.enforcement.InvalidateCacheEntry;
 import org.eclipse.ditto.connectivity.api.ConnectivityMappingStrategies;
-import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
-import org.eclipse.ditto.things.api.ThingsMappingStrategies;
-import org.eclipse.ditto.thingsearch.api.ThingSearchMappingStrategies;
-import org.eclipse.ditto.internal.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.internal.utils.cluster.GlobalMappingStrategies;
 import org.eclipse.ditto.internal.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.internal.utils.cluster.MappingStrategiesBuilder;
-import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
+import org.eclipse.ditto.things.api.ThingsMappingStrategies;
+import org.eclipse.ditto.thingsearch.api.ThingSearchMappingStrategies;
 
 /**
  * {@link MappingStrategies} for the concierge service.
@@ -68,7 +68,8 @@ public final class ConciergeMappingStrategies extends MappingStrategies {
                 .putAll(PoliciesMappingStrategies.getInstance())
                 .putAll(ThingSearchMappingStrategies.getInstance())
                 .putAll(ConnectivityMappingStrategies.getInstance())
-                .add(InvalidateCacheEntry.class, jsonObject -> InvalidateCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
+                .add(InvalidateCacheEntry.class,
+                        jsonObject -> InvalidateCacheEntry.fromJson(jsonObject)) // do not replace with lambda!
                 .putAll(GlobalMappingStrategies.getInstance())
                 .build();
     }

@@ -27,9 +27,9 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.junit.Before;
@@ -42,9 +42,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class EnforcerRetrieverTest {
 
     @Mock
-    private Cache<CacheKey, Entry<CacheKey>> idCache;
+    private Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> idCache;
     @Mock
-    private Cache<CacheKey, Entry<Enforcer>> enforcerCache;
+    private Cache<EnforcementCacheKey, Entry<Enforcer>> enforcerCache;
 
     private EnforcerRetriever<Enforcer> retriever;
 
@@ -56,8 +56,8 @@ public class EnforcerRetrieverTest {
     @Test
     public void verifyLookupRevealsInnerException() throws ExecutionException, InterruptedException {
         final DittoRuntimeException expectedException = GatewayInternalErrorException.newBuilder().build();
-        final CacheKey entityId = CacheKey.of(EntityId.of(EntityType.of("any"), "id"));
-        when(idCache.get(any(CacheKey.class))).thenReturn(
+        final EnforcementCacheKey entityId = EnforcementCacheKey.of(EntityId.of(EntityType.of("any"), "id"));
+        when(idCache.get(any(EnforcementCacheKey.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
 
         final CompletionStage<Contextual<WithDittoHeaders>> result =
@@ -73,11 +73,12 @@ public class EnforcerRetrieverTest {
     @Test
     public void verifyLookupRevealsInnermostException() throws ExecutionException, InterruptedException {
         final DittoRuntimeException expectedException = GatewayInternalErrorException.newBuilder().build();
-        final CacheKey entityId = CacheKey.of(EntityId.of(EntityType.of("any"), "id"));
-        final CacheKey innerEntityId = CacheKey.of(EntityId.of(EntityType.of("other"), "randomId"));
-        when(idCache.get(any(CacheKey.class))).thenReturn(
+        final EnforcementCacheKey entityId = EnforcementCacheKey.of(EntityId.of(EntityType.of("any"), "id"));
+        final EnforcementCacheKey innerEntityId =
+                EnforcementCacheKey.of(EntityId.of(EntityType.of("other"), "randomId"));
+        when(idCache.get(any(EnforcementCacheKey.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.permanent(innerEntityId))));
-        when(enforcerCache.get(any(CacheKey.class))).thenReturn(
+        when(enforcerCache.get(any(EnforcementCacheKey.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
         final CompletionStage<Contextual<WithDittoHeaders>> result =
                 retriever.retrieve(entityId, (entityIdEntry, enforcerEntry) -> {
@@ -92,8 +93,8 @@ public class EnforcerRetrieverTest {
     @Test
     public void verifyLookupEnforcerRevealsException() throws ExecutionException, InterruptedException {
         final DittoRuntimeException expectedException = GatewayInternalErrorException.newBuilder().build();
-        final CacheKey entityId = CacheKey.of(EntityId.of(EntityType.of("any"), "id"));
-        when(enforcerCache.get(any(CacheKey.class))).thenReturn(
+        final EnforcementCacheKey entityId = EnforcementCacheKey.of(EntityId.of(EntityType.of("any"), "id"));
+        when(enforcerCache.get(any(EnforcementCacheKey.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
 
         final CompletionStage<Contextual<WithDittoHeaders>> result =

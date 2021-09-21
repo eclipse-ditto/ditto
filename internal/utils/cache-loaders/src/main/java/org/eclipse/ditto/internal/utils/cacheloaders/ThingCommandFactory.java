@@ -12,16 +12,15 @@
  */
 package org.eclipse.ditto.internal.utils.cacheloaders;
 
-import java.util.Optional;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
-import org.eclipse.ditto.internal.utils.cache.CacheLookupContext;
+import org.eclipse.ditto.things.model.ThingId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,39 +39,26 @@ final class ThingCommandFactory {
      * Creates a sudo command for retrieving a thing.
      *
      * @param thingId the thingId.
-     * @param cacheLookupContext the context to apply when doing the cache lookup.
+     * @param context the context to apply when doing the cache lookup.
      * @return the created command.
      */
-    static SudoRetrieveThing sudoRetrieveThing(final EntityId thingId,
-            @Nullable final CacheLookupContext cacheLookupContext) {
-        return sudoRetrieveThing(ThingId.of(thingId), cacheLookupContext);
+    static SudoRetrieveThing sudoRetrieveThing(final EntityId thingId, @Nullable final EnforcementContext context) {
+        return sudoRetrieveThing(ThingId.of(thingId), context);
     }
 
     /**
      * Creates a sudo command for retrieving a thing.
      *
      * @param thingId the thingId.
-     * @param cacheLookupContext the context to apply when doing the cache lookup.
+     * @param context the context to apply when doing the cache lookup.
      * @return the created command.
      */
-    static SudoRetrieveThing sudoRetrieveThing(final ThingId thingId,
-            @Nullable final CacheLookupContext cacheLookupContext) {
+    static SudoRetrieveThing sudoRetrieveThing(final ThingId thingId, @Nullable final EnforcementContext context) {
         LOGGER.debug("Sending SudoRetrieveThing for Thing with ID <{}>", thingId);
-        return SudoRetrieveThing.withOriginalSchemaVersion(thingId,
-                Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getJsonFieldSelector).orElse(null),
-                Optional.ofNullable(cacheLookupContext).flatMap(CacheLookupContext::getDittoHeaders)
-                        .map(headers -> DittoHeaders.newBuilder()
-                                .authorizationContext(headers.getAuthorizationContext())
-                                .schemaVersion(headers.getImplementedSchemaVersion())
-                                .correlationId("sudoRetrieveThing-" +
-                                        headers.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString()))
-                                .build()
-                        )
-                        .orElseGet(() ->
-                                DittoHeaders.newBuilder()
-                                        .correlationId("sudoRetrieveThing-" + UUID.randomUUID().toString())
-                                        .build())
-        );
+        return SudoRetrieveThing.withOriginalSchemaVersion(thingId, DittoHeaders.newBuilder()
+                .correlationId("sudoRetrieveThing-" + UUID.randomUUID())
+                .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(), Boolean.TRUE.toString())
+                .build());
     }
 
 }

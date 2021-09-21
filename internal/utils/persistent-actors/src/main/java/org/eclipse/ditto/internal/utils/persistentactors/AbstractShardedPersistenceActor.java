@@ -442,7 +442,7 @@ public abstract class AbstractShardedPersistenceActor<
         timers().cancel("takeSnapshot");
     }
 
-    private void handleByCommandStrategy(final C command) {
+    protected void handleByCommandStrategy(final C command) {
         handleByStrategy(command, getCreatedStrategy());
     }
 
