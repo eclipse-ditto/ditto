@@ -93,6 +93,7 @@ final class ConnectionMetricsCounterFactory {
                             MeasurementWindow.ONE_HOUR_WITH_ONE_MINUTE_RESOLUTION,
                             MeasurementWindow.ONE_DAY_WITH_ONE_MINUTE_RESOLUTION)
                     .maximumPerSlot(1L)
+                    .useLastTimestampForWindow(MeasurementWindow.ONE_MINUTE_WITH_ONE_MINUTE_RESOLUTION, 1L)
                     .build();
         } else {
             final MetricsAlert metricsAlert = resolveOptionalAlert(metricDirection, address, metricType, connectionId,

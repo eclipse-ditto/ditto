@@ -244,7 +244,7 @@ public class ConnectivityCounterRegistryTest {
         when(connectionConfig.getAmqp10Config()).thenReturn(amqp10Config);
         when(amqp10Config.getConsumerConfig()).thenReturn(consumerConfig);
         when(consumerConfig.getThrottlingConfig()).thenReturn(throttlingConfig);
-        when(throttlingConfig.getLimit()).thenReturn(12);
+        when(throttlingConfig.getLimit()).thenReturn(10);
         when(throttlingConfig.getInterval()).thenReturn(Duration.ofMinutes(1));
         return connectivityConfig;
     }

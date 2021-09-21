@@ -64,10 +64,9 @@ interface MetricsAlert {
                     .findAny();
         }
 
-        private Key(final MetricDirection metricDirection, final MetricType metricType) {
+        Key(final MetricDirection metricDirection, final MetricType metricType) {
             this.metricDirection = metricDirection;
             this.metricType = metricType;
         }
-
     }
 }
