@@ -64,6 +64,9 @@ public class DefaultConnectionThrottlingConfigTest {
         softly.assertThat(underTest.getMaxInFlightFactor())
                 .as(ConnectionThrottlingConfig.ConfigValue.MAX_IN_FLIGHT_FACTOR.getConfigPath())
                 .isEqualTo(ConnectionThrottlingConfig.ConfigValue.MAX_IN_FLIGHT_FACTOR.getDefaultValue());
+        softly.assertThat(underTest.getThrottlingDetectionTolerance())
+                .as(ConnectionThrottlingConfig.ConfigValue.THROTTLING_DETECTION_TOLERANCE.getConfigPath())
+                .isEqualTo(ConnectionThrottlingConfig.ConfigValue.THROTTLING_DETECTION_TOLERANCE.getDefaultValue());
         softly.assertThat(underTest.getInterval())
                 .as(ThrottlingConfig.ConfigValue.INTERVAL.getConfigPath())
                 .isEqualTo(ThrottlingConfig.ConfigValue.INTERVAL.getDefaultValue());
@@ -78,6 +81,9 @@ public class DefaultConnectionThrottlingConfigTest {
         softly.assertThat(underTest.getMaxInFlightFactor())
                 .as(ConnectionThrottlingConfig.ConfigValue.MAX_IN_FLIGHT_FACTOR.getConfigPath())
                 .isEqualTo(2.0);
+        softly.assertThat(underTest.getThrottlingDetectionTolerance())
+                .as(ConnectionThrottlingConfig.ConfigValue.THROTTLING_DETECTION_TOLERANCE.getConfigPath())
+                .isEqualTo(0.05);
         softly.assertThat(underTest.getLimit())
                 .as(ThrottlingConfig.ConfigValue.LIMIT.getConfigPath())
                 .isEqualTo(4711);

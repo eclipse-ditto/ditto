@@ -37,7 +37,7 @@ final class ThrottledMetricsAlert implements MetricsAlert {
      * @param lookup a supplier to lookup the counter to record a possible threshold exceedance (the counter may not
      * exist at the time when the alert is created)
      */
-    ThrottledMetricsAlert(final MeasurementWindow targetMeasurementWindow, final int threshold,
+    ThrottledMetricsAlert(final MeasurementWindow targetMeasurementWindow, final long threshold,
             final Supplier<ConnectionMetricsCounter> lookup) {
         this.lookup = lookup;
         this.threshold = threshold;

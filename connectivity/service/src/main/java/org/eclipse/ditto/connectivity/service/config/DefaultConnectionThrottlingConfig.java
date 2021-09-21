@@ -33,14 +33,21 @@ final class DefaultConnectionThrottlingConfig implements ConnectionThrottlingCon
 
     private final ThrottlingConfig throttlingConfig;
     private final double maxInFlightFactor;
+    private final double throttlingDetectionTolerance;
 
     private DefaultConnectionThrottlingConfig(final ScopedConfig config, final ThrottlingConfig throttlingConfig) {
         maxInFlightFactor = config.getPositiveDoubleOrThrow(ConfigValue.MAX_IN_FLIGHT_FACTOR);
+        throttlingDetectionTolerance = config.getPositiveDoubleOrThrow(ConfigValue.THROTTLING_DETECTION_TOLERANCE);
         this.throttlingConfig = throttlingConfig;
         if (maxInFlightFactor < 1.0) {
             throw new DittoConfigError(MessageFormat.format(
                     "The double value at <{0}> must be >= 1.0 but it was <{1}>!",
                     ConfigValue.MAX_IN_FLIGHT_FACTOR.getConfigPath(), maxInFlightFactor));
+        }
+        if (throttlingDetectionTolerance > 1.0) {
+            throw new DittoConfigError(MessageFormat.format(
+                    "The double value at <{0}> must be <= 1.0 but it was <{1}>!",
+                    ConfigValue.THROTTLING_DETECTION_TOLERANCE.getConfigPath(), maxInFlightFactor));
         }
     }
 
@@ -66,23 +73,30 @@ final class DefaultConnectionThrottlingConfig implements ConnectionThrottlingCon
     }
 
     @Override
+    public double getThrottlingDetectionTolerance() {
+        return throttlingDetectionTolerance;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultConnectionThrottlingConfig that = (DefaultConnectionThrottlingConfig) o;
-        return Double.compare(that.maxInFlightFactor, maxInFlightFactor) == 0 &&
-                Objects.equals(throttlingConfig, that.throttlingConfig);
+        return Double.compare(that.maxInFlightFactor, maxInFlightFactor) == 0
+                && Double.compare(that.throttlingDetectionTolerance, throttlingDetectionTolerance) == 0
+                && Objects.equals(throttlingConfig, that.throttlingConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxInFlightFactor, throttlingConfig);
+        return Objects.hash(maxInFlightFactor, throttlingConfig, throttlingDetectionTolerance);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "maxInFlightFactor=" + maxInFlightFactor +
+                "throttlingDetectionTolerance=" + throttlingDetectionTolerance +
                 ", throttlingConfig=" + throttlingConfig +
                 "]";
     }

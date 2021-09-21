@@ -18,7 +18,6 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.MetricDirection;
@@ -49,7 +48,7 @@ final class ConnectionMetricsCounterFactory {
 
     /**
      * An alert can be registered for a combination of MetricType and MetricDirection e.g. CONSUMED + INBOUND. These
-     * alerts will be instantiated using the registered Creator and used with newly created SlidingWindowCounters.
+     * alerts will be instantiated using the registered Creator and passed to created SlidingWindowCounters.
      */
     private static final Map<MetricsAlert.Key, AlertsCreator> alerts = Map.of(
             MetricsAlert.Key.CONSUMED_INBOUND,
@@ -63,18 +62,30 @@ final class ConnectionMetricsCounterFactory {
             }
     );
 
-    private ConnectionMetricsCounterFactory() {}
-
+    /**
+     * Create a new instance of a DefaultConnectionMetricsCounter from the given arguments.
+     *
+     * @param metricType the metric type
+     * @param metricDirection the metric direction
+     * @param connectionId the connection id required to build a metrics counter
+     * @param connectionType the connection type required to build a metrics counter
+     * @param address the monitored address
+     * @param clock the clock to be used
+     * @param connectivityConfig the connectivity config required to read throttling limits from the config
+     */
     static DefaultConnectionMetricsCounter create(
             final MetricType metricType,
-            final MetricDirection metricDirection, final ConnectionId connectionId,
+            final MetricDirection metricDirection,
+            final ConnectionId connectionId,
             final ConnectionType connectionType,
             final String address,
-            final Clock clock, final ConnectivityConfig connectivityConfig) {
+            final Clock clock,
+            final ConnectivityConfig connectivityConfig) {
         final Counter metricsCounter = metricsCounter(connectionId, connectionType, metricType, metricDirection);
         final SlidingWindowCounter counter;
         if (MetricType.THROTTLED == metricType) {
-            counter = SlidingWindowCounter.newBuilder(metricsCounter).clock(clock)
+            counter = SlidingWindowCounter.newBuilder(metricsCounter)
+                    .clock(clock)
                     // we need to record for every minute of the last 24h if throttling occurred
                     .recordingMeasurementWindows(MeasurementWindow.ONE_DAY_WITH_ONE_MINUTE_RESOLUTION)
                     // reporting windows are the same as for the other metrics (1m, 1h, 1d)
@@ -117,7 +128,7 @@ final class ConnectionMetricsCounterFactory {
                 .orElse(null);
     }
 
-    private static int calculateThrottlingLimitFromConfig(final ConnectionType connectionType,
+    private static long calculateThrottlingLimitFromConfig(final ConnectionType connectionType,
             final ConnectivityConfig config) {
         switch (connectionType) {
             case AMQP_10:
@@ -138,12 +149,18 @@ final class ConnectionMetricsCounterFactory {
         }
     }
 
-    private static int perInterval(final ThrottlingConfig throttlingConfig, final Duration resolution) {
+    private static long perInterval(final ConnectionThrottlingConfig throttlingConfig, final Duration resolution) {
+        final double tolerance = throttlingConfig.getThrottlingDetectionTolerance();
         final Duration interval = throttlingConfig.getInterval();
-        final float factor = (float) resolution.toMillis() / interval.toMillis();
+        // calculate factor to adjust the limit to the given resolution
+        final double factor = (double) resolution.toMillis() / interval.toMillis();
         final int limit = throttlingConfig.getLimit();
-        return Math.round(limit * factor);
+        final double limitAdjustedToResolution = limit * factor;
+        // apply the configured tolerance to the resulting limit
+        return (long) (limitAdjustedToResolution * (1 - tolerance));
     }
+
+    private ConnectionMetricsCounterFactory() {}
 
     /**
      * Creator interface for MetricsAlerts which are stored in the map of existing {@link #alerts}.
