@@ -231,6 +231,41 @@ public class BsonDiffVisitorIT {
                 .isEqualTo(thingDoc);
     }
 
+    @Test
+    public void testStringExpressionInUpdate() {
+        final var collection = client.getCollection("test");
+
+        final int maxArraySize = 99;
+        final Metadata metadata =
+                Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
+
+        final JsonObject prevThing = getThing1();
+        final JsonObject nextThing = getThing5(); // Thing1 with string field updated to begin with '$' and end with '.'
+
+        final BsonDocument prevThingDoc =
+                EnforcedThingMapper.toBsonDocument(prevThing, enforcer, maxArraySize, metadata);
+
+        final BsonDocument nextThingDoc =
+                EnforcedThingMapper.toBsonDocument(nextThing, enforcer, maxArraySize, metadata);
+
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+
+        final List<BsonDocument> updateDoc = diff.consumeAndExport();
+
+        assertThat(updateDoc.toString().length())
+                .describedAs("Incremental update should be less than 1/8 as large as replacement")
+                .isLessThan(nextThingDoc.toString().length() / 8);
+
+        run(collection.insertOne(toDocument(prevThingDoc)));
+        run(collection.updateOne(new Document(), updateDoc));
+
+        final BsonDocument incrementalUpdateResult = toBsonDocument(run(collection.find()).get(0));
+
+        assertThat(incrementalUpdateResult)
+                .describedAs("Incremental update result")
+                .isEqualTo(nextThingDoc);
+    }
+
     private <T> List<T> run(final Publisher<T> publisher) {
         return Source.fromPublisher(publisher).runWith(Sink.seq(), system).toCompletableFuture().join();
     }
@@ -319,6 +354,23 @@ public class BsonDiffVisitorIT {
                 "    \"l\": 123456789012,\n" +
                 "    \"m\": {},\n" +
                 "    \"n\": {\"o\":{}}\n" +
+                "  }\n" +
+                "}");
+    }
+
+    private static JsonObject getThing5() {
+        return JsonFactory.newObject("{\n" +
+                "  \"thingId\":\"solar.system:pluto\"," +
+                "  \"_namespace\":\"solar.system\"," +
+                "  \"a\": [ {\"b\": \"ABCDEFGHIJKLMNOPQRSTUVWXYZ\"}, true ],\n" +
+                "  \"d\": {\n" +
+                "    \"e\": {\n" +
+                "      \"f\": \"g\",\n" +
+                "      \"h\": \"$lorem ipsum dolor sit amet.\"\n" +
+                "    },\n" +
+                "    \"j\": true,\n" +
+                "    \"k\": 6.0,\n" +
+                "    \"l\": 123456789012\n" +
                 "  }\n" +
                 "}");
     }
