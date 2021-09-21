@@ -123,8 +123,6 @@ public final class ProtocolFactory {
             return result.things();
         } else if (entityId.getEntityType().equals(PolicyConstants.ENTITY_TYPE)) {
             return result.policies();
-        } else if (entityId.getEntityType().equals(ConnectivityConstants.ENTITY_TYPE)) {
-            return result.connections();
         }
         return result;
     }
