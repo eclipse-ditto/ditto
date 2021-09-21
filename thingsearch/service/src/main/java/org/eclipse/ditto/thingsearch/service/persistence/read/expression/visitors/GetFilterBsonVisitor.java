@@ -86,7 +86,13 @@ public class GetFilterBsonVisitor extends AbstractFieldBsonCreator implements Fi
     @Override
     public Bson visitFeatureIdDesiredProperty(final CharSequence featureId, final CharSequence desiredProperty) {
         return matchKeyValue(
-                PersistenceConstants.FIELD_FEATURES_PATH + featureId + PersistenceConstants.DESIRED_PROPERTIES + desiredProperty);
+                PersistenceConstants.FIELD_FEATURES_PATH + featureId + PersistenceConstants.DESIRED_PROPERTIES +
+                        desiredProperty);
+    }
+
+    @Override
+    public Bson visitMetadata(final String key) {
+        return null;
     }
 
     @Override
@@ -97,11 +103,6 @@ public class GetFilterBsonVisitor extends AbstractFieldBsonCreator implements Fi
     @Override
     Bson visitRootLevelField(final String fieldName) {
         return predicateFunction.apply(fieldName);
-    }
-
-    @Override
-    public Bson visitMetadata(final String key) {
-        return matchKeyValue(PersistenceConstants.FIELD_METADATA_PATH + key);
     }
 
     private Bson matchKeyValue(final String key) {

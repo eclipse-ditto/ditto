@@ -158,4 +158,5 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
             return seekToPathImpl(document.get(segments[i], Document.class), segments, i + 1);
         }
     }
+
 }

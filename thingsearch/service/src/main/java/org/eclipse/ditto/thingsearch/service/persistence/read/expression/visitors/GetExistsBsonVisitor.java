@@ -104,16 +104,16 @@ public class GetExistsBsonVisitor extends AbstractFieldBsonCreator implements Ex
         return Filters.exists(fieldName);
     }
 
-    @Override
-    public Bson visitMetadata(final String key) {
-        return matchKey(escapeAndWrapExistsRegex(PersistenceConstants.FIELD_METADATA_PATH + key));
-    }
-
     private Bson matchKey(final String keyRegex) {
         return getAuthorizationBson().map(authBson ->
                         Filters.elemMatch(PersistenceConstants.FIELD_INTERNAL, Filters.and(authBson,
                                 Filters.regex(PersistenceConstants.FIELD_INTERNAL_KEY, keyRegex))))
                 .orElseGet(() -> Filters.regex(PersistenceConstants.FIELD_PATH_KEY, keyRegex));
+    }
+
+    @Override
+    public Bson visitMetadata(final String key) {
+        return null;
     }
 
     private static String escapeAndWrapExistsRegex(final String string) {
