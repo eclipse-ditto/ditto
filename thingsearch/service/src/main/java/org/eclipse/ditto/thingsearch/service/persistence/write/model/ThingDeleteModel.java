@@ -18,7 +18,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.bson.BsonDateTime;
 import org.bson.BsonDocument;
-import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 
@@ -52,7 +51,7 @@ public final class ThingDeleteModel extends AbstractWriteModel {
     }
 
     @Override
-    public WriteModel<Document> toMongo() {
+    public WriteModel<BsonDocument> toMongo() {
         final Bson filter = getFilter();
         if (deleteImmediately || getMetadata().isShouldAcknowledge()) {
             return new DeleteOneModel<>(filter);

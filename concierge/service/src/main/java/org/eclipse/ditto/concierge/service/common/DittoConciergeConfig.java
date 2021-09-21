@@ -26,8 +26,6 @@ import org.eclipse.ditto.internal.utils.config.WithConfigPath;
 import org.eclipse.ditto.internal.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.internal.utils.metrics.config.MetricsConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.internal.utils.tracing.config.TracingConfig;
 
 /**
@@ -39,21 +37,17 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
     private static final String CONFIG_PATH = "concierge";
 
     private final DittoServiceConfig serviceSpecificConfig;
-    private final DefaultMongoDbConfig mongoDbConfig;
     private final DefaultHealthCheckConfig healthCheckConfig;
     private final DefaultEnforcementConfig enforcementConfig;
     private final DefaultCachesConfig cachesConfig;
     private final DefaultThingsAggregatorConfig thingsAggregatorConfig;
-    private final PersistenceCleanupConfig persistenceCleanupConfig;
 
     private DittoConciergeConfig(final ScopedConfig dittoScopedConfig) {
         serviceSpecificConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
-        mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
         enforcementConfig = DefaultEnforcementConfig.of(serviceSpecificConfig);
         cachesConfig = DefaultCachesConfig.of(serviceSpecificConfig);
         thingsAggregatorConfig = DefaultThingsAggregatorConfig.of(serviceSpecificConfig);
-        persistenceCleanupConfig = DefaultPersistenceCleanupConfig.of(serviceSpecificConfig);
     }
 
     /**
@@ -81,11 +75,6 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
     @Override
     public ThingsAggregatorConfig getThingsAggregatorConfig() {
         return thingsAggregatorConfig;
-    }
-
-    @Override
-    public PersistenceCleanupConfig getPersistenceCleanupConfig() {
-        return persistenceCleanupConfig;
     }
 
     @Override
@@ -119,11 +108,6 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
     }
 
     @Override
-    public MongoDbConfig getMongoDbConfig() {
-        return mongoDbConfig;
-    }
-
-    @Override
     public String getConfigPath() {
         return CONFIG_PATH;
     }
@@ -138,31 +122,26 @@ public final class DittoConciergeConfig implements ConciergeConfig, WithConfigPa
         }
         final DittoConciergeConfig that = (DittoConciergeConfig) o;
         return serviceSpecificConfig.equals(that.serviceSpecificConfig) &&
-                mongoDbConfig.equals(that.mongoDbConfig) &&
                 healthCheckConfig.equals(that.healthCheckConfig) &&
                 enforcementConfig.equals(that.enforcementConfig) &&
                 cachesConfig.equals(that.cachesConfig) &&
-                thingsAggregatorConfig.equals(that.thingsAggregatorConfig) &&
-                persistenceCleanupConfig.equals(that.persistenceCleanupConfig);
+                thingsAggregatorConfig.equals(that.thingsAggregatorConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(serviceSpecificConfig, mongoDbConfig, healthCheckConfig, enforcementConfig, cachesConfig,
-                thingsAggregatorConfig, persistenceCleanupConfig);
+        return Objects.hash(serviceSpecificConfig, healthCheckConfig, enforcementConfig, cachesConfig,
+                thingsAggregatorConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "serviceSpecificConfig=" + serviceSpecificConfig +
-                ", mongoDbConfig=" + mongoDbConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", enforcementConfig=" + enforcementConfig +
                 ", cachesConfig=" + cachesConfig +
                 ", thingsAggregatorConfig=" + thingsAggregatorConfig +
-                ", persistenceCleanupConfig=" + persistenceCleanupConfig +
                 "]";
     }
-
 }

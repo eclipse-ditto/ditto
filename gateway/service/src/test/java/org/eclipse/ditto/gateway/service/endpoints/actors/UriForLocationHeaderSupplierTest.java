@@ -70,6 +70,13 @@ public final class UriForLocationHeaderSupplierTest {
     }
 
     @Test
+    public void getUriWithTrailingSlash() {
+        final Uri uri = Uri.create("https://example.com/things/");
+        final Uri locationUri = Uri.create("https://example.com/things");
+        checkUriForNonIdempotentRequestWithoutEntityIdInUri(locationUri, uri);
+    }
+
+    @Test
     public void getUriForNonIdempotentRequestWithoutEntityIdInUriWithQueryParam() {
         final Uri expectedBaseUri = Uri.create("https://example.com/things");
         final Uri uri = Uri.create("https://example.com/things?timeout=42&response-required=false");

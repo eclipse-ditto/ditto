@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
@@ -101,7 +102,7 @@ public final class MongoSearchUpdaterFlowTest {
             final var latency = Duration.ofSeconds(1);
             final MongoDatabase db = Mockito.mock(MongoDatabase.class);
             final MongoCollection<Document> collection = Mockito.mock(MongoCollection.class);
-            Mockito.when(db.getCollection(any())).thenReturn(collection);
+            Mockito.when(db.getCollection(any(), any(Class.class))).thenReturn(collection);
             doAnswer(inv -> {
                 final var size = inv.<List<?>>getArgument(0).size();
                 final BulkWriteResult result = BulkWriteResult.acknowledged(0, size, 0, size, List.of(), List.of());
@@ -127,7 +128,7 @@ public final class MongoSearchUpdaterFlowTest {
                             .toMat(Sink.ignore(), Keep.right());
 
             final Metadata metadata = Metadata.of(ThingId.of("thing:id"), 1L, PolicyId.of("policy:id"), 1L, null);
-            final AbstractWriteModel abstractWriteModel = ThingWriteModel.of(metadata, new Document());
+            final AbstractWriteModel abstractWriteModel = ThingWriteModel.of(metadata, new BsonDocument());
             final Thread testRunnerThread = Thread.currentThread();
             final AtomicReference<Throwable> errorBox = new AtomicReference<>();
             Source.repeat(Source.single(abstractWriteModel))
@@ -163,9 +164,9 @@ public final class MongoSearchUpdaterFlowTest {
             // GIVEN: The persistence fails with an error on every write
 
             final MongoDatabase db = Mockito.mock(MongoDatabase.class);
-            final MongoCollection<Document> collection = Mockito.mock(MongoCollection.class);
+            final MongoCollection<BsonDocument> collection = Mockito.mock(MongoCollection.class);
             final Publisher<BulkWriteResult> publisher = s -> s.onError(errorSupplier.get());
-            Mockito.when(db.getCollection(any())).thenReturn(collection);
+            Mockito.when(db.getCollection(any(), any(Class.class))).thenReturn(collection);
             Mockito.when(collection.bulkWrite(any(), any(BulkWriteOptions.class)))
                     .thenReturn(publisher);
 
@@ -187,7 +188,7 @@ public final class MongoSearchUpdaterFlowTest {
             final CountDownLatch latch = new CountDownLatch(numberOfChanges);
 
             final AbstractWriteModel abstractWriteModel = Mockito.mock(AbstractWriteModel.class);
-            final WriteModel<Document> mongoWriteModel = new DeleteOneModel<>(new Document());
+            final WriteModel<BsonDocument> mongoWriteModel = new DeleteOneModel<>(new Document());
             Mockito.when(abstractWriteModel.toMongo()).thenReturn(mongoWriteModel);
             Source.repeat(Source.single(abstractWriteModel))
                     .take(numberOfChanges)

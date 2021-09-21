@@ -15,18 +15,15 @@ package org.eclipse.ditto.concierge.service.starter.actors;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
-import org.eclipse.ditto.concierge.api.ConciergeMessagingConstants;
 import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.concierge.service.actors.ShardRegions;
 import org.eclipse.ditto.concierge.service.common.ConciergeConfig;
 import org.eclipse.ditto.concierge.service.starter.proxy.EnforcerActorFactory;
-import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.internal.utils.health.config.PersistenceConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -81,12 +78,6 @@ public final class ConciergeRootActor extends DittoRootActor {
         return Props.create(ConciergeRootActor.class, conciergeConfig, pubSubMediator, enforcerActorFactory);
     }
 
-
-    private ActorRef startClusterSingletonActor(final String actorName, final Props props) {
-
-        return ClusterUtil.startSingleton(getContext(), ConciergeMessagingConstants.CLUSTER_ROLE, actorName, props);
-    }
-
     private ActorRef startHealthCheckingActor(final ConciergeConfig conciergeConfig) {
 
         final HealthCheckConfig healthCheckConfig = conciergeConfig.getHealthCheckConfig();
@@ -101,7 +92,7 @@ public final class ConciergeRootActor extends DittoRootActor {
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
 
         return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props())
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, null)
         );
     }
 

@@ -16,13 +16,12 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
 
 /**
  * Provides the configuration settings of the Concierge service.
  */
 @Immutable
-public interface ConciergeConfig extends ServiceSpecificConfig, WithHealthCheckConfig, WithMongoDbConfig {
+public interface ConciergeConfig extends ServiceSpecificConfig, WithHealthCheckConfig {
 
     /**
      * Returns the config of Concierge's enforcement behaviour.
@@ -44,12 +43,5 @@ public interface ConciergeConfig extends ServiceSpecificConfig, WithHealthCheckC
      * @return the config.
      */
     ThingsAggregatorConfig getThingsAggregatorConfig();
-
-    /**
-     * Returns the config for persistence cleanup actions.
-     *
-     * @return the config.
-     */
-    PersistenceCleanupConfig getPersistenceCleanupConfig();
 
 }
