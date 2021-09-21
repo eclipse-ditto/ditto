@@ -2635,7 +2635,7 @@ paths:
 
           Consider that the value has to be a JSON array or `null`.
 
-          The content of the JSON array are strings in the format `"namespace:name:version"` which is enforced.
+          The content of the JSON array are strings in the format `"<namespace>:<name>:<version>"` or a valid HTTP(s) URL, which is enforced.
         required: true
     patch:
       summary: Patch the definition of a feature
@@ -2713,7 +2713,7 @@ paths:
         description: |-
           JSON array of the complete definition to be patched. Consider that the value has to be a JSON array.
 
-          The content of the JSON array are strings in the format `"namespace:name:version"` which is enforced.
+          The content of the JSON array are strings in the format `"<namespace>:<name>:<version>"` or a valid HTTP(s) URL, which is enforced.
           To delete the definition use `null` as content in the request body.
         required: true
     delete:
@@ -6972,14 +6972,14 @@ components:
       description: An arbitrary JSON object describing the attributes of a thing.
     Definition:
       type: string
-      description: 'A single fully qualified identifier of a definition in the form ''namespace:name:version'''
+      description: 'A single fully qualified identifier of a definition in the form ''<namespace>:<name>:<version>'' or a valid HTTP(s) URL'
       pattern: '([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+)'
     FeatureDefinition:
       type: array
       description: The definitions of a feature.
       items:
         type: string
-        description: 'A single fully qualified identifier of a feature definition in the form ''namespace:name:version'''
+        description: 'A single fully qualified identifier of a feature definition in the form ''<namespace>:<name>:<version>'' or a valid HTTP(s) URL'
         pattern: '([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+)'
     FeatureProperties:
       type: object

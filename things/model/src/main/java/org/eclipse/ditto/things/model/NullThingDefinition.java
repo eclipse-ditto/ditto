@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.things.model;
 
+import java.net.URL;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -51,6 +53,11 @@ final class NullThingDefinition implements ThingDefinition {
     @Override
     public String getVersion() {
         return "";
+    }
+
+    @Override
+    public Optional<URL> getUrl() {
+        return Optional.empty();
     }
 
     @Override

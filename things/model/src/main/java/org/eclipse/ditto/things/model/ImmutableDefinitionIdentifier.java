@@ -15,10 +15,14 @@ package org.eclipse.ditto.things.model;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -39,15 +43,25 @@ final class ImmutableDefinitionIdentifier implements DefinitionIdentifier {
     private final String namespace;
     private final String name;
     private final String version;
+    @Nullable private final URL url;
     private final String stringRepresentation;
 
     private ImmutableDefinitionIdentifier(final CharSequence theNamespace, final CharSequence theName,
-            final CharSequence theVersion) {
+            final CharSequence theVersion, @Nullable final URL theUrl) {
 
-        namespace = argumentNotEmpty(theNamespace, "namespace").toString();
-        name = argumentNotEmpty(theName, "name").toString();
-        version = argumentNotEmpty(theVersion, "version").toString();
-        stringRepresentation = namespace + COLON + name + COLON + version;
+        if (null != theUrl) {
+            namespace = "";
+            name = "";
+            version = "";
+            url = theUrl;
+            stringRepresentation = url.toString();
+        } else {
+            namespace = argumentNotEmpty(theNamespace, "namespace").toString();
+            name = argumentNotEmpty(theName, "name").toString();
+            version = argumentNotEmpty(theVersion, "version").toString();
+            url = null;
+            stringRepresentation = namespace + COLON + name + COLON + version;
+        }
     }
 
     /**
@@ -63,13 +77,25 @@ final class ImmutableDefinitionIdentifier implements DefinitionIdentifier {
     static DefinitionIdentifier getInstance(final CharSequence namespace,
             final CharSequence name, final CharSequence version) {
 
-        return new ImmutableDefinitionIdentifier(namespace, name, version);
+        return new ImmutableDefinitionIdentifier(namespace, name, version, null);
+    }
+
+    /**
+     * Returns an instance of {@code ImmutableDefinitionIdentifier} with a provided {@link URL}.
+     * The {@code namespace}, {@code name} and {@code version} of the returned Identifier are empty strings as a result.
+     *
+     * @param url the {@code URL} to use as complete content of the returned Identifier.
+     * @return the instance.
+     * @throws NullPointerException if {@code url} was {@code null}.
+     */
+    static DefinitionIdentifier getInstance(final URL url) {
+        return new ImmutableDefinitionIdentifier("", "", "", checkNotNull(url, "url"));
     }
 
     /**
      * Parses the specified CharSequence and returns an instance of {@code ImmutableDefinitionIdentifier}.
      *
-     * @param definitionIdentifier CharSequence-representation of an Definition Identifier.
+     * @param definitionIdentifier CharSequence-representation of a Definition Identifier.
      * @return the instance.
      * @throws NullPointerException if {@code definitionIdentifier} is {@code null}.
      * @throws DefinitionIdentifierInvalidException if {@code definitionIdentifier} is invalid.
@@ -82,15 +108,39 @@ final class ImmutableDefinitionIdentifier implements DefinitionIdentifier {
         }
 
         final Matcher matcher = IDENTIFIER_PATTERN.matcher(definitionIdentifier);
+        @Nullable final URL url;
         if (!matcher.matches()) {
-            throw new DefinitionIdentifierInvalidException(definitionIdentifier);
+            try {
+                url = new URL(definitionIdentifier.toString());
+                if (!isValidHttpUrl(url)) {
+                    throw new DefinitionIdentifierInvalidException(definitionIdentifier);
+                }
+            } catch (final MalformedURLException e) {
+                throw new DefinitionIdentifierInvalidException(definitionIdentifier);
+            }
+        } else {
+            url = null;
         }
 
-        final String parsedNamespace = matcher.group(CapturingGroup.NAMESPACE);
-        final String parsedName = matcher.group(CapturingGroup.NAME);
-        final String parsedVersion = matcher.group(CapturingGroup.VERSION);
+        if (null != url) {
+            return getInstance(url);
+        } else {
+            final String parsedNamespace = matcher.group(CapturingGroup.NAMESPACE);
+            final String parsedName = matcher.group(CapturingGroup.NAME);
+            final String parsedVersion = matcher.group(CapturingGroup.VERSION);
 
-        return getInstance(parsedNamespace, parsedName, parsedVersion);
+            return getInstance(parsedNamespace, parsedName, parsedVersion);
+        }
+    }
+
+    /**
+     * Simple and cheap check whether the given URL is a valid HTTP URL with non-empty hostname.
+     *
+     * @param url the URL to check for being a valid HTTP URL.
+     * @return {@code true} when the URL is a valid HTTP URL.
+     */
+    private static boolean isValidHttpUrl(final URL url) {
+        return url.getProtocol().startsWith("http") && !url.getHost().isEmpty();
     }
 
     @Override
@@ -109,6 +159,11 @@ final class ImmutableDefinitionIdentifier implements DefinitionIdentifier {
     }
 
     @Override
+    public Optional<URL> getUrl() {
+        return Optional.ofNullable(url);
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -119,12 +174,13 @@ final class ImmutableDefinitionIdentifier implements DefinitionIdentifier {
         final ImmutableDefinitionIdentifier that = (ImmutableDefinitionIdentifier) o;
         return Objects.equals(namespace, that.namespace) &&
                 Objects.equals(name, that.name) &&
-                Objects.equals(version, that.version);
+                Objects.equals(version, that.version) &&
+                Objects.equals(url, that.url);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(namespace, name, version);
+        return Objects.hash(namespace, name, version, url);
     }
 
     @Override
