@@ -52,6 +52,7 @@ public final class BackOffActor extends AbstractActorWithTimers {
 
     private final RetryTimeoutStrategy retryTimeoutStrategy;
 
+    @SuppressWarnings("unused")
     private BackOffActor(final BackOffConfig config) {
         this.retryTimeoutStrategy = DuplicationRetryTimeoutStrategy.fromConfig(config.getTimeoutConfig());
     }

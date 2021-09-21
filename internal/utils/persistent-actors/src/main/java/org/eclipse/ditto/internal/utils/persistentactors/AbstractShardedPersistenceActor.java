@@ -530,9 +530,10 @@ public abstract class AbstractShardedPersistenceActor<
         final StartedTrace persistTrace = DittoTracing.trace(event, "persist.event")
                 .tag(TracingTags.SIGNAL_TYPE, event.getType())
                 .start();
+        final E tracedEvent = DittoTracing.propagateContext(persistTrace.getContext(), event);
 
-        persist(event, persistedEvent -> {
-            l.info("Successfully persisted Event <{}> w/ rev: <{}>.", event.getType(),
+        persist(tracedEvent, persistedEvent -> {
+            l.info("Successfully persisted Event <{}> w/ rev: <{}>.", persistedEvent.getType(),
                     getRevisionNumber());
             persistTrace.finish();
 

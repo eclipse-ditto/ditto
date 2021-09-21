@@ -16,6 +16,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkArgument
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,6 +28,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -49,17 +51,22 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.GenericTarget;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
+import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ProducerClosedStatusReport;
 import org.eclipse.ditto.connectivity.service.messaging.backoff.BackOffActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 
 import akka.Done;
 import akka.actor.ActorRef;
@@ -89,14 +96,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      */
     static final String ACTOR_NAME_PREFIX = "amqpPublisherActor";
 
-    /**
-     * Message to initialize the actor. The sender will receive the result of initialization.
-     * If initialization fails, this actor stops itself.
-     */
-    static final Object INITIALIZE = new Object();
-
-    private static final Object START_PRODUCER = new Object();
-
     private static final String TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION = "This can have the following reasons:\n" +
             "a) The AMQP 1.0 consumer does not consume the messages fast enough.\n" +
             "b) The client count of this connection is not configured high enough.";
@@ -112,10 +111,13 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private boolean isInBackOffMode;
 
     @SuppressWarnings("unused")
-    private AmqpPublisherActor(final Connection connection, final Session session,
-            final ConnectionConfig connectionConfig, final String clientId) {
+    private AmqpPublisherActor(final Connection connection,
+            final Session session,
+            final ConnectionConfig connectionConfig,
+            final String clientId,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
 
-        super(connection, clientId);
+        super(connection, clientId, connectivityStatusResolver);
         this.session = checkNotNull(session, "session");
 
         final Executor jmsDispatcher = JMSConnectionHandlingActor.getOwnDispatcher(getContext().system());
@@ -124,7 +126,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         final Materializer materializer = Materializer.createMaterializer(this::getContext);
         final Pair<SourceQueueWithComplete<Pair<ExternalMessage, AmqpMessageContext>>, UniqueKillSwitch> materialized =
                 Source.<Pair<ExternalMessage, AmqpMessageContext>>queue(config.getPublisherConfig().getMaxQueueSize(),
-                        OverflowStrategy.dropNew())
+                                OverflowStrategy.dropNew())
                         .mapAsync(config.getPublisherConfig().getParallelism(), msg -> triggerPublishAsync(msg, jmsDispatcher))
                         .recover(new PFBuilder<Throwable, Object>()
                                 // the "Done" instance is not used, this just means to not fail the stream for any Throwables
@@ -172,21 +174,24 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      * @param session the jms session
      * @param connectionConfig configuration for all connections.
      * @param clientId identifier of the client actor.
+     * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
+     * status.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection, final Session session, final ConnectionConfig connectionConfig,
-            final String clientId) {
-        return Props.create(AmqpPublisherActor.class, connection, session, connectionConfig, clientId);
+            final String clientId, final ConnectivityStatusResolver connectivityStatusResolver) {
+        return Props.create(AmqpPublisherActor.class, connection, session, connectionConfig, clientId,
+                connectivityStatusResolver);
     }
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder.match(ProducerClosedStatusReport.class, this::handleProducerClosedStatusReport)
-                .matchEquals(START_PRODUCER, this::handleStartProducer)
-                .matchEquals(INITIALIZE, this::initialize);
+                .matchEquals(Control.START_PRODUCER, this::handleStartProducer)
+                .matchEquals(Control.INITIALIZE, this::initialize);
     }
 
-    private void initialize(final Object initialize) {
+    private void initialize(final Control initialize) {
         try {
             createStaticTargetProducers();
             getSender().tell(new Status.Success("publisher initialized"), getSelf());
@@ -199,13 +204,29 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private void handleProducerClosedStatusReport(final ProducerClosedStatusReport report) {
         if (!isInBackOffMode) {
             final MessageProducer producer = report.getMessageProducer();
-            final String genericLogInfo = "Will try to re-establish the targets after some cool-down period.";
+            final Throwable cause = report.getCause();
+            final String genericLogInfo = "Will try to re-establish the static targets after some cool-down period.";
             logger.info("Got closed AMQP 1.0 producer '{}'. {}", producer, genericLogInfo);
-
-            findByValue(dynamicTargets, producer).map(Map.Entry::getKey).forEach(dynamicTargets::remove);
-
             connectionLogger.failure("Targets were closed due to an error in the target. {0}", genericLogInfo);
-            backOff();
+
+            final List<Destination> destinations =
+                    findByValue(staticTargets, producer).map(Map.Entry::getKey).collect(Collectors.toList());
+            destinations.forEach(destination -> {
+                staticTargets.remove(destination);
+                // trigger backoff to recreate closed static targets
+                backOff();
+                // update resource status of closed targets
+                final String statusDetails =
+                        String.format("Producer for destination '%s' was closed", destination);
+                final String fullDescriptionWithCause = ConnectionFailure.determineFailureDescription(Instant.now(),
+                        cause, statusDetails);
+
+                updateTargetResourceStatusForDestination(destination,
+                        connectivityStatusResolver.resolve(cause), fullDescriptionWithCause);
+            });
+
+            // dynamic targets are not recreated, they are opened on-demand with the next message, no need to backoff
+            findByValue(dynamicTargets, producer).map(Map.Entry::getKey).forEach(dynamicTargets::remove);
         } else {
             logger.info("Got closed AMQP 1.0 producer while already in backOff mode." +
                     " Will ignore the closed info as this should never happen" +
@@ -213,7 +234,21 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         }
     }
 
-    private void handleStartProducer(final Object startProducer) {
+    private void updateTargetResourceStatusForDestination(final Destination destination,
+            final ConnectivityStatus connectivityStatus, final String statusDetails) {
+        // note: several targets may have the same address configured
+        connection.getTargets()
+                .stream()
+                .filter(t -> t.getAddress().equals(destination.toString()))
+                .forEach(target -> {
+                    final ResourceStatus newStatus =
+                            ConnectivityModelFactory.newTargetStatus(InstanceIdentifierSupplier.getInstance().get(),
+                                    connectivityStatus, target.getAddress(), statusDetails, Instant.now());
+                    resourceStatusMap.put(target, newStatus);
+                });
+    }
+
+    private void handleStartProducer(final Control startProducer) {
         try {
             isInBackOffMode = false;
             createStaticTargetProducers();
@@ -240,7 +275,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         for (final Target target : targets) {
             // only targets with static addresses should stay open
             if (!Placeholders.containsAnyPlaceholder(target.getAddress())) {
-                createTargetProducer(toPublishTarget(target).getJmsDestination());
+                createStaticTargetProducer(toPublishTarget(target).getJmsDestination());
             }
         }
     }
@@ -251,9 +286,15 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     // create a target producer. the previous incarnation, if any, must be closed.
-    private void createTargetProducer(final Destination destination) throws JMSException {
-        staticTargets.put(destination, session.createProducer(destination));
-        logger.info("Target producer <{}> ({}) created", destination, destination.getClass().getSimpleName());
+    private void createStaticTargetProducer(final Destination destination) throws JMSException {
+        // make sure to create only one producer per destination
+        if (!staticTargets.containsKey(destination)) {
+            staticTargets.put(destination, session.createProducer(destination));
+            updateTargetResourceStatusForDestination(destination, ConnectivityStatus.OPEN, "Producer started.");
+            logger.info("Target producer <{}> ({}) created", destination, destination.getClass().getSimpleName());
+        } else {
+            logger.debug("Producer for destination '{}' already exists.", destination);
+        }
     }
 
     private static Stream<Map.Entry<Destination, MessageProducer>> findByValue(
@@ -264,7 +305,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     private void backOff() {
         isInBackOffMode = true;
-        backOffActor.tell(BackOffActor.createBackOffWithAnswerMessage(START_PRODUCER), getSelf());
+        backOffActor.tell(BackOffActor.createBackOffWithAnswerMessage(Control.START_PRODUCER), getSelf());
     }
 
     @Override
@@ -455,7 +496,10 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         try {
             return createProducer(destination);
         } catch (final JMSException e) {
-            logger.warning("Failed to create producer for destination <{}>: {}.", destination, jmsExceptionToString(e));
+            final String jmsExceptionString = jmsExceptionToString(e);
+            connectionLogger.failure("Failed to create producer for destination <{0}>: {1}.", destination,
+                    jmsExceptionString);
+            logger.warning("Failed to create producer for destination <{}>: {}.", destination, jmsExceptionString);
             return null;
         }
     }
@@ -508,4 +552,17 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         staticTargets.entrySet().forEach(this::closeCachedProducer);
     }
 
+    /**
+     * Actor control messages.
+     */
+    enum Control {
+        /**
+         * Message to initialize the actor. The sender will receive the result of initialization. If initialization fails, this actor stops itself.
+         */
+        INITIALIZE,
+        /**
+         * Message to trigger the creation of the static message producers.
+         */
+        START_PRODUCER
+    }
 }

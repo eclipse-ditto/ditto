@@ -82,10 +82,20 @@ final class ImmutableConnectionFailure extends AbstractWithOrigin implements Con
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() +
-                ", cause=" + cause +
+                ", cause=" + throwableToString(cause) +
                 ", description=" + description +
                 ", time=" + time +
                 ", connectivityStatus=" + connectivityStatus +
                 "]";
+    }
+
+    private static String throwableToString(@Nullable final Throwable cause) {
+        if (null == cause) {
+            return "null";
+        }
+        final String tDescription = ConnectionFailure.determineFailureDescription(null, cause, null);
+        return null == cause.getCause() ?
+                tDescription :
+                tDescription + (" Cause: " + throwableToString(cause.getCause()));
     }
 }
