@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.models.signalenrichment;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -21,8 +22,10 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithResource;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.Cache;
@@ -46,8 +49,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingMerged;
  * Instantiated once per cluster node so that it builds up a cache across all signal enrichments on a local cluster
  * node.
  */
-public final class CachingSignalEnrichmentFacade implements
-        SignalEnrichmentFacade {
+public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFacade {
 
     private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory
             .getThreadSafeLogger(CachingSignalEnrichmentFacade.class);
@@ -78,22 +80,12 @@ public final class CachingSignalEnrichmentFacade implements
      * @throws NullPointerException if any argument is null.
      */
     public static CachingSignalEnrichmentFacade of(final SignalEnrichmentFacade cacheLoaderFacade,
-            final CacheConfig cacheConfig, final Executor cacheLoaderExecutor, final String cacheNamePrefix) {
+            final CacheConfig cacheConfig,
+            final Executor cacheLoaderExecutor,
+            final String cacheNamePrefix) {
 
         return new CachingSignalEnrichmentFacade(cacheLoaderFacade, cacheConfig, cacheLoaderExecutor,
                 cacheNamePrefix);
-    }
-
-    @Override
-    public CompletionStage<JsonObject> retrievePartialThing(final ThingId thingId,
-            final JsonFieldSelector jsonFieldSelector,
-            final DittoHeaders dittoHeaders,
-            @Nullable final Signal<?> concernedSignal) {
-
-        // as second step only return what was originally requested as fields:
-        final List<Signal<?>> concernedSignals = concernedSignal == null ? List.of() : List.of(concernedSignal);
-        return doRetrievePartialThing(thingId, jsonFieldSelector, dittoHeaders, concernedSignals, true, 0)
-                .thenApply(jsonObject -> jsonObject.get(jsonFieldSelector));
     }
 
     /**
@@ -105,7 +97,7 @@ public final class CachingSignalEnrichmentFacade implements
      * cache loading is forced.
      * @return future of the retrieved thing.
      */
-    public CompletionStage<JsonObject> retrieveThing(final ThingId thingId, final List<ThingEvent<?>> events,
+    public CompletionStage<JsonObject> retrieveThing(final EntityId thingId, final List<ThingEvent<?>> events,
             final long minAcceptableSeqNr) {
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         if (minAcceptableSeqNr < 0) {
@@ -114,49 +106,102 @@ public final class CachingSignalEnrichmentFacade implements
             extraFieldsCache.invalidate(cacheKey);
             return doCacheLookup(cacheKey, dittoHeaders);
         } else {
-            return doRetrievePartialThing(thingId, null, dittoHeaders, events, false, minAcceptableSeqNr);
+            final var cachingParameters = new CachingParameters(null, events, false, minAcceptableSeqNr);
+            return doRetrievePartialThing(thingId, dittoHeaders, cachingParameters);
         }
     }
 
-    private CompletionStage<JsonObject> doRetrievePartialThing(final ThingId thingId,
-            @Nullable final JsonFieldSelector jsonFieldSelector,
+    @Override
+    public CompletionStage<JsonObject> retrievePartialThing(final ThingId thingId,
+            final JsonFieldSelector jsonFieldSelector,
             final DittoHeaders dittoHeaders,
-            final List<? extends Signal<?>> concernedSignals,
-            final boolean invalidateCacheOnPolicyChange,
-            final long minAcceptableSeqNr) {
+            @Nullable final Signal<?> concernedSignal) {
 
-        final JsonFieldSelector enhancedFieldSelector;
-        if (jsonFieldSelector == null) {
-            enhancedFieldSelector = null;
+        // as second step only return what was originally requested as fields:
+        final List<Signal<?>> concernedSignals = concernedSignal == null ? List.of() : List.of(concernedSignal);
+        final var cachingParameters = new CachingParameters(jsonFieldSelector, concernedSignals, true, 0);
+        return doRetrievePartialThing(thingId, dittoHeaders, cachingParameters)
+                .thenApply(jsonObject -> jsonObject.get(jsonFieldSelector));
+    }
+
+    private CompletionStage<JsonObject> doRetrievePartialThing(final EntityId thingId,
+            final DittoHeaders dittoHeaders, final CachingParameters cachingParameters) {
+
+        final var fieldSelector = cachingParameters.fieldSelector;
+        final JsonFieldSelector enhancedFieldSelector = enhanceFieldSelectorWithRevision(fieldSelector);
+
+        final var idWithResourceType =
+                SignalEnrichmentCacheKey.of(thingId, SignalEnrichmentContext.of(dittoHeaders, enhancedFieldSelector));
+
+        final var cachingParametersWithEnhancedFieldSelector = new CachingParameters(enhancedFieldSelector,
+                cachingParameters.concernedSignals,
+                cachingParameters.invalidateCacheOnPolicyChange,
+                cachingParameters.minAcceptableSeqNr);
+
+        return smartUpdateCachedObject(idWithResourceType, cachingParametersWithEnhancedFieldSelector);
+    }
+
+    private static @Nullable
+    JsonFieldSelector enhanceFieldSelectorWithRevision(@Nullable final Iterable<JsonPointer> fieldSelector) {
+        final JsonFieldSelector result;
+        if (fieldSelector == null) {
+            result = null;
         } else {
-            enhancedFieldSelector = JsonFactory.newFieldSelectorBuilder()
-                    .addPointers(jsonFieldSelector)
+            result = JsonFactory.newFieldSelectorBuilder()
+                    .addPointers(fieldSelector)
                     .addFieldDefinition(Thing.JsonFields.REVISION) // additionally always select the revision
                     .build();
         }
-
-        final var cacheKey = SignalEnrichmentCacheKey.of(thingId,
-                SignalEnrichmentContext.of(dittoHeaders, enhancedFieldSelector));
-
-        return smartUpdateCachedObject(enhancedFieldSelector, cacheKey, concernedSignals,
-                invalidateCacheOnPolicyChange, minAcceptableSeqNr);
+        return result;
     }
 
-    private Optional<Integer> findLastThingDeletedOrCreated(final List<ThingEvent<?>> thingEvents) {
-        for (int i = thingEvents.size() - 1; i >= 0; --i) {
-            final var event = thingEvents.get(i);
-            if (event instanceof ThingDeleted || event instanceof ThingCreated) {
-                return Optional.of(i);
+    private CompletableFuture<JsonObject> smartUpdateCachedObject(final SignalEnrichmentCacheKey cacheKey,
+            final CachingParameters cachingParameters) {
+
+        final CompletableFuture<JsonObject> result;
+
+        final var invalidateCacheOnPolicyChange = cachingParameters.invalidateCacheOnPolicyChange;
+        final var concernedSignals = cachingParameters.concernedSignals;
+        final var fieldSelector = cachingParameters.fieldSelector;
+
+        final Optional<List<ThingEvent<?>>> thingEventsOptional =
+                extractConsecutiveTwinEvents(concernedSignals, cachingParameters.minAcceptableSeqNr);
+        final var dittoHeaders = getLastDittoHeaders(concernedSignals);
+
+        // there are twin events, but their sequence numbers have gaps or do not reach the min acceptable seq nr
+        if (thingEventsOptional.isEmpty()) {
+            extraFieldsCache.invalidate(cacheKey);
+            result = doCacheLookup(cacheKey, dittoHeaders);
+        } else {
+            final var thingEvents = thingEventsOptional.orElseThrow();
+            // there are no twin events; return the cached thing
+            if (thingEvents.isEmpty()) {
+                result = doCacheLookup(cacheKey, dittoHeaders);
+            } else if (thingEventsStartWithLifecycle(thingEvents)) {
+                // the twin was created or deleted; continue without revision checks.
+                final var nextExpectedThingEventsParameters =
+                        new CachingParameters(fieldSelector, thingEvents, invalidateCacheOnPolicyChange,
+                                cachingParameters.minAcceptableSeqNr);
+                result = handleNextExpectedThingEvents(cacheKey, JsonObject.empty(),
+                        nextExpectedThingEventsParameters)
+                        .toCompletableFuture();
+            } else {
+                // there are twin events; perform smart update
+                result = doCacheLookup(cacheKey, dittoHeaders).thenCompose(
+                        cachedJsonObject -> doSmartUpdateCachedObject(cacheKey, cachedJsonObject,
+                                cachingParameters, dittoHeaders));
             }
         }
-        return Optional.empty();
+
+        return result;
     }
 
-    private Optional<List<ThingEvent<?>>> extractConsecutiveTwinEvents(
-            final List<? extends Signal<?>> concernedSignals, final long minAcceptableSeqNr) {
+    private static Optional<List<ThingEvent<?>>> extractConsecutiveTwinEvents(
+            final Collection<? extends Signal<?>> concernedSignals, final long minAcceptableSeqNr) {
+
         final List<ThingEvent<?>> thingEvents = concernedSignals.stream()
                 .filter(signal -> (signal instanceof ThingEvent) && !(ProtocolAdapter.isLiveSignal(signal)))
-                .map(signal -> (ThingEvent<?>) signal)
+                .map(event -> (ThingEvent<?>) event)
                 .collect(Collectors.toList());
 
         // ignore events before ThingDeleted or ThingCreated
@@ -185,6 +230,24 @@ public final class CachingSignalEnrichmentFacade implements
         return Optional.of(events);
     }
 
+    private static Optional<Integer> findLastThingDeletedOrCreated(final List<ThingEvent<?>> thingEvents) {
+        for (int i = thingEvents.size() - 1; i >= 0; --i) {
+            final var event = thingEvents.get(i);
+            if (event instanceof ThingDeleted || event instanceof ThingCreated) {
+                return Optional.of(i);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static DittoHeaders getLastDittoHeaders(final List<? extends Signal<?>> concernedSignals) {
+        if (concernedSignals.isEmpty()) {
+            return DittoHeaders.empty();
+        } else {
+            return getLast(concernedSignals).getDittoHeaders();
+        }
+    }
+
     private CompletableFuture<JsonObject> doCacheLookup(final SignalEnrichmentCacheKey cacheKey,
             final DittoHeaders dittoHeaders) {
 
@@ -194,141 +257,168 @@ public final class CachingSignalEnrichmentFacade implements
                 .thenApply(optionalJsonObject -> optionalJsonObject.orElseGet(JsonObject::empty));
     }
 
-    private CompletableFuture<JsonObject> smartUpdateCachedObject(
-            @Nullable final JsonFieldSelector enhancedFieldSelector,
-            final SignalEnrichmentCacheKey cacheKey,
-            final List<? extends Signal<?>> concernedSignals,
-            final boolean invalidateCacheOnPolicyChange,
-            final long minAcceptableSeqNr) {
-
-        final Optional<List<ThingEvent<?>>> thingEventsOptional =
-                extractConsecutiveTwinEvents(concernedSignals, minAcceptableSeqNr);
-        final var dittoHeaders = getLastDittoHeaders(concernedSignals);
-
-        // there are twin events, but their sequence numbers have gaps or do not reach the min acceptable seq nr
-        if (thingEventsOptional.isEmpty()) {
-            extraFieldsCache.invalidate(cacheKey);
-            return doCacheLookup(cacheKey, dittoHeaders);
-        }
-
-        final var thingEvents = thingEventsOptional.orElseThrow();
-
-        // there are no twin event; return the cached thing
-        if (thingEvents.isEmpty()) {
-            return doCacheLookup(cacheKey, dittoHeaders);
-        }
-
-        // there are ThingCreated events: perform smart update ignoring the cache entry
-        if (thingEvents.get(0) instanceof ThingCreated) {
-            return handleNextExpectedThingEvents(enhancedFieldSelector, cacheKey, thingEvents,
-                    JsonObject.empty(), invalidateCacheOnPolicyChange)
-                    .toCompletableFuture();
-        }
-
-        // there are twin events; perform smart update
-        return doCacheLookup(cacheKey, dittoHeaders).thenCompose(cachedJsonObject -> {
-            final long cachedRevision = cachedJsonObject.getValue(Thing.JsonFields.REVISION).orElse(0L);
-            final var relevantEvents = thingEvents.stream()
-                    .filter(e -> e.getRevision() > cachedRevision)
-                    .collect(Collectors.toList());
-            if (relevantEvents.isEmpty()) {
-                // the cache entry was more up-to-date
-                return CompletableFuture.completedFuture(cachedJsonObject);
-            } else if (cachedRevision + 1 == getFirst(relevantEvents).getRevision()) {
-                // the cache entry was already present and the first thingEvent was the next expected revision no
-                // -> we have all information necessary to calculate it without making another roundtrip
-                return handleNextExpectedThingEvents(enhancedFieldSelector, cacheKey, relevantEvents,
-                        cachedJsonObject, invalidateCacheOnPolicyChange);
-            } else {
-                // the cache entry was already present, but we missed sth and need to invalidate the cache
-                // and to another cache lookup (via roundtrip)
-                extraFieldsCache.invalidate(cacheKey);
-                return doCacheLookup(cacheKey, dittoHeaders);
-            }
-        });
+    private static boolean thingEventsStartWithLifecycle(final List<ThingEvent<?>> thingEvents) {
+        return thingEvents.get(0) instanceof ThingDeleted || thingEvents.get(0) instanceof ThingCreated;
     }
 
-    private DittoHeaders getLastDittoHeaders(final List<? extends Signal<?>> concernedSignals) {
-        if (concernedSignals.isEmpty()) {
-            return DittoHeaders.empty();
+    private CompletionStage<JsonObject> doSmartUpdateCachedObject(final SignalEnrichmentCacheKey cacheKey,
+            final JsonObject cachedJsonObject,
+            final CachingParameters cachingParameters,
+            final DittoHeaders dittoHeaders) {
+
+        final CompletionStage<JsonObject> result;
+
+        final long cachedRevision = cachedJsonObject.getValue(Thing.JsonFields.REVISION).orElse(0L);
+        final List<ThingEvent<?>> relevantEvents = cachingParameters.concernedSignals.stream()
+                .map(event -> (ThingEvent<?>) event)
+                .filter(e -> e.getRevision() > cachedRevision)
+                .collect(Collectors.toList());
+
+        if (relevantEvents.isEmpty()) {
+            // the cache entry was more up-to-date
+            result = CompletableFuture.completedFuture(cachedJsonObject);
+        } else if (cachedRevision + 1 == getFirst(relevantEvents).getRevision()) {
+            // the cache entry was already present and the first thingEvent was the next expected revision no
+            // -> we have all information necessary to calculate it without making another roundtrip
+            final var nextExpectedThingEventsParameters =
+                    new CachingParameters(cachingParameters.fieldSelector, relevantEvents,
+                            cachingParameters.invalidateCacheOnPolicyChange,
+                            cachingParameters.minAcceptableSeqNr);
+            result = handleNextExpectedThingEvents( cacheKey, cachedJsonObject,
+                    nextExpectedThingEventsParameters);
         } else {
-            return getLast(concernedSignals).getDittoHeaders();
+            // the cache entry was already present, but we missed sth and need to invalidate the cache
+            // and to another cache lookup (via roundtrip)
+            extraFieldsCache.invalidate( cacheKey);
+            result = doCacheLookup( cacheKey, dittoHeaders);
         }
+        return result;
     }
 
-    private <T> T getLast(final List<T> list) {
+    private static <T> T getLast(final List<T> list) {
         return list.get(list.size() - 1);
     }
 
-    private <T> T getFirst(final List<T> list) {
+    private static <T> T getFirst(final List<T> list) {
         return list.get(0);
     }
 
     private CompletionStage<JsonObject> handleNextExpectedThingEvents(
-            @Nullable final JsonFieldSelector enhancedFieldSelector,
-            final SignalEnrichmentCacheKey cacheKey,
-            final List<ThingEvent<?>> thingEvents,
-            final JsonObject cachedJsonObject,
-            final boolean invalidateCacheOnPolicyChange) {
+            final SignalEnrichmentCacheKey cacheKey, final JsonObject cachedJsonObject,
+            final CachingParameters cachingParameters) {
 
+        final var concernedSignals = (List<ThingEvent<?>>) cachingParameters.concernedSignals;
+        final var enhancedFieldSelector = cachingParameters.fieldSelector;
         final Optional<String> cachedPolicyIdOpt = cachedJsonObject.getValue(Thing.JsonFields.POLICY_ID);
         JsonObject jsonObject = cachedJsonObject;
-        for (final ThingEvent<?> thingEvent : thingEvents) {
-            final JsonPointer resourcePath = thingEvent.getResourcePath();
+        for (final ThingEvent<?> thingEvent : concernedSignals) {
 
             switch (thingEvent.getCommandCategory()) {
                 case MERGE:
-                    final var thingMerged = (ThingMerged) thingEvent;
-                    final JsonValue mergedValue = thingMerged.getValue();
-                    final JsonObject mergePatch = JsonFactory.newObject(resourcePath, mergedValue);
-                    jsonObject = JsonFactory.mergeJsonValues(mergePatch, jsonObject).asObject();
+                    jsonObject = getMergeJsonObject(jsonObject, thingEvent);
                     break;
                 case DELETE:
-                    if (thingEvent instanceof ThingDeleted) {
-                        // NoOp because we just want to keep the original known thing.
-                    } else if (resourcePath.isEmpty()) {
-                        jsonObject = JsonObject.empty();
-                    } else {
-                        jsonObject = jsonObject.remove(resourcePath);
-                    }
+                    jsonObject = getDeleteJsonObject(jsonObject, thingEvent);
                     break;
                 case MODIFY:
                 default:
-                    final var jsonObjectBuilder = jsonObject.toBuilder();
-                    final Optional<JsonValue> optEntity = thingEvent.getEntity();
-                    if (resourcePath.isEmpty() && optEntity.filter(JsonValue::isObject).isPresent()) {
-                        optEntity.map(JsonValue::asObject).ifPresent(jsonObjectBuilder::setAll);
-                    } else {
-                        optEntity.ifPresent(entity -> jsonObjectBuilder
-                                .set(resourcePath.toString(), entity)
-                        );
-                    }
-                    jsonObject = jsonObjectBuilder.build();
+                    jsonObject = getDefaultJsonObject(jsonObject, thingEvent);
             }
-
             // invalidate cache on policy change if the flag is set
-            if (invalidateCacheOnPolicyChange) {
-                final var currentJsonObject = jsonObject;
-                final boolean shouldInvalidate = cachedPolicyIdOpt.flatMap(cachedPolicyId ->
-                                currentJsonObject.getValue(Thing.JsonFields.POLICY_ID)
-                                        .filter(currentPolicyId -> !cachedPolicyId.equals(currentPolicyId)))
-                        .isPresent();
-                if (shouldInvalidate) {
-                    // invalidate the cache
-                    extraFieldsCache.invalidate(cacheKey);
-                    // and to another cache lookup (via roundtrip):
-                    return doCacheLookup(cacheKey, thingEvent.getDittoHeaders());
+            if (cachingParameters.invalidateCacheOnPolicyChange) {
+                final var optionalCompletionStage =
+                        invalidateCacheOnPolicyChange( cacheKey, jsonObject, cachedPolicyIdOpt.orElse(null),
+                                thingEvent.getDittoHeaders());
+                if (optionalCompletionStage.isPresent()) {
+                    return optionalCompletionStage.get();
                 }
             }
         }
+        final var enhancedJsonObject = enhanceJsonObject(jsonObject, concernedSignals, enhancedFieldSelector);
+        // update local cache with enhanced object:
+        extraFieldsCache.put( cacheKey, enhancedJsonObject);
+        return CompletableFuture.completedFuture(enhancedJsonObject);
+    }
+
+    private static JsonObject getMergeJsonObject(final JsonValue jsonObject, final ThingEvent<?> thingEvent) {
+        final var thingMerged = (ThingMerged) thingEvent;
+        final JsonValue mergedValue = thingMerged.getValue();
+        final JsonObject mergePatch = JsonFactory.newObject(thingMerged.getResourcePath(), mergedValue);
+        return JsonFactory.mergeJsonValues(mergePatch, jsonObject).asObject();
+    }
+
+    private static JsonObject getDeleteJsonObject(final JsonObject jsonObject, final WithResource thingEvent) {
+        final JsonObject result;
+        final var resourcePath = thingEvent.getResourcePath();
+        if (resourcePath.isEmpty()) {
+            result = JsonObject.empty();
+        } else {
+            result = jsonObject.remove(resourcePath);
+        }
+        return result;
+    }
+
+    private static JsonObject getDefaultJsonObject(final JsonObject jsonObject, final ThingEvent<?> thingEvent) {
+        final var resourcePath = thingEvent.getResourcePath();
+        final var jsonObjectBuilder = jsonObject.toBuilder();
+        final Optional<JsonValue> optEntity = thingEvent.getEntity();
+        if (resourcePath.isEmpty() && optEntity.filter(JsonValue::isObject).isPresent()) {
+            optEntity.map(JsonValue::asObject).ifPresent(jsonObjectBuilder::setAll);
+        } else {
+            optEntity.ifPresent(entity -> jsonObjectBuilder
+                    .set(resourcePath.toString(), entity)
+            );
+        }
+        return jsonObjectBuilder.build();
+    }
+
+    private Optional<CompletionStage<JsonObject>> invalidateCacheOnPolicyChange(final SignalEnrichmentCacheKey cacheKey,
+            final JsonObject jsonObject,
+            @Nullable final String cachedPolicyIdOpt,
+            final DittoHeaders dittoHeaders) {
+
+        final boolean shouldInvalidate = Optional.ofNullable(cachedPolicyIdOpt).flatMap(cachedPolicyId ->
+                jsonObject.getValue(Thing.JsonFields.POLICY_ID)
+                        .filter(currentPolicyId -> !cachedPolicyId.equals(currentPolicyId)))
+                .isPresent();
+        if (shouldInvalidate) {
+            // invalidate the cache
+            extraFieldsCache.invalidate( cacheKey);
+            // and to another cache lookup (via roundtrip):
+            return Optional.of(doCacheLookup( cacheKey, dittoHeaders));
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    private static JsonObject enhanceJsonObject(final JsonObject jsonObject, final List<ThingEvent<?>> concernedSignals,
+            final JsonFieldSelector enhancedFieldSelector) {
+
         final var jsonObjectBuilder = jsonObject.toBuilder()
-                .set(Thing.JsonFields.REVISION, getLast(thingEvents).getRevision());
-        final var enhancedJsonObject = enhancedFieldSelector == null
+                .set(Thing.JsonFields.REVISION, getLast(concernedSignals).getRevision());
+        return enhancedFieldSelector == null
                 ? jsonObjectBuilder.build()
                 : jsonObjectBuilder.build().get(enhancedFieldSelector);
-        // update local cache with enhanced object:
-        extraFieldsCache.put(cacheKey, enhancedJsonObject);
-        return CompletableFuture.completedFuture(enhancedJsonObject);
+    }
+
+    private static final class CachingParameters {
+
+        @Nullable private final JsonFieldSelector fieldSelector;
+        private final List<? extends Signal<?>> concernedSignals;
+        private final boolean invalidateCacheOnPolicyChange;
+        private final long minAcceptableSeqNr;
+
+        private CachingParameters(@Nullable final JsonFieldSelector fieldSelector,
+                final List<? extends Signal<?>> concernedSignals,
+                final boolean invalidateCacheOnPolicyChange,
+                final long minAcceptableSeqNr) {
+
+            this.fieldSelector = fieldSelector;
+            this.concernedSignals = concernedSignals;
+            this.invalidateCacheOnPolicyChange = invalidateCacheOnPolicyChange;
+            this.minAcceptableSeqNr = minAcceptableSeqNr;
+        }
+
     }
 
 }

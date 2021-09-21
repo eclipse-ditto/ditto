@@ -148,6 +148,7 @@ final class EnforcementFlow {
      */
     public Flow<Map<ThingId, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> create(
             final boolean shouldAcknowledge, final int parallelism) {
+
         return Flow.<Map<ThingId, Metadata>>create()
                 .map(changeMap -> {
                     log.info("Updating search index with <shouldAcknowledge={}> of <{}> things", shouldAcknowledge,
