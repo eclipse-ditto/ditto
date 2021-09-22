@@ -51,7 +51,8 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
         final boolean thingExists = Optional.ofNullable(thing)
                 .map(t -> !t.isDeleted())
                 .orElse(false);
-        final boolean shouldRetrieveDeleted = command.getDittoHeaders().shouldRetrieveDeleted();
+        // when thing is null, there is nothing to retrieve.
+        final boolean shouldRetrieveDeleted = thing != null && command.getDittoHeaders().shouldRetrieveDeleted();
 
         return Objects.equals(context.getState(), command.getEntityId()) && (thingExists || shouldRetrieveDeleted);
     }

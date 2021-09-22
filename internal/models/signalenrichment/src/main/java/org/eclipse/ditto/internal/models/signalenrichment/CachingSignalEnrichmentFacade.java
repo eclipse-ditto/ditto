@@ -107,7 +107,7 @@ public final class CachingSignalEnrichmentFacade implements
      */
     public CompletionStage<JsonObject> retrieveThing(final ThingId thingId, final List<ThingEvent<?>> events,
             final long minAcceptableSeqNr) {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
+        final DittoHeaders dittoHeaders = DittoHeaders.empty();
         if (minAcceptableSeqNr < 0) {
             final var cacheKey =
                     SignalEnrichmentCacheKey.of(thingId, SignalEnrichmentContext.of(dittoHeaders, null));
