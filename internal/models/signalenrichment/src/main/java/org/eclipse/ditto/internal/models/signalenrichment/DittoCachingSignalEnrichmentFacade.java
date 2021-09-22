@@ -60,16 +60,6 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
 
     private final Cache<CacheKey, JsonObject> extraFieldsCache;
 
-    /**
-     * Implementations MUST have this public constructor.
-     *
-     * @param cacheLoaderFacade the facade whose argument-result-pairs we are caching.
-     * @param cacheConfig the cache configuration to use for the cache.
-     * @param cacheLoaderExecutor the executor to use in order to asynchronously load cache entries.
-     * @param cacheNamePrefix the prefix to use as cacheName of the cache.
-     *
-     * @throws NullPointerException if any argument is null.
-     */
     DittoCachingSignalEnrichmentFacade(
             final SignalEnrichmentFacade cacheLoaderFacade,
             final CacheConfig cacheConfig,
