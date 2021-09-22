@@ -17,7 +17,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
 import org.eclipse.ditto.gateway.service.util.config.streaming.GatewaySignalEnrichmentConfig;
-import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
+import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacadeProvider;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
 
 import akka.actor.ActorSystem;
@@ -31,7 +31,7 @@ public final class GatewayCachingSignalEnrichmentProvider implements GatewaySign
 
     private static final String CACHE_LOADER_DISPATCHER = "signal-enrichment-cache-dispatcher";
 
-    private final CachingSignalEnrichmentFacade cachingSignalEnrichmentFacade;
+    private final SignalEnrichmentFacade cachingSignalEnrichmentFacade;
 
     /**
      * Instantiate this provider. Called by reflection.
@@ -44,7 +44,8 @@ public final class GatewayCachingSignalEnrichmentProvider implements GatewaySign
         final GatewayByRoundTripSignalEnrichmentProvider cacheLoaderProvider =
                 new GatewayByRoundTripSignalEnrichmentProvider(actorSystem, signalEnrichmentConfig);
         final Executor cacheLoaderExecutor = actorSystem.dispatchers().lookup(CACHE_LOADER_DISPATCHER);
-        cachingSignalEnrichmentFacade = CachingSignalEnrichmentFacade.of(
+        final var cachingSignalEnrichmentFacadeProvider = CachingSignalEnrichmentFacadeProvider.get(actorSystem);
+        cachingSignalEnrichmentFacade = cachingSignalEnrichmentFacadeProvider.getSignalEnrichmentFacade(
                 cacheLoaderProvider.getByRoundTripSignalEnrichmentFacade(),
                 signalEnrichmentConfig.getCacheConfig(),
                 cacheLoaderExecutor,

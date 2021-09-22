@@ -75,7 +75,7 @@ public final class EnforcedThingMapper {
      * @return BSON document to write into the search index.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
      */
-    public static ThingWriteModel toWriteModel(final JsonObject thing,
+    private static ThingWriteModel toWriteModel(final JsonObject thing,
             final Enforcer enforcer,
             final long policyRevision) {
 

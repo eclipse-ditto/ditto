@@ -41,12 +41,13 @@ import org.junit.Test;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorSelection;
+import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Unit tests for {@link CachingSignalEnrichmentFacade}.
+ * Unit tests for {@link DittoCachingSignalEnrichmentFacade}.
  */
-public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnrichmentFacadeTest {
+public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignalEnrichmentFacadeTest {
 
     private static final String CACHE_CONFIG_KEY = "my-cache";
     private static final String CACHE_CONFIG = CACHE_CONFIG_KEY + " {\n" +
@@ -77,8 +78,11 @@ public final class CachingSignalEnrichmentFacadeTest extends AbstractSignalEnric
         final ActorSelection commandHandler = ActorSelection.apply(kit.getRef(), "");
         final ByRoundTripSignalEnrichmentFacade cacheLoaderFacade =
                 ByRoundTripSignalEnrichmentFacade.of(commandHandler, Duration.ofSeconds(10L));
-        return CachingSignalEnrichmentFacade.of(cacheLoaderFacade, cacheConfig, kit.getSystem().getDispatcher(),
-                "test");
+        final var actorSystem =
+                ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("signal-enrichment-test.conf"));
+        final var cachingSignalEnrichmentFacadeProvider = CachingSignalEnrichmentFacadeProvider.get(actorSystem);
+        return cachingSignalEnrichmentFacadeProvider.getSignalEnrichmentFacade(cacheLoaderFacade, cacheConfig,
+                kit.getSystem().getDispatcher(), "test");
     }
 
     @Override

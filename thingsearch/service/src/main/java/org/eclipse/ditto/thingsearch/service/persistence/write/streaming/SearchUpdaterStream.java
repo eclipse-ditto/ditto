@@ -99,7 +99,7 @@ public final class SearchUpdaterStream {
         final var messageDispatcher = actorSystem.dispatchers().lookup(dispatcherName);
 
         final var enforcementFlow =
-                EnforcementFlow.of(streamConfig, thingsShard, policiesShard, messageDispatcher,
+                EnforcementFlow.of(actorSystem, streamConfig, thingsShard, policiesShard, messageDispatcher,
                         actorSystem.getScheduler());
 
         final var mongoSearchUpdaterFlow =
