@@ -55,12 +55,12 @@
         <newmotion-akka-rabbitmq.version>5.1.2</newmotion-akka-rabbitmq.version>
         <amqp-client.version>5.7.3</amqp-client.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
-        <netty-bom.version>4.1.66.Final</netty-bom.version>
+        <netty-bom.version>4.1.68.Final</netty-bom.version>
         <cloundevents.version>2.0.0</cloundevents.version>
         <commons-net.version>3.8.0</commons-net.version>
 
         <slf4j.version>1.7.31</slf4j.version>
-        <logback.version>1.2.3</logback.version>
+        <logback.version>1.2.6</logback.version>
         <logstash-logback-encoder.version>6.6</logstash-logback-encoder.version>
         <janino.version>2.7.8</janino.version>
 
@@ -89,7 +89,7 @@
         -->
         <js.long.version>3.2.0</js.long.version>
 
-        <caffeine.version>2.8.8</caffeine.version>
+        <caffeine.version>3.0.3</caffeine.version>
         <classindex.version>3.8</classindex.version>
 
         <!-- ### Testing dependencies versions -->

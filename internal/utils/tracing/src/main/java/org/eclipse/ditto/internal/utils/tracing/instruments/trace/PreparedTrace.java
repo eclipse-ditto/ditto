@@ -38,6 +38,10 @@ public interface PreparedTrace extends TaggedMetricInstrument<PreparedTrace>, Tr
 
     /**
      * Starts the trace setting the given start instant.
+     * <p>
+     * The passed in {@code Instant} <strong>must be</strong> created using Kamon's clock {@link kamon.Kamon#clock()},
+     * a "normal" Instant of the JVM might have too low precision or might be too slow.
+     * </p>
      *
      * @param startInstant the instant where to start the trace at.
      * @return The started {@link StartedTrace trace}.

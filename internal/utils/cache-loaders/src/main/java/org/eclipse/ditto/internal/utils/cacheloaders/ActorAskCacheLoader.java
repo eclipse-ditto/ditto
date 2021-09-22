@@ -39,7 +39,6 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
 import akka.actor.ActorRef;
 import akka.actor.Scheduler;
-import akka.cluster.pubsub.DistributedPubSubMediator;
 
 /**
  * Asynchronous cache loader that loads a value by asking an actor provided by a "Entity-Region-Provider".
@@ -48,7 +47,8 @@ import akka.cluster.pubsub.DistributedPubSubMediator;
  * @param <T> type of messages sent when loading entries by entity id.
  */
 @Immutable
-public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<CacheKey, Entry<V>> {
+public final class ActorAskCacheLoader<V, T, C extends CacheLookupContext>
+        implements AsyncCacheLoader<CacheKey<C>, Entry<V>> {
 
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(ActorAskCacheLoader.class);
@@ -56,40 +56,19 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<CacheKe
     private final AskWithRetryConfig askWithRetryConfig;
     private final Scheduler scheduler;
     private final Function<EntityType, ActorRef> entityRegionProvider;
-    private final Map<EntityType, BiFunction<EntityId, CacheLookupContext, T>> commandCreatorMap;
-    private final Map<EntityType, BiFunction<Object, CacheLookupContext, Entry<V>>> responseTransformerMap;
+    private final Map<EntityType, BiFunction<EntityId, C, T>> commandCreatorMap;
+    private final Map<EntityType, BiFunction<Object, C, Entry<V>>> responseTransformerMap;
 
     private ActorAskCacheLoader(final AskWithRetryConfig askWithRetryConfig,
             final Scheduler scheduler,
             final Function<EntityType, ActorRef> entityRegionProvider,
-            final Map<EntityType, BiFunction<EntityId, CacheLookupContext, T>> commandCreatorMap,
-            final Map<EntityType, BiFunction<Object, CacheLookupContext, Entry<V>>> responseTransformerMap) {
+            final Map<EntityType, BiFunction<EntityId, C, T>> commandCreatorMap,
+            final Map<EntityType, BiFunction<Object, C, Entry<V>>> responseTransformerMap) {
         this.askWithRetryConfig = requireNonNull(askWithRetryConfig);
         this.scheduler = scheduler;
         this.entityRegionProvider = requireNonNull(entityRegionProvider);
         this.commandCreatorMap = Map.copyOf(requireNonNull(commandCreatorMap));
         this.responseTransformerMap = Map.copyOf(requireNonNull(responseTransformerMap));
-    }
-
-    /**
-     * Constructs an {@link ActorAskCacheLoader} with a sharded entity region which supports multiple resource types.
-     *
-     * @param askWithRetryConfig the configuration for the "ask with retry" pattern applied for the cache loader.
-     * @param scheduler the scheduler to use for the "ask with retry" for retries.
-     * @param entityRegionProvider function providing an entity region for a resource type.
-     * @param commandCreatorMap functions per resource type for creating a load-command by an entity id (without resource
-     * type).
-     * @param responseTransformerMap functions per resource type for mapping a load-response to an {@link Entry}.
-     * @param <V> type of values in the cache entry.
-     * @return the built ActorAskCacheLoader.
-     */
-    public static <V> ActorAskCacheLoader<V, Command<?>> forShard(final AskWithRetryConfig askWithRetryConfig,
-            final Scheduler scheduler,
-            final Function<EntityType, ActorRef> entityRegionProvider,
-            final Map<EntityType, BiFunction<EntityId, CacheLookupContext, Command<?>>> commandCreatorMap,
-            final Map<EntityType, BiFunction<Object, CacheLookupContext, Entry<V>>> responseTransformerMap) {
-        return new ActorAskCacheLoader<>(askWithRetryConfig, scheduler, entityRegionProvider, commandCreatorMap,
-                responseTransformerMap);
     }
 
     /**
@@ -104,77 +83,26 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<CacheKe
      * @param <V> type of values in the cache entry.
      * @return the built ActorAskCacheLoader.
      */
-    public static <V> ActorAskCacheLoader<V, Command<?>> forShard(final AskWithRetryConfig askWithRetryConfig,
+    public static <V, C extends CacheLookupContext> ActorAskCacheLoader<V, Command<?>, C> forShard(
+            final AskWithRetryConfig askWithRetryConfig,
             final Scheduler scheduler,
             final EntityType entityType,
             final ActorRef entityRegion,
-            final BiFunction<EntityId, CacheLookupContext, Command<?>> commandCreator,
-            final BiFunction<Object, CacheLookupContext, Entry<V>> responseTransformer) {
+            final BiFunction<EntityId, C, Command<?>> commandCreator,
+            final BiFunction<Object, C, Entry<V>> responseTransformer) {
         requireNonNull(askWithRetryConfig);
         requireNonNull(entityType);
         requireNonNull(entityRegion);
         requireNonNull(commandCreator);
         requireNonNull(responseTransformer);
-        return forShard(askWithRetryConfig, scheduler,
+        return new ActorAskCacheLoader<>(askWithRetryConfig, scheduler,
                 EntityRegionMap.singleton(entityType, entityRegion),
                 Collections.singletonMap(entityType, commandCreator),
                 Collections.singletonMap(entityType, responseTransformer));
     }
 
-    /**
-     * Constructs an {@link ActorAskCacheLoader} with PubSub which supports multiple resource types.
-     *
-     * @param askWithRetryConfig the configuration for the "ask with retry" pattern applied for the cache loader.
-     * @param scheduler the scheduler to use for the "ask with retry" for retries.
-     * @param pubSubMediator the PubSub mediator.
-     * @param commandCreatorMap functions per resource type for creating a load-command by an entity id (without resource
-     * type).
-     * @param responseTransformerMap functions per resource type for mapping a load-response to an {@link Entry}.
-     * @param <V> type of values in the cache entry.
-     * @return the built ActorAskCacheLoader.
-     */
-    public static <V> ActorAskCacheLoader<V, DistributedPubSubMediator.Send> forPubSub(
-            final AskWithRetryConfig askWithRetryConfig,
-            final Scheduler scheduler,
-            final ActorRef pubSubMediator,
-            final Map<EntityType, BiFunction<EntityId, CacheLookupContext, DistributedPubSubMediator.Send>> commandCreatorMap,
-            final Map<EntityType, BiFunction<Object, CacheLookupContext, Entry<V>>> responseTransformerMap) {
-        return new ActorAskCacheLoader<>(askWithRetryConfig, scheduler, unused -> pubSubMediator, commandCreatorMap,
-                responseTransformerMap);
-    }
-
-    /**
-     * Constructs an {@link ActorAskCacheLoader} with PubSub which supports a single resource type.
-     *
-     * @param askWithRetryConfig the configuration for the "ask with retry" pattern applied for the cache loader.
-     * @param scheduler the scheduler to use for the "ask with retry" for retries.
-     * @param entityType the resource type.
-     * @param pubSubMediator the PubSub mediator.
-     * @param commandCreator function for creating a load-command by an entity id (without resource type).
-     * @param responseTransformer function for mapping a load-response to an {@link Entry}.
-     * @param <V> type of values in the cache entry.
-     * @return the built ActorAskCacheLoader.
-     */
-    public static <V> ActorAskCacheLoader<V, DistributedPubSubMediator.Send> forPubSub(
-            final AskWithRetryConfig askWithRetryConfig,
-            final Scheduler scheduler,
-            final EntityType entityType,
-            final ActorRef pubSubMediator,
-            final BiFunction<EntityId, CacheLookupContext, DistributedPubSubMediator.Send> commandCreator,
-            final BiFunction<Object, CacheLookupContext, Entry<V>> responseTransformer) {
-        requireNonNull(askWithRetryConfig);
-        requireNonNull(entityType);
-        requireNonNull(pubSubMediator);
-        requireNonNull(commandCreator);
-        requireNonNull(responseTransformer);
-        return forPubSub(askWithRetryConfig, scheduler,
-                pubSubMediator,
-                Collections.singletonMap(entityType, commandCreator),
-                Collections.singletonMap(entityType, responseTransformer));
-    }
-
     @Override
-    public final CompletableFuture<Entry<V>> asyncLoad(final CacheKey key, final Executor executor) {
+    public CompletableFuture<Entry<V>> asyncLoad(final CacheKey<C> key, final Executor executor) {
         final var entityType = key.getId().getEntityType();
         return CompletableFuture.supplyAsync(() -> {
             final var entityId = key.getId();
@@ -198,9 +126,8 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<CacheKe
         return entityRegion;
     }
 
-    private T getCommand(final EntityType entityType, final EntityId id,
-            @Nullable final CacheLookupContext cacheLookupContext) {
-        final BiFunction<EntityId, CacheLookupContext, T> commandCreator = commandCreatorMap.get(entityType);
+    private T getCommand(final EntityType entityType, final EntityId id, @Nullable final C cacheLookupContext) {
+        final BiFunction<EntityId, C, T> commandCreator = commandCreatorMap.get(entityType);
         if (commandCreator == null) {
             final var message =
                     String.format("Don't know how to create retrieve command for resource type <%s> and id <%s>",
@@ -212,7 +139,7 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<CacheKe
     }
 
     private Entry<V> transformResponse(final EntityType entityType, final Object response,
-            @Nullable final CacheLookupContext cacheLookupContext) {
+            @Nullable final C cacheLookupContext) {
         return checkNotNull(responseTransformerMap.get(entityType), "entityType").apply(response, cacheLookupContext);
     }
 

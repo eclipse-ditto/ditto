@@ -23,14 +23,13 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
-import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
-import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 
 import com.mongodb.ErrorCategory;
 import com.mongodb.bulk.BulkWriteError;
@@ -108,12 +107,17 @@ final class BulkWriteResultAckFlow {
     private void acknowledgeFailures(final List<Metadata> metadataList) {
         errorsCounter.increment(metadataList.size());
         for (final Metadata metadata : metadataList) {
+            metadata.sendNAck(); // also stops timer even if no acknowledgement is requested
             final UpdateThingResponse response = createFailureResponse(metadata);
-            final ShardedMessageEnvelope envelope =
-                    ShardedMessageEnvelope.of(response.getEntityId(), response.getType(), response.toJson(),
-                            response.getDittoHeaders());
-            metadata.sendNAck();
-            updaterShard.tell(envelope, ActorRef.noSender());
+            metadata.getOrigin().ifPresentOrElse(
+                    origin -> origin.tell(response, ActorRef.noSender()),
+                    () -> {
+                        final ShardedMessageEnvelope envelope =
+                                ShardedMessageEnvelope.of(response.getEntityId(), response.getType(), response.toJson(),
+                                        response.getDittoHeaders());
+                        updaterShard.tell(envelope, ActorRef.noSender());
+                    }
+            );
         }
     }
 

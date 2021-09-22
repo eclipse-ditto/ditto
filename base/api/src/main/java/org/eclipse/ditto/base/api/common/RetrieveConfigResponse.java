@@ -70,6 +70,16 @@ public final class RetrieveConfigResponse extends CommonCommandResponse<Retrieve
         return new RetrieveConfigResponse(jsonObject.getValueOrThrow(JSON_CONFIG), dittoHeaders);
     }
 
+    /**
+     * Returns the retrieved config.
+     *
+     * @return the config.
+     * @since 2.1.0
+     */
+    public JsonValue getConfig() {
+        return config;
+    }
+
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {

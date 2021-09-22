@@ -20,9 +20,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -36,50 +33,6 @@ public final class CacheFactory {
 
     private CacheFactory() {
         throw new AssertionError();
-    }
-
-    /**
-     * Create a new cache key from the given {@code id}.
-     *
-     * @param id the entity ID.
-     * @return the entity ID with resource type object.
-     */
-    public static CacheKey newCacheKey(final EntityId id) {
-        return ImmutableCacheKey.of(id);
-    }
-
-    /**
-     * Create a new context for cache lookups with the provided {@code dittoHeaders} and {@code jsonFieldSelector}.
-     *
-     * @param dittoHeaders the DittoHeaders to use in the cache lookup context.
-     * @param jsonFieldSelector the JsonFieldSelector to use in the cache lookup context.
-     * @return the created context.
-     */
-    public static CacheLookupContext newCacheLookupContext(
-            @Nullable final DittoHeaders dittoHeaders, @Nullable final JsonFieldSelector jsonFieldSelector) {
-        return ImmutableCacheLookupContext.of(dittoHeaders, jsonFieldSelector);
-    }
-
-    /**
-     * Create a new cache key from the given  {@code resourceType} and {@code id}.
-     *
-     * @param id the entity ID.
-     * @param cacheLookupContext additional context information to use for the cache lookup.
-     * @return the entity ID with resource type object.
-     */
-    public static CacheKey newCacheKey(final EntityId id, final CacheLookupContext cacheLookupContext) {
-        return ImmutableCacheKey.of(id, cacheLookupContext);
-    }
-
-    /**
-     * Deserialize cache key with resource type from a string.
-     *
-     * @param string the string.
-     * @return the cache key.
-     * @throws IllegalArgumentException if the string does not have the expected format.
-     */
-    public static CacheKey readEntityIdFrom(final String string) {
-        return ImmutableCacheKey.readFrom(string);
     }
 
     /**

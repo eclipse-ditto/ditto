@@ -30,7 +30,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableFeatureDefinitionIdentifierTest {
 
     private static final String NAMESPACE = "org.eclipse.ditto";
-    private static final String NAME = "vorto";
+    private static final String NAME = "example";
     private static final String VERSION = "0.1.0";
     private static final String VALID_IDENTIFIER_STRING = NAMESPACE + ":" + NAME + ":" + VERSION;
 

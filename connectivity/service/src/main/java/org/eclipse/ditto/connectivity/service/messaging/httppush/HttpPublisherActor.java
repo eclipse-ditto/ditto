@@ -48,6 +48,7 @@ import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.signing.NoOpSigning;
@@ -127,8 +128,11 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private final HttpRequestSigning httpRequestSigning;
 
     @SuppressWarnings("unused")
-    private HttpPublisherActor(final Connection connection, final HttpPushFactory factory, final String clientId) {
-        super(connection, clientId);
+    private HttpPublisherActor(final Connection connection,
+            final HttpPushFactory factory,
+            final String clientId,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
+        super(connection, clientId, connectivityStatusResolver);
         this.factory = factory;
         materializer = Materializer.createMaterializer(this::getContext);
         final HttpPushConfig config = connectionConfig.getHttpPushConfig();
@@ -152,8 +156,19 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 .orElse(NoOpSigning.INSTANCE);
     }
 
-    static Props props(final Connection connection, final HttpPushFactory factory, final String clientId) {
-        return Props.create(HttpPublisherActor.class, connection, factory, clientId);
+    /**
+     * Creates Akka configuration object for this actor.
+     *
+     * @param connection the connection.
+     * @param factory the http push factory to use.
+     * @param clientId the client ID.
+     * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
+     * status.
+     * @return the Akka configuration Props object.
+     */
+    static Props props(final Connection connection, final HttpPushFactory factory, final String clientId,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
+        return Props.create(HttpPublisherActor.class, connection, factory, clientId, connectivityStatusResolver);
     }
 
     private Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?>
@@ -414,7 +429,18 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         "CommandResponse <{0}> created from HTTP response with Status <{1}> and body <{2}>.",
                         result, response.status(), body);
             }
-            return new SendResult(result, dittoHeaders);
+            final MessageSendingFailedException sendFailure;
+            if (!httpStatus.isSuccess()) {
+                final String message =
+                        String.format("Got non success status code: <%s> and body: <%s>", httpStatus.getCode(), body);
+                sendFailure = MessageSendingFailedException.newBuilder()
+                        .message(message)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+            } else {
+                sendFailure = null;
+            }
+            return new SendResult(result, sendFailure, dittoHeaders);
         });
     }
 

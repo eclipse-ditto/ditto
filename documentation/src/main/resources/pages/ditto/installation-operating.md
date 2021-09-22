@@ -511,28 +511,24 @@ the [Manage Connections](connectivity-manage-connections.html) section.
 
 #### Managing background cleanup
 
-Ditto deletes unnecessary events and snapshots in the background according to database load.
-[Concierge](architecture-services-concierge.html) has a cluster-singleton coordinating the background cleanup process.
-The cluster singleton responds to piggyback-commands to query its state and configuration, modify the configuration,
-and restart the background cleanup process.
+Ditto deletes unnecessary events and snapshots in the background according to database load. Each Things, Policies and
+Connectivity instance has an actor coordinating a portion of the background cleanup process. The actor responds to
+piggyback-commands to query its state and configuration, modify its configuration, and restart the background cleanup
+process.
 
-Each command is sent to the actor selection `/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy` on _one_
-Concierge instance, typically `INSTANCE_INDEX=1` in a docker-based installation:
+Each command is sent to the actor selection `/user/<SERVICE_NAME>Root/persistenceCleanup`, where
+`SERVICE_NAME` is `things`, `policies` or `connectivity`:
 
-`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10s`
-
+`POST /devops/piggygack/<SERVICE_NAME>?timeout=10s`
 
 ##### Query background cleanup coordinator state
 
-`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10s`
+`POST /devops/piggygack/<SERVICE_NAME>?timeout=10s`
 
 ```json
 {
-  "targetActorSelection": "/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy",
-  "headers": {
-    "aggregate": false,
-    "is-grouped-topic": true
-  },
+  "targetActorSelection": "/user/<SERVICE_NAME>Root/persistenceCleanup",
+  "headers": {},
   "piggybackCommand": {
     "type": "status.commands:retrieveHealth"
   }
@@ -541,14 +537,12 @@ Concierge instance, typically `INSTANCE_INDEX=1` in a docker-based installation:
 
 The response has the following details:
 
-- `events`: State transitions of the actor. The top entry is the current state of the actor.
-- `credit-decisions`: Decisions on how many cleanup actions were permitted, when, and why.
-- `actions`: Log of cleanup actions, their round-trip times, and whether they were successful.
-
+- `state`: The current state of the actor.
+- `pid`: The last persistence ID being cleaned up. It has the form `<entity-type>:<entity-id>`.
 
 ```json
 {
-  "concierge": {
+  "things": {
     "1": {
       "type": "status.responses:retrieveHealth",
       "status": 200,
@@ -557,17 +551,8 @@ The response has the following details:
         "details": [
           {
             "INFO": {
-              "events": [
-                { "2019-06-24T13:42:29.878Z": "Stream terminated. Result=<Done> Error=<null>" },
-                { "2019-06-24T13:42:19.474Z": "WOKE_UP" }
-              ],
-              "credit-decisions": [
-                { "2019-06-24T13:42:29.609Z": "100: maxTimeNanos=0 is below threshold=20000000" },
-                { "2019-06-24T13:42:25.232Z": "0: maxTimeNanos=47358000 is above threshold=20000000" }
-              ],
-              "actions": [
-                { "2019-06-24T13:42:28.801Z": "200 start=2019-06-24T13:42:28.755Z <thing:ditto:thing1>" }
-              ]
+              "state": "RUNNING",
+              "pid": "thing:org.eclipse.ditto:fancy-thing_53"
             }
           }
         ]
@@ -579,15 +564,12 @@ The response has the following details:
 
 ##### Query background cleanup coordinator configuration
 
-`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10s`
+`POST /devops/piggygack/<SERVICE_NAME>?timeout=10s`
 
 ```json
 {
-  "targetActorSelection": "/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy",
-  "headers": {
-    "aggregate": false,
-    "is-grouped-topic": true
-  },
+  "targetActorSelection": "/user/<SERVICE_NAME>Root/persistenceCleanup",
+  "headers": {},
   "piggybackCommand": {
     "type": "common.commands:retrieveConfig"
   }
@@ -598,30 +580,19 @@ Response example:
 
 ```json
 {
-  "concierge": {
+  "things": {
     "1": {
       "type": "common.responses:retrieveConfig",
       "status": 200,
       "config": {
-        "cleanup-timeout": "30s",
-        "credit-decision": {
-          "credit-per-batch": 100,
-          "interval": "10s",
-          "metric-report-timeout": "10s",
-          "timer-threshold": "20ms"
-        },
-        "keep": {
-          "actions": 120,
-          "credit-decisions": 30,
-          "events": 15
-        },
-        "parallelism": 1,
-        "persistence-ids": {
-          "burst": 25,
-          "stream-idle-timeout": "10m",
-          "stream-request-timeout": "10s"
-        },
-        "quiet-period": "5m"
+        "enabled": true,
+        "interval": "3s",
+        "quiet-period": "5m",
+        "timer-threshold": "150ms",
+        "credits-per-batch": 3,
+        "reads-per-query": 100,
+        "writes-per-credit": 100,
+        "delete-final-deleted-snapshot": false
       }
     }
   }
@@ -630,15 +601,16 @@ Response example:
 
 ##### Modify background cleanup coordinator configuration
 
-Send a piggyback command of type `common.commands:modifyConfig` to change the configuration of the background cleanup
-coordinator. All subsequent cleanup processes will use the new configuration. Any ongoing cleanup is not affected.
+Send a piggyback command of type `common.commands:modifyConfig` to change the configuration of the persistence cleanup
+process. All subsequent cleanup processes will use the new configuration. The ongoing cleanup process is aborted.
 Configurations absent in the payload of the piggyback command remain unchanged.
+Set the special key `last-pid` to set the lower bound of PIDs to clean up in the next run.
 
-`POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10s`
+`POST /devops/piggygack/<SERVICE_NAME>?timeout=10s`
 
 ```json
 {
-  "targetActorSelection": "/user/conciergeRoot/eventSnapshotCleanupCoordinatorProxy",
+  "targetActorSelection": "/user/<SERVICE_NAME>Root/persistenceCleanup",
   "headers": {
     "aggregate": false,
     "is-grouped-topic": true
@@ -646,7 +618,8 @@ Configurations absent in the payload of the piggyback command remain unchanged.
   "piggybackCommand": {
     "type": "common.commands:modifyConfig",
     "config": {
-      "quiet-period": "240d"
+      "quiet-period": "240d",
+      "last-pid": "thing:namespace:PID-lower-bound"
     }
   }
 }
@@ -654,44 +627,33 @@ Configurations absent in the payload of the piggyback command remain unchanged.
 
 The response contains the effective configuration of the background cleanup coordinator. If the configuration in the
 piggyback command contains any error, then an error is logged and the actor's configuration is unchanged.
+The field `last-pid` is not a part of the configuration.
 
 ```json
 {
-  "concierge": {
+  "things": {
     "1": {
       "type": "common.responses:modifyConfig",
       "status": 200,
       "config": {
-        "cleanup-timeout": "30s",
-        "credit-decision": {
-          "credit-per-batch": 100,
-          "interval": "10s",
-          "metric-report-timeout": "10s",
-          "timer-threshold": "20ms"
-        },
-        "keep": {
-          "actions": 120,
-          "credit-decisions": 30,
-          "events": 15
-        },
-        "parallelism": 1,
-        "persistence-ids": {
-          "burst": 25,
-          "stream-idle-timeout": "10m",
-          "stream-request-timeout": "10s"
-        },
-        "quiet-period": "240d"
+        "enabled": true,
+        "interval": "3s",
+        "quiet-period": "240d",
+        "timer-threshold": "150ms",
+        "credits-per-batch": 3,
+        "reads-per-query": 100,
+        "writes-per-credit": 100,
+        "delete-final-deleted-snapshot": false
       }
     }
   }
 }
 ```
 
-
 ##### Shutdown background cleanup coordinator
 
-Send a piggyback command of type `common.commands:shutdown` to stop the background cleanup process.
-The next process is scheduled after the `quiet-period` duration in the coordinator's configuration.
+Send a piggyback command of type `common.commands:shutdown` to stop the background cleanup process. The next process is
+scheduled after the `quiet-period` duration in the coordinator's configuration.
 
 `POST /devops/piggygack/concierge/<INSTANCE_INDEX>?timeout=10s`
 

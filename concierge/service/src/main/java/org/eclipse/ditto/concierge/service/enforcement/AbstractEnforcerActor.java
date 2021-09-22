@@ -24,8 +24,8 @@ import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
-import org.eclipse.ditto.internal.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.policies.api.PolicyTag;
@@ -95,17 +95,17 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         receiveBuilder
                 .match(PolicyTag.class, policyTag -> {
                     logger.debug("Received <{}> -> Invalidating caches...", policyTag);
-                    final var entityId = CacheKey.of(policyTag.getEntityId());
+                    final var entityId = EnforcementCacheKey.of(policyTag.getEntityId());
                     invalidateCaches(entityId);
                 })
                 .match(InvalidateCacheEntry.class, invalidateCacheEntry -> {
                     logger.debug("Received <{}> -> Invalidating caches...", invalidateCacheEntry);
-                    final CacheKey entityId = invalidateCacheEntry.getEntityId();
+                    final EnforcementCacheKey entityId = invalidateCacheEntry.getEntityId();
                     invalidateCaches(entityId);
                 });
     }
 
-    private void invalidateCaches(final CacheKey entityId) {
+    private void invalidateCaches(final EnforcementCacheKey entityId) {
         if (thingIdCache != null) {
             final boolean invalidated = thingIdCache.invalidate(entityId);
             logger.debug("Thing ID cache for entity ID <{}> was invalidated: {}", entityId, invalidated);

@@ -19,28 +19,27 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import org.bson.BsonArray;
+import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.BsonValue;
-import org.bson.Document;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonNumber;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.thingsearch.service.persistence.write.IndexLengthRestrictionEnforcer;
-import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
+import org.eclipse.ditto.thingsearch.service.persistence.write.IndexLengthRestrictionEnforcer;
 
 /**
  * Flattens a Thing with an enforcer into a list of pointer-value pairs for indexing.
  */
-final class EnforcedThingFlattener implements JsonObjectVisitor<Stream<Document>> {
+final class EnforcedThingFlattener implements JsonObjectVisitor<Stream<BsonDocument>> {
 
     private static final JsonKey FEATURES_KEY =
             Thing.JsonFields.FEATURES.getPointer().getRoot().orElseThrow(() ->
@@ -62,32 +61,32 @@ final class EnforcedThingFlattener implements JsonObjectVisitor<Stream<Document>
         final BsonArray bsonArray = new BsonArray();
         final String thingId = thingJson.getValueOrThrow(Thing.JsonFields.ID);
         new EnforcedThingFlattener(thingId, enforcer, maxArraySize).eval(thingJson)
-                .forEach(doc -> bsonArray.add(BsonUtil.toBsonDocument(doc)));
+                .forEach(bsonArray::add);
         return bsonArray;
     }
 
     @Override
-    public Stream<Document> nullValue(final JsonPointer key) {
+    public Stream<BsonDocument> nullValue(final JsonPointer key) {
         return singleton(key, JsonValue.nullLiteral());
     }
 
     @Override
-    public Stream<Document> bool(final JsonPointer key, final boolean value) {
+    public Stream<BsonDocument> bool(final JsonPointer key, final boolean value) {
         return singleton(key, JsonValue.of(value));
     }
 
     @Override
-    public Stream<Document> string(final JsonPointer key, final String value) {
+    public Stream<BsonDocument> string(final JsonPointer key, final String value) {
         return singleton(key, JsonValue.of(value));
     }
 
     @Override
-    public Stream<Document> number(final JsonPointer key, final JsonNumber value) {
+    public Stream<BsonDocument> number(final JsonPointer key, final JsonNumber value) {
         return singleton(key, value);
     }
 
     @Override
-    public Stream<Document> array(final JsonPointer key, final Stream<Stream<Document>> values) {
+    public Stream<BsonDocument> array(final JsonPointer key, final Stream<Stream<BsonDocument>> values) {
         // step 1: flatten flattened value from array elements
         return values.reduce(Stream::concat)
                 // step 2: limit the number of flattened elements
@@ -98,22 +97,23 @@ final class EnforcedThingFlattener implements JsonObjectVisitor<Stream<Document>
     }
 
     @Override
-    public Stream<Document> object(final JsonPointer key, final Stream<Stream<Document>> values) {
+    public Stream<BsonDocument> object(final JsonPointer key, final Stream<Stream<BsonDocument>> values) {
         return values
                 .reduce(Stream::concat)
                 .orElseGet(() -> singleton(key, JsonObject.empty()));
     }
 
-    private Stream<Document> singleton(final JsonPointer key, final JsonValue jsonValue) {
+    private Stream<BsonDocument> singleton(final JsonPointer key, final JsonValue jsonValue) {
         final Optional<JsonValue> fixedJsonValue = indexLengthRestrictionEnforcer.enforce(key, jsonValue);
         if (fixedJsonValue.isPresent()) {
             final BsonValue bsonValue = JsonToBson.convert(fixedJsonValue.get());
             final EffectedSubjects subjects = computeEffectedSubjectIds(key);
             final BsonArray grants = toBsonArray(subjects.getGranted());
             final BsonArray revokes = toBsonArray(subjects.getRevoked());
-            final Document document = assembleDocument(key, bsonValue, grants, revokes);
+            final BsonDocument document = assembleBsonDocument(key, bsonValue, grants, revokes);
             return replaceFeatureIdByWildcard(key)
-                    .map(replacedKey -> Stream.of(document, assembleDocument(replacedKey, bsonValue, grants, revokes)))
+                    .map(replacedKey -> Stream.of(document,
+                            assembleBsonDocument(replacedKey, bsonValue, grants, revokes)))
                     .orElse(Stream.of(document));
         } else {
             // Impossible to restrict length of this key-value pair; do not index it.
@@ -132,10 +132,10 @@ final class EnforcedThingFlattener implements JsonObjectVisitor<Stream<Document>
         return bsonArray;
     }
 
-    private static Document assembleDocument(final CharSequence key, final BsonValue value, final BsonArray grants,
-            final BsonArray revokes) {
+    private static BsonDocument assembleBsonDocument(final CharSequence key, final BsonValue value,
+            final BsonArray grants, final BsonArray revokes) {
 
-        return new Document().append(PersistenceConstants.FIELD_INTERNAL_KEY, key.toString())
+        return new BsonDocument().append(PersistenceConstants.FIELD_INTERNAL_KEY, new BsonString(key.toString()))
                 .append(PersistenceConstants.FIELD_INTERNAL_VALUE, value)
                 .append(PersistenceConstants.FIELD_GRANTED, grants)
                 .append(PersistenceConstants.FIELD_REVOKED, revokes);

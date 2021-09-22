@@ -28,7 +28,7 @@ import com.typesafe.config.ConfigFactory;
  * This class is the default implementation of {@link MqttConfig}.
  */
 @Immutable
-public final class DefaultMqttConfig implements MqttConfig {
+final class DefaultMqttConfig implements MqttConfig {
 
     private static final String CONFIG_PATH = "mqtt";
     private static final String RECONNECT_PATH = "reconnect";

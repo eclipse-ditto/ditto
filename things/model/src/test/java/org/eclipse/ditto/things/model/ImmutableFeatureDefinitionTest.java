@@ -34,10 +34,10 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableFeatureDefinitionTest {
 
     private static final DefinitionIdentifier FIRST_IDENTIFIER =
-            ThingsModelFactory.newFeatureDefinitionIdentifier("org.eclipse.ditto:vorto:0.1.0");
+            ThingsModelFactory.newFeatureDefinitionIdentifier("org.eclipse.ditto:example:0.1.0");
 
     private static final DefinitionIdentifier SECOND_IDENTIFIER =
-            ThingsModelFactory.newFeatureDefinitionIdentifier("org.eclipse.ditto:vorto:1.0.0");
+            ThingsModelFactory.newFeatureDefinitionIdentifier("org.eclipse.ditto:example:1.0.0");
 
     private static final DefinitionIdentifier THIRD_IDENTIFIER =
             ThingsModelFactory.newFeatureDefinitionIdentifier("foo:bar:2.0.0");

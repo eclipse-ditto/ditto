@@ -38,6 +38,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.GenericTarget;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.AbstractMqttValidator;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttPublishTarget;
@@ -60,10 +61,13 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
     private final Function<P, CompletableFuture<R>> client;
     private final boolean dryRun;
 
-    AbstractMqttPublisherActor(final Connection connection, final Function<P, CompletableFuture<R>> client,
-            final boolean dryRun, final String clientId) {
+    AbstractMqttPublisherActor(final Connection connection,
+            final Function<P, CompletableFuture<R>> client,
+            final boolean dryRun,
+            final String clientId,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
 
-        super(connection, clientId);
+        super(connection, clientId, connectivityStatusResolver);
         this.client = client;
         this.dryRun = dryRun;
     }

@@ -20,6 +20,7 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 
+import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
 import com.github.benmanes.caffeine.cache.stats.StatsCounter;
 
@@ -112,7 +113,6 @@ public final class MetricsStatsCounter implements StatsCounter {
         }
     }
 
-    private static final int DEFAULT_EVICTION_WEIGHT = 1;
     private static final String CACHE_NAME_TAG = "cache_name";
 
     private final Counter hitCount;
@@ -143,7 +143,8 @@ public final class MetricsStatsCounter implements StatsCounter {
         estimatedInvalidations =
                 DittoMetrics.counter(MetricName.ESTIMATED_INVALIDATIONS.getValue()).tag(CACHE_NAME_TAG, cacheName);
         estimatedInvalidationsWithoutItem =
-                DittoMetrics.counter(MetricName.ESTIMATED_INVALIDATIONS_WITHOUT_ITEM.getValue()).tag(CACHE_NAME_TAG, cacheName);
+                DittoMetrics.counter(MetricName.ESTIMATED_INVALIDATIONS_WITHOUT_ITEM.getValue())
+                        .tag(CACHE_NAME_TAG, cacheName);
         this.maxSizeSupplier = maxSizeSupplier;
         this.estimatedSizeSupplier = estimatedSizeSupplier;
     }
@@ -185,13 +186,7 @@ public final class MetricsStatsCounter implements StatsCounter {
     }
 
     @Override
-    public void recordEviction() {
-        recordEviction(DEFAULT_EVICTION_WEIGHT);
-        updateCacheSizeMetrics();
-    }
-
-    @Override
-    public void recordEviction(final int weight) {
+    public void recordEviction(final int weight, final RemovalCause removalCause) {
         evictionCount.increment();
         evictionWeight.increment(weight);
         updateCacheSizeMetrics();
@@ -211,7 +206,7 @@ public final class MetricsStatsCounter implements StatsCounter {
 
     @Override
     public CacheStats snapshot() {
-        return new CacheStats(
+        return CacheStats.of(
                 hitCount.getCount(),
                 missCount.getCount(),
                 loadSuccessCount.getCount(),

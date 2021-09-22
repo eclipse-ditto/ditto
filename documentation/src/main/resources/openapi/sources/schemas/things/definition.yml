@@ -9,5 +9,5 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 type: string
-description: "A single fully qualified identifier of a definition in the form 'namespace:name:version'"
+description: "A single fully qualified identifier of a definition in the form '<namespace>:<name>:<version>' or a valid HTTP(s) URL"
 pattern: ([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+)

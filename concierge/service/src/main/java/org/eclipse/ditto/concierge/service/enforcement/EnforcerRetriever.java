@@ -22,9 +22,9 @@ import java.util.function.Function;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,8 +37,8 @@ public final class EnforcerRetriever<E> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EnforcerRetriever.class);
 
-    private final Cache<CacheKey, Entry<CacheKey>> idCache;
-    private final Function<EntityType, Cache<CacheKey, Entry<E>>> enforcerCacheFunction;
+    private final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> idCache;
+    private final Function<EntityType, Cache<EnforcementCacheKey, Entry<E>>> enforcerCacheFunction;
 
     /**
      * Constructor.
@@ -47,8 +47,8 @@ public final class EnforcerRetriever<E> {
      * @param enforcerCache the Enforcer Cache.
      */
     public EnforcerRetriever(
-            final Cache<CacheKey, Entry<CacheKey>> idCache,
-            final Cache<CacheKey, Entry<E>> enforcerCache) {
+            final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> idCache,
+            final Cache<EnforcementCacheKey, Entry<E>> enforcerCache) {
         this(idCache, resourceType -> requireNonNull(enforcerCache));
     }
 
@@ -59,8 +59,8 @@ public final class EnforcerRetriever<E> {
      * @param enforcerCacheFunction a function to determine a Enforcer Cache for a resource type.
      */
     private EnforcerRetriever(
-            final Cache<CacheKey, Entry<CacheKey>> idCache,
-            final Function<EntityType, Cache<CacheKey, Entry<E>>> enforcerCacheFunction) {
+            final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> idCache,
+            final Function<EntityType, Cache<EnforcementCacheKey, Entry<E>>> enforcerCacheFunction) {
         this.idCache = requireNonNull(idCache);
         this.enforcerCacheFunction = requireNonNull(enforcerCacheFunction);
     }
@@ -72,8 +72,8 @@ public final class EnforcerRetriever<E> {
      * @param enforcerCaches the Enforcer Caches per resource type.
      */
     public EnforcerRetriever(
-            final Cache<CacheKey, Entry<CacheKey>> idCache,
-            final Map<EntityType, Cache<CacheKey, Entry<E>>> enforcerCaches) {
+            final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> idCache,
+            final Map<EntityType, Cache<EnforcementCacheKey, Entry<E>>> enforcerCaches) {
         this(idCache, requireNonNull(enforcerCaches)::get);
     }
 
@@ -84,19 +84,19 @@ public final class EnforcerRetriever<E> {
      * @param handler handler of cache lookup results.
      * @return future after retrieved cache entries are given to the consumer.
      */
-    public CompletionStage<Contextual<WithDittoHeaders>> retrieve(final CacheKey entityKey,
-            final BiFunction<Entry<CacheKey>, Entry<E>, CompletionStage<Contextual<WithDittoHeaders>>> handler) {
+    public CompletionStage<Contextual<WithDittoHeaders>> retrieve(final EnforcementCacheKey entityKey,
+            final BiFunction<Entry<EnforcementCacheKey>, Entry<E>, CompletionStage<Contextual<WithDittoHeaders>>> handler) {
         return idCache.get(entityKey).thenCompose(enforcerKeyEntryOptional -> {
             if (enforcerKeyEntryOptional.isEmpty()) {
                 // may happen due to namespace blocking
                 LOGGER.info("Did not get id-cache value for entityKey <{}>.", entityKey);
                 return handler.apply(Entry.nonexistent(), Entry.nonexistent());
             } else {
-                final Entry<CacheKey> enforcerKeyEntry = enforcerKeyEntryOptional.get();
+                final Entry<EnforcementCacheKey> enforcerKeyEntry = enforcerKeyEntryOptional.get();
                 if (enforcerKeyEntry.exists()) {
-                    final CacheKey enforcerKey = enforcerKeyEntry.getValueOrThrow();
+                    final EnforcementCacheKey enforcerKey = enforcerKeyEntry.getValueOrThrow();
                     final EntityType entityType = enforcerKey.getId().getEntityType();
-                    final Cache<CacheKey, Entry<E>> enforcerCache =
+                    final Cache<EnforcementCacheKey, Entry<E>> enforcerCache =
                             enforcerCacheFunction.apply(entityType);
                     if (enforcerCache == null) {
                         LOGGER.error("No enforcerCache for entity type: <{}>", entityType);
@@ -119,10 +119,10 @@ public final class EnforcerRetriever<E> {
      * @param handler what to do with the enforcer.
      */
     public CompletionStage<Contextual<WithDittoHeaders>> retrieveByEnforcerKey(
-            final CacheKey enforcerKey,
+            final EnforcementCacheKey enforcerKey,
             final Function<Entry<E>, CompletionStage<Contextual<WithDittoHeaders>>> handler) {
         final EntityType entityType = enforcerKey.getId().getEntityType();
-        final Cache<CacheKey, Entry<E>> enforcerCache = enforcerCacheFunction.apply(entityType);
+        final Cache<EnforcementCacheKey, Entry<E>> enforcerCache = enforcerCacheFunction.apply(entityType);
         if (enforcerCache == null) {
             throw new IllegalStateException("No enforcerCache for entity type: " + entityType);
         }

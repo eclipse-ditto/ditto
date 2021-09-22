@@ -23,7 +23,6 @@ import java.util.stream.IntStream;
 
 import org.bson.BsonDocument;
 import org.bson.BsonString;
-import org.bson.Document;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
@@ -204,7 +203,7 @@ public final class BulkWriteResultAckFlowTest {
             if (i % 2 == 0) {
                 writeModels.add(ThingDeleteModel.of(metadata, false));
             } else {
-                writeModels.add(ThingWriteModel.of(metadata, new Document()));
+                writeModels.add(ThingWriteModel.of(metadata, new BsonDocument()));
             }
         }
         return writeModels;

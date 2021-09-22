@@ -34,9 +34,9 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
@@ -107,7 +107,7 @@ public final class PolicyCommandEnforcementTest {
     private static final String NAMESPACE = "my.namespace";
     private static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, "policyId");
     private static final String CORRELATION_ID = "test-correlation-id";
-    private static final CacheKey ENTITY_ID = CacheKey.of(POLICY_ID);
+    private static final EnforcementCacheKey ENTITY_ID = EnforcementCacheKey.of(POLICY_ID);
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.newBuilder()
             .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
@@ -142,7 +142,7 @@ public final class PolicyCommandEnforcementTest {
 
     private ActorSystem system;
     private TestProbe policiesShardRegionProbe;
-    private Cache<CacheKey, Entry<PolicyEnforcer>> enforcerCache;
+    private Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> enforcerCache;
     private ActorRef enforcer;
 
     @Before

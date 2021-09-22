@@ -264,6 +264,11 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     }
 
     @Override
+    public boolean shouldRetrieveDeleted() {
+        return isExpectedBoolean(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED, Boolean.TRUE);
+    }
+
+    @Override
     public Optional<String> getCondition() {
         return getStringForDefinition(DittoHeaderDefinition.CONDITION);
     }

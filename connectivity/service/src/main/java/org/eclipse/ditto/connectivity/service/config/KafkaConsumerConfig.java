@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.service.config;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 
 import com.typesafe.config.Config;
 
@@ -29,7 +29,15 @@ public interface KafkaConsumerConfig {
      *
      * @return the config.
      */
-    ThrottlingConfig getThrottlingConfig();
+    ConnectionThrottlingConfig getThrottlingConfig();
+
+    /**
+     * Returns the config to configure the backOff for restarting the qos 1 consumer stream after a failed
+     * acknowledgement.
+     *
+     * @return the config.
+     */
+    ExponentialBackOffConfig getRestartBackOffConfig();
 
     /**
      * Returns the Config for consumers needed by the Kafka client.

@@ -20,6 +20,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -71,8 +72,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
     private final LiveSignalPub liveSignalPub;
 
     private LiveSignalEnforcement(final Contextual<SignalWithEntityId<?>> context,
-            final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
-            final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
+            final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
+            final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
             final LiveSignalPub liveSignalPub) {
 
         super(context);
@@ -87,8 +88,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
      */
     public static final class Provider implements EnforcementProvider<SignalWithEntityId<?>> {
 
-        private final Cache<CacheKey, Entry<CacheKey>> thingIdCache;
-        private final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache;
+        private final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache;
+        private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
         private final LiveSignalPub liveSignalPub;
 
         /**
@@ -98,8 +99,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
          * @param policyEnforcerCache the policy-enforcer cache.
          * @param liveSignalPub distributed-pub access for live signal publication
          */
-        public Provider(final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
-                final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
+        public Provider(final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
+                final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
                 final LiveSignalPub liveSignalPub) {
 
             this.thingIdCache = requireNonNull(thingIdCache);

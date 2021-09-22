@@ -19,27 +19,40 @@
  import org.eclipse.ditto.base.model.headers.DittoHeaders;
  import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
  import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+ import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 
  /**
   * The result of a published message holding an optional command response (which also can be an acknowledgement).
   */
  public final class SendResult implements DittoHeadersSettable<SendResult> {
 
+     @Nullable private final MessageSendingFailedException sendFailure;
      @Nullable private final CommandResponse<?> commandResponse;
      private final DittoHeaders dittoHeaders;
 
      public SendResult(@Nullable final CommandResponse<?> commandResponse, final DittoHeaders dittoHeaders) {
+         this(commandResponse, null, dittoHeaders);
+     }
+
+     public SendResult(@Nullable final CommandResponse<?> commandResponse,
+             @Nullable MessageSendingFailedException sendFailure,
+             final DittoHeaders dittoHeaders) {
          this.commandResponse = commandResponse;
+         this.sendFailure = sendFailure;
          this.dittoHeaders = dittoHeaders;
      }
 
      @Override
      public SendResult setDittoHeaders(final DittoHeaders dittoHeaders) {
-         return new SendResult(commandResponse, dittoHeaders);
+         return new SendResult(commandResponse, sendFailure, dittoHeaders);
      }
 
      public Optional<CommandResponse<?>> getCommandResponse() {
          return Optional.ofNullable(commandResponse);
+     }
+
+     public Optional<MessageSendingFailedException> getSendFailure() {
+         return Optional.ofNullable(sendFailure);
      }
 
      @Override

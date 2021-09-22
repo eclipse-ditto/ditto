@@ -12,9 +12,14 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
-import org.eclipse.ditto.json.JsonObject;
+import java.util.Optional;
+
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
 import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -25,6 +30,23 @@ public final class ConnectionMongoSnapshotAdapter extends AbstractMongoSnapshotA
 
     public ConnectionMongoSnapshotAdapter() {
         super(LoggerFactory.getLogger(ConnectionMongoSnapshotAdapter.class));
+    }
+
+    @Override
+    protected boolean isDeleted(final Connection snapshotEntity) {
+        return snapshotEntity.hasLifecycle(ConnectionLifecycle.DELETED);
+    }
+
+    @Override
+    protected JsonField getDeletedLifecycleJsonField() {
+        final var field = Connection.JsonFields.LIFECYCLE;
+        return JsonField.newInstance(field.getPointer().getRoot().orElseThrow(),
+                JsonValue.of(ConnectionLifecycle.DELETED.name()), field);
+    }
+
+    @Override
+    protected Optional<JsonField> getRevisionJsonField(final Connection entity) {
+        return Optional.empty();
     }
 
     @Override

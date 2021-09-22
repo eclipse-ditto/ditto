@@ -74,4 +74,5 @@ final class DefaultThrottlingConfig implements ThrottlingConfig {
                 ", limit=" + limit +
                 "]";
     }
+
 }

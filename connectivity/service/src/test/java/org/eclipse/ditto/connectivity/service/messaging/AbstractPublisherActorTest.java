@@ -58,6 +58,7 @@ import akka.testkit.javadsl.TestKit;
 public abstract class AbstractPublisherActorTest {
 
     protected static final Config CONFIG = ConfigFactory.load("test");
+    protected static final ThingId THING_ID = ThingId.of("thing", "id");
     protected ActorSystem actorSystem;
 
     @Before
@@ -214,7 +215,7 @@ public abstract class AbstractPublisherActorTest {
         final DittoHeaders internalHeaders = externalHeaders.toBuilder()
                 .replyTarget(0)
                 .build();
-        final ThingCommandResponse<?> source = DeleteThingResponse.of(ThingId.of("thing", "id"), internalHeaders);
+        final ThingCommandResponse<?> source = DeleteThingResponse.of(THING_ID, internalHeaders);
         final ExternalMessage externalMessage =
                 ExternalMessageFactory.newExternalMessageBuilder(externalHeaders)
                         .withAdditionalHeaders(DittoHeaderDefinition.CORRELATION_ID.getKey(),

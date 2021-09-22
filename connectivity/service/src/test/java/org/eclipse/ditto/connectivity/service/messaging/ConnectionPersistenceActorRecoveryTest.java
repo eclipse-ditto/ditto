@@ -17,19 +17,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionMongoSnapshotAdapter;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionCreated;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionDeleted;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
+import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionMongoSnapshotAdapter;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -109,8 +112,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
             expectTerminated(underTest);
 
             // verify snapshot was saved with DELETED lifecycle
-            final Connection deletedConnection = setLifecycleDeleted(connectionCreated.getConnection());
-            final SnapshotOffer snapshot = getSnapshotOffer(deletedConnection, 2); // created + deleted = 2
+            final SnapshotOffer snapshot = getSnapshotOffer(null, 2); // created + deleted = 2
             final Queue<Object> expected = new LinkedList<>(Arrays.asList(snapshot, RecoveryCompleted.getInstance()));
             actorSystem.actorOf(RecoverActor.props(connectionId, getRef(), expected));
             expectMsgEquals("recovered");
@@ -155,7 +157,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
                 .build();
     }
 
-    private SnapshotOffer getSnapshotOffer(final Connection deletedConnection, final int sequenceNr) {
+    private SnapshotOffer getSnapshotOffer(@Nullable final Object deletedConnection, final int sequenceNr) {
         final SnapshotMetadata metadata = new SnapshotMetadata(PERSISTENCE_ID_PREFIX + connectionId, sequenceNr, 0);
         return new SnapshotOffer(metadata, deletedConnection);
     }
@@ -216,7 +218,7 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
                     fail("expected sequence nr: " + expected.metadata().sequenceNr() + " but got: " +
                             snapshotOffer.metadata().sequenceNr());
                 }
-                if (!expected.snapshot().equals(SNAPSHOT_ADAPTER.fromSnapshotStore(snapshotOffer))) {
+                if (!Objects.equals(expected.snapshot(), SNAPSHOT_ADAPTER.fromSnapshotStore(snapshotOffer))) {
                     fail("expected: " + expected.snapshot() + " but got: " + snapshotOffer.snapshot());
                 }
             } else {

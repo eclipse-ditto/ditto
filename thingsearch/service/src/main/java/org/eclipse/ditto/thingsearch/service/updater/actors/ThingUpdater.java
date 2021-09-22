@@ -22,6 +22,7 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.bson.BsonDocument;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
@@ -41,8 +42,15 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.BsonDiff;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ConsistencyLag;
+
+import com.mongodb.client.model.UpdateOneModel;
+import com.mongodb.client.model.WriteModel;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -63,14 +71,20 @@ final class ThingUpdater extends AbstractActor {
     private final ThingId thingId;
     private final ShutdownBehaviour shutdownBehaviour;
     private final ActorRef changeQueueActor;
+    private final double forceUpdateProbability;
 
     // state of Thing and Policy
     private long thingRevision = -1L;
     @Nullable private PolicyId policyId = null;
     private long policyRevision = -1L;
 
+    // cache last update document for incremental updates
+    @Nullable AbstractWriteModel lastWriteModel = null;
+
     @SuppressWarnings("unused") //It is used via reflection. See props method.
-    private ThingUpdater(final ActorRef pubSubMediator, final ActorRef changeQueueActor) {
+    private ThingUpdater(final ActorRef pubSubMediator,
+            final ActorRef changeQueueActor,
+            final double forceUpdateProbability) {
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         final var dittoSearchConfig = DittoSearchConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -78,6 +92,7 @@ final class ThingUpdater extends AbstractActor {
         thingId = tryToGetThingId();
         shutdownBehaviour = ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
         this.changeQueueActor = changeQueueActor;
+        this.forceUpdateProbability = forceUpdateProbability;
 
         getContext().setReceiveTimeout(dittoSearchConfig.getUpdaterConfig().getMaxIdleTime());
     }
@@ -87,17 +102,21 @@ final class ThingUpdater extends AbstractActor {
      *
      * @param pubSubMediator Akka pub-sub mediator.
      * @param changeQueueActor reference of the change queue actor.
+     * @param updaterConfig the updater config.
      * @return the Akka configuration Props object
      */
-    static Props props(final ActorRef pubSubMediator, final ActorRef changeQueueActor) {
+    static Props props(final ActorRef pubSubMediator, final ActorRef changeQueueActor,
+            final UpdaterConfig updaterConfig) {
 
-        return Props.create(ThingUpdater.class, pubSubMediator, changeQueueActor);
+        return Props.create(ThingUpdater.class, pubSubMediator, changeQueueActor,
+                updaterConfig.getForceUpdateProbability());
     }
 
     @Override
     public Receive createReceive() {
         return shutdownBehaviour.createReceive()
                 .match(ThingEvent.class, this::processThingEvent)
+                .match(AbstractWriteModel.class, this::onNextWriteModel)
                 .match(ThingTag.class, this::processThingTag)
                 .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
                 .match(UpdateThing.class, this::updateThing)
@@ -108,6 +127,35 @@ final class ThingUpdater extends AbstractActor {
                     unhandled(m);
                 })
                 .build();
+    }
+
+    private void onNextWriteModel(final AbstractWriteModel nextWriteModel) {
+        final WriteModel<BsonDocument> mongoWriteModel;
+        final boolean forceUpdate = Math.random() < forceUpdateProbability;
+        if (!forceUpdate && lastWriteModel instanceof ThingWriteModel && nextWriteModel instanceof ThingWriteModel) {
+            final var last = (ThingWriteModel) lastWriteModel;
+            final var next = (ThingWriteModel) nextWriteModel;
+            final var diff = BsonDiff.minusThingDocs(next.getThingDocument(), last.getThingDocument());
+            if (diff.isDiffSmaller()) {
+                final var aggregationPipeline = diff.consumeAndExport();
+                mongoWriteModel = new UpdateOneModel<>(nextWriteModel.getFilter(), aggregationPipeline);
+                log.debug("Using incremental update <{}>", mongoWriteModel);
+            } else {
+                mongoWriteModel = nextWriteModel.toMongo();
+                if (log.isDebugEnabled()) {
+                    log.debug("Using replacement because it is smaller. Diff=<{}>", diff.consumeAndExport());
+                }
+            }
+        } else {
+            mongoWriteModel = nextWriteModel.toMongo();
+            if (forceUpdate) {
+                log.debug("Using replacement (forceUpdate) <{}>", mongoWriteModel);
+            } else {
+                log.debug("Using replacement <{}>", mongoWriteModel);
+            }
+        }
+        getSender().tell(mongoWriteModel, getSelf());
+        lastWriteModel = nextWriteModel;
     }
 
     private void stopThisActor(final ReceiveTimeout receiveTimeout) {
@@ -145,7 +193,7 @@ final class ThingUpdater extends AbstractActor {
     }
 
     private void enqueueMetadata(final Metadata metadata) {
-        changeQueueActor.tell(metadata, getSelf());
+        changeQueueActor.tell(metadata.withOrigin(getSelf()), getSelf());
     }
 
     private void processThingTag(final ThingTag thingTag) {
@@ -166,11 +214,14 @@ final class ThingUpdater extends AbstractActor {
     private void updateThing(final UpdateThing updateThing) {
         log.withCorrelationId(updateThing)
                 .info("Requested to update search index <{}> by <{}>", updateThing, getSender());
+        lastWriteModel = null;
         enqueueMetadata(exportMetadata(null, null).invalidateCache());
     }
 
     private void processUpdateThingResponse(final UpdateThingResponse response) {
         if (!response.isSuccess()) {
+            // discard last write model: index document is not known
+            lastWriteModel = null;
             final Metadata metadata = exportMetadata(null, null).invalidateCache();
             log.warning("Got negative acknowledgement for <{}>; updating to <{}>.",
                     Metadata.fromResponse(response),

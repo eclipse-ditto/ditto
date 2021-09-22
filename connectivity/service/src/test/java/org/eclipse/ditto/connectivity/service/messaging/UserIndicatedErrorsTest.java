@@ -25,6 +25,15 @@ import com.typesafe.config.ConfigFactory;
  */
 public final class UserIndicatedErrorsTest {
 
+    private static final IllegalArgumentException MATCHING_EXCEPTION =
+            new IllegalArgumentException("This exception should match.");
+    private static final IllegalArgumentException NON_MATCHING_EXCEPTION =
+            new IllegalArgumentException("This exception should not match.");
+    private static final IllegalArgumentException NON_MATCHING_EXCEPTION_WITH_MATCHING_CAUSE =
+            new IllegalArgumentException("This exception should not match.", MATCHING_EXCEPTION);
+    private static final IllegalArgumentException NON_MATCHING_EXCEPTION_WITH_NESTED_MATCHING_CAUSE =
+            new IllegalArgumentException("This is not a problem at all.", NON_MATCHING_EXCEPTION_WITH_MATCHING_CAUSE);
+
     private UserIndicatedErrors underTest;
 
     @Before
@@ -40,12 +49,22 @@ public final class UserIndicatedErrorsTest {
 
     @Test
     public void illegalArgumentExceptionWithCorrectMessageMatches() {
-        assertThat(underTest.matches(new IllegalArgumentException("This exception should match."))).isTrue();
+        assertThat(underTest.matches(MATCHING_EXCEPTION)).isTrue();
     }
 
     @Test
     public void illegalArgumentExceptionWithWrongMessageDoesNotMatch() {
-        assertThat(underTest.matches(new IllegalArgumentException("This exception should not match."))).isFalse();
+        assertThat(underTest.matches(NON_MATCHING_EXCEPTION)).isFalse();
+    }
+
+    @Test
+    public void illegalArgumentExceptionWithCauseCorrectMessageMatches() {
+        assertThat(underTest.matches(NON_MATCHING_EXCEPTION_WITH_MATCHING_CAUSE)).isTrue();
+    }
+
+    @Test
+    public void illegalArgumentExceptionWithNestedCauseCorrectMessageMatches() {
+        assertThat(underTest.matches(NON_MATCHING_EXCEPTION_WITH_NESTED_MATCHING_CAUSE)).isTrue();
     }
 
     /**
@@ -63,9 +82,9 @@ public final class UserIndicatedErrorsTest {
 
         final Config config = ConfigFactory.load("user-indicated-errors-via-env");
         final UserIndicatedErrors withEnvInjectedConfig = UserIndicatedErrors.of(config);
-        assertThat(withEnvInjectedConfig.matches(new IllegalArgumentException("This exception should match.")))
+        assertThat(withEnvInjectedConfig.matches(MATCHING_EXCEPTION))
                 .isTrue();
-        assertThat(withEnvInjectedConfig.matches(new IllegalArgumentException("This exception should not match.")))
+        assertThat(withEnvInjectedConfig.matches(NON_MATCHING_EXCEPTION))
                 .isFalse();
         assertThat(withEnvInjectedConfig.matches(new ArithmeticException("Some hickup here, nevermind")))
                 .isTrue();

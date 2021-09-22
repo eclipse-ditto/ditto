@@ -20,9 +20,10 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.bson.BsonArray;
+import org.bson.BsonDocument;
+import org.bson.BsonInt64;
 import org.bson.BsonString;
 import org.bson.BsonValue;
-import org.bson.Document;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
@@ -61,7 +62,7 @@ public final class EnforcedThingMapper {
      * @return BSON document to write into the search index.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
      */
-    public static Document mapThing(final JsonObject thing, final Enforcer enforcer, final long policyRevision) {
+    public static BsonDocument mapThing(final JsonObject thing, final Enforcer enforcer, final long policyRevision) {
         return toWriteModel(thing, enforcer, policyRevision).getThingDocument();
     }
 
@@ -103,27 +104,34 @@ public final class EnforcedThingMapper {
         final long thingRevision = thing.getValueOrThrow(Thing.JsonFields.REVISION);
         final var nullablePolicyId = thing.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of).orElse(null);
         final var metadata = Metadata.of(thingId, thingRevision, nullablePolicyId, policyRevision,
-                Optional.ofNullable(oldMetadata).flatMap(Metadata::getModified).orElse(null),
-                Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(List.of()),
-                Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(List.of()));
+                        Optional.ofNullable(oldMetadata).flatMap(Metadata::getModified).orElse(null),
+                        Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(List.of()),
+                        Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(List.of()))
+                .withOrigin(Optional.ofNullable(oldMetadata).flatMap(Metadata::getOrigin).orElse(null));
 
-        // hierarchical values for sorting
+        return ThingWriteModel.of(metadata, toBsonDocument(thing, enforcer, maxArraySize, metadata));
+    }
+
+    static BsonDocument toBsonDocument(final JsonObject thing,
+            final Enforcer enforcer,
+            final int maxArraySize,
+            final Metadata metadata) {
+
+        final var thingId = metadata.getThingId();
+        final var thingRevision = metadata.getThingRevision();
+        final var policyRevision = metadata.getPolicyRevision().orElse(0L);
         final BsonValue thingCopyForSorting = JsonToBson.convert(pruneArrays(thing, maxArraySize));
-
-        // flattened values for querying with special handling for thingId and namespace
         final BsonArray flattenedValues = EnforcedThingFlattener.flattenJson(thing, enforcer, maxArraySize);
-
-        final Document thingDocument =
-                new Document().append(PersistenceConstants.FIELD_ID, thingId.toString())
-                        .append(PersistenceConstants.FIELD_REVISION, thingRevision)
-                        .append(PersistenceConstants.FIELD_NAMESPACE, metadata.getNamespaceInPersistence())
-                        .append(PersistenceConstants.FIELD_GLOBAL_READ, getGlobalRead(enforcer))
-                        .append(PersistenceConstants.FIELD_POLICY_ID, metadata.getPolicyIdInPersistence())
-                        .append(PersistenceConstants.FIELD_POLICY_REVISION, policyRevision)
-                        .append(PersistenceConstants.FIELD_SORTING, thingCopyForSorting)
-                        .append(PersistenceConstants.FIELD_INTERNAL, flattenedValues);
-
-        return ThingWriteModel.of(metadata, thingDocument);
+        return new BsonDocument().append(PersistenceConstants.FIELD_ID, new BsonString(thingId.toString()))
+                .append(PersistenceConstants.FIELD_REVISION, new BsonInt64(thingRevision))
+                .append(PersistenceConstants.FIELD_NAMESPACE,
+                        new BsonString(metadata.getNamespaceInPersistence()))
+                .append(PersistenceConstants.FIELD_GLOBAL_READ, getGlobalRead(enforcer))
+                .append(PersistenceConstants.FIELD_POLICY_ID,
+                        new BsonString(metadata.getPolicyIdInPersistence()))
+                .append(PersistenceConstants.FIELD_POLICY_REVISION, new BsonInt64(policyRevision))
+                .append(PersistenceConstants.FIELD_SORTING, thingCopyForSorting)
+                .append(PersistenceConstants.FIELD_INTERNAL, flattenedValues);
     }
 
     private static BsonArray getGlobalRead(final Enforcer enforcer) {

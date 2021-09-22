@@ -33,12 +33,15 @@ public final class DefaultJavaScriptConfig implements JavaScriptConfig {
     private final int maxScriptSizeBytes;
     private final Duration maxScriptExecutionTime;
     private final int maxScriptStackDepth;
+    private final boolean allowUnsafeStandardObjects;
 
     private DefaultJavaScriptConfig(final ScopedConfig config) {
         maxScriptSizeBytes = config.getPositiveIntOrThrow(JavaScriptConfigValue.MAX_SCRIPT_SIZE_BYTES);
         maxScriptExecutionTime =
                 config.getNonNegativeAndNonZeroDurationOrThrow(JavaScriptConfigValue.MAX_SCRIPT_EXECUTION_TIME);
         maxScriptStackDepth = config.getPositiveIntOrThrow(JavaScriptConfigValue.MAX_SCRIPT_STACK_DEPTH);
+        allowUnsafeStandardObjects = config.getBoolean(JavaScriptConfigValue.ALLOW_UNSAFE_STANDARD_OBJECTS
+                .getConfigPath());
     }
 
     /**
@@ -69,6 +72,11 @@ public final class DefaultJavaScriptConfig implements JavaScriptConfig {
     }
 
     @Override
+    public boolean isAllowUnsafeStandardObjects() {
+        return allowUnsafeStandardObjects;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -79,12 +87,13 @@ public final class DefaultJavaScriptConfig implements JavaScriptConfig {
         final DefaultJavaScriptConfig that = (DefaultJavaScriptConfig) o;
         return maxScriptSizeBytes == that.maxScriptSizeBytes &&
                 maxScriptStackDepth == that.maxScriptStackDepth &&
+                allowUnsafeStandardObjects == that.allowUnsafeStandardObjects &&
                 Objects.equals(maxScriptExecutionTime, that.maxScriptExecutionTime);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxScriptSizeBytes, maxScriptExecutionTime, maxScriptStackDepth);
+        return Objects.hash(maxScriptSizeBytes, maxScriptExecutionTime, maxScriptStackDepth, allowUnsafeStandardObjects);
     }
 
     @Override
@@ -93,6 +102,7 @@ public final class DefaultJavaScriptConfig implements JavaScriptConfig {
                 "maxScriptSizeBytes=" + maxScriptSizeBytes +
                 ", maxScriptExecutionTime=" + maxScriptExecutionTime +
                 ", maxScriptStackDepth=" + maxScriptStackDepth +
+                ", allowUnsafeStandardObjects=" + allowUnsafeStandardObjects +
                 "]";
     }
 

@@ -407,7 +407,7 @@ public final class HttpStatus {
     public static final HttpStatus NETWORK_CONNECT_TIMEOUT = assign(599);
 
     private final int code;
-    private final transient Category category;
+    private final Category category;
 
     private HttpStatus(final int code, final Category category) {
         this.code = code;
@@ -503,12 +503,12 @@ public final class HttpStatus {
             return false;
         }
         final HttpStatus that = (HttpStatus) o;
-        return code == that.code;
+        return code == that.code && category == that.category;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(code);
+        return Objects.hash(code, category);
     }
 
     @Override

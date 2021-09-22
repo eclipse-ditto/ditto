@@ -12,31 +12,12 @@
  */
 package org.eclipse.ditto.internal.utils.cache;
 
-import java.util.Optional;
-
 import javax.annotation.concurrent.Immutable;
-
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 
 /**
  * Additional context provided for cache lookups using {@link CacheKey} as caching key.
  */
 @Immutable
 public interface CacheLookupContext {
-
-    /**
-     * Returns the optional DittoHeaders this context provides.
-     *
-     * @return the optional DittoHeaders.
-     */
-    Optional<DittoHeaders> getDittoHeaders();
-
-    /**
-     * Returns the optional JsonFieldSelector this context provides.
-     *
-     * @return the optional JsonFieldSelector.
-     */
-    Optional<JsonFieldSelector> getJsonFieldSelector();
 
 }
