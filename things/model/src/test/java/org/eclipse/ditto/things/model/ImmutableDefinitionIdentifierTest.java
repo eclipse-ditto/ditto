@@ -16,8 +16,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
+
+import java.net.MalformedURLException;
+import java.net.URL;
 
 import org.junit.Test;
 
@@ -29,13 +33,26 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableDefinitionIdentifierTest {
 
     private static final String NAMESPACE = "org.eclipse.ditto";
-    private static final String NAME = "vorto";
+    private static final String NAME = "example";
     private static final String VERSION = "0.1.0";
     private static final String VALID_IDENTIFIER_STRING = NAMESPACE + ":" + NAME + ":" + VERSION;
 
+    private static final String VALID_IDENTIFIER_URL_STR = "https://ditto.eclipseprojects.io/some/file.json";
+    private static URL VALID_IDENTIFIER_URL;
+
+
+    static {
+        try {
+            VALID_IDENTIFIER_URL = new URL(VALID_IDENTIFIER_URL_STR);
+        } catch (final MalformedURLException e) {
+            // ignore
+        }
+    }
+
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableDefinitionIdentifier.class, areImmutable());
+        assertInstancesOf(ImmutableDefinitionIdentifier.class, areImmutable(),
+                provided(URL.class).isAlsoImmutable());
     }
 
     @Test
@@ -119,11 +136,27 @@ public final class ImmutableDefinitionIdentifierTest {
     }
 
     @Test
+    public void getUrlReturnsExpected() {
+        final DefinitionIdentifier underTest =
+                ImmutableDefinitionIdentifier.getInstance(VALID_IDENTIFIER_URL);
+
+        assertThat(underTest.getUrl()).contains(VALID_IDENTIFIER_URL);
+    }
+
+    @Test
     public void toStringReturnsExpected() {
         final DefinitionIdentifier underTest =
                 ImmutableDefinitionIdentifier.getInstance(NAMESPACE, NAME, VERSION);
 
         assertThat(underTest.toString()).isEqualTo(VALID_IDENTIFIER_STRING);
+    }
+
+    @Test
+    public void toStringWithUrlReturnsExpected() {
+        final DefinitionIdentifier underTest =
+                ImmutableDefinitionIdentifier.getInstance(VALID_IDENTIFIER_URL);
+
+        assertThat(underTest.toString()).isEqualTo(VALID_IDENTIFIER_URL_STR);
     }
 
     @Test
@@ -171,6 +204,31 @@ public final class ImmutableDefinitionIdentifierTest {
                 ImmutableDefinitionIdentifier.getInstance(NAMESPACE, NAME, VERSION);
 
         assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void parseValidIdentifierUrlString() {
+        final DefinitionIdentifier actual =
+                ImmutableDefinitionIdentifier.ofParsed(VALID_IDENTIFIER_URL_STR);
+
+        assertThat(actual.getNamespace()).isEmpty();
+        assertThat(actual.getName()).isEmpty();
+        assertThat(actual.getVersion()).isEmpty();
+        assertThat(actual.getUrl()).contains(VALID_IDENTIFIER_URL);
+
+        final DefinitionIdentifier expected =
+                ImmutableDefinitionIdentifier.getInstance(VALID_IDENTIFIER_URL);
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void tryToParseIdentifierUrlStringWithMalformedUrl() {
+        final String invalidString = "org/eclipse/ditto" + ":" + NAME + ":" + VERSION;
+
+        assertThatExceptionOfType(DefinitionIdentifierInvalidException.class)
+                .isThrownBy(() -> ImmutableDefinitionIdentifier.ofParsed(invalidString))
+                .withMessage("Definition identifier <%s> is invalid!", invalidString)
+                .withNoCause();
     }
 
 }

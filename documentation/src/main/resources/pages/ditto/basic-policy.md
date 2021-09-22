@@ -143,22 +143,22 @@ A user is authorized to inject the token integration subject when granted the `E
 The `WRITE` permission is not necessary. To activate or deactivate a token integration subject, send a `POST` 
 request to the following HTTP routes:
 
-- [POST /api/2/policies/{policyId}/actions/activateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__actions_activateTokenIntegration)<br/>
+- [POST /api/2/policies/{policyId}/actions/activateTokenIntegration](http-api-doc.html#/Policies/post_policies__policyId__actions_activateTokenIntegration)<br/>
   Injects a new subject **into all matched policy entries** calculated with information extracted from the authenticated 
   JWT. 
    - the authenticated token must be granted the `EXECUTE` permission to perform the `activateTokenIntegration` action
    - one of the subject IDs must be contained in the authenticated token
    - at least one `READ` permission to a `thing:/` resource path must be granted
-- [POST /api/2/policies/{policyId}/actions/deactivateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__actions_deactivateTokenIntegration)<br/>
+- [POST /api/2/policies/{policyId}/actions/deactivateTokenIntegration](http-api-doc.html#/Policies/post_policies__policyId__actions_deactivateTokenIntegration)<br/>
   Removes the calculated subject with information extracted from the authenticated JWT **from all matched policy entries**. 
    - the authenticated token must be granted the `EXECUTE` permission to perform the `deactivateTokenIntegration` action
    - one of the subject IDs must be contained in the authenticated token 
-- [POST /api/2/policies/{policyId}/entries/{label}/actions/activateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__entries__label__actions_activateTokenIntegration)<br/>
+- [POST /api/2/policies/{policyId}/entries/{label}/actions/activateTokenIntegration](http-api-doc.html#/Policies/post_policies__policyId__entries__label__actions_activateTokenIntegration)<br/>
   Injects the calculated subject **into the policy entry** calculated with information extracted from the authenticated JWT.
    - the authenticated token must be granted the `EXECUTE` permission to perform the `activateTokenIntegration` action
    - one of the subject IDs must be contained in the authenticated token
    - at least one `READ` permission to a `thing:/` resource path must be granted
-- [POST /api/2/policies/{policyId}/entries/{label}/actions/deactivateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__entries__label__actions_deactivateTokenIntegration)<br/>
+- [POST /api/2/policies/{policyId}/entries/{label}/actions/deactivateTokenIntegration](http-api-doc.html#/Policies/post_policies__policyId__entries__label__actions_deactivateTokenIntegration)<br/>
   Removes the calculated subject with information extracted from the authenticated JWT **from the policy entry**.
    - the authenticated token must be granted the `EXECUTE` permission to perform the `deactivateTokenIntegration` action
    - one of the subject IDs must be contained in the authenticated token

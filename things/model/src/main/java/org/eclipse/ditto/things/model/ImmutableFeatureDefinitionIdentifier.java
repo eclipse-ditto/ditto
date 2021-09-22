@@ -14,7 +14,9 @@ package org.eclipse.ditto.things.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.net.URL;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -83,6 +85,11 @@ final class ImmutableFeatureDefinitionIdentifier implements DefinitionIdentifier
     @Override
     public String getVersion() {
         return delegate.getVersion();
+    }
+
+    @Override
+    public Optional<URL> getUrl() {
+        return delegate.getUrl();
     }
 
     @Override

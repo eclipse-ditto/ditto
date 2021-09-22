@@ -153,7 +153,7 @@ put:
 
       Consider that the value has to be a JSON array or `null`.
 
-      The content of the JSON array are strings in the format `"namespace:name:version"` which is enforced.
+      The content of the JSON array are strings in the format `"<namespace>:<name>:<version>"` or a valid HTTP(s) URL, which is enforced.
     required: true
 patch:
   summary: Patch the definition of a feature
@@ -232,7 +232,7 @@ patch:
     description: |-
       JSON array of the complete definition to be patched. Consider that the value has to be a JSON array.
 
-      The content of the JSON array are strings in the format `"namespace:name:version"` which is enforced.
+      The content of the JSON array are strings in the format `"<namespace>:<name>:<version>"` or a valid HTTP(s) URL, which is enforced.
       To delete the definition use `null` as content in the request body.
     required: true
 delete:

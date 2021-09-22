@@ -18,14 +18,14 @@ import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.
 import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
+import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
+import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
-import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
-import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperties;
 import org.junit.Before;
 import org.junit.Rule;
@@ -168,7 +168,7 @@ public final class FeaturesRouteTest extends EndpointTestBase {
 
     @Test
     public void putFeatureEntryDefinition() {
-        final FeatureDefinition featureDefinition = FeatureDefinition.fromIdentifier("org.eclipse.ditto:vorto:0.1.0");
+        final FeatureDefinition featureDefinition = FeatureDefinition.fromIdentifier("org.eclipse.ditto:example:0.1.0");
         final TestRouteResult result = underTest.run(
                 HttpRequest.PUT(FEATURE_ENTRY_DEFINITION_PATH)
                         .withEntity(ContentTypes.APPLICATION_JSON, featureDefinition.toJsonString()));
@@ -498,7 +498,7 @@ public final class FeaturesRouteTest extends EndpointTestBase {
 
     @Test
     public void patchFeatureEntryDefinitionSuccessfully() {
-        final String featureDefinition = "[\"org.eclipse.ditto:vorto:0.1.0\"]";
+        final String featureDefinition = "[\"org.eclipse.ditto:example:0.1.0\"]";
         final TestRouteResult result = underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_DEFINITION_PATH)
                 .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), featureDefinition));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
@@ -506,7 +506,7 @@ public final class FeaturesRouteTest extends EndpointTestBase {
 
     @Test
     public void patchFeatureEntryDefinitionWithJsonException() {
-        final String featureDefinition = "org.eclipse.ditto:vorto:0.1.0";
+        final String featureDefinition = "org.eclipse.ditto:example:0.1.0";
         final TestRouteResult result = underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_DEFINITION_PATH)
                 .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), featureDefinition));
         result.assertStatusCode(StatusCodes.BAD_REQUEST);

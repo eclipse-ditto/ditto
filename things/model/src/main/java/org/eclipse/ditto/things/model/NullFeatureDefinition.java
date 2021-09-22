@@ -12,10 +12,12 @@
  */
 package org.eclipse.ditto.things.model;
 
+import java.net.URL;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
@@ -112,6 +114,11 @@ final class NullFeatureDefinition implements FeatureDefinition {
         @Override
         public String getVersion() {
             return "";
+        }
+
+        @Override
+        public Optional<URL> getUrl() {
+            return Optional.empty();
         }
 
         @Override
