@@ -48,7 +48,7 @@ public interface DefinitionIdentifier extends CharSequence {
     /**
      * Returns the optional URL of this Identifier - if this is present, the {@code namespace}, {@code name} and
      * {@code version} strings of the definition are empty.
-     * @return
+     * @return the optional URL.
      * @since 2.1.0
      */
     Optional<URL> getUrl();

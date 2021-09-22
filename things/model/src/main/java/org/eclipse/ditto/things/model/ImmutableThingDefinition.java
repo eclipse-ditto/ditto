@@ -133,4 +133,5 @@ final class ImmutableThingDefinition implements ThingDefinition {
     public String toString() {
         return delegate.toString();
     }
+
 }

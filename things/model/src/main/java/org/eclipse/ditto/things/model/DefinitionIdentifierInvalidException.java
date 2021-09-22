@@ -39,8 +39,8 @@ public final class DefinitionIdentifierInvalidException extends DittoRuntimeExce
     private static final String MESSAGE_TEMPLATE = "Definition identifier <{0}> is invalid!";
 
     private static final String DEFAULT_DESCRIPTION = "An identifier string is expected to have the structure " +
-            "'namespace:name:version' where each segment must contain at least one char of [_a-zA-Z0-9\\-.] OR is " +
-            "must be a valid HTTP(s) URL.";
+            "'namespace:name:version' where each segment must contain at least one char of [_a-zA-Z0-9\\-.] " +
+            "OR it must be a valid HTTP(s) URL.";
 
     private static final long serialVersionUID = -5652551484675928573L;
 

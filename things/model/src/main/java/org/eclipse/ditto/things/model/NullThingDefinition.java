@@ -97,4 +97,5 @@ final class NullThingDefinition implements ThingDefinition {
         }
         return obj != null && getClass() == obj.getClass();
     }
+
 }
