@@ -215,14 +215,15 @@ final class ThingUpdater extends AbstractActor {
         log.withCorrelationId(updateThing)
                 .info("Requested to update search index <{}> by <{}>", updateThing, getSender());
         lastWriteModel = null;
-        enqueueMetadata(exportMetadata(null, null).invalidateCache());
+        enqueueMetadata(exportMetadata(null, null)
+                .invalidateCaches(updateThing.shouldInvalidateThing(), updateThing.shouldInvalidatePolicy()));
     }
 
     private void processUpdateThingResponse(final UpdateThingResponse response) {
         if (!response.isSuccess()) {
             // discard last write model: index document is not known
             lastWriteModel = null;
-            final Metadata metadata = exportMetadata(null, null).invalidateCache();
+            final Metadata metadata = exportMetadata(null, null).invalidateCaches(true, true);
             log.warning("Got negative acknowledgement for <{}>; updating to <{}>.",
                     Metadata.fromResponse(response),
                     metadata);

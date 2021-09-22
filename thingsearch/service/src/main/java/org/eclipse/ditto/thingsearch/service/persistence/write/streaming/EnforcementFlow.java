@@ -140,7 +140,7 @@ final class EnforcementFlow {
             final int iteration) {
 
         if (iteration <= 0) {
-            return metadata.shouldInvalidateCache() || entry == null || !entry.exists() ||
+            return metadata.shouldInvalidatePolicy() || entry == null || !entry.exists() ||
                     entry.getRevision() < metadata.getPolicyRevision().orElse(Long.MAX_VALUE);
         } else {
             // never attempt to reload cache more than once
@@ -197,7 +197,7 @@ final class EnforcementFlow {
         final var metadata = entry.getValue();
         ConsistencyLag.startS3RetrieveThing(metadata);
         final CompletionStage<JsonObject> thingFuture;
-        if (metadata.shouldInvalidateCache()) {
+        if (metadata.shouldInvalidateThing()) {
             thingFuture = thingsFacade.retrieveThing(thingId, List.of(), -1);
         } else {
             thingFuture = thingsFacade.retrieveThing(thingId, metadata.getEvents(), metadata.getThingRevision());

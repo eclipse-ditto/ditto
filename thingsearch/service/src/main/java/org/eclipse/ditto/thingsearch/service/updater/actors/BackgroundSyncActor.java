@@ -212,7 +212,9 @@ public final class BackgroundSyncActor
 
     private void handleInconsistency(final Metadata metadata) {
         final var thingId = metadata.getThingId();
-        thingsUpdater.tell(UpdateThing.of(thingId, DittoHeaders.empty()), ActorRef.noSender());
+        final var command = UpdateThing.of(thingId, metadata.shouldInvalidateThing(), metadata.shouldInvalidatePolicy(),
+                DittoHeaders.empty());
+        thingsUpdater.tell(command, ActorRef.noSender());
         if (isInconsistentAgain(metadata)) {
             getSelf().tell(SyncEvent.inconsistencyAgain(metadata), ActorRef.noSender());
         } else {

@@ -47,7 +47,8 @@ public final class Metadata {
     private final List<ThingEvent<?>> events;
     private final List<StartedTimer> timers;
     private final List<ActorRef> senders;
-    private final boolean invalidateCache;
+    private final boolean invalidateThing;
+    private final boolean invalidatePolicy;
     @Nullable final ActorRef origin;
 
     private Metadata(final ThingId thingId,
@@ -58,8 +59,8 @@ public final class Metadata {
             final List<ThingEvent<?>> events,
             final Collection<StartedTimer> timers,
             final Collection<ActorRef> senders,
-            final boolean invalidateCache,
-            @Nullable final ActorRef origin) {
+            final boolean invalidateThing,
+            final boolean invalidatePolicy, @Nullable final ActorRef origin) {
 
         this.thingId = thingId;
         this.thingRevision = thingRevision;
@@ -69,7 +70,8 @@ public final class Metadata {
         this.events = events;
         this.timers = List.copyOf(timers);
         this.senders = List.copyOf(senders);
-        this.invalidateCache = invalidateCache;
+        this.invalidateThing = invalidateThing;
+        this.invalidatePolicy = invalidatePolicy;
         this.origin = origin;
     }
 
@@ -90,7 +92,7 @@ public final class Metadata {
             @Nullable final StartedTimer timer) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, null,
-                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, null);
+                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, false, null);
     }
 
     /**
@@ -114,7 +116,7 @@ public final class Metadata {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, null, events,
                 null != timer ? List.of(timer) : List.of(),
-                null != sender ? List.of(sender) : List.of(), false, null);
+                null != sender ? List.of(sender) : List.of(), false, false, null);
     }
 
     /**
@@ -138,7 +140,7 @@ public final class Metadata {
             final Collection<ActorRef> senders) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, List.of(), timers, senders,
-                false, null);
+                false, false, null);
     }
 
     /**
@@ -160,7 +162,7 @@ public final class Metadata {
             @Nullable final StartedTimer timer) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified,
-                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, null);
+                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, false, null);
     }
 
     /**
@@ -179,11 +181,13 @@ public final class Metadata {
     /**
      * Create a copy of this metadata requesting cache invalidation.
      *
+     * @param invalidateThing whether to invalidate the cached thing.
+     * @param invalidatePolicy whether to invalidate the cached policy enforcer.
      * @return the copy.
      */
-    public Metadata invalidateCache() {
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders, true,
-                origin);
+    public Metadata invalidateCaches(final boolean invalidateThing, final boolean invalidatePolicy) {
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
+                invalidateThing, invalidatePolicy, origin);
     }
 
     /**
@@ -193,7 +197,7 @@ public final class Metadata {
      */
     public Metadata withOrigin(@Nullable final ActorRef origin) {
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateCache, origin);
+                invalidateThing, invalidatePolicy, origin);
     }
 
     /**
@@ -297,12 +301,21 @@ public final class Metadata {
     }
 
     /**
+     * Returns whether this metadata should invalidate the cached thing.
+     *
+     * @return whether to invalidate the cached thing.
+     */
+    public boolean shouldInvalidateThing() {
+        return invalidateThing;
+    }
+
+    /**
      * Returns whether this metadata should invalidate the enforcer cache.
      *
      * @return whether to invalidate the enforcer cache.
      */
-    public boolean shouldInvalidateCache() {
-        return invalidateCache;
+    public boolean shouldInvalidatePolicy() {
+        return invalidatePolicy;
     }
 
     /**
@@ -320,7 +333,7 @@ public final class Metadata {
                 Stream.concat(senders.stream(), newMetadata.senders.stream()).collect(Collectors.toList());
         return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.policyId,
                 newMetadata.policyRevision, newMetadata.modified, newEvents, newTimers, newSenders,
-                invalidateCache || newMetadata.invalidateCache, newMetadata.origin);
+                invalidateThing || newMetadata.invalidateThing, invalidatePolicy, newMetadata.origin);
     }
 
     /**
@@ -365,14 +378,14 @@ public final class Metadata {
                 Objects.equals(events, that.events) &&
                 Objects.equals(timers, that.timers) &&
                 Objects.equals(senders, that.senders) &&
-                invalidateCache == that.invalidateCache &&
+                invalidateThing == that.invalidateThing &&
                 Objects.equals(origin, that.origin);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateCache, origin);
+                invalidateThing, origin);
     }
 
     @Override
@@ -386,7 +399,7 @@ public final class Metadata {
                 ", events=" + events +
                 ", timers=[" + timers.size() + " timers]" +
                 ", senders=" + senders +
-                ", invalidateCache=" + invalidateCache +
+                ", invalidateCache=" + invalidateThing +
                 ", origin=" + origin +
                 "]";
     }

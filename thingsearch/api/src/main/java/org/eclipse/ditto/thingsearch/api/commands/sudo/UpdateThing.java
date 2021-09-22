@@ -12,11 +12,15 @@
  */
 package org.eclipse.ditto.thingsearch.api.commands.sudo;
 
+import static org.eclipse.ditto.base.model.json.JsonSchemaVersion.V_2;
+
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -60,12 +64,24 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     private static final JsonFieldDefinition<String> JSON_THING_ID = Thing.JsonFields.ID;
+    private static final JsonFieldDefinition<Boolean> JSON_INVALIDATE_THING =
+            JsonFactory.newBooleanFieldDefinition("invalidateThing", FieldType.REGULAR, V_2);
+    private static final JsonFieldDefinition<Boolean> JSON_INVALIDATE_POLICY =
+            JsonFactory.newBooleanFieldDefinition("invalidatePolicy", FieldType.REGULAR, V_2);
+
 
     private final ThingId thingId;
+    private final boolean invalidateThing;
+    private final boolean invalidatePolicy;
 
-    private UpdateThing(final ThingId thingId, final DittoHeaders dittoHeaders) {
+    private UpdateThing(final ThingId thingId,
+            final boolean invalidateThing,
+            final boolean invalidatePolicy,
+            final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.thingId = thingId;
+        this.invalidateThing = invalidateThing;
+        this.invalidatePolicy = invalidatePolicy;
     }
 
     /**
@@ -76,7 +92,24 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
      * @return the command.
      */
     public static UpdateThing of(final ThingId thingId, final DittoHeaders dittoHeaders) {
-        return new UpdateThing(thingId, dittoHeaders);
+        return new UpdateThing(thingId, true, true, dittoHeaders);
+    }
+
+    /**
+     * Create an UpdateThing command.
+     *
+     * @param thingId the ID of the thing whose search index should be updated.
+     * @param invalidateThing whether the cached thing should be invalidated.
+     * @param invalidatePolicy whether the cached policy should be invalidated.
+     * @param dittoHeaders Ditto headers of the command.
+     * @return the command.
+     * @since 2.1.0
+     */
+    public static UpdateThing of(final ThingId thingId,
+            final boolean invalidateThing,
+            final boolean invalidatePolicy,
+            final DittoHeaders dittoHeaders) {
+        return new UpdateThing(thingId, invalidateThing, invalidatePolicy, dittoHeaders);
     }
 
     /**
@@ -90,13 +123,20 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
      * "thingId".
      */
     public static UpdateThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(jsonObject.getValueOrThrow(JSON_THING_ID)), dittoHeaders);
+        return of(
+                ThingId.of(jsonObject.getValueOrThrow(JSON_THING_ID)),
+                jsonObject.getValueOrThrow(JSON_INVALIDATE_THING),
+                jsonObject.getValueOrThrow(JSON_INVALIDATE_POLICY),
+                dittoHeaders
+        );
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
-        jsonObjectBuilder.set(JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(JSON_THING_ID, thingId.toString(), predicate)
+                .set(JSON_INVALIDATE_THING, invalidateThing, predicate)
+                .set(JSON_INVALIDATE_POLICY, invalidatePolicy, predicate);
     }
 
     @Override
@@ -111,12 +151,32 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
 
     @Override
     public UpdateThing setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new UpdateThing(thingId, dittoHeaders);
+        return new UpdateThing(thingId, invalidateThing, invalidatePolicy, dittoHeaders);
     }
 
     @Override
     public ThingId getEntityId() {
         return thingId;
+    }
+
+    /**
+     * Return whether to invalidate the cached thing.
+     *
+     * @return whether to invalidate the cached thing.
+     * @since 2.1.0
+     */
+    public boolean shouldInvalidateThing() {
+        return invalidateThing;
+    }
+
+    /**
+     * Return whether to invalidate the cached policy.
+     *
+     * @return whether to invalidate the cached policy.
+     * @since 2.1.0
+     */
+    public boolean shouldInvalidatePolicy() {
+        return invalidatePolicy;
     }
 
     @Override
@@ -135,17 +195,25 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
             return false;
         } else {
             final UpdateThing that = (UpdateThing) o;
-            return Objects.equals(thingId, that.thingId) && super.equals(that);
+            return Objects.equals(thingId, that.thingId) &&
+                    invalidateThing == that.invalidateThing &&
+                    invalidatePolicy == that.invalidatePolicy &&
+                    super.equals(that);
         }
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), thingId);
+        return Objects.hash(super.hashCode(), thingId, invalidateThing, invalidatePolicy);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + super.toString() + ",thingId=" + thingId + "]";
+        return getClass().getSimpleName() +
+                "[" + super.toString() +
+                ",thingId=" + thingId +
+                ",invalidateThing=" + invalidateThing +
+                ",invalidatePolicy=" + invalidatePolicy +
+                "]";
     }
 }

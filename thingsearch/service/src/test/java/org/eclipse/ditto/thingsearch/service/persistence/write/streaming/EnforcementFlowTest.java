@@ -186,7 +186,7 @@ public final class EnforcementFlowTest {
         assertThat(document1.getValue("__policyRev")).contains(JsonValue.of(policyRev1));
 
         // WHEN: a metadata with 'invalidateCache' flag is enqueued
-        final Metadata metadata2 = metadata1.invalidateCache();
+        final Metadata metadata2 = metadata1.invalidateCaches(true, true);
         sourceProbe.sendNext(Map.of(thingId, metadata2));
         sourceProbe.sendComplete();
         thingsProbe.expectMsgClass(SudoRetrieveThing.class);
@@ -288,7 +288,8 @@ public final class EnforcementFlowTest {
                     AttributeDeleted.of(thingId, JsonPointer.of("w"), 6, null, headers, null)
             );
 
-            final Metadata metadata = Metadata.of(thingId, 6L, policyId, 1L, events, null, null).invalidateCache();
+            final Metadata metadata = Metadata.of(thingId, 6L, policyId, 1L, events, null, null)
+                    .invalidateCaches(true, true);
             final Map<ThingId, Metadata> inputMap = Map.of(thingId, metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
