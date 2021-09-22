@@ -92,7 +92,8 @@ public class GetFilterBsonVisitor extends AbstractFieldBsonCreator implements Fi
 
     @Override
     public Bson visitMetadata(final String key) {
-        return null;
+        // search on _metadata is not supported, return filter that don't match
+        return Filters.eq("nomatch");
     }
 
     @Override

@@ -113,7 +113,8 @@ public class GetExistsBsonVisitor extends AbstractFieldBsonCreator implements Ex
 
     @Override
     public Bson visitMetadata(final String key) {
-        return null;
+        // search on _metadata is not supported, return filter that don't match
+        return Filters.eq("nomatch");
     }
 
     private static String escapeAndWrapExistsRegex(final String string) {
