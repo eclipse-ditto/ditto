@@ -100,7 +100,7 @@ public final class TestSearchUpdaterStream {
      * @return source of write result.
      */
     private Source<WriteResultAndErrors, NotUsed> delete(final Metadata metadata) {
-        final AbstractWriteModel writeModel = ThingDeleteModel.of(metadata, false);
+        final AbstractWriteModel writeModel = ThingDeleteModel.of(metadata);
         return Source.single(Source.single(writeModel))
                 .via(mongoSearchUpdaterFlow.start(false, 1, 1));
     }
