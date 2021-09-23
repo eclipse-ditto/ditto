@@ -36,9 +36,9 @@ Conditions can be specified using [RQL syntax](basic-rql.html) to check if a thi
 or feature property value.
 
 In case the condition does not match to the actual state of the thing, the request will fail with 
-HTTP status code 412 Precondition Failed. There will also be no event emitted for this case. 
+HTTP status code **412 - Precondition Failed**. There will also be no event emitted for this case. 
 
-If the given condition is invalid, the request will fail with HTTP status code 400 Bad Request. 
+If the given condition is invalid, the request will fail with HTTP status code **400 - Bad Request**. 
 
 More documentation for this feature can be found here: [Conditional Requests](basic-conditional-requests.html)
 
@@ -97,13 +97,13 @@ To demonstrate the new conditional request, we assume that the following thing a
 ```
 
 ### Condition based on last modification
-In this example the water-tanks's **temperature** should only be updated if
-it was **lastModified** after "2021-08-25T12:38:27".
+In this example the water-tanks's **temperature** should only be updated if it was **lastModified** 
+after "2021-08-25T12:38:27".
 
 ### Permissions to execute the example
 For this example, the authorized subject could have READ and WRITE permissions on the complete thing resource.
-However, it is only necessary on the path _thing:/features/water-tank/status_, because the **temperature** as well as 
-the conditional part **lastModified** are located there.
+However, it is only necessary on the path _thing:/features/water-tank/properties/status_, because the **temperature** 
+as well as the conditional part **lastModified** are located there.
 
 ## Conditional requests via HTTP API
 Using the HTTP API the condition can either be specified via HTTP Header or via HTTP query parameter.  
