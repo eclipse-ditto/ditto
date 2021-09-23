@@ -379,13 +379,14 @@ public final class Metadata {
                 Objects.equals(timers, that.timers) &&
                 Objects.equals(senders, that.senders) &&
                 invalidateThing == that.invalidateThing &&
+                invalidatePolicy == that.invalidatePolicy &&
                 Objects.equals(origin, that.origin);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateThing, origin);
+                invalidateThing, invalidatePolicy, origin);
     }
 
     @Override
@@ -399,7 +400,8 @@ public final class Metadata {
                 ", events=" + events +
                 ", timers=[" + timers.size() + " timers]" +
                 ", senders=" + senders +
-                ", invalidateCache=" + invalidateThing +
+                ", invalidateThing=" + invalidateThing +
+                ", invalidatePolicy=" + invalidatePolicy +
                 ", origin=" + origin +
                 "]";
     }
