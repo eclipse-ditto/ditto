@@ -88,7 +88,7 @@ To demonstrate the new conditional request, we assume that the following thing a
         "status": {
           "waterAmount": 731,
           "temperature": 44.2,
-          "lastModified": "2021-08-25T12:38:27"
+          "lastModified": "2021-09-23T07:01:56Z"
         }
       }
     }
@@ -111,12 +111,12 @@ In this section, we will show how to use both options.
 
 ### Conditional request with HTTP Header
 ```
-curl -X PATCH -H 'Content-Type: application/json' -H 'condition: gt(features/water-tank/properties/status/lastModified,"2021-08-25T12:40:00")' /api/2/things/org.eclipse.ditto:coffeebrewer/features/water-tank/properties/properties/temperature -d '{ temperature: 45.26, "lastModified": "'"$(date +%Y-%m-%dT%H:%M:%S)"'" }'
+curl -X PATCH -H 'Content-Type: application/json' -H 'condition: gt(features/water-tank/properties/status/lastModified,"2021-09-23T07:00:00Z")' /api/2/things/org.eclipse.ditto:coffeebrewer/features/water-tank/properties/properties/temperature -d '{ temperature: 45.26, "lastModified": "'"$(date --utc +%FT%TZ)"'" }'
 ```
 
 ### Conditional request with HTTP query parameter
 ```
-curl -X PATCH -H 'Content-Type: application/json' /api/2/things/org.eclipse.ditto:coffeebrewer/features/water-tank/properties/status/temperature?condition=gt(features/water-tank/properties/status/lastModified,"2021-08-25T12:40:00") -d '{ temperature: 45.26, "lastModified": "'"$(date +%Y-%m-%dT%H:%M:%S)"'" }'
+curl -X PATCH -H 'Content-Type: application/json' /api/2/things/org.eclipse.ditto:coffeebrewer/features/water-tank/properties/status/temperature?condition=gt(features/water-tank/properties/status/lastModified,"2021-09-23T07:00:00Z") -d '{ temperature: 45.26, "lastModified": "'"$(date --utc +%FT%TZ)"'" }'
 ```
 
 ### Result  
@@ -150,7 +150,7 @@ After the request was successfully performed, the thing will look like this:
         "status": {
           "waterAmount": 731,
           "temperature": 45.26,
-          "lastModified": "2021-08-25T12:42:12"
+          "lastModified": "2021-09-23T07:05:36Z"
         }
       }
     }
@@ -167,7 +167,7 @@ Applying the following Ditto command to the existing thing will lead to the same
   "topic": "org.eclipse.ditto/coffeebrewer/things/twin/commands/modify",
   "headers": {
     "content-type": "application/json",
-    "condition": "gt(features/water-tank/properties/status/lastModified,\"2021-08-25T12:40:00\")"
+    "condition": "gt(features/water-tank/properties/status/lastModified,\"2021-09-23T07:00:00Z\")"
   },
   "path": "/features/water-tank/properties/status/temperature",
   "value": 45.26
@@ -201,7 +201,7 @@ final Thing THING = ThingsModelFactory.newThingBuilder()
 // initialize the ditto-client
 final DittoClient dittoClient = ... ;
 
-dittoClient.twin().update(THING, Options.condition("gt(features/water-tank/properties/status/lastModified,"2021-08-25T12:40:00")")).
+dittoClient.twin().update(THING, Options.condition("gt(features/water-tank/properties/status/lastModified,"22021-09-23T07:00:00Z")")).
         .whenComplete(((adaptable, throwable) -> {
             if (throwable != null) {
                 LOGGER.error("Received error while sending conditional update: '{}' ", throwable.toString());
