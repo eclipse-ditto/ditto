@@ -52,7 +52,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingMerged;
  * Instantiated once per cluster node so that it builds up a cache across all signal enrichments on a local cluster
  * node.
  */
-public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichmentFacade{
+public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEnrichmentFacade {
 
     private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory
             .getThreadSafeLogger(DittoCachingSignalEnrichmentFacade.class);
@@ -60,21 +60,39 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
 
     private final Cache<CacheKey, JsonObject> extraFieldsCache;
 
-    DittoCachingSignalEnrichmentFacade(
-            final SignalEnrichmentFacade cacheLoaderFacade,
+    private DittoCachingSignalEnrichmentFacade(final SignalEnrichmentFacade cacheLoaderFacade,
             final CacheConfig cacheConfig,
             final Executor cacheLoaderExecutor,
             final String cacheNamePrefix) {
 
-        final var cacheLoader =
-                SignalEnrichmentCacheLoader.of(checkNotNull(cacheLoaderFacade, "cacheLoaderFacade"));
-        final var cacheName = checkNotNull(cacheNamePrefix, "cacheNamePrefix") + CACHE_NAME_SUFFIX;
+        final var cacheLoader = SignalEnrichmentCacheLoader.of(cacheLoaderFacade);
+        final var cacheName = cacheNamePrefix + CACHE_NAME_SUFFIX;
 
         extraFieldsCache = CacheFactory.createCache(
                 cacheLoader,
-                checkNotNull(cacheConfig, "cacheConfig"),
+                cacheConfig,
                 cacheName,
-                checkNotNull(cacheLoaderExecutor, "cacheLoaderExecutor"));
+                cacheLoaderExecutor);
+    }
+
+    /**
+     * Returns a new {@code DittoCachingSignalEnrichmentFacade} instance.
+     *
+     * @param cacheLoaderFacade the facade whose argument-result-pairs we are caching.
+     * @param cacheConfig the cache configuration to use for the cache.
+     * @param cacheLoaderExecutor the executor to use in order to asynchronously load cache entries.
+     * @param cacheNamePrefix the prefix to use as cacheName of the cache.
+     * @throws NullPointerException if any argument is null.
+     */
+    public static DittoCachingSignalEnrichmentFacade newInstance(final SignalEnrichmentFacade cacheLoaderFacade,
+            final CacheConfig cacheConfig,
+            final Executor cacheLoaderExecutor,
+            final String cacheNamePrefix) {
+
+        return new DittoCachingSignalEnrichmentFacade(checkNotNull(cacheLoaderFacade, "cacheLoaderFacade"),
+                checkNotNull(cacheConfig, "cacheConfig"),
+                checkNotNull(cacheLoaderExecutor, "cacheLoaderExecutor"),
+                checkNotNull(cacheNamePrefix, "cacheNamePrefix"));
     }
 
     @Override

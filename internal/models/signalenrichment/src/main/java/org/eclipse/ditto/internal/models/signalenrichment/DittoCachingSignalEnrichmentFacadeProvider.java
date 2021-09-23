@@ -36,7 +36,7 @@ public final class DittoCachingSignalEnrichmentFacadeProvider extends CachingSig
             final Executor cacheLoaderExecutor,
             final String cacheNamePrefix) {
 
-        return new DittoCachingSignalEnrichmentFacade(cacheLoaderFacade, cacheConfig, cacheLoaderExecutor,
+        return DittoCachingSignalEnrichmentFacade.newInstance(cacheLoaderFacade, cacheConfig, cacheLoaderExecutor,
                 cacheNamePrefix);
     }
 
