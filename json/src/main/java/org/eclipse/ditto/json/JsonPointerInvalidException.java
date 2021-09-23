@@ -62,7 +62,7 @@ public final class JsonPointerInvalidException extends JsonRuntimeException {
      * @param jsonPointer The JSON pointer containing the consecutive slashes.
      * @return a builder for {@code JsonPointerInvalidException} objects.
      */
-    static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderForConsecutiveSlashes(
+    public static JsonExceptionBuilder<JsonPointerInvalidException> newBuilderForConsecutiveSlashes(
             final CharSequence jsonPointer) {
         return new Builder()
                 .jsonPointer(jsonPointer)

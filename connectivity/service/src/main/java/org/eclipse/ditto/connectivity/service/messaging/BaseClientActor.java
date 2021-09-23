@@ -174,7 +174,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
-    private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
+private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
             "Closed because of unknown/failure/misconfiguration status in client.";
     /**
      * Common logger for all sub-classes of BaseClientActor as its MDC already contains the connection ID.
@@ -1741,11 +1741,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             throw dre;
         }
 
-        final Connection theConnection = connectionContext.getConnection();
-        final int processorPoolSize = theConnection.getProcessorPoolSize();
+        final Connection connectionContextConnection = connectionContext.getConnection();
+        final int processorPoolSize = connectionContextConnection.getProcessorPoolSize();
         logger.debug("Starting mapping processor actors with pool size of <{}>.", processorPoolSize);
         final Props outboundMappingProcessorActorProps =
-                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, theConnection,
+                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connectionContextConnection,
                         processorPoolSize);
 
         final ActorRef processorActor =
@@ -2044,7 +2044,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 connectionContextProvider.getConnectionContext(connection, dittoHeaders)
                         .thenCompose(context ->
                                 connectionContextProvider.registerForConnectivityConfigChanges(context, self)
-                                        .<Object>thenApply(theVoid -> context)
+                                        .<Object>thenApply(aVoid -> context)
                         )
                         .exceptionally(throwable -> {
                             if (throwable instanceof RuntimeException) {

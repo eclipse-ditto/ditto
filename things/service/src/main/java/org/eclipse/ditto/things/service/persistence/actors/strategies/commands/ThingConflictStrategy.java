@@ -20,10 +20,10 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConflictException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -78,4 +78,5 @@ final class ThingConflictStrategy extends AbstractThingCommandStrategy<CreateThi
     public Optional<EntityTag> nextEntityTag(final CreateThing command, @Nullable final Thing newEntity) {
         return Optional.ofNullable(newEntity).flatMap(EntityTag::fromEntity);
     }
+
 }

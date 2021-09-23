@@ -15,8 +15,6 @@ package org.eclipse.ditto.protocol.adapter;
 import java.util.Collections;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;

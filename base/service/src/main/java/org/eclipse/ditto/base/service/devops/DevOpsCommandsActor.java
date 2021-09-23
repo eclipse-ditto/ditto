@@ -181,9 +181,9 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
             return (int) StreamSupport.stream(cluster.state().getMembers().spliterator(), false).count();
         } else {
             // response wanted from all instances of a service
-            final var serviceName = command.getServiceName().orElseThrow();
+            final var theServiceName = command.getServiceName().orElseThrow();
             return (int) StreamSupport.stream(cluster.state().getMembers().spliterator(), false)
-                    .filter(member -> member.getRoles().contains(serviceName))
+                    .filter(member -> member.getRoles().contains(theServiceName))
                     .count();
         }
     }

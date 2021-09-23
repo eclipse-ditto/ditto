@@ -44,4 +44,5 @@ public interface FieldExpressionFactory {
      * @throws IllegalArgumentException if there is no corresponding field to the given {@code propertyName}.
      */
     SortFieldExpression sortBy(String propertyName) throws IllegalArgumentException;
+
 }

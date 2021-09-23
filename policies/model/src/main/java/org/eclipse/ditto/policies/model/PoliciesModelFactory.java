@@ -28,14 +28,14 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.Validator;
+import org.eclipse.ditto.base.model.entity.validation.NoControlCharactersValidator;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.Validator;
-import org.eclipse.ditto.base.model.entity.validation.NoControlCharactersValidator;
-import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 
 /**
  * Factory that new {@link Policy} objects and other objects related to policies.
@@ -302,6 +302,7 @@ public final class PoliciesModelFactory {
      * @return a new ResourceKey.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code resourceType} is empty.
+     * @throws org.eclipse.ditto.json.JsonPointerInvalidException if the passed {@code resourcePath} contained double slashes.
      */
     public static ResourceKey newResourceKey(final CharSequence resourceType, final CharSequence resourcePath) {
         checkNotNull(resourcePath, "resource path");

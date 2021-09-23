@@ -187,6 +187,9 @@ entries:
                   - title: Announcement
                     url: /basic-signals-announcement.html
                     output: web
+                  - title: Signal enrichment
+                    url: /basic-enrichment.html
+                    output: web
 
           - title: APIs
             url: /basic-apis.html
@@ -203,8 +206,8 @@ entries:
           - title: RQL expressions
             url: /basic-rql.html
             output: web
-          - title: Signal enrichment
-            url: /basic-enrichment.html
+          - title: Conditional requests
+            url: /basic-conditional-requests.html
             output: web
           - title: Search
             url: /basic-search.html

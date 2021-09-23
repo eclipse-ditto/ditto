@@ -175,7 +175,7 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
 
     /**
      * Returns whether a response to a command is required or if it may be omitted (fire and forget semantics).
-     * By default this method returns {@code true}.
+     * By default, this method returns {@code true}.
      *
      * @return {@code true} if a response is required, {@code false} else.
      */
@@ -203,6 +203,14 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @since 2.1.0
      */
     boolean shouldRetrieveDeleted();
+
+    /**
+     * Returns the condition to use for applying the request.
+     *
+     * @return the condition contained in the Condition header.
+     * @since 2.1.0
+     */
+    Optional<String> getCondition();
 
     /**
      * Returns the id of the originating session (e.g. WebSocket, AMQP, ...)

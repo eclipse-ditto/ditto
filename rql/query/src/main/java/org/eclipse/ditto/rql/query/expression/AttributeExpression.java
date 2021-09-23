@@ -36,4 +36,5 @@ public interface AttributeExpression extends FilterFieldExpression, SortFieldExp
      * @return the attribute key
      */
     String getKey();
+
 }

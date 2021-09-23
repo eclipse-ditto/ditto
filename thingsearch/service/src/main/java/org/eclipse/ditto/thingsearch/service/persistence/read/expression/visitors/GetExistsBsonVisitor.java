@@ -94,8 +94,8 @@ public class GetExistsBsonVisitor extends AbstractFieldBsonCreator implements Ex
     @Override
     Bson visitPointer(final String pointer) {
         return getAuthorizationBson().map(authBson ->
-                Filters.elemMatch(PersistenceConstants.FIELD_INTERNAL, Filters.and(authBson, Filters.eq(
-                        PersistenceConstants.FIELD_INTERNAL_KEY, pointer))))
+                        Filters.elemMatch(PersistenceConstants.FIELD_INTERNAL, Filters.and(authBson, Filters.eq(
+                                PersistenceConstants.FIELD_INTERNAL_KEY, pointer))))
                 .orElseGet(() -> Filters.eq(PersistenceConstants.FIELD_PATH_KEY, pointer));
     }
 
@@ -106,9 +106,15 @@ public class GetExistsBsonVisitor extends AbstractFieldBsonCreator implements Ex
 
     private Bson matchKey(final String keyRegex) {
         return getAuthorizationBson().map(authBson ->
-                Filters.elemMatch(PersistenceConstants.FIELD_INTERNAL, Filters.and(authBson,
-                        Filters.regex(PersistenceConstants.FIELD_INTERNAL_KEY, keyRegex))))
+                        Filters.elemMatch(PersistenceConstants.FIELD_INTERNAL, Filters.and(authBson,
+                                Filters.regex(PersistenceConstants.FIELD_INTERNAL_KEY, keyRegex))))
                 .orElseGet(() -> Filters.regex(PersistenceConstants.FIELD_PATH_KEY, keyRegex));
+    }
+
+    @Override
+    public Bson visitMetadata(final String key) {
+        // search on _metadata is not supported, return filter that don't match
+        return Filters.eq("nomatch");
     }
 
     private static String escapeAndWrapExistsRegex(final String string) {
@@ -126,4 +132,5 @@ public class GetExistsBsonVisitor extends AbstractFieldBsonCreator implements Ex
                 })
                 .collect(Collectors.joining());
     }
+
 }
