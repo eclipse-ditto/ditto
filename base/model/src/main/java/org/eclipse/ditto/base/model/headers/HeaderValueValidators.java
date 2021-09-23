@@ -173,7 +173,7 @@ public final class HeaderValueValidators {
 
     /**
      * Returns a validator for checking if a normalized CharSequence is equal to
-     * {@value DittoChannelValueValidator#DITTO_CHANNEL_TWIN} or {@value DittoChannelValueValidator#DITTO_CHANNEL_LIVE}.
+     * {@value DittoChannelValueValidator#CHANNEL_TWIN} or {@value DittoChannelValueValidator#CHANNEL_LIVE}.
      * Normalized in this context means trimmed and converted to lower case.
      * Normalization is temporarily conducted by the returned validator for validation only.
      *

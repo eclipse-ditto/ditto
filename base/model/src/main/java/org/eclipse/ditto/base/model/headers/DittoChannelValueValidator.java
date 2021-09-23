@@ -20,8 +20,8 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 
 /**
- * This validator checks if a normalized CharSequence is equal to {@value #DITTO_CHANNEL_TWIN} or
- * {@value #DITTO_CHANNEL_LIVE}.
+ * This validator checks if a normalized CharSequence is equal to {@value #CHANNEL_TWIN} or
+ * {@value #CHANNEL_LIVE}.
  * Normalized in this context means trimmed and converted to lower case.
  * Normalization is temporarily conducted by this class for validation only.
  *
@@ -30,8 +30,8 @@ import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 @Immutable
 final class DittoChannelValueValidator extends AbstractHeaderValueValidator {
 
-    static final String DITTO_CHANNEL_TWIN = "twin";
-    static final String DITTO_CHANNEL_LIVE = "live";
+    static final String CHANNEL_TWIN = "twin";
+    static final String CHANNEL_LIVE = "live";
 
     private DittoChannelValueValidator() {
         super(String.class::equals);
@@ -50,11 +50,12 @@ final class DittoChannelValueValidator extends AbstractHeaderValueValidator {
     protected void validateValue(final HeaderDefinition definition, final CharSequence value) {
         final String normalizedValue = normalize(value);
 
-        if (!DITTO_CHANNEL_TWIN.equals(normalizedValue) && !DITTO_CHANNEL_LIVE.equals(normalizedValue)) {
-            throw DittoHeaderInvalidException.newInvalidTypeBuilder(definition, value, "ditto-channel")
+        if (!CHANNEL_TWIN.equals(normalizedValue) && !CHANNEL_LIVE.equals(normalizedValue)) {
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(definition, value,
+                            DittoHeaderDefinition.CHANNEL.getKey())
                     .description(MessageFormat.format("The value must either be <{0}> or <{1}>.",
-                            DITTO_CHANNEL_TWIN,
-                            DITTO_CHANNEL_LIVE))
+                            CHANNEL_TWIN,
+                            CHANNEL_LIVE))
                     .build();
         }
     }

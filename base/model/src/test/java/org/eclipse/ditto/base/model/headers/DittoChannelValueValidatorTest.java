@@ -83,8 +83,8 @@ public final class DittoChannelValueValidatorTest {
         @Parameterized.Parameters(name = "value: {0}, expected valid: {1}")
         public static List<Object[]> parameters() {
             return Arrays.asList(new Object[][]{
-                    {DittoChannelValueValidator.DITTO_CHANNEL_TWIN, true},
-                    {DittoChannelValueValidator.DITTO_CHANNEL_LIVE, true},
+                    {DittoChannelValueValidator.CHANNEL_TWIN, true},
+                    {DittoChannelValueValidator.CHANNEL_LIVE, true},
                     {"foo", false},
                     {"   twin", true},
                     {"live   ", true},
