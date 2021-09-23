@@ -20,11 +20,12 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 
 import akka.Done;
 import akka.NotUsed;
@@ -80,8 +81,8 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             final Set<EnforcementProvider<?>> enforcementProviders,
             final ActorRef conciergeForwarder,
             @Nullable final PreEnforcer preEnforcer,
-            @Nullable final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
-            @Nullable final Cache<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCache) {
+            @Nullable final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
+            @Nullable final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache) {
 
         return Props.create(EnforcerActor.class, pubSubMediator, enforcementProviders, conciergeForwarder, preEnforcer,
                 thingIdCache, policyEnforcerCache);
@@ -101,8 +102,8 @@ public final class EnforcerActor extends AbstractEnforcerActor {
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
             final ActorRef conciergeForwarder,
-            @Nullable final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
-            @Nullable final Cache<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCache) {
+            @Nullable final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
+            @Nullable final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache) {
 
         return props(pubSubMediator, enforcementProviders, conciergeForwarder, null, thingIdCache, policyEnforcerCache);
     }

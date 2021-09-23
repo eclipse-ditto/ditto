@@ -300,6 +300,15 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
     B journalTags(Collection<String> journalTags);
 
     /**
+     * Sets the condition which should be evaluated when applying the request.
+     *
+     * @param condition the condition to check before applying the request.
+     * @return this builder for method chaining.
+     * @since 2.1.0
+     */
+    B condition(String condition);
+
+    /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
      *
      * @param key the header name to use.

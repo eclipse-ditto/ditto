@@ -40,4 +40,5 @@ public interface SortFieldExpression extends FilterFieldExpression, ExistsFieldE
 
     @Override
     <T> T accept(FieldExpressionVisitor<T> visitor);
+
 }

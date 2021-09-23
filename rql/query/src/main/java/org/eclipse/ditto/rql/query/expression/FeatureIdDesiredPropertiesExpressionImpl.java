@@ -70,4 +70,5 @@ final class FeatureIdDesiredPropertiesExpressionImpl implements FeatureIdDesired
                 "featureId=" + featureId +
                 "]";
     }
+
 }

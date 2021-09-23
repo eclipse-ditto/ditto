@@ -25,12 +25,12 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractCommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.events.Event;
 
 /**
  * Responsible to check conditional (http) headers based on the thing's current eTag value.
@@ -48,7 +48,7 @@ public abstract class AbstractConditionHeaderCheckingCommandStrategy<
         E extends Event<?>> extends AbstractCommandStrategy<C, S, K, E> implements ETagEntityProvider<C, S> {
 
     /**
-     * Construct a command-strategy with condition header checking..
+     * Construct a command-strategy with condition header checking.
      *
      * @param theMatchingClass final class of the command to handle.
      */
@@ -63,7 +63,7 @@ public abstract class AbstractConditionHeaderCheckingCommandStrategy<
 
     /**
      * Checks conditional headers on the (sub-)entity determined by the given {@code command} and {@code thing}.
-     * Currently supports only {@link org.eclipse.ditto.internal.utils.headers.conditional.IfMatchPreconditionHeader}
+     * Currently, supports only {@link org.eclipse.ditto.internal.utils.headers.conditional.IfMatchPreconditionHeader}
      * and {@link org.eclipse.ditto.internal.utils.headers.conditional.IfNoneMatchPreconditionHeader}
      *
      * @param context the context.
@@ -114,4 +114,5 @@ public abstract class AbstractConditionHeaderCheckingCommandStrategy<
             return false;
         }
     }
+
 }

@@ -51,4 +51,5 @@ final class ExistsCriteriaImpl implements Criteria {
     public <T> T accept(final CriteriaVisitor<T> visitor) {
         return visitor.visitExists(fieldExpression);
     }
+
 }

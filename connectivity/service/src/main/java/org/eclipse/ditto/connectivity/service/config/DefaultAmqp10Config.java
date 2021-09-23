@@ -42,6 +42,7 @@ public final class DefaultAmqp10Config implements Amqp10Config, WithStringMapDec
     private final Duration globalRequestTimeout;
     private final int globalPrefetchPolicyAllCount;
     private final Map<String, String> hmacAlgorithms;
+    private final Duration initialConsumerResourceStatusAskTimeout;
 
     private DefaultAmqp10Config(final ScopedConfig config) {
         consumerConfig = DefaultAmqp10ConsumerConfig.of(config);
@@ -56,6 +57,8 @@ public final class DefaultAmqp10Config implements Amqp10Config, WithStringMapDec
         globalPrefetchPolicyAllCount =
                 config.getNonNegativeIntOrThrow(Amqp10ConfigValue.GLOBAL_PREFETCH_POLICY_ALL_COUNT);
         hmacAlgorithms = asStringMap(config, HttpPushConfig.ConfigValue.HMAC_ALGORITHMS.getConfigPath());
+        initialConsumerResourceStatusAskTimeout =
+                config.getNonNegativeDurationOrThrow(Amqp10ConfigValue.INITIAL_CONSUMER_RESOURCE_STATUS_ASK_TIMEOUT);
     }
 
     /**
@@ -115,6 +118,11 @@ public final class DefaultAmqp10Config implements Amqp10Config, WithStringMapDec
     }
 
     @Override
+    public Duration getInitialConsumerStatusAskTimeout() {
+        return initialConsumerResourceStatusAskTimeout;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -131,13 +139,15 @@ public final class DefaultAmqp10Config implements Amqp10Config, WithStringMapDec
                 Objects.equals(globalConnectTimeout, that.globalConnectTimeout) &&
                 Objects.equals(globalSendTimeout, that.globalSendTimeout) &&
                 Objects.equals(globalRequestTimeout, that.globalRequestTimeout) &&
-                Objects.equals(hmacAlgorithms, that.hmacAlgorithms);
+                Objects.equals(hmacAlgorithms, that.hmacAlgorithms) &&
+                Objects.equals(initialConsumerResourceStatusAskTimeout, that.initialConsumerResourceStatusAskTimeout);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(consumerConfig, publisherConfig, producerCacheSize, backOffConfig, globalConnectTimeout,
-                globalSendTimeout, globalRequestTimeout, globalPrefetchPolicyAllCount, hmacAlgorithms);
+                globalSendTimeout, globalRequestTimeout, globalPrefetchPolicyAllCount, hmacAlgorithms,
+                initialConsumerResourceStatusAskTimeout);
     }
 
     @Override
@@ -152,6 +162,7 @@ public final class DefaultAmqp10Config implements Amqp10Config, WithStringMapDec
                 ", globalRequestTimeout=" + globalRequestTimeout +
                 ", globalPrefetchPolicyAllCount=" + globalPrefetchPolicyAllCount +
                 ", hmacAlgorithms=" + hmacAlgorithms +
+                ", initialConsumerResourceStatusAskTimeout=" + initialConsumerResourceStatusAskTimeout +
                 "]";
     }
 

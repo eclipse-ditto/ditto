@@ -31,4 +31,6 @@ public interface FilterFieldExpressionVisitor<T> extends SortFieldExpressionVisi
     @Override
     T visitSimple(String fieldName);
 
+    T visitMetadata(String key);
+
 }

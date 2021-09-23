@@ -94,16 +94,21 @@ public final class QueryParametersToHeadersMapTest {
     @Test
     public void convertQueryParameters() {
         Mockito.when(httpConfig.getQueryParametersAsHeaders())
-                .thenReturn(Set.of(DittoHeaderDefinition.REQUESTED_ACKS, DittoHeaderDefinition.TIMEOUT));
+                .thenReturn(Set.of(DittoHeaderDefinition.REQUESTED_ACKS, DittoHeaderDefinition.TIMEOUT,
+                        DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT, DittoHeaderDefinition.CONDITION));
         final Map<String, String> queryParams = new HashMap<>();
         queryParams.put("foo", "bar");
         queryParams.put(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), DittoAcknowledgementLabel.TWIN_PERSISTED.toString());
         queryParams.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), "application/json");
         queryParams.put(DittoHeaderDefinition.TIMEOUT.getKey(), "5s");
+        queryParams.put(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT.getKey(), "false");
+        queryParams.put(DittoHeaderDefinition.CONDITION.getKey(), "eq(attributes/value, 42)");
 
         final Map<String, String> expected = new HashMap<>();
         expected.put(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), DittoAcknowledgementLabel.TWIN_PERSISTED.toString());
         expected.put(DittoHeaderDefinition.TIMEOUT.getKey(), "5s");
+        expected.put(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT.getKey(), "false");
+        expected.put(DittoHeaderDefinition.CONDITION.getKey(), "eq(attributes/value, 42)");
 
         final QueryParametersToHeadersMap underTest = QueryParametersToHeadersMap.getInstance(httpConfig);
 

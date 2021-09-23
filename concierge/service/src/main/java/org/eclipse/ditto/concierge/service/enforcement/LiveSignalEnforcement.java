@@ -20,33 +20,33 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.messages.model.MessageFormatInvalidException;
-import org.eclipse.ditto.messages.model.MessageSendNotAllowedException;
-import org.eclipse.ditto.policies.model.PoliciesResourceType;
-import org.eclipse.ditto.policies.model.ResourceKey;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.UnknownCommandException;
-import org.eclipse.ditto.policies.api.Permission;
-import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
-import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
-import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
-import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
-import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.internal.utils.cache.Cache;
+import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
+import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
+import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.messages.model.MessageFormatInvalidException;
+import org.eclipse.ditto.messages.model.MessageSendNotAllowedException;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessage;
+import org.eclipse.ditto.policies.api.Permission;
+import org.eclipse.ditto.policies.model.PoliciesResourceType;
+import org.eclipse.ditto.policies.model.ResourceKey;
+import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.protocol.UnknownCommandException;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.EventSendNotAllowedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
@@ -71,8 +71,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
     private final LiveSignalPub liveSignalPub;
 
     private LiveSignalEnforcement(final Contextual<SignalWithEntityId<?>> context,
-            final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
-            final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
+            final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
+            final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
             final LiveSignalPub liveSignalPub) {
 
         super(context);
@@ -87,8 +87,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
      */
     public static final class Provider implements EnforcementProvider<SignalWithEntityId<?>> {
 
-        private final Cache<CacheKey, Entry<CacheKey>> thingIdCache;
-        private final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache;
+        private final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache;
+        private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
         private final LiveSignalPub liveSignalPub;
 
         /**
@@ -98,8 +98,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
          * @param policyEnforcerCache the policy-enforcer cache.
          * @param liveSignalPub distributed-pub access for live signal publication
          */
-        public Provider(final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
-                final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
+        public Provider(final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
+                final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
                 final LiveSignalPub liveSignalPub) {
 
             this.thingIdCache = requireNonNull(thingIdCache);

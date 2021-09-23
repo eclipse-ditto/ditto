@@ -27,6 +27,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -123,6 +124,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
+import akka.cluster.Cluster;
 import akka.cluster.routing.ClusterRouterPool;
 import akka.cluster.routing.ClusterRouterPoolSettings;
 import akka.japi.pf.ReceiveBuilder;
@@ -157,11 +159,13 @@ public final class ConnectionPersistenceActor
     public static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-snapshots";
 
     private static final Duration DEFAULT_RETRIEVE_STATUS_TIMEOUT = Duration.ofMillis(500L);
+    private static final Duration GRACE_PERIOD_NOT_RETRIEVING_CONNECTION_STATUS_AFTER_RECOVERY = Duration.ofSeconds(10);
     private static final Duration SELF_RETRIEVE_CONNECTION_STATUS_TIMEOUT = Duration.ofSeconds(30);
 
     // never retry, just escalate. ConnectionSupervisorActor will handle restarting this actor
     private static final SupervisorStrategy ESCALATE_ALWAYS_STRATEGY = OneForOneEscalateStrategy.escalateStrategy();
 
+    private final Cluster cluster;
     private final ActorRef proxyActor;
     private final ClientActorPropsFactory propsFactory;
     private final ActorRef pubSubMediator;
@@ -187,6 +191,7 @@ public final class ConnectionPersistenceActor
     @Nullable private Instant loggingEnabledUntil;
     @Nullable private ActorRef clientActorRouter;
     @Nullable private Integer priority;
+    @Nullable private Instant recoveredAt;
 
     ConnectionPersistenceActor(final ConnectionId connectionId,
             final ActorRef proxyActor,
@@ -199,6 +204,7 @@ public final class ConnectionPersistenceActor
 
         super(connectionId, new ConnectionMongoSnapshotAdapter());
 
+        this.cluster = Cluster.get(getContext().getSystem());
         this.proxyActor = proxyActor;
         this.propsFactory = propsFactory;
         this.pubSubMediator = pubSubMediator;
@@ -372,6 +378,7 @@ public final class ConnectionPersistenceActor
     @Override
     protected void recoveryCompleted(final RecoveryCompleted event) {
         log.info("Connection <{}> was recovered: {}", entityId, entity);
+        recoveredAt = Instant.now();
         if (entity != null && entity.getLifecycle().isEmpty()) {
             entity = entity.toBuilder().lifecycle(ConnectionLifecycle.ACTIVE).build();
         }
@@ -455,7 +462,11 @@ public final class ConnectionPersistenceActor
             getSelf().tell(new PersistEmptyEvent(emptyEvent), ActorRef.noSender());
         }
 
-        askSelfForRetrieveConnectionStatus(ping.getCorrelationId().orElse(null));
+        if (null != recoveredAt && recoveredAt.plus(GRACE_PERIOD_NOT_RETRIEVING_CONNECTION_STATUS_AFTER_RECOVERY)
+                .isBefore(Instant.now())) {
+            // only ask for connection status after initial recovery was completed + some grace period
+            askSelfForRetrieveConnectionStatus(ping.getCorrelationId().orElse(null));
+        }
     }
 
     private void askSelfForRetrieveConnectionStatus(@Nullable final CharSequence correlationId) {
@@ -964,8 +975,11 @@ public final class ConnectionPersistenceActor
         checkNotNull(entity, "Connection");
         // timeout before sending the (partial) response
         final Duration timeout = extractTimeoutFromCommand(command.getDittoHeaders());
+        final long availableConnectivityInstances = StreamSupport.stream(cluster.state().getMembers().spliterator(), false)
+                .filter(member -> member.getRoles().contains(CLUSTER_ROLE))
+                .count();
         final Props props = RetrieveConnectionStatusAggregatorActor.props(entity, sender,
-                command.getDittoHeaders(), timeout);
+                command.getDittoHeaders(), timeout, availableConnectivityInstances);
         forwardToClientActors(props, command, () -> respondWithEmptyStatus(command, sender));
     }
 

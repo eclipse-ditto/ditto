@@ -20,7 +20,6 @@ import static org.mockito.Mockito.verify;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import org.assertj.core.api.Assertions;
 import org.junit.Before;

@@ -81,13 +81,13 @@ public interface ConnectionFailure extends WithOrigin {
      * Determines a nicely formatted failure description string based on the based in optional {@code cause}, an
      * optional {@code description} and the {@code time}.
      *
-     * @param time the time to include in the description.
+     * @param time the optional time to include in the description.
      * @param cause the optional cause to extract {@code message} and (if it was a {@code DittoRuntimeException}
      * {@code description} from.
      * @param description an optional additional description to include in the created failure description.
      * @return the created nicely formatted failure description.
      */
-    static String determineFailureDescription(final Instant time,
+    static String determineFailureDescription(@Nullable final Instant time,
             @Nullable final Throwable cause,
             @Nullable final String description) {
         String responseStr = "";
@@ -108,7 +108,9 @@ public interface ConnectionFailure extends WithOrigin {
         if (!responseStr.endsWith(".")) {
             responseStr += ".";
         }
-        responseStr += " At " + time;
+        if (null != time) {
+            responseStr += " At " + time;
+        }
         return responseStr;
     }
 

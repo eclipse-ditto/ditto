@@ -40,6 +40,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -56,7 +57,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithType;
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
@@ -165,16 +165,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
 
-    private static final Set<String> NO_ADDRESS_REPORTING_CHILD_NAMES = Set.of(
-            OutboundMappingProcessorActor.ACTOR_NAME,
-            OutboundDispatchingActor.ACTOR_NAME
-    );
+    private static final Pattern EXCLUDED_ADDRESS_REPORTING_CHILD_NAME_PATTERN = Pattern.compile(
+            OutboundMappingProcessorActor.ACTOR_NAME + "|" + OutboundDispatchingActor.ACTOR_NAME + "|" +
+                    "StreamSupervisor-.*|subscriptionManager");
 
     protected static final Status.Success DONE = new Status.Success(Done.getInstance());
 
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
-
+private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
+            "Closed because of unknown/failure/misconfiguration status in client.";
     /**
      * Common logger for all sub-classes of BaseClientActor as its MDC already contains the connection ID.
      */
@@ -962,16 +962,18 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 connectionContext.getConnectivityConfig().getClientConfig().getConnectingMinTimeout();
         if (canConnectViaSocket(connection)) {
             doConnectClient(connection, sender);
-            return goToConnecting(connectingTimeout).using(setSession(data, sender, dittoHeaders));
+            return goToConnecting(connectingTimeout).using(setSession(data, sender, dittoHeaders).resetFailureCount());
         } else {
             cleanupResourcesForConnection();
             final DittoRuntimeException error = newConnectionFailedException(dittoHeaders);
             sender.tell(new Status.Failure(error), getSelf());
             return goToConnecting(connectingTimeout)
-                    .using(data.setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
+                    .using(data.resetSession()
+                            .resetFailureCount()
+                            .setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
                             .setConnectionStatusDetails(
                                     ConnectionFailure.determineFailureDescription(Instant.now(), error, null))
-                            .resetSession());
+                    );
         }
     }
 
@@ -1045,7 +1047,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private State<BaseClientState, BaseClientData> testingConnectionFailed(final ConnectionFailure event,
             final BaseClientData data) {
-        logger.info("{} failed: <{}>", stateName(), event.getFailure());
+        logger.info("{} failed: <{}>", stateName(), event);
         cleanupResourcesForConnection();
         data.getSessionSenders().forEach(sender ->
                 sender.first().tell(getStatusToReport(event.getFailure(), sender.second()), getSelf()));
@@ -1074,15 +1076,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                         reconnect();
                     } catch (final ConnectionFailedException e) {
                         return goToConnecting(reconnectTimeoutStrategy.getNextTimeout())
-                                .using(data.setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
+                                .using(data.resetSession()
+                                        .resetFailureCount()
+                                        .setConnectionStatus(ConnectivityStatus.MISCONFIGURED)
                                         .setConnectionStatusDetails(
-                                                ConnectionFailure.determineFailureDescription(Instant.now(), e, null))
-                                        .resetSession());
+                                                ConnectionFailure.determineFailureDescription(Instant.now(), e, null)));
                     }
                 }
                 return goToConnecting(reconnectTimeoutStrategy.getNextTimeout())
-                        .using(data.resetSession()
-                                .setConnectionStatus(ConnectivityStatus.FAILED)
+                        .using(data.resetSession()  // don't set the state, preserve the old one (e.g. MISCONFIGURED)
+                                .resetFailureCount()
                                 .setConnectionStatusDetails(timeoutMessage + " Will try to reconnect."));
             } else {
                 connectionLogger.failure(
@@ -1093,22 +1096,26 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                         connectionId());
 
                 return goTo(INITIALIZED)
-                        .using(data.resetSession() // don't set the state, preserve the old one (e.g. MISCONFIGURED)
-                                .setConnectionStatusDetails(
-                                        data.getConnectionStatusDetails().orElse(timeoutMessage)
-                                                // Preserve old status details
-                                                +
-                                                " Reached maximum retries and thus will not try to reconnect any longer.")
+                        .using(data.resetSession()
+                                .resetFailureCount()
+                                // don't set the state, preserve the old one (e.g. MISCONFIGURED)
+                                // Preserve old status details
+                                .setConnectionStatusDetails(data.getConnectionStatusDetails().orElse(timeoutMessage) +
+                                        " Reached maximum retries and thus will not try to reconnect any longer.")
                         );
             }
+        } else {
+            // this is unexpected, as a desired "closed" connection should not get this far (trying to connect)
+            connectionLogger.failure("Connection timed out, however desired state was {0}",
+                    data.getDesiredConnectionStatus());
+            return goTo(INITIALIZED)
+                    .using(data.resetSession()
+                            .resetFailureCount()
+                            .setConnectionStatus(ConnectivityStatus.FAILED)
+                            .setConnectionStatusDetails(timeoutMessage + " Desired state was: " +
+                                    data.getDesiredConnectionStatus())
+                    );
         }
-
-        connectionLogger.failure("Connection timed out.");
-        return goTo(INITIALIZED)
-                .using(data.resetSession()
-                        .setConnectionStatus(ConnectivityStatus.FAILED)
-                        .setConnectionStatusDetails(timeoutMessage)
-                );
     }
 
     private State<BaseClientState, BaseClientData> tunnelStarted(final SshTunnelActor.TunnelStarted tunnelStarted,
@@ -1224,12 +1231,17 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final InitializationResult initializationResult, final BaseClientData data) {
 
         if (initializationResult.isSuccess()) {
+            logger.debug("Initialization of consumers, publisher and subscriptions successful, going to CONNECTED.");
             connectionLogger.success("Connection successful.");
             data.getSessionSenders().forEach(origin -> origin.first().tell(new Status.Success(CONNECTED), getSelf()));
             return goTo(CONNECTED).using(data.resetSession()
-                    .setConnectionStatus(ConnectivityStatus.OPEN)
-                    .setConnectionStatusDetails("Connected at " + Instant.now()));
+                            .resetFailureCount()
+                            .setConnectionStatus(ConnectivityStatus.OPEN)
+                            .setConnectionStatusDetails("Connected at " + Instant.now())
+                    );
         } else {
+            logger.info("Initialization of consumers, publisher and subscriptions failed: {}. Staying in CONNECTING " +
+                    "state to continue with connection recovery after backoff.", initializationResult.getFailure());
             getSelf().tell(initializationResult.getFailure(), ActorRef.noSender());
             return stay();
         }
@@ -1294,23 +1306,23 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private State<BaseClientState, BaseClientData> connectingConnectionFailed(final ConnectionFailure event,
             final BaseClientData data) {
 
-            logger.info("{} failed: <{}>", stateName(), event.getFailure());
+        logger.info("{} failed: <{}>", stateName(), event);
 
-            cleanupResourcesForConnection();
-            data.getSessionSenders().forEach(sender ->
-                    sender.first().tell(getStatusToReport(event.getFailure(), sender.second()), getSelf()));
+        cleanupResourcesForConnection();
+        data.getSessionSenders().forEach(sender ->
+                sender.first().tell(getStatusToReport(event.getFailure(), sender.second()), getSelf()));
 
-            return backoffAfterFailure(event, data);
+        return backoffAfterFailure(event, data);
     }
 
     private State<BaseClientState, BaseClientData> connectedConnectionFailed(final ConnectionFailure event,
             final BaseClientData data) {
 
-            // do not bother to disconnect gracefully - the other end of the connection is probably dead
-            cleanupResourcesForConnection();
-            cleanupFurtherResourcesOnConnectionTimeout(stateName());
+        // do not bother to disconnect gracefully - the other end of the connection is probably dead
+        cleanupResourcesForConnection();
+        cleanupFurtherResourcesOnConnectionTimeout(stateName());
 
-            return backoffAfterFailure(event, data);
+        return backoffAfterFailure(event, data);
     }
 
     /**
@@ -1327,22 +1339,26 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         dittoProtocolSub.removeSubscriber(getSelf());
         if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
             if (reconnectTimeoutStrategy.canReconnect()) {
-                if (data.getConnectionStatus().isFailure()) {
-                    connectionLogger.failure("Connection failed due to: {0}. Reconnect was already triggered.",
-                            event.getFailureDescription());
-                    logger.info("Connection failed: {}. Reconnect was already triggered.", event);
-                    return stay().using(data.resetSession()
-                            .setConnectionStatus(connectivityStatusResolver.resolve(event))
-                            .setConnectionStatusDetails(event.getFailureDescription()));
+                if (data.getFailureCount() > 0) {
+                    connectionLogger.failure(
+                            "Reconnection attempt <{0}> failed due to: {1}. Reconnect after backoff was " +
+                                    "already triggered.", data.getFailureCount(), event.getFailureDescription());
+                    logger.info("Reconnection attempt <{}> failed: {}. Reconnect was already triggered.",
+                            data.getFailureCount(), event);
+                    return stay().using(data.increaseFailureCount());
                 } else {
                     final Duration nextBackoff = reconnectTimeoutStrategy.getNextBackoff();
                     final var errorMessage =
                             String.format("Connection failed due to: {0}. Will reconnect after %s.", nextBackoff);
                     connectionLogger.failure(errorMessage, event.getFailureDescription());
-                    logger.info("Connection failed: {}. Reconnect after {}.", event, nextBackoff);
+                    final ConnectivityStatus resolvedStatus = connectivityStatusResolver.resolve(event);
+                    logger.info("Connection failed: {}. Reconnect after: {}. Resolved status: {}. " +
+                            "Going to 'CONNECTING'", event, nextBackoff, resolvedStatus);
                     return goToConnecting(nextBackoff).using(data.resetSession()
-                            .setConnectionStatus(connectivityStatusResolver.resolve(event))
-                            .setConnectionStatusDetails(event.getFailureDescription()));
+                            .increaseFailureCount()
+                            .setConnectionStatus(resolvedStatus)
+                            .setConnectionStatusDetails(event.getFailureDescription())
+                    );
                 }
             } else {
                 connectionLogger.failure(
@@ -1386,34 +1402,52 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .stream()
                 .mapToInt(source -> source.getConsumerCount() * source.getAddresses().size())
                 .sum();
-        final int expectedNumberOfChildren = numberOfProducers + numberOfConsumers;
+        int expectedNumberOfChildren = numberOfProducers + numberOfConsumers;
+        if (getSshTunnelState().isEnabled()) {
+            expectedNumberOfChildren++;
+        }
+        final Set<Pattern> noAddressReportingChildNamePatterns = getExcludedAddressReportingChildNamePatterns();
         final List<ActorRef> childrenToAsk = StreamSupport.stream(getContext().getChildren().spliterator(), false)
-                .filter(child -> !NO_ADDRESS_REPORTING_CHILD_NAMES.contains(child.path().name()))
+                .filter(child -> noAddressReportingChildNamePatterns.stream()
+                        .noneMatch(p -> p.matcher(child.path().name()).matches()))
                 .collect(Collectors.toList());
         final ConnectivityStatus clientConnectionStatus = data.getConnectionStatus();
-        if (childrenToAsk.size() != expectedNumberOfChildren && clientConnectionStatus.isFailure()) {
-            logger.withCorrelationId(command)
-                    .info("Responding with static 'CLOSED' ResourceStatus for all sources and targets," +
-                            "because some children could not be started, due to a failure in the client actor.");
-            connection.getSources().stream()
-                    .map(Source::getAddresses)
-                    .flatMap(Collection::stream)
-                    .map(sourceAddress -> ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
-                            ConnectivityStatus.CLOSED,
-                            sourceAddress, "Closed because of failure in client"))
-                    .forEach(resourceStatus -> sender.tell(resourceStatus, ActorRef.noSender()));
-            connection.getTargets().stream()
-                    .map(Target::getAddress)
-                    .map(targetAddress -> ConnectivityModelFactory.newTargetStatus(getInstanceIdentifier(),
-                            ConnectivityStatus.CLOSED,
-                            targetAddress, "Closed because of failure in client"))
-                    .forEach(resourceStatus -> sender.tell(resourceStatus, ActorRef.noSender()));
-        } else {
-            childrenToAsk.forEach(child -> {
+        if (childrenToAsk.size() != expectedNumberOfChildren) {
+            if (clientConnectionStatus.isFailure() || clientConnectionStatus == ConnectivityStatus.UNKNOWN) {
                 logger.withCorrelationId(command)
-                        .debug("Forwarding RetrieveAddressStatus to child <{}>.", child.path());
-                child.tell(RetrieveAddressStatus.getInstance(), sender);
-            });
+                        .info("Responding early with static 'CLOSED' ResourceStatus for all sub-sources and " +
+                                "-targets and SSH tunnel, because some children could not be started, due to a " +
+                                "live status <{}> in the client actor.", clientConnectionStatus);
+                connection.getSources().stream()
+                        .map(Source::getAddresses)
+                        .flatMap(Collection::stream)
+                        .map(sourceAddress -> ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
+                                ConnectivityStatus.CLOSED,
+                                sourceAddress,
+                                CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT))
+                        .forEach(resourceStatus -> sender.tell(resourceStatus, ActorRef.noSender()));
+                connection.getTargets().stream()
+                        .map(Target::getAddress)
+                        .map(targetAddress -> ConnectivityModelFactory.newTargetStatus(getInstanceIdentifier(),
+                                ConnectivityStatus.CLOSED,
+                                targetAddress,
+                                CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT))
+                        .forEach(resourceStatus -> sender.tell(resourceStatus, ActorRef.noSender()));
+                connection.getSshTunnel().ifPresent(sshTunnel -> sender.tell(
+                        ConnectivityModelFactory.newSshTunnelStatus(getInstanceIdentifier(),
+                                ConnectivityStatus.CLOSED,
+                                CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT,
+                                Instant.now()), ActorRef.noSender())
+                );
+            } else {
+                logger.withCorrelationId(command)
+                        .warning("NOT responding early with ResourceStatus for all sub-sources and " +
+                                "-targets and SSH tunnel, having a live status <{}> in the client actor which likely " +
+                                "will cause timeout 'failures' in some of the resources.", clientConnectionStatus);
+                retrieveAddressStatusFromChildren(command, sender, childrenToAsk);
+            }
+        } else {
+            retrieveAddressStatusFromChildren(command, sender, childrenToAsk);
         }
 
         final ResourceStatus clientStatus =
@@ -1424,6 +1458,26 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         sender.tell(clientStatus, getSelf());
 
         return stay();
+    }
+
+    private void retrieveAddressStatusFromChildren(final RetrieveConnectionStatus command, final ActorRef sender,
+            final List<ActorRef> childrenToAsk) {
+        childrenToAsk.forEach(child -> {
+            logger.withCorrelationId(command)
+                    .debug("Forwarding RetrieveAddressStatus to child <{}>.", child.path());
+            child.tell(RetrieveAddressStatus.getInstance(), sender);
+        });
+    }
+
+    /**
+     * Set of regex patterns including client actor names which should not receive {@link RetrieveAddressStatus}
+     * messages in order to retrieve the current live status.
+     * May be overwritten by clients to add more actor name patterns which are started as children of the client actor.
+     *
+     * @return the set of patterns to exclude.
+     */
+    protected Set<Pattern> getExcludedAddressReportingChildNamePatterns() {
+        return Set.of(EXCLUDED_ADDRESS_REPORTING_CHILD_NAME_PATTERN);
     }
 
     private static String getInstanceIdentifier() {
@@ -1686,11 +1740,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             throw dre;
         }
 
-        final Connection theConnection = connectionContext.getConnection();
-        final int processorPoolSize = theConnection.getProcessorPoolSize();
+        final Connection connectionContextConnection = connectionContext.getConnection();
+        final int processorPoolSize = connectionContextConnection.getProcessorPoolSize();
         logger.debug("Starting mapping processor actors with pool size of <{}>.", processorPoolSize);
         final Props outboundMappingProcessorActorProps =
-                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, theConnection,
+                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connectionContextConnection,
                         processorPoolSize);
 
         final ActorRef processorActor =
@@ -1882,6 +1936,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                             return SupervisorStrategy.resume();
                         })
                         .matchAny(error -> {
+                            logger.warning("Received unhandled exception in supervisor: [{}] {}",
+                                    error.getClass().getName(), error.getMessage());
                             self.tell(ConnectionFailure.of(getSender(), error, "exception in child"), self);
                             if (getSender().equals(tunnelActor)) {
                                 logger.debug("Restarting tunnel actor after failure: {}", error.getMessage());
@@ -1987,7 +2043,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 connectionContextProvider.getConnectionContext(connection, dittoHeaders)
                         .thenCompose(context ->
                                 connectionContextProvider.registerForConnectivityConfigChanges(context, self)
-                                        .<Object>thenApply(theVoid -> context)
+                                        .<Object>thenApply(aVoid -> context)
                         )
                         .exceptionally(throwable -> {
                             if (throwable instanceof RuntimeException) {

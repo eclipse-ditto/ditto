@@ -38,19 +38,17 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-auth-context"}, Java type: {@link JsonObject}.
      * </p>
      */
-    AUTHORIZATION_CONTEXT("ditto-auth-context",
-            JsonObject.class,
-            false,
-            false,
-            HeaderValueValidators.getJsonObjectValidator()),
+    AUTHORIZATION_CONTEXT("ditto-auth-context", JsonObject.class, false,
+            false, HeaderValueValidators.getJsonObjectValidator()),
 
     /**
-     * Header definition for correlation Id value which MUST NOT be empty.
+     * Header definition for correlation ID value which MUST NOT be empty.
      * <p>
      * Key: {@code "correlation-id"}, Java type: {@link String}.
      * </p>
      */
-    CORRELATION_ID("correlation-id", String.class, true, true, HeaderValueValidators.getNonEmptyValidator()),
+    CORRELATION_ID("correlation-id", String.class, true, true,
+            HeaderValueValidators.getNonEmptyValidator()),
 
     /**
      * Header definition for schema version value.
@@ -58,7 +56,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "version"}, Java type: {@code int}.
      * </p>
      */
-    SCHEMA_VERSION("version", int.class, true, true, HeaderValueValidators.getIntValidator()),
+    SCHEMA_VERSION("version", int.class, true, true,
+            HeaderValueValidators.getIntValidator()),
 
     /**
      * Header definition for response required value.
@@ -66,7 +65,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "response-required"}, Java type: {@code boolean}.
      * </p>
      */
-    RESPONSE_REQUIRED("response-required", boolean.class, true, true, HeaderValueValidators.getBooleanValidator()),
+    RESPONSE_REQUIRED("response-required", boolean.class, true, true,
+            HeaderValueValidators.getBooleanValidator()),
 
     /**
      * Header definition for dry run value.
@@ -74,7 +74,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-dry-run"}, Java type: {@code boolean}.
      * </p>
      */
-    DRY_RUN("ditto-dry-run", boolean.class, false, false, HeaderValueValidators.getBooleanValidator()),
+    DRY_RUN("ditto-dry-run", boolean.class, false, false,
+            HeaderValueValidators.getBooleanValidator()),
 
     /**
      * Header definition for read subjects value.
@@ -82,7 +83,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "read-subjects"}, Java type: {@link JsonArray}.
      * </p>
      */
-    READ_SUBJECTS("ditto-read-subjects", JsonArray.class, false, false, HeaderValueValidators.getJsonArrayValidator()),
+    READ_SUBJECTS("ditto-read-subjects", JsonArray.class, false, false,
+            HeaderValueValidators.getJsonArrayValidator()),
 
     /**
      * Header definition for subjects with revoked READ subjects.
@@ -93,11 +95,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    READ_REVOKED_SUBJECTS("ditto-read-revoked-subjects",
-            JsonArray.class,
-            false,
-            false,
-            HeaderValueValidators.getJsonArrayValidator()),
+    READ_REVOKED_SUBJECTS("ditto-read-revoked-subjects", JsonArray.class,
+            false, false, HeaderValueValidators.getJsonArrayValidator()),
 
     /**
      * Header definition for a signal's content-type.
@@ -105,7 +104,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "content-type"}, Java type: {@link String}.
      * </p>
      */
-    CONTENT_TYPE("content-type", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
+    CONTENT_TYPE("content-type", String.class, true, true,
+            HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Header definition for the reply to address. MUST be lower-case.
@@ -116,7 +116,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    REPLY_TO("reply-to", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
+    REPLY_TO("reply-to", String.class, true, true,
+            HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Header definition for channel value meaning distinguishing between live/twin.
@@ -124,7 +125,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "channel"}, Java type: {@link String}.
      * </p>
      */
-    CHANNEL("channel", String.class, true, false, HeaderValueValidators.getDittoChannelValidator()),
+    CHANNEL("channel", String.class, true, false,
+            HeaderValueValidators.getDittoChannelValidator()),
 
     /**
      * Header definition for origin value that is set to the id of the originating session.
@@ -132,7 +134,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-origin"}, Java type: {@link String}.
      * </p>
      */
-    ORIGIN("ditto-origin", String.class, false, false, HeaderValueValidators.getNoOpValidator()),
+    ORIGIN("ditto-origin", String.class, false, false,
+            HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Header definition for "ETag".
@@ -140,7 +143,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ETag"}, Java type: {@link String}.
      * </p>
      */
-    ETAG("etag", EntityTag.class, String.class, false, true, HeaderValueValidators.getEntityTagValidator()),
+    ETAG("etag", EntityTag.class, String.class, false, true,
+            HeaderValueValidators.getEntityTagValidator()),
 
     /**
      * Header definition for "If-Match".
@@ -148,12 +152,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "If-Match"}, Java type: {@link String}.
      * </p>
      */
-    IF_MATCH("if-match",
-            EntityTagMatchers.class,
-            String.class,
-            true,
-            false,
-            HeaderValueValidators.getEntityTagMatchersValidator()),
+    IF_MATCH("if-match", EntityTagMatchers.class, String.class,
+            true, false, HeaderValueValidators.getEntityTagMatchersValidator()),
 
     /**
      * Header definition for "If-None-Match".
@@ -161,12 +161,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "If-None-Match"}, Java type: {@link String}.
      * </p>
      */
-    IF_NONE_MATCH("if-none-match",
-            EntityTagMatchers.class,
-            String.class,
-            true,
-            false,
-            HeaderValueValidators.getEntityTagMatchersValidator()),
+    IF_NONE_MATCH("if-none-match", EntityTagMatchers.class, String.class,true,
+            false, HeaderValueValidators.getEntityTagMatchersValidator()),
 
     /**
      * Header definition for the internal header "ditto-reply-target". This header is evaluated for responses to be
@@ -175,19 +171,17 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-reply-target"}, Java type: {@link Integer}.
      * </p>
      */
-    REPLY_TARGET("ditto-reply-target", Integer.class, false, false, HeaderValueValidators.getIntValidator()),
+    REPLY_TARGET("ditto-reply-target", Integer.class, false, false,
+            HeaderValueValidators.getIntValidator()),
 
     /**
-     * Header definition for the internal header "ditto-expected-response-types". This header is evaluated to distinguish
-     * if a response should published or not.
+     * Header definition for the internal header "ditto-expected-response-types".
+     * This header is evaluated to distinguish if a response should published or not.
      *
      * @since 1.2.0
      */
-    EXPECTED_RESPONSE_TYPES("ditto-expected-response-types",
-            JsonArray.class,
-            false,
-            false,
-            HeaderValueValidators.getJsonArrayValidator()),
+    EXPECTED_RESPONSE_TYPES("ditto-expected-response-types", JsonArray.class, false,
+            false, HeaderValueValidators.getJsonArrayValidator()),
 
     /**
      * Header definition for "ditto-inbound-payload-mapper".
@@ -195,11 +189,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-inbound-payload-mapper"}, Java type: {@link String}.
      * </p>
      */
-    INBOUND_PAYLOAD_MAPPER("ditto-inbound-payload-mapper",
-            String.class,
-            false,
-            false,
-            HeaderValueValidators.getNoOpValidator()),
+    INBOUND_PAYLOAD_MAPPER("ditto-inbound-payload-mapper", String.class, false,
+            false, HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Header definition for the authorization subject that caused an event.
@@ -208,7 +199,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-originator"}, Java type: {@link String}.
      * </p>
      */
-    ORIGINATOR("ditto-originator", String.class, false, true, HeaderValueValidators.getNoOpValidator()),
+    ORIGINATOR("ditto-originator", String.class, false, true,
+            HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Header definition for defining which acknowledgements ("ack") are requested for a command processed by Ditto.
@@ -218,10 +210,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    REQUESTED_ACKS("requested-acks",
-            JsonArray.class,
-            true,
-            true,
+    REQUESTED_ACKS("requested-acks", JsonArray.class, true, true,
             HeaderValueValidators.getRequestedAcksValueValidator()),
 
     /**
@@ -234,7 +223,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.4.0
      */
-    DECLARED_ACKS("declared-acks", JsonArray.class, true, false, HeaderValueValidators.getJsonArrayValidator()),
+    DECLARED_ACKS("declared-acks", JsonArray.class, true, false,
+            HeaderValueValidators.getJsonArrayValidator()),
 
     /**
      * Header definition for the timeout of a command or message.
@@ -244,7 +234,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    TIMEOUT("timeout", DittoDuration.class, String.class, true, true, HeaderValueValidators.getTimeoutValueValidator()),
+    TIMEOUT("timeout", DittoDuration.class, String.class, true, true,
+            HeaderValueValidators.getTimeoutValueValidator()),
 
     /**
      * Header definition for the entity ID related to the command/event/response/error.
@@ -254,7 +245,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    ENTITY_ID("ditto-entity-id", String.class, false, false, HeaderValueValidators.getNoOpValidator()),
+    ENTITY_ID("ditto-entity-id", String.class, false, false,
+            HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Header definition for the response header defining which authentication method that should be used
@@ -265,7 +257,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    WWW_AUTHENTICATE("www-authenticate", String.class, false, true, HeaderValueValidators.getNoOpValidator()),
+    WWW_AUTHENTICATE("www-authenticate", String.class, false, true,
+            HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Header definition for the response header defining the HTTP "Location" where a new resource was created.
@@ -275,14 +268,16 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    LOCATION("location", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
+    LOCATION("location", String.class, true, true,
+            HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Header definition for the Ditto connection ID in automatic acknowledgements.
      *
      * @since 1.2.0
      */
-    CONNECTION_ID("ditto-connection-id", String.class, false, true, HeaderValueValidators.getNoOpValidator()),
+    CONNECTION_ID("ditto-connection-id", String.class, false, true,
+            HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Header definition for setting metadata relatively to the resource of a modified entity.
@@ -292,7 +287,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.2.0
      */
-    PUT_METADATA("put-metadata", JsonArray.class, true, false, HeaderValueValidators.getMetadataHeadersValidator()),
+    PUT_METADATA("put-metadata", JsonArray.class, true, false,
+            HeaderValueValidators.getMetadataHeadersValidator()),
 
     /**
      * Header definition for allowing the policy lockout (i.e. a subject can create a policy without having WRITE
@@ -305,11 +301,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.3.0
      */
-    ALLOW_POLICY_LOCKOUT("allow-policy-lockout",
-            boolean.class,
-            true,
-            false,
-            HeaderValueValidators.getBooleanValidator()),
+    ALLOW_POLICY_LOCKOUT("allow-policy-lockout", boolean.class, true,
+            false, HeaderValueValidators.getBooleanValidator()),
 
     /**
      * Header definition to identify a weak acknowledgement.
@@ -318,7 +311,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.5.0
      */
-    WEAK_ACK("ditto-weak-ack", boolean.class, false, true, HeaderValueValidators.getBooleanValidator()),
+    WEAK_ACK("ditto-weak-ack", boolean.class, false, true,
+            HeaderValueValidators.getBooleanValidator()),
 
     /**
      * Header definition to identify when a Policy changing command did pre-emptively invalidate the caches related to
@@ -327,11 +321,8 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 2.0.0
      */
-    POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY("ditto-policy-enforcer-invalidated-preemptively",
-            boolean.class,
-            false,
-            false,
-            HeaderValueValidators.getBooleanValidator()),
+    POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY("ditto-policy-enforcer-invalidated-preemptively", boolean.class,
+            false, false, HeaderValueValidators.getBooleanValidator()),
 
     /**
      * Internal header which may be set by PersistenceActors in order to declare tags to be stored by the event
@@ -339,25 +330,24 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 2.0.0
      */
-    EVENT_JOURNAL_TAGS("ditto-event-journal-tags",
-            JsonArray.class,
-            false,
-            false,
-            HeaderValueValidators.getJsonArrayValidator()),
+    EVENT_JOURNAL_TAGS("ditto-event-journal-tags", JsonArray.class, false,
+            false, HeaderValueValidators.getJsonArrayValidator()),
 
     /**
      * W3C traceparent header. See https://www.w3.org/TR/trace-context/#traceparent-header.
      *
      * @since 2.1.0
      */
-    W3C_TRACEPARENT("traceparent", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
+    W3C_TRACEPARENT("traceparent", String.class, true, true,
+            HeaderValueValidators.getNoOpValidator()),
 
     /**
      * W3C tracestate header. See https://www.w3.org/TR/trace-context/#tracestate-header.
      *
      * @since 2.1.0
      */
-    W3C_TRACESTATE("tracestate", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
+    W3C_TRACESTATE("tracestate", String.class, true, true,
+            HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Internal header which may be set to ignore some preventions in the service. Can only be used in piggy-back
@@ -365,7 +355,30 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 2.1.0
      */
-    DITTO_SUDO("ditto-sudo", boolean.class, false, false, HeaderValueValidators.getBooleanValidator());
+    DITTO_SUDO("ditto-sudo", boolean.class, false, false,
+            HeaderValueValidators.getBooleanValidator()),
+
+
+    /**
+     * Internal header to indicate that the query command is meant to also retrieve deleted entities.
+     *
+     * @since 2.1.0
+     */
+    DITTO_RETRIEVE_DELETED("ditto-retrieve-deleted", boolean.class, false,
+            false, HeaderValueValidators.getBooleanValidator()),
+
+    /**
+     * Header definition to identify a request for a conditional update.
+     * Condition to update the thing is evaluated in the things service. Conditions are based on RQL expressions.
+     *
+     * <p>
+     * Key {@code "condition"}, Java type: {@link String}.
+     * </p>
+     *
+     * @since 2.1.0
+     */
+    CONDITION("condition", String.class, true, false,
+            HeaderValueValidators.getNoOpValidator());
 
     /**
      * Map to speed up lookup of header definition by key.

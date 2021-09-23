@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
+import org.eclipse.ditto.internal.utils.tracing.TraceUriGenerator;
 import org.eclipse.ditto.internal.utils.tracing.TracingTags;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 
@@ -36,6 +37,8 @@ import kamon.context.Context;
  * Custom Akka Http directive tracing the request.
  */
 public final class RequestTracingDirective {
+
+    private static final TraceUriGenerator TRACE_URI_GENERATOR = TraceUriGenerator.getInstance();
 
     private RequestTracingDirective() {
         throw new AssertionError();
@@ -52,11 +55,13 @@ public final class RequestTracingDirective {
         return extractRequest(request -> {
             final Context context = DittoTracing.extractTraceContext(request);
             // creates new context if it was empty
+            final String requestMethod = request.method().name();
+            final String contextName = String.format("%s %s", requestMethod,
+                    TRACE_URI_GENERATOR.apply(request.getUri().toRelative().path()).getTraceUri());
             final StartedTrace startedTrace = DittoTracing
-                    .trace(context, "http-request")
+                    .trace(context, contextName)
                     .correlationId(correlationId)
                     .start();
-            final String requestMethod = request.method().name();
             final String filteredRelativeRequestUri = filterUri(request.getUri().toRelative()).toString();
             return mapRequest(
                     r -> addIfHeaderExists(r, DittoTracing.propagateContext(startedTrace.getContext()),

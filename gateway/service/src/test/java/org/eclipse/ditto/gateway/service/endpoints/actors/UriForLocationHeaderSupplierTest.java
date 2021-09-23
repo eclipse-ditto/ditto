@@ -14,12 +14,12 @@ package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 
 import akka.http.javadsl.model.HttpMethods;
@@ -67,6 +67,13 @@ public final class UriForLocationHeaderSupplierTest {
     public void getUriForNonIdempotentRequestWithoutEntityIdInUri() {
         final Uri uri = Uri.create("https://example.com/things");
         checkUriForNonIdempotentRequestWithoutEntityIdInUri(uri, uri);
+    }
+
+    @Test
+    public void getUriWithTrailingSlash() {
+        final Uri uri = Uri.create("https://example.com/things/");
+        final Uri locationUri = Uri.create("https://example.com/things");
+        checkUriForNonIdempotentRequestWithoutEntityIdInUri(locationUri, uri);
     }
 
     @Test

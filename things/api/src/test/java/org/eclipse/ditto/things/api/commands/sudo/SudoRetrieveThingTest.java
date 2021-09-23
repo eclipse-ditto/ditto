@@ -19,15 +19,15 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.Optional;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -92,7 +92,7 @@ public final class SudoRetrieveThingTest {
     @Test
     public void toJsonWithUsingOriginalSchemaVersionReturnsExpected() {
         final SudoRetrieveThing sudoRetrieveThing =
-                SudoRetrieveThing.withOriginalSchemaVersion(THING_ID, EMPTY_DITTO_HEADERS);
+                SudoRetrieveThing.withOriginalSchemaVersion(THING_ID, null, EMPTY_DITTO_HEADERS);
 
         final JsonObject jsonObject = sudoRetrieveThing.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial());
 

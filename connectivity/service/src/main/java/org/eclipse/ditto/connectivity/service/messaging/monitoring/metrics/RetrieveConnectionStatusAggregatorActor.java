@@ -46,15 +46,21 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final Duration timeout;
+    private final long availableConnectivityInstances;
     private final Map<ResourceStatus.ResourceType, Integer> expectedResponses;
     private final ActorRef sender;
+    private final int configuredClientCount;
 
     private final RetrieveConnectionStatusResponse.Builder responseBuilder;
 
     @SuppressWarnings("unused")
     private RetrieveConnectionStatusAggregatorActor(final Connection connection,
-            final ActorRef sender, final DittoHeaders originalHeaders, final Duration timeout) {
+            final ActorRef sender,
+            final DittoHeaders originalHeaders,
+            final Duration timeout,
+            final long availableConnectivityInstances) {
         this.timeout = timeout;
+        this.availableConnectivityInstances = availableConnectivityInstances;
         this.sender = sender;
         responseBuilder = RetrieveConnectionStatusResponse.getBuilder(connection.getId(), originalHeaders)
                 .connectionStatus(connection.getConnectionStatus())
@@ -66,23 +72,24 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
                 .sshTunnelStatus(Collections.emptyList());
 
         expectedResponses = new EnumMap<>(ResourceStatus.ResourceType.class);
-        final int clientCount = connection.getClientCount();
+        configuredClientCount = connection.getClientCount();
         // one response per client actor
-        expectedResponses.put(ResourceStatus.ResourceType.CLIENT, clientCount);
+        expectedResponses.put(ResourceStatus.ResourceType.CLIENT, configuredClientCount);
         if (ConnectivityStatus.OPEN.equals(connection.getConnectionStatus())) {
             // one response per source/target
             expectedResponses.put(ResourceStatus.ResourceType.TARGET,
                     connection.getTargets()
                             .stream()
-                            .mapToInt(target -> clientCount)
+                            .mapToInt(target -> configuredClientCount)
                             .sum());
             expectedResponses.put(ResourceStatus.ResourceType.SOURCE,
                     connection.getSources()
                             .stream()
-                            .mapToInt(source -> clientCount * source.getConsumerCount() * source.getAddresses().size())
+                            .mapToInt(source -> configuredClientCount * source.getConsumerCount() *
+                                    source.getAddresses().size())
                             .sum());
             if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
-                expectedResponses.put(ResourceStatus.ResourceType.SSH_TUNNEL, clientCount);
+                expectedResponses.put(ResourceStatus.ResourceType.SSH_TUNNEL, configuredClientCount);
             }
         }
     }
@@ -94,12 +101,13 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
      * @param sender the ActorRef of the sender to which to answer the response to.
      * @param originalHeaders the DittoHeaders to use for the response message.
      * @param timeout the timeout to apply in order to receive the response.
+     * @param availableConnectivityInstances the currently available connectivity service instances in the cluster.
      * @return the Akka configuration Props object
      */
     public static Props props(final Connection connection, final ActorRef sender, final DittoHeaders originalHeaders,
-            final Duration timeout) {
+            final Duration timeout, final long availableConnectivityInstances) {
         return Props.create(RetrieveConnectionStatusAggregatorActor.class, connection, sender, originalHeaders,
-                timeout);
+                timeout, availableConnectivityInstances);
     }
 
     @Override
@@ -116,7 +124,8 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         log.warning("RetrieveConnectionStatus timed out, sending (partial) response with missing resources: <{}>",
                 missingResources);
-        responseBuilder.withMissingResources(missingResources);
+        responseBuilder.withMissingResources(missingResources, configuredClientCount,
+                availableConnectivityInstances >= configuredClientCount);
         sendResponse();
         stopSelf();
     }
@@ -179,6 +188,9 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
         final boolean anyMisconfigured = resourceStatus.stream()
                 .map(ResourceStatus::getStatus)
                 .anyMatch(ConnectivityStatus.MISCONFIGURED::equals);
+        final boolean anyUnknown = resourceStatus.stream()
+                .map(ResourceStatus::getStatus)
+                .anyMatch(ConnectivityStatus.UNKNOWN::equals);
         final boolean allClosed = resourceStatus.stream()
                 .map(ResourceStatus::getStatus)
                 .allMatch(ConnectivityStatus.CLOSED::equals);
@@ -194,6 +206,12 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
             liveStatus = ConnectivityStatus.MISCONFIGURED;
         } else if (allClosed) {
             liveStatus = ConnectivityStatus.CLOSED;
+        } else if (anyUnknown) {
+            final boolean allClientsOpen = resourceStatus.stream()
+                    .filter(p -> p.getResourceType() == ResourceStatus.ResourceType.CLIENT)
+                    .map(ResourceStatus::getStatus)
+                    .allMatch(ConnectivityStatus.OPEN::equals);
+            liveStatus = allClientsOpen ? ConnectivityStatus.OPEN : ConnectivityStatus.UNKNOWN;
         } else {
             liveStatus = ConnectivityStatus.UNKNOWN;
         }

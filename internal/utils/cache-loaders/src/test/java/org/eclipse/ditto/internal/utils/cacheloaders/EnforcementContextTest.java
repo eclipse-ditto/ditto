@@ -10,14 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.cache;
+package org.eclipse.ditto.internal.utils.cacheloaders;
 
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -25,18 +24,18 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Tests {@link ImmutableCacheLookupContext}.
  */
-public class ImmutableCacheLookupContextTest {
+public class EnforcementContextTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ImmutableCacheLookupContext.class,
+        assertInstancesOf(EnforcementContext.class,
                 areImmutable(),
-                provided(DittoHeaders.class, JsonFieldSelector.class).isAlsoImmutable());
+                provided(PersistenceLifecycle.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableCacheLookupContext.class)
+        EqualsVerifier.forClass(EnforcementContext.class)
                 .verify();
     }
 

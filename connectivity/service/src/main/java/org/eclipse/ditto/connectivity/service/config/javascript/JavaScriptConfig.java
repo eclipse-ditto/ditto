@@ -50,6 +50,13 @@ public interface JavaScriptConfig {
     int getMaxScriptStackDepth();
 
     /**
+     * Whether to allow using 'print', 'exit', 'quit' in JavaScript executions, only intended for debugging purposes.
+     *
+     * @return whether to allow using unsafe standard objects in JS mapping.
+     */
+    boolean isAllowUnsafeStandardObjects();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code JavaScriptConfig}.
      */
@@ -68,7 +75,12 @@ public interface JavaScriptConfig {
         /**
          * The maximum call stack depth in the mapping script.
          */
-        MAX_SCRIPT_STACK_DEPTH("maxScriptStackDepth", 10);
+        MAX_SCRIPT_STACK_DEPTH("maxScriptStackDepth", 10),
+
+        /**
+         * Whether to allow using 'print', 'exit', 'quit' in JavaScript executions, only intended for debugging purposes.
+         */
+        ALLOW_UNSAFE_STANDARD_OBJECTS("allowUnsafeStandardObjects", false);
 
         private final String path;
         private final Object defaultValue;

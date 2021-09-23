@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.base.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 
 import akka.actor.AbstractActorWithTimers;
@@ -52,11 +52,11 @@ public final class CachedNamespaceInvalidator extends AbstractActorWithTimers {
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
-    private final Collection<Cache<CacheKey, ?>> cachesToMaintain;
+    private final Collection<Cache<EnforcementCacheKey, ?>> cachesToMaintain;
 
     @SuppressWarnings("unused")
     private CachedNamespaceInvalidator(final BlockedNamespaces blockedNamespaces,
-            final Collection<Cache<CacheKey, ?>> cachesToMaintain) {
+            final Collection<Cache<EnforcementCacheKey, ?>> cachesToMaintain) {
 
         blockedNamespaces.subscribeForChanges(getSelf());
         this.cachesToMaintain = cachesToMaintain;
@@ -70,7 +70,7 @@ public final class CachedNamespaceInvalidator extends AbstractActorWithTimers {
      * @return the Props object.
      */
     public static Props props(final BlockedNamespaces blocked,
-            final Collection<Cache<CacheKey, ?>> caches) {
+            final Collection<Cache<EnforcementCacheKey, ?>> caches) {
         return Props.create(CachedNamespaceInvalidator.class, blocked, caches)
                 .withDispatcher(DISPATCHER_NAME);
     }
@@ -116,9 +116,9 @@ public final class CachedNamespaceInvalidator extends AbstractActorWithTimers {
         cachesToMaintain.forEach(cache -> invalidateNamespaces(cache, invalidate.namespaces));
     }
 
-    private void invalidateNamespaces(final Cache<CacheKey, ?> cache, final ORSet<String> namespaces) {
+    private void invalidateNamespaces(final Cache<EnforcementCacheKey, ?> cache, final ORSet<String> namespaces) {
         if (!namespaces.isEmpty()) {
-            final Collection<CacheKey> keysToInvalidate = cache.asMap()
+            final Collection<EnforcementCacheKey> keysToInvalidate = cache.asMap()
                     .keySet()
                     .stream()
                     .filter(entityId -> containsNamespaceOfEntityId(namespaces, entityId))
@@ -129,7 +129,7 @@ public final class CachedNamespaceInvalidator extends AbstractActorWithTimers {
     }
 
     private static boolean containsNamespaceOfEntityId(final ORSet<String> namespaces,
-            final CacheKey entityId) {
+            final EnforcementCacheKey entityId) {
         return NamespaceReader.fromEntityId(entityId.getId())
                 .map(namespaces::contains)
                 .orElse(false);

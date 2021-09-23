@@ -41,8 +41,8 @@ import org.eclipse.ditto.concierge.service.starter.actors.CachedNamespaceInvalid
 import org.eclipse.ditto.concierge.service.starter.actors.DispatcherActor;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.ThingEnforcementIdCacheLoader;
@@ -91,21 +91,21 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         final ActorRef thingsShardRegionProxy = shardRegions.things();
 
-        final AsyncCacheLoader<CacheKey, Entry<CacheKey>> thingEnforcerIdCacheLoader =
+        final AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingEnforcerIdCacheLoader =
                 new ThingEnforcementIdCacheLoader(askWithRetryConfig, actorSystem.getScheduler(),
                         thingsShardRegionProxy);
-        final Cache<CacheKey, Entry<CacheKey>> thingIdCache =
+        final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache =
                 CacheFactory.createCache(thingEnforcerIdCacheLoader, cachesConfig.getIdCacheConfig(),
                         ID_CACHE_METRIC_NAME_PREFIX + ThingCommand.RESOURCE_TYPE,
                         actorSystem.dispatchers().lookup("thing-id-cache-dispatcher"));
 
-        final AsyncCacheLoader<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
+        final AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askWithRetryConfig, actorSystem.getScheduler(), policiesShardRegionProxy);
-        final Cache<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCache =
+        final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, cachesConfig.getEnforcerCacheConfig(),
                         ENFORCER_CACHE_METRIC_NAME_PREFIX + "policy",
                         actorSystem.dispatchers().lookup("policy-enforcer-cache-dispatcher"));
-        final Cache<CacheKey, Entry<Enforcer>> projectedEnforcerCache =
+        final Cache<EnforcementCacheKey, Entry<Enforcer>> projectedEnforcerCache =
                 policyEnforcerCache.projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
 
         // pre-enforcer
