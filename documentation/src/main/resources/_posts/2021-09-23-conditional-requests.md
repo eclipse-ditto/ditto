@@ -1,7 +1,7 @@
 ---
 title: "Support conditional requests for things resources"
 published: true
-permalink: 2021-09-16-conditional-requests.html
+permalink: 2021-09-23-conditional-requests.html
 layout: post
 author: stefan_maute
 tags: [blog, http, protocol, rql]
@@ -15,7 +15,8 @@ and their sub-resources.
 
 ## Conditional requests for things resources
 Ditto now supports conditional requests on things and all of its sub-resources based on a specified condition in the request.
-This functionality can be used via the HTTP API with an HTTP header or query parameter, as well as via the Ditto protocol, and the Ditto Java Client. 
+This functionality can be used via the HTTP API with an HTTP header or query parameter, as well as via the Ditto protocol, 
+and the Ditto Java Client. 
 For all three ways there is an example provided in this blog post.
 
 With the new functionality, it is possible to retrieve, update, and delete things and all sub-resources 
@@ -46,12 +47,11 @@ More documentation for this feature can be found here: [Conditional Requests](ba
 In order to execute a conditional request, the authorized subject needs to have WRITE permission at the resource
 that should be changed by the request. 
 
-Additionally, the authorized subject needs to have READ permission 
-at the resource used in the specified condition.
+Additionally, the authorized subject needs to have READ permission at the resource used in the specified condition.
 Given the condition from the introduction `condition=eq(attributes/location,"Wonderland")`, 
 read access on the single attribute would be sufficient. 
 However, the condition can also be more complex, or include other sub-structures of the thing. 
-Then of course, the authorized subject needs READ permission on all parameters of the specific condition.
+Then of course, the authorized subject needs READ permission on all parameters of the specified condition.
 
 ## Examples
 The following sub-sections will show how to use conditional requests via the HTTP API, the Ditto protocol, 
@@ -102,7 +102,8 @@ it was **lastModified** after "2021-08-25T12:38:27".
 
 ### Permissions to execute the example
 For this example, the authorized subject could have READ and WRITE permissions on the complete thing resource.
-However, it is only necessary on the path _thing/features/water-tank/status_, because the **temperature** as well as the conditional part **lastModified** are located there.
+However, it is only necessary on the path _thing:/features/water-tank/status_, because the **temperature** as well as 
+the conditional part **lastModified** are located there.
 
 ## Conditional requests via HTTP API
 Using the HTTP API the condition can either be specified via HTTP Header or via HTTP query parameter.  
