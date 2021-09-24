@@ -46,6 +46,7 @@ public final class GatewayCachingSignalEnrichmentProvider implements GatewaySign
         final Executor cacheLoaderExecutor = actorSystem.dispatchers().lookup(CACHE_LOADER_DISPATCHER);
         final var cachingSignalEnrichmentFacadeProvider = CachingSignalEnrichmentFacadeProvider.get(actorSystem);
         cachingSignalEnrichmentFacade = cachingSignalEnrichmentFacadeProvider.getSignalEnrichmentFacade(
+                actorSystem,
                 cacheLoaderProvider.getByRoundTripSignalEnrichmentFacade(),
                 signalEnrichmentConfig.getCacheConfig(),
                 cacheLoaderExecutor,

@@ -31,7 +31,9 @@ public final class DittoCachingSignalEnrichmentFacadeProvider extends CachingSig
     }
 
     @Override
-    public CachingSignalEnrichmentFacade getSignalEnrichmentFacade(final SignalEnrichmentFacade cacheLoaderFacade,
+    public CachingSignalEnrichmentFacade getSignalEnrichmentFacade(
+            final ActorSystem actorSystem,
+            final SignalEnrichmentFacade cacheLoaderFacade,
             final CacheConfig cacheConfig,
             final Executor cacheLoaderExecutor,
             final String cacheNamePrefix) {

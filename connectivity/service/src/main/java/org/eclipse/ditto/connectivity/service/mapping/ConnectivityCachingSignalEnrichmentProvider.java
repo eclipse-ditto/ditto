@@ -47,6 +47,7 @@ public final class ConnectivityCachingSignalEnrichmentProvider extends Connectiv
         final Executor cacheLoaderExecutor = actorSystem.dispatchers().lookup("signal-enrichment-cache-dispatcher");
         final var signalEnrichmentFacadeProvider = CachingSignalEnrichmentFacadeProvider.get(actorSystem);
         cachingSignalEnrichmentFacade = signalEnrichmentFacadeProvider.getSignalEnrichmentFacade(
+                actorSystem,
                 cacheLoaderProvider.getByRoundTripSignalEnrichmentFacade(),
                 cachingSignalEnrichmentFacadeConfig.getCacheConfig(),
                 cacheLoaderExecutor,

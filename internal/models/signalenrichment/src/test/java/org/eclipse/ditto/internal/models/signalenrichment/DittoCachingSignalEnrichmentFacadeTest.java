@@ -81,7 +81,7 @@ public final class DittoCachingSignalEnrichmentFacadeTest extends AbstractSignal
         final var actorSystem =
                 ActorSystem.create(getClass().getSimpleName(), ConfigFactory.load("signal-enrichment-test.conf"));
         final var cachingSignalEnrichmentFacadeProvider = CachingSignalEnrichmentFacadeProvider.get(actorSystem);
-        return cachingSignalEnrichmentFacadeProvider.getSignalEnrichmentFacade(cacheLoaderFacade, cacheConfig,
+        return cachingSignalEnrichmentFacadeProvider.getSignalEnrichmentFacade(actorSystem, cacheLoaderFacade, cacheConfig,
                 kit.getSystem().getDispatcher(), "test");
     }
 

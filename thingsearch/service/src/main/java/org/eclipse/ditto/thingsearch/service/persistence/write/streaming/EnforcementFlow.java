@@ -74,7 +74,7 @@ final class EnforcementFlow {
     private final Duration cacheRetryDelay;
     private final int maxArraySize;
 
-    private EnforcementFlow( final ActorSystem actorSystem,
+    private EnforcementFlow(final ActorSystem actorSystem,
             final ActorRef thingsShardRegion,
             final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
             final AskWithRetryConfig askWithRetryConfig,
@@ -115,7 +115,7 @@ final class EnforcementFlow {
                 new PolicyEnforcerCacheLoader(askWithRetryConfig, scheduler, policiesShardRegion);
         final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, streamCacheConfig,
-                                "things-search_enforcementflow_enforcer_cache_policy", cacheDispatcher)
+                        "things-search_enforcementflow_enforcer_cache_policy", cacheDispatcher)
                         .projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
 
         return new EnforcementFlow(actorSystem, thingsShardRegion, policyEnforcerCache, askWithRetryConfig,
@@ -294,8 +294,8 @@ final class EnforcementFlow {
 
         final var sudoRetrieveThingFacade = SudoSignalEnrichmentFacade.of(thingsShardRegion, timeout);
         final var cachingSignalEnrichmentFacadeProvider = CachingSignalEnrichmentFacadeProvider.get(actorSystem);
-        return cachingSignalEnrichmentFacadeProvider.getSignalEnrichmentFacade(sudoRetrieveThingFacade, streamCacheConfig, cacheDispatcher,
-                "things-search_enforcementflow_enforcer_cache_things");
+        return cachingSignalEnrichmentFacadeProvider.getSignalEnrichmentFacade(actorSystem, sudoRetrieveThingFacade,
+                streamCacheConfig, cacheDispatcher, "things-search_enforcementflow_enforcer_cache_things");
     }
 
 }

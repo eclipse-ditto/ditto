@@ -42,6 +42,7 @@ public abstract class CachingSignalEnrichmentFacadeProvider implements Extension
     /**
      * Returns a the {@link SignalEnrichmentFacade} loaded by reflection.
      *
+     * @param actorSystem the actorSystem the signal enrichment facade provider belongs to.
      * @param cacheLoaderFacade the facade whose argument-result-pairs we are caching.
      * @param cacheConfig the cache configuration to use for the cache.
      * @param cacheLoaderExecutor the executor to use in order to asynchronously load cache entries.
@@ -50,6 +51,7 @@ public abstract class CachingSignalEnrichmentFacadeProvider implements Extension
      * @throws NullPointerException if any argument is null.
      */
     public abstract CachingSignalEnrichmentFacade getSignalEnrichmentFacade(
+            final ActorSystem actorSystem,
             final SignalEnrichmentFacade cacheLoaderFacade,
             final CacheConfig cacheConfig,
             final Executor cacheLoaderExecutor,
