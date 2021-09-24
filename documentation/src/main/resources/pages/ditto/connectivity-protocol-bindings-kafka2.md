@@ -116,6 +116,25 @@ When Ditto consumes such a message it checks whether the amount of milliseconds 
 If so, the message will be ignored.
 If this is not the case or the headers are not specified at all, the message will be processed normally.
 
+#### Backpressure by using acknowledgements
+
+For Kafka Sources one can use [acknowledements](basic-acknowledgements.html) to achieve backpressure from the event/message consuming application down to the Kafka consumer in Ditto.
+So if for example [live messages](basic-messages.html) should be consumed via the Kafka connection, you could want that the consume rate adapts to the performance of the message consuming and responding application.
+
+For this scenario there is nothing that needs to be configured explicitly. Since the `live-response` is a built in acknowledgement, it is requested by default.
+The same applies for [twin modify commands](basic-signals-command.html#modify-commands). 
+For those type of commands the `twin-persisted` acknowledgement is requested automatically which would cause backpressure from the persistence to the Kafka consumer.
+
+If for some reason you don't want to have this backpressure, because losing some messages due to for example overflowing buffers is not a problem for you, you can disable requesting acknowledgements for the Kafka source.
+This can be done by configuring the following for your source:
+```json
+"acknowledgementRequests": {
+  "includes": [],
+  "filter": "fn:delete()"
+}
+```
+If you however want to achieve backpressure from an event consuming application to the Kafka consumer, you could use custom [acknowledgement requests](basic-acknowledgements.html#requesting-acks).
+
 ### Target format
 
 A Kafka 2.x connection requires the protocol configuration target object to have an `address` property.
