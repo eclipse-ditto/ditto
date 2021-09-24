@@ -29,7 +29,6 @@ import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
 import org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.AbstractFieldBsonCreator;
 import org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.GetExistsBsonVisitor;
 import org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.GetFilterBsonVisitor;
-import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 
 import com.mongodb.client.model.Filters;
 
@@ -68,12 +67,11 @@ public class CreateBsonVisitor implements CriteriaVisitor<Bson> {
         checkNotNull(authorizationSubjectIds, "authorizationSubjectIds");
         final Bson baseFilter = criteria.accept(new CreateBsonVisitor(authorizationSubjectIds));
         final Bson globalReadableFilter = AbstractFieldBsonCreator.getGlobalReadBson(authorizationSubjectIds);
-        final Bson notDeletedFilter = Filters.exists(PersistenceConstants.FIELD_DELETE_AT, false);
 
         // Put both per-attribute-filter and global-read filter in the query so that:
         // 1. Purely negated queries do not return results invisible to the authorization subjects, and
         // 2. MongoDB may choose to scan the global-read index when the key-value filter does not discriminate enough.
-        return Filters.and(baseFilter, globalReadableFilter, notDeletedFilter);
+        return Filters.and(baseFilter, globalReadableFilter);
     }
 
     @Override

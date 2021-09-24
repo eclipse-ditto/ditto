@@ -12,18 +12,12 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 
-import java.util.Objects;
-
 import javax.annotation.concurrent.Immutable;
 
-import org.bson.BsonDateTime;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 
 import com.mongodb.client.model.DeleteOneModel;
-import com.mongodb.client.model.UpdateOneModel;
-import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.WriteModel;
 
 /**
@@ -32,51 +26,28 @@ import com.mongodb.client.model.WriteModel;
 @Immutable
 public final class ThingDeleteModel extends AbstractWriteModel {
 
-    private final boolean deleteImmediately;
-
-    private ThingDeleteModel(final Metadata metadata, final boolean deleteImmediately) {
+    private ThingDeleteModel(final Metadata metadata) {
         super(metadata);
-        this.deleteImmediately = deleteImmediately;
     }
 
     /**
      * Create a DeleteModel object from Metadata.
      *
      * @param metadata the metadata.
-     * @param deleteImmediately whether to delete entries immediately.
      * @return the DeleteModel.
      */
-    public static ThingDeleteModel of(final Metadata metadata, final boolean deleteImmediately) {
-        return new ThingDeleteModel(metadata, deleteImmediately);
+    public static ThingDeleteModel of(final Metadata metadata) {
+        return new ThingDeleteModel(metadata);
     }
 
     @Override
     public WriteModel<BsonDocument> toMongo() {
         final Bson filter = getFilter();
-        if (deleteImmediately || getMetadata().isShouldAcknowledge()) {
-            return new DeleteOneModel<>(filter);
-        } else {
-            final Bson update = new BsonDocument().append(SET,
-                    new BsonDocument().append(PersistenceConstants.FIELD_DELETE_AT, new BsonDateTime(0L)));
-            final UpdateOptions updateOptions = new UpdateOptions().bypassDocumentValidation(true);
-            return new UpdateOneModel<>(filter, update, updateOptions);
-        }
-    }
-
-    @Override
-    public boolean equals(final Object other) {
-        return super.equals(other) && deleteImmediately == ((ThingDeleteModel) other).deleteImmediately;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), deleteImmediately);
+        return new DeleteOneModel<>(filter);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + getMetadata() +
-                ", deleteImmediately" + deleteImmediately
-                + "]";
+        return getClass().getSimpleName() + "[" + getMetadata() + "]";
     }
 }
