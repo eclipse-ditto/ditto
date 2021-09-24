@@ -86,6 +86,7 @@ final class KafkaConsumerStreamFactory {
 
         final KafkaMessageTransformer kafkaMessageTransformer = buildKafkaMessageTransformer(inboundMonitor);
         return new AtMostOnceConsumerStream(atMostOnceKafkaConsumerSourceSupplier,
+                throttlingConfig.getMaxInFlight(),
                 kafkaMessageTransformer,
                 dryRun,
                 materializer,

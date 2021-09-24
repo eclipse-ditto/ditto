@@ -201,7 +201,7 @@ public final class BulkWriteResultAckFlowTest {
             final Metadata metadata =
                     Metadata.of(thingId, thingRevision, policyId, policyRevision, List.of(), null, probes.get(i).ref());
             if (i % 2 == 0) {
-                writeModels.add(ThingDeleteModel.of(metadata, false));
+                writeModels.add(ThingDeleteModel.of(metadata));
             } else {
                 writeModels.add(ThingWriteModel.of(metadata, new BsonDocument()));
             }
