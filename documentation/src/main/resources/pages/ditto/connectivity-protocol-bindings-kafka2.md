@@ -127,12 +127,14 @@ For those type of commands the `twin-persisted` acknowledgement is requested aut
 
 If for some reason you don't want to have this backpressure, because losing some messages due to for example overflowing buffers is not a problem for you, you can disable requesting acknowledgements for the Kafka source.
 This can be done by configuring the following for your source:
+
 ```json
 "acknowledgementRequests": {
   "includes": [],
   "filter": "fn:delete()"
 }
 ```
+
 If you however want to achieve backpressure from an event consuming application to the Kafka consumer, you could use custom [acknowledgement requests](basic-acknowledgements.html#requesting-acks).
 
 ### Target format
