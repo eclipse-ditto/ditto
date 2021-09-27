@@ -38,6 +38,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     private final double forceUpdateProbability;
     private final BackgroundSyncConfig backgroundSyncConfig;
     private final StreamConfig streamConfig;
+    private final UpdaterPersistenceConfig updaterPersistenceConfig;
 
     private DefaultUpdaterConfig(final ConfigWithFallback updaterScopedConfig) {
         maxIdleTime = updaterScopedConfig.getNonNegativeDurationOrThrow(UpdaterConfigValue.MAX_IDLE_TIME);
@@ -49,6 +50,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 updaterScopedConfig.getDouble(UpdaterConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath());
         backgroundSyncConfig = DefaultBackgroundSyncConfig.fromUpdaterConfig(updaterScopedConfig);
         streamConfig = DefaultStreamConfig.of(updaterScopedConfig);
+        updaterPersistenceConfig = DefaultUpdaterPersistenceConfig.of(updaterScopedConfig);
     }
 
     /**
@@ -94,6 +96,11 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     }
 
     @Override
+    public UpdaterPersistenceConfig getUpdaterPersistenceConfig() {
+        return updaterPersistenceConfig;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -107,13 +114,14 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 Objects.equals(shardingStatePollInterval, that.shardingStatePollInterval) &&
                 Double.compare(forceUpdateProbability, that.forceUpdateProbability) == 0 &&
                 Objects.equals(backgroundSyncConfig, that.backgroundSyncConfig) &&
-                Objects.equals(streamConfig, that.streamConfig);
+                Objects.equals(streamConfig, that.streamConfig) &&
+                Objects.equals(updaterPersistenceConfig, that.updaterPersistenceConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(maxIdleTime, shardingStatePollInterval, eventProcessingActive, forceUpdateProbability,
-                backgroundSyncConfig, streamConfig);
+                backgroundSyncConfig, streamConfig, updaterPersistenceConfig);
     }
 
     @Override
@@ -125,6 +133,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 ", forceUpdateProbability=" + forceUpdateProbability +
                 ", backgroundSyncConfig=" + backgroundSyncConfig +
                 ", streamConfig=" + streamConfig +
+                ", updaterPersistenceConfig=" + updaterPersistenceConfig +
                 "]";
     }
 
