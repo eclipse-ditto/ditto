@@ -46,6 +46,7 @@
         <hivemq-mqtt-client.version>1.2.2</hivemq-mqtt-client.version>
         <sshd.version>2.7.0</sshd.version>
         <eddsa.version>0.3.0</eddsa.version>
+        <lz4-java.version>1.8.0</lz4-java.version>
 
         <!-- Keep these version consistent with akka-persistence-mongo.version's build.sbt -->
         <mongo-java-driver.version>4.1.1</mongo-java-driver.version>
@@ -354,6 +355,12 @@
                 <groupId>net.i2p.crypto</groupId>
                 <artifactId>eddsa</artifactId>
                 <version>${eddsa.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.lz4</groupId>
+                <artifactId>lz4-java</artifactId>
+                <version>${lz4-java.version}</version>
             </dependency>
 
             <dependency>
