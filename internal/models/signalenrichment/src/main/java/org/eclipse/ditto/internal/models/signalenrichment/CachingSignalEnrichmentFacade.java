@@ -15,8 +15,8 @@ package org.eclipse.ditto.internal.models.signalenrichment;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 /**
@@ -33,6 +33,6 @@ public interface CachingSignalEnrichmentFacade extends SignalEnrichmentFacade{
      * cache loading is forced.
      * @return future of the retrieved thing.
      */
-    CompletionStage<JsonObject> retrieveThing(EntityId thingId,List<ThingEvent<?>> events, long minAcceptableSeqNr);
+    CompletionStage<JsonObject> retrieveThing(ThingId thingId, List<ThingEvent<?>> events, long minAcceptableSeqNr);
 
 }
