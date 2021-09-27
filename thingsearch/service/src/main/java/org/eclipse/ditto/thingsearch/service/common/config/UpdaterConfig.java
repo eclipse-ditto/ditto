@@ -69,6 +69,13 @@ public interface UpdaterConfig {
     StreamConfig getStreamConfig();
 
     /**
+     * Returns the updater persistence config.
+     *
+     * @return the config.
+     */
+    UpdaterPersistenceConfig getUpdaterPersistenceConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * UpdaterConfig.
      */
