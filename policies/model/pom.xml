@@ -143,7 +143,7 @@
                     <parameter>
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
-                            <exclude>org.eclipse.ditto.policies.model.PolicyId#of(org.eclipse.ditto.policies.model.PolicyId)</exclude>
+                            <!-- <exclude></exclude> -->
                         </excludes>
                     </parameter>
                 </configuration>

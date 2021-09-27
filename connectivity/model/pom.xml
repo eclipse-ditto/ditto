@@ -125,8 +125,6 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
-                            <!-- ImmutableLogEntry should never have been public, but it was: -->
-                            <exclude>org.eclipse.ditto.connectivity.model.ImmutableLogEntry</exclude>
                         </excludes>
                     </parameter>
                 </configuration>
