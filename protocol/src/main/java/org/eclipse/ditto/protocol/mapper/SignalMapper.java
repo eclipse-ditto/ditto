@@ -39,7 +39,7 @@ public interface SignalMapper<T extends Signal<?>> {
      * @param channel the channel used to send the signal.
      * @return the corresponding topic path.
      * @throws NullPointerException if any argument is {@code null}.
-     * @since 2.1.0
+     * @since 2.2.0
      */
     TopicPath mapSignalToTopicPath(T signal, TopicPath.Channel channel);
 }

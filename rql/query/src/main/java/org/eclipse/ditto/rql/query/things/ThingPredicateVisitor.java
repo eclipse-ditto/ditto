@@ -56,7 +56,7 @@ public final class ThingPredicateVisitor implements CriteriaVisitor<Predicate<Th
      * @param additionalPlaceholderResolvers the additional {@code PlaceholderResolver} to use for resolving
      * placeholders in RQL criteria.
      * @return the Predicate of a thing to test.
-     * @since 2.1.0
+     * @since 2.2.0
      */
     public static Predicate<Thing> apply(final Criteria criteria,
             final Collection<PlaceholderResolver<?>> additionalPlaceholderResolvers) {
@@ -71,7 +71,7 @@ public final class ThingPredicateVisitor implements CriteriaVisitor<Predicate<Th
      * @param additionalPlaceholderResolvers the additional {@code PlaceholderResolver} to use for resolving
      * placeholders in RQL criteria.
      * @return the Predicate of a thing to test.
-     * @since 2.1.0
+     * @since 2.2.0
      */
     public static Predicate<Thing> apply(final Criteria criteria,
             final PlaceholderResolver<?>... additionalPlaceholderResolvers) {

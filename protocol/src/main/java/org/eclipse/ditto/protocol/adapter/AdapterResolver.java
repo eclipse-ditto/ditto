@@ -35,7 +35,7 @@ interface AdapterResolver {
      * @param signal the signal that should be converted via the returned {@link Adapter}.
      * @param channel the channel to retrieve the adapter for.
      * @return the appropriate {@link Adaptable} capable of converting the passed {@link Signal}
-     * @since 2.1.0
+     * @since 2.2.0
      */
      Adapter<Signal<?>> getAdapter(Signal<?> signal, TopicPath.Channel channel);
 }

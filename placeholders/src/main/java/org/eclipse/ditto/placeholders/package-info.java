@@ -17,6 +17,7 @@
  * <p>
  * Main entry point: {@link org.eclipse.ditto.placeholders.PlaceholderFactory}
  * </p>
+ * @since 2.2.0
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault
 package org.eclipse.ditto.placeholders;

@@ -43,7 +43,7 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
      * @param simpleFieldMappings the field mappings to apply.
      * @param placeholders the {@code Placeholder}s to also respect for supported fields in the RQL
      * @return the created ThingsFieldExpressionFactory
-     * @since 2.1.0
+     * @since 2.2.0
      */
     static ThingsFieldExpressionFactory of(final Map<String, String> simpleFieldMappings,
             final Collection<Placeholder<?>> placeholders) {
@@ -206,7 +206,7 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
 
     /**
      * @return a filter expression for the "definition" field.
-     * @since 2.1.0
+     * @since 2.2.0
      */
     default FilterFieldExpression filterByDefinition() {
         return filterBy(FieldExpressionUtil.FIELD_NAME_DEFINITION);
@@ -221,7 +221,7 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
 
     /**
      * @return a sortOptions expression for the "definition" field.
-     * @since 2.1.0
+     * @since 2.2.0
      */
     default SortFieldExpression sortByDefinition() {
         return sortBy(FieldExpressionUtil.FIELD_NAME_DEFINITION);

@@ -45,7 +45,7 @@ public final class FieldExpressionUtil {
 
     /**
      * Definition field name.
-     * @since 2.1.0
+     * @since 2.2.0
      */
     public static final String FIELD_NAME_DEFINITION = "definition";
 

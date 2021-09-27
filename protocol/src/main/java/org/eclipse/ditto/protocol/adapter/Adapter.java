@@ -71,7 +71,7 @@ public interface Adapter<T extends Jsonifiable<?>> {
      * @return the mapped topic path.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code channel} is unknown.
-     * @since 2.1.0
+     * @since 2.2.0
      */
     TopicPath toTopicPath(T t, TopicPath.Channel channel);
 

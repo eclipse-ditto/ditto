@@ -17,7 +17,8 @@ import org.eclipse.ditto.protocol.TopicPath;
 
 /**
  * A {@link Placeholder} that requires the {@link TopicPath} to resolve its placeholders.
- * @since 2.1.0
+ *
+ * @since 2.2.0
  */
 public interface TopicPathPlaceholder extends Placeholder<TopicPath> {
 

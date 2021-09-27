@@ -65,7 +65,7 @@ public interface ProtocolAdapter {
      *
      * @param signal the signal.
      * @return the topic path.
-     * @since 2.1.0
+     * @since 2.2.0
      */
     TopicPath toTopicPath(Signal<?> signal);
 

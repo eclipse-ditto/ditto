@@ -66,7 +66,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
      * @param additionalPlaceholderResolvers the additional {@code PlaceholderResolver} to use for resolving
      * placeholders in RQL predicates.
      * @return the created instance.
-     * @since 2.1.0
+     * @since 2.2.0
      */
     public static ThingPredicatePredicateVisitor createInstance(
             final Collection<PlaceholderResolver<?>> additionalPlaceholderResolvers) {
@@ -79,7 +79,7 @@ public final class ThingPredicatePredicateVisitor implements PredicateVisitor<Fu
      * @param additionalPlaceholderResolvers the additional {@code PlaceholderResolver} to use for resolving
      * placeholders in RQL predicates.
      * @return the created instance.
-     * @since 2.1.0
+     * @since 2.2.0
      */
     public static ThingPredicatePredicateVisitor createInstance(
             final PlaceholderResolver<?>... additionalPlaceholderResolvers) {

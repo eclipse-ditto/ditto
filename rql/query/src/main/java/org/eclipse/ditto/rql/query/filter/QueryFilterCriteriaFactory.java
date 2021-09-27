@@ -74,7 +74,7 @@ public final class QueryFilterCriteriaFactory {
      * @param predicateParser the PredicateParser to use for parsing RQL strings.
      * @param placeholders the {@link Placeholder}s to accept when parsing the fields of RQL strings.
      * @return the model-based query filter criteria factory.
-     * @since 2.1.0
+     * @since 2.2.0
      */
     public static QueryFilterCriteriaFactory modelBased(final PredicateParser predicateParser,
             final Placeholder<?>... placeholders) {

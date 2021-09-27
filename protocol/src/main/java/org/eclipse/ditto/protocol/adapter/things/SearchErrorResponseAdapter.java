@@ -28,6 +28,8 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
 
 /**
  * Adapter for mapping a {@link SearchErrorResponse} to and from an {@link org.eclipse.ditto.protocol.Adaptable}.
+ *
+ * @since 2.2.0
  */
 final class SearchErrorResponseAdapter extends AbstractErrorResponseAdapter<SearchErrorResponse>
         implements ThingAdapter<SearchErrorResponse> {

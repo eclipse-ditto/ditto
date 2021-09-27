@@ -70,7 +70,7 @@ public final class ModelBasedThingsFieldExpressionFactory implements ThingsField
      *
      * @param placeholders the {@link Placeholder}s to accept when parsing the fields of RQL strings.
      * @return the created ModelBasedThingsFieldExpressionFactory.
-     * @since 2.1.0
+     * @since 2.2.0
      */
     public static ThingsFieldExpressionFactory createInstance(final Placeholder<?>... placeholders) {
         return createInstance(Arrays.asList(placeholders));
@@ -81,7 +81,7 @@ public final class ModelBasedThingsFieldExpressionFactory implements ThingsField
      *
      * @param placeholders the {@link Placeholder}s to accept when parsing the fields of RQL strings.
      * @return the created ModelBasedThingsFieldExpressionFactory.
-     * @since 2.1.0
+     * @since 2.2.0
      */
     public static ThingsFieldExpressionFactory createInstance(final Collection<Placeholder<?>> placeholders) {
         return new ModelBasedThingsFieldExpressionFactory(placeholders);
