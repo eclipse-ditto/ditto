@@ -15,8 +15,8 @@ package org.eclipse.ditto.concierge.service.enforcement;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
 
@@ -27,7 +27,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.model.ResourceKey;
@@ -132,8 +132,8 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
         final Throwable error = throwable == null
                 ? new NullPointerException("Result and error are both null")
                 : throwable;
-        final var dre = DittoRuntimeException
-                .asDittoRuntimeException(error, cause -> reportUnexpectedError(hint, cause));
+        final var dre = DittoRuntimeException.asDittoRuntimeException(
+                error, cause -> reportUnexpectedError(hint, cause));
         log().info("{} - {}: {}", hint, dre.getClass().getSimpleName(), dre.getMessage());
         return dre;
     }
@@ -203,7 +203,7 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
     /**
      * @return the entity ID.
      */
-    protected CacheKey entityId() {
+    protected EnforcementCacheKey entityId() {
         return context.getCacheKey();
     }
 
@@ -307,7 +307,7 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
      */
     protected <S extends WithDittoHeaders> Contextual<S> withMessageToReceiver(final S message,
             final ActorRef receiver,
-            final Function<Object, Object> wrapperFunction) {
+            final UnaryOperator<Object> wrapperFunction) {
 
         return context.setMessage(message).withReceiver(receiver).withReceiverWrapperFunction(wrapperFunction);
     }

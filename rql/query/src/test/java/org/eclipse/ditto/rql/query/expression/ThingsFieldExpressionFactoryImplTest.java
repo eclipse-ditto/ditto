@@ -43,6 +43,8 @@ public final class ThingsFieldExpressionFactoryImplTest {
     private static final String KNOWN_FEATURE_DESIRED_PROPERTY_WITH_ID =
             "features/" + KNOWN_FEATURE_ID + "/desiredProperties/" + KNOWN_STRING + "_desired";
 
+    private static final String KNOWN_METADATA = "_metadata/" + KNOWN_FEATURE_PROPERTY_WITH_ID;
+
     private static final Map<String, String> SIMPLE_FIELD_MAPPINGS = new HashMap<>();
     static {
         SIMPLE_FIELD_MAPPINGS.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
@@ -181,7 +183,6 @@ public final class ThingsFieldExpressionFactoryImplTest {
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
-
     @Test
     public void filterByWithThingId() {
         final FieldExpression fieldExpression = ef.filterBy(FieldExpressionUtil.FIELD_NAME_THING_ID);
@@ -287,6 +288,23 @@ public final class ThingsFieldExpressionFactoryImplTest {
         final FieldExpression fieldExpression = ef.existsBy(FieldExpressionUtil.FIELD_NAME_DEFINITION);
 
         final ExistsFieldExpression expected = new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_NAME_DEFINITION);
+        assertThat(fieldExpression).isEqualTo(expected);
+    }
+
+
+    @Test
+    public void filterByWithMetadata() {
+        final FieldExpression fieldExpression = ef.filterBy(KNOWN_METADATA);
+
+        final FilterFieldExpression expected = new MetadataExpressionImpl(KNOWN_FEATURE_PROPERTY_WITH_ID);
+        assertThat(fieldExpression).isEqualTo(expected);
+    }
+
+    @Test
+    public void existsByWithMetadata() {
+        final FieldExpression fieldExpression = ef.existsBy(KNOWN_METADATA);
+
+        final ExistsFieldExpression expected = new MetadataExpressionImpl(KNOWN_FEATURE_PROPERTY_WITH_ID);
         assertThat(fieldExpression).isEqualTo(expected);
     }
 

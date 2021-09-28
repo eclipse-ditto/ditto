@@ -24,8 +24,8 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
@@ -65,25 +65,22 @@ final class EnforcementFlow {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final CachingSignalEnrichmentFacade thingsFacade;
-    private final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache;
+    private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
     private final Duration cacheRetryDelay;
     private final int maxArraySize;
-    private final boolean deleteImmediately;
 
     private EnforcementFlow(final ActorRef thingsShardRegion,
-            final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
+            final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
             final AskWithRetryConfig askWithRetryConfig,
             final StreamCacheConfig streamCacheConfig,
             final int maxArraySize,
-            final MessageDispatcher cacheDispatcher,
-            final boolean deleteImmediately) {
+            final MessageDispatcher cacheDispatcher) {
 
         this.thingsFacade = createThingsFacade(thingsShardRegion, askWithRetryConfig.getAskTimeout(), streamCacheConfig,
                 cacheDispatcher);
         this.policyEnforcerCache = policyEnforcerCache;
         this.cacheRetryDelay = streamCacheConfig.getRetryDelay();
         this.maxArraySize = maxArraySize;
-        this.deleteImmediately = deleteImmediately;
     }
 
     /**
@@ -104,22 +101,20 @@ final class EnforcementFlow {
 
         final var askWithRetryConfig = updaterStreamConfig.getAskWithRetryConfig();
         final var streamCacheConfig = updaterStreamConfig.getCacheConfig();
-        final var deleteImmediately = updaterStreamConfig.isDeleteImmediately();
 
-        final AsyncCacheLoader<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
+        final AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askWithRetryConfig, scheduler, policiesShardRegion);
-        final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache =
+        final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, streamCacheConfig,
                                 "things-search_enforcementflow_enforcer_cache_policy", cacheDispatcher)
                         .projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
 
         return new EnforcementFlow(thingsShardRegion, policyEnforcerCache, askWithRetryConfig,
-                streamCacheConfig, updaterStreamConfig.getMaxArraySize(), cacheDispatcher,
-                deleteImmediately);
+                streamCacheConfig, updaterStreamConfig.getMaxArraySize(), cacheDispatcher);
     }
 
-    private static CacheKey getPolicyCacheKey(final PolicyId policyId) {
-        return CacheKey.of(policyId);
+    private static EnforcementCacheKey getPolicyCacheKey(final PolicyId policyId) {
+        return EnforcementCacheKey.of(policyId);
     }
 
     /**
@@ -213,7 +208,7 @@ final class EnforcementFlow {
 
         ConsistencyLag.startS4GetEnforcer(metadata);
         if (thing == null) {
-            return Source.single(ThingDeleteModel.of(metadata, deleteImmediately));
+            return Source.single(ThingDeleteModel.of(metadata));
         } else {
             return getEnforcer(metadata, thing)
                     .map(entry -> {
@@ -225,11 +220,11 @@ final class EnforcementFlow {
                                         metadata);
                             } catch (final JsonRuntimeException e) {
                                 log.error(e.getMessage(), e);
-                                return ThingDeleteModel.of(metadata, deleteImmediately);
+                                return ThingDeleteModel.of(metadata);
                             }
                         } else {
                             // no enforcer; delete thing from search index
-                            return ThingDeleteModel.of(metadata, deleteImmediately);
+                            return ThingDeleteModel.of(metadata);
                         }
                     });
         }
@@ -254,7 +249,7 @@ final class EnforcementFlow {
     }
 
     private Source<Entry<Enforcer>, NotUsed> readCachedEnforcer(final Metadata metadata,
-            final CacheKey policyId, final int iteration) {
+            final EnforcementCacheKey policyId, final int iteration) {
 
         final Source<Entry<Enforcer>, ?> lazySource = Source.lazySource(() -> {
             final CompletionStage<Source<Entry<Enforcer>, NotUsed>> enforcerFuture = policyEnforcerCache.get(policyId)

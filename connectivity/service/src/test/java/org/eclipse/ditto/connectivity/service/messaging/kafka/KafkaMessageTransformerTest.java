@@ -36,7 +36,6 @@ import java.util.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.header.internals.RecordHeaders;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
@@ -47,8 +46,6 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.junit.Before;
 import org.junit.Test;
-
-import scala.util.Either;
 
 public final class KafkaMessageTransformerTest {
 
@@ -90,11 +87,11 @@ public final class KafkaMessageTransformerTest {
         when(consumerRecord.value()).thenReturn("someValue");
         when(consumerRecord.topic()).thenReturn("someTopic");
         when(consumerRecord.timestamp()).thenReturn(TIMESTAMP);
-        final Either<ExternalMessage, DittoRuntimeException> transformResult = underTest.transform(consumerRecord);
+        final TransformationResult transformResult = underTest.transform(consumerRecord);
 
         assertThat(transformResult).isNotNull();
-        assertThat(transformResult.isLeft()).isTrue();
-        final ExternalMessage externalMessage = transformResult.left().get();
+        assertThat(transformResult.getExternalMessage()).isPresent();
+        final ExternalMessage externalMessage = transformResult.getExternalMessage().get();
         assertThat(externalMessage.isTextMessage()).isTrue();
         assertThat(externalMessage.isBytesMessage()).isTrue();
         assertThat(externalMessage.getTextPayload()).contains("someValue");
@@ -112,13 +109,13 @@ public final class KafkaMessageTransformerTest {
         when(consumerRecord.headers()).thenReturn(headers);
         when(consumerRecord.key()).thenReturn("someKey");
         when(consumerRecord.value()).thenReturn("someValue");
-        final Either<ExternalMessage, DittoRuntimeException> transformResult = underTest.transform(consumerRecord);
+        final TransformationResult transformResult = underTest.transform(consumerRecord);
 
         assertThat(transformResult).isNotNull();
-        assertThat(transformResult.isRight()).isTrue();
-        assertThat(transformResult.right().get()).isInstanceOf(UnresolvedPlaceholderException.class);
+        assertThat(transformResult.getDittoRuntimeException()).isPresent();
+        assertThat(transformResult.getDittoRuntimeException().get()).isInstanceOf(UnresolvedPlaceholderException.class);
         final UnresolvedPlaceholderException error =
-                (UnresolvedPlaceholderException) transformResult.right().get();
+                (UnresolvedPlaceholderException) transformResult.getDittoRuntimeException().get();
         assertThat(error.getMessage()).contains("{{ header:device_id }}");
     }
 
@@ -133,7 +130,7 @@ public final class KafkaMessageTransformerTest {
         when(consumerRecord.value()).thenReturn("someValue");
         doThrow(new IllegalStateException("Expected")).when(inboundMonitor).success(any(ExternalMessage.class));
 
-        final Either<ExternalMessage, DittoRuntimeException> transformResult = underTest.transform(consumerRecord);
+        final TransformationResult transformResult = underTest.transform(consumerRecord);
 
         assertThat(transformResult).isNull();
     }

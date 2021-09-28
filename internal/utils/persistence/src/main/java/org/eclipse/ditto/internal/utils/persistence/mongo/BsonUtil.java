@@ -65,7 +65,8 @@ public final class BsonUtil {
      * @param bsonObj the Bson object or {@code null}.
      * @return the Bson document or {@code null}.
      */
-    public static @Nullable BsonDocument toBsonDocumentOrNull(@Nullable final Bson bsonObj) {
+    public static @Nullable
+    BsonDocument toBsonDocumentOrNull(@Nullable final Bson bsonObj) {
         if (bsonObj == null) {
             return null;
         }
@@ -97,7 +98,6 @@ public final class BsonUtil {
      * @return the value.
      * @throws ClassCastException if the value has not the expected type
      * @throws NullPointerException if this document contains no mapping for the key
-     *
      * @see Document#get(Object)
      */
     public static <T> T getRequiredDocumentValueAt(final Document document, final String key, final Class<T> clazz) {
@@ -113,10 +113,10 @@ public final class BsonUtil {
      * The value is cast to type {@code <T>}.
      *
      * <p>
-     *     <strong>NOTE:</strong> Method {@link Document#get(Object, Object)} does the same, but throws a
-     *     {@link ClassCastException} if the {@code defaultValue} is not exactly the same type as {@code <T>}, which
-     *     happens quite often: E.g., you want to define {@code <T>} as {@link Collection} and {@code defaultValue}
-     *     as {@link Collections#emptyList()}, which is a subtype of {@link Collection}.
+     * <strong>NOTE:</strong> Method {@link Document#get(Object, Object)} does the same, but throws a
+     * {@link ClassCastException} if the {@code defaultValue} is not exactly the same type as {@code <T>}, which
+     * happens quite often: E.g., you want to define {@code <T>} as {@link Collection} and {@code defaultValue}
+     * as {@link Collections#emptyList()}, which is a subtype of {@link Collection}.
      * </p>
      *
      * @param document the document whose value is requested
@@ -127,7 +127,6 @@ public final class BsonUtil {
      * @return the value.
      * @throws ClassCastException if the value has not the expected type
      * @throws NullPointerException if this document contains no mapping for the key
-     *
      * @see Document#get(Object)
      */
     public static <T> T getDocumentWithDefaultAt(final Document document, final String key, final Class<T>
@@ -169,8 +168,7 @@ public final class BsonUtil {
         if (subBson == null) {
             return null;
         } else if (remainingPath.isEmpty()) {
-            @SuppressWarnings("unchecked")
-            final T result = (T) subBson;
+            @SuppressWarnings("unchecked") final T result = (T) subBson;
             return result;
         }
 
@@ -207,7 +205,17 @@ public final class BsonUtil {
         return toBsonDocument(bson).toJson();
     }
 
-    private static @Nullable <T> T getDocumentValueOrNullAt(final Document document, final String key, final Class<T> clazz) {
+    /**
+     * Returns the codec registry.
+     *
+     * @return the codec registry.
+     */
+    public static CodecRegistry getCodecRegistry() {
+        return CODEC_REGISTRY;
+    }
+
+    private static @Nullable
+    <T> T getDocumentValueOrNullAt(final Document document, final String key, final Class<T> clazz) {
         return document.get(key, clazz);
     }
 

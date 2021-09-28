@@ -35,7 +35,7 @@ public class DefaultKafkaConsumerConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultKafkaConsumerConfig.class, areImmutable(), provided(Config.class,
-                ThrottlingConfig.class).areAlsoImmutable());
+                ConnectionThrottlingConfig.class).areAlsoImmutable());
     }
 
 }

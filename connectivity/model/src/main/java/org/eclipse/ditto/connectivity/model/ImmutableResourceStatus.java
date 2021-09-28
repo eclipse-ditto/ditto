@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.model;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
@@ -20,12 +22,12 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Immutable implementation of {@link ResourceStatus}.
@@ -44,10 +46,10 @@ final class ImmutableResourceStatus implements ResourceStatus {
             @Nullable final String address,
             @Nullable final String statusDetails,
             @Nullable final Instant inStateSince) {
-        this.type = type;
-        this.client = client;
+        this.type = checkNotNull(type, "type");
+        this.client = checkNotNull(client, "client");
+        this.status = checkNotNull(status, "status");
         this.address = address;
-        this.status = status;
         this.statusDetails = statusDetails;
         this.inStateSince = inStateSince;
     }
@@ -62,8 +64,10 @@ final class ImmutableResourceStatus implements ResourceStatus {
      * @param statusDetails the optional status details
      * @param inStateSince the instant since the resource is in the given state
      * @return a new instance of ImmutableResourceStatus
+     * @throws NullPointerException if any non-nullable argument is {@code null}.
      */
-    public static ImmutableResourceStatus of(final ResourceType type, final String client,
+    public static ImmutableResourceStatus of(final ResourceType type,
+            final String client,
             final ConnectivityStatus status,
             @Nullable final String address,
             @Nullable final String statusDetails,
@@ -80,8 +84,10 @@ final class ImmutableResourceStatus implements ResourceStatus {
      * @param address an address describing the resource
      * @param statusDetails the optional status details
      * @return a new instance of ImmutableResourceStatus
+     * @throws NullPointerException if any non-nullable argument is {@code null}.
      */
-    public static ImmutableResourceStatus of(final ResourceType type, final String client,
+    public static ImmutableResourceStatus of(final ResourceType type,
+            final String client,
             final ConnectivityStatus status,
             @Nullable final String address,
             @Nullable final String statusDetails) {

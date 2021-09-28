@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.amqp.status;
 
+import java.util.Objects;
+
 import javax.jms.MessageProducer;
 
 /**
@@ -20,16 +22,54 @@ import javax.jms.MessageProducer;
 public final class ProducerClosedStatusReport {
 
     private final MessageProducer messageProducer;
+    private final Throwable cause;
 
-    private ProducerClosedStatusReport(final MessageProducer messageProducer) {
+    private ProducerClosedStatusReport(final MessageProducer messageProducer, final Throwable cause) {
         this.messageProducer = messageProducer;
+        this.cause = cause;
     }
 
-    public static ProducerClosedStatusReport get(final MessageProducer messageProducer) {
-        return new ProducerClosedStatusReport(messageProducer);
+    public static ProducerClosedStatusReport get(final MessageProducer messageProducer, final Throwable cause) {
+        return new ProducerClosedStatusReport(messageProducer, cause);
     }
 
+    /**
+     * @return the closed message producer
+     */
     public MessageProducer getMessageProducer() {
         return messageProducer;
+    }
+
+    /**
+     * @return the cause why the producer was closed
+     */
+    public Throwable getCause() {
+        return cause;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final ProducerClosedStatusReport that = (ProducerClosedStatusReport) o;
+        return Objects.equals(messageProducer, that.messageProducer) &&
+                Objects.equals(cause, that.cause);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(messageProducer, cause);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "messageProducer=" + messageProducer +
+                ", cause=" + cause +
+                "]";
     }
 }

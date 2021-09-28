@@ -40,4 +40,5 @@ public interface FeatureIdPropertyExpression extends SortFieldExpression, Filter
      * @return the property path.
      */
     String getProperty();
+
 }

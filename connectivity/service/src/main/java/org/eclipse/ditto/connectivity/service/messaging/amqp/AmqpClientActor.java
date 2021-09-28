@@ -16,11 +16,14 @@ import java.net.URI;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -40,6 +43,7 @@ import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
@@ -61,6 +65,7 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectClient;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.DisconnectClient;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RecoverSession;
+import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
@@ -108,6 +113,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private final boolean recoverSessionOnSessionClosed;
     private final boolean recoverSessionOnConnectionRestored;
     private final Duration clientAskTimeout;
+    private final Duration initialConsumerResourceStatusAskTimeout;
     private ActorRef amqpPublisherActor;
 
     /*
@@ -137,6 +143,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled(connection);
         recoverSessionOnConnectionRestored = isRecoverSessionOnConnectionRestoredEnabled(connection);
         clientAskTimeout = connectionConfig.getClientActorAskTimeout();
+        initialConsumerResourceStatusAskTimeout = amqp10Config.getInitialConsumerStatusAskTimeout();
     }
 
     /*
@@ -156,6 +163,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled(connection);
         recoverSessionOnConnectionRestored = isRecoverSessionOnConnectionRestoredEnabled(connection);
         clientAskTimeout = Duration.ofSeconds(10L);
+        initialConsumerResourceStatusAskTimeout = Duration.ofMillis(500L);
     }
 
     /**
@@ -240,6 +248,13 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     public void postStop() {
         ensureJmsConnectionClosed();
         super.postStop();
+    }
+
+    @Override
+    protected Set<Pattern> getExcludedAddressReportingChildNamePatterns() {
+        final Set<Pattern> excludedChildNamePatterns = new HashSet<>(super.getExcludedAddressReportingChildNamePatterns());
+        excludedChildNamePatterns.add(Pattern.compile(Pattern.quote(JMSConnectionHandlingActor.ACTOR_NAME_PREFIX) + ".*"));
+        return excludedChildNamePatterns;
     }
 
     @Override
@@ -337,9 +352,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         stopChildActor(amqpPublisherActor);
         if (null != jmsSession) {
             final Props props = AmqpPublisherActor.props(connection(), jmsSession,
-                    connectionContext.getConnectivityConfig().getConnectionConfig(), getDefaultClientId());
+                    connectionContext.getConnectivityConfig().getConnectionConfig(), getDefaultClientId(),
+                    connectivityStatusResolver);
             amqpPublisherActor = startChildActorConflictFree(AmqpPublisherActor.ACTOR_NAME_PREFIX, props);
-            Patterns.ask(amqpPublisherActor, AmqpPublisherActor.INITIALIZE, clientAskTimeout)
+            Patterns.ask(amqpPublisherActor, AmqpPublisherActor.Control.INITIALIZE, clientAskTimeout)
                     .whenComplete((result, error) -> {
                         if (error != null) {
                             future.completeExceptionally(error);
@@ -363,7 +379,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         if (clientConnected instanceof JmsConnected) {
             final JmsConnected c = (JmsConnected) clientConnected;
             final ActorRef jmsActor = getConnectConnectionHandler(connection());
-            startCommandConsumers(c.consumerList, jmsActor);
+            return startCommandConsumers(c.consumerList, jmsActor)
+                    .thenApply(ignored -> new Status.Success(Done.getInstance()));
         }
         return CompletableFuture.completedFuture(new Status.Success(Done.getInstance()));
     }
@@ -406,18 +423,44 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         return amqpPublisherActor;
     }
 
-    private void startCommandConsumers(final List<ConsumerData> consumers, final ActorRef jmsActor) {
+    private CompletionStage<Object> startCommandConsumers(final List<ConsumerData> consumers, final ActorRef jmsActor) {
         if (isConsuming()) {
             stopCommandConsumers();
-            consumers.forEach(consumer -> startCommandConsumer(consumer, getInboundMappingSink(), jmsActor));
+            final CompletionStage<Object> completionStage = consumers.stream()
+                    .map(consumer -> startCommandConsumer(consumer, getInboundMappingSink(), jmsActor))
+                    .map(this::retrieveAddressStatusFromConsumerActor)
+                    .reduce(CompletableFuture.completedStage(Done.getInstance()),
+                            // not interested in the actual result, just if it failed or not
+                            (stage, reply) -> stage.thenCompose(unused -> reply));
             connectionLogger.success("Subscriptions {0} initialized successfully.", consumers);
             logger.info("Subscribed Connection <{}> to sources: {}", connectionId(), consumers);
+            return completionStage;
         } else {
             logger.debug("Not starting consumers, no sources were configured.");
+            return CompletableFuture.completedStage(Done.getInstance());
         }
     }
 
-    private void startCommandConsumer(final ConsumerData consumer, final Sink<Object, NotUsed> inboundMappingSink,
+    private CompletionStage<Object> retrieveAddressStatusFromConsumerActor(final ActorRef ref) {
+        return Patterns.ask(ref, RetrieveAddressStatus.getInstance(), initialConsumerResourceStatusAskTimeout)
+                .thenApply(reply -> {
+                    if (reply instanceof ResourceStatus) {
+                        final ResourceStatus resourceStatus = (ResourceStatus) reply;
+                        // if status of the consumer actors is not OPEN after initialization, we must fail the stage
+                        // with an exception, otherwise the client actor wil go to CONNECTED state, despite the
+                        // failure that occurred in the consumer
+                        if (resourceStatus.getStatus() != ConnectivityStatus.OPEN) {
+                            final String msg = String.format("Resource status of consumer is not OPEN, but %s: %s",
+                                    resourceStatus.getStatus(),
+                                    resourceStatus.getStatusDetails().orElse("(no status details provided)"));
+                            throw new IllegalStateException(msg);
+                        }
+                    }
+                    return reply;
+                });
+    }
+
+    private ActorRef startCommandConsumer(final ConsumerData consumer, final Sink<Object, NotUsed> inboundMappingSink,
             final ActorRef jmsActor) {
         final String namePrefix = consumer.getActorNamePrefix();
         final Props props = AmqpConsumerActor.props(connection(), consumer, inboundMappingSink, jmsActor,
@@ -425,6 +468,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         final ActorRef child = startChildActorConflictFree(namePrefix, props);
         consumerByNamePrefix.put(namePrefix, child);
+        return child;
     }
 
     private void stopCommandConsumers() {
@@ -511,13 +555,18 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final ConnectionFailure failure = statusReport.getFailure();
         connectionLogger.failure(failure.getFailureDescription());
         final ConnectivityStatus newStatus = connectivityStatusResolver.resolve(failure);
+
+        if (!statusReport.isRecoverable()) {
+            logger.info("Unrecoverable failure occurred, triggering client actor failure handling: {}", failure);
+            getSelf().tell(failure, getSelf());
+        }
+
         return stay().using(currentData.setConnectionStatus(newStatus)
                 .setConnectionStatusDetails(failure.getFailureDescription()));
     }
 
     private FSM.State<BaseClientState, BaseClientData> handleConsumerClosed(
-            final ConsumerClosedStatusReport statusReport,
-            final BaseClientData currentData) {
+            final ConsumerClosedStatusReport statusReport, final BaseClientData currentData) {
 
         // broadcast event to consumers, who then decide whether the event is meant for them
         consumerByNamePrefix.forEach((namePrefix, consumerActor) -> consumerActor.tell(statusReport, getSelf()));
@@ -804,7 +853,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             connectionLogger.failure("Connection failure: {0}", error.getMessage());
             logger.warning("Connection Failure: {}", error.getMessage());
             final ConnectionFailure failure = ConnectionFailure.of(ActorRef.noSender(), error, null);
-            self.tell(ConnectionFailureStatusReport.get(failure), ActorRef.noSender());
+            self.tell(ConnectionFailureStatusReport.get(failure, false), ActorRef.noSender());
         }
 
         @Override
@@ -813,7 +862,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             logger.warning("Connection interrupted: {}", remoteURI);
             final ConnectionFailure failure =
                     ConnectionFailure.userRelated(ActorRef.noSender(), null, "JMS Interrupted");
-            self.tell(ConnectionFailureStatusReport.get(failure), ActorRef.noSender());
+            self.tell(ConnectionFailureStatusReport.get(failure, true), ActorRef.noSender());
         }
 
         @Override
@@ -842,7 +891,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             connectionLogger.failure("Consumer {0} was closed: {1}", consumer, cause.getMessage());
             logger.warning("Consumer <{}> closed due to {}: {}", consumer, cause.getClass().getSimpleName(),
                     cause.getMessage());
-            self.tell(ConsumerClosedStatusReport.get(consumer), ActorRef.noSender());
+            self.tell(ConsumerClosedStatusReport.get(consumer, cause), ActorRef.noSender());
         }
 
         @Override
@@ -850,7 +899,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             connectionLogger.failure("Producer {0} was closed: {1}", producer.toString(), cause.getMessage());
             logger.warning("Producer <{}> closed due to {}: {}", producer, cause.getClass().getSimpleName(),
                     cause.getMessage());
-            self.tell(ProducerClosedStatusReport.get(producer), ActorRef.noSender());
+            self.tell(ProducerClosedStatusReport.get(producer, cause), ActorRef.noSender());
         }
 
     }

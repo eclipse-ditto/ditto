@@ -26,14 +26,16 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
+import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
+import org.eclipse.ditto.connectivity.service.config.KafkaConsumerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
@@ -198,7 +200,7 @@ public final class KafkaClientActor extends BaseClientActor {
                         getContext().getSystem());
         final Props publisherActorProps =
                 publisherActorFactory.props(connection(), kafkaConfig.getProducerConfig(), producerFactory, dryRun,
-                        getDefaultClientId());
+                        getDefaultClientId(), connectivityStatusResolver);
         kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.getActorName(), publisherActorProps);
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
     }
@@ -226,12 +228,15 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     private void startKafkaConsumer(final ConsumerData consumerData, final boolean dryRun) {
-        final DefaultKafkaConsumerSourceSupplier sourceSupplier =
-                new DefaultKafkaConsumerSourceSupplier(propertiesFactory, consumerData.getAddress(), dryRun);
+        final KafkaConsumerConfig consumerConfig = kafkaConfig.getConsumerConfig();
+        final ConnectionThrottlingConfig throttlingConfig = consumerConfig.getThrottlingConfig();
+        final ExponentialBackOffConfig consumerRestartBackOffConfig = consumerConfig.getRestartBackOffConfig();
+        final KafkaConsumerStreamFactory streamFactory =
+                new KafkaConsumerStreamFactory(throttlingConfig, propertiesFactory, consumerData, dryRun);
         final Props consumerActorProps =
-                KafkaConsumerActor.props(connection(), sourceSupplier,
-                        consumerData.getAddress(), getInboundMappingSink(), consumerData.getSource(),
-                        connectivityStatusResolver, dryRun);
+                KafkaConsumerActor.props(connection(), streamFactory,
+                        consumerData.getAddress(), consumerData.getSource(), getInboundMappingSink(),
+                        connectivityStatusResolver, consumerRestartBackOffConfig);
         final ActorRef consumerActor =
                 startChildActorConflictFree(consumerData.getActorNamePrefix(), consumerActorProps);
         kafkaConsumerActors.add(consumerActor);
@@ -259,7 +264,7 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     @Override
-    protected Optional<ThrottlingConfig> getThrottlingConfig() {
+    protected Optional<ConnectionThrottlingConfig> getThrottlingConfig() {
         return Optional.of(kafkaConfig.getConsumerConfig().getThrottlingConfig());
     }
 
@@ -281,7 +286,7 @@ public final class KafkaClientActor extends BaseClientActor {
                 getSelf().tell(connectionFailure, ActorRef.noSender());
             } else if (pendingStatusReportsFromStreams.isEmpty()) {
                 // all children are ready; this client actor is connected.
-                getSelf().tell((ClientConnected) () -> null, ActorRef.noSender());
+                getSelf().tell((ClientConnected) Optional::empty, ActorRef.noSender());
             }
         }
         return stay();

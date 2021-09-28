@@ -20,6 +20,7 @@ import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.service.config.supervision.DefaultSupervisorConfig;
+import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanupConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -47,7 +48,7 @@ public final class DefaultPolicyConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultPolicyConfig.class, areImmutable(),
-                provided(DefaultSupervisorConfig.class, PolicyAnnouncementConfig.class)
+                provided(DefaultSupervisorConfig.class, PolicyAnnouncementConfig.class, CleanupConfig.class)
                         .areAlsoImmutable());
     }
 

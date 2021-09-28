@@ -132,6 +132,58 @@ public final class BaseClientActorTest {
     }
 
     @Test
+    public void reconnectsInConnectingStateAfterBackoffWhenMultipleFailuresAreReceived() {
+        reconnectsAfterBackoffWhenMultipleFailuresReceived(false);
+    }
+
+    @Test
+    public void reconnectsFromConnectedStateAfterBackoffWhenMultipleFailuresAreReceived() {
+        reconnectsAfterBackoffWhenMultipleFailuresReceived(true);
+    }
+
+    private void reconnectsAfterBackoffWhenMultipleFailuresReceived(final boolean initialConnectionSucceeds) {
+        new TestKit(actorSystem) {{
+            final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
+            final Connection connection =
+                    TestConstants.createConnection(randomConnectionId, new Target[0]);
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
+            final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
+
+            whenOpeningConnection(dummyClientActor, OpenConnection.of(randomConnectionId, DittoHeaders.empty()),
+                    getRef());
+            thenExpectConnectClientCalled();
+
+            if (initialConnectionSucceeds) {
+                // simulate initial connection succeeds i.e. state is CONNECTED when first failure occurs
+                andConnectionSuccessful(dummyClientActor, getRef());
+                expectMsg(CONNECTED_STATUS);
+                andConnectionNotSuccessful(dummyClientActor);
+                thenExpectConnectClientCalledAfterTimeout(
+                        connectivityConfig.getClientConfig().getConnectingMinTimeout());
+            }
+
+            final int nrOfBackoffs = 4;
+            final long start = System.currentTimeMillis();
+            for (int i = 0; i < nrOfBackoffs; i++) {
+                // BaseClientActor receives multiple failures while backing off in CONNECTING state
+                andConnectionNotSuccessful(dummyClientActor);
+                andConnectionNotSuccessful(dummyClientActor);
+                andConnectionNotSuccessful(dummyClientActor);
+
+                // verify that doConnectClient is called after correct backoff
+                thenExpectConnectClientCalledAfterTimeout(i + 2, connectivityConfig.getClientConfig().getMaxBackoff());
+            }
+            // expecting 4 invocations of doConnectClient within 100ms + 200ms + 400ms + 400ms = 1100ms backoff in total
+            final long totalBackoffDurationMs = System.currentTimeMillis() - start;
+            final long expectedTotalBackoffMs = 1100L;
+            final long tolerancePerBackoffMs = 50L; // allow 50ms tolerance per backoff until connectClient is called
+            assertThat(totalBackoffDurationMs).isGreaterThan(expectedTotalBackoffMs);
+            assertThat(totalBackoffDurationMs).isLessThan(
+                    expectedTotalBackoffMs + (nrOfBackoffs * tolerancePerBackoffMs));
+        }};
+    }
+
+    @Test
     public void handlesCloseConnectionInConnectingState() {
         new TestKit(actorSystem) {{
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
@@ -565,6 +617,12 @@ public final class BaseClientActorTest {
 
     private void thenExpectConnectClientCalledOnceAfterTimeout(final Duration connectingTimeout) {
         verify(delegate, timeout(connectingTimeout.toMillis() + 200).times(1))
+                .doConnectClient(any(Connection.class), nullable(ActorRef.class));
+    }
+
+    private void thenExpectConnectClientCalledAfterTimeout(final int invocations,
+            final Duration connectingTimeout) {
+        verify(delegate, timeout(connectingTimeout.toMillis() + 200).times(invocations))
                 .doConnectClient(any(Connection.class), nullable(ActorRef.class));
     }
 

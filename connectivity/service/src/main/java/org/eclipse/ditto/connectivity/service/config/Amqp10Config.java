@@ -17,7 +17,6 @@ import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
@@ -27,52 +26,18 @@ import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 public interface Amqp10Config {
 
     /**
-     * Return whether rate limit based on throughput _and_ acknowledgements is enabled.
+     * Returns the configuration for AMQP 1.0 consumer.
      *
-     * @return whether rate limit is enabled.
+     * @return the configuration.
      */
-    boolean isConsumerRateLimitEnabled();
+    Amqp10ConsumerConfig getConsumerConfig();
 
     /**
-     * Return how many unacknowledged messages are allowed, including messages for which redelivery is requested.
+     * Returns the configuration for AMQP 1.0 publisher.
      *
-     * @return the maximum number of messages in flight.
+     * @return the configuration.
      */
-    int getConsumerMaxInFlight();
-
-    /**
-     * Return when to forget messages for which redelivery was requested (they may be consumed by another consumer).
-     *
-     * @return the duration a redelivery request is kept.
-     */
-    Duration getConsumerRedeliveryExpectationTimeout();
-
-    /**
-     * Returns the consumer throttling config.
-     *
-     * @return the config.
-     */
-    ThrottlingConfig getConsumerThrottlingConfig();
-
-    /**
-     * Returns the consumer throttling interval meaning in which duration may the configured
-     * {@link #getConsumerThrottlingLimit() limit} be processed before throttling further messages.
-     *
-     * @return the consumer throttling interval.
-     */
-    default Duration getConsumerThrottlingInterval() {
-        return getConsumerThrottlingConfig().getInterval();
-    }
-
-    /**
-     * Returns the consumer throttling limit defining processed messages per configured
-     * {@link #getConsumerThrottlingInterval()}  interval}.
-     *
-     * @return the consumer throttling limit.
-     */
-    default int getConsumerThrottlingLimit() {
-        return getConsumerThrottlingConfig().getLimit();
-    }
+    Amqp10PublisherConfig getPublisherConfig();
 
     /**
      * Returns how many message producers to cache.
@@ -87,16 +52,6 @@ public interface Amqp10Config {
      * @return the BackOffConfig.
      */
     BackOffConfig getBackOffConfig();
-
-    /**
-     * @return maximum number of messages buffered at the publisher actor before dropping them.
-     */
-    int getMaxQueueSize();
-
-    /**
-     * @return the number of possible parallel message publications per publisher actor.
-     */
-    int getPublisherParallelism();
 
     /**
      * Connect timeout for the AMQP 1.0 client.
@@ -157,40 +112,22 @@ public interface Amqp10Config {
     Map<String, String> getHmacAlgorithms();
 
     /**
+     * The client actor asks all consumer actors after starting them for their resource status with this timeout.
+     *
+     * @return initial consumer resource status ask timeout
+     */
+    Duration getInitialConsumerStatusAskTimeout();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code Amqp10Config}.
      */
     enum Amqp10ConfigValue implements KnownConfigValue {
 
         /**
-         * Whether consumer rate limit is enabled.
-         */
-        CONSUMER_RATE_LIMIT_ENABLED("consumer.rate-limit-enabled", true),
-
-        /**
-         * How many unacknowledged messages are allowed, including messages for which redelivery is requested.
-         */
-        CONSUMER_MAX_IN_FLIGHT("consumer.max-in-flight", 200),
-
-        /**
-         * When to forget messages for which redelivery was requested (they may be consumed by another consumer).
-         */
-        CONSUMER_REDELIVERY_EXPECTATION_TIMEOUT("consumer.redelivery-expectation-timeout", Duration.ofMinutes(2L)),
-
-        /**
          * How many message producers to cache per client actor.
          */
         PRODUCER_CACHE_SIZE("producer-cache-size", 10),
-
-        /**
-         * How many messages to buffer in the publisher actor before dropping them.
-         */
-        MAX_QUEUE_SIZE("publisher.max-queue-size", 10),
-
-        /**
-         * How many messages will be published in parallel
-         */
-        MESSAGE_PUBLISHING_PARALLELISM("publisher.parallelism", 3),
 
         /**
          * Connect timeout for the AMQP 1.0 client.
@@ -215,7 +152,13 @@ public interface Amqp10Config {
         /**
          * HMAC request-signing algorithms.
          */
-        HMAC_ALGORITHMS("hmac-algorithms", Map.of());
+        HMAC_ALGORITHMS("hmac-algorithms", Map.of()),
+
+        /**
+         * Initial consumer resource status ask timeout.
+         */
+        INITIAL_CONSUMER_RESOURCE_STATUS_ASK_TIMEOUT("initial-consumer-resource-status-ask-timeout",
+                Duration.ofMillis(500));
 
         private final String path;
         private final Object defaultValue;

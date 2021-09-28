@@ -22,8 +22,11 @@ import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsRespons
 import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
+import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoMetricsReporter;
+import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanupActor;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.ThingEventPubSubFactory;
@@ -36,6 +39,7 @@ import org.eclipse.ditto.things.service.persistence.actors.ThingSupervisorActor;
 import org.eclipse.ditto.things.service.persistence.actors.ThingsPersistenceStreamingActorCreator;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.cluster.sharding.ClusterSharding;
 import akka.cluster.sharding.ClusterShardingSettings;
@@ -96,19 +100,17 @@ public final class ThingsRootActor extends DittoRootActor {
         final var metricsReporterConfig =
                 healthCheckConfig.getPersistenceConfig().getMetricsReporterConfig();
         final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
-                        MongoHealthChecker.props(),
-                        MongoMetricsReporter.props(
-                                metricsReporterConfig.getResolution(),
-                                metricsReporterConfig.getHistory(),
-                                pubSubMediator
-                        )
-                ));
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
 
         final ActorRef eventStreamingActor =
                 ThingsPersistenceStreamingActorCreator.startEventStreamingActor(this::startChildActor);
         final ActorRef snapshotStreamingActor =
                 ThingsPersistenceStreamingActorCreator.startSnapshotStreamingActor(this::startChildActor);
+
+        final var cleanupConfig = thingsConfig.getThingConfig().getCleanupConfig();
+        final var mongoReadJournal = newMongoReadJournal(thingsConfig.getMongoDbConfig(), actorSystem);
+        final Props cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
+        startChildActor(PersistenceCleanupActor.NAME, cleanupActorProps);
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
         pubSubMediator.tell(DistPubSubAccess.put(eventStreamingActor), getSelf());
@@ -152,6 +154,14 @@ public final class ThingsRootActor extends DittoRootActor {
             final ThingPersistenceActorPropsFactory propsFactory) {
 
         return ThingSupervisorActor.props(pubSubMediator, distributedPub, propsFactory);
+    }
+
+    private static MongoReadJournal newMongoReadJournal(final MongoDbConfig mongoDbConfig,
+            final ActorSystem actorSystem) {
+
+        final var config = actorSystem.settings().config();
+        final var mongoClient = MongoClientWrapper.newInstance(mongoDbConfig);
+        return MongoReadJournal.newInstance(config, mongoClient, actorSystem);
     }
 
 }

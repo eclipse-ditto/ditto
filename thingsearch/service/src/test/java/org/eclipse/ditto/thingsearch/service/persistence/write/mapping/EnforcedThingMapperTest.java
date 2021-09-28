@@ -15,15 +15,15 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.policies.model.PoliciesResourceType.THING;
 
-import org.bson.Document;
+import org.bson.BsonDocument;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
+import org.eclipse.ditto.policies.api.Permission;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectType;
-import org.eclipse.ditto.policies.api.Permission;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.junit.Test;
 
 public final class EnforcedThingMapperTest {
@@ -68,7 +68,7 @@ public final class EnforcedThingMapperTest {
                 "  \"_id\": \"hello:world\",\n" +
                 "  \"_revision\": 1024,\n" +
                 "  \"_namespace\": \"hello\",\n" +
-                "  \"gr\":[\"g:1\",\"g:0\"],\n"+
+                "  \"gr\":[\"g:1\",\"g:0\"],\n" +
                 "  \"policyId\": \"hello:world\",\n" +
                 "  \"__policyRev\": 56,\n" +
                 "  \"s\": {\n" +
@@ -100,7 +100,7 @@ public final class EnforcedThingMapperTest {
                 "  ]\n" +
                 "}");
 
-        final Document result = EnforcedThingMapper.mapThing(thing, enforcer, policyRevision);
+        final BsonDocument result = EnforcedThingMapper.mapThing(thing, enforcer, policyRevision);
 
         assertThat(JsonFactory.newObject(result.toJson())).isEqualTo(expectedJson);
     }

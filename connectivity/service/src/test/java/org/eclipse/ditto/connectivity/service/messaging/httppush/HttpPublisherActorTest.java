@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -49,6 +50,7 @@ import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.json.JsonArray;
@@ -116,7 +118,8 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return HttpPublisherActor.props(TestConstants.createConnection(), httpPushFactory, "clientId");
+        return HttpPublisherActor.props(TestConstants.createConnection(), httpPushFactory, "clientId",
+                mock(ConnectivityStatusResolver.class));
     }
 
     @Override
@@ -689,7 +692,8 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .toBuilder()
                     .credentials(hmacCredentials)
                     .build();
-            final Props props = HttpPublisherActor.props(connection, httpPushFactory, "clientId");
+            final Props props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
+                    mock(ConnectivityStatusResolver.class));
             final ActorRef publisherActor = childActorOf(props);
             publisherCreated(this, publisherActor);
 
@@ -755,7 +759,8 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .toBuilder()
                     .credentials(hmacCredentials)
                     .build();
-            final Props props = HttpPublisherActor.props(connection, httpPushFactory, "clientId");
+            final Props props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
+                    mock(ConnectivityStatusResolver.class));
             final ActorRef publisherActor = childActorOf(props);
             publisherCreated(this, publisherActor);
 

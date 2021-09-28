@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.function.Predicate;
 
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonPointer;
@@ -24,6 +25,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
+import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Thing;
@@ -52,6 +54,10 @@ public final class ThingPredicateVisitorTest {
     private static final double MATCHING_THING_DOUBLE = 22.26;
     private static final boolean MATCHING_THING_BOOLEAN = true;
     private static final String MATCHING_THING_STRING = "ccc_string";
+    private static final Metadata MATCHING_THING_METADATA = Metadata.newBuilder()
+            .set("/attributes/sensorType", "self-pushing")
+            .set("/features/Car/properties/status", "running")
+            .build();
     private static final Thing MATCHING_THING = Thing.newBuilder().setId(MATCHING_THING_ID)
             .setAttribute(JsonPointer.of("anInteger"), JsonValue.of(MATCHING_THING_INTEGER))
             .setAttribute(JsonPointer.of("aLong"), JsonValue.of(MATCHING_THING_LONG))
@@ -66,6 +72,7 @@ public final class ThingPredicateVisitorTest {
                     .set(JsonPointer.of("aString"), JsonValue.of(MATCHING_THING_STRING))
                     .build()
             )
+            .setMetadata(MATCHING_THING_METADATA)
             .build();
 
     private static final ThingId NON_MATCHING_THING_LESSER_ID =
@@ -206,12 +213,14 @@ public final class ThingPredicateVisitorTest {
 
     @Test
     public void testFilterAttributeWithIntegerNe() {
-        testPredicate(NON_MATCHING_THING_LESSER, "ne", "attributes/anInteger", NON_MATCHING_THING_LESSER_INTEGER);
+        testPredicate(NON_MATCHING_THING_LESSER, "ne", "attributes/anInteger",
+                NON_MATCHING_THING_LESSER_INTEGER);
     }
 
     @Test
     public void testFilterPropertyWithIntegerEq() {
-        testPredicate(NON_MATCHING_THING_LESSER, "eq", "features/foo/properties/anInteger", MATCHING_THING_INTEGER);
+        testPredicate(NON_MATCHING_THING_LESSER, "eq", "features/foo/properties/anInteger",
+                MATCHING_THING_INTEGER);
     }
 
     @Test
@@ -387,6 +396,19 @@ public final class ThingPredicateVisitorTest {
         testPredicate(null, "like", "thingId", "org.eclipse.ditto*");
         testPredicate(null, "like", "thingId", "*matching*");
         testPredicate(null, "like", "thingId", MATCHING_THING_ID.toString().replace('r', '?'));
+    }
+
+    @Test
+    public void testFilterMetadataWithStringEq() {
+        testPredicate(null, "eq", "_metadata/attributes/sensorType", "self-pushing");
+    }
+
+    @Test
+    public void testFilterMetadataExists() {
+        final Predicate<Thing> thingPredicate = createPredicate("exists(_metadata/attributes)");
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering 'exists(_metadata/attributes)' should be true")
+                .isTrue();
     }
 
     @Test

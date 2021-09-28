@@ -83,7 +83,8 @@ public class MockSnapshotStorePlugin extends SnapshotStore {
     }
 
     static void verify(final String persistenceId, final int toSequenceNr) {
-        Mockito.verify(snapshotStore).doDeleteAsync(eq(persistenceId), argThat(matchesCriteria(toSequenceNr)));
+        Mockito.verify(snapshotStore, Mockito.timeout(10000L).times(1))
+                .doDeleteAsync(eq(persistenceId), argThat(matchesCriteria(toSequenceNr)));
     }
 
     static void reset() {

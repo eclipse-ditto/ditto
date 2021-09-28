@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.tracing;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -70,6 +71,15 @@ public final class DittoTracing {
         } else {
             LOGGER.info("Ditto tracing is disabled. No traces are generated and trace context is not propagated.");
         }
+    }
+
+    /**
+     * Provides a high precision {@code Instant.now()} using the Kamon {@code Clock} implementation suited for tracing.
+     *
+     * @return the current instant.
+     */
+    public static Instant getTracingInstantNow() {
+        return Kamon.clock().instant();
     }
 
     /**

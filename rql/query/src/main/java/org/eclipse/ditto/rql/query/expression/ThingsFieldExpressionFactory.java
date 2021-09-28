@@ -127,7 +127,6 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
      */
     default FilterFieldExpression filterByFeatureDesiredProperty(final CharSequence featureId,
             final CharSequence desiredProperty) {
-
         return filterBy(String.format("features/%s/desiredProperties/%s", featureId, desiredProperty));
     }
 
@@ -150,7 +149,6 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
      */
     default ExistsFieldExpression existsByFeatureDesiredProperty(final CharSequence featureId,
             final CharSequence desiredProperty) {
-
         return existsBy(String.format("features/%s/desiredProperties/%s", featureId, desiredProperty));
     }
 
@@ -163,7 +161,6 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
      */
     default SortFieldExpression sortByFeatureDesiredProperty(final CharSequence featureId,
             final CharSequence desiredProperty) {
-
         return sortBy(String.format("features/%s/desiredProperties/%s", featureId, desiredProperty));
     }
 

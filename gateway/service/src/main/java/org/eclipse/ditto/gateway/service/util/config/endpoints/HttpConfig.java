@@ -170,7 +170,9 @@ public interface HttpConfig extends org.eclipse.ditto.base.service.config.http.H
                 DittoHeaderDefinition.REQUESTED_ACKS.getKey(),
                 DittoHeaderDefinition.DECLARED_ACKS.getKey(),
                 DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(),
-                DittoHeaderDefinition.TIMEOUT.getKey())),
+                DittoHeaderDefinition.TIMEOUT.getKey(),
+                DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT.getKey(),
+                DittoHeaderDefinition.CONDITION.getKey())),
 
         /**
          * PUT and POST resources validate that the content-type of a request is supported. With this config value

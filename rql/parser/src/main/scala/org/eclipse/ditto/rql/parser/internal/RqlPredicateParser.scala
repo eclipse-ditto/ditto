@@ -13,11 +13,10 @@
 package org.eclipse.ditto.rql.parser.internal
 
 import akka.parboiled2._
-import org.eclipse.ditto.rql.model.predicates.ast.SingleComparisonNode.Type
-import org.eclipse.ditto.rql.model.predicates.ast._
 import org.eclipse.ditto.rql.model.ParserException
 import org.eclipse.ditto.rql.model.predicates.PredicateParser
-import org.eclipse.ditto.rql.model.predicates.ast.{ExistsNode, LogicalNode, MultiComparisonNode, Node, RootNode, SingleComparisonNode}
+import org.eclipse.ditto.rql.model.predicates.ast.SingleComparisonNode.Type
+import org.eclipse.ditto.rql.model.predicates.ast._
 
 import scala.collection.immutable
 import scala.jdk.javaapi.CollectionConverters

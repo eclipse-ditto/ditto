@@ -27,6 +27,7 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckCo
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultSnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
+import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanupConfig;
 
 import com.typesafe.config.Config;
 
@@ -47,6 +48,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final SupervisorConfig supervisorConfig;
     private final SnapshotConfig snapshotConfig;
     private final DefaultAcknowledgementConfig acknowledgementConfig;
+    private final CleanupConfig cleanupConfig;
     private final Amqp10Config amqp10Config;
     private final Amqp091Config amqp091Config;
     private final MqttConfig mqttConfig;
@@ -71,6 +73,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         supervisorConfig = DefaultSupervisorConfig.of(config);
         snapshotConfig = DefaultSnapshotConfig.of(config);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(config);
+        cleanupConfig = CleanupConfig.of(config);
         amqp10Config = DefaultAmqp10Config.of(config);
         amqp091Config = DefaultAmqp091Config.of(config);
         mqttConfig = DefaultMqttConfig.of(config);
@@ -207,6 +210,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     }
 
     @Override
+    public CleanupConfig getCleanupConfig() {
+        return cleanupConfig;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -224,6 +232,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
                 Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
+                Objects.equals(cleanupConfig, that.cleanupConfig) &&
                 Objects.equals(amqp10Config, that.amqp10Config) &&
                 Objects.equals(amqp091Config, that.amqp091Config) &&
                 Objects.equals(mqttConfig, that.mqttConfig) &&
@@ -241,9 +250,9 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     public int hashCode() {
         return Objects.hash(clientActorAskTimeout, clientActorRestartsBeforeEscalation, allowedHostnames,
                 blockedHostnames, blockedSubnets, blockedHostRegex, supervisorConfig, snapshotConfig,
-                acknowledgementConfig, maxNumberOfTargets, maxNumberOfSources, activityCheckConfig, amqp10Config,
-                amqp091Config, mqttConfig, kafkaConfig, httpPushConfig, ackLabelDeclareInterval, priorityUpdateInterval,
-                allClientActorsOnOneNode);
+                acknowledgementConfig, cleanupConfig, maxNumberOfTargets, maxNumberOfSources, activityCheckConfig,
+                amqp10Config, amqp091Config, mqttConfig, kafkaConfig, httpPushConfig, ackLabelDeclareInterval,
+                priorityUpdateInterval, allClientActorsOnOneNode);
     }
 
     @Override
@@ -258,6 +267,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", supervisorConfig=" + supervisorConfig +
                 ", snapshotConfig=" + snapshotConfig +
                 ", acknowledgementConfig=" + acknowledgementConfig +
+                ", cleanUpConfig=" + cleanupConfig +
                 ", amqp10Config=" + amqp10Config +
                 ", amqp091Config=" + amqp091Config +
                 ", mqttConfig=" + mqttConfig +
@@ -271,5 +281,4 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", allClientActorsOnOneNode=" + allClientActorsOnOneNode +
                 "]";
     }
-
 }

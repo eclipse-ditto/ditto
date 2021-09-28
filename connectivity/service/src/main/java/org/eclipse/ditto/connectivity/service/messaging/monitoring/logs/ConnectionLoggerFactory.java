@@ -74,6 +74,16 @@ final class ConnectionLoggerFactory {
     }
 
     /**
+     * Crates a new {@link ExceptionalConnectionLogger} that logs the operations executed on it for tracing.
+     * @param connectionId the connectionId for which the logger is created.
+     * @param exception the exception that caused the creation of this logger.
+     * @return the new instance.
+     */
+    static ConnectionLogger newExceptionalLogger(final ConnectionId connectionId, final Exception exception) {
+        return new ExceptionalConnectionLogger(connectionId, exception);
+    }
+
+    /**
      * Creates a new {@link MuteableConnectionLogger} that can
      * be muted and unmuted.
      *

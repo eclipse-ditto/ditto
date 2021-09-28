@@ -15,20 +15,15 @@ package org.eclipse.ditto.concierge.service.starter.actors;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
+import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
+import org.eclipse.ditto.concierge.service.actors.ShardRegions;
 import org.eclipse.ditto.concierge.service.common.ConciergeConfig;
 import org.eclipse.ditto.concierge.service.starter.proxy.EnforcerActorFactory;
-import org.eclipse.ditto.concierge.service.actors.ShardRegions;
-import org.eclipse.ditto.concierge.service.actors.cleanup.EventSnapshotCleanupCoordinator;
-import org.eclipse.ditto.concierge.api.ConciergeMessagingConstants;
-import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
-import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.internal.utils.health.HealthCheckingActorOptions;
-import org.eclipse.ditto.internal.utils.health.SingletonStatusReporter;
 import org.eclipse.ditto.internal.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.internal.utils.health.config.PersistenceConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -59,12 +54,7 @@ public final class ConciergeRootActor extends DittoRootActor {
             throw new IllegalStateException("ConciergeForwarder could not be found");
         }
 
-        final ActorRef cleanupCoordinator = startClusterSingletonActor(
-                EventSnapshotCleanupCoordinator.ACTOR_NAME,
-                EventSnapshotCleanupCoordinator.props(conciergeConfig.getPersistenceCleanupConfig(), pubSubMediator,
-                        shardRegions));
-
-        final ActorRef healthCheckingActor = startHealthCheckingActor(conciergeConfig, cleanupCoordinator);
+        final ActorRef healthCheckingActor = startHealthCheckingActor(conciergeConfig);
         bindHttpStatusRoute(conciergeConfig.getHttpConfig(), healthCheckingActor);
     }
 
@@ -88,14 +78,7 @@ public final class ConciergeRootActor extends DittoRootActor {
         return Props.create(ConciergeRootActor.class, conciergeConfig, pubSubMediator, enforcerActorFactory);
     }
 
-
-    private ActorRef startClusterSingletonActor(final String actorName, final Props props) {
-
-        return ClusterUtil.startSingleton(getContext(), ConciergeMessagingConstants.CLUSTER_ROLE, actorName, props);
-    }
-
-    private ActorRef startHealthCheckingActor(final ConciergeConfig conciergeConfig,
-            final ActorRef cleanupCoordinator) {
+    private ActorRef startHealthCheckingActor(final ConciergeConfig conciergeConfig) {
 
         final HealthCheckConfig healthCheckConfig = conciergeConfig.getHealthCheckConfig();
 
@@ -108,14 +91,8 @@ public final class ConciergeRootActor extends DittoRootActor {
         }
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
 
-        final ActorRef cleanupCoordinatorProxy = ClusterUtil.startSingletonProxy(getContext(),
-                ConciergeMessagingConstants.CLUSTER_ROLE, cleanupCoordinator);
-
         return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
-                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
-                        MongoHealthChecker.props(),
-                        SingletonStatusReporter.props(ConciergeMessagingConstants.CLUSTER_ROLE,
-                                cleanupCoordinatorProxy))
+                DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, null)
         );
     }
 

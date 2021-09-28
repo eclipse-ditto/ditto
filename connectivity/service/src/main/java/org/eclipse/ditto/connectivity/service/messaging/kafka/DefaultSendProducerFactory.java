@@ -35,7 +35,7 @@ final class DefaultSendProducerFactory implements SendProducerFactory {
      *
      * @param producerSettings settings of the created producer.
      * @param actorSystem the actor system
-     * @return an Kafka SendProducerFactory.
+     * @return a Kafka SendProducerFactory.
      */
     static DefaultSendProducerFactory getInstance(final ProducerSettings<String, String> producerSettings,
             final ActorSystem actorSystem) {

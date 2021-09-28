@@ -17,17 +17,19 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.ThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
+import org.eclipse.ditto.base.api.persistence.SnapshotTaken;
 import org.eclipse.ditto.base.model.entity.Revision;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
-import org.eclipse.ditto.base.api.persistence.SnapshotTaken;
-import org.eclipse.ditto.things.api.ThingSnapshotTaken;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.persistence.mongo.AbstractMongoSnapshotAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,16 +62,35 @@ public final class ThingMongoSnapshotAdapter extends AbstractMongoSnapshotAdapte
     }
 
     @Override
+    protected boolean isDeleted(final Thing snapshotEntity) {
+        return snapshotEntity.hasLifecycle(ThingLifecycle.DELETED);
+    }
+
+    @Override
+    protected JsonField getDeletedLifecycleJsonField() {
+        final var field = Thing.JsonFields.LIFECYCLE;
+        return JsonField.newInstance(field.getPointer().getRoot().orElseThrow(),
+                JsonValue.of(ThingLifecycle.DELETED.name()), field);
+    }
+
+    @Override
+    protected Optional<JsonField> getRevisionJsonField(final Thing entity) {
+        final var field = Thing.JsonFields.REVISION;
+        return entity.getRevision().map(revision ->
+                JsonField.newInstance(field.getPointer().getRoot().orElseThrow(), JsonValue.of(revision.toLong())));
+    }
+
+    @Override
     protected void onSnapshotStoreConversion(final Thing thing, final JsonObject thingJson) {
         final Optional<ThingId> thingId = thing.getEntityId();
         if (thingId.isPresent()) {
             final var thingSnapshotTaken = ThingSnapshotTaken.newBuilder(thingId.get(),
-                    thing.getRevision().map(Revision::toLong).orElse(0L),
-                    thing.getLifecycle()
-                            .map(ThingLifecycle::name)
-                            .flatMap(PersistenceLifecycle::forName)
-                            .orElse(PersistenceLifecycle.ACTIVE),
-                    thingJson)
+                            thing.getRevision().map(Revision::toLong).orElse(0L),
+                            thing.getLifecycle()
+                                    .map(ThingLifecycle::name)
+                                    .flatMap(PersistenceLifecycle::forName)
+                                    .orElse(PersistenceLifecycle.ACTIVE),
+                            thingJson)
                     .timestamp(Instant.now())
                     .build();
             publishThingSnapshotTaken(thingSnapshotTaken);

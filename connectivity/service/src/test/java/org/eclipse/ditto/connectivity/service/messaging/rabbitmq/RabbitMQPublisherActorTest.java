@@ -29,13 +29,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.connectivity.api.OutboundSignal;
-import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.connectivity.api.OutboundSignal;
+import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
+import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -123,7 +124,8 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return RabbitMQPublisherActor.props(TestConstants.createConnection(), "clientId");
+        return RabbitMQPublisherActor.props(TestConstants.createConnection(), "clientId",
+                mock(ConnectivityStatusResolver.class));
     }
 
     @Override

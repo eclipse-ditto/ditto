@@ -108,4 +108,5 @@ public final class ModelBasedThingsFieldExpressionFactory implements ThingsField
         final String value = pointer.toString();
         fieldMappings.put(key, value);
     }
+
 }

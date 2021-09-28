@@ -163,7 +163,7 @@ abstract class AbstractSignalEnrichmentFacadeTest {
     }
 
     @Test
-    public void dontEnrichThingDeleted() {
+    public void enrichThingDeleted() {
         DittoTestSystem.run(this, kit -> {
             // GIVEN: SignalEnrichmentFacade.retrievePartialThing()
             final SignalEnrichmentFacade underTest =
@@ -173,10 +173,15 @@ abstract class AbstractSignalEnrichmentFacadeTest {
             final ThingDeleted thingDeleted = ThingDeleted.of(thingId, 2L, Instant.EPOCH, headers, null);
 
             // WHEN: ThingDeleted event is about to be enriched by facade
-            underTest.retrievePartialThing(thingId, SELECTOR, headers, thingDeleted);
+            final CompletionStage<JsonObject> askResult =
+                    underTest.retrievePartialThing(thingId, SELECTOR, headers, thingDeleted);
+            final RetrieveThing retrieveThing = kit.expectMsgClass(RetrieveThing.class);
+            assertThat(retrieveThing.getSelectedFields()).contains(actualSelectedFields(SELECTOR));
+            kit.reply(RetrieveThingResponse.of(thingId, getThingResponseThingJson(), headers));
 
-            // THEN: expect that no RetrieveThing is sent in order to enrich the Thing
-            kit.expectNoMessage(Duration.ofSeconds(1));
+            // THEN: The result future completes with the entity of the RetrieveThingResponse
+            askResult.toCompletableFuture().join();
+            assertThat(askResult).isCompletedWithValue(getExpectedThingJson());
         });
     }
 

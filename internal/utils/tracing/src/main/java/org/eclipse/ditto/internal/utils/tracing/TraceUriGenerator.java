@@ -63,7 +63,8 @@ public final class TraceUriGenerator implements Function<String, TraceInformatio
             API_VERSIONS +
             "/(?<entityType>{0}))(/(?<entityId>$|.*?))?(/(?<subEntityType>$|.*?))?(/(?<subEntityId>$|.*?))?($|/.*)";
     private static final String PATHS_EXACT_LENGTH_GROUP = "exact";
-    private static final List<String> PATHS_EXACT = Arrays.asList("status", "status/health");
+    private static final List<String> PATHS_EXACT = Arrays.asList("ws/2", "health", "status", "status/health",
+            "overall/status/health", "devops/logging", "devops/config");
     private static final String PATHS_EXACT_REGEX_TEMPLATE = "(?<" + PATHS_EXACT_LENGTH_GROUP + ">^/({0}))/?$";
     private static final Pattern DUPLICATE_SLASH_PATTERN = Pattern.compile("\\/+");
     private static final Pattern messagePattern = Pattern.compile("(.*/messages/.*)|(.*/claim)");
@@ -81,7 +82,7 @@ public final class TraceUriGenerator implements Function<String, TraceInformatio
      *
      * @return the instance.
      */
-    static TraceUriGenerator getInstance() {
+    public static TraceUriGenerator getInstance() {
         final TraceUriGenerator result;
 
         if (null != instance) {

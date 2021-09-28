@@ -37,7 +37,8 @@ final class ImmutableFunctionExpression implements FunctionExpression {
             new PipelineFunctionSubstringAfter(),  // fn:substring-after(':')
             new PipelineFunctionLower(),           // fn:lower()
             new PipelineFunctionUpper(),           // fn:upper()
-            new PipelineFunctionDelete()           // fn:delete()
+            new PipelineFunctionDelete(),          // fn:delete()
+            new PipelineFunctionReplace()          // fn:replace('from', 'to')
     ));
 
     @Override

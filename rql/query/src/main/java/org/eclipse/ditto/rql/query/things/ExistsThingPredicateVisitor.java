@@ -150,4 +150,11 @@ public final class ExistsThingPredicateVisitor implements ExistsFieldExpressionV
         }
     }
 
+    @Override
+    public Predicate<Thing> visitMetadata(final String key) {
+        return thing -> thing.getMetadata()
+                .map(metadata -> metadata.contains(key))
+                .orElse(false);
+    }
+
 }

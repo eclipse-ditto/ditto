@@ -46,11 +46,12 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.slf4j.Logger;
 
 /**
  * This registry holds loggers for the connectivity service. The loggers are identified by the connection ID, a {@link
  * org.eclipse.ditto.connectivity.model.LogType}, a {@link org.eclipse.ditto.connectivity.model.LogCategory} and an
- * address.
+ * address. The public methods of this class should not throw exceptions since this can lead to crashing connections.
  */
 public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry<ConnectionLogger> {
 
@@ -59,8 +60,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
 
     private static final String MDC_CONNECTION_ID = ConnectivityMdcEntryKey.CONNECTION_ID.toString();
 
-    private static final ConcurrentMap<MapKey, MuteableConnectionLogger> loggers = new ConcurrentHashMap<>();
-    private static final ConcurrentMap<EntityId, LogMetadata> metadata = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<MapKey, MuteableConnectionLogger> LOGGERS = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<EntityId, LogMetadata> METADATA = new ConcurrentHashMap<>();
 
     // artificial internal address for responses
     private static final String RESPONSES_ADDRESS = "_responses";
@@ -70,8 +71,11 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     private final TemporalAmount loggingDuration;
     private final long maximumLogSizeInByte;
 
-    private ConnectionLoggerRegistry(final int successCapacity, final int failureCapacity,
-            final long maximumLogSizeInByte, final Duration loggingDuration) {
+    private ConnectionLoggerRegistry(final int successCapacity,
+            final int failureCapacity,
+            final long maximumLogSizeInByte,
+            final Duration loggingDuration) {
+
         this.successCapacity = successCapacity;
         this.failureCapacity = failureCapacity;
         this.maximumLogSizeInByte = maximumLogSizeInByte;
@@ -92,7 +96,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
 
     /**
      * Aggregate the {@link org.eclipse.ditto.connectivity.model.LogEntry}s for the given connection from the loggers in
-     * this registry.
+     * this registry. If an exception occurs, empty {@link ConnectionLogs} will be returned in effort to prevent
+     * crashing connections when log aggregation fails.
      *
      * @param connectionId connection id
      * @return the {@link org.eclipse.ditto.connectivity.model.LogEntry}s.
@@ -100,33 +105,46 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     public ConnectionLogs aggregateLogs(final ConnectionId connectionId) {
         final ThreadSafeDittoLogger logger = LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId);
         logger.info("Aggregating logs for connection <{}>.", connectionId);
+        ConnectionLogs result;
 
-        final LogMetadata timing;
-        final List<LogEntry> logs;
-
-        if (isActiveForConnection(connectionId)) {
-            logger.trace("Logging is enabled, will aggregate logs for connection <{}>", connectionId);
-            timing = refreshMetadata(connectionId);
-            final List<LogEntry> allLogs = streamLoggers(connectionId)
-                    .map(ConnectionLogger::getLogs)
-                    .flatMap(Collection::stream)
-                    .sorted(Comparator.comparing(LogEntry::getTimestamp).reversed())
-                    .collect(Collectors.toList());
-
-            logs = restrictMaxLogEntriesLength(allLogs, connectionId);
-        } else {
-            logger.debug("Logging is disabled, will return empty logs for connection <{}>", connectionId);
-
-            timing = getMetadata(connectionId);
-            logs = Collections.emptyList();
+        try {
+            final LogMetadata timing;
+            final List<LogEntry> logs;
+            if (isActiveForConnection(connectionId)) {
+                timing = refreshMetadata(connectionId);
+                logs = aggregateLogsForActiveConnection(logger, connectionId);
+            } else {
+                logger.debug("Logging is disabled, will return empty logs for connection <{}>", connectionId);
+                timing = getMetadata(connectionId);
+                logs = Collections.emptyList();
+            }
+            logger.debug("Aggregated logs for connection <{}>: {}", connectionId, logs);
+            result = new ConnectionLogs(timing.getEnabledSince(), timing.getEnabledUntil(), logs);
+        } catch (final Exception e) {
+            logger.error("Encountered exception: <{}> while trying to aggregate logs for connection: <{}>. " +
+                    "Returning empty logs instead.", e, connectionId);
+            result = ConnectionLogs.empty();
         }
+        return result;
+    }
 
-        logger.debug("Aggregated logs for connection <{}>: {}", connectionId, logs);
-        return new ConnectionLogs(timing.getEnabledSince(), timing.getEnabledUntil(), logs);
+    private List<LogEntry> aggregateLogsForActiveConnection(final Logger logger,
+            final ConnectionId connectionId) {
+
+        logger.trace("Logging is enabled, will aggregate logs for connection <{}>", connectionId);
+        final List<LogEntry> allLogs = streamLoggers(connectionId)
+                .map(ConnectionLogger::getLogs)
+                .flatMap(Collection::stream)
+                .sorted(Comparator.comparing(LogEntry::getTimestamp).reversed())
+                .collect(Collectors.toList());
+
+        return restrictMaxLogEntriesLength(allLogs, connectionId);
     }
 
     // needed so that the logs fit into the max cluster message size
-    private List<LogEntry> restrictMaxLogEntriesLength(final List<LogEntry> originalLogEntries, final ConnectionId connectionId) {
+    private List<LogEntry> restrictMaxLogEntriesLength(final List<LogEntry> originalLogEntries,
+            final ConnectionId connectionId) {
+
         final List<LogEntry> restrictedLogs = new ArrayList<>();
         long currentSize = 0;
         for (final LogEntry logEntry : originalLogEntries) {
@@ -152,7 +170,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @param connectionId the connection to check.
      * @return true if logging is currently enabled for the connection.
      */
-    protected boolean isActiveForConnection(final ConnectionId connectionId) {
+    protected static boolean isActiveForConnection(final ConnectionId connectionId) {
         final boolean muted = streamLoggers(connectionId)
                 .findFirst()
                 .map(MuteableConnectionLogger::isMuted)
@@ -167,7 +185,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @param timestamp the actual time. If timestamp is after enabledUntil then deactivate logging.
      * @return true if either the logging is not active anyway or the logging is expired.
      */
-    public boolean isLoggingExpired(final ConnectionId connectionId, final Instant timestamp) {
+    public static boolean isLoggingExpired(final ConnectionId connectionId, final Instant timestamp) {
         final Instant enabledUntil = getMetadata(connectionId).getEnabledUntil();
         if (enabledUntil == null || timestamp.isAfter(enabledUntil)) {
             LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
@@ -178,18 +196,30 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         return false;
     }
 
-    public void muteForConnection(final ConnectionId connectionId) {
+    /**
+     * Mute / deactivate all loggers for the connection {@code connectionId}.
+     * If an exception occurs the loggers don't get deactivated in effort to keep the connection alive.
+     *
+     * @param connectionId the connection for which the loggers should be enabled.
+     */
+    public static void muteForConnection(final ConnectionId connectionId) {
         LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
                 .info("Muting loggers for connection <{}>.", connectionId);
 
-        streamLoggers(connectionId)
-                .forEach(MuteableConnectionLogger::mute);
-        stopMetadata(connectionId);
-        resetForConnectionId(connectionId);
+        try {
+            streamLoggers(connectionId)
+                    .forEach(MuteableConnectionLogger::mute);
+            stopMetadata(connectionId);
+            resetForConnectionId(connectionId);
+        } catch (final Exception e) {
+            LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
+                    .error("Failed muting loggers for connection <{}>. Reason: <{}>.", connectionId, e);
+        }
     }
 
     /**
      * Unmute / activate all loggers for the connection {@code connectionId}.
+     * If an exception occurs the loggers don't get activated in effort to keep the connection alive.
      *
      * @param connectionId the connection for which the loggers should be enabled.
      */
@@ -197,13 +227,18 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
                 .info("Unmuting loggers for connection <{}>.", connectionId);
 
-        streamLoggers(connectionId)
-                .forEach(MuteableConnectionLogger::unmute);
-        startMetadata(connectionId);
+        try {
+            streamLoggers(connectionId)
+                    .forEach(MuteableConnectionLogger::unmute);
+            startMetadata(connectionId);
+        } catch (final Exception e) {
+            LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
+                    .error("Failed unmuting loggers for connection <{}>. Reason: <{}>.", connectionId, e);
+        }
     }
 
-    private Stream<MuteableConnectionLogger> streamLoggers(final ConnectionId connectionId) {
-        return loggers.entrySet()
+    private static Stream<MuteableConnectionLogger> streamLoggers(final ConnectionId connectionId) {
+        return LOGGERS.entrySet()
                 .stream()
                 .filter(e -> e.getKey().connectionId.equals(connectionId))
                 .map(Map.Entry::getValue);
@@ -220,21 +255,26 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
                 .info("Initializing loggers for connection <{}>.", connectionId);
 
-        connection.getSources().stream()
-                .map(Source::getAddresses)
-                .flatMap(Collection::stream)
-                .forEach(address ->
-                        initLogger(connectionId, LogCategory.SOURCE, address));
-        connection.getTargets().stream()
-                .map(Target::getAddress)
-                .forEach(address ->
-                        initLogger(connectionId, LogCategory.TARGET, address));
-        initLogger(connectionId, LogCategory.RESPONSE, RESPONSES_ADDRESS);
-        initLogger(connectionId, LogCategory.CONNECTION);
+        try {
+            connection.getSources().stream()
+                    .map(Source::getAddresses)
+                    .flatMap(Collection::stream)
+                    .forEach(address ->
+                            initLogger(connectionId, LogCategory.SOURCE, address));
+            connection.getTargets().stream()
+                    .map(Target::getAddress)
+                    .forEach(address ->
+                            initLogger(connectionId, LogCategory.TARGET, address));
+            initLogger(connectionId, LogCategory.RESPONSE, RESPONSES_ADDRESS);
+            initLogger(connectionId);
+        } catch (final Exception e) {
+            LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
+                    .error("Failed initializing loggers for connection <{}>. Reason: <{}>.", connectionId, e);
+        }
     }
 
-    private void initLogger(final ConnectionId connectionId, final LogCategory logCategory) {
-        initLogger(connectionId, logCategory, null);
+    private void initLogger(final ConnectionId connectionId) {
+        initLogger(connectionId, LogCategory.CONNECTION, null);
     }
 
     private void initLogger(final ConnectionId connectionId, final LogCategory logCategory,
@@ -243,7 +283,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 .filter(logType -> logType.supportsCategory(logCategory))
                 .forEach(logType -> {
                     final MapKey key = new MapKey(connectionId, logCategory, logType, address);
-                    loggers.computeIfAbsent(key, m -> newMuteableLogger(connectionId, logCategory, logType, address));
+                    LOGGERS.computeIfAbsent(key, m -> newMuteableLogger(connectionId, logCategory, logType, address));
                 });
     }
 
@@ -253,16 +293,21 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
                 .info("Resetting loggers for connection <{}>.", connectionId);
 
-        resetForConnectionId(connectionId);
+        try {
+            resetForConnectionId(connectionId);
+        } catch (final Exception e) {
+            LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
+                    .error("Failed resetting loggers for connection <{}>. Reason: <{}>.", connectionId, e);
+        }
     }
 
-    private void resetForConnectionId(final ConnectionId connectionId) {
+    private static void resetForConnectionId(final ConnectionId connectionId) {
         streamLoggers(connectionId)
                 .forEach(MuteableConnectionLogger::clear);
     }
 
-    private LogMetadata refreshMetadata(final ConnectionId connectionId) {
-        return metadata.compute(connectionId, (c, oldTimings) -> {
+    private LogMetadata refreshMetadata(final EntityId connectionId) {
+        return METADATA.compute(connectionId, (c, oldTimings) -> {
             final Instant now = Instant.now();
             if (null != oldTimings) {
                 return oldTimings.withEnabledUntil(now.plus(loggingDuration));
@@ -271,18 +316,18 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         });
     }
 
-    private void startMetadata(final ConnectionId connectionId) {
+    private void startMetadata(final EntityId connectionId) {
         final Instant now = Instant.now();
         final LogMetadata timing = new LogMetadata(now, now.plus(loggingDuration));
-        metadata.put(connectionId, timing);
+        METADATA.put(connectionId, timing);
     }
 
-    private void stopMetadata(final ConnectionId connectionId) {
-        metadata.remove(connectionId);
+    private static void stopMetadata(final EntityId connectionId) {
+        METADATA.remove(connectionId);
     }
 
-    private LogMetadata getMetadata(final ConnectionId connectionId) {
-        return metadata.getOrDefault(connectionId, LogMetadata.empty());
+    private static LogMetadata getMetadata(final ConnectionId connectionId) {
+        return METADATA.getOrDefault(connectionId, LogMetadata.empty());
     }
 
     @Override
@@ -385,13 +430,20 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             final LogType logType,
             @Nullable final String address) {
 
-        final MapKey key = new MapKey(connectionId, logCategory, logType, address);
-        return loggers.computeIfAbsent(key, m -> newMuteableLogger(connectionId, logCategory, logType, address));
+        try {
+            final MapKey key = new MapKey(connectionId, logCategory, logType, address);
+            return LOGGERS.computeIfAbsent(key, m -> newMuteableLogger(connectionId, logCategory, logType, address));
+        } catch (final Exception e) {
+            LOGGER.error("Encountered exception: <{}> getting connection logger <{}:{}:{}:{}>", e, connectionId,
+                    logCategory, logType, address);
+            return ConnectionLoggerFactory.newExceptionalLogger(connectionId, e);
+        }
     }
 
     private MuteableConnectionLogger newMuteableLogger(final ConnectionId connectionId, final LogCategory logCategory,
             final LogType logType,
             @Nullable final String address) {
+
         final ConnectionLogger logger =
                 ConnectionLoggerFactory.newEvictingLogger(successCapacity, failureCapacity, logCategory, logType,
                         address);
@@ -532,8 +584,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 final LogType logType,
                 @Nullable final String address) {
             this.connectionId = checkNotNull(connectionId, "connectionId");
-            this.category = checkNotNull(logCategory, "log category").getName();
-            this.type = checkNotNull(logType, "log type").getType();
+            category = checkNotNull(logCategory, "log category").getName();
+            type = checkNotNull(logType, "log type").getType();
             this.address = address;
         }
 

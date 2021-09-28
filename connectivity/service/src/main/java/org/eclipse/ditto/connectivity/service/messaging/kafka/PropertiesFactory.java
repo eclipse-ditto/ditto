@@ -29,6 +29,7 @@ import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 
 import com.typesafe.config.Config;
 
+import akka.kafka.CommitterSettings;
 import akka.kafka.ConnectionCheckerSettings;
 import akka.kafka.ConsumerSettings;
 import akka.kafka.ProducerSettings;
@@ -98,6 +99,11 @@ final class PropertiesFactory {
         // disable auto commit in dry run mode
         return dryRun ? consumerSettings.withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false") :
                 consumerSettings;
+    }
+
+    CommitterSettings getCommitterSettings() {
+        final Config committerConfig = this.config.getCommitterConfig().getAlpakkaConfig();
+        return CommitterSettings.apply(committerConfig);
     }
 
     ProducerSettings<String, String> getProducerSettings() {

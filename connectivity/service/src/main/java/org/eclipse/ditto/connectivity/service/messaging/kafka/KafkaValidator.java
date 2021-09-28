@@ -109,6 +109,8 @@ public final class KafkaValidator extends AbstractProtocolValidator {
                     placeholderReplacement, Resolvers.getPlaceholders());
             validateSourceAddress(addressWithoutPlaceholders, dittoHeaders, placeholderReplacement);
         });
+
+        validateSourceQos(source, dittoHeaders);
     }
 
     @Override
@@ -126,6 +128,19 @@ public final class KafkaValidator extends AbstractProtocolValidator {
     private static void validateSourceAddress(final String address, final DittoHeaders dittoHeaders,
             final String placeholderReplacement) {
         validateTopic(address, dittoHeaders, placeholderReplacement);
+    }
+
+    private static void validateSourceQos(final Source source, final DittoHeaders dittoHeaders) {
+        source.getQos().ifPresent(qos -> {
+            if (qos < 0 || qos > 1) {
+                throw ConnectionConfigurationInvalidException
+                        .newBuilder("Invalid 'qos' value for Kafka source, supported are: <0> or <1>. " +
+                                "Configured 'qos' value was: <" + qos + ">"
+                        )
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+            }
+        });
     }
 
     private static void validateTargetAddress(final String address, final DittoHeaders dittoHeaders,

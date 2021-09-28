@@ -42,9 +42,11 @@
         <akka-http-bom.version>10.2.5</akka-http-bom.version>
         <akka-management.version>1.0.10</akka-management.version>
         <akka-stream-kafka.version>2.1.1</akka-stream-kafka.version>
+        <kafka-client.version>2.8.1</kafka-client.version>
         <hivemq-mqtt-client.version>1.2.2</hivemq-mqtt-client.version>
         <sshd.version>2.7.0</sshd.version>
         <eddsa.version>0.3.0</eddsa.version>
+        <lz4-java.version>1.8.0</lz4-java.version>
 
         <!-- Keep these version consistent with akka-persistence-mongo.version's build.sbt -->
         <mongo-java-driver.version>4.1.1</mongo-java-driver.version>
@@ -55,12 +57,12 @@
         <newmotion-akka-rabbitmq.version>5.1.2</newmotion-akka-rabbitmq.version>
         <amqp-client.version>5.7.3</amqp-client.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
-        <netty-bom.version>4.1.66.Final</netty-bom.version>
+        <netty-bom.version>4.1.68.Final</netty-bom.version>
         <cloundevents.version>2.0.0</cloundevents.version>
         <commons-net.version>3.8.0</commons-net.version>
 
         <slf4j.version>1.7.31</slf4j.version>
-        <logback.version>1.2.3</logback.version>
+        <logback.version>1.2.6</logback.version>
         <logstash-logback-encoder.version>6.6</logstash-logback-encoder.version>
         <janino.version>2.7.8</janino.version>
 
@@ -145,6 +147,11 @@
                 <groupId>com.typesafe.akka</groupId>
                 <artifactId>akka-stream-kafka_${scala.version}</artifactId>
                 <version>${akka-stream-kafka.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka-client.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.typesafe.akka</groupId>
@@ -348,6 +355,12 @@
                 <groupId>net.i2p.crypto</groupId>
                 <artifactId>eddsa</artifactId>
                 <version>${eddsa.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.lz4</groupId>
+                <artifactId>lz4-java</artifactId>
+                <version>${lz4-java.version}</version>
             </dependency>
 
             <dependency>

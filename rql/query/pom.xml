@@ -114,6 +114,7 @@
                             <exclude>org.eclipse.ditto.rql.query.expression.FieldExpressionUtil#stripAttributesPrefix(java.lang.String)</exclude>
                             <exclude>org.eclipse.ditto.rql.query.expression.FieldExpressionUtil#addAttributesPrefix(java.lang.String)</exclude>
                             <exclude>org.eclipse.ditto.rql.query.expression.FieldExpressionUtil#isDefinitionFieldName(java.lang.String)</exclude>
+                            <exclude>org.eclipse.ditto.rql.query.expression.FieldExpressionUtil#isMetadataFieldName(java.lang.String)</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

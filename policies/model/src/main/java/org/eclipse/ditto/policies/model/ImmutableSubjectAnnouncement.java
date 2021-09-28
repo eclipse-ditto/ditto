@@ -150,7 +150,7 @@ final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
                 "[beforeExpiry=" + beforeExpiry +
                 ", whenDeleted=" + whenDeleted +
                 ", requestedAcksLabels=" + requestedAcksLabels +
-                ", requestedAcksTimeout" + requestedAcksTimeout +
+                ", requestedAcksTimeout=" + requestedAcksTimeout +
                 "]";
     }
 

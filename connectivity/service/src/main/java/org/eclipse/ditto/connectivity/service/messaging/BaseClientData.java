@@ -43,18 +43,20 @@ public final class BaseClientData {
     private final ConnectivityStatus desiredConnectionStatus;
     @Nullable private final String connectionStatusDetails;
     private final Instant inConnectionStatusSince;
+    private final int failureCount;
     private final List<Pair<ActorRef, DittoHeaders>> sessionSenders;
     private final SshTunnelState sshTunnelState;
 
     /**
      * Constructs new instance of BaseClientData, the data of the {@link BaseClientActor}.
      *
-     * @param connectionId the ID of the {@link Connection}.
-     * @param connection the optional {@link Connection}.
-     * @param connectionStatus the current {@link ConnectivityStatus} of the Connection.
-     * @param desiredConnectionStatus the desired {@link ConnectivityStatus} of the Connection.
+     * @param connectionId the ID of the {@link org.eclipse.ditto.connectivity.model.Connection}.
+     * @param connection the optional {@link org.eclipse.ditto.connectivity.model.Connection}.
+     * @param connectionStatus the current {@link org.eclipse.ditto.connectivity.model.ConnectivityStatus} of the Connection.
+     * @param desiredConnectionStatus the desired {@link org.eclipse.ditto.connectivity.model.ConnectivityStatus} of the Connection.
      * @param connectionStatusDetails the optional details about the ConnectionStatus.
      * @param inConnectionStatusSince the instant since when the Client is in its current ConnectionStatus.
+     * @param failureCount counts failures recived while backing off in connecting state
      */
     private BaseClientData(final ConnectionId connectionId, final Connection connection,
             final ConnectivityStatus connectionStatus,
@@ -62,7 +64,8 @@ public final class BaseClientData {
             @Nullable final String connectionStatusDetails,
             final Instant inConnectionStatusSince,
             final List<Pair<ActorRef, DittoHeaders>> sessionSenders,
-            final SshTunnelState sshTunnelState) {
+            final SshTunnelState sshTunnelState,
+            final int failureCount) {
         this.connectionId = connectionId;
         this.connection = connection;
         this.connectionStatus = connectionStatus;
@@ -71,6 +74,7 @@ public final class BaseClientData {
         this.inConnectionStatusSince = inConnectionStatusSince;
         this.sessionSenders = List.copyOf(sessionSenders);
         this.sshTunnelState = sshTunnelState;
+        this.failureCount = failureCount;
     }
 
     /**
@@ -195,6 +199,32 @@ public final class BaseClientData {
         return BaseClientDataBuilder.from(this).setSessionSenders(Collections.emptyList()).build();
     }
 
+    /**
+     * Increases the failure count by one.
+     *
+     * @return the new instance of BaseClientData
+     */
+    BaseClientData increaseFailureCount() {
+        return BaseClientDataBuilder.from(this).setFailureCount(failureCount + 1).build();
+    }
+
+    /**
+     * @return the current failure count
+     */
+    int getFailureCount() {
+        return failureCount;
+    }
+
+    /**
+     * Resets the failure count to zero.
+     *
+     * @return the new instance of BaseClientData
+     */
+    BaseClientData resetFailureCount() {
+        return BaseClientDataBuilder.from(this).setFailureCount(0).build();
+    }
+
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) {return true;}
@@ -207,13 +237,14 @@ public final class BaseClientData {
                 Objects.equals(connectionStatusDetails, that.connectionStatusDetails) &&
                 Objects.equals(inConnectionStatusSince, that.inConnectionStatusSince) &&
                 Objects.equals(sessionSenders, that.sessionSenders) &&
-                Objects.equals(sshTunnelState, that.sshTunnelState);
+                Objects.equals(sshTunnelState, that.sshTunnelState) &&
+                Objects.equals(failureCount, that.failureCount);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                connectionStatusDetails, inConnectionStatusSince, sessionSenders, sshTunnelState);
+                connectionStatusDetails, inConnectionStatusSince, sessionSenders, sshTunnelState, failureCount);
     }
 
     @Override
@@ -227,6 +258,7 @@ public final class BaseClientData {
                 ", inConnectionStatusSince=" + inConnectionStatusSince +
                 ", sessionSenders=" + sessionSenders +
                 ", sshTunnelState=" + sshTunnelState +
+                ", failureCount=" + failureCount +
                 "]";
     }
 
@@ -240,6 +272,7 @@ public final class BaseClientData {
         private Instant inConnectionStatusSince;
         private List<Pair<ActorRef, DittoHeaders>> sessionSenders = Collections.emptyList();
         private SshTunnelState sshTunnelState;
+        private int failureCount = 0;
 
         static BaseClientDataBuilder from(final BaseClientData data) {
             return new BaseClientDataBuilder(data);
@@ -262,6 +295,7 @@ public final class BaseClientData {
             inConnectionStatusSince = data.getInConnectionStatusSince();
             sessionSenders = data.getSessionSenders();
             sshTunnelState = data.getSshTunnelState();
+            failureCount = data.getFailureCount();
         }
 
         private BaseClientDataBuilder(final ConnectionId connectionId, final Connection connection,
@@ -318,9 +352,14 @@ public final class BaseClientData {
             return this;
         }
 
+        public BaseClientDataBuilder setFailureCount(final int failureCount) {
+            this.failureCount = failureCount;
+            return this;
+        }
+
         public BaseClientData build() {
             return new BaseClientData(connectionId, connection, connectionStatus, desiredConnectionStatus,
-                    connectionStatusDetails, inConnectionStatusSince, sessionSenders, sshTunnelState);
+                    connectionStatusDetails, inConnectionStatusSince, sessionSenders, sshTunnelState, failureCount);
         }
     }
 

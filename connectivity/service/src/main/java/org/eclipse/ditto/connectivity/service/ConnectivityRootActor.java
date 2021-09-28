@@ -46,6 +46,7 @@ import org.eclipse.ditto.internal.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.internal.utils.persistentactors.PersistencePingActor;
+import org.eclipse.ditto.internal.utils.persistentactors.cleanup.PersistenceCleanupActor;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 
 import akka.actor.ActorRef;
@@ -121,7 +122,11 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
                         actorSystem.settings().config(), connectivityConfig.getPersistenceOperationsConfig()));
 
-        final ActorRef healthCheckingActor = getHealthCheckingActor(connectivityConfig, pubSubMediator);
+        final var cleanupConfig = connectivityConfig.getConnectionConfig().getCleanupConfig();
+        final var cleanupActorProps = PersistenceCleanupActor.props(cleanupConfig, mongoReadJournal, CLUSTER_ROLE);
+        startChildActor(PersistenceCleanupActor.NAME, cleanupActorProps);
+
+        final ActorRef healthCheckingActor = getHealthCheckingActor(connectivityConfig);
         bindHttpStatusRoute(connectivityConfig.getHttpConfig(), healthCheckingActor);
     }
 
@@ -183,8 +188,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
         ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, name, props);
     }
 
-    private ActorRef getHealthCheckingActor(final ConnectivityConfig connectivityConfig,
-            final ActorRef pubSubMediator) {
+    private ActorRef getHealthCheckingActor(final ConnectivityConfig connectivityConfig) {
         final HealthCheckConfig healthCheckConfig = connectivityConfig.getHealthCheckConfig();
         final HealthCheckingActorOptions.Builder hcBuilder =
                 HealthCheckingActorOptions.getBuilder(healthCheckConfig.isEnabled(), healthCheckConfig.getInterval());

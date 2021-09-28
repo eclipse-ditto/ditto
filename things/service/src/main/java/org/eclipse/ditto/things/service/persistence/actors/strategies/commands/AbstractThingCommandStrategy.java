@@ -17,15 +17,18 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.internal.utils.persistentactors.MetadataFromSignal;
 import org.eclipse.ditto.internal.utils.persistentactors.etags.AbstractConditionHeaderCheckingCommandStrategy;
-import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
-import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
+import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 /**
@@ -50,6 +53,36 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
         return VALIDATOR;
     }
 
+    /**
+     * Execute a command strategy after it is determined applicable.
+     *
+     * @param context context of the persistent actor.
+     * @param entity entity of the persistent actor.
+     * @param nextRevision the next revision to allocate to events.
+     * @param command the incoming command.
+     * @return result of the command strategy.
+     */
+    @Override
+    public Result<ThingEvent<?>> apply(final Context<ThingId> context, @Nullable final Thing entity,
+            final long nextRevision, final C command) {
+
+        final var loggerWithCorrelationId = context.getLog().withCorrelationId(command);
+        final var thingConditionFailed = command.getDittoHeaders()
+                .getCondition()
+                .flatMap(condition -> ThingConditionValidator.validate(command, condition, entity));
+
+        final Result<ThingEvent<?>> result;
+        if (thingConditionFailed.isPresent()) {
+            final var conditionFailedException = thingConditionFailed.get();
+            loggerWithCorrelationId.debug("Validating condition failed with exception <{}>.",
+                    conditionFailedException.getMessage());
+            result = ResultFactory.newErrorResult(conditionFailedException, command);
+        } else {
+            result = super.apply(context, entity, nextRevision, command);
+        }
+        return result;
+    }
+
     @Override
     protected Optional<Metadata> calculateRelativeMetadata(@Nullable final Thing entity, final C command) {
 
@@ -70,7 +103,7 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
 
     @Override
     public boolean isDefined(final C command) {
-        throw new UnsupportedOperationException("This method is not supported by this implementation.");
+        return command instanceof ThingCommand;
     }
 
 }

@@ -41,6 +41,7 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.service.config.DefaultConnectionConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
@@ -112,7 +113,8 @@ public final class HttpPublisherErrorTest {
         new TestKit(actorSystem) {{
             final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
                     mock(ConnectionLogger.class), SshTunnelState::disabled);
-            final Props props = HttpPublisherActor.props(connection, factory, "clientId");
+            final Props props = HttpPublisherActor.props(connection, factory, "clientId",
+                    mock(ConnectivityStatusResolver.class));
             final ActorRef underTest = watch(childActorOf(props));
 
             // WHEN: it is asked to publish events with delay between them larger than connection pool timeout
@@ -143,7 +145,8 @@ public final class HttpPublisherErrorTest {
             // GIVEN: An HTTP-push connection is established against localhost.
             final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
                     mock(ConnectionLogger.class), SshTunnelState::disabled);
-            final Props props = HttpPublisherActor.props(connection, factory, "clientId");
+            final Props props = HttpPublisherActor.props(connection, factory, "clientId",
+                    mock(ConnectivityStatusResolver.class));
             final ActorRef underTest = watch(childActorOf(props));
 
             // GIVEN: The connection is working.

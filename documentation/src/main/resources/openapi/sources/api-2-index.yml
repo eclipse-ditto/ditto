@@ -161,8 +161,6 @@ components:
   responses:
     EntityTooLarge:
       $ref: "./responses/entityTooLarge.yml"
-    MessageTimeout:
-      $ref: "./responses/messageTimeout.yml"
     MessageTooLarge:
       $ref: "./responses/messageTooLarge.yml"
     NotModified:
