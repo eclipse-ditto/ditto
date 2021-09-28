@@ -47,7 +47,7 @@ public enum ReadPreference {
      * @return An optional of the ReadPreference matching to the given read preference string. Empty if no matching
      * ReadPreference exists.
      */
-    static Optional<ReadPreference> ofReadPreference(final String readPreference) {
+    public static Optional<ReadPreference> ofReadPreference(final String readPreference) {
         checkNotNull(readPreference, "readPreference");
         return Arrays.stream(values())
                 .filter(c -> c.name.contentEquals(readPreference))

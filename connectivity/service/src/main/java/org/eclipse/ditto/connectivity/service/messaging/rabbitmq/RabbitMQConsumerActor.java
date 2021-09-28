@@ -38,9 +38,7 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
-import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.PreparedTrace;
@@ -66,8 +64,6 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
     private static final String MESSAGE_ID_HEADER = "messageId";
     private static final String CONTENT_TYPE_APPLICATION_OCTET_STREAM = "application/octet-stream";
 
-    private final ThreadSafeDittoLoggingAdapter log;
-
     @Nullable
     private final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory;
     private final PayloadMapping payloadMapping;
@@ -78,9 +74,6 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             final Sink<Object, NotUsed> inboundMappingSink, final Source source, final Channel channel,
             final ConnectivityStatusResolver connectivityStatusResolver) {
         super(connection, sourceAddress, inboundMappingSink, source, connectivityStatusResolver);
-
-        log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
-                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
 
         headerEnforcementFilterFactory =
                 source.getEnforcement()
@@ -94,7 +87,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
 
     @Override
     protected ThreadSafeDittoLoggingAdapter log() {
-        return log;
+        return logger;
     }
 
     /**
@@ -127,7 +120,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
                 .match(ResourceStatus.class, this::handleAddressStatus)
                 .match(RetrieveAddressStatus.class, ram -> getSender().tell(getCurrentSourceStatus(), getSelf()))
                 .matchAny(m -> {
-                    log.warning("Unknown message: {}", m);
+                    logger.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
     }
@@ -141,8 +134,8 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
         Map<String, String> headers = null;
         try {
             @Nullable final String correlationId = properties.getCorrelationId();
-            if (log.isDebugEnabled()) {
-                log.withCorrelationId(correlationId)
+            if (logger.isDebugEnabled()) {
+                logger.withCorrelationId(correlationId)
                         .debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties,
                                 new String(body, StandardCharsets.UTF_8));
             }
@@ -175,7 +168,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             final ExternalMessage externalMessage = externalMessageBuilder.build();
             inboundMonitor.success(externalMessage);
 
-            forwardToMappingActor(externalMessage,
+            forwardToMapping(externalMessage,
                     () -> {
                         try {
                             final long deliveryTag = delivery.getEnvelope().getDeliveryTag();
@@ -183,7 +176,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
                             inboundAcknowledgedMonitor.success(externalMessage,
                                     "Sending success acknowledgement: basic.ack for deliveryTag={0}", deliveryTag);
                         } catch (final IOException e) {
-                            log.error("Acknowledging delivery {} failed: {}", envelope.getDeliveryTag(),
+                            logger.error("Acknowledging delivery {} failed: {}", envelope.getDeliveryTag(),
                                     e.getMessage());
                             inboundAcknowledgedMonitor.exception(e);
                         }
@@ -195,23 +188,23 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
                                             "basic.nack for deliveryTag={0}, requeue={0}",
                                     delivery.getEnvelope().getDeliveryTag(), requeue);
                         } catch (final IOException e) {
-                            log.error("Delivery of basic.nack for deliveryTag={} failed: {}", envelope.getDeliveryTag(),
+                            logger.error("Delivery of basic.nack for deliveryTag={} failed: {}", envelope.getDeliveryTag(),
                                     e.getMessage());
                             inboundAcknowledgedMonitor.exception(e);
                         }
                     });
         } catch (final DittoRuntimeException e) {
-            log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage());
+            logger.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage());
             if (headers != null) {
                 // send response if headers were extracted successfully
-                forwardToMappingActor(e.setDittoHeaders(DittoHeaders.of(headers)));
+                forwardToMapping(e.setDittoHeaders(DittoHeaders.of(headers)));
                 inboundMonitor.failure(headers, e);
             } else {
                 inboundMonitor.failure(e);
             }
             trace.fail(e);
         } catch (final Exception e) {
-            log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage());
+            logger.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage());
             if (headers != null) {
                 inboundMonitor.exception(headers, e);
             } else {

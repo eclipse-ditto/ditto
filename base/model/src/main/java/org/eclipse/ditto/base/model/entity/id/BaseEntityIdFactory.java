@@ -37,7 +37,6 @@ import org.eclipse.ditto.base.model.entity.type.EntityType;
  * itself.
  *
  * @param <T> the base type of the {@code EntityId}s this factory provides.
- *
  * @since 2.1.0
  */
 abstract class BaseEntityIdFactory<T extends EntityId> {
@@ -66,7 +65,8 @@ abstract class BaseEntityIdFactory<T extends EntityId> {
     }
 
     private static Stream<Class<?>> typedEntityIdAnnotatedClasses() {
-        final Iterable<Class<?>> classIterable = ClassIndex.getAnnotated(TypedEntityId.class);
+        final Iterable<Class<?>> classIterable =
+                ClassIndex.getAnnotated(TypedEntityId.class, EntityId.class.getClassLoader());
         return StreamSupport.stream(classIterable.spliterator(), false);
     }
 
