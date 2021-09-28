@@ -127,7 +127,7 @@ public final class ThingCommandEnforcement
     /**
      * Json fields that are always shown regardless of authorization.
      */
-    private static final JsonFieldSelector THING_QUERY_COMMAND_RESPONSE_ALLOWLIST =
+    public static final JsonFieldSelector THING_QUERY_COMMAND_RESPONSE_ALLOWLIST =
             JsonFactory.newFieldSelector(Thing.JsonFields.ID);
 
     private final ActorRef thingsShardRegion;
@@ -496,7 +496,7 @@ public final class ThingCommandEnforcement
      * @param enforcer the enforcer.
      * @return response with view on entity restricted by enforcer.
      */
-    private static <T extends ThingQueryCommandResponse<T>> T buildJsonViewForThingQueryCommandResponse(
+    public static <T extends ThingQueryCommandResponse<T>> T buildJsonViewForThingQueryCommandResponse(
             final ThingQueryCommandResponse<T> response, final Enforcer enforcer) {
 
         final JsonValue entity = response.getEntity();

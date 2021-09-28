@@ -236,7 +236,7 @@ public interface Enforcer {
      * @param authorizationContext the AuthorizationContext containing the AuthorizationSubjects.
      * @param permissions the permissions.
      * @param allowlist allowed fields to be present in the output as long as the authorization subjects are
-     * relevant, i. e., some of them are granted the required permissions on some resource.
+     * relevant, i.e., some of them are granted the required permissions on some resource.
      * @return a view of the passed {@code jsonFields} as JsonObject for which the required permissions are given.
      * @throws NullPointerException if any argument is {@code null}.
      */

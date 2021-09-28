@@ -15,12 +15,12 @@ package org.eclipse.ditto.internal.utils.pubsub;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.ReadSubjectExtractor;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRefFactory;
@@ -82,4 +82,5 @@ final class LiveSignalPubSubFactory extends AbstractPubSubFactory<SignalWithEnti
     private static ThingId getThingId(final SignalWithEntityId<?> signal) {
         return ThingId.of(signal.getEntityId());
     }
+
 }

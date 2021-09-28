@@ -59,7 +59,7 @@ public interface EnforcementConfig {
         /**
          * Whether to enable dispatching live responses from channels other than the subscribers.
          */
-        GLOBAL_LIVE_RESPONSE_DISPATCHING("global-live-response-dispatching", false);
+        GLOBAL_LIVE_RESPONSE_DISPATCHING("global-live-response-dispatching", true);
 
         private final String path;
         private final Object defaultValue;

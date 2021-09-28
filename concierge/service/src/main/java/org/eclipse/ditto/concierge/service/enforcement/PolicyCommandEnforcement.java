@@ -174,7 +174,7 @@ public final class PolicyCommandEnforcement
      *
      * @param response the response.
      * @param enforcer the enforcer.
-     * @return response with view on entity restricted by enforcer..
+     * @return response with view on entity restricted by enforcer.
      */
     public static <T extends PolicyQueryCommandResponse<T>> T buildJsonViewForPolicyQueryCommandResponse(
             final PolicyQueryCommandResponse<T> response,

@@ -26,7 +26,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.concierge.service.common.CachesConfig;
 import org.eclipse.ditto.concierge.service.common.DefaultCachesConfig;
@@ -44,14 +44,20 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.FeatureProperties;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -69,8 +75,25 @@ public final class TestSetup {
 
     public static final String THING_SUDO = "thing-sudo";
     public static final String POLICY_SUDO = "policy-sudo";
+    public static final String FEATURE_ID = "x";
+    public static final String FEATURE_PROPERTY_1 = "key1";
+    public static final String FEATURE_PROPERTY_2 = "key2";
 
     public static final ThingId THING_ID = ThingId.of("thing", "id");
+    public static final PolicyId POLICY_ID = PolicyId.of("policy", "id");
+    public static final Feature FEATURE = Feature.newBuilder()
+            .properties(FeatureProperties.newBuilder()
+                    .set(FEATURE_PROPERTY_1, 1)
+                    .set(FEATURE_PROPERTY_2, "some string")
+                    .build())
+            .withId(FEATURE_ID)
+            .build();
+    public static final Thing THING = Thing.newBuilder()
+            .setId(THING_ID)
+            .setPolicyId(POLICY_ID)
+            .setFeature(FEATURE)
+            .build();
+
     public static final String SUBJECT_ID = "subject";
     public static final AuthorizationSubject SUBJECT = AuthorizationSubject.newInstance("dummy:" + SUBJECT_ID);
 
@@ -88,23 +111,17 @@ public final class TestSetup {
     public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
             final ActorRef mockEntitiesActor) {
 
-        return new EnforcerActorBuilder(system, testActorRef, mockEntitiesActor).build();
-    }
-
-    public static ActorRef newEnforcerActor(final ActorSystem system,
-            final ActorRef testActorRef,
-            final ActorRef mockEntitiesActor,
-            @Nullable final PreEnforcer preEnforcer) {
-        return new EnforcerActorBuilder(system, testActorRef, mockEntitiesActor).setPreEnforcer(preEnforcer).build();
+        return new EnforcerActorBuilder(system, testActorRef, mockEntitiesActor, mockEntitiesActor).build();
     }
 
     public static ActorRef newEnforcerActor(final ActorSystem system,
             final ActorRef testActorRef,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
+            final ActorRef pubSubMediatorRef,
             @Nullable final PreEnforcer preEnforcer) {
-        return new EnforcerActorBuilder(system, testActorRef, thingsShardRegion, policiesShardRegion).setPreEnforcer(
-                preEnforcer).build();
+        return new EnforcerActorBuilder(system, testActorRef, thingsShardRegion, policiesShardRegion, pubSubMediatorRef)
+                .setPreEnforcer(preEnforcer).build();
     }
 
     static class EnforcerActorBuilder {
@@ -113,16 +130,9 @@ public final class TestSetup {
         private final ActorRef testActorRef;
         private final ActorRef thingsShardRegion;
         private final ActorRef policiesShardRegion;
+        private final ActorRef puSubMediatorRef;
         @Nullable private ActorRef conciergeForwarder;
         @Nullable private PreEnforcer preEnforcer;
-
-        EnforcerActorBuilder(final ActorSystem system, final ActorRef testActorRef,
-                final ActorRef mockEntityActors) {
-            this.system = system;
-            this.testActorRef = testActorRef;
-            this.thingsShardRegion = mockEntityActors;
-            this.policiesShardRegion = mockEntityActors;
-        }
 
         EnforcerActorBuilder(final ActorSystem system, final ActorRef testActorRef,
                 final ActorRef thingsShardRegion, final ActorRef policiesShardRegion) {
@@ -130,6 +140,16 @@ public final class TestSetup {
             this.testActorRef = testActorRef;
             this.thingsShardRegion = thingsShardRegion;
             this.policiesShardRegion = policiesShardRegion;
+            this.puSubMediatorRef = testActorRef;
+        }
+
+        EnforcerActorBuilder(final ActorSystem system, final ActorRef testActorRef,
+                final ActorRef thingsShardRegion, final ActorRef policiesShardRegion, final ActorRef puSubMediatorRef) {
+            this.system = system;
+            this.testActorRef = testActorRef;
+            this.thingsShardRegion = thingsShardRegion;
+            this.policiesShardRegion = policiesShardRegion;
+            this.puSubMediatorRef = puSubMediatorRef;
         }
 
         public EnforcerActorBuilder setPreEnforcer(@Nullable final PreEnforcer preEnforcer) {
@@ -167,11 +187,10 @@ public final class TestSetup {
             enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
             enforcementProviders.add(
                     new LiveSignalEnforcement.Provider(thingIdCache, projectedEnforcerCache,
-                            new DummyLiveSignalPub(testActorRef)));
+                            new DummyLiveSignalPub(puSubMediatorRef)));
+            final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, preEnforcer,
+                            null, null);
 
-            final Props props =
-                    EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, preEnforcer, null,
-                            null);
             return system.actorOf(props, EnforcerActor.ACTOR_NAME);
         }
 
@@ -181,13 +200,13 @@ public final class TestSetup {
         return "conciergeForwarder-" + UUID.randomUUID();
     }
 
-
-    public static DittoHeaders headers(final JsonSchemaVersion schemaVersion) {
+    public static DittoHeaders headers() {
         return DittoHeaders.newBuilder()
                 .authorizationContext(
                         AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, SUBJECT,
                                 AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))))
-                .schemaVersion(schemaVersion)
+                .schemaVersion(V_2)
+                .correlationId(UUID.randomUUID().toString())
                 .build();
     }
 
@@ -197,17 +216,28 @@ public final class TestSetup {
                 .setRevision(1L);
     }
 
-    public static ThingCommand readCommand() {
-        return RetrieveThing.of(THING_ID, headers(V_2));
+    public static JsonObject newThingWithPolicyId(final CharSequence policyId) {
+        return newThing()
+                .setPolicyId(PolicyId.of(policyId))
+                .build()
+                .toJson(V_2, FieldType.all());
     }
 
-    public static ThingCommand writeCommand() {
-        return ModifyFeature.of(THING_ID, Feature.newBuilder().withId("x").build(), headers(V_2));
+    public static ThingCommand<?> readCommand(final DittoHeaders headers) {
+        return RetrieveThing.of(TestSetup.THING_ID, headers);
+    }
+
+    public static ThingCommandResponse<?> readCommandResponse(final DittoHeaders headers) {
+        return RetrieveThingResponse.of(TestSetup.THING_ID, THING, null, null, headers);
+    }
+
+    public static ThingCommand<?> writeCommand(final DittoHeaders headers) {
+        return ModifyFeature.of(TestSetup.THING_ID, FEATURE, headers);
     }
 
     /**
      * Similar to {@link TestKit#expectMsgClass(Class)} but ignores other messages occurring while waiting for a
-     * message of the the passed {@code clazz}.
+     * message of the passed {@code clazz}.
      *
      * @param testKit the TestKit to fish for messages in
      * @param clazz the type of the message to wait for
@@ -216,7 +246,7 @@ public final class TestSetup {
      */
     public static <T> T fishForMsgClass(final TestKit testKit, final Class<T> clazz) {
         return clazz.cast(
-                testKit.fishForMessage(FiniteDuration.apply(3, TimeUnit.SECONDS), clazz.getName(), clazz::isInstance));
+                testKit.fishForMessage(FiniteDuration.apply(5, TimeUnit.SECONDS), clazz.getName(), clazz::isInstance));
     }
 
     private static final class DummyLiveSignalPub implements LiveSignalPub {

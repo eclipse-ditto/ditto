@@ -160,7 +160,7 @@ public final class AcknowledgementAggregatorActorStarter {
     /**
      * Start an acknowledgement aggregator actor for a signal with acknowledgement requests.
      *
-     * @param entityId the entity ID of the originating signal signal.
+     * @param entityId the entity ID of the originating signal.
      * @param dittoHeaders The headers of the originating signal. Must have nonempty acknowledgement requests.
      * @param responseSignalConsumer consumer of the aggregated response or error.
      * @param forwarderStartedFunction what to do after the aggregator actor started.

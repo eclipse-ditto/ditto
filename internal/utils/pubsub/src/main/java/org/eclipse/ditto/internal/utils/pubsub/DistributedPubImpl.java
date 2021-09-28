@@ -15,10 +15,10 @@ package org.eclipse.ditto.internal.utils.pubsub;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.internal.utils.pubsub.actors.Publisher;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 
 import akka.actor.ActorRef;
 
@@ -58,4 +58,5 @@ final class DistributedPubImpl<T extends SignalWithEntityId<?>> implements Distr
                     ackExtractor.getEntityId(message), ackExtractor.getDittoHeaders(message));
         }
     }
+
 }
