@@ -412,7 +412,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
 
             startMainRootActor(actorSystem, getMainRootActorProps(serviceSpecificConfig, pubSubMediator));
             startAdditionalRootActors(actorSystem, getAdditionalRootActorsInformation(serviceSpecificConfig,
-                    pubSubMediator));
+                    actorSystem));
         });
     }
 
@@ -466,11 +466,11 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * <em>The base implementation returns an empty collection.</em>
      *
      * @param serviceSpecificConfig the specific configuration of this service.
-     * @param pubSubMediator ActorRef of the distributed pub-sub-mediator.
+     * @param actorSystem the actor system.
      * @return the additional root actors information.
      */
     protected Collection<RootActorInformation> getAdditionalRootActorsInformation(final C serviceSpecificConfig,
-            final ActorRef pubSubMediator) {
+            final ActorSystem actorSystem) {
         return Collections.emptyList();
     }
 

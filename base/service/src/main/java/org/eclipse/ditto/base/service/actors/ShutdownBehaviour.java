@@ -16,11 +16,12 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.Nonnull;
 
+import org.eclipse.ditto.base.api.common.Shutdown;
+import org.eclipse.ditto.base.api.common.ShutdownReason;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.base.api.common.Shutdown;
-import org.eclipse.ditto.base.api.common.ShutdownReason;
+import org.eclipse.ditto.things.model.ThingId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,6 +76,23 @@ public final class ShutdownBehaviour {
             final ActorRef self) {
 
         return fromIdWithNamespace(checkNotNull(entityId, "entityId"), pubSubMediator, self, "");
+    }
+
+    /**
+     * Create the actor behavior from a namespace and reference.
+     *
+     * @param namespace the namespace of the actor.
+     * @param pubSubMediator Akka pub-sub mediator.
+     * @param self reference of the actor itself.
+     * @return the actor behavior.
+     */
+    public static ShutdownBehaviour fromNamespace(final String namespace,
+            final ActorRef pubSubMediator,
+            final ActorRef self) {
+
+        final var shutdownBehavior = new ShutdownBehaviour(namespace, ThingId.of(namespace, namespace), self);
+        shutdownBehavior.subscribePubSub(pubSubMediator);
+        return shutdownBehavior;
     }
 
     private static ShutdownBehaviour fromIdWithNamespace(@Nonnull final EntityId entityId,

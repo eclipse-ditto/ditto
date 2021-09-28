@@ -19,10 +19,10 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
-import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -34,7 +34,7 @@ import akka.cluster.sharding.ClusterShardingSettings;
  * Factory for Shard Region {@link ActorRef}s of different services.
  */
 @NotThreadSafe
-final class ShardRegionFactory {
+public final class ShardRegionFactory {
 
     static final String UPDATER_SHARD_REGION = ThingsSearchConstants.SHARD_REGION;
 
@@ -81,7 +81,15 @@ final class ShardRegionFactory {
                 numberOfShards);
     }
 
-    private ActorRef createShardRegion(final String shardRegion, final String clusterRole, final int numberOfShards) {
+    /**
+     * Create a new shard region.
+     *
+     * @param shardRegion the shard region name.
+     * @param clusterRole the cluster role where the shard region starts.
+     * @param numberOfShards how many shards the shard region has.
+     * @return actor ref of the shard region.
+     */
+    public ActorRef createShardRegion(final String shardRegion, final String clusterRole, final int numberOfShards) {
         final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
         final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
         return clusterSharding.startProxy(shardRegion, Optional.of(clusterRole), shardRegionExtractor);

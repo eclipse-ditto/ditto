@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.service.actors.StartChildActor;
 import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
@@ -22,10 +20,6 @@ import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.monitoring.KamonCommandListener;
-import org.eclipse.ditto.internal.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.ThingEventPubSubFactory;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
@@ -35,12 +29,13 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.impl.MongoThingsS
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ChangeQueueActor;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdateMapper;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdaterStream;
-
-import com.mongodb.event.CommandListener;
-import com.mongodb.event.ConnectionPoolListener;
+import org.eclipse.ditto.thingsearch.service.starter.actors.MongoClientExtension;
+import org.eclipse.ditto.thingsearch.service.starter.actors.SearchRootActor;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
@@ -65,8 +60,6 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      */
     public static final String CLUSTER_ROLE = "things-search";
 
-    private static final String KAMON_METRICS_PREFIX = "updater";
-
     private static final String SEARCH_ROLE = "things-search";
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
@@ -90,11 +83,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
         final var actorSystem = getContext().getSystem();
 
-        final var mongoDbConfig = searchConfig.getMongoDbConfig();
-        dittoMongoClient = MongoClientWrapper.getBuilder(mongoDbConfig)
-                .addCommandListener(getCommandListenerOrNull(mongoDbConfig.getMonitoringConfig()))
-                .addConnectionPoolListener(getConnectionPoolListenerOrNull(mongoDbConfig.getMonitoringConfig()))
-                .build();
+        dittoMongoClient = MongoClientExtension.get(actorSystem).getUpdaterClient();
 
         final var shardRegionFactory = ShardRegionFactory.getInstance(actorSystem);
         final var blockedNamespaces = BlockedNamespaces.of(actorSystem);
@@ -162,20 +151,6 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                         searchConfig.getPersistenceOperationsConfig()));
     }
 
-    @Nullable
-    private static CommandListener getCommandListenerOrNull(final MongoDbConfig.MonitoringConfig monitoringConfig) {
-        return monitoringConfig.isCommandsEnabled() ? new KamonCommandListener(KAMON_METRICS_PREFIX) : null;
-    }
-
-    @Nullable
-    private static ConnectionPoolListener getConnectionPoolListenerOrNull(
-            final MongoDbConfig.MonitoringConfig monitoringConfig) {
-
-        return monitoringConfig.isConnectionPoolEnabled()
-                ? new KamonConnectionPoolListener(KAMON_METRICS_PREFIX)
-                : null;
-    }
-
     /**
      * Creates Akka configuration object Props for this SearchUpdaterRootActor.
      *
@@ -192,6 +167,17 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
         return Props.create(SearchUpdaterRootActor.class, searchConfig, pubSubMediator, thingsSearchPersistence,
                 backgroundSyncPersistence);
+    }
+
+    /**
+     * Select the ThingsUpdater in the actor system.
+     *
+     * @param system the actor system.
+     * @return actor selection for the ThingsUpdater in the system.
+     */
+    public static ActorSelection getThingsUpdater(final ActorSystem system) {
+        return system.actorSelection(
+                String.format("user/%s/%s/%s", SearchRootActor.ACTOR_NAME, ACTOR_NAME, ThingsUpdater.ACTOR_NAME));
     }
 
     @Override
