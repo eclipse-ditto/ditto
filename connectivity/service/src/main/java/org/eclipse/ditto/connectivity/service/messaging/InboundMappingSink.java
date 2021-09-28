@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -25,7 +26,6 @@ import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
-import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor.ReplaceInboundMappingProcessor;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
@@ -46,6 +46,14 @@ import scala.PartialFunction;
  */
 public final class InboundMappingSink {
 
+    /**
+     * Defines the maximum of costs that can be processed by the sink per second. This value is used to
+     * initialize the throttling on the stream. The actual throughput is defined by the cost per message i.e. if the
+     * cost per message is 1, the throughput is the maximum ({@value}), if the cost is the maximum ({@value}) the
+     * throughput is 1.
+     */
+    private static final int MAXIMUM_COSTS_PER_SECOND = 100_000;
+
     private final ThreadSafeDittoLogger logger;
 
     private final InboundMappingProcessor initialInboundMappingProcessor;
@@ -53,6 +61,7 @@ public final class InboundMappingSink {
     @Nullable private final ThrottlingConfig throttlingConfig;
     private final MessageDispatcher messageMappingProcessorDispatcher;
     private final int processorPoolSize;
+    private final int initialCostPerMessage;
 
     private InboundMappingSink(final InboundMappingProcessor initialInboundMappingProcessor,
             final ConnectionId connectionId,
@@ -74,8 +83,21 @@ public final class InboundMappingSink {
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
 
         this.processorPoolSize = this.determinePoolSize(processorPoolSize, mappingConfig.getMaxPoolSize());
+
+        if (throttlingConfig != null) {
+            initialCostPerMessage = calculateCostPerMessage(throttlingConfig);
+            logger.debug("Cost per message initialized to: {}", initialCostPerMessage);
+        } else {
+            initialCostPerMessage = 1;
+        }
     }
 
+    static int calculateCostPerMessage(final ThrottlingConfig throttlingConfig) {
+        final int limit = throttlingConfig.getLimit();
+        final Duration interval = throttlingConfig.getInterval();
+        final double limitPerInterval = (double) limit / interval.toSeconds();
+        return (int) (MAXIMUM_COSTS_PER_SECOND / limitPerInterval);
+    }
 
     /**
      * Creates a Sink which is responsible for inbound payload mapping.
@@ -116,7 +138,9 @@ public final class InboundMappingSink {
                 .divertTo(logStatusFailure(), Status.Failure.class::isInstance)
                 .divertTo(inboundDispatchingSink, DittoRuntimeException.class::isInstance)
                 .divertTo(mapMessage(),
-                        x -> x instanceof ExternalMessageWithSender || x instanceof ReplaceInboundMappingProcessor)
+                        x -> x instanceof ExternalMessageWithSender ||
+                                x instanceof BaseClientActor.ReplaceInboundMappingProcessor ||
+                                x instanceof BaseClientActor.UpdateCostsPerMessage)
                 .to(Sink.foreach(message -> logger.warn("Received unknown message <{}>.", message)));
     }
 
@@ -133,16 +157,17 @@ public final class InboundMappingSink {
                 .mapAsync(processorPoolSize, mappingContext -> CompletableFuture.supplyAsync(
                         () -> {
                             logger.debug("Received inbound Message to map: {}", mappingContext);
-                            return mapInboundMessage(mappingContext.message, mappingContext.mappingProcessor);
+                            return mapInboundMessage(mappingContext.message, mappingContext.mappingProcessor,
+                                    mappingContext.costPerMessage);
                         },
                         messageMappingProcessorDispatcher)
                 );
 
         final Flow<Object, InboundMappingOutcomes, NotUsed> flowWithOptionalThrottling;
         if (throttlingConfig != null) {
-            flowWithOptionalThrottling = mapMessageFlow
-                    .throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval(),
-                            outcomes -> outcomes.getOutcomes().size());
+            // use fixed throttle and adjust costs via UpdateCostsPerMessage message
+            flowWithOptionalThrottling = mapMessageFlow.throttle(MAXIMUM_COSTS_PER_SECOND, Duration.ofSeconds(1),
+                    InboundMappingOutcomes::getCosts);
         } else {
             flowWithOptionalThrottling = mapMessageFlow;
         }
@@ -163,17 +188,17 @@ public final class InboundMappingSink {
     }
 
     private InboundMappingOutcomes mapInboundMessage(final ExternalMessageWithSender withSender,
-            final InboundMappingProcessor inboundMappingProcessor) {
+            final InboundMappingProcessor inboundMappingProcessor, final int costPerMessage) {
         final var externalMessage = withSender.externalMessage;
         final String correlationId =
                 externalMessage.getHeaders().get(DittoHeaderDefinition.CORRELATION_ID.getKey());
         logger.withCorrelationId(correlationId)
                 .debug("Handling ExternalMessage: {}", externalMessage);
         try {
-            return mapExternalMessageToSignal(withSender, externalMessage, inboundMappingProcessor);
+            return mapExternalMessageToSignal(withSender, externalMessage, inboundMappingProcessor, costPerMessage);
         } catch (final Exception e) {
             final var outcomes =
-                    InboundMappingOutcomes.of(withSender.externalMessage, e, withSender.sender);
+                    InboundMappingOutcomes.of(withSender.externalMessage, e, withSender.sender, costPerMessage);
             logger.withCorrelationId(correlationId)
                     .error("Handling exception when mapping external message: {}", e.getMessage());
             return outcomes;
@@ -181,9 +206,10 @@ public final class InboundMappingSink {
     }
 
     private InboundMappingOutcomes mapExternalMessageToSignal(final ExternalMessageWithSender withSender,
-            final ExternalMessage externalMessage, final InboundMappingProcessor inboundMappingProcessor) {
+            final ExternalMessage externalMessage, final InboundMappingProcessor inboundMappingProcessor,
+            final int costPerMessage) {
         return InboundMappingOutcomes.of(inboundMappingProcessor.process(withSender.externalMessage),
-                externalMessage, withSender.sender);
+                externalMessage, withSender.sender, costPerMessage);
     }
 
     static final class ExternalMessageWithSender {
@@ -201,15 +227,22 @@ public final class InboundMappingSink {
     private final class StatefulExternalMessageHandler implements Function<Object, Iterable<MappingContext>> {
 
         private transient InboundMappingProcessor inboundMappingProcessor = initialInboundMappingProcessor;
+        private transient int costPerMessage = initialCostPerMessage;
         private final transient PartialFunction<Object, Iterable<MappingContext>> matcher =
                 new PFBuilder<Object, Iterable<MappingContext>>()
-                        .match(ReplaceInboundMappingProcessor.class, replaceInboundMappingProcessor -> {
+                        .match(BaseClientActor.ReplaceInboundMappingProcessor.class, replaceInboundMappingProcessor -> {
                             logger.info("Replacing the InboundMappingProcessor with a modified one.");
                             inboundMappingProcessor = replaceInboundMappingProcessor.getInboundMappingProcessor();
                             return List.of();
                         })
+                        .match(BaseClientActor.UpdateCostsPerMessage.class, updateCostsPerMessage -> {
+                            logger.info("Updating cost per message: {}", updateCostsPerMessage.getCostPerMessage());
+                            costPerMessage = updateCostsPerMessage.getCostPerMessage();
+                            return List.of();
+                        })
                         .match(ExternalMessageWithSender.class,
-                                message -> List.of(new MappingContext(message, inboundMappingProcessor)))
+                                message -> List.of(
+                                        new MappingContext(message, inboundMappingProcessor, costPerMessage)))
                         .matchAny(streamingElement -> {
                             logger.warn("Received unknown message <{}>.", streamingElement);
                             return List.of();
@@ -227,14 +260,15 @@ public final class InboundMappingSink {
 
         private final ExternalMessageWithSender message;
         private final InboundMappingProcessor mappingProcessor;
+        private final int costPerMessage;
 
         private MappingContext(
                 final ExternalMessageWithSender message,
-                final InboundMappingProcessor mappingProcessor) {
+                final InboundMappingProcessor mappingProcessor, final int costPerMessage) {
             this.message = message;
             this.mappingProcessor = mappingProcessor;
+            this.costPerMessage = costPerMessage;
         }
 
     }
-
 }

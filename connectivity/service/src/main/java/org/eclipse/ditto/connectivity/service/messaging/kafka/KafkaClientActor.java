@@ -36,6 +36,7 @@ import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaConsumerConfig;
+import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
@@ -264,8 +265,10 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     @Override
-    protected Optional<ConnectionThrottlingConfig> getThrottlingConfig() {
-        return Optional.of(kafkaConfig.getConsumerConfig().getThrottlingConfig());
+    protected Optional<ConnectionThrottlingConfig> getThrottlingConfig(final ConnectionContext connectionContext) {
+        return Optional.of(
+                connectionContext.getConnectivityConfig().getConnectionConfig().getKafkaConfig().getConsumerConfig()
+                        .getThrottlingConfig());
     }
 
     private void stopPublisherActor() {

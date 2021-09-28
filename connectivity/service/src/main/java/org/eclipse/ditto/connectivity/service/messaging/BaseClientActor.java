@@ -21,6 +21,9 @@ import static org.eclipse.ditto.connectivity.api.BaseClientState.DISCONNECTING;
 import static org.eclipse.ditto.connectivity.api.BaseClientState.INITIALIZED;
 import static org.eclipse.ditto.connectivity.api.BaseClientState.TESTING;
 import static org.eclipse.ditto.connectivity.api.BaseClientState.UNKNOWN;
+import static org.eclipse.ditto.connectivity.service.messaging.ConfigModifiedChecker.getModifiedThrottlingConfig;
+import static org.eclipse.ditto.connectivity.service.messaging.ConfigModifiedChecker.hasInboundMapperConfigChanged;
+import static org.eclipse.ditto.connectivity.service.messaging.ConfigModifiedChecker.hasOutboundMapperConfigChanged;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -40,7 +43,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -174,7 +176,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
-private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
+    private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
             "Closed because of unknown/failure/misconfiguration status in client.";
     /**
      * Common logger for all sub-classes of BaseClientActor as its MDC already contains the connection ID.
@@ -297,7 +299,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         // start with UNKNOWN state but send self OpenConnection because client actors are never created closed
         final BaseClientData startingData =
                 BaseClientData.BaseClientDataBuilder.from(connection.getId(), connection, ConnectivityStatus.UNKNOWN,
-                        ConnectivityStatus.OPEN, "initialized", Instant.now())
+                                ConnectivityStatus.OPEN, "initialized", Instant.now())
                         .build();
         startWith(UNKNOWN, startingData);
 
@@ -379,7 +381,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
     public void onConnectivityConfigModified(final ConnectivityConfig modifiedConfig) {
         connectionCounterRegistry.onConnectivityConfigModified(connection, modifiedConfig);
         final var modifiedContext = connectionContext.withConnectivityConfig(modifiedConfig);
-        if (hasInboundMapperConfigChanged(modifiedConfig)) {
+        if (hasInboundMapperConfigChanged(connection, connectionContext.getConnectivityConfig(), modifiedConfig)) {
             logger.debug("Config changed for InboundMappingProcessor, recreating it.");
             final var inboundMappingProcessor =
                     InboundMappingProcessor.of(modifiedContext, getContext().getSystem(), protocolAdapter, logger);
@@ -387,7 +389,18 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
                     .to(getInboundMappingSink())
                     .run(materializer);
         }
-        if (hasOutboundMapperConfigChanged(modifiedConfig)) {
+
+        getModifiedThrottlingConfig(connection, connectionContext.getConnectivityConfig(), modifiedConfig)
+                .ifPresent(modifiedThrottlingConfig -> {
+                    final int calculatedCostPerMessage =
+                            InboundMappingSink.calculateCostPerMessage(modifiedThrottlingConfig);
+                    logger.debug("Costs per message changed to {}", calculatedCostPerMessage);
+                    akka.stream.javadsl.Source.<Object>single(new UpdateCostsPerMessage(calculatedCostPerMessage))
+                            .to(getInboundMappingSink())
+                            .run(materializer);
+                });
+
+        if (hasOutboundMapperConfigChanged(connectionContext.getConnectivityConfig(), modifiedConfig)) {
             logger.debug("Config changed for OutboundMappingProcessor, recreating it.");
             final var outboundMappingProcessor =
                     OutboundMappingProcessor.of(modifiedContext, getContext().getSystem(), protocolAdapter, logger);
@@ -419,20 +432,6 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
      */
     protected String getDefaultClientId() {
         return getClientId(connection.getId());
-    }
-
-    private boolean hasInboundMapperConfigChanged(final ConnectivityConfig connectivityConfig) {
-        final var currentConfig = connectionContext.getConnectivityConfig().getMappingConfig().getMapperLimitsConfig();
-        final var modifiedConfig = connectivityConfig.getMappingConfig().getMapperLimitsConfig();
-        return currentConfig.getMaxMappedInboundMessages() != modifiedConfig.getMaxMappedInboundMessages()
-                || currentConfig.getMaxSourceMappers() != modifiedConfig.getMaxSourceMappers();
-    }
-
-    private boolean hasOutboundMapperConfigChanged(final ConnectivityConfig connectivityConfig) {
-        final var currentConfig = connectionContext.getConnectivityConfig().getMappingConfig().getMapperLimitsConfig();
-        final var modifiedConfig = connectivityConfig.getMappingConfig().getMapperLimitsConfig();
-        return currentConfig.getMaxMappedOutboundMessages() != modifiedConfig.getMaxMappedOutboundMessages()
-                || currentConfig.getMaxTargetMappers() != modifiedConfig.getMaxTargetMappers();
     }
 
     private FSM.State<BaseClientState, BaseClientData> completeInitialization() {
@@ -936,8 +935,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
 
     private State<BaseClientState, BaseClientData> disconnect(final Disconnect disconnect, final BaseClientData data) {
         doDisconnectClient(connection(), disconnect.getSender(), disconnect.shutdownAfterDisconnect());
-        return stay()
-                .using(data.setConnectionStatusDetails("disconnecting connection at " + Instant.now()));
+        return stay().using(data.setConnectionStatusDetails("disconnecting connection at " + Instant.now()));
     }
 
     private FSM.State<BaseClientState, BaseClientData> openConnection(final WithDittoHeaders openConnection,
@@ -1237,10 +1235,10 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
             connectionLogger.success("Connection successful.");
             data.getSessionSenders().forEach(origin -> origin.first().tell(new Status.Success(CONNECTED), getSelf()));
             return goTo(CONNECTED).using(data.resetSession()
-                            .resetFailureCount()
-                            .setConnectionStatus(ConnectivityStatus.OPEN)
-                            .setConnectionStatusDetails("Connected at " + Instant.now())
-                    );
+                    .resetFailureCount()
+                    .setConnectionStatus(ConnectivityStatus.OPEN)
+                    .setConnectionStatusDetails("Connected at " + Instant.now())
+            );
         } else {
             logger.info("Initialization of consumers, publisher and subscriptions failed: {}. Staying in CONNECTING " +
                     "state to continue with connection recovery after backoff.", initializationResult.getFailure());
@@ -1279,22 +1277,22 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
     private State<BaseClientState, BaseClientData> clientDisconnected(final ClientDisconnected event,
             final BaseClientData data) {
 
-            connectionLogger.success("Disconnected successfully.");
+        connectionLogger.success("Disconnected successfully.");
 
-            cleanupResourcesForConnection();
-            tellTunnelActor(SshTunnelActor.TunnelControl.STOP_TUNNEL);
-            data.getSessionSenders()
-                    .forEach(sender -> sender.first().tell(new Status.Success(DISCONNECTED), getSelf()));
+        cleanupResourcesForConnection();
+        tellTunnelActor(SshTunnelActor.TunnelControl.STOP_TUNNEL);
+        data.getSessionSenders()
+                .forEach(sender -> sender.first().tell(new Status.Success(DISCONNECTED), getSelf()));
 
-            final BaseClientData nextStateData = data.resetSession()
-                    .setConnectionStatus(ConnectivityStatus.CLOSED)
-                    .setConnectionStatusDetails("Disconnected at " + Instant.now());
+        final BaseClientData nextStateData = data.resetSession()
+                .setConnectionStatus(ConnectivityStatus.CLOSED)
+                .setConnectionStatusDetails("Disconnected at " + Instant.now());
 
-            if (event.shutdownAfterDisconnected()) {
-                return stop(Normal(), nextStateData);
-            } else {
-                return goTo(DISCONNECTED).using(nextStateData);
-            }
+        if (event.shutdownAfterDisconnected()) {
+            return stop(Normal(), nextStateData);
+        } else {
+            return goTo(DISCONNECTED).using(nextStateData);
+        }
     }
 
     private void tellTunnelActor(final SshTunnelActor.TunnelControl control) {
@@ -1813,7 +1811,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
                 processorPoolSize,
                 inboundDispatchingSink,
                 mappingConfig,
-                getThrottlingConfig().orElse(null),
+                getThrottlingConfig(connectionContext).orElse(null),
                 messageMappingProcessorDispatcher);
         return MergeHub.of(Object.class)
                 .map(Object.class::cast)
@@ -1821,7 +1819,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
                 .run(materializer);
     }
 
-    protected Optional<ConnectionThrottlingConfig> getThrottlingConfig() {
+    protected Optional<ConnectionThrottlingConfig> getThrottlingConfig(final ConnectionContext connectionContext) {
         return Optional.empty();
     }
 
@@ -2269,6 +2267,22 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
             return inboundMappingProcessor;
         }
 
+    }
+
+    /**
+     * Message sent to {@link InboundMappingSink} instructing it to update the current cost per message.
+     */
+    static final class UpdateCostsPerMessage {
+
+        private final int costPerMessage;
+
+        private UpdateCostsPerMessage(final int costPerMessage) {
+            this.costPerMessage = costPerMessage;
+        }
+
+        int getCostPerMessage() {
+            return costPerMessage;
+        }
     }
 
     /**
