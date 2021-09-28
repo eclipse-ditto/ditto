@@ -12,16 +12,22 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
+import java.util.Objects;
+
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
+import akka.stream.QueueOfferResult;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.SourceQueueWithComplete;
 
@@ -34,7 +40,9 @@ import akka.stream.javadsl.SourceQueueWithComplete;
 @Deprecated
 public abstract class LegacyBaseConsumerActor extends BaseConsumerActor {
 
-    private final SourceQueueWithComplete<AcknowledgeableMessage> messageSourceQueue;
+    protected final ThreadSafeDittoLoggingAdapter logger;
+
+    private final SourceQueueWithComplete<AcknowledgeableMessage> messageMappingSourceQueue;
     private final SourceQueueWithComplete<DittoRuntimeException> dreSourceQueue;
 
     protected LegacyBaseConsumerActor(final Connection connection,
@@ -44,12 +52,15 @@ public abstract class LegacyBaseConsumerActor extends BaseConsumerActor {
             final ConnectivityStatusResolver connectivityStatusResolver) {
         super(connection, sourceAddress, inboundMappingSink, source, connectivityStatusResolver);
 
+        logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
+                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
+
         final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
 
         final var materializer = Materializer.createMaterializer(this::getContext);
 
-        messageSourceQueue = akka.stream.javadsl.Source
+        messageMappingSourceQueue = akka.stream.javadsl.Source
                 .<AcknowledgeableMessage>queue(connectivityConfig.getMappingConfig().getBufferSize(),
                         OverflowStrategy.dropNew())
                 .to(getMessageMappingSink())
@@ -69,18 +80,44 @@ public abstract class LegacyBaseConsumerActor extends BaseConsumerActor {
      * @param settle technically settle the incoming message. MUST be thread-safe.
      * @param reject technically reject the incoming message. MUST be thread-safe.
      */
-    protected final void forwardToMappingActor(final ExternalMessage message, final Runnable settle,
+    protected final void forwardToMapping(final ExternalMessage message, final Runnable settle,
             final Reject reject) {
-        messageSourceQueue.offer(AcknowledgeableMessage.of(message, settle, reject));
+        final AcknowledgeableMessage acknowledgeableMessage = AcknowledgeableMessage.of(message, settle, reject);
+        messageMappingSourceQueue.offer(acknowledgeableMessage)
+                .whenComplete((queueOfferResult, error) -> {
+                    if (error != null) {
+                        logger.withCorrelationId(message.getInternalHeaders())
+                                .error(error,
+                                        "Message mapping source queue failure, invoking 'reject with redeliver'.");
+                        acknowledgeableMessage.reject(true);
+                    } else if (Objects.equals(queueOfferResult, QueueOfferResult.dropped())) {
+                        logger.withCorrelationId(message.getInternalHeaders())
+                                .warning("Message mapping source queue dropped message as part of backpressure " +
+                                        "strategy, invoking 'reject with redeliver'. Increase " +
+                                        "'ditto.connectivity.mapping.buffer-size' if this situation prevails.");
+                        acknowledgeableMessage.reject(true);
+                    }
+                });
     }
 
     /**
      * Send an error to the inbound mapping sink to be published in the reply-target.
      *
-     * @param message the error.
+     * @param dittoRuntimeException the error.
      */
-    protected final void forwardToMappingActor(final DittoRuntimeException message) {
-        dreSourceQueue.offer(message);
+    protected final void forwardToMapping(final DittoRuntimeException dittoRuntimeException) {
+        dreSourceQueue.offer(dittoRuntimeException)
+                .whenComplete((queueOfferResult, error) -> {
+                    if (error != null) {
+                        logger.withCorrelationId(dittoRuntimeException)
+                                .error(error, "DRE handling source queue failure.");
+                    } else if (Objects.equals(queueOfferResult, QueueOfferResult.dropped())) {
+                        logger.withCorrelationId(dittoRuntimeException)
+                                .warning("DRE handling source queue dropped dittoRuntimeException as part of " +
+                                        "backpressure strategy. Increase " +
+                                        "'ditto.connectivity.mapping.buffer-size' if this situation prevails.");
+                    }
+                });
     }
 
 }
