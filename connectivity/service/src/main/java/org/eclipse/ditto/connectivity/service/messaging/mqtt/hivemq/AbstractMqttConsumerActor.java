@@ -39,8 +39,6 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
-import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
@@ -56,7 +54,6 @@ import akka.stream.javadsl.Sink;
  */
 abstract class AbstractMqttConsumerActor<P> extends LegacyBaseConsumerActor {
 
-    protected final ThreadSafeDittoLoggingAdapter logger;
     protected final boolean dryRun;
     @Nullable protected final EnforcementFilterFactory<String, Signal<?>> topicEnforcementFilterFactory;
     protected final PayloadMapping payloadMapping;
@@ -67,9 +64,6 @@ abstract class AbstractMqttConsumerActor<P> extends LegacyBaseConsumerActor {
             final ConnectivityStatusResolver connectivityStatusResolver) {
         super(connection, String.join(";", source.getAddresses()), inboundMappingSink, source,
                 connectivityStatusResolver);
-
-        logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
-                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connection.getId());
 
         this.dryRun = dryRun;
         this.payloadMapping = source.getPayloadMapping();
@@ -169,7 +163,7 @@ abstract class AbstractMqttConsumerActor<P> extends LegacyBaseConsumerActor {
         final Optional<ExternalMessage> externalMessageOptional = hiveToExternalMessage(message);
         final ActorRef parent = getContext().getParent();
         externalMessageOptional.ifPresent(externalMessage ->
-                forwardToMappingActor(externalMessage,
+                forwardToMapping(externalMessage,
                         () -> acknowledge(externalMessage, message),
                         redeliver -> reject(externalMessage, message, redeliver, parent))
         );
@@ -205,7 +199,7 @@ abstract class AbstractMqttConsumerActor<P> extends LegacyBaseConsumerActor {
                 // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
                 // because we need a reply-to address to send the error response
                 inboundMonitor.failure(headers, e);
-                forwardToMappingActor(e.setDittoHeaders(DittoHeaders.of(headers)));
+                forwardToMapping(e.setDittoHeaders(DittoHeaders.of(headers)));
             } else {
                 inboundMonitor.failure(e);
             }
