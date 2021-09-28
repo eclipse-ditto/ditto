@@ -56,4 +56,13 @@ final class ThrottledMetricsAlert implements MetricsAlert {
                 .ifPresentOrElse(connectionMetricsCounter -> connectionMetricsCounter.recordFailure(ts),
                         () -> LOGGER.debug("Failed to resolve the target counter of ThrottledAlert."));
     }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "threshold=" + threshold +
+                ", lookup=" + lookup +
+                ", targetMeasurementWindow=" + targetMeasurementWindow +
+                "]";
+    }
 }

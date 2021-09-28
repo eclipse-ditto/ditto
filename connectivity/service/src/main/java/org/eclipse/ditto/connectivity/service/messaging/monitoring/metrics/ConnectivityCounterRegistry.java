@@ -63,6 +63,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
 
     private static final Clock CLOCK_UTC = Clock.systemUTC();
 
+    private final MetricAlertRegistry alertRegistry = new MetricAlertRegistry();
     private final AtomicReference<ConnectivityConfig> connectivityConfig;
 
     private ConnectivityCounterRegistry(final ConnectivityConfig connectivityConfig) {
@@ -79,19 +80,12 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
     }
 
     public void onConnectivityConfigModified(final Connection connection, final ConnectivityConfig modifiedConnectivityConfig) {
-        // update threshold filters
         connection.getSources().stream()
                 .map(Source::getAddresses)
                 .flatMap(Collection::stream)
-                .forEach(address -> {
-                    final ConnectionId connectionId = connection.getId();
-                    final MapKey key = new MapKey(connectionId, MetricType.THROTTLED, MetricDirection.INBOUND, address);
-                    final DefaultConnectionMetricsCounter counter =
-                            ConnectionMetricsCounterFactory.create(MetricType.THROTTLED, MetricDirection.INBOUND,
-                                    connectionId, connection.getConnectionType(), address, CLOCK_UTC,
-                                    modifiedConnectivityConfig);
-                    counters.replace(key, counter);
-                });
+                .forEach(address -> alertRegistry.updateAlert(MetricsAlert.Key.CONSUMED_INBOUND,
+                        connection.getId(), connection.getConnectionType(), address,
+                        modifiedConnectivityConfig));
 
         connectivityConfig.set(modifiedConnectivityConfig);
     }
@@ -134,10 +128,15 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
                 .filter(metricType -> metricType.supportsDirection(metricDirection))
                 .forEach(metricType -> {
                     final ConnectionId connectionId = connection.getId();
+                    final ConnectionType connectionType = connection.getConnectionType();
                     final MapKey key = new MapKey(connectionId, metricType, metricDirection, address);
+                    final MetricsAlert alert =
+                            new DelegatingAlert(() -> alertRegistry.getAlert(metricDirection, metricType, connectionId,
+                                    connectionType, address,
+                                    connectivityConfig.get()));
                     counters.computeIfAbsent(key,
                             m -> ConnectionMetricsCounterFactory.create(metricType, metricDirection, connectionId,
-                                    connection.getConnectionType(), address, CLOCK_UTC, connectivityConfig.get()));
+                                    connectionType, address, CLOCK_UTC, alert));
                 });
     }
 
@@ -177,11 +176,13 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
             final MetricType metricType,
             final MetricDirection metricDirection,
             final String address) {
-
         final MapKey key = new MapKey(connectionId, metricType, metricDirection, address);
+        final MetricsAlert alert = new DelegatingAlert(
+                () -> alertRegistry.getAlert(metricDirection, metricType, connectionId, connectionType, address,
+                        connectivityConfig.get()));
         return counters.computeIfAbsent(key,
                 m -> ConnectionMetricsCounterFactory.create(metricType, metricDirection, connectionId, connectionType,
-                        address, clock, connectivityConfig.get()));
+                        address, clock, alert));
     }
 
     @Override

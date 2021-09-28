@@ -64,7 +64,7 @@ import org.junit.Test;
 public class ConnectivityCounterRegistryTest {
 
     private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
-            ConnectivityCounterRegistry.newInstance(mockConnectivityConfig());
+            ConnectivityCounterRegistry.newInstance(mockConnectivityConfig(10, Duration.ofMinutes(1)));
 
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
 
@@ -196,7 +196,7 @@ public class ConnectivityCounterRegistryTest {
     public void testThrottlingCounterRegistered() {
 
         final ConnectivityCounterRegistry counterRegistry =
-                ConnectivityCounterRegistry.newInstance(mockConnectivityConfig());
+                ConnectivityCounterRegistry.newInstance(mockConnectivityConfig(10, Duration.ofMinutes(1)));
 
         final Connection connection = TestConstants.createConnection();
 
@@ -218,8 +218,34 @@ public class ConnectivityCounterRegistryTest {
         final ConnectionMetricsCounter consumedInbound =
                 counterRegistry.getCounter(connection, CONSUMED, INBOUND, TestConstants.Sources.AMQP_SOURCE_ADDRESS);
 
+        recordInboundMessageAndCheckThrottled(counterRegistry, connection, consumedInbound, true);
+    }
+
+    @Test
+    public void testThrottlingMetricsAlertUpdatedOnConnectivityConfigModified() {
+
+        final ConnectivityCounterRegistry counterRegistry =
+                ConnectivityCounterRegistry.newInstance(mockConnectivityConfig(100, Duration.ofSeconds(1)));
+
+        final Connection connection = TestConstants.createConnection();
+        counterRegistry.initForConnection(connection);
+        final ConnectionMetricsCounter consumedInbound =
+                counterRegistry.getCounter(connection, CONSUMED, INBOUND, TestConstants.Sources.AMQP_SOURCE_ADDRESS);
+
+        recordInboundMessageAndCheckThrottled(counterRegistry, connection, consumedInbound, false);
+
+        // modify config with lower limit
+        counterRegistry.onConnectivityConfigModified(connection, mockConnectivityConfig(1, Duration.ofSeconds(10)));
+
+        // and expect throttled metrics is updated accordingly
+        recordInboundMessageAndCheckThrottled(counterRegistry, connection, consumedInbound, true);
+    }
+
+    private void recordInboundMessageAndCheckThrottled(final ConnectivityCounterRegistry counterRegistry,
+            final Connection connection,
+            final ConnectionMetricsCounter consumedInbound, final boolean expectThrottled) {
         // record inbound messages to trigger throttled alert
-        IntStream.range(0, 2).forEach(i -> consumedInbound.recordSuccess());
+        IntStream.range(0, 10).forEach(i -> consumedInbound.recordSuccess());
 
         final SourceMetrics updated = counterRegistry.aggregateSourceMetrics(connection.getId());
 
@@ -231,10 +257,11 @@ public class ConnectivityCounterRegistryTest {
                         .findAny().orElseThrow();
 
         // verify THROTTLED counter was increased
-        assertThat(measurement.getCounts()).containsEntry(ONE_MINUTE_WITH_ONE_MINUTE_RESOLUTION.getWindow(), 1L);
+        assertThat(measurement.getCounts()).containsEntry(ONE_MINUTE_WITH_ONE_MINUTE_RESOLUTION.getWindow(),
+                expectThrottled ? 1L : 0L);
     }
 
-    private static ConnectivityConfig mockConnectivityConfig() {
+    private static ConnectivityConfig mockConnectivityConfig(final int limit, final Duration interval) {
         final ConnectivityConfig connectivityConfig = mock(ConnectivityConfig.class);
         final ConnectionConfig connectionConfig = mock(ConnectionConfig.class);
         final Amqp10Config amqp10Config = mock(Amqp10Config.class);
@@ -244,8 +271,8 @@ public class ConnectivityCounterRegistryTest {
         when(connectionConfig.getAmqp10Config()).thenReturn(amqp10Config);
         when(amqp10Config.getConsumerConfig()).thenReturn(consumerConfig);
         when(consumerConfig.getThrottlingConfig()).thenReturn(throttlingConfig);
-        when(throttlingConfig.getLimit()).thenReturn(10);
-        when(throttlingConfig.getInterval()).thenReturn(Duration.ofMinutes(1));
+        when(throttlingConfig.getLimit()).thenReturn(limit);
+        when(throttlingConfig.getInterval()).thenReturn(interval);
         return connectivityConfig;
     }
 
