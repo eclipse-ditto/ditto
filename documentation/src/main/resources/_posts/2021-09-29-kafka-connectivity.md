@@ -1,7 +1,7 @@
 ---
 title: "Completed Kafka Connectivity"
 published: true
-permalink: 2021-09-28-kafka-connectivity.html
+permalink: 2021-09-29-kafka-connectivity.html
 layout: post
 author: yannic_klem
 tags: [blog]
