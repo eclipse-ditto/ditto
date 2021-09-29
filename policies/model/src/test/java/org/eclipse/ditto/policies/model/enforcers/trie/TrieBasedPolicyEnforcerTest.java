@@ -14,6 +14,8 @@ package org.eclipse.ditto.policies.model.enforcers.trie;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Set;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -22,6 +24,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
+import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.ResourceKey;
@@ -45,6 +48,37 @@ public class TrieBasedPolicyEnforcerTest {
         final JsonObject expectedJsonView = JsonFactory.nullObject();
 
         assertThat(createdJsonView).isEqualTo(expectedJsonView);
+    }
+
+    @Test
+    public void getSubjectsWithUnrestrictedPermissionDoesNotIncludeRevoked() {
+        final String featureId = "Lamp";
+
+        final AuthorizationSubject allGrantedSubject = AuthorizationSubject.newInstance("dummy:all-granted");
+        final AuthorizationSubject someRevokedSubject = AuthorizationSubject.newInstance("dummy:some-revoked");
+
+        final Permissions permissions = Permissions.newInstance("READ", "WRITE");
+        final PolicyId policyId = PolicyId.of("namespace", "id");
+        final Policy policy = Policy.newBuilder(policyId)
+                .forLabel("connections-grant")
+                .setSubject(allGrantedSubject.getId(), SubjectType.GENERATED)
+                .setSubject(someRevokedSubject.getId(), SubjectType.GENERATED)
+                .setGrantedPermissions(PoliciesResourceType.thingResource("/"), permissions)
+                .setGrantedPermissions(PoliciesResourceType.policyResource("/"), permissions)
+                .setGrantedPermissions(PoliciesResourceType.messageResource("/"), permissions)
+                .forLabel("connections-revoke")
+                .setSubject(someRevokedSubject.getId(), SubjectType.GENERATED)
+                .setRevokedPermissions(PoliciesResourceType.thingResource("/features/" + featureId), permissions)
+                .build();
+
+        final TrieBasedPolicyEnforcer underTest = TrieBasedPolicyEnforcer.newInstance(policy);
+
+        final Set<AuthorizationSubject> subjects =
+                underTest.getSubjectsWithUnrestrictedPermission(ResourceKey.newInstance("thing", "/"), "READ");
+
+        assertThat(subjects)
+                .isNotEmpty()
+                .doesNotContain(someRevokedSubject);
     }
 
     private static Policy defaultPolicy(final PolicyId policyId) {

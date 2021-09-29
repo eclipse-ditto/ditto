@@ -172,6 +172,20 @@ public final class TrieBasedPolicyEnforcer implements Enforcer {
     }
 
     @Override
+    public Set<AuthorizationSubject> getSubjectsWithUnrestrictedPermission(final ResourceKey resourceKey,
+            final Permissions permissions) {
+        checkResourceKey(resourceKey);
+        checkPermissions(permissions);
+
+        final PolicyTrie policyTrie = seekWithFallback(resourceKey, bottomUpRevokeTrie, inheritedTrie);
+        final GrantRevokeIndex grantRevokeIndex = policyTrie.getGrantRevokeIndex();
+        final Set<AuthorizationSubject> grantedSubjects = grantRevokeIndex.getGrantedSubjects(permissions);
+        grantedSubjects.removeAll(grantRevokeIndex.getRevokedSubjects(permissions));
+
+        return grantedSubjects;
+    }
+
+    @Override
     public JsonObject buildJsonView(final ResourceKey resourceKey,
             final Iterable<JsonField> jsonFields,
             final AuthorizationContext authorizationContext,

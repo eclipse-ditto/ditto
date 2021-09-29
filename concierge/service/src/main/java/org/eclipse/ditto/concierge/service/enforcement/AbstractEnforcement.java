@@ -173,10 +173,9 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
             final Enforcer enforcer) {
 
         final var resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, signal.getResourcePath());
-        final var effectedSubjects = enforcer.getSubjectsWithPermission(resourceKey, Permission.READ);
+        final var authorizationSubjects = enforcer.getSubjectsWithUnrestrictedPermission(resourceKey, Permission.READ);
         final var newHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
-                .readGrantedSubjects(effectedSubjects.getGranted())
-                .readRevokedSubjects(effectedSubjects.getRevoked())
+                .readGrantedSubjects(authorizationSubjects)
                 .build();
 
         return signal.setDittoHeaders(newHeaders);
