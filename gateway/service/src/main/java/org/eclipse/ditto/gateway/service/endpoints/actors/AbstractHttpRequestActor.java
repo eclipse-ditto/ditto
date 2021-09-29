@@ -257,10 +257,12 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     /**
-     * Provide an adequate {@link org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse} as answer for an {@link org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami}.
+     * Provide an adequate {@link org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse} as answer
+     * for an {@link org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami}.
      *
      * @param request the request which should be answered.
-     * @return the correct {@link org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse} for the {@code request}.
+     * @return the correct {@link org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiResponse} for
+     * the {@code request}.
      */
     // intentionally protected to allow overwriting this in extensions
     protected WhoamiResponse createWhoamiResponse(final Whoami request) {

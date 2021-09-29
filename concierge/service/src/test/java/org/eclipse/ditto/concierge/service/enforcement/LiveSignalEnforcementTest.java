@@ -73,6 +73,9 @@ import akka.testkit.TestActorRef;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
+/**
+ * Tests {@link LiveSignalEnforcement} in context of an {@link EnforcerActor}.
+ */
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
 public final class LiveSignalEnforcementTest {
 

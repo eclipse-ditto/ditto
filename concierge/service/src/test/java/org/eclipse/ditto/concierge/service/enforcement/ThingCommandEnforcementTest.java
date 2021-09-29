@@ -92,6 +92,9 @@ import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.Duration;
 
+/**
+ * Tests {@link ThingCommandEnforcement} in context of an {@link EnforcerActor}.
+ */
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
 public final class ThingCommandEnforcementTest {
 
