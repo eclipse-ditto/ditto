@@ -82,7 +82,7 @@ import kamon.prometheus.PrometheusReporter;
  * <ol>
  * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
  * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
- * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)} and</li>
+ * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorSystem)} and</li>
  * <li>{@link #startAdditionalRootActors(akka.actor.ActorSystem, Iterable)}.</li>
  * </ol>
  * </li>
@@ -393,7 +393,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
      * <ul>
      * <li>{@link #getMainRootActorProps(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)},</li>
      * <li>{@link #startMainRootActor(akka.actor.ActorSystem, akka.actor.Props)},</li>
-     * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorRef)} and</li>
+     * <li>{@link #getAdditionalRootActorsInformation(org.eclipse.ditto.base.service.config.ServiceSpecificConfig, akka.actor.ActorSystem)} and</li>
      * <li>{@link #startAdditionalRootActors(akka.actor.ActorSystem, Iterable)}.</li>
      * </ul>
      *
