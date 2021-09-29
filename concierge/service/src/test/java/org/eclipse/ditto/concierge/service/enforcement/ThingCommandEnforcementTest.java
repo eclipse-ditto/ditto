@@ -752,8 +752,6 @@ public final class ThingCommandEnforcementTest {
                 .setConciergeForwarder(conciergeForwarderRef).build();
     }
 
-
-
     private DittoHeaders headers(final JsonSchemaVersion schemaVersion) {
         return DittoHeaders.newBuilder()
                 .authorizationContext(

@@ -19,9 +19,6 @@ import static org.eclipse.ditto.concierge.service.enforcement.TestSetup.SUBJECT;
 import static org.eclipse.ditto.concierge.service.enforcement.TestSetup.SUBJECT_ID;
 import static org.eclipse.ditto.concierge.service.enforcement.TestSetup.THING;
 import static org.eclipse.ditto.concierge.service.enforcement.TestSetup.newThingWithPolicyId;
-import static org.eclipse.ditto.concierge.service.enforcement.TestSetup.readCommand;
-import static org.eclipse.ditto.concierge.service.enforcement.TestSetup.readCommandResponse;
-import static org.eclipse.ditto.concierge.service.enforcement.TestSetup.writeCommand;
 import static org.eclipse.ditto.policies.model.SubjectIssuer.GOOGLE;
 
 import java.util.UUID;
@@ -58,6 +55,8 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.EventSendNotAllowedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.FeatureNotModifiableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -140,10 +139,10 @@ public final class LiveSignalEnforcementTest {
             mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
 
             final ActorRef underTest = newEnforcerActor(getRef());
-            underTest.tell(readCommand(headers()), getRef());
+            underTest.tell(getRetrieveThingCommand(headers()), getRef());
             TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
 
-            underTest.tell(writeCommand(headers()), getRef());
+            underTest.tell(getModifyFeatureCommand(headers()), getRef());
             expectMsgClass(FeatureNotModifiableException.class);
         }};
     }
@@ -171,7 +170,7 @@ public final class LiveSignalEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
 
-            final ThingCommand<?> write = writeCommand(headers());
+            final ThingCommand<?> write = getModifyFeatureCommand(headers());
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
             final DistributedPubSubMediator.Publish publish =
@@ -180,7 +179,7 @@ public final class LiveSignalEnforcementTest {
             assertThat(publish.msg()).isInstanceOf(ThingCommand.class);
             assertThat((CharSequence) ((ThingCommand<?>) publish.msg()).getEntityId()).isEqualTo(write.getEntityId());
 
-            final ThingCommand<?> read = readCommand(headers());
+            final ThingCommand<?> read = getRetrieveThingCommand(headers());
             final RetrieveThingResponse retrieveThingResponse =
                     RetrieveThingResponse.of(TestSetup.THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
             mockEntitiesActorInstance.setReply(retrieveThingResponse);
@@ -221,7 +220,7 @@ public final class LiveSignalEnforcementTest {
             final ActorRef underTest = newEnforcerActor(getRef());
 
             final DittoHeaders headers = headers();
-            final ThingCommand<?> read = readCommand(headers);
+            final ThingCommand<?> read = getRetrieveThingCommand(headers);
 
             underTest.tell(read, getRef());
             final DistributedPubSubMediator.Publish publishRead =
@@ -231,7 +230,7 @@ public final class LiveSignalEnforcementTest {
             assertThat((CharSequence) ((ThingCommand<?>) publishRead.msg()).getEntityId()).isEqualTo(
                     read.getEntityId());
 
-            final ThingCommandResponse<?> readResponse = readCommandResponse(headers);
+            final ThingCommandResponse<?> readResponse = getRetrieveThingResponse(headers);
             final Thing expectedThing = THING.toBuilder()
                     .removeFeatureProperty(FEATURE_ID, JsonPointer.of(FEATURE_PROPERTY_2))
                     .build();
@@ -393,8 +392,20 @@ public final class LiveSignalEnforcementTest {
                                 AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))))
                 .channel("live")
                 .schemaVersion(JsonSchemaVersion.V_2)
-                .correlationId(UUID.randomUUID().toString())
+                .randomCorrelationId()
                 .build();
+    }
+
+    private static ThingCommand<?> getRetrieveThingCommand(final DittoHeaders headers) {
+        return RetrieveThing.of(TestSetup.THING_ID, headers);
+    }
+
+    private static ThingCommandResponse<?> getRetrieveThingResponse(final DittoHeaders headers) {
+        return RetrieveThingResponse.of(TestSetup.THING_ID, THING, null, null, headers);
+    }
+
+    private static ThingCommand<?> getModifyFeatureCommand(final DittoHeaders headers) {
+        return ModifyFeature.of(TestSetup.THING_ID, TestSetup.FEATURE, headers);
     }
 
     private static MessageCommand<?, ?> thingMessageCommand() {

@@ -13,7 +13,6 @@
 package org.eclipse.ditto.concierge.service.enforcement;
 
 import static org.eclipse.ditto.base.model.json.JsonSchemaVersion.V_2;
-import static org.eclipse.ditto.policies.model.SubjectIssuer.GOOGLE;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -22,10 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.concierge.service.common.CachesConfig;
@@ -54,10 +50,6 @@ import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
-import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
-import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeature;
-import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
-import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -134,8 +126,8 @@ public final class TestSetup {
         @Nullable private ActorRef conciergeForwarder;
         @Nullable private PreEnforcer preEnforcer;
 
-        EnforcerActorBuilder(final ActorSystem system, final ActorRef testActorRef,
-                final ActorRef thingsShardRegion, final ActorRef policiesShardRegion) {
+        EnforcerActorBuilder(final ActorSystem system, final ActorRef testActorRef, final ActorRef thingsShardRegion,
+                final ActorRef policiesShardRegion) {
             this.system = system;
             this.testActorRef = testActorRef;
             this.thingsShardRegion = thingsShardRegion;
@@ -143,8 +135,8 @@ public final class TestSetup {
             this.puSubMediatorRef = testActorRef;
         }
 
-        EnforcerActorBuilder(final ActorSystem system, final ActorRef testActorRef,
-                final ActorRef thingsShardRegion, final ActorRef policiesShardRegion, final ActorRef puSubMediatorRef) {
+        EnforcerActorBuilder(final ActorSystem system, final ActorRef testActorRef, final ActorRef thingsShardRegion,
+                final ActorRef policiesShardRegion, final ActorRef puSubMediatorRef) {
             this.system = system;
             this.testActorRef = testActorRef;
             this.thingsShardRegion = thingsShardRegion;
@@ -200,39 +192,17 @@ public final class TestSetup {
         return "conciergeForwarder-" + UUID.randomUUID();
     }
 
-    public static DittoHeaders headers() {
-        return DittoHeaders.newBuilder()
-                .authorizationContext(
-                        AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, SUBJECT,
-                                AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))))
-                .schemaVersion(V_2)
-                .correlationId(UUID.randomUUID().toString())
-                .build();
-    }
-
     public static ThingBuilder.FromScratch newThing() {
         return ThingsModelFactory.newThingBuilder()
                 .setId(THING_ID)
                 .setRevision(1L);
     }
 
-    public static JsonObject newThingWithPolicyId(final CharSequence policyId) {
+    public static JsonObject newThingWithPolicyId(final PolicyId policyId) {
         return newThing()
-                .setPolicyId(PolicyId.of(policyId))
+                .setPolicyId(policyId)
                 .build()
                 .toJson(V_2, FieldType.all());
-    }
-
-    public static ThingCommand<?> readCommand(final DittoHeaders headers) {
-        return RetrieveThing.of(TestSetup.THING_ID, headers);
-    }
-
-    public static ThingCommandResponse<?> readCommandResponse(final DittoHeaders headers) {
-        return RetrieveThingResponse.of(TestSetup.THING_ID, THING, null, null, headers);
-    }
-
-    public static ThingCommand<?> writeCommand(final DittoHeaders headers) {
-        return ModifyFeature.of(TestSetup.THING_ID, FEATURE, headers);
     }
 
     /**

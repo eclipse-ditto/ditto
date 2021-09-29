@@ -179,23 +179,21 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
         final Optional<Cache<String, ActorRef>> responseReceiversOptional = context.getResponseReceivers();
         if (responseReceiversOptional.isPresent()) {
             final Cache<String, ActorRef> responseReceivers = responseReceiversOptional.get();
-            return returnWithMessageToReceiver(responseReceivers, liveResponse, correlationId, enforcer);
+            return returnCommandResponseContextual(responseReceivers, liveResponse, correlationId, enforcer);
         } else {
-            if (log().isDebugEnabled()) {
-                log().debug("Got live response when global dispatching is inactive: <{}>", liveResponse);
-            } else {
-                log().info("Got live response when global dispatching is inactive: <{}> with correlation ID <{}>",
+            log().info("Got live response when global dispatching is inactive: <{}> with correlation ID <{}>",
                         liveResponse.getType(),
                         liveResponse.getDittoHeaders().getCorrelationId().orElse(""));
-            }
+
             return CompletableFuture.completedFuture(withMessageToReceiver(null, null));
         }
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders>> returnWithMessageToReceiver(
+    private CompletionStage<Contextual<WithDittoHeaders>> returnCommandResponseContextual(
             final Cache<String, ActorRef> responseReceivers, final CommandResponse<?> liveResponse,
             final String correlationId, final Enforcer enforcer) {
         return responseReceivers.get(correlationId).thenApply(responseReceiverEntry -> {
+            final Contextual<WithDittoHeaders> commandResponseContextual;
             if (responseReceiverEntry.isPresent()) {
                 responseReceivers.invalidate(correlationId);
                 final ActorRef responseReceiver = responseReceiverEntry.get();
@@ -206,18 +204,15 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
                 } else {
                     response = liveResponse;
                 }
-
-                log().debug("Scheduling CommandResponse <{}> to original sender <{}>", liveResponse,
+                log().info("Scheduling CommandResponse <{}> to original sender <{}>", liveResponse,
                         responseReceiver);
-                return withMessageToReceiver(response, responseReceiver);
+                commandResponseContextual = withMessageToReceiver(response, responseReceiver);
             } else {
-                if (log().isDebugEnabled()) {
-                    log().debug("Got <{}> with unknown correlation ID: <{}>", liveResponse.getType(), liveResponse);
-                } else {
-                    log().info("Got <{}> with unknown correlation ID: <{}>", liveResponse.getType(), correlationId);
-                }
-                return withMessageToReceiver(null, null);
+                log().info("Got <{}> with unknown correlation ID: <{}>", liveResponse.getType(), correlationId);
+                commandResponseContextual = withMessageToReceiver(null, null);
             }
+
+            return commandResponseContextual;
         });
     }
 
@@ -248,7 +243,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
     private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveEvent(final Signal<?> liveSignal,
             final Enforcer enforcer) {
 
-        final boolean authorized = enforcer.hasUnrestrictedPermissions(
+        final boolean authorized = enforcer.hasPartialPermissions(
                 PoliciesResourceType.thingResource(liveSignal.getResourcePath()),
                 liveSignal.getDittoHeaders().getAuthorizationContext(), WRITE);
 
@@ -277,7 +272,6 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
 
     private CompletionStage<Contextual<WithDittoHeaders>> enforceMessageCommand(final MessageCommand<?, ?> command,
             final Enforcer enforcer) {
-
         if (isAuthorized(command, enforcer)) {
             return publishMessageCommand(command, enforcer);
         } else {
