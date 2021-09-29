@@ -79,23 +79,15 @@ public final class ShutdownBehaviour {
     }
 
     /**
-     * Create the actor behavior from a namespace and reference.
+     * Create the actor behavior from a namespace and ID.
      *
-     * @param namespace the namespace of the actor.
+     * @param entityId the entity ID.
      * @param pubSubMediator Akka pub-sub mediator.
      * @param self reference of the actor itself.
+     * @param namespace the namespace of the actor.
      * @return the actor behavior.
      */
-    public static ShutdownBehaviour fromNamespace(final String namespace,
-            final ActorRef pubSubMediator,
-            final ActorRef self) {
-
-        final var shutdownBehavior = new ShutdownBehaviour(namespace, ThingId.of(namespace, namespace), self);
-        shutdownBehavior.subscribePubSub(pubSubMediator);
-        return shutdownBehavior;
-    }
-
-    private static ShutdownBehaviour fromIdWithNamespace(@Nonnull final EntityId entityId,
+    public static ShutdownBehaviour fromIdWithNamespace(@Nonnull final EntityId entityId,
             final ActorRef pubSubMediator, final ActorRef self, final String namespace) {
         checkNotNull(pubSubMediator, "pubSubMediator");
         checkNotNull(self, "self");

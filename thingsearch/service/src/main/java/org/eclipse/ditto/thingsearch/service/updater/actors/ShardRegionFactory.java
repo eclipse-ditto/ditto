@@ -65,7 +65,7 @@ public final class ShardRegionFactory {
      */
     @Nonnull
     public ActorRef getThingsShardRegion(final int numberOfShards) {
-        return createShardRegion(ThingsMessagingConstants.SHARD_REGION, ThingsMessagingConstants.CLUSTER_ROLE,
+        return createShardRegionProxy(ThingsMessagingConstants.SHARD_REGION, ThingsMessagingConstants.CLUSTER_ROLE,
                 numberOfShards);
     }
 
@@ -77,19 +77,19 @@ public final class ShardRegionFactory {
      */
     @Nonnull
     public ActorRef getPoliciesShardRegion(final int numberOfShards) {
-        return createShardRegion(PoliciesMessagingConstants.SHARD_REGION, PoliciesMessagingConstants.CLUSTER_ROLE,
+        return createShardRegionProxy(PoliciesMessagingConstants.SHARD_REGION, PoliciesMessagingConstants.CLUSTER_ROLE,
                 numberOfShards);
     }
 
     /**
-     * Create a new shard region.
+     * Create a new shard region proxy.
      *
      * @param shardRegion the shard region name.
      * @param clusterRole the cluster role where the shard region starts.
      * @param numberOfShards how many shards the shard region has.
      * @return actor ref of the shard region.
      */
-    public ActorRef createShardRegion(final String shardRegion, final String clusterRole, final int numberOfShards) {
+    public ActorRef createShardRegionProxy(final String shardRegion, final String clusterRole, final int numberOfShards) {
         final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
         final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
         return clusterSharding.startProxy(shardRegion, Optional.of(clusterRole), shardRegionExtractor);
@@ -115,6 +115,23 @@ public final class ShardRegionFactory {
         final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
 
         return clusterSharding.start(UPDATER_SHARD_REGION, thingUpdaterProps, shardingSettings, shardRegionExtractor);
+    }
+
+    /**
+     * Create a new shard region.
+     *
+     * @param shards number of shards.
+     * @param props props of actors in the shard region.
+     * @param name name of the shard region.
+     * @param role cluster role where the shard region starts.
+     * @return the shard region.
+     */
+    public ActorRef createShardRegion(final int shards, final Props props, final String name, final String role) {
+        final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
+        final ClusterShardingSettings shardingSettings =
+                ClusterShardingSettings.create(actorSystem).withRole(role);
+        final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(shards, actorSystem);
+        return clusterSharding.start(name, props, shardingSettings, shardRegionExtractor);
     }
 
 }
