@@ -68,6 +68,7 @@ The following example shows a valid Kafka source:
   "declaredAcks": []
 }
 ```
+#### Quality of Service
 
 The shown example with the configured `"qos": 1` has the following behavior: 
 * Kafka messages from the topic `"theAddress"` are consumed in an "at-least-once" fashion, e.g.
@@ -105,7 +106,7 @@ These headers may be used in a source header mapping:
 }
 ```
 
-#### Message expiration
+#### Message expiry
 
 In the Ditto implementation for consuming messages from Kafka we also added a feature for message expiration. This way a device can express for how long a message is valid to be processed.
 To use this feature, two headers are relevant:
