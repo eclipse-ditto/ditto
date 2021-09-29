@@ -344,7 +344,7 @@ public final class LiveSignalEnforcementTest {
                 .setRevision(1L)
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, SUBJECT_ID)
-                .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes/foo/bar"),
+                .setGrantedPermissions(PoliciesResourceType.thingResource("/attributes"),
                         Permissions.newInstance(Permission.READ, Permission.WRITE))
                 .setRevokedPermissions(PoliciesResourceType.thingResource("/attributes/xyz/abc"),
                         Permissions.newInstance(Permission.READ, Permission.WRITE))

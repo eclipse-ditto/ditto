@@ -486,7 +486,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     .ifPresentOrElse(
                             forwarder -> forwarder.tell(response, sender),
                             () -> {
-                                // the Acknowledgement / live CommandResponse is meant for someone else:
+                                // the Acknowledgement / LiveCommandResponse is meant for someone else:
                                 final var template =
                                         "No AcknowledgementForwarderActor found, forwarding to concierge: <{}>";
                                 if (logger.isDebugEnabled()) {

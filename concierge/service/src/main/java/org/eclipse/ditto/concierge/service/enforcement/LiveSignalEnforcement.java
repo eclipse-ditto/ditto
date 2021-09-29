@@ -243,7 +243,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
     private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveEvent(final Signal<?> liveSignal,
             final Enforcer enforcer) {
 
-        final boolean authorized = enforcer.hasPartialPermissions(
+        final boolean authorized = enforcer.hasUnrestrictedPermissions(
                 PoliciesResourceType.thingResource(liveSignal.getResourcePath()),
                 liveSignal.getDittoHeaders().getAuthorizationContext(), WRITE);
 
