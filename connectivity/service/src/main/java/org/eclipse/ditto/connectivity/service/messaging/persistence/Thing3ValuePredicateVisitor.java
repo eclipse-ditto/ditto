@@ -129,7 +129,11 @@ final class Thing3ValuePredicateVisitor implements CriteriaVisitor<Function<Thin
     }
 
     private boolean isUnknownField(final FieldExpression fieldExpression) {
-        return unknownFields.contains(fieldExpression.accept(new GetJsonPointer()));
+        final JsonPointer fieldExpressionPointer = fieldExpression.accept(new GetJsonPointer());
+        return unknownFields.contains(fieldExpressionPointer) ||
+                unknownFields.stream().anyMatch(jsonPointer ->
+                        fieldExpressionPointer.toString().startsWith(jsonPointer.toString())
+                );
     }
 
     private static final class GetJsonPointer implements FieldExpressionVisitor<JsonPointer> {
