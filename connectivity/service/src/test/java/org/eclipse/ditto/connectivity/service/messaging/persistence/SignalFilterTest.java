@@ -159,7 +159,7 @@ public final class SignalFilterTest {
 
         final Target filteredEventTopicPath1 = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
-                        .withFilter("in(topic:action,'created','modified')")
+                        .withFilter("and(in(topic:action,'created','modified'),eq(resource:path,'/'))")
                         .build())
                 .build();
         final Target filteredEventTopicPath2 = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
@@ -167,9 +167,14 @@ public final class SignalFilterTest {
                         .withFilter("and(eq(attributes/x,5),eq(topic:action,'modified'))")
                         .build())
                 .build();
-        final Target notFilteredEventTopicPath = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+        final Target notFilteredEventTopicPath1 = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
                 .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
                         .withFilter("eq(topic:action,'deleted')")
+                        .build())
+                .build();
+        final Target notFilteredEventTopicPath2 = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withFilter("ne(resource:path,'/')")
                         .build())
                 .build();
 
@@ -201,7 +206,7 @@ public final class SignalFilterTest {
                 Lists.list(enrichedFiltered, enrichedNotFiltered1, enrichedNotFiltered2),
                 Lists.list(enrichedFiltered)});
         params.add(new Object[]{TWIN_EVENTS, readSubjects,
-                Lists.list(filteredEventTopicPath1, filteredEventTopicPath2, notFilteredEventTopicPath),
+                Lists.list(filteredEventTopicPath1, filteredEventTopicPath2, notFilteredEventTopicPath1, notFilteredEventTopicPath2),
                 Lists.list(filteredEventTopicPath1, filteredEventTopicPath2)});
 
         params.add(new Object[]{LIVE_EVENTS, readSubjects, Lists.list(twinAuthd), emptyList()});

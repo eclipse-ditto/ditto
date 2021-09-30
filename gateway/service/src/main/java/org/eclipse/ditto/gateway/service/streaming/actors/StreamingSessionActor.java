@@ -68,6 +68,7 @@ import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckR
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
@@ -661,7 +662,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {
         final var queryFilterCriteriaFactory =
                 QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
-                        TopicPathPlaceholder.getInstance());
+                        TopicPathPlaceholder.getInstance(), ResourcePlaceholder.getInstance());
 
         return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
     }

@@ -22,7 +22,8 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
@@ -38,9 +39,12 @@ import akka.actor.ActorRef;
 public final class StreamingSession {
 
     private static final TopicPathPlaceholder TOPIC_PATH_PLACEHOLDER = TopicPathPlaceholder.getInstance();
+    private static final ResourcePlaceholder RESOURCE_PLACEHOLDER = ResourcePlaceholder.getInstance();
+
+    private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
     private final List<String> namespaces;
-    private final BiPredicate<Thing, TopicPath> thingPredicate;
+    private final BiPredicate<Thing, Signal<?>> thingPredicate;
     @Nullable private final ThingFieldSelector extraFields;
     private final ActorRef streamingSessionActor;
     private final ThreadSafeDittoLoggingAdapter logger;
@@ -50,9 +54,11 @@ public final class StreamingSession {
             final ThreadSafeDittoLoggingAdapter logger) {
         this.namespaces = namespaces;
         thingPredicate = eventFilterCriteria == null
-                ? (thing, topicPath) -> true
-                : (thing, topicPath) -> ThingPredicateVisitor.apply(eventFilterCriteria,
-                        PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER, topicPath)
+                ? (thing, signal) -> true
+                : (thing, signal) -> ThingPredicateVisitor.apply(eventFilterCriteria,
+                        PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER,
+                                PROTOCOL_ADAPTER.toTopicPath(signal)),
+                        PlaceholderFactory.newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal)
                 )
                 .test(thing);
         this.extraFields = extraFields;
@@ -98,11 +104,12 @@ public final class StreamingSession {
      * Test whether a thing matches the filter defined in this session.
      *
      * @param thing the thing.
-     * @param topicPath the topic path to include for checking whether the filter matches.
+     * @param signal the signal to include for checking whether the filter matches, extracting {@code topic} and
+     * {@code resource} information from.
      * @return whether the thing passes the filter.
      */
-    public boolean matchesFilter(final Thing thing, final TopicPath topicPath) {
-        return thingPredicate.test(thing, topicPath);
+    public boolean matchesFilter(final Thing thing, final Signal<?> signal) {
+        return thingPredicate.test(thing, signal);
     }
 
     public ActorRef getStreamingSessionActor() {

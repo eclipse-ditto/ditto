@@ -85,7 +85,6 @@ import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
@@ -267,7 +266,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     private CompletionStage<WebsocketConfig> retrieveWebsocketConfig() {
         return Patterns.ask(streamingActor, StreamingActor.Control.RETRIEVE_WEBSOCKET_CONFIG, LOCAL_ASK_TIMEOUT)
-                .thenApply(reply -> (WebsocketConfig) reply); // fail future with ClassCastException on type error
+                .thenApply(WebsocketConfig.class::cast); // fail future with ClassCastException on type error
     }
 
     private CompletionStage<HttpResponse> createWebSocket(final WebSocketUpgrade upgradeToWebSocket,
@@ -671,7 +670,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final Adaptable adaptable = jsonifiableToAdaptable(jsonifiable, adapter);
             final CompletionStage<JsonObject> extraFuture = sessionedJsonifiable.retrieveExtraFields(facade);
             return extraFuture.<Collection<String>>thenApply(extra -> {
-                if (matchesFilter(sessionedJsonifiable, adaptable.getTopicPath(), extra)) {
+                if (matchesFilter(sessionedJsonifiable, extra)) {
                     return Collections.singletonList(toJsonStringWithExtra(adaptable, extra));
                 }
                 issuePotentialWeakAcknowledgements(sessionedJsonifiable);
@@ -742,20 +741,18 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
      * Always return true for Jsonifiables without any session, e. g., errors, responses, stream control messages.
      *
      * @param sessionedJsonifiable the Jsonifiable with session information attached.
-     * @param topicPath the topic path of the Jsonifiable to process.
      * @param extra extra fields from signal enrichment.
      * @return whether the Jsonifiable passes filter defined in the session together with the extra fields.
      */
-    private static boolean matchesFilter(final SessionedJsonifiable sessionedJsonifiable,
-            final TopicPath topicPath,
-            final JsonObject extra) {
+    private static boolean matchesFilter(final SessionedJsonifiable sessionedJsonifiable, final JsonObject extra) {
         final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable = sessionedJsonifiable.getJsonifiable();
         return sessionedJsonifiable.getSession()
                 .filter(session -> jsonifiable instanceof Signal)
-                .map(session ->
+                .map(session -> {
                         // evaluate to false if filter is present but does not match or has insufficient info to match
-                        session.matchesFilter(session.mergeThingWithExtra((Signal<?>) jsonifiable, extra), topicPath)
-                )
+                        final Signal<?> signal = (Signal<?>) jsonifiable;
+                        return session.matchesFilter(session.mergeThingWithExtra(signal, extra), signal);
+                })
                 .orElse(true);
     }
 

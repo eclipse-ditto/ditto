@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.api.placeholders;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.placeholders.Placeholder;
+import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 
 public final class ConnectivityPlaceholders {
@@ -62,6 +63,13 @@ public final class ConnectivityPlaceholders {
      */
     public static TopicPathPlaceholder newTopicPathPlaceholder() {
         return TopicPathPlaceholder.getInstance();
+    }
+
+    /**
+     * @return the singleton instance of {@link ResourcePlaceholder}
+     */
+    public static ResourcePlaceholder newResourcePlaceholder() {
+        return ResourcePlaceholder.getInstance();
     }
 
     /**
