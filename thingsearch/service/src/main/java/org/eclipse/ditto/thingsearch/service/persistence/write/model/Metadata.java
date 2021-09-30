@@ -201,6 +201,16 @@ public final class Metadata {
     }
 
     /**
+     * Create a copy of this metadata with senders replaced by the argument.
+     *
+     * @return the copy.
+     */
+    public Metadata withSender(final ActorRef sender) {
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, List.of(sender),
+                invalidateThing, invalidatePolicy, origin);
+    }
+
+    /**
      * Return the ThingUpdater that created this object, if any.
      *
      * @return The ThingUpdater.
@@ -333,7 +343,9 @@ public final class Metadata {
                 Stream.concat(senders.stream(), newMetadata.senders.stream()).collect(Collectors.toList());
         return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.policyId,
                 newMetadata.policyRevision, newMetadata.modified, newEvents, newTimers, newSenders,
-                invalidateThing || newMetadata.invalidateThing, invalidatePolicy, newMetadata.origin);
+                invalidateThing || newMetadata.invalidateThing,
+                invalidatePolicy || newMetadata.invalidatePolicy,
+                newMetadata.origin);
     }
 
     /**

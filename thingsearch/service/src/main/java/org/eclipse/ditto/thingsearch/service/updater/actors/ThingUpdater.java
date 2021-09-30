@@ -215,8 +215,13 @@ final class ThingUpdater extends AbstractActor {
         log.withCorrelationId(updateThing)
                 .info("Requested to update search index <{}> by <{}>", updateThing, getSender());
         lastWriteModel = null;
-        enqueueMetadata(exportMetadata(null, null)
-                .invalidateCaches(updateThing.shouldInvalidateThing(), updateThing.shouldInvalidatePolicy()));
+        final Metadata metadata = exportMetadata(null, null)
+                .invalidateCaches(updateThing.shouldInvalidateThing(), updateThing.shouldInvalidatePolicy());
+        if (updateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)) {
+            enqueueMetadata(metadata.withSender(getSender()));
+        } else {
+            enqueueMetadata(metadata);
+        }
     }
 
     private void processUpdateThingResponse(final UpdateThingResponse response) {
