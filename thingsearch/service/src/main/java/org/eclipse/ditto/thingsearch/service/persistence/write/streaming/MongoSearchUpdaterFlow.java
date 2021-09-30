@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -118,15 +119,15 @@ final class MongoSearchUpdaterFlow {
                                 return writeModels;
                             }
                         })
-                        .mapAsync(1, this::toIncrementalMongo)
+                        .mapAsync(1, MongoSearchUpdaterFlow::toIncrementalMongo)
                         .flatMapMerge(parallelism, writeModels ->
                                 executeBulkWrite(shouldAcknowledge, writeModels).async(DISPATCHER_NAME, parallelism));
 
         return batchFlow.via(writeFlow);
     }
 
-    private CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>> toIncrementalMongo(
-            final List<AbstractWriteModel> models) {
+    private static CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>> toIncrementalMongo(
+            final Collection<AbstractWriteModel> models) {
 
         final var writeModelFutures = models.stream()
                 .<CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>>>map(model ->
@@ -158,7 +159,7 @@ final class MongoSearchUpdaterFlow {
     }
 
     private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,
-            final List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>> pairs) {
+            final Collection<Pair<AbstractWriteModel, WriteModel<BsonDocument>>> pairs) {
 
         final MongoCollection<BsonDocument> theCollection;
         if (shouldAcknowledge) {
