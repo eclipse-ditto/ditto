@@ -89,7 +89,8 @@ public final class ShardRegionFactory {
      * @param numberOfShards how many shards the shard region has.
      * @return actor ref of the shard region.
      */
-    public ActorRef createShardRegionProxy(final String shardRegion, final String clusterRole, final int numberOfShards) {
+    public ActorRef createShardRegionProxy(final String shardRegion, final String clusterRole,
+            final int numberOfShards) {
         final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
         final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
         return clusterSharding.startProxy(shardRegion, Optional.of(clusterRole), shardRegionExtractor);
@@ -107,14 +108,8 @@ public final class ShardRegionFactory {
     public ActorRef getSearchUpdaterShardRegion(final int numberOfShards,
             @Nonnull final Props thingUpdaterProps,
             final String clusterRole) {
-        checkNotNull(thingUpdaterProps, "Props of ThingUpdater");
 
-        final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
-        final ClusterShardingSettings shardingSettings =
-                ClusterShardingSettings.create(actorSystem).withRole(clusterRole);
-        final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
-
-        return clusterSharding.start(UPDATER_SHARD_REGION, thingUpdaterProps, shardingSettings, shardRegionExtractor);
+        return createShardRegion(numberOfShards, thingUpdaterProps, UPDATER_SHARD_REGION, clusterRole);
     }
 
     /**

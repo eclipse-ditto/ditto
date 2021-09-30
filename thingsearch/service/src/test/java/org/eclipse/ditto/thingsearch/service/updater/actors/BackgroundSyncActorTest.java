@@ -350,7 +350,6 @@ public final class BackgroundSyncActorTest {
     }
 
     private void expectSyncActorToRequestThingUpdatesInSearch(final TestKit thingsUpdater) {
-        // TODO KNOWN_IDs
         expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(
                 UpdateThing.of(KNOWN_IDs.get(0), true, false, DittoHeaders.empty()),
                 UpdateThing.of(KNOWN_IDs.get(1), true, false, DittoHeaders.empty()),
