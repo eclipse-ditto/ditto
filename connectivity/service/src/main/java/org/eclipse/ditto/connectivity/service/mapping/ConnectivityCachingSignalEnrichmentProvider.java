@@ -40,6 +40,7 @@ public final class ConnectivityCachingSignalEnrichmentProvider extends Connectiv
     @SuppressWarnings("unused")
     public ConnectivityCachingSignalEnrichmentProvider(final ActorSystem actorSystem,
             final SignalEnrichmentConfig signalEnrichmentConfig) {
+
         final ConnectivityByRoundTripSignalEnrichmentProvider cacheLoaderProvider =
                 new ConnectivityByRoundTripSignalEnrichmentProvider(actorSystem, signalEnrichmentConfig);
         final CachingSignalEnrichmentFacadeConfig cachingSignalEnrichmentFacadeConfig =
