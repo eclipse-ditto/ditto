@@ -420,7 +420,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
     }
 
     private static JsonObject enhanceJsonObject(final JsonObject jsonObject, final List<ThingEvent<?>> concernedSignals,
-            final JsonFieldSelector enhancedFieldSelector) {
+            @Nullable final JsonFieldSelector enhancedFieldSelector) {
 
         final var jsonObjectBuilder = jsonObject.toBuilder()
                 .set(Thing.JsonFields.REVISION, getLast(concernedSignals).getRevision());
