@@ -134,26 +134,29 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
      * @param dittoHeaders Ditto headers containing authorization information.
      * @param concernedSignals the Signals which caused that this partial thing retrieval was triggered
      * (e.g. a {@code ThingEvent})
+     * @param minAcceptableSeqNr minimum sequence number of the concerned signals to not invalidate the cache.
      * @return future that completes with the parts of a thing or fails with an error.
      */
     public CompletionStage<JsonObject> retrievePartialThing(final EntityId thingId,
             final JsonFieldSelector jsonFieldSelector,
             final DittoHeaders dittoHeaders,
-            final Collection<Signal<?>> concernedSignals) {
+            final Collection<? extends Signal<?>> concernedSignals,
+            final long minAcceptableSeqNr) {
 
         final List<ThingEvent<?>> thingEvents = concernedSignals.stream()
-            .filter(signal -> (signal instanceof ThingEvent) && !(ProtocolAdapter.isLiveSignal(signal)))
-            .map(event -> (ThingEvent<?>) event)
-            .collect(Collectors.toList());
+                .filter(signal -> (signal instanceof ThingEvent) && !(ProtocolAdapter.isLiveSignal(signal)))
+                .map(event -> (ThingEvent<?>) event)
+                .collect(Collectors.toList());
 
         // as second step only return what was originally requested as fields:
-        final var cachingParameters = new CachingParameters(jsonFieldSelector, thingEvents, true, 0);
+        final var cachingParameters = new CachingParameters(jsonFieldSelector, thingEvents, true, minAcceptableSeqNr);
         return doRetrievePartialThing(thingId, dittoHeaders, cachingParameters)
                 .thenApply(jsonObject -> jsonObject.get(jsonFieldSelector));
     }
 
     private CompletionStage<JsonObject> doRetrievePartialThing(final EntityId thingId,
-            final DittoHeaders dittoHeaders, final CachingParameters cachingParameters) {
+            final DittoHeaders dittoHeaders,
+            final CachingParameters cachingParameters) {
 
         final var fieldSelector = cachingParameters.fieldSelector;
         final JsonFieldSelector enhancedFieldSelector = enhanceFieldSelectorWithRevision(fieldSelector);
@@ -325,7 +328,8 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
     }
 
     private CompletionStage<JsonObject> handleNextExpectedThingEvents(
-            final SignalEnrichmentCacheKey cacheKey, final JsonObject cachedJsonObject,
+            final SignalEnrichmentCacheKey cacheKey,
+            final JsonObject cachedJsonObject,
             final CachingParameters cachingParameters) {
 
         final var concernedSignals = cachingParameters.concernedEvents;
@@ -374,8 +378,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
         if (thingEvent instanceof ThingDeleted) {
             // NoOp because we just want to keep the original known thing.
             result = jsonObject;
-        }
-        else if (resourcePath.isEmpty()) {
+        } else if (resourcePath.isEmpty()) {
             result = JsonObject.empty();
         } else {
             result = jsonObject.remove(resourcePath);
@@ -403,8 +406,8 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
             final DittoHeaders dittoHeaders) {
 
         final boolean shouldInvalidate = Optional.ofNullable(cachedPolicyIdOpt).flatMap(cachedPolicyId ->
-                jsonObject.getValue(Thing.JsonFields.POLICY_ID)
-                        .filter(currentPolicyId -> !cachedPolicyId.equals(currentPolicyId)))
+                        jsonObject.getValue(Thing.JsonFields.POLICY_ID)
+                                .filter(currentPolicyId -> !cachedPolicyId.equals(currentPolicyId)))
                 .isPresent();
         if (shouldInvalidate) {
             // invalidate the cache
