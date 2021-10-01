@@ -57,10 +57,13 @@ import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.jwt.model.JwtInvalidException;
 import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.After;
 import org.junit.Rule;
@@ -122,7 +125,8 @@ public final class StreamingSessionActorTest {
                 TestSink.probe(actorSystem);
         final Source<SessionedJsonifiable, SourceQueueWithComplete<SessionedJsonifiable>> source =
                 Source.queue(100, OverflowStrategy.fail());
-        final var pair = source.viaMat(KillSwitches.single(), Keep.both()).toMat(sink, Keep.both()).run(actorSystem);
+        final var pair =
+                source.viaMat(KillSwitches.single(), Keep.both()).toMat(sink, Keep.both()).run(actorSystem);
         sourceQueue = pair.first().first();
         sinkProbe = pair.second();
         killSwitch = pair.first().second();
@@ -334,6 +338,24 @@ public final class StreamingSessionActorTest {
             assertThat(sinkProbe.expectError())
                     .isInstanceOf(GatewayWebsocketSessionExpiredException.class)
                     .hasMessageContaining("expired");
+        }};
+    }
+
+
+    @Test
+    public void sendLiveCommandResponseAndEnsureForwarding() {
+        new TestKit(actorSystem) {{
+            final var underTest = watch(actorSystem.actorOf(getProps()));
+            final DittoHeaders dittoHeaders =
+                    DittoHeaders.newBuilder()
+                            .channel(TopicPath.Channel.LIVE.getName())
+                            .correlationId("corr:" + testName.getMethodName()).build();
+
+            final RetrieveThingResponse retrieveThingResponse =
+                    RetrieveThingResponse.of(ThingId.generateRandom(), JsonObject.empty(), dittoHeaders);
+
+            underTest.tell(IncomingSignal.of(retrieveThingResponse), ActorRef.noSender());
+            commandRouterProbe.expectMsg(retrieveThingResponse);
         }};
     }
 
