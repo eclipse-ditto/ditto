@@ -37,7 +37,9 @@ import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.AttributeModified;
 import org.junit.After;
 import org.junit.Before;
@@ -55,10 +57,12 @@ import akka.testkit.javadsl.TestKit;
 public final class OutboundDispatchingActorTest {
 
     private ActorSystem actorSystem;
+    private TestProbe proxyActor;
 
     @Before
     public void init() {
         actorSystem = ActorSystem.create(getClass().getSimpleName(), TestConstants.CONFIG);
+        proxyActor = TestProbe.apply("proxy", actorSystem);
     }
 
     @After
@@ -287,6 +291,40 @@ public final class OutboundDispatchingActorTest {
                 TestConstants.Targets.TWIN_TARGET);
     }
 
+    @Test
+    public void testHandleLiveResponse() {
+        new TestKit(actorSystem) {{
+            final ConnectionId connectionId = ConnectionId.of("testHandleSignalWithAcknowledgementRequest");
+            final Connection connectionWithTestAck = TestConstants.createConnection()
+                    .toBuilder()
+                    .id(connectionId)
+                    .sources(TestConstants.createConnection().getSources().stream()
+                            .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
+                                    .declaredAcknowledgementLabels(Set.of(getTestAck(connectionId)))
+                                    .build())
+                            .collect(Collectors.toList()))
+                    .build();
+            final TestProbe probe = TestProbe.apply("probe", actorSystem);
+            final ActorRef underTest = getOutboundDispatchingActor(connectionWithTestAck, probe.ref());
+
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                    .channel(TopicPath.Channel.LIVE.getName())
+                    .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
+                    .timeout("2s")
+                    .randomCorrelationId()
+                    .build();
+
+            final RetrieveThingResponse retrieveThingResponse =
+                    RetrieveThingResponse.of(TestConstants.Things.THING_ID, TestConstants.Things.THING, null,
+                            null, dittoHeaders);
+
+            underTest.tell(InboundSignal.of(retrieveThingResponse), getRef());
+
+            final RetrieveThingResponse forwardedResponse = proxyActor.expectMsgClass(RetrieveThingResponse.class);
+            assertThat(forwardedResponse).isEqualTo(retrieveThingResponse);
+        }};
+    }
+
     private void testForwardThingEvent(final Connection connection, final boolean isForwarded, final Signal<?> signal,
             final Target expectedTarget) {
 
@@ -295,12 +333,14 @@ public final class OutboundDispatchingActorTest {
             final ActorSelection proxyActorSelection = ActorSelection.apply(proxyActor.ref(), "");
             final TestProbe mappingActor = TestProbe.apply("mapping", actorSystem);
 
-            final var connectionContext = DittoConnectionContext.of(connection, TestConstants.CONNECTIVITY_CONFIG);
+            final var connectionContext =
+                    DittoConnectionContext.of(connection, TestConstants.CONNECTIVITY_CONFIG);
             final OutboundMappingSettings settings =
                     OutboundMappingSettings.of(connectionContext, actorSystem, proxyActorSelection,
                             DittoProtocolAdapter.newInstance(),
                             MockActor.getThreadSafeDittoLoggingAdapter(actorSystem));
-            final ActorRef underTest = childActorOf(OutboundDispatchingActor.props(settings, mappingActor.ref()));
+            final ActorRef underTest =
+                    childActorOf(OutboundDispatchingActor.props(settings, mappingActor.ref(), proxyActor.ref()));
 
             underTest.tell(signal, getRef());
 
@@ -319,14 +359,14 @@ public final class OutboundDispatchingActorTest {
     }
 
     private ActorRef getOutboundDispatchingActor(final Connection connection, final ActorRef mappingActor) {
-        final TestProbe proxyActor = TestProbe.apply("proxy", actorSystem);
         final ActorSelection proxyActorSelection = ActorSelection.apply(proxyActor.ref(), "");
 
-        final var connectionContext = DittoConnectionContext.of(connection, TestConstants.CONNECTIVITY_CONFIG);
+        final var connectionContext =
+                DittoConnectionContext.of(connection, TestConstants.CONNECTIVITY_CONFIG);
         final OutboundMappingSettings settings =
                 OutboundMappingSettings.of(connectionContext, actorSystem, proxyActorSelection,
                         DittoProtocolAdapter.newInstance(), MockActor.getThreadSafeDittoLoggingAdapter(actorSystem));
-        return actorSystem.actorOf(OutboundDispatchingActor.props(settings, mappingActor));
+        return actorSystem.actorOf(OutboundDispatchingActor.props(settings, mappingActor, proxyActor.ref()));
     }
 
     private static AcknowledgementLabel getTestAck(final ConnectionId connectionId) {
@@ -336,4 +376,5 @@ public final class OutboundDispatchingActorTest {
     private static AcknowledgementLabel getPlaceholderAck() {
         return AcknowledgementLabel.of("{{connection:id}}:test-ack");
     }
+
 }

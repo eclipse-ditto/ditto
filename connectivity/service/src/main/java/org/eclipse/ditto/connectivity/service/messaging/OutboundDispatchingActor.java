@@ -37,6 +37,8 @@ import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
@@ -58,16 +60,19 @@ final class OutboundDispatchingActor extends AbstractActor {
 
     private final OutboundMappingSettings settings;
     private final ActorRef outboundMappingProcessorActor;
+    private final ActorRef proxyActor;
 
     @SuppressWarnings("unused")
     private OutboundDispatchingActor(final OutboundMappingSettings settings,
-            final ActorRef outboundMappingProcessorActor) {
+            final ActorRef outboundMappingProcessorActor, final ActorRef proxyActor) {
         this.settings = settings;
         this.outboundMappingProcessorActor = outboundMappingProcessorActor;
+        this.proxyActor = proxyActor;
     }
 
-    static Props props(final OutboundMappingSettings settings, final ActorRef outboundMappingProcessorActor) {
-        return Props.create(OutboundDispatchingActor.class, settings, outboundMappingProcessorActor);
+    static Props props(final OutboundMappingSettings settings, final ActorRef outboundMappingProcessorActor,
+            final ActorRef proxyActor) {
+        return Props.create(OutboundDispatchingActor.class, settings, outboundMappingProcessorActor, proxyActor);
     }
 
     @Override
@@ -182,7 +187,14 @@ final class OutboundDispatchingActor extends AbstractActor {
         }
 
         final ActorContext context = getContext();
-        final Consumer<ActorRef> action = forwarder -> forwarder.forward(responseOrAck, context);
+        final Consumer<ActorRef> action = forwarder -> {
+            if (responseOrAck instanceof ThingQueryCommandResponse && isLiveResponse(responseOrAck)) {
+                // forward live command responses to concierge to filter response
+                proxyActor.tell(responseOrAck, getSender());
+            } else {
+                forwarder.forward(responseOrAck, context);
+            }
+        };
         final Runnable emptyAction = () -> {
             final String template = "No AcknowledgementForwarderActor found, forwarding to concierge: <{}>";
             if (logger.isDebugEnabled()) {
@@ -195,6 +207,10 @@ final class OutboundDispatchingActor extends AbstractActor {
 
         context.findChild(AcknowledgementForwarderActor.determineActorName(responseOrAck.getDittoHeaders()))
                 .ifPresentOrElse(action, emptyAction);
+    }
+
+    private boolean isLiveResponse(final WithDittoHeaders response) {
+        return response.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
 }

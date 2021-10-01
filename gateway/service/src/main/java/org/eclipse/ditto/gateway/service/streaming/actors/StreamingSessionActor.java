@@ -73,6 +73,7 @@ import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
@@ -484,7 +485,14 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         try {
             getContext().findChild(AcknowledgementForwarderActor.determineActorName(response.getDittoHeaders()))
                     .ifPresentOrElse(
-                            forwarder -> forwarder.tell(response, sender),
+                            forwarder -> {
+                                if (response instanceof ThingQueryCommandResponse && isLiveResponse(response)) {
+                                    // forward live command responses to concierge to filter response
+                                    commandRouter.tell(response, sender);
+                                } else {
+                                    forwarder.tell(response, sender);
+                                }
+                            },
                             () -> {
                                 // the Acknowledgement / LiveCommandResponse is meant for someone else:
                                 final var template =
@@ -501,6 +509,10 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             // error encountered; publish it
             eventAndResponsePublisher.offer(SessionedJsonifiable.error(e));
         }
+    }
+
+    private boolean isLiveResponse(final CommandResponse<?> response) {
+        return response.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
     private void forwardSearchCommand(final ThingSearchCommand<?> searchCommand) {
