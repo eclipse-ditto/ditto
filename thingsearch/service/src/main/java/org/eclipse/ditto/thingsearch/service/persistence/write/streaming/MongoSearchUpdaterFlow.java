@@ -29,6 +29,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWri
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 
 import com.mongodb.MongoBulkWriteException;
+import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -169,8 +170,16 @@ final class MongoSearchUpdaterFlow {
         }
         final var abstractWriteModels = pairs.stream().map(Pair::first).collect(Collectors.toList());
         final var writeModels = pairs.stream().map(Pair::second).collect(Collectors.toList());
-        final var bulkWriteTimer = startBulkWriteTimer(writeModels);
 
+        if (writeModels.isEmpty()) {
+            LOGGER.warn("Requested to make empty update by write models <{}>", abstractWriteModels);
+            for (final var abstractWriteModel : abstractWriteModels) {
+                abstractWriteModel.getMetadata().sendAck();
+            }
+            return Source.empty();
+        }
+
+        final var bulkWriteTimer = startBulkWriteTimer(writeModels);
         return Source.fromPublisher(theCollection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))
                 .map(bulkWriteResult -> WriteResultAndErrors.success(abstractWriteModels, bulkWriteResult))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<WriteResultAndErrors, NotUsed>>()
