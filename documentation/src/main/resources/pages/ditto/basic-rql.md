@@ -24,7 +24,12 @@ That query consists of one [logical operator ](#logical-operators) ["and"](#and)
 two [relational operators](#relational-operators) of which each consists of a [property](#query-property)
 and a [value](#query-value).
 
-The following sections describe what the RQL syntax is capable of.
+The following sections describe what the RQL syntax is capable of and which RQL operators are supported in 
+Eclipse Ditto.
+
+{% include note.html content="Please note that only the \"normalized\" RQL form, e.g. 
+    `eq(foo,3)`, is supported by Eclipse Ditto and that Ditto added more non-specified operators, e.g. 
+    `like` and `exists`." %}
 
 
 ## RQL filter
@@ -36,20 +41,44 @@ The RQL filter specifies "what" to filter.
 <property> = url-encoded-string
 ```
 
-To filter nested properties, Ditto uses the JSON Pointer notation ([RFC-6901](https://tools.ietf.org/html/rfc6901)).
+When not starting with a prefix `<some-prefix>:`, the RQL query property specifies a field in the JSON representation 
+of a [Thing](basic-thing.html#api-version-2).  
+For example a query property `thingId` selects the Thing ID as property, a query property `attributes/location` selects
+an attribute with the name `location` as query property.
 
-The following example shows how to apply a filter for the sub property location of the parent property attributes with 
-a forward slash as separator:
+To filter nested properties, Ditto uses the JSON Pointer notation ([RFC-6901](https://tools.ietf.org/html/rfc6901)), 
+where the property can also start with a slash `/` or omit it, so those 2 query properties are semantically the same:
+* `/attributes/location`
+* `attributes/location`
+
+The following example shows how to apply a filter for the sub property `location` of the parent property `attributes` 
+with a forward slash as separator:
 ```
 eq(attributes/location,"kitchen")
 ```
+
+#### Placeholders as query properties
+
+When using an RQL expression in order to e.g. filter for certain 
+[change notifications](basic-changenotifications.html#by-rql-expression), the query property might be a 
+[placeholder](basic-placeholders.html#scope-rql-expressions) instead of a field in JSON representation inside the Thing.
+
+Currently supported placeholders for RQL expressions are:
+* `topic:<placeholder-name>`
+* `resource:<placeholder-name>`
+
+The [placeholder](basic-placeholders.html#scope-rql-expressions) documentation describes which placeholder names are
+supported.
+
 
 ### Query value
 ```
 <value> = <number>, <string>, true, false, null
 <number> = double, integer
-<string> = ", url-encoded-string, "
+<string> = "url-encoded-string", 'url-encoded-string'
 ```
+
+String values may either be delimited using single or double quotes.
 
 **Comparison of string values**
 
@@ -60,7 +89,7 @@ eq(attributes/location,"kitchen")
     
 **Comparison of other data types**
 
-{% include note.html content="Please note that the comparison of other data types is is supported by the API, but it 
+{% include note.html content="Please note that the comparison of other data types is supported by the API, but it 
     only supports comparison of same data types, and does not do any conversion during comparison." %}
 
 
@@ -161,9 +190,12 @@ Filter property values which are like (similar) a `<value>`.
 like(<property>,<value>) 
 ```
 
+{% include note.html content="The `like` operator is not defined in the linked RQL grammar, it is a Ditto
+    specific operator." %}
+
 **Details concerning the like-operator**
 
-The `like` operator provides some regular expression capabilities for pattern matching Strings.<br/>
+The `like` operator provides some regular expression capabilities for pattern matching Strings.  
 The following expressions are supported:
 * \*endswith => match at the end of a specific String.
 * startswith\* => match at the beginning of a specific String.
@@ -182,11 +214,15 @@ like(attributes/key1,"just-som?-char?-unkn?wn")
 ```
 
 #### exists
+
 Filter property values which exist.
 
 ```
 exists(<property>)
 ```
+
+{% include note.html content="The `exists` operator is not defined in the linked RQL grammar, it is a Ditto
+    specific operator." %}
 
 
 **Example - filter things which have a feature with ID "feature_1"**

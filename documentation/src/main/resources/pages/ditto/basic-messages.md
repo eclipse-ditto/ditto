@@ -90,6 +90,40 @@ When a Message is sent to or from a Thing, **every** connected WebSocket or
 If there is more than one response to a message received by multiple consumers, only the
 first response will be routed back to the initial issuer of a Message.
 
+### Filtering when subscribing for messages
+
+In order to not receive all messages an [authenticated subject](basic-auth.html#authenticated-subjects) is entitled to 
+receive when subscribing for messages, but to filter for specific criteria, messages may be filtered on the Ditto 
+backend side before they are sent to a message receiver.
+
+#### Filtering messages by namespaces
+
+Filtering messages may be done based on a namespace name. Each Ditto [Thing](basic-thing.html) has an ID containing a 
+namespace (see also the conventions for a [Thing ID](basic-thing.html#thing-id)).
+
+By providing the `namespaces` filter, a comma separated list of which namespaces to include in the result, only Things
+in namespaces of interest are considered and thus only messages of these Things are published to the message receiver.
+
+For example, one would only subscribe for messages occurring in 2 specific namespaces by defining:
+```
+namespaces=org.eclipse.ditto.one,org.eclipse.ditto.two
+```
+
+#### Filtering messages by RQL expression
+
+If filtering by namespaces is not sufficient, Ditto also allows to provide an [RQL expression](basic-rql.html)
+specifying:
+* an [enriched](basic-enrichment.html) Thing state based condition determining when messages should be delivered and when not
+* a filter based on the fields of the [Ditto Protocol](protocol-specification.html) message which should be filtered,
+  e.g.:
+    * using the `topic:subject` placeholder as query property, filtering for the message's subject 
+      and other filter options on the [Ditto Protocol topic](protocol-specification-topic.html) can be done
+    * using the `resource:path` placeholder as query property, filtering based on the affected
+      [Ditto Protocol path](protocol-specification.html#path) of a Ditto Protocol message can be done, e.g. targeting a 
+      specific message addressed to a certain feature ID
+    * for all supported placeholders, please refer to the
+      [placeholders documentation](basic-placeholders.html#scope-rql-expressions)
+
 
 ## Sending Messages
 
