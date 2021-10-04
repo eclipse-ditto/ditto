@@ -31,4 +31,5 @@ public interface ExistsFieldExpression extends FieldExpression {
 
     @Override
     <T> T accept(FieldExpressionVisitor<T> visitor);
+
 }

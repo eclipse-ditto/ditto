@@ -14,12 +14,12 @@ package org.eclipse.ditto.policies.model.enforcers;
 
 import java.util.Set;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.ResourceKey;
 
@@ -55,7 +55,7 @@ public interface Enforcer {
      * Checks whether for the {@code authorizationContext} either implicitly or explicitly
      * has "GRANT" for the {@code permissions} on the specified set of {@code resourceKeys} considering "REVOKE"s
      * down in the hierarchy, so if there is a REVOKE for the {@code authorizationContext} somewhere down the hierarchy
-     * of any of the {@code resourceKeys}, the result will be {@code false}.
+     * for any of the {@code resourceKeys}, the result will be {@code false}.
      *
      * @param resourceKeys the ResourceKeys (containing Resource type and path) to check the permission(s) for.
      * @param authorizationContext the authorization context to check.
@@ -174,6 +174,41 @@ public interface Enforcer {
      */
     boolean hasPartialPermissions(ResourceKey resourceKey, AuthorizationContext authorizationContext,
             Permissions permissions);
+
+    /**
+     * Returns a set of authorization subjects each of which has all the given permissions granted on the given resource
+     * or on any sub resource down in the hierarchy.
+     * Revoked permissions are taken into account.
+     *
+     * @param resourceKey the ResourceKey (containing Resource type and path) to use as starting point to check the
+     * partial permission(s) in the hierarchy for.
+     * @param permission the permission to check.
+     * @param furtherPermissions further permissions to check.
+     * @return the authorization subjects with unrestricted permissions on the passed resourceKey or any other
+     * resources in the hierarchy below.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 2.2.0
+     */
+    default Set<AuthorizationSubject> getSubjectsWithUnrestrictedPermission(ResourceKey resourceKey,
+            final String permission, final String... furtherPermissions) {
+        return getSubjectsWithUnrestrictedPermission(resourceKey,
+                Permissions.newInstance(permission, furtherPermissions));
+    }
+
+    /**
+     * Returns a set of authorization subjects each of which has all the given permissions granted on the given resource
+     * or on any sub resource down in the hierarchy.
+     * Revoked permissions are taken into account.
+     *
+     * @param resourceKey the ResourceKey (containing Resource type and path) to use as starting point to check the
+     * partial permission(s) in the hierarchy for.
+     * @param permissions the permissions to be checked.
+     * @return the authorization subjects with unrestricted permissions on the passed resourceKey or any other
+     * resources in the hierarchy below.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 2.2.0
+     */
+    Set<AuthorizationSubject> getSubjectsWithUnrestrictedPermission(ResourceKey resourceKey, Permissions permissions);
 
     /**
      * Builds a view of the passed {@code jsonFields} (e.g. a {@link org.eclipse.ditto.json.JsonObject} or a {@link

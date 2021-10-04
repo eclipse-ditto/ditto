@@ -124,7 +124,7 @@ services:
 
   connectivity:
     image: docker.io/eclipse/ditto-connectivity:${DITTO_VERSION:-latest}
-    mem_limit: 512m
+    mem_limit: 768m
     networks:
       default:
         aliases:

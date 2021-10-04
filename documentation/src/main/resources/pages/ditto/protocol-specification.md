@@ -91,6 +91,7 @@ There are some pre-defined headers, which have a special meaning for Ditto:
 | `timeout` | Defines how long the Ditto server should wait, e.g. applied when waiting for requested acknowledgements. | `String` - e.g.: `42s` or `250ms` or `1m` - default: `60s`|
 | `version` | Determines in which schema version the `payload` should be interpreted. | `Number` - currently: \[1,2\] |
 | `put-metadata` | Determines which Metadata information is stored in the thing. | `JsonArray` of `JsonObject`s containing [metadata](basic-metadata.html) to apply. |
+| `condition` | The condition to evaluate before applying the request. | `String` containing [condition](basic-conditional-requests.html) to apply. |
 
 Custom headers of messages through the [live channel](protocol-twinlive.html) are delivered verbatim. When naming 
 custom headers, it is best to attach a prefix specific to your application, that does not conflict with Ditto or

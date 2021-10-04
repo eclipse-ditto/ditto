@@ -30,6 +30,7 @@ import akka.japi.Pair;
  */
 final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, BsonDiff>> {
 
+    private static final String DOLLAR = "$";
     private static final String LITERAL = "$literal";
 
     private final BsonSizeVisitor bsonSizeVisitor = new BsonSizeVisitor();
@@ -40,6 +41,9 @@ final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, Bson
         return oldValue -> {
             if (value.equals(oldValue)) {
                 return BsonDiff.empty(replacementSize);
+            } else if (value.isString() && value.asString().getValue().startsWith(DOLLAR)) {
+                final var literalValue = new BsonDocument().append(LITERAL, value);
+                return BsonDiff.set(replacementSize, key, literalValue);
             } else {
                 return BsonDiff.set(replacementSize, key, value);
             }

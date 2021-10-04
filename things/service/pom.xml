@@ -108,7 +108,7 @@
             <artifactId>akka-http_${scala.version}</artifactId>
         </dependency>
 
-        <!-- logging -->
+        <!-- Logging -->
         <dependency>
             <groupId>org.codehaus.janino</groupId>
             <artifactId>janino</artifactId>

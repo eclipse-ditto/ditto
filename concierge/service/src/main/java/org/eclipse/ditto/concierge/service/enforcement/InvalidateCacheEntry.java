@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.cache;
+package org.eclipse.ditto.concierge.service.enforcement;
 
 import static org.eclipse.ditto.base.model.json.JsonSchemaVersion.V_2;
 
@@ -18,13 +18,15 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.utils.cache.CacheKey;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
- * Concierge-service internal command signaling that the cache for a specific {@link CacheKey} should be invalidated.
+ * Concierge-service internal command signaling that the cache for a specific {@link org.eclipse.ditto.internal.utils.cache.CacheKey} should be invalidated.
  * Is emitted via Pub/Sub when for example a Policy is modified.
  */
 @Immutable
@@ -33,9 +35,9 @@ public final class InvalidateCacheEntry implements Jsonifiable<JsonObject> {
     private static final JsonFieldDefinition<String> JSON_ENTITY_ID =
             JsonFactory.newStringFieldDefinition("entityId", V_2);
 
-    private final CacheKey entityId;
+    private final EnforcementCacheKey entityId;
 
-    private InvalidateCacheEntry(final CacheKey entityId) {this.entityId = entityId;}
+    private InvalidateCacheEntry(final EnforcementCacheKey entityId) {this.entityId = entityId;}
 
     /**
      * Creates a new {@link InvalidateCacheEntry} from the passed {@code entityId}.
@@ -43,7 +45,7 @@ public final class InvalidateCacheEntry implements Jsonifiable<JsonObject> {
      * @param entityId the EntityId to build the InvalidateCacheEntry for.
      * @return the created InvalidateCacheEntry instance.
      */
-    public static InvalidateCacheEntry of(final CacheKey entityId) {
+    public static InvalidateCacheEntry of(final EnforcementCacheKey entityId) {
         return new InvalidateCacheEntry(entityId);
     }
 
@@ -55,13 +57,13 @@ public final class InvalidateCacheEntry implements Jsonifiable<JsonObject> {
      */
     public static InvalidateCacheEntry fromJson(final JsonObject jsonObject) {
         final String entityIdStr = jsonObject.getValueOrThrow(JSON_ENTITY_ID);
-        return new InvalidateCacheEntry(CacheKey.readFrom(entityIdStr));
+        return new InvalidateCacheEntry(EnforcementCacheKey.readFrom(entityIdStr));
     }
 
     /**
      * @return the EntityId to invalidate caches for.
      */
-    public CacheKey getEntityId() {
+    public EnforcementCacheKey getEntityId() {
         return entityId;
     }
 

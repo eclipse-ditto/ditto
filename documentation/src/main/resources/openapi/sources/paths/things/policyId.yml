@@ -19,6 +19,7 @@ get:
     - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/conditionParam.yml'
   responses:
     '200':
       description: The request successfully returned the policy ID.
@@ -74,6 +75,7 @@ put:
     - $ref: '../../parameters/requestedAcksParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/responseRequiredParam.yml'
+    - $ref: '../../parameters/conditionParam.yml'
   responses:
     '204':
       description: The policy ID was successfully updated.
@@ -142,6 +144,7 @@ patch:
     - $ref: '../../parameters/requestedAcksParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/responseRequiredParam.yml'
+    - $ref: '../../parameters/conditionParam.yml'
   responses:
     '204':
       description: 'The policy ID was successfully patched. Note: You will need to create the policy content separately.'

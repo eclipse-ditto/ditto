@@ -20,10 +20,9 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
-import org.eclipse.ditto.internal.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
@@ -40,9 +39,10 @@ import akka.actor.Scheduler;
  * Loads entity ID relation for authorization of a Thing by asking the things-shard-region proxy.
  */
 @Immutable
-public final class ThingEnforcementIdCacheLoader implements AsyncCacheLoader<CacheKey, Entry<CacheKey>> {
+public final class ThingEnforcementIdCacheLoader
+        implements AsyncCacheLoader<EnforcementCacheKey, Entry<EnforcementCacheKey>> {
 
-    private final ActorAskCacheLoader<CacheKey, Command<?>> delegate;
+    private final ActorAskCacheLoader<EnforcementCacheKey, Command<?>, EnforcementContext> delegate;
 
     /**
      * Constructor.
@@ -53,9 +53,9 @@ public final class ThingEnforcementIdCacheLoader implements AsyncCacheLoader<Cac
      */
     public ThingEnforcementIdCacheLoader(final AskWithRetryConfig askWithRetryConfig,
             final Scheduler scheduler, final ActorRef shardRegionProxy) {
-        final BiFunction<EntityId, CacheLookupContext, Command<?>> commandCreator =
+        final BiFunction<EntityId, EnforcementContext, Command<?>> commandCreator =
                 ThingCommandFactory::sudoRetrieveThing;
-        final BiFunction<Object, CacheLookupContext, Entry<CacheKey>> responseTransformer =
+        final BiFunction<Object, EnforcementContext, Entry<EnforcementCacheKey>> responseTransformer =
                 ThingEnforcementIdCacheLoader::handleSudoRetrieveThingResponse;
 
         delegate = ActorAskCacheLoader.forShard(askWithRetryConfig, scheduler, ThingConstants.ENTITY_TYPE,
@@ -63,19 +63,23 @@ public final class ThingEnforcementIdCacheLoader implements AsyncCacheLoader<Cac
     }
 
     @Override
-    public CompletableFuture<Entry<CacheKey>> asyncLoad(final CacheKey key, final Executor executor) {
+    public CompletableFuture<Entry<EnforcementCacheKey>> asyncLoad(final EnforcementCacheKey key,
+            final Executor executor) {
         return delegate.asyncLoad(key, executor);
     }
 
-    private static Entry<CacheKey> handleSudoRetrieveThingResponse(final Object response,
-            @Nullable final CacheLookupContext cacheLookupContext) {
+    private static Entry<EnforcementCacheKey> handleSudoRetrieveThingResponse(final Object response,
+            @Nullable final EnforcementContext context) {
         if (response instanceof SudoRetrieveThingResponse) {
             final var sudoRetrieveThingResponse = (SudoRetrieveThingResponse) response;
             final var thing = sudoRetrieveThingResponse.getThing();
             final long revision = thing.getRevision().map(ThingRevision::toLong)
                     .orElseThrow(badThingResponse("no revision"));
             final var policyId = thing.getPolicyEntityId().orElseThrow(badThingResponse("no PolicyId"));
-            final var resourceKey = CacheKey.of(policyId);
+            final PersistenceLifecycle persistenceLifecycle =
+                    thing.getLifecycle().map(Enum::name).flatMap(PersistenceLifecycle::forName).orElse(null);
+            final EnforcementContext newEnforcementContext = EnforcementContext.of(persistenceLifecycle);
+            final var resourceKey = EnforcementCacheKey.of(policyId, newEnforcementContext);
             return Entry.of(revision, resourceKey);
         } else if (response instanceof ThingNotAccessibleException) {
             return Entry.nonexistent();

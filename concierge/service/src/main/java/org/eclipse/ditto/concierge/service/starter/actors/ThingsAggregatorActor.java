@@ -19,20 +19,20 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.concierge.service.common.DittoConciergeConfig;
-import org.eclipse.ditto.concierge.service.common.ThingsAggregatorConfig;
-import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.concierge.api.ConciergeWrapper;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.concierge.api.ConciergeWrapper;
+import org.eclipse.ditto.concierge.service.common.DittoConciergeConfig;
+import org.eclipse.ditto.concierge.service.common.ThingsAggregatorConfig;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 
@@ -58,7 +58,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
     private static final String AGGREGATOR_INTERNAL_DISPATCHER = "aggregator-internal-dispatcher";
 
-    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+    private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
     private final ActorRef targetActor;
     private final java.time.Duration retrieveSingleThingTimeout;
     private final int maxParallelism;

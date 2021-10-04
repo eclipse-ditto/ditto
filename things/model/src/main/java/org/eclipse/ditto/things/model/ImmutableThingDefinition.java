@@ -15,7 +15,9 @@ package org.eclipse.ditto.things.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.net.URL;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonValue;
 
@@ -86,6 +88,11 @@ final class ImmutableThingDefinition implements ThingDefinition {
     }
 
     @Override
+    public Optional<URL> getUrl() {
+        return delegate.getUrl();
+    }
+
+    @Override
     public JsonValue toJson() {
         return JsonValue.of(toString());
     }
@@ -126,4 +133,5 @@ final class ImmutableThingDefinition implements ThingDefinition {
     public String toString() {
         return delegate.toString();
     }
+
 }

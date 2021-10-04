@@ -31,9 +31,9 @@ import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.concierge.service.common.CachesConfig;
 import org.eclipse.ditto.concierge.service.common.DefaultCachesConfig;
 import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.ThingEnforcementIdCacheLoader;
@@ -152,13 +152,13 @@ public final class TestSetup {
 
             final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
                     new PolicyEnforcerCacheLoader(askWithRetryConfig, system.getScheduler(), policiesShardRegion);
-            final Cache<CacheKey, Entry<PolicyEnforcer>> policyEnforcerCache =
+            final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache =
                     CaffeineCache.of(Caffeine.newBuilder(), policyEnforcerCacheLoader);
-            final Cache<CacheKey, Entry<Enforcer>> projectedEnforcerCache =
+            final Cache<EnforcementCacheKey, Entry<Enforcer>> projectedEnforcerCache =
                     policyEnforcerCache.projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
             final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =
                     new ThingEnforcementIdCacheLoader(askWithRetryConfig, system.getScheduler(), thingsShardRegion);
-            final Cache<CacheKey, Entry<CacheKey>> thingIdCache =
+            final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache =
                     CaffeineCache.of(Caffeine.newBuilder(), thingEnforcementIdCacheLoader);
 
             final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();

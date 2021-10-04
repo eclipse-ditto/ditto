@@ -27,6 +27,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.ThingConstants;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
@@ -44,6 +46,7 @@ import org.eclipse.ditto.things.service.persistence.serializer.ThingMongoSnapsho
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.japi.pf.ReceiveBuilder;
 import akka.persistence.RecoveryCompleted;
 
 /**
@@ -165,6 +168,15 @@ public final class ThingPersistenceActor
     @Override
     protected boolean entityExistsAsDeleted() {
         return null != entity && entity.hasLifecycle(ThingLifecycle.DELETED);
+    }
+
+    @Override
+    protected Receive matchAnyWhenDeleted() {
+        return ReceiveBuilder.create()
+                .match(RetrieveThing.class, this::handleByCommandStrategy)
+                .match(SudoRetrieveThing.class, this::handleByCommandStrategy)
+                .build()
+                .orElse(super.matchAnyWhenDeleted());
     }
 
     @Override

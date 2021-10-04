@@ -21,6 +21,7 @@ get:
     - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/conditionParam.yml'
   responses:
     '200':
       description: The properties were successfully retrieved.
@@ -78,6 +79,7 @@ put:
     - $ref: '../../parameters/requestedAcksParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/responseRequiredParam.yml'
+    - $ref: '../../parameters/conditionParam.yml'
   responses:
     '201':
       description: The properties were successfully created.
@@ -185,6 +187,7 @@ patch:
     - $ref: '../../parameters/requestedAcksParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/responseRequiredParam.yml'
+    - $ref: '../../parameters/conditionParam.yml'
   responses:
     '204':
       description: The properties were successfully patched.
@@ -268,6 +271,7 @@ delete:
     - $ref: '../../parameters/requestedAcksParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/responseRequiredParam.yml'
+    - $ref: '../../parameters/conditionParam.yml'
   responses:
     '204':
       description: The properties were successfully deleted.

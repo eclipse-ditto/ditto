@@ -15,16 +15,18 @@ package org.eclipse.ditto.base.model.exceptions;
 import java.net.URI;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown if an RQL expression is invalid.
  */
+@Immutable
 @JsonParsableException(errorCode = InvalidRqlExpressionException.ERROR_CODE)
 public final class InvalidRqlExpressionException extends DittoRuntimeException {
 

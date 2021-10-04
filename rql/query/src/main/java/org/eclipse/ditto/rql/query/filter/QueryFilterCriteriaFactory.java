@@ -19,13 +19,13 @@ import java.util.Set;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.rql.model.ParserException;
+import org.eclipse.ditto.rql.model.predicates.PredicateParser;
+import org.eclipse.ditto.rql.model.predicates.ast.RootNode;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.rql.query.things.ModelBasedThingsFieldExpressionFactory;
-import org.eclipse.ditto.rql.model.ParserException;
-import org.eclipse.ditto.rql.model.predicates.PredicateParser;
-import org.eclipse.ditto.rql.model.predicates.ast.RootNode;
 
 /**
  * The place for query filter manipulations
@@ -137,4 +137,5 @@ public final class QueryFilterCriteriaFactory {
                     .build();
         }
     }
+
 }

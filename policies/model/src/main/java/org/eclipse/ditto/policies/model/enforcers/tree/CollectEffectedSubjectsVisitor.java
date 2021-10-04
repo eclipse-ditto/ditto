@@ -17,19 +17,16 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
 import javax.annotation.ParametersAreNonnullByDefault;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.policies.model.enforcers.tree.PointerLocation;
-import org.eclipse.ditto.policies.model.enforcers.tree.PolicyTreeNode;
-import org.eclipse.ditto.policies.model.enforcers.tree.ResourceNode;
-import org.eclipse.ditto.policies.model.enforcers.tree.Visitor;
-import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Permissions;
+import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
 
 /**
  * @since 1.1.0
@@ -43,13 +40,11 @@ final class CollectEffectedSubjectsVisitor implements Visitor<EffectedSubjects> 
     private final Function<JsonPointer, PointerLocation> pointerLocationEvaluator;
     private final EffectedSubjectsBuilder effectedSubjectsBuilder;
     private final Collection<ResourceNodeEvaluator> evaluators;
-    private ResourceNodeEvaluator currentEvaluator;
+    @Nullable private ResourceNodeEvaluator currentEvaluator;
 
     /**
      * Constructs a new {@code CollectEffectedSubjectIdsVisitor} object.
      *
-     * @param resourcePointer
-     * @param expectedPermissions
      * @throws NullPointerException if any argument is {@code null}.
      */
     CollectEffectedSubjectsVisitor(final JsonPointer resourcePointer, final Permissions expectedPermissions) {
@@ -79,7 +74,9 @@ final class CollectEffectedSubjectsVisitor implements Visitor<EffectedSubjects> 
     }
 
     private void visitResourceNode(final ResourceNode resourceNode) {
-        currentEvaluator.aggregateWeightedPermissions(resourceNode);
+        if (null != currentEvaluator) {
+            currentEvaluator.aggregateWeightedPermissions(resourceNode);
+        }
     }
 
     @Override

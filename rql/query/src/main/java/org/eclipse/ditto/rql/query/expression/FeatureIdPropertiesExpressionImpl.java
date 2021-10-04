@@ -70,4 +70,5 @@ final class FeatureIdPropertiesExpressionImpl implements FeatureIdPropertiesExpr
                 "featureId=" + featureId +
                 "]";
     }
+
 }

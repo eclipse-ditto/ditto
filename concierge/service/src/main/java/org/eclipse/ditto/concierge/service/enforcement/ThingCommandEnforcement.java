@@ -22,9 +22,11 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -43,11 +45,10 @@ import org.eclipse.ditto.concierge.service.enforcement.placeholders.references.R
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
-import org.eclipse.ditto.internal.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
-import org.eclipse.ditto.internal.utils.cacheloaders.IdentityCache;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementContext;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.json.JsonFactory;
@@ -55,6 +56,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.api.Permission;
@@ -78,6 +80,10 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
+import org.eclipse.ditto.rql.model.ParserException;
+import org.eclipse.ditto.rql.model.predicates.ast.RootNode;
+import org.eclipse.ditto.rql.parser.RqlPredicateParser;
+import org.eclipse.ditto.rql.query.things.FieldNamesPredicateVisitor;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
@@ -86,6 +92,8 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotAll
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingCommandToAccessExceptionRegistry;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingCommandToModifyExceptionRegistry;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotCreatableException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotModifiableException;
@@ -126,16 +134,16 @@ public final class ThingCommandEnforcement
     private final ActorRef policiesShardRegion;
     private final EnforcerRetriever<Enforcer> thingEnforcerRetriever;
     private final EnforcerRetriever<Enforcer> policyEnforcerRetriever;
-    private final Cache<CacheKey, Entry<CacheKey>> thingIdCache;
-    private final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache;
+    private final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache;
+    private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
     private final PreEnforcer preEnforcer;
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
 
     private ThingCommandEnforcement(final Contextual<ThingCommand<?>> data,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
-            final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
-            final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
+            final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
+            final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
             final PreEnforcer preEnforcer) {
 
         super(data, ThingQueryCommandResponse.class);
@@ -164,17 +172,41 @@ public final class ThingCommandEnforcement
     }
 
     private CompletionStage<Contextual<WithDittoHeaders>> doEnforce(
-            final Entry<CacheKey> enforcerKeyEntry, final Entry<Enforcer> enforcerEntry) {
+            final Entry<EnforcementCacheKey> enforcerKeyEntry, final Entry<Enforcer> enforcerEntry) {
 
-        if (!enforcerEntry.exists()) {
-            return enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry);
+        if (enforcerEntry.exists()) {
+            if (keyEntryForDeletedThing(enforcerKeyEntry)) {
+                if (isRetrieveCommandForDeletedThing()) {
+                    final EntityId policyId = enforcerKeyEntry.getValueOrThrow().getId();
+                    final Contextual<WithDittoHeaders> enforcementResult = enforceThingCommandByPolicyEnforcer(signal(),
+                            PolicyId.of(policyId),
+                            enforcerEntry.getValueOrThrow());
+                    return CompletableFuture.completedFuture(enforcementResult);
+                } else {
+                    return enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry);
+                }
+            } else {
+                final EntityId policyId = enforcerKeyEntry.getValueOrThrow().getId();
+                final Contextual<WithDittoHeaders> enforcementResult = enforceThingCommandByPolicyEnforcer(signal(),
+                        PolicyId.of(policyId),
+                        enforcerEntry.getValueOrThrow());
+                return CompletableFuture.completedFuture(enforcementResult);
+            }
         } else {
-            final EntityId policyId = enforcerKeyEntry.getValueOrThrow().getId();
-            final Contextual<WithDittoHeaders> enforcementResult = enforceThingCommandByPolicyEnforcer(signal(),
-                    PolicyId.of(policyId),
-                    enforcerEntry.getValueOrThrow());
-            return CompletableFuture.completedFuture(enforcementResult);
+            return enforceThingCommandByNonexistentEnforcer(enforcerKeyEntry);
         }
+    }
+
+    private boolean isRetrieveCommandForDeletedThing() {
+        return (signal() instanceof RetrieveThing) && signal().getDittoHeaders().shouldRetrieveDeleted();
+    }
+
+    private boolean keyEntryForDeletedThing(final Entry<EnforcementCacheKey> enforcerKeyEntry) {
+        return enforcerKeyEntry.exists() && enforcerKeyEntry.getValueOrThrow()
+                .getCacheLookupContext()
+                .flatMap(EnforcementContext::getPersistenceLifecycle)
+                .map(x -> PersistenceLifecycle.DELETED == x)
+                .orElse(false);
     }
 
     /**
@@ -185,9 +217,9 @@ public final class ThingCommandEnforcement
      * @return the completionStage of the contextual including message and receiver
      */
     private CompletionStage<Contextual<WithDittoHeaders>> enforceThingCommandByNonexistentEnforcer(
-            final Entry<CacheKey> enforcerKeyEntry) {
+            final Entry<EnforcementCacheKey> enforcerKeyEntry) {
 
-        if (enforcerKeyEntry.exists()) {
+        if (enforcerKeyEntry.exists() && !keyEntryForDeletedThing(enforcerKeyEntry)) {
             // Thing exists but its policy is deleted.
             final var thingId = signal().getEntityId();
             final EntityId policyId = enforcerKeyEntry.getValueOrThrow().getId();
@@ -235,7 +267,7 @@ public final class ThingCommandEnforcement
      * Authorize a thing command by policy enforcer with view restriction for query commands.
      *
      * @param thingCommand the thing command to authorize.
-     * @param policyId Id of the thing's policy.
+     * @param policyId the ID of the thing's policy.
      * @param enforcer the policy enforcer.
      * @return the contextual including message and receiver
      */
@@ -269,7 +301,7 @@ public final class ThingCommandEnforcement
      * Retrieve a thing and its policy and combine them into a response.
      *
      * @param retrieveThing the retrieve-thing command.
-     * @param policyId ID of the thing's policy.
+     * @param policyId the ID of the thing's policy.
      * @param enforcer the enforcer for the command.
      * @return always {@code true}.
      */
@@ -445,7 +477,7 @@ public final class ThingCommandEnforcement
     private CompletionStage<Contextual<WithDittoHeaders>> enforceCreateThingForNonexistentThingWithPolicyId(
             final CreateThing command, final PolicyId policyId) {
 
-        final var policyCacheKey = CacheKey.of(policyId);
+        final var policyCacheKey = EnforcementCacheKey.of(policyId);
         return policyEnforcerRetriever.retrieve(policyCacheKey, (policyIdEntry, policyEnforcerEntry) -> {
             if (policyEnforcerEntry.exists()) {
                 final Contextual<WithDittoHeaders> enforcementResult =
@@ -497,22 +529,22 @@ public final class ThingCommandEnforcement
      * @param thingId the ID of the Thing to invalidate caches for.
      */
     private void invalidateThingCaches(final ThingId thingId) {
-        final var thingCacheKey = CacheKey.of(thingId);
+        final var thingCacheKey = EnforcementCacheKey.of(thingId);
         thingIdCache.invalidate(thingCacheKey);
         pubSubMediator().tell(DistPubSubAccess.sendToAll(
-                ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
-                InvalidateCacheEntry.of(thingCacheKey),
-                true),
+                        ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
+                        InvalidateCacheEntry.of(thingCacheKey),
+                        true),
                 self());
     }
 
     private void invalidatePolicyCache(final PolicyId policyId) {
-        final var policyCacheKey = CacheKey.of(policyId);
+        final var policyCacheKey = EnforcementCacheKey.of(policyId);
         policyEnforcerCache.invalidate(policyCacheKey);
         pubSubMediator().tell(DistPubSubAccess.sendToAll(
-                ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
-                InvalidateCacheEntry.of(policyCacheKey),
-                true),
+                        ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
+                        InvalidateCacheEntry.of(policyCacheKey),
+                        true),
                 self());
     }
 
@@ -596,8 +628,8 @@ public final class ThingCommandEnforcement
                     .thenApply(createThing -> {
                         final Optional<JsonObject> initialPolicyOptional = createThing.getInitialPolicy();
                         return initialPolicyOptional.map(
-                                initialPolicy -> enforceCreateThingByOwnInlinedPolicyOrThrow(createThing,
-                                        initialPolicy))
+                                        initialPolicy -> enforceCreateThingByOwnInlinedPolicyOrThrow(createThing,
+                                                initialPolicy))
                                 .orElseGet(() -> enforceCreateThingByAuthorizationContext(createThing));
                     });
         } else {
@@ -766,21 +798,70 @@ public final class ThingCommandEnforcement
         final var dittoHeaders = command.getDittoHeaders();
         final var authorizationContext = dittoHeaders.getAuthorizationContext();
 
-        final boolean authorized;
+        final boolean commandAuthorized;
         if (command instanceof MergeThing) {
-            authorized = enforceMergeThingCommand(policyEnforcer, (MergeThing) command, thingResourceKey,
+            commandAuthorized = enforceMergeThingCommand(policyEnforcer, (MergeThing) command, thingResourceKey,
                     authorizationContext);
         } else if (command instanceof ThingModifyCommand) {
-            authorized = policyEnforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext,
+            commandAuthorized = policyEnforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext,
                     Permission.WRITE);
         } else {
-            authorized = policyEnforcer.hasPartialPermissions(thingResourceKey, authorizationContext, Permission.READ);
+            commandAuthorized =
+                    policyEnforcer.hasPartialPermissions(thingResourceKey, authorizationContext, Permission.READ);
         }
 
-        if (authorized) {
+        final var condition = dittoHeaders.getCondition();
+        if (!(command instanceof CreateThing) && condition.isPresent()) {
+            enforceReadPermissionOnCondition(condition.get(), policyEnforcer, dittoHeaders);
+        }
+
+        if (commandAuthorized) {
             return AbstractEnforcement.addEffectedReadSubjectsToThingSignal(command, policyEnforcer);
         } else {
             throw errorForThingCommand(command);
+        }
+    }
+
+    private static void enforceReadPermissionOnCondition(final String condition,
+            final Enforcer policyEnforcer,
+            final DittoHeaders dittoHeaders) {
+
+        final var authorizationContext = dittoHeaders.getAuthorizationContext();
+        final var rootNode = tryParseRqlCondition(condition, dittoHeaders);
+        final var resourceKeys = determineResourceKeys(rootNode, dittoHeaders);
+
+        if (!policyEnforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.READ)) {
+            throw ThingConditionFailedException.newBuilderForInsufficientPermission(dittoHeaders).build();
+        }
+    }
+
+    private static RootNode tryParseRqlCondition(final String condition, final DittoHeaders dittoHeaders) {
+        try {
+            return RqlPredicateParser.getInstance().parse(condition);
+        } catch (final ParserException e) {
+            throw ThingConditionInvalidException.newBuilder(condition, e.getMessage())
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+    }
+
+    private static Set<ResourceKey> determineResourceKeys(final RootNode rootNode, final DittoHeaders dittoHeaders) {
+        final var visitor = FieldNamesPredicateVisitor.getNewInstance();
+        visitor.visit(rootNode);
+        final var extractedFieldNames = visitor.getFieldNames();
+
+        return extractedFieldNames.stream()
+                .map(fieldName -> tryGetResourceKey(fieldName, dittoHeaders))
+                .collect(Collectors.toSet());
+    }
+
+    private static ResourceKey tryGetResourceKey(final String fieldName, final DittoHeaders dittoHeaders) {
+        try {
+            return PoliciesResourceType.thingResource(fieldName);
+        } catch (final JsonPointerInvalidException e) {
+            throw ThingConditionInvalidException.newBuilder(fieldName, e.getDescription().orElse(""))
+                    .dittoHeaders(dittoHeaders)
+                    .build();
         }
     }
 
@@ -1050,8 +1131,8 @@ public final class ThingCommandEnforcement
 
         private final ActorRef thingsShardRegion;
         private final ActorRef policiesShardRegion;
-        private final Cache<CacheKey, Entry<CacheKey>> thingIdCache;
-        private final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache;
+        private final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache;
+        private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
         private final PreEnforcer preEnforcer;
 
         /**
@@ -1065,8 +1146,8 @@ public final class ThingCommandEnforcement
          */
         public Provider(final ActorRef thingsShardRegion,
                 final ActorRef policiesShardRegion,
-                final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
-                final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache,
+                final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
+                final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
                 @Nullable final PreEnforcer preEnforcer) {
 
             this.thingsShardRegion = requireNonNull(thingsShardRegion);

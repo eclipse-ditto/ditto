@@ -29,4 +29,5 @@ public interface FieldExpression {
      * @return The result of the evaluation.
      */
     <T> T accept(final FieldExpressionVisitor<T> visitor);
+
 }

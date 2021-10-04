@@ -17,7 +17,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 
 /**
- * This validator parses a CharSequence to an boolean value.
+ * This validator parses a CharSequence to a boolean value.
  * If parsing fails, a {@link org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException} is thrown.
  */
 @Immutable

@@ -16,16 +16,18 @@ import java.net.URI;
 import java.time.Duration;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown if too many requests were done (e.g. via a WebSocket connection) in a short amount of time.
  */
+@Immutable
 @JsonParsableException(errorCode = TooManyRequestsException.ERROR_CODE)
 public final class TooManyRequestsException extends DittoRuntimeException {
 

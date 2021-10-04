@@ -13,9 +13,9 @@
 package org.eclipse.ditto.thingsearch.service.starter;
 
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionModified;
-import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.internal.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
+import org.eclipse.ditto.things.api.ThingSnapshotTaken;
 import org.eclipse.ditto.things.model.signals.events.FeatureDeleted;
 import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
 

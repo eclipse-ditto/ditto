@@ -41,6 +41,7 @@ public final class ModelBasedThingsFieldExpressionFactory implements ThingsField
         hashMap.put(FIELD_NAMESPACE, FIELD_NAMESPACE);
         addMapping(hashMap, Thing.JsonFields.POLICY_ID);
         addMapping(hashMap, Thing.JsonFields.REVISION);
+        addMapping(hashMap, Thing.JsonFields.CREATED);
         addMapping(hashMap, Thing.JsonFields.MODIFIED);
         addMapping(hashMap, Thing.JsonFields.DEFINITION);
         filteringSimpleFieldMappings = Collections.unmodifiableMap(hashMap);
@@ -84,4 +85,5 @@ public final class ModelBasedThingsFieldExpressionFactory implements ThingsField
         final String value = pointer.toString();
         fieldMappings.put(key, value);
     }
+
 }
