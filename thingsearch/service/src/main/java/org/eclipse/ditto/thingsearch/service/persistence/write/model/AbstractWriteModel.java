@@ -108,6 +108,7 @@ public abstract class AbstractWriteModel {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + metadata + "]";
+        return getClass().getSimpleName() + "[" +
+                "metadata=" + metadata;
     }
 }
