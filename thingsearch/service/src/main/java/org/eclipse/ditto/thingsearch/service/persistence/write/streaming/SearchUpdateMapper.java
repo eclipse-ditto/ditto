@@ -20,10 +20,12 @@ import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 
+import akka.NotUsed;
 import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
 import akka.actor.Extension;
+import akka.stream.javadsl.Source;
 
 /**
  * Search Update Mapper to be loaded by reflection.
@@ -48,7 +50,7 @@ public abstract class SearchUpdateMapper implements Extension {
      * Should not throw an exception. If a exception is thrown, the mapping is ignored.
      * If no search update should be executed an empty list can be returned.
      */
-    public abstract List<AbstractWriteModel> processWriteModels(final List<AbstractWriteModel> writeModels);
+    public abstract Source<List<AbstractWriteModel>, NotUsed> processWriteModels(final List<AbstractWriteModel> writeModels);
 
     /**
      * Load a {@code SearchUpdateListener} dynamically according to the search configuration.

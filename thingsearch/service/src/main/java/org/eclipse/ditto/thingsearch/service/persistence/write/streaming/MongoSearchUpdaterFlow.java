@@ -29,7 +29,6 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWri
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 
 import com.mongodb.MongoBulkWriteException;
-import com.mongodb.bulk.BulkWriteResult;
 import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -110,16 +109,15 @@ final class MongoSearchUpdaterFlow {
 
         final Flow<List<AbstractWriteModel>, WriteResultAndErrors, NotUsed> writeFlow =
                 Flow.<List<AbstractWriteModel>>create()
-                        .map(writeModels -> {
-                            try {
-                                return searchUpdateMapper.processWriteModels(writeModels);
-                            } catch (final Exception e) {
-                                LOGGER.error(
-                                        "Skipping mapping of search update write models because an unexpected error occurred.",
-                                        e);
-                                return writeModels;
-                            }
-                        })
+                        .flatMapConcat(writeModels -> searchUpdateMapper.processWriteModels(writeModels)
+                                .recoverWithRetries(1,
+                                        new PFBuilder<Throwable, Source<List<AbstractWriteModel>, NotUsed>>()
+                                                .matchAny(e -> {
+                                                    LOGGER.error("Skipping mapping of search update write models " +
+                                                            "because an unexpected error occurred.", e);
+                                                    return Source.single(writeModels);
+                                                })
+                                                .build()))
                         .mapAsync(1, MongoSearchUpdaterFlow::toIncrementalMongo)
                         .flatMapMerge(parallelism, writeModels ->
                                 executeBulkWrite(shouldAcknowledge, writeModels).async(DISPATCHER_NAME, parallelism));

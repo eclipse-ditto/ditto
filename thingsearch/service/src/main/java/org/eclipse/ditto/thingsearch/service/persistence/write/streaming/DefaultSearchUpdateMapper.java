@@ -16,7 +16,9 @@ import java.util.List;
 
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 
+import akka.NotUsed;
 import akka.actor.ActorSystem;
+import akka.stream.javadsl.Source;
 
 /**
  * Default {@code SearchUpdateMapper} for custom search update processing.
@@ -32,8 +34,8 @@ public final class DefaultSearchUpdateMapper extends SearchUpdateMapper {
     }
 
     @Override
-    public List<AbstractWriteModel> processWriteModels(final List<AbstractWriteModel> writeModels) {
-        return writeModels;
+    public Source<List<AbstractWriteModel>, NotUsed> processWriteModels(final List<AbstractWriteModel> writeModels) {
+        return Source.single(writeModels);
     }
 
 }
