@@ -83,8 +83,8 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
         this.client = client;
         this.dryRun = dryRun;
         final Materializer materializer = Materializer.createMaterializer(this::getContext);
-        final int outboundQueueSize = connectionConfig.getMqttConfig().getOutboundQueueSize();
-        sourceQueue = Source.<MqttSendingContext<P>>queue(outboundQueueSize, OverflowStrategy.dropNew())
+        final int maxQueueSize = connectionConfig.getMqttConfig().getMaxQueueSize();
+        sourceQueue = Source.<MqttSendingContext<P>>queue(maxQueueSize, OverflowStrategy.dropNew())
                 .to(Sink.foreach(this::publishMqttMessage))
                 .run(materializer);
     }

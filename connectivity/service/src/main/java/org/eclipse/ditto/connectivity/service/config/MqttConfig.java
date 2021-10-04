@@ -86,7 +86,7 @@ public interface MqttConfig {
      * @return maximum number of messages buffered at the publisher actor before dropping them.
      * @since 2.1.0
      */
-    int getOutboundQueueSize();
+    int getMaxQueueSize();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for
@@ -97,7 +97,7 @@ public interface MqttConfig {
         /**
          * How many messages to buffer in the publisher actor before dropping them.
          */
-        OUTBOUND_QUEUE_SIZE("outbound-queue-size", 1000),
+        MAX_QUEUE_SIZE("max-queue-size", 1000),
 
         /**
          * The number of threads to use for the underlying event loop of the MQTT client.
