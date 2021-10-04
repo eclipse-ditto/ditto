@@ -40,7 +40,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -174,7 +173,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
-private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
+    private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
             "Closed because of unknown/failure/misconfiguration status in client.";
     /**
      * Common logger for all sub-classes of BaseClientActor as its MDC already contains the connection ID.
@@ -297,7 +296,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         // start with UNKNOWN state but send self OpenConnection because client actors are never created closed
         final BaseClientData startingData =
                 BaseClientData.BaseClientDataBuilder.from(connection.getId(), connection, ConnectivityStatus.UNKNOWN,
-                        ConnectivityStatus.OPEN, "initialized", Instant.now())
+                                ConnectivityStatus.OPEN, "initialized", Instant.now())
                         .build();
         startWith(UNKNOWN, startingData);
 
@@ -759,6 +758,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
                 .event(CloseConnectionAndShutdown.class, this::closeConnectionAndShutdown)
                 .event(SshTunnelActor.TunnelStarted.class, this::tunnelStarted)
                 .eventEquals(Control.CONNECT_AFTER_TUNNEL_ESTABLISHED, this::connectAfterTunnelStarted)
+                .eventEquals(Control.GOTO_CONNECTED_AFTER_INITIALIZATION, this::gotoConnectedAfterInitialization)
                 .event(SshTunnelActor.TunnelClosed.class, this::tunnelClosed)
                 .event(OpenConnection.class, this::openConnectionInConnectingState);
     }
@@ -1230,20 +1230,29 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
 
     private State<BaseClientState, BaseClientData> handleInitializationResult(
             final InitializationResult initializationResult, final BaseClientData data) {
-
         if (initializationResult.isSuccess()) {
-            logger.debug("Initialization of consumers, publisher and subscriptions successful, going to CONNECTED.");
-            connectionLogger.success("Connection successful.");
-            data.getSessionSenders().forEach(origin -> origin.first().tell(new Status.Success(CONNECTED), getSelf()));
-            return goTo(CONNECTED).using(data.resetSession()
-                            .resetFailureCount()
-                            .setConnectionStatus(ConnectivityStatus.OPEN)
-                            .setConnectionStatusDetails("Connected at " + Instant.now())
-                    );
+            getSelf().tell(Control.GOTO_CONNECTED_AFTER_INITIALIZATION, ActorRef.noSender());
         } else {
             logger.info("Initialization of consumers, publisher and subscriptions failed: {}. Staying in CONNECTING " +
                     "state to continue with connection recovery after backoff.", initializationResult.getFailure());
             getSelf().tell(initializationResult.getFailure(), ActorRef.noSender());
+        }
+        return stay();
+    }
+
+    private State<BaseClientState, BaseClientData> gotoConnectedAfterInitialization(final Control message,
+            final BaseClientData data) {
+        if (data.getFailureCount() == 0) {
+            logger.info("Initialization of consumers, publisher and subscriptions successful, going to CONNECTED.");
+            connectionLogger.success("Connection successful.");
+            data.getSessionSenders().forEach(origin -> origin.first().tell(new Status.Success(CONNECTED), getSelf()));
+            return goTo(CONNECTED).using(data.resetSession()
+                    .resetFailureCount()
+                    .setConnectionStatus(ConnectivityStatus.OPEN)
+                    .setConnectionStatusDetails("Connected at " + Instant.now()));
+        } else {
+            logger.info("Initialization of consumers, publisher and subscriptions successful, but failures were " +
+                    "received meanwhile. Staying in CONNECTING state to continue with connection recovery after backoff.");
             return stay();
         }
     }
@@ -1278,22 +1287,22 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
     private State<BaseClientState, BaseClientData> clientDisconnected(final ClientDisconnected event,
             final BaseClientData data) {
 
-            connectionLogger.success("Disconnected successfully.");
+        connectionLogger.success("Disconnected successfully.");
 
-            cleanupResourcesForConnection();
-            tellTunnelActor(SshTunnelActor.TunnelControl.STOP_TUNNEL);
-            data.getSessionSenders()
-                    .forEach(sender -> sender.first().tell(new Status.Success(DISCONNECTED), getSelf()));
+        cleanupResourcesForConnection();
+        tellTunnelActor(SshTunnelActor.TunnelControl.STOP_TUNNEL);
+        data.getSessionSenders()
+                .forEach(sender -> sender.first().tell(new Status.Success(DISCONNECTED), getSelf()));
 
-            final BaseClientData nextStateData = data.resetSession()
-                    .setConnectionStatus(ConnectivityStatus.CLOSED)
-                    .setConnectionStatusDetails("Disconnected at " + Instant.now());
+        final BaseClientData nextStateData = data.resetSession()
+                .setConnectionStatus(ConnectivityStatus.CLOSED)
+                .setConnectionStatusDetails("Disconnected at " + Instant.now());
 
-            if (event.shutdownAfterDisconnected()) {
-                return stop(Normal(), nextStateData);
-            } else {
-                return goTo(DISCONNECTED).using(nextStateData);
-            }
+        if (event.shutdownAfterDisconnected()) {
+            return stop(Normal(), nextStateData);
+        } else {
+            return goTo(DISCONNECTED).using(nextStateData);
+        }
     }
 
     private void tellTunnelActor(final SshTunnelActor.TunnelControl control) {
@@ -1313,7 +1322,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         data.getSessionSenders().forEach(sender ->
                 sender.first().tell(getStatusToReport(event.getFailure(), sender.second()), getSelf()));
 
-        return backoffAfterFailure(event, data);
+        return backoffAfterFailure(event, data.increaseFailureCount());
     }
 
     private State<BaseClientState, BaseClientData> connectedConnectionFailed(final ConnectionFailure event,
@@ -1340,13 +1349,13 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         dittoProtocolSub.removeSubscriber(getSelf());
         if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
             if (reconnectTimeoutStrategy.canReconnect()) {
-                if (data.getFailureCount() > 0) {
+                if (data.getFailureCount() > 1) {
                     connectionLogger.failure(
-                            "Reconnection attempt <{0}> failed due to: {1}. Reconnect after backoff was " +
+                            "Received {0} subsequent failures during backoff: {1}. Reconnect after backoff was " +
                                     "already triggered.", data.getFailureCount(), event.getFailureDescription());
-                    logger.info("Reconnection attempt <{}> failed: {}. Reconnect was already triggered.",
+                    logger.info("Received {} subsequent failures during backoff: {}. Reconnect was already triggered.",
                             data.getFailureCount(), event);
-                    return stay().using(data.increaseFailureCount());
+                    return stay();
                 } else {
                     final Duration nextBackoff = reconnectTimeoutStrategy.getNextBackoff();
                     final var errorMessage =
@@ -1356,7 +1365,6 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
                     logger.info("Connection failed: {}. Reconnect after: {}. Resolved status: {}. " +
                             "Going to 'CONNECTING'", event, nextBackoff, resolvedStatus);
                     return goToConnecting(nextBackoff).using(data.resetSession()
-                            .increaseFailureCount()
                             .setConnectionStatus(resolvedStatus)
                             .setConnectionStatusDetails(event.getFailureDescription())
                     );
@@ -1373,6 +1381,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
                 // stay in INITIALIZED state until re-opened manually
                 return goTo(INITIALIZED)
                         .using(data.resetSession()
+                                .resetFailureCount()
                                 .setConnectionStatus(connectivityStatusResolver.resolve(event))
                                 .setConnectionStatusDetails(event.getFailureDescription()
                                         + " Reached maximum retries after backing off after failure and thus will " +
@@ -2250,7 +2259,8 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
     private enum Control {
         INIT_COMPLETE,
         REFRESH_CLIENT_ACTOR_REFS,
-        CONNECT_AFTER_TUNNEL_ESTABLISHED
+        CONNECT_AFTER_TUNNEL_ESTABLISHED,
+        GOTO_CONNECTED_AFTER_INITIALIZATION
     }
 
     /**
