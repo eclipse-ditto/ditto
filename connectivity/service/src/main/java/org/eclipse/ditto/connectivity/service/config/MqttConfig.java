@@ -84,7 +84,7 @@ public interface MqttConfig {
 
     /**
      * @return maximum number of messages buffered at the publisher actor before dropping them.
-     * @since 2.1.0
+     * @since 2.2.0
      */
     int getMaxQueueSize();
 
