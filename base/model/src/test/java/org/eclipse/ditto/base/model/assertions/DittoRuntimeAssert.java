@@ -127,6 +127,14 @@ public final class DittoRuntimeAssert extends AbstractAssert<DittoRuntimeAssert,
         return this;
     }
 
+    public DittoRuntimeAssert hasNoCause() {
+        isNotNull();
+
+        final Throwable actualCause = actual.getCause();
+        assertThat(actualCause).as("Expected no cause").isNull();
+        return this;
+    }
+
     public DittoRuntimeAssert hasHref(final URI expectedHref) {
         isNotNull();
 

@@ -12,51 +12,231 @@
  */
 package org.eclipse.ditto.things.model.signals.commands.exceptions;
 
+import static org.eclipse.ditto.things.model.signals.commands.TestConstants.Thing.POLICY_ID;
+import static org.eclipse.ditto.things.model.signals.commands.TestConstants.Thing.THING_ID;
 import static org.eclipse.ditto.things.model.signals.commands.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.net.URI;
+import java.text.MessageFormat;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.base.model.assertions.DittoBaseAssertions;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
-import org.eclipse.ditto.things.model.signals.commands.TestConstants;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.junit.Rule;
 import org.junit.Test;
-
+import org.junit.rules.TestName;
 
 /**
  * Unit test for {@link ThingNotCreatableException}.
  */
-public class ThingNotCreatableExceptionTest {
+public final class ThingNotCreatableExceptionTest {
 
-    private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(DittoRuntimeException.JsonFields.STATUS, HttpStatus.NOT_FOUND.getCode())
-            .set(DittoRuntimeException.JsonFields.ERROR_CODE, ThingNotCreatableException.ERROR_CODE)
-            .set(DittoRuntimeException.JsonFields.MESSAGE,
-                    TestConstants.Thing.THING_NOT_CREATABLE_EXCEPTION.getMessage())
-            .set(DittoRuntimeException.JsonFields.DESCRIPTION,
-                    TestConstants.Thing.THING_NOT_CREATABLE_EXCEPTION.getDescription().get())
-            .set(DittoRuntimeException.JsonFields.HREF,
-                    TestConstants.Thing.THING_NOT_CREATABLE_EXCEPTION.getHref()
-                            .map(URI::toString).orElse(null))
-            .build();
-
+    @Rule
+    public final TestName testName = new TestName();
 
     @Test
     public void assertImmutability() {
         assertInstancesOf(ThingNotCreatableException.class, areImmutable());
     }
 
+    @Test
+    public void instanceFromBuilderForPolicyMissing() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+
+        final ThingNotCreatableException underTest =
+                ThingNotCreatableException.newBuilderForPolicyMissing(THING_ID, POLICY_ID)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+
+        assertThat(underTest)
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .hasDittoHeaders(dittoHeaders)
+                .hasMessage(MessageFormat.format(ThingNotCreatableException.MESSAGE_TEMPLATE, THING_ID, POLICY_ID))
+                .hasDescription(ThingNotCreatableException.DEFAULT_DESCRIPTION_NOT_EXISTING)
+                .hasNoCause()
+                .hasNoHref();
+    }
 
     @Test
-    public void checkThingErrorCodeWorks() {
-        final DittoRuntimeException actual =
-                GlobalErrorRegistry.getInstance().parse(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
+    public void instanceFromBuilderForPolicyExisting() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
 
-        assertThat(actual).isEqualTo(TestConstants.Thing.THING_NOT_CREATABLE_EXCEPTION);
+        final ThingNotCreatableException underTest =
+                ThingNotCreatableException.newBuilderForPolicyExisting(THING_ID, POLICY_ID)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+
+        assertThat(underTest)
+                .hasStatus(HttpStatus.BAD_REQUEST)
+                .hasDittoHeaders(dittoHeaders)
+                .hasMessage(MessageFormat.format(ThingNotCreatableException.MESSAGE_TEMPLATE_POLICY_CREATION_FAILURE,
+                        THING_ID,
+                        POLICY_ID))
+                .hasDescription(ThingNotCreatableException.DEFAULT_DESCRIPTION_POLICY_CREATION_FAILED)
+                .hasNoCause()
+                .hasNoHref();
+    }
+
+    @Test
+    public void instanceForLiveChannel() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+
+        final ThingNotCreatableException underTest = ThingNotCreatableException.forLiveChannel(dittoHeaders);
+
+        assertThat(underTest)
+                .hasStatus(HttpStatus.METHOD_NOT_ALLOWED)
+                .hasDittoHeaders(dittoHeaders)
+                .hasMessage(ThingNotCreatableException.MESSAGE_WRONG_CHANNEL)
+                .hasDescription(ThingNotCreatableException.DEFAULT_DESCRIPTION_WRONG_CHANNEL)
+                .hasNoCause()
+                .hasNoHref();
+    }
+
+    @Test
+    public void setDittoHeaders() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        final ThingNotCreatableException thingNotCreatableException =
+                ThingNotCreatableException.forLiveChannel(DittoHeaders.empty());
+
+        final DittoRuntimeException underTest = thingNotCreatableException.setDittoHeaders(dittoHeaders);
+
+        DittoBaseAssertions.assertThat(underTest)
+                .hasStatus(HttpStatus.METHOD_NOT_ALLOWED)
+                .hasDittoHeaders(dittoHeaders)
+                .hasMessage(ThingNotCreatableException.MESSAGE_WRONG_CHANNEL)
+                .hasDescription(ThingNotCreatableException.DEFAULT_DESCRIPTION_WRONG_CHANNEL)
+                .hasNoCause()
+                .hasNoHref();
+    }
+
+    @Test
+    public void instanceForLiveChannelToJson() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        final ThingNotCreatableException underTest = ThingNotCreatableException.forLiveChannel(dittoHeaders);
+        final JsonObjectBuilder expectedJsonObject = JsonObject.newBuilder()
+                .set(DittoRuntimeException.JsonFields.MESSAGE, underTest.getMessage())
+                .set(DittoRuntimeException.JsonFields.DESCRIPTION, underTest.getDescription().orElse(null))
+                .set(DittoRuntimeException.JsonFields.ERROR_CODE, underTest.getErrorCode())
+                .set(DittoRuntimeException.JsonFields.STATUS, underTest.getHttpStatus().getCode());
+
+        assertThat(underTest.toJson()).isEqualTo(expectedJsonObject);
+    }
+
+    @Test
+    public void instanceForMissingPolicyFromJson() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        final ThingNotCreatableException thingNotCreatableException =
+                ThingNotCreatableException.forLiveChannel(dittoHeaders);
+        final JsonObject jsonObject = thingNotCreatableException.toJson();
+
+        DittoBaseAssertions.assertThat(ThingNotCreatableException.fromJson(jsonObject, dittoHeaders))
+                .isEqualTo(thingNotCreatableException);
+    }
+
+    @Test
+    public void instanceForMissingPolicyToJson() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        final ThingNotCreatableException underTest =
+                ThingNotCreatableException.newBuilderForPolicyMissing(THING_ID, POLICY_ID)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+        final JsonObjectBuilder expectedJsonObject = JsonObject.newBuilder()
+                .set(DittoRuntimeException.JsonFields.MESSAGE, underTest.getMessage())
+                .set(DittoRuntimeException.JsonFields.DESCRIPTION, underTest.getDescription().orElse(null))
+                .set(DittoRuntimeException.JsonFields.ERROR_CODE, underTest.getErrorCode())
+                .set(DittoRuntimeException.JsonFields.STATUS, underTest.getHttpStatus().getCode());
+
+        assertThat(underTest.toJson()).isEqualTo(expectedJsonObject);
+    }
+
+    @Test
+    public void instanceForLiveChannelFromJson() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        final ThingNotCreatableException thingNotCreatableException =
+                ThingNotCreatableException.newBuilderForPolicyMissing(THING_ID, POLICY_ID)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+        final JsonObject jsonObject = thingNotCreatableException.toJson();
+
+        DittoBaseAssertions.assertThat(ThingNotCreatableException.fromJson(jsonObject, dittoHeaders))
+                .isEqualTo(thingNotCreatableException);
+    }
+
+    @Test
+    public void instanceForExistingPolicyToJson() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        final ThingNotCreatableException underTest =
+                ThingNotCreatableException.newBuilderForPolicyExisting(THING_ID, POLICY_ID)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+        final JsonObjectBuilder expectedJsonObject = JsonObject.newBuilder()
+                .set(DittoRuntimeException.JsonFields.MESSAGE, underTest.getMessage())
+                .set(DittoRuntimeException.JsonFields.DESCRIPTION, underTest.getDescription().orElse(null))
+                .set(DittoRuntimeException.JsonFields.ERROR_CODE, underTest.getErrorCode())
+                .set(DittoRuntimeException.JsonFields.STATUS, underTest.getHttpStatus().getCode());
+
+        assertThat(underTest.toJson()).isEqualTo(expectedJsonObject);
+    }
+
+    @Test
+    public void instanceForExistingPolicyFromJson() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        final ThingNotCreatableException thingNotCreatableException =
+                ThingNotCreatableException.newBuilderForPolicyExisting(THING_ID, POLICY_ID)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+        final JsonObject jsonObject = thingNotCreatableException.toJson();
+
+        DittoBaseAssertions.assertThat(ThingNotCreatableException.fromJson(jsonObject, dittoHeaders))
+                .isEqualTo(thingNotCreatableException);
+    }
+
+    @Test
+    public void parseInstanceForMissingPolicy() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        final ThingNotCreatableException thingNotCreatableException =
+                ThingNotCreatableException.newBuilderForPolicyMissing(THING_ID, POLICY_ID)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+        final GlobalErrorRegistry globalErrorRegistry = GlobalErrorRegistry.getInstance();
+
+        final DittoRuntimeException parsedDittoRuntimeException =
+                globalErrorRegistry.parse(thingNotCreatableException.toJson(), dittoHeaders);
+
+        DittoBaseAssertions.assertThat(parsedDittoRuntimeException).isEqualTo(thingNotCreatableException);
+    }
+
+    @Test
+    public void parseInstanceForExistingPolicy() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        final ThingNotCreatableException thingNotCreatableException =
+                ThingNotCreatableException.newBuilderForPolicyExisting(THING_ID, POLICY_ID)
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+        final GlobalErrorRegistry globalErrorRegistry = GlobalErrorRegistry.getInstance();
+
+        final DittoRuntimeException parsedDittoRuntimeException =
+                globalErrorRegistry.parse(thingNotCreatableException.toJson(), dittoHeaders);
+
+        DittoBaseAssertions.assertThat(parsedDittoRuntimeException).isEqualTo(thingNotCreatableException);
+    }
+
+    @Test
+    public void parseInstanceForLiveChannel() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        final ThingNotCreatableException thingNotCreatableException =
+                ThingNotCreatableException.forLiveChannel(dittoHeaders);
+        final GlobalErrorRegistry globalErrorRegistry = GlobalErrorRegistry.getInstance();
+
+        final DittoRuntimeException parsedDittoRuntimeException =
+                globalErrorRegistry.parse(thingNotCreatableException.toJson(), dittoHeaders);
+
+        DittoBaseAssertions.assertThat(parsedDittoRuntimeException).isEqualTo(thingNotCreatableException);
     }
 
 }
