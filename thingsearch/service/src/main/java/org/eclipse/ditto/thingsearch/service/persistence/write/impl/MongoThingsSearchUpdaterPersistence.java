@@ -28,10 +28,11 @@ import org.bson.BsonInt32;
 import org.bson.BsonString;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.thingsearch.service.common.config.UpdaterPersistenceConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.ThingsSearchUpdaterPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
@@ -54,17 +55,23 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
 
     private final MongoCollection<Document> collection;
 
-    private MongoThingsSearchUpdaterPersistence(final MongoDatabase database) {
-        collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME);
+    private MongoThingsSearchUpdaterPersistence(final MongoDatabase database,
+            final UpdaterPersistenceConfig updaterPersistenceConfig) {
+
+        collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME)
+                .withReadConcern(updaterPersistenceConfig.readConcern().getMongoReadConcern())
+                .withReadPreference(updaterPersistenceConfig.readPreference().getMongoReadPreference());
     }
 
     /**
      * Constructor.
      *
      * @param database the database.
+     * @param updaterPersistenceConfig the updater persistence config to use.
      */
-    public static ThingsSearchUpdaterPersistence of(final MongoDatabase database) {
-        return new MongoThingsSearchUpdaterPersistence(database);
+    public static ThingsSearchUpdaterPersistence of(final MongoDatabase database,
+            final UpdaterPersistenceConfig updaterPersistenceConfig) {
+        return new MongoThingsSearchUpdaterPersistence(database, updaterPersistenceConfig);
     }
 
     @Override

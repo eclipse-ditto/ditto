@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -15,6 +15,7 @@ package org.eclipse.ditto.policies.model.enforcers.tree;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 import javax.annotation.Nullable;
@@ -26,33 +27,32 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Permissions;
-import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
 
 /**
- * @since 1.1.0
+ * @since 2.2.0
  */
 @NotThreadSafe
 @ParametersAreNonnullByDefault
-final class CollectEffectedSubjectsVisitor implements Visitor<EffectedSubjects> {
+final class CollectUnrestrictedSubjectsVisitor implements Visitor<Set<AuthorizationSubject>> {
 
     private final Permissions expectedPermissions;
 
     private final Function<JsonPointer, PointerLocation> pointerLocationEvaluator;
-    private final EffectedSubjectsBuilder effectedSubjectsBuilder;
     private final Collection<ResourceNodeEvaluator> evaluators;
+    private final Set<AuthorizationSubject> unrestrictedSubjects;
     @Nullable private ResourceNodeEvaluator currentEvaluator;
 
     /**
-     * Constructs a new {@code CollectEffectedSubjectIdsVisitor} object.
+     * Constructs a new {@code CollectUnrestrictedSubjectsVisitor} object.
      *
      * @throws NullPointerException if any argument is {@code null}.
      */
-    CollectEffectedSubjectsVisitor(final JsonPointer resourcePointer, final Permissions expectedPermissions) {
+    CollectUnrestrictedSubjectsVisitor(final JsonPointer resourcePointer, final Permissions expectedPermissions) {
         this.expectedPermissions = expectedPermissions;
 
         pointerLocationEvaluator = new PointerLocationEvaluator(resourcePointer);
-        effectedSubjectsBuilder = new EffectedSubjectsBuilder();
         evaluators = new HashSet<>();
+        unrestrictedSubjects = new HashSet<>();
         currentEvaluator = null;
     }
 
@@ -80,11 +80,11 @@ final class CollectEffectedSubjectsVisitor implements Visitor<EffectedSubjects> 
     }
 
     @Override
-    public EffectedSubjects get() {
+    public Set<AuthorizationSubject> get() {
 
         // populate effectedSubjectIdsBuilder via side effect
         evaluators.forEach(ResourceNodeEvaluator::evaluate);
-        return effectedSubjectsBuilder.build();
+        return new HashSet<>(unrestrictedSubjects);
     }
 
     /**
@@ -96,21 +96,24 @@ final class CollectEffectedSubjectsVisitor implements Visitor<EffectedSubjects> 
     private final class ResourceNodeEvaluator {
 
         private final AuthorizationSubject subject;
-        private final WeightedPermissions weightedPermissionsForSubjectId;
+        private final WeightedPermissions weightedPermissions;
 
         private ResourceNodeEvaluator(final CharSequence subjectId) {
             subject = AuthorizationModelFactory.newAuthSubject(subjectId);
-            weightedPermissionsForSubjectId = new WeightedPermissions();
+            weightedPermissions = new WeightedPermissions();
         }
 
         private void aggregateWeightedPermissions(final ResourceNode resourceNode) {
+            final EffectedPermissions effectedPermissions = resourceNode.getPermissions();
+            final Permissions grantedPermissions = effectedPermissions.getGrantedPermissions();
+            final Permissions revokedPermissions = effectedPermissions.getRevokedPermissions();
+
             final PointerLocation pointerLocation = getLocationInRelationToTargetPointer(resourceNode);
             if (PointerLocation.ABOVE == pointerLocation || PointerLocation.SAME == pointerLocation) {
-                final EffectedPermissions effectedPermissions = resourceNode.getPermissions();
-                final Permissions grantedPermissions = effectedPermissions.getGrantedPermissions();
-                final Permissions revokedPermissions = effectedPermissions.getRevokedPermissions();
-                weightedPermissionsForSubjectId.addGranted(grantedPermissions, resourceNode.getLevel());
-                weightedPermissionsForSubjectId.addRevoked(revokedPermissions, resourceNode.getLevel());
+                weightedPermissions.addGranted(grantedPermissions, resourceNode.getLevel());
+                weightedPermissions.addRevoked(revokedPermissions, resourceNode.getLevel());
+            } else if (PointerLocation.BELOW == pointerLocation) {
+                weightedPermissions.addRevoked(revokedPermissions, resourceNode.getLevel());
             }
         }
 
@@ -119,15 +122,14 @@ final class CollectEffectedSubjectsVisitor implements Visitor<EffectedSubjects> 
         }
 
         private void evaluate() {
-
             final Map<String, WeightedPermission> revoked =
-                    weightedPermissionsForSubjectId.getRevokedWithHighestWeight(expectedPermissions);
+                    weightedPermissions.getRevokedWithHighestWeight(expectedPermissions);
             final Map<String, WeightedPermission> granted =
-                    weightedPermissionsForSubjectId.getGrantedWithHighestWeight(expectedPermissions);
+                    weightedPermissions.getGrantedWithHighestWeight(expectedPermissions);
             if (areExpectedPermissionsEffectivelyRevoked(revoked, granted)) {
-                effectedSubjectsBuilder.withRevoked(subject);
+                unrestrictedSubjects.remove(subject);
             } else if (areExpectedPermissionsEffectivelyGranted(granted, revoked)) {
-                effectedSubjectsBuilder.withGranted(subject);
+                unrestrictedSubjects.add(subject);
             } // else the expected permissions are undefined
         }
 

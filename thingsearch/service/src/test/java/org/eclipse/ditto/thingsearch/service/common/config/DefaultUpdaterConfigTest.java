@@ -45,7 +45,8 @@ public final class DefaultUpdaterConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultUpdaterConfig.class, areImmutable(),
-                provided(BackgroundSyncConfig.class, DefaultStreamConfig.class).isAlsoImmutable());
+                provided(BackgroundSyncConfig.class, DefaultStreamConfig.class, DefaultUpdaterPersistenceConfig.class)
+                        .isAlsoImmutable());
     }
 
     @Test

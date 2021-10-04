@@ -121,7 +121,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         updaterStreamWithAcknowledgementsKillSwitch = searchUpdaterStream.start(getContext(), true);
 
         final var searchUpdaterPersistence =
-                MongoThingsSearchUpdaterPersistence.of(dittoMongoClient.getDefaultDatabase());
+                MongoThingsSearchUpdaterPersistence.of(dittoMongoClient.getDefaultDatabase(),
+                        updaterConfig.getUpdaterPersistenceConfig());
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 

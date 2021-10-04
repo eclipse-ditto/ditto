@@ -60,6 +60,12 @@ public final class TrieBasedPolicyAlgorithm implements PolicyAlgorithm {
     }
 
     @Override
+    public Set<AuthorizationSubject> getSubjectsWithUnrestrictedPermission(final ResourceKey resourceKey,
+            final Permissions permissions) {
+        return trieBasedPolicyEvaluator.getSubjectsWithUnrestrictedPermission(resourceKey, permissions);
+    }
+
+    @Override
     public JsonObject buildJsonView(final ResourceKey resourceKey, final Iterable<JsonField> jsonFields,
             final AuthorizationContext authorizationContext, final Permissions permissions) {
         return trieBasedPolicyEvaluator.buildJsonView(resourceKey, jsonFields, authorizationContext, permissions);
