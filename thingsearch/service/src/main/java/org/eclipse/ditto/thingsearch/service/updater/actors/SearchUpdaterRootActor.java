@@ -34,8 +34,8 @@ import org.eclipse.ditto.thingsearch.service.starter.actors.SearchRootActor;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorRefFactory;
 import akka.actor.ActorSelection;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
@@ -175,7 +175,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      * @param system the actor system.
      * @return actor selection for the ThingsUpdater in the system.
      */
-    public static ActorSelection getThingsUpdater(final ActorSystem system) {
+    public static ActorSelection getThingsUpdater(final ActorRefFactory system) {
         return system.actorSelection(
                 String.format("user/%s/%s/%s", SearchRootActor.ACTOR_NAME, ACTOR_NAME, ThingsUpdater.ACTOR_NAME));
     }

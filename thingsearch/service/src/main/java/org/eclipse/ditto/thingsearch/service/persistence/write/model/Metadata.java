@@ -60,7 +60,8 @@ public final class Metadata {
             final Collection<StartedTimer> timers,
             final Collection<ActorRef> senders,
             final boolean invalidateThing,
-            final boolean invalidatePolicy, @Nullable final ActorRef origin) {
+            final boolean invalidatePolicy,
+            @Nullable final ActorRef origin) {
 
         this.thingId = thingId;
         this.thingRevision = thingRevision;
@@ -320,9 +321,9 @@ public final class Metadata {
     }
 
     /**
-     * Returns whether this metadata should invalidate the enforcer cache.
+     * Returns whether this metadata should invalidate the cached policy.
      *
-     * @return whether to invalidate the enforcer cache.
+     * @return whether to invalidate the cached policy.
      */
     public boolean shouldInvalidatePolicy() {
         return invalidatePolicy;

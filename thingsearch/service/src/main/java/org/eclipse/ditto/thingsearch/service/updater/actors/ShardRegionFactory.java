@@ -81,16 +81,9 @@ public final class ShardRegionFactory {
                 numberOfShards);
     }
 
-    /**
-     * Create a new shard region proxy.
-     *
-     * @param shardRegion the shard region name.
-     * @param clusterRole the cluster role where the shard region starts.
-     * @param numberOfShards how many shards the shard region has.
-     * @return actor ref of the shard region.
-     */
-    public ActorRef createShardRegionProxy(final String shardRegion, final String clusterRole,
+    private ActorRef createShardRegionProxy(final String shardRegion, final String clusterRole,
             final int numberOfShards) {
+
         final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
         final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
         return clusterSharding.startProxy(shardRegion, Optional.of(clusterRole), shardRegionExtractor);

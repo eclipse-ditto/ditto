@@ -44,6 +44,7 @@ public final class MongoClientExtension implements Extension {
 
     private MongoClientExtension(final DittoMongoClient mongoClient,
             final DittoMongoClient updaterClient) {
+
         this.mongoClient = mongoClient;
         this.updaterClient = updaterClient;
     }
@@ -79,6 +80,7 @@ public final class MongoClientExtension implements Extension {
     @Nullable
     private static CommandListener getCommandListenerOrNull(final MongoDbConfig.MonitoringConfig monitoringConfig,
             final String prefix) {
+
         return monitoringConfig.isCommandsEnabled() ? new KamonCommandListener(prefix) : null;
     }
 
