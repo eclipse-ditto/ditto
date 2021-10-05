@@ -29,8 +29,14 @@ import java.util.concurrent.Executor;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationProviderUnavailableException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayJwtIssuerNotSupportedException;
 import org.eclipse.ditto.gateway.service.security.cache.PublicKeyIdWithIssuer;
 import org.eclipse.ditto.gateway.service.security.utils.HttpClientFacade;
+import org.eclipse.ditto.internal.utils.cache.Cache;
+import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -38,15 +44,9 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebKey;
 import org.eclipse.ditto.jwt.model.JsonWebKey;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
-import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
-import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationProviderUnavailableException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayJwtIssuerNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,10 +132,15 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         final String keyId = publicKeyIdWithIssuer.getKeyId();
         LOGGER.debug("Loading public key with id <{}> from issuer <{}>.", keyId, issuer);
 
-        final JwtSubjectIssuerConfig subjectIssuerConfig = jwtSubjectIssuersConfig.getConfigItem(issuer)
-                .orElseThrow(() -> GatewayJwtIssuerNotSupportedException.newBuilder(issuer).build());
+        final Optional<JwtSubjectIssuerConfig> subjectIssuerConfigOpt = jwtSubjectIssuersConfig.getConfigItem(issuer);
+        if (subjectIssuerConfigOpt.isEmpty()) {
+            LOGGER.info("The JWT issuer <{}> is not included in Ditto's gateway configuration at " +
+                            "'ditto.gateway.authentication.oauth.openid-connect-issuers', supported are: <{}>",
+                            issuer, jwtSubjectIssuersConfig);
+            return CompletableFuture.failedFuture(GatewayJwtIssuerNotSupportedException.newBuilder(issuer).build());
+        }
 
-        final String discoveryEndpoint = getDiscoveryEndpoint(subjectIssuerConfig.getIssuer());
+        final String discoveryEndpoint = getDiscoveryEndpoint(subjectIssuerConfigOpt.get().getIssuer());
         final CompletionStage<HttpResponse> responseFuture = getPublicKeysFromDiscoveryEndpoint(discoveryEndpoint);
         final CompletionStage<JsonArray> publicKeysFuture = responseFuture.thenCompose(this::mapResponseToJsonArray);
         return publicKeysFuture.thenApply(publicKeysArray -> mapToPublicKey(publicKeysArray, keyId, discoveryEndpoint))
