@@ -14,6 +14,8 @@ package org.eclipse.ditto.policies.service.persistence.actors.announcements;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import org.eclipse.ditto.json.JsonPointer;
@@ -36,6 +38,9 @@ import akka.actor.Terminated;
 import akka.japi.pf.ReceiveBuilder;
 import akka.testkit.javadsl.TestKit;
 
+/**
+ * Tests {@link PolicyAnnouncementManager}.
+ */
 public final class PolicyAnnouncementManagerTest {
 
     private final ActorSystem system = ActorSystem.create();
@@ -81,12 +86,14 @@ public final class PolicyAnnouncementManagerTest {
             final var child2 = watch(expectMsgClass(ActorRef.class));
             underTest.tell(policy2, getRef());
 
+            final var terminatedActor = new AtomicReference<ActorRef>();
+            final var subjectDeletedActor = new AtomicReference<ActorRef>();
             final Consumer<Object> assertMessage = message -> {
                 if (message instanceof Terminated) {
-                    assertThat(((Terminated) message).getActor()).isEqualTo(child1);
+                    terminatedActor.set(((Terminated) message).getActor());
                 } else {
                     assertThat(message).isEqualTo(SubjectExpiryActor.Message.SUBJECT_DELETED);
-                    assertThat(getLastSender()).isEqualTo(child2);
+                    subjectDeletedActor.set(getLastSender());
                 }
             };
 
@@ -94,6 +101,10 @@ public final class PolicyAnnouncementManagerTest {
             assertMessage.accept(message1);
             final var message2 = expectMsgClass(Object.class);
             assertMessage.accept(message2);
+            final var childActors = Set.of(child1, child2);
+            assertThat(terminatedActor.get()).isIn(childActors);
+            assertThat(subjectDeletedActor.get()).isIn(childActors);
+            assertThat(terminatedActor.get()).isNotEqualTo(subjectDeletedActor.get());
         }};
     }
 

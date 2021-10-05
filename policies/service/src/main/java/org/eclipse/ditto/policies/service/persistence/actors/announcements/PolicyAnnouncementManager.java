@@ -13,8 +13,6 @@
 package org.eclipse.ditto.policies.service.persistence.actors.announcements;
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,9 +63,9 @@ public final class PolicyAnnouncementManager extends AbstractActor {
     }
 
     PolicyAnnouncementManager(final Function<Subject, Props> createChildProps) {
-        this.subjectExpiryActors = new LinkedHashMap<>();
-        this.activeSubjects = new LinkedHashMap<>();
-        this.activeSubjectIds = new LinkedHashMap<>();
+        this.subjectExpiryActors = new HashMap<>();
+        this.activeSubjects = new HashMap<>();
+        this.activeSubjectIds = new HashMap<>();
         this.createChildProps = createChildProps;
     }
 
@@ -170,7 +168,7 @@ public final class PolicyAnnouncementManager extends AbstractActor {
                     .map(PolicyEntry::getSubjects)
                     .flatMap(Subjects::stream)
                     .filter(subject -> subject.getExpiry().isPresent() || subject.getAnnouncement().isPresent())
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
+                    .collect(Collectors.toSet());
         } else {
             return Set.of();
         }
