@@ -41,7 +41,7 @@ public interface Amqp10PublisherConfig {
         /**
          * How many messages to buffer in the publisher actor before dropping them.
          */
-        MAX_QUEUE_SIZE("max-queue-size", 10),
+        MAX_QUEUE_SIZE("max-queue-size", 1000),
 
         /**
          * How many messages will be published in parallel

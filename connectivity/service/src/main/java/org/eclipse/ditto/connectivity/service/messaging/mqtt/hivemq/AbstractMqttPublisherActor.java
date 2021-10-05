@@ -18,6 +18,7 @@ import static org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttHeader.M
 
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.GenericTarget;
+import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
@@ -46,6 +48,12 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttPublishTarget;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 
 import akka.japi.pf.ReceiveBuilder;
+import akka.stream.Materializer;
+import akka.stream.OverflowStrategy;
+import akka.stream.QueueOfferResult;
+import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
+import akka.stream.javadsl.SourceQueueWithComplete;
 
 /**
  * Common implementation for MQTT3 and MQTT5 publisher actors.
@@ -57,9 +65,13 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
 
     // for target the default is qos=0 because we have qos=0 all over the akka cluster
     private static final int DEFAULT_TARGET_QOS = 0;
+    private static final String TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION = "This can have the following reasons:\n" +
+            "a) The MQTT broker does not consume the messages fast enough.\n" +
+            "b) The client count of this connection is not configured high enough.";
 
     private final Function<P, CompletableFuture<R>> client;
     private final boolean dryRun;
+    private final SourceQueueWithComplete<MqttSendingContext<P>> sourceQueue;
 
     AbstractMqttPublisherActor(final Connection connection,
             final Function<P, CompletableFuture<R>> client,
@@ -70,6 +82,11 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
         super(connection, clientId, connectivityStatusResolver);
         this.client = client;
         this.dryRun = dryRun;
+        final Materializer materializer = Materializer.createMaterializer(this::getContext);
+        final int maxQueueSize = connectionConfig.getMqttConfig().getMaxQueueSize();
+        sourceQueue = Source.<MqttSendingContext<P>>queue(maxQueueSize, OverflowStrategy.dropNew())
+                .to(Sink.foreach(this::publishMqttMessage))
+                .run(materializer);
     }
 
     /**
@@ -116,7 +133,7 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
                 WithEntityId.getEntityIdOfType(EntityId.class, signal);
         final Acknowledgement issuedAck;
         if (autoAckLabel.isPresent() && entityIdOptional.isPresent()) {
-            final EntityId entityId =entityIdOptional.get();
+            final EntityId entityId = entityIdOptional.get();
             issuedAck = Acknowledgement.of(autoAckLabel.get(), entityId, HttpStatus.OK, dittoHeaders);
         } else {
             issuedAck = null;
@@ -154,15 +171,49 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
             final MqttQos qos = determineQos(message.getHeaders(), publishTarget);
             final boolean retain = determineMqttRetainFromHeaders(message.getHeaders());
             final P mqttMessage = mapExternalMessageToMqttMessage(topic, qos, retain, message);
-            if (logger.isDebugEnabled()) {
-                logger.withCorrelationId(signal)
-                        .debug("Publishing MQTT message to topic <{}>: {}", getTopic(mqttMessage),
-                                decodeAsHumanReadable(getPayload(mqttMessage).orElse(null), message));
-            }
-            return client.apply(mqttMessage).thenApply(result -> buildResponse(signal, autoAckTarget));
+
+            final MqttSendingContext<P> mqttSendingContext =
+                    new MqttSendingContext<>(mqttMessage, signal, new CompletableFuture<>(), message, autoAckTarget);
+            return offerToSourceQueue(mqttSendingContext);
         } catch (final Exception e) {
             return CompletableFuture.failedFuture(e);
         }
+    }
+
+    private CompletionStage<SendResult> offerToSourceQueue(final MqttSendingContext<P> mqttSendingContext) {
+        return sourceQueue.offer(mqttSendingContext)
+                .thenCompose(queueOfferResult -> {
+                    if (Objects.equals(queueOfferResult, QueueOfferResult.dropped())) {
+                        throw MessageSendingFailedException.newBuilder()
+                                .message("Outgoing MQTT message aborted: There are too many in-flight requests.")
+                                .description(TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION)
+                                .dittoHeaders(mqttSendingContext.getMessage().getInternalHeaders())
+                                .build();
+                    }
+                    return mqttSendingContext.getSendResult();
+                })
+                .whenComplete((sendResult, error) -> {
+                    if (error != null) {
+                        final String errorDescription = "Source queue failure";
+                        logger.error(error, errorDescription);
+                        escalate(error, errorDescription);
+                    }
+                });
+    }
+
+    private void publishMqttMessage(final MqttSendingContext<P> sendingContext) {
+        final Signal<?> signal = sendingContext.getSignal();
+        final P mqttMessage = sendingContext.getMqttMessage();
+        final Target autoAckTarget = sendingContext.getAutoAckTarget();
+        if (logger.isDebugEnabled()) {
+            final ExternalMessage message = sendingContext.getMessage();
+            logger.withCorrelationId(signal)
+                    .debug("Publishing MQTT message to topic <{}>: {}", getTopic(mqttMessage),
+                            decodeAsHumanReadable(getPayload(mqttMessage).orElse(null), message));
+        }
+        client.apply(mqttMessage)
+                .thenApply(result -> buildResponse(signal, autoAckTarget))
+                .thenAccept(sendResult -> sendingContext.getSendResult().complete(sendResult));
     }
 
     private String determineTopic(final MqttPublishTarget publishTarget, final ExternalMessage message) {
