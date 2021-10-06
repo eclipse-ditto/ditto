@@ -77,6 +77,7 @@ public final class ActorSystemResource extends ExternalResource {
     @Override
     public Statement apply(final Statement base, final Description description) {
         actorSystemName = getActorSystemName(description);
+
         return super.apply(base, description);
     }
 
@@ -114,6 +115,7 @@ public final class ActorSystemResource extends ExternalResource {
         } else {
             result = materializer;
         }
+
         return result;
     }
 
@@ -132,6 +134,7 @@ public final class ActorSystemResource extends ExternalResource {
     public ActorRef newActor(final Props props) {
         final var actorSystem = getActorSystem();
         ConditionChecker.checkNotNull(props, "props");
+
         return actorSystem.actorOf(props);
     }
 
@@ -139,6 +142,7 @@ public final class ActorSystemResource extends ExternalResource {
         final var actorSystem = getActorSystem();
         ConditionChecker.checkNotNull(props, "props");
         argumentNotEmpty(actorName, "actorName");
+
         return actorSystem.actorOf(props, actorName.toString());
     }
 

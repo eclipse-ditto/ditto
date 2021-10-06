@@ -100,6 +100,7 @@ public final class ThingNotCreatableExceptionTest {
     @Test
     public void setDittoHeaders() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+
         final ThingNotCreatableException thingNotCreatableException =
                 ThingNotCreatableException.forLiveChannel(DittoHeaders.empty());
 
@@ -117,7 +118,9 @@ public final class ThingNotCreatableExceptionTest {
     @Test
     public void instanceForLiveChannelToJson() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+
         final ThingNotCreatableException underTest = ThingNotCreatableException.forLiveChannel(dittoHeaders);
+
         final JsonObjectBuilder expectedJsonObject = JsonObject.newBuilder()
                 .set(DittoRuntimeException.JsonFields.MESSAGE, underTest.getMessage())
                 .set(DittoRuntimeException.JsonFields.DESCRIPTION, underTest.getDescription().orElse(null))
@@ -130,8 +133,10 @@ public final class ThingNotCreatableExceptionTest {
     @Test
     public void instanceForMissingPolicyFromJson() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+
         final ThingNotCreatableException thingNotCreatableException =
                 ThingNotCreatableException.forLiveChannel(dittoHeaders);
+
         final JsonObject jsonObject = thingNotCreatableException.toJson();
 
         DittoBaseAssertions.assertThat(ThingNotCreatableException.fromJson(jsonObject, dittoHeaders))
@@ -141,10 +146,12 @@ public final class ThingNotCreatableExceptionTest {
     @Test
     public void instanceForMissingPolicyToJson() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+
         final ThingNotCreatableException underTest =
                 ThingNotCreatableException.newBuilderForPolicyMissing(THING_ID, POLICY_ID)
                         .dittoHeaders(dittoHeaders)
                         .build();
+
         final JsonObjectBuilder expectedJsonObject = JsonObject.newBuilder()
                 .set(DittoRuntimeException.JsonFields.MESSAGE, underTest.getMessage())
                 .set(DittoRuntimeException.JsonFields.DESCRIPTION, underTest.getDescription().orElse(null))
@@ -157,10 +164,12 @@ public final class ThingNotCreatableExceptionTest {
     @Test
     public void instanceForLiveChannelFromJson() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+
         final ThingNotCreatableException thingNotCreatableException =
                 ThingNotCreatableException.newBuilderForPolicyMissing(THING_ID, POLICY_ID)
                         .dittoHeaders(dittoHeaders)
                         .build();
+
         final JsonObject jsonObject = thingNotCreatableException.toJson();
 
         DittoBaseAssertions.assertThat(ThingNotCreatableException.fromJson(jsonObject, dittoHeaders))
@@ -170,10 +179,12 @@ public final class ThingNotCreatableExceptionTest {
     @Test
     public void instanceForExistingPolicyToJson() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+
         final ThingNotCreatableException underTest =
                 ThingNotCreatableException.newBuilderForPolicyExisting(THING_ID, POLICY_ID)
                         .dittoHeaders(dittoHeaders)
                         .build();
+
         final JsonObjectBuilder expectedJsonObject = JsonObject.newBuilder()
                 .set(DittoRuntimeException.JsonFields.MESSAGE, underTest.getMessage())
                 .set(DittoRuntimeException.JsonFields.DESCRIPTION, underTest.getDescription().orElse(null))
@@ -186,10 +197,12 @@ public final class ThingNotCreatableExceptionTest {
     @Test
     public void instanceForExistingPolicyFromJson() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+
         final ThingNotCreatableException thingNotCreatableException =
                 ThingNotCreatableException.newBuilderForPolicyExisting(THING_ID, POLICY_ID)
                         .dittoHeaders(dittoHeaders)
                         .build();
+
         final JsonObject jsonObject = thingNotCreatableException.toJson();
 
         DittoBaseAssertions.assertThat(ThingNotCreatableException.fromJson(jsonObject, dittoHeaders))
@@ -199,10 +212,12 @@ public final class ThingNotCreatableExceptionTest {
     @Test
     public void parseInstanceForMissingPolicy() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+
         final ThingNotCreatableException thingNotCreatableException =
                 ThingNotCreatableException.newBuilderForPolicyMissing(THING_ID, POLICY_ID)
                         .dittoHeaders(dittoHeaders)
                         .build();
+
         final GlobalErrorRegistry globalErrorRegistry = GlobalErrorRegistry.getInstance();
 
         final DittoRuntimeException parsedDittoRuntimeException =
@@ -214,10 +229,12 @@ public final class ThingNotCreatableExceptionTest {
     @Test
     public void parseInstanceForExistingPolicy() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+
         final ThingNotCreatableException thingNotCreatableException =
                 ThingNotCreatableException.newBuilderForPolicyExisting(THING_ID, POLICY_ID)
                         .dittoHeaders(dittoHeaders)
                         .build();
+
         final GlobalErrorRegistry globalErrorRegistry = GlobalErrorRegistry.getInstance();
 
         final DittoRuntimeException parsedDittoRuntimeException =
@@ -229,8 +246,10 @@ public final class ThingNotCreatableExceptionTest {
     @Test
     public void parseInstanceForLiveChannel() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+
         final ThingNotCreatableException thingNotCreatableException =
                 ThingNotCreatableException.forLiveChannel(dittoHeaders);
+
         final GlobalErrorRegistry globalErrorRegistry = GlobalErrorRegistry.getInstance();
 
         final DittoRuntimeException parsedDittoRuntimeException =

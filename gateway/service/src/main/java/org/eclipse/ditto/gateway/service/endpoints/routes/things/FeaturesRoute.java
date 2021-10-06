@@ -13,18 +13,18 @@
 package org.eclipse.ditto.gateway.service.endpoints.routes.things;
 
 
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.service.UriEncoding;
+import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.MessageConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
-import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.base.service.UriEncoding;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeature;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatureDefinition;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatureDesiredProperties;
@@ -206,7 +206,6 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route featuresEntryDefinition(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(PathMatchers.slash().concat(PATH_DEFINITION), () ->
                         pathEndOrSingleSlash(() ->
@@ -252,7 +251,6 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route featuresEntryProperties(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(PathMatchers.slash().concat(PATH_PROPERTIES), () ->
                         pathEndOrSingleSlash(() ->
@@ -301,7 +299,6 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route featuresEntryPropertiesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(PathMatchers.slash()
                                 .concat(PATH_PROPERTIES)
@@ -353,7 +350,6 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route featuresEntryDesiredProperties(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(PathMatchers.slash().concat(PATH_DESIRED_PROPERTIES), () ->
                         pathEndOrSingleSlash(() ->
@@ -404,7 +400,6 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route featuresEntryDesiredPropertiesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(PathMatchers.slash()
                                 .concat(PATH_DESIRED_PROPERTIES)
@@ -461,7 +456,6 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route featuresEntryInboxOutbox(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         // POST /features/{featureId}/<inbox|outbox>
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
                 messagesRoute.buildFeaturesInboxOutboxRoute(ctx, dittoHeaders, thingId, featureId)

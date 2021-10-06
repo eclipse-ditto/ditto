@@ -113,6 +113,7 @@ public final class ThingsRoute extends AbstractRoute {
                 messageConfig,
                 claimMessageConfig,
                 headerTranslator);
+
         messagesRoute = new MessagesRoute(proxyActor,
                 actorSystem,
                 httpConfig,
@@ -125,6 +126,7 @@ public final class ThingsRoute extends AbstractRoute {
     @Nullable
     private static JsonObject createInlinePolicyJson(final String jsonString) {
         final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+
         return inputJson.getValue(Policy.INLINED_FIELD_NAME)
                 .map(jsonValue -> wrapJsonRuntimeException(jsonValue::asObject))
                 .orElse(null);
@@ -133,6 +135,7 @@ public final class ThingsRoute extends AbstractRoute {
     @Nullable
     private static String getCopyPolicyFrom(final String jsonString) {
         final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+
         return inputJson.getValue(ModifyThing.JSON_COPY_POLICY_FROM).orElse(null);
     }
 
@@ -156,7 +159,6 @@ public final class ThingsRoute extends AbstractRoute {
     private Route buildThingEntryRoute(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         return concat(
                 thingsEntry(ctx, dittoHeaders, thingId),
                 thingsEntryPolicyId(ctx, dittoHeaders, thingId),
@@ -203,6 +205,7 @@ public final class ThingsRoute extends AbstractRoute {
                     .map(ThingId::of)
                     .collect(Collectors.toList());
         }
+
         return result;
     }
 
@@ -211,6 +214,7 @@ public final class ThingsRoute extends AbstractRoute {
             if (isLiveChannel(channelOpt, dittoHeaders)) {
                 throw ThingNotCreatableException.forLiveChannel(dittoHeaders);
             }
+
             return ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                     payloadSource ->
                             handlePerRequest(ctx, dittoHeaders, payloadSource,
@@ -288,6 +292,7 @@ public final class ThingsRoute extends AbstractRoute {
             throw ThingMergeInvalidException.fromMessage(
                     "The provided json value can not be applied at this resource", dittoHeaders);
         }
+
         return ThingsModelFactory.newThingBuilder(
                 ThingJsonObjectCreator.newInstance(thingJson, thingId.toString()).forPatch()).build();
     }
@@ -327,6 +332,7 @@ public final class ThingsRoute extends AbstractRoute {
         if (JsonFactory.readFrom(policyIdJson).isNull()) {
             throw PolicyIdNotDeletableException.newBuilder().build();
         }
+
         return policyIdFromJson(policyIdJson);
     }
 
@@ -344,7 +350,6 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route thingsEntryAttributes(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         return rawPathPrefix(PathMatchers.slash().concat(PATH_ATTRIBUTES), () ->
                 pathEndOrSingleSlash(() ->
                         concat(
@@ -392,7 +397,6 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route thingsEntryAttributesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         return rawPathPrefix(PathMatchers.slash()
                         .concat(PATH_ATTRIBUTES)
                         .concat(PathMatchers.slash())
@@ -444,7 +448,6 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route thingsEntryDefinition(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         return rawPathPrefix(PathMatchers.slash().concat(PATH_THING_DEFINITION), () ->
                 pathEndOrSingleSlash(() ->
                         concat(
@@ -480,12 +483,14 @@ public final class ThingsRoute extends AbstractRoute {
 
     private ThingDefinition getDefinitionFromJson(final String definitionJson) {
         return DittoJsonException.wrapJsonRuntimeException(() -> {
+            final ThingDefinition result;
             final JsonValue jsonValue = JsonFactory.readFrom(definitionJson);
             if (jsonValue.isNull()) {
-                return ThingsModelFactory.nullDefinition();
+                result = ThingsModelFactory.nullDefinition();
             } else {
-                return ThingsModelFactory.newDefinition(jsonValue.asString());
+                result = ThingsModelFactory.newDefinition(jsonValue.asString());
             }
+            return  result;
         });
     }
 
@@ -496,7 +501,6 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route thingsEntryFeatures(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         // /things/<thingId>/features
         return featuresRoute.buildFeaturesRoute(ctx, dittoHeaders, thingId);
     }
@@ -508,7 +512,6 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route thingsEntryInboxOutbox(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         // /things/<thingId>/<inbox|outbox>
         return messagesRoute.buildThingsInboxOutboxRoute(ctx, dittoHeaders, thingId);
     }
