@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.policies.service.persistence.actors.announcements;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -63,9 +64,9 @@ public final class PolicyAnnouncementManager extends AbstractActor {
     }
 
     PolicyAnnouncementManager(final Function<Subject, Props> createChildProps) {
-        this.subjectExpiryActors = new HashMap<>();
-        this.activeSubjects = new HashMap<>();
-        this.activeSubjectIds = new HashMap<>();
+        subjectExpiryActors = new HashMap<>();
+        activeSubjects = new HashMap<>();
+        activeSubjectIds = new HashMap<>();
         this.createChildProps = createChildProps;
     }
 
@@ -104,7 +105,7 @@ public final class PolicyAnnouncementManager extends AbstractActor {
             startChild(newSubject);
         }
         // copy current active subject IDs so that deleted subjects are immediately accounted for
-        final var counterMap = new HashMap<>(activeSubjectIds);
+        final Map<SubjectId, Integer> counterMap = new HashMap<>(activeSubjectIds);
         for (final var deletedSubject : deletedSubjects) {
             // precondition: child actors have started for new subjects so that modified subjects can be recognized
             sendSubjectDeleted(deletedSubject, counterMap);
@@ -150,6 +151,7 @@ public final class PolicyAnnouncementManager extends AbstractActor {
     private void notifyChildOfSubjectDeletion(final Subject subject,
             final ActorRef child,
             final Map<SubjectId, Integer> counterMap) {
+
         final var activeSubjectIdCount = counterMap.getOrDefault(subject.getId(), 0);
         if (activeSubjectIdCount >= 2) {
             // another actor took over the responsibility of child; terminate it.
@@ -162,7 +164,7 @@ public final class PolicyAnnouncementManager extends AbstractActor {
         decrementReferenceCount(subject, counterMap);
     }
 
-    private Set<Subject> getSubjectsWithExpiryOrAnnouncements(final Policy policy) {
+    private static Set<Subject> getSubjectsWithExpiryOrAnnouncements(final Policy policy) {
         if (policy.getLifecycle().filter(lifeCycle -> lifeCycle == PolicyLifecycle.ACTIVE).isPresent()) {
             return StreamSupport.stream(policy.spliterator(), false)
                     .map(PolicyEntry::getSubjects)
@@ -188,7 +190,7 @@ public final class PolicyAnnouncementManager extends AbstractActor {
         decrementReferenceCount(subject, activeSubjectIds);
     }
 
-    private void decrementReferenceCount(final Subject subject, final Map<SubjectId, Integer> counterMap) {
+    private static void decrementReferenceCount(final Subject subject, final Map<SubjectId, Integer> counterMap) {
         counterMap.computeIfPresent(subject.getId(), (k, count) -> {
             if (count <= 1) {
                 return null;
@@ -198,7 +200,9 @@ public final class PolicyAnnouncementManager extends AbstractActor {
         });
     }
 
-    private static List<Subject> calculateDifference(final Set<Subject> minuend, final Set<Subject> subtrahend) {
+    private static List<Subject> calculateDifference(final Collection<Subject> minuend,
+            final Collection<Subject> subtrahend) {
+
         return minuend.stream()
                 .filter(subject -> !subtrahend.contains(subject))
                 .collect(Collectors.toList());
