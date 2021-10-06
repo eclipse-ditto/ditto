@@ -14,6 +14,7 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,6 +28,7 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -43,13 +45,13 @@ public final class Metadata {
     private final long thingRevision;
     @Nullable private final PolicyId policyId;
     @Nullable private final Long policyRevision;
-    @Nullable final Instant modified;
+    @Nullable private final Instant modified;
     private final List<ThingEvent<?>> events;
     private final List<StartedTimer> timers;
     private final List<ActorRef> senders;
     private final boolean invalidateThing;
     private final boolean invalidatePolicy;
-    @Nullable final ActorRef origin;
+    @Nullable private final ActorRef origin;
 
     private Metadata(final ThingId thingId,
             final long thingRevision,
@@ -281,7 +283,7 @@ public final class Metadata {
      * @return the known thing events.
      */
     public List<ThingEvent<?>> getEvents() {
-        return events;
+        return Collections.unmodifiableList(events);
     }
 
     /**
@@ -363,6 +365,15 @@ public final class Metadata {
     public void sendAck() {
         send(Acknowledgement.of(DittoAcknowledgementLabel.SEARCH_PERSISTED, thingId, HttpStatus.NO_CONTENT,
                 DittoHeaders.empty()));
+    }
+
+    /**
+     * Send weak acknowledgement to senders.
+     *
+     * @param payload the payload of the weak acknowledgement.
+     */
+    public void sendWack(final JsonValue payload) {
+        send(Acknowledgement.weak(DittoAcknowledgementLabel.SEARCH_PERSISTED, thingId, DittoHeaders.empty(), payload));
     }
 
     private void send(final Acknowledgement ack) {
