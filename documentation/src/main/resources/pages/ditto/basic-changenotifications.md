@@ -55,7 +55,7 @@ specifying:
    * using the `resource:path` placeholder as query property, filtering based on the affected 
      [Ditto Protocol path](protocol-specification.html#path) of a Ditto Protocol message can be done
    * for all supported placeholders, please refer to the 
-     [placeholders documentation](basic-placeholders.html#scope-rql-expressions)
+     [placeholders documentation](basic-placeholders.html#scope-rql-expressions-when-filtering-for-ditto-protocol-messages)
 
 {% include note.html content="This filter is *by default* applied on the modified data of a Thing.<br/>
     Data which was not changed will only be considered when it was 

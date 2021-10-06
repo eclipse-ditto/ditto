@@ -122,7 +122,7 @@ specifying:
       [Ditto Protocol path](protocol-specification.html#path) of a Ditto Protocol message can be done, e.g. targeting a 
       specific message addressed to a certain feature ID
     * for all supported placeholders, please refer to the
-      [placeholders documentation](basic-placeholders.html#scope-rql-expressions)
+      [placeholders documentation](basic-placeholders.html#scope-rql-expressions-when-filtering-for-ditto-protocol-messages)
 
 
 ## Sending Messages

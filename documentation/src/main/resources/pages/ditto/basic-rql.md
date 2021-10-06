@@ -61,14 +61,15 @@ eq(attributes/location,"kitchen")
 
 When using an RQL expression in order to e.g. filter for certain 
 [change notifications](basic-changenotifications.html#by-rql-expression), the query property might be a 
-[placeholder](basic-placeholders.html#scope-rql-expressions) instead of a field in JSON representation inside the Thing.
+[placeholder](basic-placeholders.html#scope-rql-expressions-when-filtering-for-ditto-protocol-messages) instead of a 
+field in JSON representation inside the Thing.
 
 Currently supported placeholders for RQL expressions are:
 * `topic:<placeholder-name>`
 * `resource:<placeholder-name>`
 
-The [placeholder](basic-placeholders.html#scope-rql-expressions) documentation describes which placeholder names are
-supported.
+The [placeholder](basic-placeholders.html#scope-rql-expressions-when-filtering-for-ditto-protocol-messages) 
+documentation describes which placeholder names are supported.
 
 
 ### Query value
