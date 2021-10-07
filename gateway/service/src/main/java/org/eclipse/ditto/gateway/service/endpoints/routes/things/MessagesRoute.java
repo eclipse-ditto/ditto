@@ -356,7 +356,8 @@ final class MessagesRoute extends AbstractRoute {
         return MessagesModelFactory.newMessageBuilder(headers);
     }
 
-    private static MessageBuilder<Object> createMessageBuilderWithPayload(final ByteBuffer payload, final ContentType contentType,  final MessageHeaders headers) {
+    private static MessageBuilder<Object> createMessageBuilderWithPayload(final ByteBuffer payload,
+            final ContentType contentType,  final MessageHeaders headers) {
         final ByteBuffer payloadWithoutOffset = ByteBuffer.wrap(payload.array());
 
         MessageCommandSizeValidator.getInstance().ensureValidSize(() ->
@@ -417,8 +418,8 @@ final class MessagesRoute extends AbstractRoute {
      * it's dangerous to rely on the (non-)existence of a content-length" (see {@link RequestEntity#getContentLengthOption()}).
      *
      * @param request The request.
-     * @return {@code true} if the message contains Content-Length {@code 0}; {@code false} if no Content-Length is found or
-     * it isn't {@code 0}.
+     * @return {@code true} if the message contains Content-Length {@code 0}; {@code false} if no Content-Length is
+     * found or it isn't {@code 0}.
      * @see RequestEntity#getContentLengthOption()
      */
     private static boolean hasZeroContentLength(final HttpRequest request) {
