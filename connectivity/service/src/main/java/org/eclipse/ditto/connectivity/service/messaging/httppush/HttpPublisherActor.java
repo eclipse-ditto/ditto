@@ -71,7 +71,8 @@ import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageRespons
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 import akka.Done;
 import akka.NotUsed;
@@ -114,8 +115,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private static final long READ_BODY_TIMEOUT_MS = 10000L;
 
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
-    private static final String LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE =
-            "Live response of type <%s> is not of expected type <%s>.";
+
     private static final String TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION = "This can have the following reasons:\n" +
             "a) The HTTP endpoint does not consume the messages fast enough.\n" +
             "b) The client count and/or the parallelism of this connection is not configured high enough.";
@@ -169,6 +169,98 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     static Props props(final Connection connection, final HttpPushFactory factory, final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver) {
         return Props.create(HttpPublisherActor.class, connection, factory, clientId, connectivityStatusResolver);
+    }
+
+    private static Uri setPathAndQuery(final Uri uri, @Nullable final String path, @Nullable final String query) {
+        final String slash = "/";
+        var newUri = uri;
+        if (path != null) {
+            newUri = path.startsWith(slash) ? newUri.path(path) : newUri.path(slash + path);
+        }
+        if (query != null) {
+            newUri = newUri.rawQueryString(query);
+        }
+        return newUri;
+    }
+
+    private static Pair<Iterable<HttpHeader>, ContentType> getHttpHeadersPair(final ExternalMessage message) {
+        final Collection<HttpHeader> headers = new ArrayList<>(message.getHeaders().size());
+        ContentType contentType = null;
+        for (final Map.Entry<String, String> entry : message.getHeaders().entrySet()) {
+            if (!ReservedHeaders.contains(entry.getKey())) {
+                final HttpHeader httpHeader = HttpHeader.parse(entry.getKey(), entry.getValue());
+                if (httpHeader instanceof ContentType) {
+                    contentType = (ContentType) httpHeader;
+                } else {
+                    headers.add(httpHeader);
+                }
+            }
+        }
+        return Pair.create(headers, contentType);
+    }
+
+    // Async callback. Must be thread-safe.
+    private static void processResponse(final Pair<Try<HttpResponse>, HttpPushContext> responseWithContext) {
+        responseWithContext.second().onResponse(responseWithContext.first());
+    }
+
+    private static DittoHeaders mergeWithResponseHeaders(final DittoHeaders dittoHeaders, final HttpResponse response) {
+        // Special handling of content-type because it needs to be extracted from the entity instead of the headers.
+        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder =
+                dittoHeaders.toBuilder().contentType(response.entity().getContentType().toString());
+
+        response.getHeaders().forEach(header -> dittoHeadersBuilder.putHeader(header.name(), header.value()));
+
+        return dittoHeadersBuilder.build();
+    }
+
+    private static byte[] getPayloadAsBytes(final ExternalMessage message) {
+        return message.isTextMessage()
+                ? getTextPayload(message).getBytes()
+                : getBytePayload(message);
+    }
+
+    private static String getTextPayload(final ExternalMessage message) {
+        return message.getTextPayload().orElse("");
+    }
+
+    private static byte[] getBytePayload(final ExternalMessage message) {
+        return message.getBytePayload().map(ByteBuffer::array).orElse(new byte[0]);
+    }
+
+    private static CompletionStage<JsonValue> getResponseBody(final HttpResponse response, final int maxBytes,
+            final Materializer materializer) {
+
+        return response.entity()
+                .withSizeLimit(maxBytes)
+                .toStrict(READ_BODY_TIMEOUT_MS, materializer)
+                .thenApply(strictEntity -> {
+                    final akka.http.javadsl.model.ContentType contentType = strictEntity.getContentType();
+                    final Charset charset = contentType.getCharsetOption()
+                            .map(HttpCharset::nioCharset)
+                            .orElse(StandardCharsets.UTF_8);
+                    final byte[] bytes = strictEntity.getData().toArray();
+                    final org.eclipse.ditto.base.model.headers.contenttype.ContentType dittoContentType =
+                            org.eclipse.ditto.base.model.headers.contenttype.ContentType.of(contentType.toString());
+                    if (dittoContentType.isJson()) {
+                        final String bodyString = new String(bytes, charset);
+                        try {
+                            return JsonFactory.readFrom(bodyString);
+                        } catch (final Exception e) {
+                            return JsonValue.of(bodyString);
+                        }
+                    } else if (dittoContentType.isBinary()) {
+                        final String base64bytes = Base64.getEncoder().encodeToString(bytes);
+                        return JsonFactory.newValue(base64bytes);
+                    } else {
+                        // add text payload as JSON string
+                        return JsonFactory.newValue(new String(bytes, charset));
+                    }
+                });
+    }
+
+    private static Uri stripUserInfo(final Uri requestUri) {
+        return requestUri.userInfo("");
     }
 
     private Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?>
@@ -260,34 +352,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return request.withUri(setPathAndQuery(request.getUri(), httpPath, httpQuery));
     }
 
-    private static Uri setPathAndQuery(final Uri uri, @Nullable final String path, @Nullable final String query) {
-        final String slash = "/";
-        var newUri = uri;
-        if (path != null) {
-            newUri = path.startsWith(slash) ? newUri.path(path) : newUri.path(slash + path);
-        }
-        if (query != null) {
-            newUri = newUri.rawQueryString(query);
-        }
-        return newUri;
-    }
-
-    private static Pair<Iterable<HttpHeader>, ContentType> getHttpHeadersPair(final ExternalMessage message) {
-        final Collection<HttpHeader> headers = new ArrayList<>(message.getHeaders().size());
-        ContentType contentType = null;
-        for (final Map.Entry<String, String> entry : message.getHeaders().entrySet()) {
-            if (!ReservedHeaders.contains(entry.getKey())) {
-                final HttpHeader httpHeader = HttpHeader.parse(entry.getKey(), entry.getValue());
-                if (httpHeader instanceof ContentType) {
-                    contentType = (ContentType) httpHeader;
-                } else {
-                    headers.add(httpHeader);
-                }
-            }
-        }
-        return Pair.create(headers, contentType);
-    }
-
     // Async callback. Must be thread-safe.
     private BiFunction<QueueOfferResult, Throwable, Void> handleQueueOfferResult(final ExternalMessage message,
             final CompletableFuture<?> resultFuture) {
@@ -307,11 +371,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             }
             return null;
         };
-    }
-
-    // Async callback. Must be thread-safe.
-    private static void processResponse(final Pair<Try<HttpResponse>, HttpPushContext> responseWithContext) {
-        responseWithContext.second().onResponse(responseWithContext.first());
     }
 
     private HttpPushContext newContext(final Signal<?> signal,
@@ -340,7 +399,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             } else {
                 final HttpResponse response = tryResponse.toEither().right().get();
                 l.info("Got response status <{}>", response.status());
-                l.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
+                l.debug("Sent message <{}>.", message);
+                l.debug("Got response <{} {} {}>", response.status(), response.getHeaders(),
+                        response.entity().getContentType());
 
                 toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize, ackSizeQuota)
                         .thenAccept(resultFuture::complete)
@@ -353,7 +414,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         };
     }
 
-    private CompletionStage<SendResult> toCommandResponseOrAcknowledgement(final Signal<?> signal,
+    private CompletionStage<SendResult> toCommandResponseOrAcknowledgement(final Signal<?> sentSignal,
             @Nullable final Target autoAckTarget,
             final HttpResponse response,
             final int maxTotalMessageSize,
@@ -374,39 +435,41 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             return CompletableFuture.failedFuture(error);
         }
 
-        final boolean isMessageCommand = signal instanceof MessageCommand;
-        final int maxResponseSize = isMessageCommand ? maxTotalMessageSize : ackSizeQuota;
+        final var isSentSignalLiveCommand = HttpLiveResponseHandling.isLiveCommand(sentSignal);
+        final int maxResponseSize = isSentSignalLiveCommand ? maxTotalMessageSize : ackSizeQuota;
         return getResponseBody(response, maxResponseSize, materializer).thenApply(body -> {
             @Nullable final CommandResponse<?> result;
-            final DittoHeaders dittoHeaders = setDittoHeaders(signal.getDittoHeaders(), response);
-            final Optional<EntityId> entityIdOptional = WithEntityId.getEntityIdOfType(EntityId.class, signal);
+            final var mergedDittoHeaders = mergeWithResponseHeaders(sentSignal.getDittoHeaders(), response);
+            final Optional<EntityId> entityIdOptional = WithEntityId.getEntityIdOfType(EntityId.class, sentSignal);
             if (autoAckLabel.isPresent() && entityIdOptional.isPresent()) {
                 final EntityId entityId = entityIdOptional.get();
 
                 if (DittoAcknowledgementLabel.LIVE_RESPONSE.equals(autoAckLabel.get())) {
                     // Live-Response is declared as issued ack => parse live response from response
-                    if (isMessageCommand) {
-                        result =
-                                toMessageCommandResponse((MessageCommand<?, ?>) signal, dittoHeaders, body, httpStatus);
+                    if (sentSignal instanceof MessageCommand) {
+                        result = toMessageCommandResponse((MessageCommand<?, ?>) sentSignal, mergedDittoHeaders, body,
+                                httpStatus);
+                    } else if(sentSignal instanceof ThingCommand && HttpLiveResponseHandling.isChannelLive(sentSignal)) {
+                        result = toLiveCommandResponse(sentSignal, mergedDittoHeaders, body, httpStatus);
                     } else {
                         result = null;
                     }
                 } else {
                     // There is an issued ack declared but its not live-response => handle response as acknowledgement.
-                    result = Acknowledgement.of(autoAckLabel.get(), entityId, httpStatus, dittoHeaders, body);
+                    result = Acknowledgement.of(autoAckLabel.get(), entityId, httpStatus, mergedDittoHeaders, body);
                 }
 
             } else {
                 // No Acks declared as issued acks => Handle response either as live response or as acknowledgement
                 // or as fallback build a response for local diagnostics.
-                final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
+                final boolean isDittoProtocolMessage = mergedDittoHeaders.getDittoContentType()
                         .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
                         .isPresent();
                 if (isDittoProtocolMessage && body.isObject()) {
                     final CommandResponse<?> parsedResponse = toCommandResponse(body.asObject());
                     if (parsedResponse instanceof Acknowledgement) {
                         result = parsedResponse;
-                    } else if (parsedResponse instanceof MessageCommandResponse) {
+                    } else if (HttpLiveResponseHandling.isLiveCommandResponse(parsedResponse)) {
                         result = parsedResponse;
                     } else {
                         result = null;
@@ -416,9 +479,13 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 }
             }
 
-            if (result instanceof MessageCommandResponse && isMessageCommand) {
+            final var liveCommandWithEntityId = HttpLiveResponseHandling.getLiveCommandWithEntityId(sentSignal);
+            if (liveCommandWithEntityId.isPresent()
+                    && null != result
+                    && HttpLiveResponseHandling.isLiveCommandResponse(result)) {
+
                 // Do only return command response for live commands with a correct response.
-                validateLiveResponse(result, (MessageCommand<?, ?>) signal);
+                HttpLiveResponseHandling.validateLiveResponse(result, liveCommandWithEntityId.get(), connectionLogger);
             }
             if (result == null) {
                 connectionLogger.success(
@@ -435,88 +502,13 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         String.format("Got non success status code: <%s> and body: <%s>", httpStatus.getCode(), body);
                 sendFailure = MessageSendingFailedException.newBuilder()
                         .message(message)
-                        .dittoHeaders(dittoHeaders)
+                        .dittoHeaders(mergedDittoHeaders)
                         .build();
             } else {
                 sendFailure = null;
             }
-            return new SendResult(result, sendFailure, dittoHeaders);
+            return new SendResult(result, sendFailure, mergedDittoHeaders);
         });
-    }
-
-    private void validateLiveResponse(final CommandResponse<?> commandResponse,
-            final MessageCommand<?, ?> messageCommand) {
-
-        final ThingId messageThingId = messageCommand.getEntityId();
-        if (!(commandResponse instanceof WithEntityId)) {
-            final String message = String.format(
-                    "Live response does not target the correct thing. Expected thing ID <%s>, but no ID found",
-                    messageThingId);
-            handleInvalidResponse(message, commandResponse);
-            return;
-        }
-        final EntityId responseThingId = ((WithEntityId) commandResponse).getEntityId();
-
-        if (!responseThingId.equals(messageThingId)) {
-            final String message = String.format(
-                    "Live response does not target the correct thing. Expected thing ID <%s>, but was <%s>.",
-                    messageThingId, responseThingId);
-            handleInvalidResponse(message, commandResponse);
-        }
-
-        final String messageCorrelationId = messageCommand.getDittoHeaders().getCorrelationId().orElse(null);
-        final String responseCorrelationId = commandResponse.getDittoHeaders().getCorrelationId().orElse(null);
-        if (!Objects.equals(messageCorrelationId, responseCorrelationId)) {
-            final String message = String.format(
-                    "Correlation ID of response <%s> does not match correlation ID of message command <%s>. ",
-                    responseCorrelationId, messageCorrelationId
-            );
-            handleInvalidResponse(message, commandResponse);
-        }
-
-        switch (messageCommand.getType()) {
-            case SendClaimMessage.TYPE:
-                if (!SendClaimMessageResponse.TYPE.equalsIgnoreCase(commandResponse.getType())) {
-                    final String message = String.format(LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE, commandResponse.getType(),
-                            SendClaimMessageResponse.TYPE);
-                    handleInvalidResponse(message, commandResponse);
-                }
-                break;
-            case SendThingMessage.TYPE:
-                if (!SendThingMessageResponse.TYPE.equalsIgnoreCase(commandResponse.getType())) {
-                    final String message = String.format(LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE, commandResponse.getType(),
-                            SendThingMessageResponse.TYPE);
-                    handleInvalidResponse(message, commandResponse);
-                }
-                break;
-            case SendFeatureMessage.TYPE:
-                if (!SendFeatureMessageResponse.TYPE.equalsIgnoreCase(commandResponse.getType())) {
-                    final String message = String.format(LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE, commandResponse.getType(),
-                            SendFeatureMessageResponse.TYPE);
-                    handleInvalidResponse(message, commandResponse);
-                    return;
-                }
-                final String messageFeatureId = ((SendFeatureMessage<?>) messageCommand).getFeatureId();
-                final String responseFeatureId = ((SendFeatureMessageResponse<?>) commandResponse).getFeatureId();
-                if (!messageFeatureId.equalsIgnoreCase(responseFeatureId)) {
-                    final String message = String.format("Live response does not target the correct feature. " +
-                                    "Expected feature ID <%s>, but was <%s>.",
-                            messageThingId, responseThingId);
-                    handleInvalidResponse(message, commandResponse);
-                }
-                break;
-            default:
-                handleInvalidResponse("Initial message command type <{}> is unknown.", commandResponse);
-        }
-    }
-
-    private void handleInvalidResponse(final String message, final CommandResponse<?> commandResponse) {
-        final var exception = MessageSendingFailedException.newBuilder()
-                .httpStatus(HttpStatus.BAD_REQUEST)
-                .description(message)
-                .build();
-        connectionLogger.failure(commandResponse, exception);
-        throw exception;
     }
 
     @Nullable
@@ -570,6 +562,33 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     @Nullable
+    private CommandResponse<?> toLiveCommandResponse(final Signal<?> sentSignal,
+            final DittoHeaders dittoHeaders,
+            final JsonValue jsonValue,
+            final HttpStatus status) {
+
+        final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
+                .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
+                .isPresent();
+        if (isDittoProtocolMessage && jsonValue.isObject()) {
+            final CommandResponse<?> commandResponse = toCommandResponse(jsonValue.asObject());
+            if (commandResponse == null) {
+                return null;
+            } else if (commandResponse instanceof ThingCommandResponse &&
+                    HttpLiveResponseHandling.isChannelLive(commandResponse)) {
+                return commandResponse;
+            } else {
+                connectionLogger.failure("Expected <{0}> to be of type <{1}> but was of type <{2}>.",
+                        commandResponse, ThingCommandResponse.class.getSimpleName(),
+                        commandResponse.getClass().getSimpleName());
+                return null;
+            }
+        } else {
+            return null;
+        }
+    }
+
+    @Nullable
     private CommandResponse<?> toCommandResponse(final JsonObject jsonObject) {
         final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
         final Signal<?> signal = DITTO_PROTOCOL_ADAPTER.fromAdaptable(jsonifiableAdaptable);
@@ -587,65 +606,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return ConnectionFailure.of(getSelf(), error, "HttpPublisherActor stream terminated");
     }
 
-    private static DittoHeaders setDittoHeaders(final DittoHeaders dittoHeaders, final HttpResponse response) {
-        // Special handling of content-type because it needs to be extracted from the entity instead of the headers.
-        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder =
-                dittoHeaders.toBuilder().contentType(response.entity().getContentType().toString());
-
-        response.getHeaders().forEach(header -> dittoHeadersBuilder.putHeader(header.name(), header.value()));
-
-        return dittoHeadersBuilder.build();
-    }
-
-    private static byte[] getPayloadAsBytes(final ExternalMessage message) {
-        return message.isTextMessage()
-                ? getTextPayload(message).getBytes()
-                : getBytePayload(message);
-    }
-
-    private static String getTextPayload(final ExternalMessage message) {
-        return message.getTextPayload().orElse("");
-    }
-
-    private static byte[] getBytePayload(final ExternalMessage message) {
-        return message.getBytePayload().map(ByteBuffer::array).orElse(new byte[0]);
-    }
-
-    private static CompletionStage<JsonValue> getResponseBody(final HttpResponse response, final int maxBytes,
-            final Materializer materializer) {
-
-        return response.entity()
-                .withSizeLimit(maxBytes)
-                .toStrict(READ_BODY_TIMEOUT_MS, materializer)
-                .thenApply(strictEntity -> {
-                    final akka.http.javadsl.model.ContentType contentType = strictEntity.getContentType();
-                    final Charset charset = contentType.getCharsetOption()
-                            .map(HttpCharset::nioCharset)
-                            .orElse(StandardCharsets.UTF_8);
-                    final byte[] bytes = strictEntity.getData().toArray();
-                    final org.eclipse.ditto.base.model.headers.contenttype.ContentType dittoContentType =
-                            org.eclipse.ditto.base.model.headers.contenttype.ContentType.of(contentType.toString());
-                    if (dittoContentType.isJson()) {
-                        final String bodyString = new String(bytes, charset);
-                        try {
-                            return JsonFactory.readFrom(bodyString);
-                        } catch (final Exception e) {
-                            return JsonValue.of(bodyString);
-                        }
-                    } else if (dittoContentType.isBinary()) {
-                        final String base64bytes = Base64.getEncoder().encodeToString(bytes);
-                        return JsonFactory.newValue(base64bytes);
-                    } else {
-                        // add text payload as JSON string
-                        return JsonFactory.newValue(new String(bytes, charset));
-                    }
-                });
-    }
-
-    private static Uri stripUserInfo(final Uri requestUri) {
-        return requestUri.userInfo("");
-    }
-
     private enum ReservedHeaders {
 
         HTTP_QUERY("http.query"),
@@ -658,12 +618,12 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             this.name = name;
         }
 
-        private boolean matches(final String headerName) {
-            return name.equalsIgnoreCase(headerName);
-        }
-
         private static boolean contains(final String header) {
             return Arrays.stream(values()).anyMatch(reservedHeader -> reservedHeader.matches(header));
+        }
+
+        private boolean matches(final String headerName) {
+            return name.equalsIgnoreCase(headerName);
         }
     }
 }
