@@ -17,6 +17,7 @@ import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 
@@ -32,6 +33,8 @@ public final class TraceUtils {
 
     private static final String HTTP_ROUNDTRIP_METRIC_NAME = "roundtrip_http";
     private static final String FILTER_AUTH_METRIC_NAME = "filter_auth";
+    private static final String LIVE_CHANNEL_NAME = "live";
+    private static final String TWIN_CHANNEL_NAME = "twin";
 
     private TraceUtils() {
         throw new AssertionError();
@@ -46,18 +49,20 @@ public final class TraceUtils {
     public static PreparedTimer newHttpRoundTripTimer(final HttpRequest request) {
         final String requestMethod = request.method().name();
         final String requestPath = request.getUri().toRelative().path();
+        final String channel = determineChannel(request);
 
         final TraceInformation traceInformation = determineTraceInformation(requestPath);
 
         return newExpiringTimer(HTTP_ROUNDTRIP_METRIC_NAME)
                 .tags(traceInformation.getTags())
-                .tag(TracingTags.REQUEST_METHOD, requestMethod);
+                .tag(TracingTags.REQUEST_METHOD, requestMethod)
+                .tag(TracingTags.CHANNEL, channel);
     }
 
     /**
      * Prepares an {@link PreparedTimer} with default {@link #FILTER_AUTH_METRIC_NAME} and tags.
      *
-     * @param authenticationType The name of the authentication type (i.e. jwt, ..)
+     * @param authenticationType The name of the authentication type (i.e. jwt, ...)
      * @return The prepared {@link PreparedTimer}
      */
     public static PreparedTimer newAuthFilterTimer(final CharSequence authenticationType) {
@@ -67,7 +72,7 @@ public final class TraceUtils {
     /**
      * Prepares an {@link PreparedTimer} with default {@link #FILTER_AUTH_METRIC_NAME} and tags.
      *
-     * @param authenticationType The name of the authentication type (i.e. jwt,...)
+     * @param authenticationType The name of the authentication type (i.e. jwt, ...)
      * @param request The HttpRequest used to extract required tags.
      * @return The prepared {@link PreparedTimer}
      */
@@ -106,12 +111,25 @@ public final class TraceUtils {
         return traceUriGenerator.apply(requestPath);
     }
 
+    private static String determineChannel(final HttpRequest request) {
+        // determine channel based on header or query parameter
+        final boolean liveHeaderPresent = request.getHeader(DittoHeaderDefinition.CHANNEL.getKey())
+                .filter(channelHeader -> LIVE_CHANNEL_NAME.equals(channelHeader.value()))
+                .isPresent();
+        final boolean liveQueryPresent = request.getUri().query().get(DittoHeaderDefinition.CHANNEL.getKey())
+                .filter(LIVE_CHANNEL_NAME::equals)
+                .isPresent();
+        // messages are always live commands
+        final boolean messageRequest = request.getUri().path().contains("messages");
+
+        return (liveHeaderPresent || liveQueryPresent || messageRequest) ? LIVE_CHANNEL_NAME : TWIN_CHANNEL_NAME;
+    }
+
     /**
      * Replaces all characters that are invalid for metrics (at least for Prometheus metrics).
      */
     public static String metricizeTraceUri(final String traceUri) {
         return traceUri.replaceAll("[./:-]", TRACING_FILTER_DELIMITER);
     }
-
 
 }
