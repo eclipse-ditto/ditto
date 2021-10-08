@@ -13,6 +13,8 @@
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.connectivity.service.messaging.httppush.HttpTestDittoProtocolHelper.signalToJsonString;
+import static org.eclipse.ditto.connectivity.service.messaging.httppush.HttpTestDittoProtocolHelper.toMultiMapped;
 import static org.mockito.Mockito.mock;
 
 import java.nio.charset.StandardCharsets;
@@ -67,6 +69,8 @@ import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -421,6 +425,59 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final MessageHeaders responseMessageHeaders = responseMessage.getHeaders();
             assertThat(responseMessageHeaders.get(CUSTOM_HEADER_NAME)).isEqualTo(CUSTOM_HEADER_VALUE);
         }};
+    }
+
+    @Test
+    public void testLiveCommandHttpPushCreatesLiveCommandResponseFromProtocolMessage() {
+        // Arrange
+        final var testCorrelationId = TestConstants.CORRELATION_ID.concat(".liveCommandHttpPush");
+        final var contentType = DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
+        final var thingId = TestConstants.Things.THING_ID;
+
+        final var commandResponseDittoHeaders = DittoHeaders.newBuilder()
+                .contentType(contentType)
+                .channel("live")
+                .correlationId(testCorrelationId)
+                .build();
+
+        final var retrieveThingMockResponse = RetrieveThingResponse.of(thingId,
+                TestConstants.Things.THING,
+                null,
+                null,
+                commandResponseDittoHeaders);
+
+        httpPushFactory = mockHttpPushFactory(contentType, retrieveThingMockResponse.getHttpStatus(),
+                signalToJsonString(retrieveThingMockResponse));
+
+        final var target = ConnectivityModelFactory.newTargetBuilder()
+                .address(getOutboundAddress())
+                .originalAddress(getOutboundAddress())
+                .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                .headerMapping(TestConstants.HEADER_MAPPING)
+                .topics(Topic.LIVE_COMMANDS)
+                .build();
+
+        final var testKit = new TestKit(actorSystem);
+        final var publisherActor = testKit.childActorOf(getPublisherActorProps());
+        publisherCreated(testKit, publisherActor);
+
+        final var commandDittoHeaders = commandResponseDittoHeaders.toBuilder()
+                .responseRequired(true)
+                .build();
+
+        final Signal<?> command = RetrieveThing.of(thingId, commandDittoHeaders);
+
+        // Act
+        publisherActor.tell(toMultiMapped(command, target, testKit.getRef()), testKit.getRef());
+
+        // Assert
+        final var responseSignal = testKit.expectMsgClass(Signal.class);
+        assertThat(responseSignal).isInstanceOfSatisfying(RetrieveThingResponse.class, retrieveThingResponse -> {
+            assertThat((CharSequence) retrieveThingResponse.getEntityId()).isEqualTo(thingId);
+            assertThat(retrieveThingResponse.getHttpStatus()).isEqualTo(retrieveThingMockResponse.getHttpStatus());
+            assertThat(retrieveThingResponse.getDittoHeaders().getCorrelationId()).contains(testCorrelationId);
+            assertThat(retrieveThingResponse.getThing()).isEqualTo(TestConstants.Things.THING);
+        });
     }
 
     @Test
