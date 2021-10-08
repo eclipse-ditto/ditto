@@ -52,6 +52,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.Consist
 import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.WriteModel;
 
+import akka.Done;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
@@ -138,6 +139,11 @@ final class ThingUpdater extends AbstractActor {
             final var diff = BsonDiff.minusThingDocs(next.getThingDocument(), last.getThingDocument());
             if (diff.isDiffSmaller()) {
                 final var aggregationPipeline = diff.consumeAndExport();
+                if (aggregationPipeline.isEmpty()) {
+                    log.debug("Skipping update due to empty diff <{}>", nextWriteModel);
+                    getSender().tell(Done.getInstance(), getSelf());
+                    return;
+                }
                 mongoWriteModel = new UpdateOneModel<>(nextWriteModel.getFilter(), aggregationPipeline);
                 log.debug("Using incremental update <{}>", mongoWriteModel);
             } else {

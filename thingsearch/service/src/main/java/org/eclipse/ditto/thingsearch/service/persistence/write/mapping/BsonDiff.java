@@ -128,10 +128,6 @@ public final class BsonDiff {
         if (!unsetArray.isEmpty()) {
             result.add(new BsonDocument().append(unsetOp, unsetArray));
         }
-        if (result.isEmpty()) {
-            // insert dummy op to satisfy client
-            result.add(new BsonDocument().append(setOp, DUMMY_SET_DOC));
-        }
         return result;
     }
 

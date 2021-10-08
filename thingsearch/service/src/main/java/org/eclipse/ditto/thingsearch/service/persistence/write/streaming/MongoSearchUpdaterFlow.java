@@ -131,11 +131,20 @@ final class MongoSearchUpdaterFlow {
         final var writeModelFutures = models.stream()
                 .<CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>>>map(model ->
                         model.toIncrementalMongo()
-                                .thenApply(mongoWriteModel -> List.of(Pair.create(model, mongoWriteModel)))
+                                .thenApply(mongoWriteModelOpt -> {
+                                    if (mongoWriteModelOpt.isEmpty()) {
+                                        LOGGER.debug("Write model is unchanged, skipping update: <{}>", model);
+                                        model.getMetadata().sendWeakAck(null);
+                                        return List.<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>of();
+                                    } else {
+                                        ConsistencyLag.startS5MongoBulkWrite(model.getMetadata());
+                                        final var result = mongoWriteModelOpt.orElseThrow();
+                                        LOGGER.debug("MongoWriteModel={}", result);
+                                        return List.of(Pair.create(model, result));
+                                    }
+                                })
                                 .handle((result, error) -> {
                                     if (result != null) {
-                                        ConsistencyLag.startS5MongoBulkWrite(model.getMetadata());
-                                        LOGGER.debug("MongoWriteModel={}", result);
                                         return result;
                                     } else {
                                         LOGGER.error("Failed to compute write model " + model, error);
@@ -172,7 +181,7 @@ final class MongoSearchUpdaterFlow {
         if (writeModels.isEmpty()) {
             LOGGER.warn("Requested to make empty update by write models <{}>", abstractWriteModels);
             for (final var abstractWriteModel : abstractWriteModels) {
-                abstractWriteModel.getMetadata().sendAck();
+                abstractWriteModel.getMetadata().sendWeakAck(null);
             }
             return Source.empty();
         }

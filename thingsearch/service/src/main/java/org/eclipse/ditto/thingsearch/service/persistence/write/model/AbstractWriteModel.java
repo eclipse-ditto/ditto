@@ -14,6 +14,7 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -63,13 +64,19 @@ public abstract class AbstractWriteModel {
      * @return either the MongoDB write model of this object or an incremental update converting
      */
     @SuppressWarnings("unchecked")
-    public CompletionStage<WriteModel<BsonDocument>> toIncrementalMongo() {
+    public CompletionStage<Optional<WriteModel<BsonDocument>>> toIncrementalMongo() {
         final var origin = metadata.getOrigin();
         if (origin.isPresent()) {
             return Patterns.ask(origin.orElseThrow(), this, Duration.ofSeconds(10L))
-                    .thenApply(WriteModel.class::cast);
+                    .thenApply(answer -> {
+                        if (answer instanceof WriteModel) {
+                            return Optional.of((WriteModel<BsonDocument>) answer);
+                        } else {
+                            return Optional.empty();
+                        }
+                    });
         } else {
-            return CompletableFuture.completedStage(toMongo());
+            return CompletableFuture.completedStage(Optional.of(toMongo()));
         }
     }
 

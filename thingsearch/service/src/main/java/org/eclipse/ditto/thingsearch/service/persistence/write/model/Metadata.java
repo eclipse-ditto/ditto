@@ -372,7 +372,7 @@ public final class Metadata {
      *
      * @param payload the payload of the weak acknowledgement.
      */
-    public void sendWeakAck(final JsonValue payload) {
+    public void sendWeakAck(@Nullable final JsonValue payload) {
         send(Acknowledgement.weak(DittoAcknowledgementLabel.SEARCH_PERSISTED, thingId, DittoHeaders.empty(), payload));
     }
 
