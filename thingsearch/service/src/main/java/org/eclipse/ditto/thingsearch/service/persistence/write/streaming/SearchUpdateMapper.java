@@ -12,19 +12,29 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 
+import org.bson.BsonDocument;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
+
+import com.mongodb.client.model.WriteModel;
 
 import akka.NotUsed;
 import akka.actor.AbstractExtensionId;
 import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
 import akka.actor.Extension;
+import akka.japi.Pair;
 import akka.stream.javadsl.Source;
 
 /**
@@ -46,11 +56,12 @@ public abstract class SearchUpdateMapper implements Extension {
 
     /**
      * Gets the write models of the search updates and processes them.
-     * <p>
-     * Should not throw an exception. If a exception is thrown, the mapping is ignored.
-     * If no search update should be executed an empty list can be returned.
+     *
+     * @param writeModels the write models.
+     * @return Ditto write models together with their processed MongoDB write models.
      */
-    public abstract Source<List<AbstractWriteModel>, NotUsed> processWriteModels(final List<AbstractWriteModel> writeModels);
+    public abstract Source<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>, NotUsed>
+    processWriteModels(final List<AbstractWriteModel> writeModels);
 
     /**
      * Load a {@code SearchUpdateListener} dynamically according to the search configuration.
@@ -60,6 +71,48 @@ public abstract class SearchUpdateMapper implements Extension {
      */
     public static SearchUpdateMapper get(final ActorSystem actorSystem) {
         return EXTENSION_ID.get(actorSystem);
+    }
+
+    protected static CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>> toIncrementalMongo(
+            final Collection<AbstractWriteModel> models,
+            final ThreadSafeDittoLogger logger) {
+
+        final var writeModelFutures = models.stream()
+                .<CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>>>map(model ->
+                        model.toIncrementalMongo()
+                                .thenApply(mongoWriteModelOpt -> {
+                                    if (mongoWriteModelOpt.isEmpty()) {
+                                        logger.debug("Write model is unchanged, skipping update: <{}>", model);
+                                        model.getMetadata().sendWeakAck(null);
+                                        return List.<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>of();
+                                    } else {
+                                        ConsistencyLag.startS5MongoBulkWrite(model.getMetadata());
+                                        final var result = mongoWriteModelOpt.orElseThrow();
+                                        logger.debug("MongoWriteModel={}", result);
+                                        return List.of(Pair.create(model, result));
+                                    }
+                                })
+                                .handle((result, error) -> {
+                                    if (result != null) {
+                                        return result;
+                                    } else {
+                                        logger.error("Failed to compute write model " + model, error);
+                                        try {
+                                            model.getMetadata().getTimers().forEach(StartedTimer::stop);
+                                        } catch (final Exception e) {
+                                            // tolerate stopping stopped timers
+                                        }
+                                        return List.of();
+                                    }
+                                })
+                )
+                .map(CompletionStage::toCompletableFuture)
+                .collect(Collectors.toList());
+
+        final var allFutures = CompletableFuture.allOf(writeModelFutures.toArray(CompletableFuture[]::new));
+        return allFutures.thenApply(aVoid ->
+                writeModelFutures.stream().flatMap(future -> future.join().stream()).collect(Collectors.toList())
+        );
     }
 
     /**

@@ -14,8 +14,6 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import org.bson.BsonDocument;
@@ -109,61 +107,11 @@ final class MongoSearchUpdaterFlow {
 
         final Flow<List<AbstractWriteModel>, WriteResultAndErrors, NotUsed> writeFlow =
                 Flow.<List<AbstractWriteModel>>create()
-                        .flatMapConcat(writeModels -> searchUpdateMapper.processWriteModels(writeModels)
-                                .recoverWithRetries(1,
-                                        new PFBuilder<Throwable, Source<List<AbstractWriteModel>, NotUsed>>()
-                                                .matchAny(e -> {
-                                                    LOGGER.error("Skipping mapping of search update write models " +
-                                                            "because an unexpected error occurred.", e);
-                                                    return Source.single(writeModels);
-                                                })
-                                                .build()))
-                        .mapAsync(1, MongoSearchUpdaterFlow::toIncrementalMongo)
+                        .flatMapConcat(searchUpdateMapper::processWriteModels)
                         .flatMapMerge(parallelism, writeModels ->
                                 executeBulkWrite(shouldAcknowledge, writeModels).async(DISPATCHER_NAME, parallelism));
 
         return batchFlow.via(writeFlow);
-    }
-
-    private static CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>> toIncrementalMongo(
-            final Collection<AbstractWriteModel> models) {
-
-        final var writeModelFutures = models.stream()
-                .<CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>>>map(model ->
-                        model.toIncrementalMongo()
-                                .thenApply(mongoWriteModelOpt -> {
-                                    if (mongoWriteModelOpt.isEmpty()) {
-                                        LOGGER.debug("Write model is unchanged, skipping update: <{}>", model);
-                                        model.getMetadata().sendWeakAck(null);
-                                        return List.<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>of();
-                                    } else {
-                                        ConsistencyLag.startS5MongoBulkWrite(model.getMetadata());
-                                        final var result = mongoWriteModelOpt.orElseThrow();
-                                        LOGGER.debug("MongoWriteModel={}", result);
-                                        return List.of(Pair.create(model, result));
-                                    }
-                                })
-                                .handle((result, error) -> {
-                                    if (result != null) {
-                                        return result;
-                                    } else {
-                                        LOGGER.error("Failed to compute write model " + model, error);
-                                        try {
-                                            model.getMetadata().getTimers().forEach(StartedTimer::stop);
-                                        } catch (final Exception e) {
-                                            // tolerate stopping stopped timers
-                                        }
-                                        return List.of();
-                                    }
-                                })
-                )
-                .map(CompletionStage::toCompletableFuture)
-                .collect(Collectors.toList());
-
-        final var allFutures = CompletableFuture.allOf(writeModelFutures.toArray(CompletableFuture[]::new));
-        return allFutures.thenApply(aVoid ->
-                writeModelFutures.stream().flatMap(future -> future.join().stream()).collect(Collectors.toList())
-        );
     }
 
     private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,
