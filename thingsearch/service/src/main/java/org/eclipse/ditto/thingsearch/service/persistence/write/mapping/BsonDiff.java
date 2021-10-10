@@ -13,7 +13,6 @@
 package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_INTERNAL;
-import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_REVISION;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,8 +33,15 @@ import akka.japi.Pair;
  */
 public final class BsonDiff {
 
-    private static final BsonDocument DUMMY_SET_DOC = new BsonDocument()
-            .append(FIELD_REVISION, new BsonString("$" + FIELD_REVISION));
+    /**
+     * MongoDB operator to set a value.
+     */
+    public static final String SET = "$set";
+
+    /**
+     * MongoDB operator to unset a value.
+     */
+    public static final String UNSET = "$unset";
 
     final int replacementSize;
     final int diffSize;
@@ -119,14 +125,12 @@ public final class BsonDiff {
     public List<BsonDocument> consumeAndExport() {
         final var result = new ArrayList<BsonDocument>(2);
         final var setDoc = consumeAndExportSet();
-        final var setOp = "$set";
-        final var unsetOp = "$unset";
         if (!setDoc.isEmpty()) {
-            result.add(new BsonDocument().append(setOp, setDoc));
+            result.add(new BsonDocument().append(SET, setDoc));
         }
         final var unsetArray = consumeAndExportUnset();
         if (!unsetArray.isEmpty()) {
-            result.add(new BsonDocument().append(unsetOp, unsetArray));
+            result.add(new BsonDocument().append(UNSET, unsetArray));
         }
         return result;
     }
