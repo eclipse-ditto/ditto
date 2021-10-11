@@ -73,39 +73,57 @@ public abstract class SearchUpdateMapper implements Extension {
         return EXTENSION_ID.get(actorSystem);
     }
 
+    /**
+     * Convert a write model to an incremental update model.
+     *
+     * @param model the write model.
+     * @param logger the logger.
+     * @return a singleton list of write model together with its update document, or an empty list if there is no
+     * change.
+     */
+    protected static CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>>
+    toIncrementalMongo(final AbstractWriteModel model, final ThreadSafeDittoLogger logger) {
+        return model.toIncrementalMongo()
+                .thenApply(mongoWriteModelOpt -> {
+                    if (mongoWriteModelOpt.isEmpty()) {
+                        logger.debug("Write model is unchanged, skipping update: <{}>", model);
+                        model.getMetadata().sendWeakAck(null);
+                        return List.<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>of();
+                    } else {
+                        ConsistencyLag.startS5MongoBulkWrite(model.getMetadata());
+                        final var result = mongoWriteModelOpt.orElseThrow();
+                        logger.debug("MongoWriteModel={}", result);
+                        return List.of(Pair.create(model, result));
+                    }
+                })
+                .handle((result, error) -> {
+                    if (result != null) {
+                        return result;
+                    } else {
+                        logger.error("Failed to compute write model " + model, error);
+                        try {
+                            model.getMetadata().getTimers().forEach(StartedTimer::stop);
+                        } catch (final Exception e) {
+                            // tolerate stopping stopped timers
+                        }
+                        return List.of();
+                    }
+                });
+    }
+
+    /**
+     * Convert a list of write models to incremental update models.
+     *
+     * @param models the list of write models.
+     * @param logger the logger.
+     * @return a list of write models together with their update documents.
+     */
     protected static CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>> toIncrementalMongo(
             final Collection<AbstractWriteModel> models,
             final ThreadSafeDittoLogger logger) {
 
         final var writeModelFutures = models.stream()
-                .<CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>>>map(model ->
-                        model.toIncrementalMongo()
-                                .thenApply(mongoWriteModelOpt -> {
-                                    if (mongoWriteModelOpt.isEmpty()) {
-                                        logger.debug("Write model is unchanged, skipping update: <{}>", model);
-                                        model.getMetadata().sendWeakAck(null);
-                                        return List.<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>of();
-                                    } else {
-                                        ConsistencyLag.startS5MongoBulkWrite(model.getMetadata());
-                                        final var result = mongoWriteModelOpt.orElseThrow();
-                                        logger.debug("MongoWriteModel={}", result);
-                                        return List.of(Pair.create(model, result));
-                                    }
-                                })
-                                .handle((result, error) -> {
-                                    if (result != null) {
-                                        return result;
-                                    } else {
-                                        logger.error("Failed to compute write model " + model, error);
-                                        try {
-                                            model.getMetadata().getTimers().forEach(StartedTimer::stop);
-                                        } catch (final Exception e) {
-                                            // tolerate stopping stopped timers
-                                        }
-                                        return List.of();
-                                    }
-                                })
-                )
+                .map(model -> toIncrementalMongo(model, logger))
                 .map(CompletionStage::toCompletableFuture)
                 .collect(Collectors.toList());
 
