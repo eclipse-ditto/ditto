@@ -121,7 +121,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     @SuppressWarnings("unused")
     private AmqpClientActor(final Connection connection,
-            @Nullable final ActorRef proxyActor,
+            ActorRef proxyActor,
             final ActorRef connectionActor,
             final Config amqp10configOverride,
             final DittoHeaders dittoHeaders) {
@@ -152,7 +152,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @SuppressWarnings("unused")
     private AmqpClientActor(final Connection connection,
             final JmsConnectionFactory jmsConnectionFactory,
-            @Nullable final ActorRef proxyActor,
+            final ActorRef proxyActor,
             final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
 
         super(connection, proxyActor, connectionActor, dittoHeaders);
@@ -176,7 +176,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
+    public static Props props(final Connection connection, final ActorRef proxyActor,
             final ActorRef connectionActor, final ActorSystem actorSystem,
             final DittoHeaders dittoHeaders) {
 
@@ -196,7 +196,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
+    public static Props props(final Connection connection, final ActorRef proxyActor,
             final ActorRef connectionActor, final Config amqp10configOverride, final ActorSystem actorSystem,
             final DittoHeaders dittoHeaders) {
 

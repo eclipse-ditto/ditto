@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -48,7 +47,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
     }
 
     @Override
-    public Props getActorPropsForType(final Connection connection, @Nullable final ActorRef proxyActor,
+    public Props getActorPropsForType(final Connection connection, final ActorRef proxyActor,
             final ActorRef connectionActor, final ActorSystem actorSystem,
             final DittoHeaders dittoHeaders) {
         final ConnectionType connectionType = connection.getConnectionType();

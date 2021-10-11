@@ -214,8 +214,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
     private int childActorCount = 0;
 
     protected BaseClientActor(final Connection connection,
-            //TODO check if @Nullable can be removed
-            @Nullable final ActorRef proxyActor,
+            final ActorRef proxyActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders) {
 

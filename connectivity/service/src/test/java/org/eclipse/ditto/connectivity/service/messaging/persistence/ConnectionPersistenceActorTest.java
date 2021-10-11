@@ -1272,7 +1272,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         }
 
         @Override
-        public Props getActorPropsForType(final Connection connection, @Nullable final ActorRef proxyActor,
+        public Props getActorPropsForType(final Connection connection, final ActorRef proxyActor,
                 final ActorRef connectionActor, final ActorSystem system,
                 final DittoHeaders dittoHeaders) {
             return Props.create(FailingActor.class, FailingActor::new);

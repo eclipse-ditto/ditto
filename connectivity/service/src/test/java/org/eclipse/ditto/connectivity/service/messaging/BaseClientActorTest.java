@@ -681,7 +681,7 @@ public final class BaseClientActorTest {
 
         public DummyClientActor(final Connection connection,
                 final ActorRef connectionActor,
-                @Nullable final ActorRef proxyActor,
+                final ActorRef proxyActor,
                 final ActorRef publisherActor,
                 final BaseClientActor delegate) {
 
@@ -700,7 +700,7 @@ public final class BaseClientActorTest {
          * @return the Akka configuration Props object.
          */
         public static Props props(final Connection connection, final ActorRef connectionActor,
-                @Nullable final ActorRef proxyActor,
+                final ActorRef proxyActor,
                 final ActorRef publisherActor, final BaseClientActor delegate) {
             return Props.create(DummyClientActor.class, connection, connectionActor, proxyActor,
                     publisherActor, delegate);
