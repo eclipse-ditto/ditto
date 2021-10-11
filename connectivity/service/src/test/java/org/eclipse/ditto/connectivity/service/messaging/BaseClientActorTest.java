@@ -69,6 +69,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.FSM;
@@ -685,7 +687,7 @@ public final class BaseClientActorTest {
                 final ActorRef publisherActor,
                 final BaseClientActor delegate) {
 
-            super(connection, proxyActor, connectionActor, DittoHeaders.empty());
+            super(connection, proxyActor, connectionActor, DittoHeaders.empty(), ConfigFactory.empty());
             this.publisherActor = publisherActor;
             this.delegate = delegate;
         }

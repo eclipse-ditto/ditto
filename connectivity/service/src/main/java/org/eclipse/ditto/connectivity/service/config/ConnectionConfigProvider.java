@@ -19,10 +19,9 @@ import java.util.concurrent.CompletionStage;
 import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.events.Event;
-import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
-import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 
@@ -30,7 +29,9 @@ import akka.actor.ActorRef;
  * Provides methods to load {@link ConnectivityConfig} and register for changes to {@link ConnectivityConfig}.
  */
 @IndexSubclasses
-public interface ConnectionContextProvider {
+public interface ConnectionConfigProvider {
+
+    CompletionStage<Config> getConnectivityConfigOverwrites(ConnectionId connectionId, DittoHeaders dittoHeaders);
 
     /**
      * Loads a {@link ConnectivityConfig} by a connection ID.
@@ -40,29 +41,6 @@ public interface ConnectionContextProvider {
      * @return the future connectivity config
      */
     CompletionStage<ConnectivityConfig> getConnectivityConfig(ConnectionId connectionId, DittoHeaders dittoHeaders);
-
-    /**
-     * Loads a {@link org.eclipse.ditto.connectivity.service.mapping.ConnectionContext} by a connection.
-     *
-     * @param connection the connection for which to load the connection context.
-     * @param dittoHeaders the ditto headers for which to load the connection context.
-     * @return the future connectivity context
-     */
-    default CompletionStage<ConnectionContext> getConnectionContext(final Connection connection,
-            final DittoHeaders dittoHeaders) {
-        return getConnectivityConfig(connection.getId(), dittoHeaders)
-                .thenApply(config -> DittoConnectionContext.of(connection, config));
-    }
-
-    /**
-     * Loads a connection context.
-     *
-     * @param connection the connection for which to load the connection context.
-     * @return the connection context.
-     */
-    default CompletionStage<ConnectionContext> getConnectionContext(final Connection connection) {
-        return getConnectionContext(connection, DittoHeaders.empty());
-    }
 
     /**
      * Register the given {@code subscriber} for changes to the {@link ConnectivityConfig} of the given {@code
@@ -78,20 +56,6 @@ public interface ConnectionContextProvider {
             DittoHeaders dittoHeaders, ActorRef subscriber);
 
     /**
-     * Register the given {@code subscriber} for changes to the {@link ConnectivityConfig} of the given connection.
-     * The given {@link ActorRef} will receive {@link Event}s to build the modified
-     * {@link ConnectivityConfig}.
-     *
-     * @param context context of the connection whose config changes are subscribed
-     * @param subscriber the subscriber that will receive {@link org.eclipse.ditto.base.model.signals.events.Event}s
-     * @return a future that succeeds or fails depends on whether registration was successful.
-     */
-    default CompletionStage<Void> registerForConnectivityConfigChanges(final ConnectionContext context,
-            final ActorRef subscriber) {
-        return registerForConnectivityConfigChanges(context.getConnection().getId(), DittoHeaders.empty(), subscriber);
-    }
-
-    /**
      * Returns {@code true} if the implementation can handle the given {@code event} to generate a modified {@link
      * ConnectivityConfig} when passed to {@link #handleEvent(Event)}.
      *
@@ -101,11 +65,11 @@ public interface ConnectionContextProvider {
     boolean canHandle(Event<?> event);
 
     /**
-     * Uses the given {@code event} to create a modified {@link ConnectivityConfig}.
+     * Uses the given {@code event} to create a config which should overwrite the default connectivity config.
      *
-     * @param event the event used to create a new {@link ConnectivityConfig}
-     * @return Optional of the modified {@link ConnectivityConfig} or an empty Optional.
+     * @param event the event used to create a config which should overwrite the default connectivity config.
+     * @return Potentially empty config which holds the overwrites for the default connectivity config.
      */
-    Optional<ConnectivityConfig> handleEvent(Event<?> event);
+    Optional<Config> handleEvent(Event<?> event);
 
 }

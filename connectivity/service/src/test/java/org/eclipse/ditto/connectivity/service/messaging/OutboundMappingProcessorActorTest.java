@@ -40,7 +40,6 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocol.TopicPath;
@@ -230,8 +229,7 @@ public final class OutboundMappingProcessorActorTest {
     }
 
     private OutboundMappingProcessor getProcessor() {
-        final var connectionContext = DittoConnectionContext.of(CONNECTION, TestConstants.CONNECTIVITY_CONFIG);
-        return OutboundMappingProcessor.of(connectionContext, actorSystem,
+        return OutboundMappingProcessor.of(CONNECTION, TestConstants.CONNECTIVITY_CONFIG, actorSystem,
                 protocolAdapterProvider.getProtocolAdapter("test"),
                 AbstractMessageMappingProcessorActorTest.mockLoggingAdapter());
     }

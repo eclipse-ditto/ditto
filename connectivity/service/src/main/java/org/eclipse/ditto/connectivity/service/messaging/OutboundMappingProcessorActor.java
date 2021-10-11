@@ -95,7 +95,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
-import akka.japi.pf.ReceiveBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -130,9 +129,7 @@ public final class OutboundMappingProcessorActor
     private final SignalEnrichmentFacade signalEnrichmentFacade;
     private final int processorPoolSize;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
-
-    // not final because it may change when the underlying config changed
-    private OutboundMappingProcessor outboundMappingProcessor;
+    private final OutboundMappingProcessor outboundMappingProcessor;
 
     @SuppressWarnings("unused")
     private OutboundMappingProcessorActor(final ActorRef clientActor,
@@ -258,15 +255,6 @@ public final class OutboundMappingProcessorActor
     @Override
     protected int getBufferSize() {
         return mappingConfig.getBufferSize();
-    }
-
-    @Override
-    protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder
-                .match(BaseClientActor.ReplaceOutboundMappingProcessor.class, replaceProcessor -> {
-                    dittoLoggingAdapter.info("Replacing the OutboundMappingProcessor with a modified one.");
-                    this.outboundMappingProcessor = replaceProcessor.getOutboundMappingProcessor();
-                });
     }
 
     private Object handleNotExpectedAcknowledgement(final Acknowledgement acknowledgement) {
@@ -620,7 +608,7 @@ public final class OutboundMappingProcessorActor
                                 .collect(Collectors.toList());
                         final Predicate<AcknowledgementLabel> willPublish =
                                 ConnectionValidator.getTargetIssuedAcknowledgementLabels(connection.getId(),
-                                        targetsToPublishAt)
+                                                targetsToPublishAt)
                                         .collect(Collectors.toSet())::contains;
                         issueWeakAcknowledgements(outbound.getSource(),
                                 willPublish.negate().and(outboundMappingProcessor::isTargetIssuedAck),

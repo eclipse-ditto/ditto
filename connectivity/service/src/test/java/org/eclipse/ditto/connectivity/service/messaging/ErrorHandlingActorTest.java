@@ -75,7 +75,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
             final Connection connection = TestConstants.createConnection(connectionId);
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
                     pubSubMediator, proxyActor,
-                    (connection1, connectionActor, proxyActor, actorSystem, dittoHeaders) ->
+                    (connection1, connectionActor, proxyActor, actorSystem, dittoHeaders, overwrites) ->
                             FaultyClientActor.props(false, false));
             watch(underTest);
 
@@ -105,7 +105,7 @@ public class ErrorHandlingActorTest extends WithMockServers {
             // need to allow close commands, since the ConnectionActor will send a CloseConnection to the clients upon
             // receiving a DeleteConnection
             final ClientActorPropsFactory faultyClientActorWithCloseCommands =
-                    (c, cA, pA, aS, dittoHeaders) -> FaultyClientActor.props(true, true);
+                    (c, cA, pA, aS, dittoHeaders, overwrites) -> FaultyClientActor.props(true, true);
 
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,

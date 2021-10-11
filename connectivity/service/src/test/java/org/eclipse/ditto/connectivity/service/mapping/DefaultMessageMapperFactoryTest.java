@@ -46,7 +46,6 @@ import akka.testkit.javadsl.TestKit;
 @RunWith(MockitoJUnitRunner.class)
 public final class DefaultMessageMapperFactoryTest {
 
-    private static ConnectionContext connectionContext;
     private static ActorSystem system;
 
     @Mock
@@ -58,9 +57,6 @@ public final class DefaultMessageMapperFactoryTest {
     public static void initTestFixture() {
         final Config testConfig = ConfigFactory.parseMap(
                 Collections.singletonMap("ditto.connectivity.mapping.dummy", ""));
-        connectionContext =
-                DittoConnectionContext.of(TestConstants.createConnection(), TestConstants.CONNECTIVITY_CONFIG);
-
         system = ActorSystem.create("test", testConfig);
     }
 
@@ -72,7 +68,8 @@ public final class DefaultMessageMapperFactoryTest {
 
     @Before
     public void setUp() {
-        underTest = DefaultMessageMapperFactory.of(connectionContext, system, log);
+        underTest = DefaultMessageMapperFactory.of(TestConstants.createConnection(), TestConstants.CONNECTIVITY_CONFIG,
+                system, log);
     }
 
     @After

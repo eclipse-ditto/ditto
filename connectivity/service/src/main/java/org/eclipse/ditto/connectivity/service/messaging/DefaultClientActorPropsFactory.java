@@ -25,6 +25,8 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.HiveMqtt3Cli
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.hivemq.HiveMqtt5ClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQClientActor;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -50,28 +52,33 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
     @Override
     public Props getActorPropsForType(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor, final ActorSystem actorSystem,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders, final Config connectivityConfigOverwrites) {
         final ConnectionType connectionType = connection.getConnectionType();
-
         final Props result;
         switch (connectionType) {
             case AMQP_091:
-                result = RabbitMQClientActor.props(connection, proxyActor, connectionActor, dittoHeaders);
+                result = RabbitMQClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
+                        connectivityConfigOverwrites);
                 break;
             case AMQP_10:
-                result = AmqpClientActor.props(connection, proxyActor, connectionActor, actorSystem, dittoHeaders);
+                result = AmqpClientActor.props(connection, proxyActor, connectionActor, connectivityConfigOverwrites,
+                        actorSystem, dittoHeaders);
                 break;
             case MQTT:
-                result = HiveMqtt3ClientActor.props(connection, proxyActor, connectionActor, dittoHeaders);
+                result = HiveMqtt3ClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
+                        connectivityConfigOverwrites);
                 break;
             case MQTT_5:
-                result = HiveMqtt5ClientActor.props(connection, proxyActor, connectionActor, dittoHeaders);
+                result = HiveMqtt5ClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
+                        connectivityConfigOverwrites);
                 break;
             case KAFKA:
-                result = KafkaClientActor.props(connection, proxyActor, connectionActor, dittoHeaders);
+                result = KafkaClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
+                        connectivityConfigOverwrites);
                 break;
             case HTTP_PUSH:
-                result = HttpPushClientActor.props(connection, connectionActor, dittoHeaders);
+                result = HttpPushClientActor.props(connection, connectionActor, dittoHeaders,
+                        connectivityConfigOverwrites);
                 break;
             default:
                 throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");

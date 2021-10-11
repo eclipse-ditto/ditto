@@ -29,6 +29,7 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
@@ -47,8 +48,11 @@ import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConflictException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import akka.actor.ActorSystem;
 
 /**
  * Unit test for {@link ImplicitThingCreationMessageMapper}.
@@ -109,20 +113,31 @@ public final class ImplicitThingCreationMessageMapperTest {
     public static final String GATEWAY_ID = "headerNamespace:headerGatewayId";
     public static final String DEVICE_ID = "headerNamespace:headerDeviceId";
 
-    private static ConnectionContext connectionContext;
+    private Connection connection;
+    private ActorSystem actorSystem;
     private MessageMapper underTest;
 
     @Before
     public void setUp() {
-        connectionContext =
-                DittoConnectionContext.of(TestConstants.createConnection(), TestConstants.CONNECTIVITY_CONFIG);
+        connection = TestConstants.createConnection();
+        actorSystem = ActorSystem.create("Test", TestConstants.CONFIG);
         underTest = new ImplicitThingCreationMessageMapper();
+    }
+
+    @After
+    public void tearDown() {
+        if (actorSystem != null) {
+            actorSystem.terminate();
+            actorSystem = null;
+        }
     }
 
     @Test
     public void doForwardMappingContextWithCommandHeaderPlaceholder() {
         final Map<String, String> headers = createValidHeaders();
-        underTest.configure(connectionContext, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
+
+        underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
+                createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS), actorSystem);
 
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
@@ -145,7 +160,8 @@ public final class ImplicitThingCreationMessageMapperTest {
     @Test
     public void doForwardMappingContextWithDeviceIdPlaceholder() {
         final Map<String, String> headers = createValidHeaders();
-        underTest.configure(connectionContext, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
+        underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
+                createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS), actorSystem);
 
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
@@ -166,7 +182,8 @@ public final class ImplicitThingCreationMessageMapperTest {
     @Test
     public void doForwardMappingContextWithPolicyPlaceholder() {
         final Map<String, String> headers = createValidHeaders();
-        underTest.configure(connectionContext, createMapperConfig(THING_TEMPLATE_WITH_POLICY, COMMAND_HEADERS));
+        underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
+                createMapperConfig(THING_TEMPLATE_WITH_POLICY, COMMAND_HEADERS), actorSystem);
 
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
@@ -186,7 +203,8 @@ public final class ImplicitThingCreationMessageMapperTest {
 
     @Test
     public void doForwardMappingTwice() {
-        underTest.configure(connectionContext, createMapperConfig(THING_TEMPLATE_WITH_POLICY, COMMAND_HEADERS));
+        underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
+                createMapperConfig(THING_TEMPLATE_WITH_POLICY, COMMAND_HEADERS), actorSystem);
 
         final Map<String, String> headers1 = new HashMap<>();
         headers1.put(HEADER_HONO_DEVICE_ID, "headerNamespace:headerDeviceId1");
@@ -231,8 +249,8 @@ public final class ImplicitThingCreationMessageMapperTest {
     @Test
     public void doForwardWithoutPlaceholders() {
         final Map<String, String> headers = createValidHeaders();
-        underTest.configure(connectionContext,
-                createMapperConfig(THING_TEMPLATE_WITHOUT_PLACEHOLDERS, COMMAND_HEADERS));
+        underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
+                createMapperConfig(THING_TEMPLATE_WITHOUT_PLACEHOLDERS, COMMAND_HEADERS), actorSystem);
 
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
@@ -253,7 +271,9 @@ public final class ImplicitThingCreationMessageMapperTest {
                 COMMAND_HEADERS);
 
         assertThatExceptionOfType(MessageMapperConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.configure(connectionContext, invalidMapperConfig));
+                .isThrownBy(
+                        () -> underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG, invalidMapperConfig,
+                                actorSystem));
     }
 
     @Test
@@ -272,12 +292,15 @@ public final class ImplicitThingCreationMessageMapperTest {
                 COMMAND_HEADERS);
 
         assertThatExceptionOfType(MessageMapperConfigurationInvalidException.class)
-                .isThrownBy(() -> underTest.configure(connectionContext, invalidMapperConfig));
+                .isThrownBy(
+                        () -> underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG, invalidMapperConfig,
+                                actorSystem));
     }
 
     @Test
     public void throwErrorIfHeaderForPlaceholderIsMissing() {
-        underTest.configure(connectionContext, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
+        underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
+                createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS), actorSystem);
 
         final Map<String, String> missingEntityHeader = new HashMap<>();
         missingEntityHeader.put(HEADER_HONO_DEVICE_ID, DEVICE_ID);
@@ -291,7 +314,8 @@ public final class ImplicitThingCreationMessageMapperTest {
 
     @Test
     public void throwExceptionOnErrorResponse() {
-        underTest.configure(connectionContext, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
+        underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
+                createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS), actorSystem);
         final ThingConflictException conflictException =
                 ThingConflictException.newBuilder(ThingId.generateRandom()).build();
         final Signal<?> thingErrorResponse = ThingErrorResponse.of(conflictException);
@@ -311,14 +335,15 @@ public final class ImplicitThingCreationMessageMapperTest {
 
         final var externalMessage = ExternalMessageFactory.newExternalMessageBuilder(Map.of("id", "invalid")).build();
 
-        underTest.configure(connectionContext, mapperConfig);
+        underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG, mapperConfig, actorSystem);
 
         assertThatExceptionOfType(ThingIdInvalidException.class).isThrownBy(() -> underTest.map(externalMessage));
     }
 
     @Test
     public void regularCommandResponsesAreNotMapped() {
-        underTest.configure(connectionContext, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
+        underTest.configure(connection, TestConstants.CONNECTIVITY_CONFIG,
+                createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS), actorSystem);
         final Signal<?> thingResponse =
                 CreateThingResponse.of(Thing.newBuilder().setId(ThingId.generateRandom()).build(),
                         DittoHeaders.empty());

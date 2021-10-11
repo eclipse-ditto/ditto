@@ -53,9 +53,7 @@ import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
 import org.eclipse.ditto.connectivity.model.SourceBuilder;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectivityCachingSignalEnrichmentProvider;
-import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.internal.models.placeholders.Placeholder;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
@@ -346,11 +344,12 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
-        final ConnectionContext connectionContext = DittoConnectionContext.of(
+        final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(
                 CONNECTION.toBuilder().payloadMappingDefinition(payloadMappingDefinition).build(),
-                TestConstants.CONNECTIVITY_CONFIG);
-        final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(connectionContext,
-                actorSystem, protocolAdapter, logger);
+                TestConstants.CONNECTIVITY_CONFIG,
+                actorSystem,
+                protocolAdapter,
+                logger);
         final Sink<Object, NotUsed> inboundDispatchingSink =
                 InboundDispatchingSink.createSink(CONNECTION, protocolAdapter.headerTranslator(),
                         ActorSelection.apply(proxyActor, ""), connectionActorProbe.ref(), outboundMappingProcessorActor,
@@ -375,9 +374,11 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappingDefinitions);
         final ThreadSafeDittoLoggingAdapter logger = mockLoggingAdapter();
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
-        final OutboundMappingProcessor outboundMappingProcessor =
-                OutboundMappingProcessor.of(DittoConnectionContext.of(CONNECTION, TestConstants.CONNECTIVITY_CONFIG),
-                        actorSystem, protocolAdapter, logger);
+        final OutboundMappingProcessor outboundMappingProcessor = OutboundMappingProcessor.of(CONNECTION,
+                TestConstants.CONNECTIVITY_CONFIG,
+                actorSystem,
+                protocolAdapter,
+                logger);
 
         final Props props = OutboundMappingProcessorActor.props(kit.getRef(), outboundMappingProcessor, CONNECTION, 99);
         return actorSystem.actorOf(props);

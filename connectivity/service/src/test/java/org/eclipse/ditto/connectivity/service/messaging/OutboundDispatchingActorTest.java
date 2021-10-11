@@ -34,7 +34,6 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
@@ -295,9 +294,9 @@ public final class OutboundDispatchingActorTest {
             final ActorSelection proxyActorSelection = ActorSelection.apply(proxyActor.ref(), "");
             final TestProbe mappingActor = TestProbe.apply("mapping", actorSystem);
 
-            final var connectionContext = DittoConnectionContext.of(connection, TestConstants.CONNECTIVITY_CONFIG);
             final OutboundMappingSettings settings =
-                    OutboundMappingSettings.of(connectionContext, actorSystem, proxyActorSelection,
+                    OutboundMappingSettings.of(connection, TestConstants.CONNECTIVITY_CONFIG, actorSystem,
+                            proxyActorSelection,
                             DittoProtocolAdapter.newInstance(),
                             MockActor.getThreadSafeDittoLoggingAdapter(actorSystem));
             final ActorRef underTest = childActorOf(OutboundDispatchingActor.props(settings, mappingActor.ref()));
@@ -322,9 +321,9 @@ public final class OutboundDispatchingActorTest {
         final TestProbe proxyActor = TestProbe.apply("proxy", actorSystem);
         final ActorSelection proxyActorSelection = ActorSelection.apply(proxyActor.ref(), "");
 
-        final var connectionContext = DittoConnectionContext.of(connection, TestConstants.CONNECTIVITY_CONFIG);
         final OutboundMappingSettings settings =
-                OutboundMappingSettings.of(connectionContext, actorSystem, proxyActorSelection,
+                OutboundMappingSettings.of(connection, TestConstants.CONNECTIVITY_CONFIG, actorSystem,
+                        proxyActorSelection,
                         DittoProtocolAdapter.newInstance(), MockActor.getThreadSafeDittoLoggingAdapter(actorSystem));
         return actorSystem.actorOf(OutboundDispatchingActor.props(settings, mappingActor));
     }

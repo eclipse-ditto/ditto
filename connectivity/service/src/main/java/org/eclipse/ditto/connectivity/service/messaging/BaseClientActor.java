@@ -40,7 +40,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -91,14 +90,8 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.connectivity.service.config.ClientConfig;
-import org.eclipse.ditto.connectivity.service.config.ConnectionContextProvider;
-import org.eclipse.ditto.connectivity.service.config.ConnectionContextProviderFactory;
 import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
-import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
@@ -114,7 +107,6 @@ import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionVal
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
@@ -125,6 +117,8 @@ import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.WithSubscriptionId;
+
+import com.typesafe.config.Config;
 
 import akka.Done;
 import akka.NotUsed;
@@ -146,9 +140,7 @@ import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
 import akka.stream.Materializer;
-import akka.stream.javadsl.MergeHub;
 import akka.stream.javadsl.Sink;
-import scala.concurrent.ExecutionContext;
 
 /**
  * Base class for ClientActors which implement the connection handling for various connectivity protocols.
@@ -158,8 +150,7 @@ import scala.concurrent.ExecutionContext;
  * the required information from ConnectionActor.
  * </p>
  */
-public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientState, BaseClientData> implements
-        ConnectivityConfigModifiedBehavior {
+public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientState, BaseClientData> {
 
     /**
      * The name of the dispatcher that will be used for async mapping.
@@ -174,7 +165,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
-private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
+    private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
             "Closed because of unknown/failure/misconfiguration status in client.";
     /**
      * Common logger for all sub-classes of BaseClientActor as its MDC already contains the connection ID.
@@ -182,6 +173,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
     protected final ThreadSafeDittoLoggingAdapter logger;
 
     private final Connection connection;
+    private final ConnectivityConfig connectivityConfig;
     private final ActorRef connectionActor;
     private final ActorSelection proxyActorSelection;
     private final Gauge clientGauge;
@@ -201,9 +193,6 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
     protected final ConnectivityStatusResolver connectivityStatusResolver;
     private final boolean dryRun;
 
-    private final ConnectionContextProvider connectionContextProvider;
-    protected ConnectionContext connectionContext;
-
     private Sink<Object, NotUsed> inboundMappingSink;
     private ActorRef outboundDispatchingActor;
     private ActorRef outboundMappingProcessorActor;
@@ -216,11 +205,15 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
     protected BaseClientActor(final Connection connection,
             @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            final Config connectivityConfigOverwrites) {
 
-        final ActorSystem system = getContext().getSystem();
-        materializer = Materializer.createMaterializer(system);
         this.connection = checkNotNull(connection, "connection");
+        final ActorSystem system = getContext().getSystem();
+        final Config config = system.settings().config();
+        final Config withOverwrites = connectivityConfigOverwrites.withFallback(config);
+        this.connectivityConfig = ConnectivityConfig.of(withOverwrites);
+        materializer = Materializer.createMaterializer(system);
         this.connectionActor = connectionActor;
         // this is retrieve via the extension for each baseClientActor in order to not pass it as constructor arg
         //  as all constructor arguments need to be serializable as the BaseClientActor is started behind a cluster
@@ -235,18 +228,15 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         logger.info("Using default client ID <{}>", getDefaultClientId());
 
         proxyActorSelection = getLocalActorOfSamePath(proxyActor);
-        connectionContextProvider = ConnectionContextProviderFactory.getInstance(system);
 
-        final UserIndicatedErrors userIndicatedErrors = UserIndicatedErrors.of(system.settings().config());
+        final UserIndicatedErrors userIndicatedErrors = UserIndicatedErrors.of(config);
         connectivityStatusResolver = ConnectivityStatusResolver.of(userIndicatedErrors);
-        final ConnectivityConfig staticConnectivityConfig = ConnectivityConfig.forActorSystem(system);
-        final ClientConfig staticClientConfig = staticConnectivityConfig.getClientConfig();
-        final var protocolAdapterProvider =
-                ProtocolAdapterProvider.load(staticConnectivityConfig.getProtocolConfig(), system);
-        protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
-        connectionContext = DittoConnectionContext.of(connection, staticConnectivityConfig);
 
-        final var monitoringConfig = staticConnectivityConfig.getMonitoringConfig();
+        final ClientConfig clientConfig = connectivityConfig().getClientConfig();
+        final var protocolAdapterProvider =
+                ProtocolAdapterProvider.load(connectivityConfig().getProtocolConfig(), system);
+        protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
+        final var monitoringConfig = connectivityConfig().getMonitoringConfig();
         connectionCounterRegistry = ConnectivityCounterRegistry.newInstance();
         connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
         connectionLoggerRegistry.initForConnection(connection);
@@ -259,16 +249,15 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
                 .tag("id", connectionId.toString())
                 .tag("type", connection.getConnectionType().getName());
 
-        reconnectTimeoutStrategy = DuplicationReconnectTimeoutStrategy.fromConfig(staticClientConfig);
+        reconnectTimeoutStrategy = DuplicationReconnectTimeoutStrategy.fromConfig(clientConfig);
         supervisorStrategy = createSupervisorStrategy(getSelf());
         clientActorRefs = ClientActorRefs.empty();
-        clientActorRefsNotificationDelay = randomize(staticClientConfig.getClientActorRefsNotificationDelay());
+        clientActorRefsNotificationDelay = randomize(clientConfig.getClientActorRefsNotificationDelay());
         subscriptionIdPrefixLength =
                 ConnectionPersistenceActor.getSubscriptionPrefixLength(connection.getClientCount());
 
         // Send init message to allow for unsafe initialization of subclasses.
         dryRun = dittoHeaders.isDryRun();
-        startInitialization(dittoHeaders);
     }
 
     @Override
@@ -297,7 +286,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         // start with UNKNOWN state but send self OpenConnection because client actors are never created closed
         final BaseClientData startingData =
                 BaseClientData.BaseClientDataBuilder.from(connection.getId(), connection, ConnectivityStatus.UNKNOWN,
-                        ConnectivityStatus.OPEN, "initialized", Instant.now())
+                                ConnectivityStatus.OPEN, "initialized", Instant.now())
                         .build();
         startWith(UNKNOWN, startingData);
 
@@ -316,23 +305,26 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         clientActorRefs.add(getSelf());
 
         closeConnectionBeforeTerminatingCluster();
+
+        init();
+    }
+
+    protected ConnectivityConfig connectivityConfig() {
+        return connectivityConfig;
     }
 
     /**
-     * Initialize child actors using the connection context.
-     *
-     * @param connectionContext the retrieved connection context.
+     * Initialize child actors.
      */
-    protected void init(final ConnectionContext connectionContext) {
-        final Pair<ActorRef, ActorRef> actorPair = startOutboundActors(connectionContext, protocolAdapter);
+    protected void init() {
+        final Pair<ActorRef, ActorRef> actorPair = startOutboundActors(protocolAdapter);
         outboundDispatchingActor = actorPair.first();
         outboundMappingProcessorActor = actorPair.second();
 
         final Sink<Object, NotUsed> inboundDispatchingSink =
                 getInboundDispatchingSink(connection, protocolAdapter, outboundMappingProcessorActor);
-        inboundMappingSink = getInboundMappingSink(connectionContext, protocolAdapter, inboundDispatchingSink);
-        subscriptionManager = startSubscriptionManager(proxyActorSelection,
-                connectionContext.getConnectivityConfig().getClientConfig());
+        inboundMappingSink = getInboundMappingSink(protocolAdapter, inboundDispatchingSink);
+        subscriptionManager = startSubscriptionManager(proxyActorSelection, connectivityConfig().getClientConfig());
 
         if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
             tunnelActor = startChildActor(SshTunnelActor.ACTOR_NAME, SshTunnelActor.props(connection,
@@ -340,7 +332,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         } else {
             tunnelActor = null;
         }
-
+        getSelf().tell(Control.INIT_COMPLETE, ActorRef.noSender());
     }
 
     private void closeConnectionBeforeTerminatingCluster() {
@@ -375,27 +367,6 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         }
     }
 
-    @Override
-    public void onConnectivityConfigModified(final ConnectivityConfig modifiedConfig) {
-        final var modifiedContext = connectionContext.withConnectivityConfig(modifiedConfig);
-        if (hasInboundMapperConfigChanged(modifiedConfig)) {
-            logger.debug("Config changed for InboundMappingProcessor, recreating it.");
-            final var inboundMappingProcessor =
-                    InboundMappingProcessor.of(modifiedContext, getContext().getSystem(), protocolAdapter, logger);
-            akka.stream.javadsl.Source.<Object>single(new ReplaceInboundMappingProcessor(inboundMappingProcessor))
-                    .to(getInboundMappingSink())
-                    .run(materializer);
-        }
-        if (hasOutboundMapperConfigChanged(modifiedConfig)) {
-            logger.debug("Config changed for OutboundMappingProcessor, recreating it.");
-            final var outboundMappingProcessor =
-                    OutboundMappingProcessor.of(modifiedContext, getContext().getSystem(), protocolAdapter, logger);
-            outboundMappingProcessorActor.tell(new ReplaceOutboundMappingProcessor(outboundMappingProcessor),
-                    getSelf());
-        }
-        connectionContext = modifiedContext;
-    }
-
     /**
      * Compute the client ID for this actor. The format of the client ID is prefix-uuid, where the uuid is unique to
      * each incarnation of this actor.
@@ -420,20 +391,6 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         return getClientId(connection.getId());
     }
 
-    private boolean hasInboundMapperConfigChanged(final ConnectivityConfig connectivityConfig) {
-        final var currentConfig = connectionContext.getConnectivityConfig().getMappingConfig().getMapperLimitsConfig();
-        final var modifiedConfig = connectivityConfig.getMappingConfig().getMapperLimitsConfig();
-        return currentConfig.getMaxMappedInboundMessages() != modifiedConfig.getMaxMappedInboundMessages()
-                || currentConfig.getMaxSourceMappers() != modifiedConfig.getMaxSourceMappers();
-    }
-
-    private boolean hasOutboundMapperConfigChanged(final ConnectivityConfig connectivityConfig) {
-        final var currentConfig = connectionContext.getConnectivityConfig().getMappingConfig().getMapperLimitsConfig();
-        final var modifiedConfig = connectivityConfig.getMappingConfig().getMapperLimitsConfig();
-        return currentConfig.getMaxMappedOutboundMessages() != modifiedConfig.getMaxMappedOutboundMessages()
-                || currentConfig.getMaxTargetMappers() != modifiedConfig.getMaxTargetMappers();
-    }
-
     private FSM.State<BaseClientState, BaseClientData> completeInitialization() {
 
         final State<BaseClientState, BaseClientData> state = goTo(INITIALIZED);
@@ -447,11 +404,6 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         unstashAll();
 
         return state;
-    }
-
-    private void startInitialization(final DittoHeaders dittoHeaders) {
-        pipeConnectionContextToSelfAndRegisterForChanges(connectionContextProvider, connection, dittoHeaders, getSelf(),
-                getContext().getDispatcher());
     }
 
     /**
@@ -526,12 +478,6 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
                 .event(InboundSignal.class, this::handleInboundSignal)
                 .event(PublishMappedMessage.class, this::publishMappedMessage)
                 .event(ConnectivityCommand.class, this::onUnknownEvent) // relevant connectivity commands were handled
-                .event(org.eclipse.ditto.base.model.signals.events.Event.class,
-                        (event, data) -> connectionContextProvider.canHandle(event),
-                        (ccb, data) -> {
-                            handleEvent(ccb);
-                            return stay();
-                        })
                 .event(Signal.class, this::handleSignal)
                 .event(ActorRef.class, this::onOtherClientActorStartup)
                 .event(Terminated.class, this::otherClientActorTerminated)
@@ -713,13 +659,12 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
     }
 
     private FSM.State<BaseClientState, BaseClientData> goToTesting() {
-        scheduleStateTimeout(connectionContext.getConnectivityConfig().getClientConfig().getTestingTimeout());
+        scheduleStateTimeout(connectivityConfig().getClientConfig().getTestingTimeout());
         return goTo(TESTING);
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inUnknownState() {
         return matchEventEquals(Control.INIT_COMPLETE, (init, baseClientData) -> completeInitialization())
-                .event(ConnectionContext.class, this::initializeByConnectionContext)
                 .event(RuntimeException.class, BaseClientActor::failInitialization)
                 .anyEvent((o, baseClientData) -> {
                     stash();
@@ -827,7 +772,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
                     data.getSessionSenders().forEach(sender -> {
                         final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
                                 .description(String.format("Failed to open requested connection within <%d> seconds!",
-                                        connectionContext.getConnectivityConfig()
+                                        connectivityConfig()
                                                 .getClientConfig()
                                                 .getTestingTimeout()
                                                 .getSeconds()))
@@ -869,15 +814,6 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         return stay();
     }
 
-    private FSM.State<BaseClientState, BaseClientData> initializeByConnectionContext(
-            final ConnectionContext connectionContext, final BaseClientData data) {
-
-        this.connectionContext = connectionContext;
-        init(connectionContext);
-        getSelf().tell(Control.INIT_COMPLETE, ActorRef.noSender());
-        return stay();
-    }
-
     private static FSM.State<BaseClientState, BaseClientData> failInitialization(final RuntimeException error,
             final BaseClientData data) {
 
@@ -903,7 +839,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         final ActorRef sender = getSender();
 
         final Duration timeoutUntilDisconnectCompletes;
-        final ClientConfig clientConfig = connectionContext.getConnectivityConfig().getClientConfig();
+        final ClientConfig clientConfig = connectivityConfig().getClientConfig();
         if (shouldAnyTargetSendConnectionAnnouncements()) {
             final Duration disconnectAnnouncementTimeout = clientConfig.getDisconnectAnnouncementTimeout();
             timeoutUntilDisconnectCompletes =
@@ -945,8 +881,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         final ActorRef sender = getSender();
         final var dittoHeaders = openConnection.getDittoHeaders();
         reconnectTimeoutStrategy.reset();
-        final Duration connectingTimeout =
-                connectionContext.getConnectivityConfig().getClientConfig().getConnectingMinTimeout();
+        final Duration connectingTimeout = connectivityConfig().getClientConfig().getConnectingMinTimeout();
 
         if (stateData().getSshTunnelState().isEnabled()) {
             logger.info("Connection requires SSH tunnel, starting tunnel.");
@@ -959,8 +894,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
 
     private FSM.State<BaseClientState, BaseClientData> doOpenConnection(final BaseClientData data,
             final ActorRef sender, final DittoHeaders dittoHeaders) {
-        final Duration connectingTimeout =
-                connectionContext.getConnectivityConfig().getClientConfig().getConnectingMinTimeout();
+        final Duration connectingTimeout = connectivityConfig().getClientConfig().getConnectingMinTimeout();
         if (canConnectViaSocket(connection)) {
             doConnectClient(connection, sender);
             return goToConnecting(connectingTimeout).using(setSession(data, sender, dittoHeaders).resetFailureCount());
@@ -1236,10 +1170,10 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
             connectionLogger.success("Connection successful.");
             data.getSessionSenders().forEach(origin -> origin.first().tell(new Status.Success(CONNECTED), getSelf()));
             return goTo(CONNECTED).using(data.resetSession()
-                            .resetFailureCount()
-                            .setConnectionStatus(ConnectivityStatus.OPEN)
-                            .setConnectionStatusDetails("Connected at " + Instant.now())
-                    );
+                    .resetFailureCount()
+                    .setConnectionStatus(ConnectivityStatus.OPEN)
+                    .setConnectionStatusDetails("Connected at " + Instant.now())
+            );
         } else {
             logger.info("Initialization of consumers, publisher and subscriptions failed: {}. Staying in CONNECTING " +
                     "state to continue with connection recovery after backoff.", initializationResult.getFailure());
@@ -1278,22 +1212,22 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
     private State<BaseClientState, BaseClientData> clientDisconnected(final ClientDisconnected event,
             final BaseClientData data) {
 
-            connectionLogger.success("Disconnected successfully.");
+        connectionLogger.success("Disconnected successfully.");
 
-            cleanupResourcesForConnection();
-            tellTunnelActor(SshTunnelActor.TunnelControl.STOP_TUNNEL);
-            data.getSessionSenders()
-                    .forEach(sender -> sender.first().tell(new Status.Success(DISCONNECTED), getSelf()));
+        cleanupResourcesForConnection();
+        tellTunnelActor(SshTunnelActor.TunnelControl.STOP_TUNNEL);
+        data.getSessionSenders()
+                .forEach(sender -> sender.first().tell(new Status.Success(DISCONNECTED), getSelf()));
 
-            final BaseClientData nextStateData = data.resetSession()
-                    .setConnectionStatus(ConnectivityStatus.CLOSED)
-                    .setConnectionStatusDetails("Disconnected at " + Instant.now());
+        final BaseClientData nextStateData = data.resetSession()
+                .setConnectionStatus(ConnectivityStatus.CLOSED)
+                .setConnectionStatusDetails("Disconnected at " + Instant.now());
 
-            if (event.shutdownAfterDisconnected()) {
-                return stop(Normal(), nextStateData);
-            } else {
-                return goTo(DISCONNECTED).using(nextStateData);
-            }
+        if (event.shutdownAfterDisconnected()) {
+            return stop(Normal(), nextStateData);
+        } else {
+            return goTo(DISCONNECTED).using(nextStateData);
+        }
     }
 
     private void tellTunnelActor(final SshTunnelActor.TunnelControl control) {
@@ -1593,7 +1527,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
             case DISCONNECTING:
                 return ConnectionSignalIllegalException.newBuilder(connectionId())
                         .operationName(state.name().toLowerCase())
-                        .timeout(connectionContext.getConnectivityConfig().getClientConfig().getConnectingMinTimeout())
+                        .timeout(connectivityConfig().getClientConfig().getConnectingMinTimeout())
                         .dittoHeaders(headers)
                         .build();
             default:
@@ -1720,19 +1654,19 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         final ActorSystem actorSystem = getContext().getSystem();
 
         // this one throws DittoRuntimeExceptions when the mapper could not be configured
-        InboundMappingProcessor.of(connectionContext, actorSystem, protocolAdapter, logger);
-        OutboundMappingProcessor.of(connectionContext, actorSystem, protocolAdapter, logger);
+        InboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
+        OutboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
 
-    private Pair<ActorRef, ActorRef> startOutboundActors(final ConnectionContext connectionContext,
+    private Pair<ActorRef, ActorRef> startOutboundActors(
             final ProtocolAdapter protocolAdapter) {
         final OutboundMappingSettings settings;
         final OutboundMappingProcessor outboundMappingProcessor;
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            settings = OutboundMappingSettings.of(connectionContext, getContext().getSystem(), proxyActorSelection,
-                    protocolAdapter, logger);
+            settings = OutboundMappingSettings.of(connection, connectivityConfig, getContext().getSystem(),
+                    proxyActorSelection, protocolAdapter, logger);
             outboundMappingProcessor = OutboundMappingProcessor.of(settings);
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {0}.", dre.getMessage());
@@ -1741,12 +1675,10 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
             throw dre;
         }
 
-        final Connection connectionContextConnection = connectionContext.getConnection();
-        final int processorPoolSize = connectionContextConnection.getProcessorPoolSize();
+        final int processorPoolSize = connection.getProcessorPoolSize();
         logger.debug("Starting mapping processor actors with pool size of <{}>.", processorPoolSize);
         final Props outboundMappingProcessorActorProps =
-                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connectionContextConnection,
-                        processorPoolSize);
+                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connection, processorPoolSize);
 
         final ActorRef processorActor =
                 getContext().actorOf(outboundMappingProcessorActorProps, OutboundMappingProcessorActor.ACTOR_NAME);
@@ -1777,13 +1709,12 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
     /**
      * Gets the {@link InboundMappingSink} responsible for payload transformation/mapping.
      *
-     * @param connectionContext the connection.
      * @param protocolAdapter the protocol adapter.
      * @param inboundDispatchingSink the sink to hand mapping outcomes to.
      * @return the Sink.
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
-    private Sink<Object, NotUsed> getInboundMappingSink(final ConnectionContext connectionContext,
+    private Sink<Object, NotUsed> getInboundMappingSink(
             final ProtocolAdapter protocolAdapter,
             final Sink<Object, NotUsed> inboundDispatchingSink) {
 
@@ -1791,7 +1722,8 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
             inboundMappingProcessor =
-                    InboundMappingProcessor.of(connectionContext, getContext().getSystem(), protocolAdapter, logger);
+                    InboundMappingProcessor.of(connection, connectivityConfig, getContext().getSystem(),
+                            protocolAdapter, logger);
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {0}.", dre.getMessage());
             logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
@@ -1799,25 +1731,20 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
             throw dre;
         }
 
-        final int processorPoolSize = connectionContext.getConnection().getProcessorPoolSize();
+        final int processorPoolSize = connection.getProcessorPoolSize();
         logger.debug("Starting inbound mapping processor actors with pool size of <{}>.", processorPoolSize);
 
-        final var dittoScoped = DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
-        final var connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
-        final var mappingConfig = connectivityConfig.getMappingConfig();
+        final var mappingConfig = connectivityConfig().getMappingConfig();
         final MessageDispatcher messageMappingProcessorDispatcher =
                 getContext().system().dispatchers().lookup(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
         final Sink<Object, NotUsed> sink = InboundMappingSink.createSink(inboundMappingProcessor,
-                connectionContext.getConnection().getId(),
+                connection.getId(),
                 processorPoolSize,
                 inboundDispatchingSink,
                 mappingConfig,
                 getThrottlingConfig().orElse(null),
                 messageMappingProcessorDispatcher);
-        return MergeHub.of(Object.class)
-                .map(Object.class::cast)
-                .to(sink)
-                .run(materializer);
+        return sink;
     }
 
     protected Optional<ConnectionThrottlingConfig> getThrottlingConfig() {
@@ -2033,31 +1960,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         }
     }
 
-    private static void pipeConnectionContextToSelfAndRegisterForChanges(
-            final ConnectionContextProvider connectionContextProvider,
-            final Connection connection,
-            final DittoHeaders dittoHeaders,
-            final ActorRef self,
-            final ExecutionContext executionContext) {
-
-        final CompletionStage<Object> messageToSelfFuture =
-                connectionContextProvider.getConnectionContext(connection, dittoHeaders)
-                        .thenCompose(context ->
-                                connectionContextProvider.registerForConnectivityConfigChanges(context, self)
-                                        .<Object>thenApply(aVoid -> context)
-                        )
-                        .exceptionally(throwable -> {
-                            if (throwable instanceof RuntimeException) {
-                                return throwable;
-                            } else {
-                                return new RuntimeException(throwable);
-                            }
-                        });
-
-        Patterns.pipe(messageToSelfFuture, executionContext).to(self);
-    }
-
-    /**
+    /*
      * Reconnect timeout strategy that provides increasing timeouts for reconnecting the client.
      * On timeout, increase the next timeout so that backoff happens when connecting to a drop-all firewall.
      * On failure, increase backoff-wait so that backoff happens when connecting to a broken broker.
@@ -2251,42 +2154,6 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         INIT_COMPLETE,
         REFRESH_CLIENT_ACTOR_REFS,
         CONNECT_AFTER_TUNNEL_ESTABLISHED
-    }
-
-    /**
-     * Message sent to {@link InboundMappingSink} instructing it to replace the current {@link InboundMappingProcessor}.
-     */
-    static final class ReplaceInboundMappingProcessor {
-
-        private final InboundMappingProcessor inboundMappingProcessor;
-
-        private ReplaceInboundMappingProcessor(final InboundMappingProcessor inboundMappingProcessor) {
-            this.inboundMappingProcessor = inboundMappingProcessor;
-        }
-
-        InboundMappingProcessor getInboundMappingProcessor() {
-            return inboundMappingProcessor;
-        }
-
-    }
-
-    /**
-     * Message sent to {@link OutboundMappingProcessorActor} instructing it to replace the current
-     * {@link OutboundMappingProcessor}.
-     */
-    static final class ReplaceOutboundMappingProcessor {
-
-        private final OutboundMappingProcessor outboundMappingProcessor;
-
-        private ReplaceOutboundMappingProcessor(
-                final OutboundMappingProcessor outboundMappingProcessor) {
-            this.outboundMappingProcessor = outboundMappingProcessor;
-        }
-
-        OutboundMappingProcessor getOutboundMappingProcessor() {
-            return outboundMappingProcessor;
-        }
-
     }
 
     private static final Object SEND_DISCONNECT_ANNOUNCEMENT = new Object();

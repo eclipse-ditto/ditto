@@ -14,21 +14,30 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nullable;
 import javax.jms.JMSRuntimeException;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnavailableException;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
@@ -45,12 +54,15 @@ import akka.japi.pf.DeciderBuilder;
  * {@link ConnectionUnavailableException} as fail fast strategy.
  * </p>
  */
-public final class ConnectionSupervisorActor extends AbstractPersistenceSupervisor<ConnectionId> {
+public final class ConnectionSupervisorActor extends AbstractPersistenceSupervisor<ConnectionId> implements
+        ConnectivityConfigModifiedBehavior {
+
+    private static final Duration MAX_CONFIG_RETRIEVAL_DURATION = Duration.ofSeconds(5);
 
     private static final SupervisorStrategy SUPERVISOR_STRATEGY =
             new OneForOneStrategy(true,
                     DeciderBuilder.match(JMSRuntimeException.class, e ->
-                            (SupervisorStrategy.Directive) SupervisorStrategy.resume())
+                                    (SupervisorStrategy.Directive) SupervisorStrategy.resume())
                             .build()
                             .orElse(SupervisorStrategy.stoppingStrategy().decider()));
 
@@ -59,6 +71,7 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
     @Nullable private final ConnectivityCommandInterceptor commandInterceptor;
     private final ConnectionPriorityProviderFactory connectionPriorityProviderFactory;
     private final ActorRef pubSubMediator;
+    private Config connectivityConfigOverwrites;
 
     @SuppressWarnings("unused")
     private ConnectionSupervisorActor(
@@ -104,9 +117,52 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
     }
 
     @Override
+    protected Receive activeBehaviour() {
+        return connectivityConfigModifiedBehavior()
+                .orElse(super.activeBehaviour());
+    }
+
+    @Override
+    public void preStart() throws Exception {
+        try {
+            final ConnectionId connectionId = getEntityId();
+            getConnectivityConfigProvider().registerForConnectivityConfigChanges(connectionId, DittoHeaders.empty(),
+                    getSelf());
+            initConfigOverwrites(connectionId);
+            super.preStart();
+        } catch (final Exception e) {
+            log.error(e, "Failed to determine entity ID; becoming corrupted.");
+            becomeCorrupted();
+        }
+    }
+
+    private void initConfigOverwrites(final ConnectionId connectionId) {
+        try {
+            connectivityConfigOverwrites = getConnectivityConfigProvider()
+                    .getConnectivityConfigOverwrites(connectionId, DittoHeaders.empty())
+                    .toCompletableFuture()
+                    .get(MAX_CONFIG_RETRIEVAL_DURATION.toSeconds(), TimeUnit.SECONDS);
+        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+            /*
+             If not possible to retrieve overwrites in time, keep going with empty overwrites and potentially restart
+             the actor later.
+             */
+            log.error(e, "Could not retrieve overwrites within timeout of <{}>.", MAX_CONFIG_RETRIEVAL_DURATION);
+            connectivityConfigOverwrites = ConfigFactory.empty();
+            triggerCheckForOverwritesConfig(connectionId);
+        }
+    }
+
+    private void triggerCheckForOverwritesConfig(final ConnectionId connectionId) {
+        getContext().system().scheduler()
+                .scheduleOnce(Duration.ofSeconds(30), () -> tryToRetrieveOverwritesConfigRepeatedly(connectionId),
+                        context().dispatcher());
+    }
+
+    @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
         return ConnectionPersistenceActor.props(entityId, proxyActor, pubSubMediator, propsFactory, commandInterceptor,
-                connectionPriorityProviderFactory);
+                connectionPriorityProviderFactory, connectivityConfigOverwrites);
     }
 
     @Override
@@ -131,6 +187,30 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
     @Override
     public SupervisorStrategy supervisorStrategy() {
         return SUPERVISOR_STRATEGY;
+    }
+
+    private void tryToRetrieveOverwritesConfigRepeatedly(final ConnectionId connectionId) {
+        try {
+            final Config overwrites = getConnectivityConfigProvider()
+                    .getConnectivityConfigOverwrites(connectionId, DittoHeaders.empty())
+                    .toCompletableFuture()
+                    .get(MAX_CONFIG_RETRIEVAL_DURATION.toSeconds(), TimeUnit.SECONDS);
+            onConnectivityConfigModified(overwrites);
+        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+            // Try again later
+            log.error(e, "Could not retrieve overwrites within timeout of <{}>.", MAX_CONFIG_RETRIEVAL_DURATION);
+            triggerCheckForOverwritesConfig(connectionId);
+        }
+    }
+
+    @Override
+    public void onConnectivityConfigModified(final Config connectivityConfigOverwrites) {
+        restartPersistenceActorWithModifiedConfig(connectivityConfigOverwrites);
+    }
+
+    private void restartPersistenceActorWithModifiedConfig(final Config connectivityConfigOverwrites) {
+        this.connectivityConfigOverwrites = connectivityConfigOverwrites;
+        restartChild();
     }
 
 }

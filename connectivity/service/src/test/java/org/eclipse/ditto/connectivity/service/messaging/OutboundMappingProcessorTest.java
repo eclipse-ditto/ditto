@@ -47,14 +47,10 @@ import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.protocol.DittoProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
@@ -94,7 +90,6 @@ public final class OutboundMappingProcessorTest {
     private static final String DUPLICATING_MAPPER = "duplicating";
 
     private static ActorSystem actorSystem;
-    private static ConnectivityConfig connectivityConfig;
     private static ProtocolAdapterProvider protocolAdapterProvider;
     private static ThreadSafeDittoLoggingAdapter logger;
 
@@ -110,8 +105,6 @@ public final class OutboundMappingProcessorTest {
         when(logger.withCorrelationId(Mockito.nullable(DittoHeaders.class))).thenReturn(logger);
         when(logger.withCorrelationId(Mockito.nullable(CharSequence.class))).thenReturn(logger);
 
-        connectivityConfig =
-                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
         protocolAdapterProvider = new DittoProtocolAdapterProvider(Mockito.mock(ProtocolConfig.class));
     }
 
@@ -154,9 +147,9 @@ public final class OutboundMappingProcessorTest {
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder(ConnectionId.of("theConnection"),
-                        ConnectionType.AMQP_10,
-                        ConnectivityStatus.OPEN,
-                        "amqp://localhost:5671")
+                                ConnectionType.AMQP_10,
+                                ConnectivityStatus.OPEN,
+                                "amqp://localhost:5671")
                         .payloadMappingDefinition(payloadMappingDefinition)
                         .sources(List.of(ConnectivityModelFactory.newSourceBuilder()
                                 .address("address")
@@ -168,8 +161,7 @@ public final class OutboundMappingProcessorTest {
                                 .build()))
                         .build();
 
-        final var connectionContext = DittoConnectionContext.of(connection, connectivityConfig);
-        underTest = OutboundMappingProcessor.of(connectionContext, actorSystem,
+        underTest = OutboundMappingProcessor.of(connection, TestConstants.CONNECTIVITY_CONFIG, actorSystem,
                 protocolAdapterProvider.getProtocolAdapter(null), logger);
     }
 
@@ -274,12 +266,12 @@ public final class OutboundMappingProcessorTest {
                     .build();
             final Message<Object> message =
                     Message.newBuilder(
-                            MessageHeaders.newBuilder(MessageDirection.TO, TestConstants.Things.THING_ID, "ditto")
-                                    // adding the ack requests additionally to the message headers would break the test
-                                    // as the messageHeaders are merged into the DittoHeaders and overwrite them
-                                    .acknowledgementRequest(AcknowledgementRequest.of(targetIssuedAckLabel),
-                                            AcknowledgementRequest.of(customAckLabel))
-                                    .build())
+                                    MessageHeaders.newBuilder(MessageDirection.TO, TestConstants.Things.THING_ID, "ditto")
+                                            // adding the ack requests additionally to the message headers would break the test
+                                            // as the messageHeaders are merged into the DittoHeaders and overwrite them
+                                            .acknowledgementRequest(AcknowledgementRequest.of(targetIssuedAckLabel),
+                                                    AcknowledgementRequest.of(customAckLabel))
+                                            .build())
                             .build();
             final MessageCommand signal = SendThingMessage.of(TestConstants.Things.THING_ID, message, dittoHeaders);
             final OutboundSignal outboundSignal = Mockito.mock(OutboundSignal.class);
