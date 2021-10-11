@@ -26,7 +26,7 @@ events may be filtered on the Ditto backend side before they are sent to an even
 The above mentioned different APIs provide their own mechanisms on how to define such filters, but they all share the
 common functionality of based on which information events may be filtered.
 
-{% include note.html content="All filters are specified in an URL query format, therefore their values should be URL
+{% include note.html content="All filters are specified in a URL query format, therefore their values should be URL
     encoded before sending them to the backend. The equal (=) and the ampersand (&) character must be encoded in any RQL
     filter!" %}
 
@@ -47,7 +47,8 @@ namespaces=org.eclipse.ditto.one,org.eclipse.ditto.two
 
 If filtering by namespaces is not sufficient, Ditto also allows to provide an [RQL expression](basic-rql.html) 
 specifying:
-* a Thing payload based condition determining which events should be emitted and which don't
+
+* a Thing payload based condition determining which events should be emitted and which should not
 * a filter based on the fields of the [Ditto Protocol](protocol-specification.html) message which should be filtered, 
   e.g.:
    * using the `topic:action` placeholder as query property, filtering for lifecycle events (`created`, `deleted`) 

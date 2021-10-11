@@ -113,6 +113,7 @@ namespaces=org.eclipse.ditto.one,org.eclipse.ditto.two
 
 If filtering by namespaces is not sufficient, Ditto also allows to provide an [RQL expression](basic-rql.html)
 specifying:
+
 * an [enriched](basic-enrichment.html) Thing state based condition determining when messages should be delivered and when not
 * a filter based on the fields of the [Ditto Protocol](protocol-specification.html) message which should be filtered,
   e.g.:

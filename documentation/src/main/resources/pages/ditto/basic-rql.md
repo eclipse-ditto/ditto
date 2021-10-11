@@ -48,6 +48,7 @@ an attribute with the name `location` as query property.
 
 To filter nested properties, Ditto uses the JSON Pointer notation ([RFC-6901](https://tools.ietf.org/html/rfc6901)), 
 where the property can also start with a slash `/` or omit it, so those 2 query properties are semantically the same:
+
 * `/attributes/location`
 * `attributes/location`
 
@@ -65,6 +66,7 @@ When using an RQL expression in order to e.g. filter for certain
 field in JSON representation inside the Thing.
 
 Currently supported placeholders for RQL expressions are:
+* 
 * `topic:<placeholder-name>`
 * `resource:<placeholder-name>`
 
@@ -198,6 +200,7 @@ like(<property>,<value>)
 
 The `like` operator provides some regular expression capabilities for pattern matching Strings.  
 The following expressions are supported:
+
 * \*endswith => match at the end of a specific String.
 * startswith\* => match at the beginning of a specific String.
 * \*contains\* => match if contains a specific String.

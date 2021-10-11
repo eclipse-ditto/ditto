@@ -47,7 +47,7 @@ or subscriptions for live messages, the following placeholders are available in 
 | `topic:subject` | Ditto Protocol [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
 | `topic:action-subject` | either Ditto Protocol [topic action](protocol-specification-topic.html#action-optional) or [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
 | `resource:type` | the type of the Ditto Protocol [path](protocol-specification.html#path) , one of: `"thing" "policy" "message" "connection"` |
-| `resource:path` | the affected resource's path being the Ditto Protocol [path](protocol-specification.html#path) in JsonPointer notation, e.g. `"/"` when a complete thing was created/modified/deleted |
+| `resource:path` | the affected resource's path being the Ditto Protocol [path](protocol-specification.html#path) in JsonPointer notation, e.g. `/` when a complete thing was created/modified/deleted |
 
 ### Scope: Connections
 
@@ -73,8 +73,8 @@ In [connections](basic-connections.html), the following placeholders are availab
 | `{%raw%}{{ topic:action }}{%endraw%}` | Ditto Protocol [topic action](protocol-specification-topic.html#action-optional) |
 | `{%raw%}{{ topic:subject }}{%endraw%}` | Ditto Protocol [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
 | `{%raw%}{{ topic:action-subject }}{%endraw%}` | either Ditto Protocol [topic action](protocol-specification-topic.html#action-optional) or [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
-| `{%raw%}{{ resource:type }}{%endraw%}` | the type of the Ditto Protocol [path](protocol-specification.html#path) , one of: `"thing" "policy" "message" "connection"` |
-| `{%raw%}{{ resource:path }}{%endraw%}` | the affected resource's path being the Ditto Protocol [path](protocol-specification.html#path) in JsonPointer notation, e.g. `"/"` when a complete thing was created/modified/deleted |
+| `{%raw%}{{ resource:type }}{%endraw%}` | the type of the Ditto Protocol [path](protocol-specification.html#path) , one of: `thing`, `policy`, `message` or `connection` |
+| `{%raw%}{{ resource:path }}{%endraw%}` | the affected resource's path being the Ditto Protocol [path](protocol-specification.html#path) in JsonPointer notation, e.g. `/` when a complete thing was created/modified/deleted |
 
 
 #### Examples
