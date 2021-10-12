@@ -39,15 +39,13 @@ public class DittoConnectionConfigProvider implements ConnectionConfigProvider {
     }
 
     @Override
-    public CompletionStage<Config> getConnectivityConfigOverwrites(final ConnectionId connectionId,
-            final DittoHeaders dittoHeaders) {
+    public CompletionStage<Config> getConnectivityConfigOverwrites(final ConnectionId connectionId) {
         return CompletableFuture.completedFuture(ConfigFactory.empty());
     }
 
     @Override
-    public CompletionStage<ConnectivityConfig> getConnectivityConfig(final ConnectionId connectionId,
-            final DittoHeaders dittoHeaders) {
-        return getConnectivityConfigOverwrites(connectionId, dittoHeaders)
+    public CompletionStage<ConnectivityConfig> getConnectivityConfig(final ConnectionId connectionId) {
+        return getConnectivityConfigOverwrites(connectionId)
                 .thenApply(overwrites -> {
                     final Config defaultConfig = actorSystem.settings().config();
                     final Config withOverwrites = overwrites.withFallback(defaultConfig);
@@ -57,7 +55,7 @@ public class DittoConnectionConfigProvider implements ConnectionConfigProvider {
 
     @Override
     public CompletionStage<Void> registerForConnectivityConfigChanges(final ConnectionId connectionId,
-            final DittoHeaders dittoHeaders, final ActorRef subscriber) {
+            final ActorRef subscriber) {
         // nothing to do, config changes are not supported by the default implementation
         return CompletableFuture.completedStage(null);
     }

@@ -23,7 +23,6 @@ import javax.annotation.Nullable;
 import javax.jms.JMSRuntimeException;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -126,8 +125,7 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
     public void preStart() throws Exception {
         try {
             final ConnectionId connectionId = getEntityId();
-            getConnectivityConfigProvider().registerForConnectivityConfigChanges(connectionId, DittoHeaders.empty(),
-                    getSelf());
+            getConnectivityConfigProvider().registerForConnectivityConfigChanges(connectionId, getSelf());
             initConfigOverwrites(connectionId);
             super.preStart();
         } catch (final Exception e) {
@@ -139,7 +137,7 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
     private void initConfigOverwrites(final ConnectionId connectionId) {
         try {
             connectivityConfigOverwrites = getConnectivityConfigProvider()
-                    .getConnectivityConfigOverwrites(connectionId, DittoHeaders.empty())
+                    .getConnectivityConfigOverwrites(connectionId)
                     .toCompletableFuture()
                     .get(MAX_CONFIG_RETRIEVAL_DURATION.toSeconds(), TimeUnit.SECONDS);
         } catch (final InterruptedException | ExecutionException | TimeoutException e) {
@@ -192,7 +190,7 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
     private void tryToRetrieveOverwritesConfigRepeatedly(final ConnectionId connectionId) {
         try {
             final Config overwrites = getConnectivityConfigProvider()
-                    .getConnectivityConfigOverwrites(connectionId, DittoHeaders.empty())
+                    .getConnectivityConfigOverwrites(connectionId)
                     .toCompletableFuture()
                     .get(MAX_CONFIG_RETRIEVAL_DURATION.toSeconds(), TimeUnit.SECONDS);
             onConnectivityConfigModified(overwrites);

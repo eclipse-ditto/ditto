@@ -17,7 +17,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import org.atteo.classindex.IndexSubclasses;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 
@@ -31,7 +30,7 @@ import akka.actor.ActorRef;
 @IndexSubclasses
 public interface ConnectionConfigProvider {
 
-    CompletionStage<Config> getConnectivityConfigOverwrites(ConnectionId connectionId, DittoHeaders dittoHeaders);
+    CompletionStage<Config> getConnectivityConfigOverwrites(ConnectionId connectionId);
 
     /**
      * Loads a {@link ConnectivityConfig} by a connection ID.
@@ -40,7 +39,7 @@ public interface ConnectionConfigProvider {
      * @param dittoHeaders the ditto headers for which to load the {@link ConnectivityConfig}
      * @return the future connectivity config
      */
-    CompletionStage<ConnectivityConfig> getConnectivityConfig(ConnectionId connectionId, DittoHeaders dittoHeaders);
+    CompletionStage<ConnectivityConfig> getConnectivityConfig(ConnectionId connectionId);
 
     /**
      * Register the given {@code subscriber} for changes to the {@link ConnectivityConfig} of the given {@code
@@ -52,8 +51,7 @@ public interface ConnectionConfigProvider {
      * @param subscriber the subscriber that will receive {@link org.eclipse.ditto.base.model.signals.events.Event}s
      * @return a future that succeeds or fails depending on whether registration was successful.
      */
-    CompletionStage<Void> registerForConnectivityConfigChanges(ConnectionId connectionId,
-            DittoHeaders dittoHeaders, ActorRef subscriber);
+    CompletionStage<Void> registerForConnectivityConfigChanges(ConnectionId connectionId, ActorRef subscriber);
 
     /**
      * Returns {@code true} if the implementation can handle the given {@code event} to generate a modified {@link
