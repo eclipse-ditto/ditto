@@ -141,6 +141,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                 }
             }
         }
+        getContext().stop(self());
     }
 
     private void handleStreamCompletion(@Nullable final Done done, @Nullable final Throwable throwable) {
