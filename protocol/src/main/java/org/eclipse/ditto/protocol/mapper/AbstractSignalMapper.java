@@ -12,14 +12,16 @@
  */
 package org.eclipse.ditto.protocol.mapper;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.PayloadBuilder;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
-import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Base class for all {@link SignalMapper}s. Constructs an {@link Adaptable} with data common to all signals
@@ -47,6 +49,11 @@ abstract class AbstractSignalMapper<T extends Signal<?>> implements SignalMapper
                 .withPayload(payloadBuilder.build())
                 .withHeaders(dittoHeaders)
                 .build();
+    }
+
+    @Override
+    public TopicPath mapSignalToTopicPath(final T signal, final TopicPath.Channel channel) {
+        return getTopicPath(checkNotNull(signal, "signal"), checkNotNull(channel, "channel"));
     }
 
     /**

@@ -112,7 +112,7 @@ public final class SearchRootActor extends DittoRootActor {
                 : null;
     }
 
-    protected static QueryParser getQueryParser(final LimitsConfig limitsConfig, final ActorSystem actorSystem) {
+    static QueryParser getQueryParser(final LimitsConfig limitsConfig, final ActorSystem actorSystem) {
         final var fieldExpressionFactory = getThingsFieldExpressionFactory();
         final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(limitsConfig);
         final var queryCriteriaValidator = QueryCriteriaValidator.get(actorSystem);
@@ -173,8 +173,8 @@ public final class SearchRootActor extends DittoRootActor {
         final Map<String, String> mappings = new HashMap<>(6);
         mappings.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
         mappings.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
-        addMapping(mappings, Thing.JsonFields.POLICY_ID);
-        addMapping(mappings, Thing.JsonFields.REVISION);
+        addMapping(mappings, Thing.JsonFields.POLICY_ID); // also present as top-level field in search collection, however not indexed
+        addMapping(mappings, Thing.JsonFields.REVISION); // also present as top-level field in search collection, however not indexed
         addMapping(mappings, Thing.JsonFields.MODIFIED);
         addMapping(mappings, Thing.JsonFields.CREATED);
         addMapping(mappings, Thing.JsonFields.DEFINITION);

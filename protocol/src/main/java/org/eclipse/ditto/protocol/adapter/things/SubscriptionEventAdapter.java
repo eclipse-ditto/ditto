@@ -12,39 +12,30 @@
  */
 package org.eclipse.ditto.protocol.adapter.things;
 
-import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.base.model.signals.ErrorRegistry;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.Payload;
-import org.eclipse.ditto.protocol.PayloadBuilder;
-import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.protocol.UnknownEventException;
+import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
-import org.eclipse.ditto.base.model.signals.ErrorRegistry;
-import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionComplete;
-import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionCreated;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
-import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionFailed;
-import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionHasNextPage;
 
 /**
- * Adapter for mapping a {@link org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent} to and from an {@link Adaptable}.
+ * Adapter for mapping a {@link SubscriptionEvent} to and from an {@link Adaptable}.
  */
 final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEvent<?>> {
 
     private SubscriptionEventAdapter(final HeaderTranslator headerTranslator,
             final ErrorRegistry<?> errorRegistry) {
-        super(MappingStrategiesFactory.getSubscriptionEventMappingStrategies(errorRegistry), headerTranslator);
+        super(MappingStrategiesFactory.getSubscriptionEventMappingStrategies(errorRegistry),
+                SignalMapperFactory.newSubscriptionEventSignalMapper(),
+                headerTranslator);
     }
 
     /**
@@ -65,47 +56,6 @@ final class SubscriptionEventAdapter extends AbstractThingAdapter<SubscriptionEv
     @Override
     protected String getType(final Adaptable adaptable) {
         return SubscriptionEvent.TYPE_PREFIX + adaptable.getTopicPath().getSearchAction().orElse(null);
-    }
-
-    @Override
-    protected Adaptable mapSignalToAdaptable(final SubscriptionEvent<?> event, final TopicPath.Channel channel) {
-        TopicPath topicPath;
-        final PayloadBuilder payloadBuilder = Payload.newBuilder(event.getResourcePath());
-        final JsonObjectBuilder payloadContentBuilder = JsonFactory.newObjectBuilder();
-        final JsonFieldDefinition<String> subscriptionIdKey = SubscriptionEvent.JsonFields.SUBSCRIPTION_ID;
-
-        if (event instanceof SubscriptionCreated) {
-            topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER).things().twin().search().generated().build();
-            SubscriptionCreated createdEvent = (SubscriptionCreated) event;
-            payloadContentBuilder.set(subscriptionIdKey, createdEvent.getSubscriptionId());
-
-        } else if (event instanceof SubscriptionComplete) {
-            topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER).things().twin().search().complete().build();
-            SubscriptionComplete completedEvent = (SubscriptionComplete) event;
-            payloadContentBuilder.set(subscriptionIdKey, completedEvent.getSubscriptionId());
-
-        } else if (event instanceof SubscriptionFailed) {
-            topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER).things().twin().search().failed().build();
-            SubscriptionFailed failedEvent = (SubscriptionFailed) event;
-            payloadContentBuilder
-                    .set(subscriptionIdKey, failedEvent.getSubscriptionId())
-                    .set(SubscriptionFailed.JsonFields.ERROR, failedEvent.getError().toJson());
-
-        } else if (event instanceof SubscriptionHasNextPage) {
-            topicPath = TopicPath.fromNamespace(TopicPath.ID_PLACEHOLDER).things().twin().search().hasNext().build();
-            SubscriptionHasNextPage hasNextEvent = (SubscriptionHasNextPage) event;
-            payloadContentBuilder
-                    .set(subscriptionIdKey, hasNextEvent.getSubscriptionId())
-                    .set(SubscriptionHasNextPage.JsonFields.ITEMS, hasNextEvent.getItems());
-
-        } else {
-            throw UnknownEventException.newBuilder(event.getClass().getCanonicalName()).build();
-        }
-
-        return Adaptable.newBuilder(topicPath)
-                .withPayload(payloadBuilder.withValue(payloadContentBuilder.build()).build())
-                .withHeaders(ProtocolFactory.newHeadersWithJsonContentType(event.getDittoHeaders()))
-                .build();
     }
 
     @Override

@@ -54,4 +54,9 @@ abstract class AbstractConnectivityAdapter<T extends Signal<?>> extends Abstract
         return super.toAdaptable(t, TopicPath.Channel.NONE);
     }
 
+    @Override
+    public TopicPath toTopicPath(final T t, final TopicPath.Channel channel) {
+        return signalMapper.mapSignalToTopicPath(t, channel);
+    }
+
 }

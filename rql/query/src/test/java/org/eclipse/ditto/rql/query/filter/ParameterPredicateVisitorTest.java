@@ -18,13 +18,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.rql.model.predicates.ast.LogicalNode;
+import org.eclipse.ditto.rql.model.predicates.ast.RootNode;
+import org.eclipse.ditto.rql.model.predicates.ast.SingleComparisonNode;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.rql.query.expression.FieldExpressionUtil;
 import org.eclipse.ditto.rql.query.expression.ThingsFieldExpressionFactory;
-import org.eclipse.ditto.rql.model.predicates.ast.LogicalNode;
-import org.eclipse.ditto.rql.model.predicates.ast.RootNode;
-import org.eclipse.ditto.rql.model.predicates.ast.SingleComparisonNode;
 import org.junit.Before;
 import org.junit.Test;
 

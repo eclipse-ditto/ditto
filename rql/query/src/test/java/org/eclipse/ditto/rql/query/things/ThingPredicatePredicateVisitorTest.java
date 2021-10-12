@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.things.model.Thing;
 import org.junit.Test;
 
@@ -32,7 +33,12 @@ import org.junit.Test;
  */
 public final class ThingPredicatePredicateVisitorTest {
 
+    private static final String KNOWN_PLACEHOLDER_VALUE = "baZingA";
+
     private final static ThingPredicatePredicateVisitor sut = ThingPredicatePredicateVisitor.getInstance();
+    private final static ThingPredicatePredicateVisitor sutWithPlaceholderResolver =
+            ThingPredicatePredicateVisitor.createInstance(PlaceholderFactory.newPlaceholderResolver(
+                    new ThingPredicateTestPlaceholder(), KNOWN_PLACEHOLDER_VALUE));
 
     @Test
     public void matchingBooleanEq() {
@@ -53,8 +59,26 @@ public final class ThingPredicatePredicateVisitorTest {
     }
 
     @Test
+    public void matchingViaPlaceholderStringEq() {
+        doTest(sutWithPlaceholderResolver.visitEq(KNOWN_PLACEHOLDER_VALUE.toLowerCase()), "test:lower")
+                .isTrue();
+    }
+
+    @Test
+    public void matchingViaPlaceholderStringEq2() {
+        doTest(sutWithPlaceholderResolver.visitEq(KNOWN_PLACEHOLDER_VALUE.toUpperCase()), "test:upper")
+                .isTrue();
+    }
+
+    @Test
     public void matchingNullEq() {
         doTest(sut.visitEq(null), JsonValue.nullLiteral())
+                .isTrue();
+    }
+
+    @Test
+    public void matchingViaPlaceholderNullEq() {
+        doTest(sutWithPlaceholderResolver.visitEq(null), JsonValue.nullLiteral())
                 .isTrue();
     }
 
@@ -79,6 +103,12 @@ public final class ThingPredicatePredicateVisitorTest {
     @Test
     public void matchingStringNe() {
         doTest(sut.visitNe("yes"), JsonValue.of("no"))
+                .isTrue();
+    }
+
+    @Test
+    public void matchingViaPlaceholderStringNe() {
+        doTest(sutWithPlaceholderResolver.visitNe(KNOWN_PLACEHOLDER_VALUE), "test:lower")
                 .isTrue();
     }
 
@@ -108,6 +138,13 @@ public final class ThingPredicatePredicateVisitorTest {
     }
 
     @Test
+    public void matchingViaPlaceholderStringLike() {
+        // the sut already works on regex Pattern - the translation from "*" to ".*" is done in LikePredicateImpl
+        doTest(sutWithPlaceholderResolver.visitLike("baz.*"), "test:lower")
+                .isTrue();
+    }
+
+    @Test
     public void matchingNullLike() {
         doTest(sut.visitLike(null), JsonValue.of("yes"))
                 .isFalse();
@@ -127,8 +164,22 @@ public final class ThingPredicatePredicateVisitorTest {
     }
 
     @Test
+    public void matchingViaPlaceholderStringIn() {
+        doTest(sutWithPlaceholderResolver.visitIn(Collections.singletonList(KNOWN_PLACEHOLDER_VALUE.toLowerCase())),
+                "test:lower")
+                .isTrue();
+    }
+
+    @Test
     public void nonMatchingStringIn() {
         doTest(sut.visitIn(Collections.singletonList("this-is-some-content")), JsonValue.of("this-is-the-content"))
+                .isFalse();
+    }
+
+    @Test
+    public void nonMatchingViaPlaceholderStringIn() {
+        doTest(sutWithPlaceholderResolver.visitIn(Arrays.asList(KNOWN_PLACEHOLDER_VALUE, KNOWN_PLACEHOLDER_VALUE.toUpperCase())),
+                "test:lower")
                 .isFalse();
     }
 
@@ -274,13 +325,24 @@ public final class ThingPredicatePredicateVisitorTest {
 
     private static AbstractBooleanAssert<?> doTest(final Function<String, Predicate<Thing>> functionToTest,
             final JsonValue actualValue) {
+        return doTest(functionToTest, "attributes/some-attr", actualValue);
+    }
+
+    private static AbstractBooleanAssert<?> doTest(final Function<String, Predicate<Thing>> functionToTest,
+            final String rqlTarget) {
+        return doTest(functionToTest, rqlTarget, JsonValue.nullLiteral());
+    }
+
+    private static AbstractBooleanAssert<?> doTest(final Function<String, Predicate<Thing>> functionToTest,
+            final String rqlTarget,
+            final JsonValue actualValue) {
 
         final String attributeKey = "some-attr";
         final Thing thing = Thing.newBuilder()
                 .setAttribute(JsonPointer.of(attributeKey), JsonValue.of(actualValue))
                 .build();
 
-        return assertThat(functionToTest.apply("attributes/" + attributeKey)
+        return assertThat(functionToTest.apply(rqlTarget)
                 .test(thing)
         );
     }

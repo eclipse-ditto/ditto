@@ -28,6 +28,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
+import org.eclipse.ditto.placeholders.PlaceholderFunctionSignatureInvalidException;
 import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
 import org.eclipse.ditto.protocol.UnknownSignalException;
@@ -59,6 +60,7 @@ public final class ThingSearchServiceGlobalErrorRegistryTest extends GlobalError
                 AcknowledgementCorrelationIdMissingException.class,
                 PathUnknownException.class,
                 AskException.class,
+                PlaceholderFunctionSignatureInvalidException.class,
                 ConnectionIdInvalidException.class,
                 ConnectionConflictException.class,
                 UnknownTopicPathException.class,

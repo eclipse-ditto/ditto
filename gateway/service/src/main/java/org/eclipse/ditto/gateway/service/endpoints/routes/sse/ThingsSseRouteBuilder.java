@@ -55,6 +55,8 @@ import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SearchSource;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
+import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.things.model.Thing;
@@ -149,7 +151,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
             final ActorRef pubSubMediator) {
         checkNotNull(streamingActor, "streamingActor");
         final var queryFilterCriteriaFactory =
-                QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance());
+                QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
+                        TopicPathPlaceholder.getInstance(), ResourcePlaceholder.getInstance());
 
         return new ThingsSseRouteBuilder(streamingActor, streamingConfig, queryFilterCriteriaFactory, pubSubMediator);
     }
@@ -370,7 +373,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                         .map(session -> jsonifiable.retrieveExtraFields(facade)
                                 .thenApply(extra ->
                                         Optional.of(session.mergeThingWithExtra(event, extra))
-                                                .filter(session::matchesFilter)
+                                                .filter(thing -> session.matchesFilter(thing, event))
                                                 .map(thing -> toNonemptyThingJson(thing, event, fields))
                                                 .orElseGet(Collections::emptyList)
                                 )

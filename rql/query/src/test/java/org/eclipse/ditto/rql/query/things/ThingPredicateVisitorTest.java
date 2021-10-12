@@ -13,13 +13,17 @@
 package org.eclipse.ditto.rql.query.things;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.function.Predicate;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
@@ -35,6 +39,14 @@ public final class ThingPredicateVisitorTest {
 
     private static final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
             QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance());
+
+    private static final String KNOWN_PLACEHOLDER_VALUE = "LoreM";
+
+    private static final PlaceholderResolver<String> PLACEHOLDER_RESOLVER = PlaceholderFactory.newPlaceholderResolver(
+            new ThingPredicateTestPlaceholder(), KNOWN_PLACEHOLDER_VALUE);
+
+    private static final QueryFilterCriteriaFactory queryFilterCriteriaFactoryWithPredicateResolver =
+            QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(), PLACEHOLDER_RESOLVER);
 
     private static final ThingId MATCHING_THING_ID = ThingId.of("org.eclipse.ditto", "foo-matching");
     private static final int MATCHING_THING_INTEGER = 42;
@@ -109,13 +121,14 @@ public final class ThingPredicateVisitorTest {
             )
             .build();
 
-    private static Criteria createCriteria(final String filter) {
-        return queryFilterCriteriaFactory.filterCriteria(filter, DittoHeaders.empty());
+    private static Predicate<Thing> createPredicate(final String filter) {
+        return ThingPredicateVisitor.apply(queryFilterCriteriaFactory.filterCriteria(filter, DittoHeaders.empty()));
     }
 
-    private static Predicate<Thing> createPredicate(final String filter) {
-        final Criteria criteria = createCriteria(filter);
-        return ThingPredicateVisitor.apply(criteria);
+    private static Predicate<Thing> createPredicateWithPlaceholderResolver(final String filter) {
+        return ThingPredicateVisitor.apply(
+                queryFilterCriteriaFactoryWithPredicateResolver.filterCriteria(filter, DittoHeaders.empty()),
+                PLACEHOLDER_RESOLVER);
     }
 
     private static void testPredicate(final Thing nonMatchingThing,
@@ -161,6 +174,21 @@ public final class ThingPredicateVisitorTest {
                     .as("Filtering '%s' with value '%s' should be %s", filter, stringValue, false)
                     .isFalse();
         }
+    }
+
+    private static void testPredicateWithPlaceholder(final String predicate,
+            final String placeholder,
+            final String value,
+            final boolean expected,
+            final boolean escapeStr) {
+
+        final String stringValue = escapeStr ? "\"" + value + "\"" : value;
+        final String filter = predicate + "(" + placeholder + "," + stringValue + ")";
+        final Predicate<Thing> thingPredicate = createPredicateWithPlaceholderResolver(filter);
+
+        assertThat(thingPredicate.test(MATCHING_THING))
+                .as("Filtering '%s' with value '%s' should be %s", filter, stringValue, expected)
+                .isEqualTo(expected);
     }
 
     @Test
@@ -487,6 +515,56 @@ public final class ThingPredicateVisitorTest {
         assertThat(negativePredicate.test(MATCHING_THING))
                 .as("Filtering '"+ filter + "' should be true")
                 .isTrue();
+    }
+
+    @Test
+    public void testKnownPlaceholderExists() {
+        final Predicate<Thing> thingPredicate = createPredicateWithPlaceholderResolver("exists(test:lower)");
+        assertThat(thingPredicate.test(Thing.newBuilder().build()))
+                .as("Filtering 'exists(test:lower)' should be true")
+                .isTrue();
+    }
+
+    @Test
+    public void testUnknownPlaceholderLeadsToInvalidRqlExpression() {
+        assertThatThrownBy(() -> createPredicateWithPlaceholderResolver("exists(test:unknown)"))
+                .as("Creating predicate 'exists(test:unknown)' should fail with an invalid RQL expression exception")
+                .isInstanceOf(InvalidRqlExpressionException.class);
+    }
+
+    @Test
+    public void testFilterWithPlaceholderStringEq() {
+        testPredicateWithPlaceholder( "eq", "test:lower", KNOWN_PLACEHOLDER_VALUE.toLowerCase(), true, true);
+    }
+
+    @Test
+    public void testFilterWithPlaceholderStringNotEq() {
+        testPredicateWithPlaceholder( "eq", "test:lower", KNOWN_PLACEHOLDER_VALUE, false, true);
+    }
+
+    @Test
+    public void testFilterWithPlaceholderStringNe() {
+        testPredicateWithPlaceholder( "ne", "test:upper", KNOWN_PLACEHOLDER_VALUE.toLowerCase(), true, true);
+    }
+
+    @Test
+    public void testFilterWithPlaceholderStringNotNe() {
+        testPredicateWithPlaceholder( "ne", "test:upper", KNOWN_PLACEHOLDER_VALUE.toUpperCase(), false, true);
+    }
+
+    @Test
+    public void testFilterWithPlaceholderStringIn() {
+        testPredicateWithPlaceholder("in", "test:lower",
+                "\"" + KNOWN_PLACEHOLDER_VALUE.toLowerCase() + "\"," + "\"foo\"", true, false);
+        testPredicateWithPlaceholder("in", "test:lower",
+                "\"" + KNOWN_PLACEHOLDER_VALUE.toUpperCase() + "\"," + "\"foo\"", false, false);
+    }
+
+    @Test
+    public void testFilterWithPlaceholderStringLike() {
+        testPredicateWithPlaceholder("like", "test:upper", "LO*", true, true);
+        testPredicateWithPlaceholder("like", "test:upper", "l*", false, true);
+        testPredicateWithPlaceholder("like", "test:lower", "*rem", true, true);
     }
 
 }
