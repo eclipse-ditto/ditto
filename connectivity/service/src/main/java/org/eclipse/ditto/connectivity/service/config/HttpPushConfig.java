@@ -52,7 +52,7 @@ public interface HttpPushConfig {
         /**
          * How many messages to buffer in the publisher actor before dropping them. Each takes up to 100 KB heap space.
          */
-        MAX_QUEUE_SIZE("max-queue-size", 10),
+        MAX_QUEUE_SIZE("max-queue-size", 1000),
 
         /**
          * Maximum time a request is allowed to wait for a response. If this time is exceeded the HTTP connection will

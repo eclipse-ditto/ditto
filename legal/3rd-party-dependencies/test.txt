@@ -4,13 +4,12 @@ com.github.docker-java:docker-java-core:jar:3.2.6:test
 com.github.docker-java:docker-java-transport:jar:3.2.6:test
 com.github.docker-java:docker-java-transport-zerodep:jar:3.2.6:test
 com.github.stefanbirkner:system-rules:jar:1.19.0:test
-com.google.guava:guava:jar:19.0:test
 commons-io:commons-io:jar:2.6:test
 commons-lang:commons-lang:jar:2.6:test
-com.typesafe.akka:akka-http-testkit_2.13:jar:10.2.4:test
-com.typesafe.akka:akka-stream-kafka-testkit_2.13:jar:2.1.0:test
-com.typesafe.akka:akka-stream-testkit_2.13:jar:2.6.14:test
-com.typesafe.akka:akka-testkit_2.13:jar:2.6.14:test
+com.typesafe.akka:akka-http-testkit_2.13:jar:10.2.5:test
+com.typesafe.akka:akka-stream-kafka-testkit_2.13:jar:2.1.1:test
+com.typesafe.akka:akka-stream-testkit_2.13:jar:2.6.16:test
+com.typesafe.akka:akka-testkit_2.13:jar:2.6.16:test
 com.vaadin.external.google:android-json:jar:0.0.20131108.vaadin1:test
 junit:junit:jar:4.13.2:test
 net.bytebuddy:byte-buddy-agent:jar:1.9.10:test
@@ -40,4 +39,4 @@ org.openjdk.jmh:jmh-generator-annprocess:jar:1.27:test
 org.opentest4j:opentest4j:jar:1.2.0:test
 org.scalaz:scalaz-core_2.13:jar:7.2.28:test
 org.skyscreamer:jsonassert:jar:1.5.0:test
-org.slf4j:slf4j-simple:jar:1.7.30:test
+org.slf4j:slf4j-simple:jar:1.7.31:test

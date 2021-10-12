@@ -70,10 +70,6 @@ public final class DefaultStreamConfigTest {
         softly.assertThat(underTest.getWriteInterval())
                 .as(StreamConfigValue.WRITE_INTERVAL.getConfigPath())
                 .isEqualTo(StreamConfigValue.WRITE_INTERVAL.getDefaultValue());
-
-        softly.assertThat(underTest.isDeleteImmediately())
-                .as(StreamConfigValue.DELETE_IMMEDIATELY.getConfigPath())
-                .isEqualTo(StreamConfigValue.DELETE_IMMEDIATELY.getDefaultValue());
     }
 
     @Test
@@ -87,10 +83,6 @@ public final class DefaultStreamConfigTest {
         softly.assertThat(underTest.getWriteInterval())
                 .as(StreamConfigValue.WRITE_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(2));
-
-        softly.assertThat(underTest.isDeleteImmediately())
-                .as(StreamConfigValue.DELETE_IMMEDIATELY.getConfigPath())
-                .isEqualTo(false);
     }
 
 }

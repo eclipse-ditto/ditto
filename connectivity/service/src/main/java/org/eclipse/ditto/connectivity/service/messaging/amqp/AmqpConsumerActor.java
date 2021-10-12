@@ -17,7 +17,7 @@ import static org.apache.qpid.jms.message.JmsMessageSupport.MODIFIED_FAILED;
 import static org.apache.qpid.jms.message.JmsMessageSupport.REJECTED;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory.newEnforcementFilterFactory;
-import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
+import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;
@@ -65,8 +65,6 @@ import org.eclipse.ditto.connectivity.service.messaging.backoff.BackOffActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
-import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
@@ -91,7 +89,6 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
      */
     static final String ACTOR_NAME_PREFIX = "amqpConsumerActor-";
 
-    private final ThreadSafeDittoLoggingAdapter log;
     private final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory;
     private final ActorRef backOffActor;
 
@@ -115,9 +112,6 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                 inboundMappingSink,
                 consumerData.getSource(),
                 connectivityStatusResolver);
-
-        log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
-                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
 
         final ConnectionContext connectionContext = consumerData.getConnectionContext();
         connectivityConfig = connectionContext.getConnectivityConfig();
@@ -171,7 +165,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         final Receive rateLimiterBehavior = getRateLimiterBehavior();
         final Receive matchAnyBehavior = ReceiveBuilder.create()
                 .matchAny(m -> {
-                    log.warning("Unknown message: {}", m);
+                    logger.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
         return messageHandlingBehavior
@@ -186,7 +180,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         getConnectivityConfigProvider()
                 .registerForConnectivityConfigChanges(consumerData.getConnectionContext(), getSelf())
                 .exceptionally(e -> {
-                    log.error(e, "Failed to register for connectivity config changes");
+                    logger.error(e, "Failed to register for connectivity config changes");
                     return null;
                 });
         initMessageConsumer();
@@ -254,10 +248,10 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
     private void destroyMessageConsumer() {
         if (messageConsumer != null) {
             try {
-                log.debug("Closing AMQP Consumer for '{}'", sourceAddress);
+                logger.debug("Closing AMQP Consumer for '{}'", sourceAddress);
                 messageConsumer.close();
             } catch (final JMSException jmsException) {
-                log.debug("Closing consumer failed (can be ignored if connection was closed already): {}",
+                logger.debug("Closing consumer failed (can be ignored if connection was closed already): {}",
                         jmsException.getMessage());
             }
             messageConsumer = null;
@@ -269,7 +263,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
     }
 
     private void handleNonMatchingConsumerClosed(final ConsumerClosedStatusReport event) {
-        log.debug("Received ConsumerClosedStatusReport which is handled by another consumer actor. Ignoring.");
+        logger.debug("Received ConsumerClosedStatusReport which is handled by another consumer actor. Ignoring.");
     }
 
     private void handleConsumerClosed(final ConsumerClosedStatusReport event) {
@@ -285,7 +279,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         // destroy current message consumer in any case
         destroyMessageConsumer();
 
-        log.info("Consumer for destination '{}' was closed. Will try to recreate after some backoff.", sourceAddress);
+        logger.info("Consumer for destination '{}' was closed. Will try to recreate after some backoff.", sourceAddress);
         backOffActor.tell(BackOffActor.createBackOffWithAnswerMessage(Control.CREATE_CONSUMER),
                 getSelf());
     }
@@ -302,7 +296,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
     }
 
     private void createMessageConsumer(final Control createConsumer) {
-        log.debug("Trying to create consumer for destination '{}'.", sourceAddress);
+        logger.debug("Trying to create consumer for destination '{}'.", sourceAddress);
         /* ask JMSConnectionHandlingActor for a new consumer */
         final CreateMessageConsumer createMessageConsumer = new CreateMessageConsumer(consumerData);
         final CompletionStage<Object> responseFuture =
@@ -319,14 +313,14 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
 
     private void messageConsumerCreated(final CreateMessageConsumerResponse response) {
         if (consumerData.equals(response.consumerData)) {
-            log.info("Consumer for destination '{}' created.", sourceAddress);
+            logger.info("Consumer for destination '{}' created.", sourceAddress);
             destroyMessageConsumer();
             messageConsumer = response.messageConsumer;
             initMessageConsumer();
             resetResourceStatus();
         } else {
             // got an orphaned message consumer! this is an error.
-            log.error("RESOURCE_LEAK! Got created MessageConsumer <{}> for <{}>, while I have <{}> for <{}>",
+            logger.error("RESOURCE_LEAK! Got created MessageConsumer <{}> for <{}>, while I have <{}> for <{}>",
                     response.messageConsumer, response.consumerData, messageConsumer, consumerData);
         }
     }
@@ -344,11 +338,11 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         StartedTrace trace = Traces.emptyStartedTrace();
         try {
             recordIncomingForRateLimit(message.getJMSMessageID());
-            if (log.isDebugEnabled()) {
+            if (logger.isDebugEnabled()) {
                 final Integer ackType = Optional.ofNullable(message.getAcknowledgeCallback())
                         .map(JmsAcknowledgeCallback::getAckType)
                         .orElse(null);
-                log.debug("Received JmsMessage from AMQP 1.0: {} with Properties: {} and AckType {}",
+                logger.debug("Received JmsMessage from AMQP 1.0: {} with Properties: {} and AckType {}",
                         message.toString(),
                         message.getAllPropertyNames(),
                         ackType);
@@ -369,18 +363,18 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                     .build();
             inboundMonitor.success(externalMessage);
             final Map<String, String> externalMessageHeaders = externalMessage.getHeaders();
-            log.withCorrelationId(correlationId).info("Received message from AMQP 1.0 with externalMessageHeaders: {}",
+            logger.withCorrelationId(correlationId).info("Received message from AMQP 1.0 with externalMessageHeaders: {}",
                     externalMessageHeaders);
-            if (log.isDebugEnabled()) {
-                log.withCorrelationId(correlationId).debug("Received message from AMQP 1.0 with payload: {}",
+            if (logger.isDebugEnabled()) {
+                logger.withCorrelationId(correlationId).debug("Received message from AMQP 1.0 with payload: {}",
                         externalMessage.getTextPayload().orElse("binary"));
             }
-            forwardToMappingActor(externalMessage,
+            forwardToMapping(externalMessage,
                     () -> acknowledge(message, true, false, externalMessageHeaders),
                     redeliver -> acknowledge(message, false, redeliver, externalMessageHeaders)
             );
         } catch (final DittoRuntimeException e) {
-            log.withCorrelationId(e)
+            logger.withCorrelationId(e)
                     .info("Got DittoRuntimeException '{}' when command was parsed: {}", e.getErrorCode(),
                             e.getMessage());
             trace.fail(e);
@@ -388,7 +382,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                 // forwarding to messageMappingProcessor only make sense if we were able to extract the headers,
                 // because we need a reply-to address to send the error response
                 inboundMonitor.failure(headers, e);
-                forwardToMappingActor(e.setDittoHeaders(DittoHeaders.of(headers)));
+                forwardToMapping(e.setDittoHeaders(DittoHeaders.of(headers)));
             } else {
                 inboundMonitor.failure(e);
             }
@@ -399,7 +393,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                 inboundMonitor.exception(e);
             }
             trace.fail(e);
-            log.withCorrelationId(correlationId)
+            logger.withCorrelationId(correlationId)
                     .error(e, "Unexpected {}: {}", e.getClass().getName(), e.getMessage());
         } finally {
             trace.finish();
@@ -433,7 +427,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                 ackTypeName = redeliver ? "modified[delivery-failed]" : "rejected";
             }
             final String jmsCorrelationID = message.getJMSCorrelationID();
-            log.withCorrelationId(correlationId.orElse(jmsCorrelationID))
+            logger.withCorrelationId(correlationId.orElse(jmsCorrelationID))
                     .info(MessageFormat.format(
                             "Acking <{0}> with original external message headers=<{1}>, isSuccess=<{2}>, ackType=<{3} {4}>",
                             messageId,
@@ -451,7 +445,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                 inboundAcknowledgedMonitor.exception("Sending negative acknowledgement: <{0}>", ackTypeName);
             }
         } catch (final Exception e) {
-            log.withCorrelationId(correlationId.orElse(null)).error(e, "Failed to ack an AMQP message");
+            logger.withCorrelationId(correlationId.orElse(null)).error(e, "Failed to ack an AMQP message");
         }
     }
 
@@ -472,10 +466,10 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                 throw new IllegalArgumentException("Message too large...");
             }
         } else {
-            if (log.isDebugEnabled()) {
+            if (logger.isDebugEnabled()) {
                 final Destination destination = message.getJMSDestination();
                 final Map<String, String> headersMapFromJmsMessage = extractHeadersMapFromJmsMessage(message);
-                log.withCorrelationId(correlationId)
+                logger.withCorrelationId(correlationId)
                         .debug("Received message at '{}' of unsupported type ({}) with headers: {}",
                                 destination, message.getClass().getName(), headersMapFromJmsMessage);
             }
@@ -489,7 +483,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
 
     @Override
     public ThreadSafeDittoLoggingAdapter log() {
-        return log;
+        return logger;
     }
 
     @Override
@@ -497,9 +491,9 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         final Amqp10Config amqp10Config = connectivityConfig.getConnectionConfig().getAmqp10Config();
         if (hasMessageRateLimiterConfigChanged(amqp10Config)) {
             this.messageRateLimiter = MessageRateLimiter.of(amqp10Config, messageRateLimiter);
-            log.info("Built new rate limiter from existing one with modified config: {}", amqp10Config);
+            logger.info("Built new rate limiter from existing one with modified config: {}", amqp10Config);
         } else {
-            log.debug("Relevant config for MessageRateLimiter unchanged, do nothing.");
+            logger.debug("Relevant config for MessageRateLimiter unchanged, do nothing.");
         }
         this.connectivityConfig = connectivityConfig;
     }

@@ -17,11 +17,10 @@ import static java.util.Objects.requireNonNull;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.adapter.MergeCommandResponseAdapter;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
-import org.eclipse.ditto.protocol.mapper.SignalMapper;
+import org.eclipse.ditto.protocol.adapter.MergeCommandResponseAdapter;
 import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
+import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 
 /**
@@ -31,11 +30,10 @@ import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse
 final class ThingMergeCommandResponseAdapter extends AbstractThingAdapter<MergeThingResponse>
         implements MergeCommandResponseAdapter {
 
-    private final SignalMapper<MergeThingResponse>
-            signalMapper = SignalMapperFactory.newThingMergeResponseSignalMapper();
-
     private ThingMergeCommandResponseAdapter(final HeaderTranslator headerTranslator) {
-        super(MappingStrategiesFactory.getThingMergeCommandResponseMappingStrategies(), headerTranslator,
+        super(MappingStrategiesFactory.getThingMergeCommandResponseMappingStrategies(),
+                SignalMapperFactory.newThingMergeResponseSignalMapper(),
+                headerTranslator,
                 ThingMergePathMatcher.getInstance());
     }
 
@@ -60,8 +58,4 @@ final class ThingMergeCommandResponseAdapter extends AbstractThingAdapter<MergeT
         return RESPONSES_CRITERION;
     }
 
-    @Override
-    protected Adaptable mapSignalToAdaptable(final MergeThingResponse signal, final TopicPath.Channel channel) {
-        return signalMapper.mapSignalToAdaptable(signal, channel);
-    }
 }

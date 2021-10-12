@@ -21,9 +21,7 @@ import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessageRespo
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.EmptyPathMatcher;
-import org.eclipse.ditto.protocol.mapper.SignalMapper;
 import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 
@@ -32,11 +30,10 @@ import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
  */
 final class MessageCommandResponseAdapter extends AbstractMessageAdapter<MessageCommandResponse<?, ?>> {
 
-    private static final SignalMapper<MessageCommandResponse<?, ?>>
-            TO_ADAPTABLE_MAPPER = SignalMapperFactory.newMessageCommandResponseSignalMapper();
-
     private MessageCommandResponseAdapter(final HeaderTranslator headerTranslator) {
-        super(MappingStrategiesFactory.getMessageCommandResponseMappingStrategies(), headerTranslator,
+        super(MappingStrategiesFactory.getMessageCommandResponseMappingStrategies(),
+                SignalMapperFactory.newMessageCommandResponseSignalMapper(),
+                headerTranslator,
                 EmptyPathMatcher.getInstance());
     }
 
@@ -48,11 +45,6 @@ final class MessageCommandResponseAdapter extends AbstractMessageAdapter<Message
      */
     public static MessageCommandResponseAdapter of(final HeaderTranslator headerTranslator) {
         return new MessageCommandResponseAdapter(requireNonNull(headerTranslator));
-    }
-
-    @Override
-    public Adaptable toAdaptable(final MessageCommandResponse<?, ?> t) {
-        return toAdaptable(t, TopicPath.Channel.LIVE);
     }
 
     @Override
@@ -76,8 +68,4 @@ final class MessageCommandResponseAdapter extends AbstractMessageAdapter<Message
         }
     }
 
-    @Override
-    public Adaptable mapSignalToAdaptable(final MessageCommandResponse<?, ?> command, final TopicPath.Channel channel) {
-        return TO_ADAPTABLE_MAPPER.mapSignalToAdaptable(command, channel);
-    }
 }

@@ -81,7 +81,7 @@ public interface KafkaProducerConfig {
 
     enum ConfigValue implements KnownConfigValue {
 
-        QUEUE_SIZE("queue-size", 100),
+        QUEUE_SIZE("queue-size", 1000),
 
         PARALLELISM("parallelism", 10),
 

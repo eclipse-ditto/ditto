@@ -12,9 +12,14 @@
  */
 package org.eclipse.ditto.rql.query.things;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 
+import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.criteria.visitors.CriteriaVisitor;
 import org.eclipse.ditto.rql.query.expression.ExistsFieldExpression;
@@ -22,16 +27,55 @@ import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
 import org.eclipse.ditto.things.model.Thing;
 
 /**
- * CriteriaVisitor for Java {@link Predicate}s of {@link Thing}s.
+ * CriteriaVisitor for Java {@link Predicate}s of {@link Thing}s and additionally added {@code PlaceholderResolver}s.
  */
 public final class ThingPredicateVisitor implements CriteriaVisitor<Predicate<Thing>> {
 
-    private ThingPredicateVisitor() {
-        // only internally instantiable
+    private final List<PlaceholderResolver<?>> additionalPlaceholderResolvers;
+
+    private ThingPredicateVisitor(final Collection<PlaceholderResolver<?>> additionalPlaceholderResolvers) {
+        this.additionalPlaceholderResolvers = Collections.unmodifiableList(new ArrayList<>(additionalPlaceholderResolvers));
     }
 
+    /**
+     * Applies the passed {@code criteria} by visiting with a new created {@link ThingPredicateVisitor} instance
+     * not containing any {@code PlaceholderResolver}s.
+     *
+     * @param criteria the RQL criteria to visit.
+     * @return the Predicate of a thing to test.
+     */
     public static Predicate<Thing> apply(final Criteria criteria) {
-        return criteria.accept(new ThingPredicateVisitor());
+        return criteria.accept(new ThingPredicateVisitor(Collections.emptyList()));
+    }
+
+    /**
+     * Applies the passed {@code criteria} by visiting with a new created {@link ThingPredicateVisitor} instance
+     * not containing any {@code PlaceholderResolver}s.
+     *
+     * @param criteria the RQL criteria to visit.
+     * @param additionalPlaceholderResolvers the additional {@code PlaceholderResolver} to use for resolving
+     * placeholders in RQL criteria.
+     * @return the Predicate of a thing to test.
+     * @since 2.2.0
+     */
+    public static Predicate<Thing> apply(final Criteria criteria,
+            final Collection<PlaceholderResolver<?>> additionalPlaceholderResolvers) {
+        return criteria.accept(new ThingPredicateVisitor(additionalPlaceholderResolvers));
+    }
+
+    /**
+     * Applies the passed {@code criteria} by visiting with a new created {@link ThingPredicateVisitor} instance
+     * not containing any {@code PlaceholderResolver}s.
+     *
+     * @param criteria the RQL criteria to visit.
+     * @param additionalPlaceholderResolvers the additional {@code PlaceholderResolver} to use for resolving
+     * placeholders in RQL criteria.
+     * @return the Predicate of a thing to test.
+     * @since 2.2.0
+     */
+    public static Predicate<Thing> apply(final Criteria criteria,
+            final PlaceholderResolver<?>... additionalPlaceholderResolvers) {
+        return apply(criteria, Arrays.asList(additionalPlaceholderResolvers));
     }
 
     @Override
@@ -46,14 +90,14 @@ public final class ThingPredicateVisitor implements CriteriaVisitor<Predicate<Th
 
     @Override
     public Predicate<Thing> visitExists(final ExistsFieldExpression fieldExpression) {
-        return ExistsThingPredicateVisitor.apply(fieldExpression);
+        return ExistsThingPredicateVisitor.apply(fieldExpression, additionalPlaceholderResolvers);
     }
 
     @Override
     public Predicate<Thing> visitField(final FilterFieldExpression fieldExpression,
             final org.eclipse.ditto.rql.query.criteria.Predicate predicate) {
         return FilterThingPredicateVisitor.apply(fieldExpression,
-                predicate.accept(ThingPredicatePredicateVisitor.getInstance()));
+                predicate.accept(ThingPredicatePredicateVisitor.createInstance(additionalPlaceholderResolvers)));
     }
 
     @Override

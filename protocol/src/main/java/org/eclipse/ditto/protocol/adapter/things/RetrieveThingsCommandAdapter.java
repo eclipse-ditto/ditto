@@ -17,20 +17,17 @@
  import org.eclipse.ditto.protocol.Adaptable;
  import org.eclipse.ditto.protocol.HeaderTranslator;
  import org.eclipse.ditto.protocol.adapter.QueryCommandAdapter;
- import org.eclipse.ditto.protocol.TopicPath;
- import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
- import org.eclipse.ditto.protocol.mapper.SignalMapper;
  import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
+ import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
  import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 
  public final class RetrieveThingsCommandAdapter extends AbstractThingAdapter<RetrieveThings>
          implements QueryCommandAdapter<RetrieveThings> {
 
-     private final SignalMapper<RetrieveThings> retrieveThingsSignalMapper =
-             SignalMapperFactory.newRetrieveThingsSignalMapper();
-
      private RetrieveThingsCommandAdapter(final HeaderTranslator headerTranslator) {
-         super(MappingStrategiesFactory.getRetrieveThingsCommandMappingStrategies(), headerTranslator);
+         super(MappingStrategiesFactory.getRetrieveThingsCommandMappingStrategies(),
+                 SignalMapperFactory.newRetrieveThingsSignalMapper(),
+                 headerTranslator);
      }
 
      /**
@@ -53,8 +50,4 @@
          return RetrieveThings.TYPE;
      }
 
-     @Override
-     protected Adaptable mapSignalToAdaptable(final RetrieveThings command, final TopicPath.Channel channel) {
-         return retrieveThingsSignalMapper.mapSignalToAdaptable(command, channel);
-     }
  }
