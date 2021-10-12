@@ -36,7 +36,6 @@ public interface ConnectionConfigProvider {
      * Loads a {@link ConnectivityConfig} by a connection ID.
      *
      * @param connectionId the connection id for which to load the {@link ConnectivityConfig}
-     * @param dittoHeaders the ditto headers for which to load the {@link ConnectivityConfig}
      * @return the future connectivity config
      */
     CompletionStage<ConnectivityConfig> getConnectivityConfig(ConnectionId connectionId);
@@ -47,7 +46,6 @@ public interface ConnectionConfigProvider {
      * {@link ConnectivityConfig}.
      *
      * @param connectionId the connection id
-     * @param dittoHeaders the ditto headers
      * @param subscriber the subscriber that will receive {@link org.eclipse.ditto.base.model.signals.events.Event}s
      * @return a future that succeeds or fails depending on whether registration was successful.
      */
