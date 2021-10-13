@@ -62,7 +62,7 @@ This maps to the following HTTP API endpoints:
 
 #### `/things` in API 2 - dynamic part
 
-Additionally, to that "static part" of the HTTP API which is defined by Ditto, the API is dynamically enhanced by the
+Additionally to that "static part" of the HTTP API which is defined by Ditto, the API is dynamically enhanced by the
 JSON structure of the Thing.<br/>
 
 {% include note.html content="This automatically turns each small aspect of a **digital twin** into an API endpoint." %}
