@@ -11,11 +11,9 @@
 name: channel
 in: query
 description: |-
-  Defines which channel should be used to route the command to. Either `twin` or `live` can be used.
-  If channel `twin` is used the command is routed to the digital representation of a Thing in the Ditto backend.
-  In case channel `live` is used the command/message is send towards an actual device.
-
-  The default (if omitted) is the `twin` channel.
+  Defines to which channel to route the command: `twin` (digital twin) or `live` (the device).
+  * If setting the channel parameter is omitted, the `twin` channel is set by default and the command is routed to the digital representation of a thing in Bosch IoT Things backend.
+  * When using the `live` channel, the command/message is send towards the device.
 required: false
 schema:
   type: string
