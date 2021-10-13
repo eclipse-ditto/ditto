@@ -1,7 +1,7 @@
 ---
 title: "HTTP Live channel"
 published: true
-permalink: 2021-10-15-http-live-channel.html
+permalink: 2021-10-22-http-live-channel.html
 layout: post
 author: stefan_maute
 tags: [blog, http, live]
@@ -14,32 +14,29 @@ The upcoming release of Eclipse Ditto **version 2.2.0** will support sending com
 the newly introduced `live` channel.
 
 ## HTTP Live channel
+Ditto supports sending all kind of [Thing commands](protocol-specification-things.md#commands) via
+the `live` channel directly to devices.
+When sending a `live` command to  a device, the device is responsible for sending a response.
+
 Ditto supports two types of `channel` for communication.
 
 * The default value of the channel parameter is `twin`, to communicate with the **digital twin** representation.
 * The `channel` parameter can be changed to `live`, to communicate with the real device.
 
-When using the `twin` channel the command is routed to the Ditto backend and handled by the **digital twin**.
+When using the `twin` channel, the command is routed to the Ditto backend and handled by the **digital twin**.
 Before using the `live` channel, it is necessary to create the **digital twin** of the device in the 
 Ditto backend.
-If the `live` channel is used the command is directly routed to the device. In this case the device is 
-responsible for answering the command and sending back a response. In case no response is send back then Ditto 
+If the `live` channel is used, the command is directly routed to the device. In this case the device is 
+responsible for answering the command and sending back a response. In case no response is send back, Ditto 
 is responding with `408 Request Timeout`. The default timeout for live commands is `10s` but it can be
 changed by setting the `timeout` parameter to the desired value.
 
-Ditto enforces sending live commands to devices by the policy of the thing.
-Thus Ditto ensures that only authorized parties are able to send commands or messages.
-Ditto also filters responses from the device based on the policy. This ensures that the requester only gets the data 
-where he/she has READ permission on.
-
-Ditto supports sending all kind of [Thing commands](protocol-specification-things.md#commands) via 
-the `live` channel directly to devices. 
-When sending a `live` command to  a device, the device is responsible for sending a response. 
-
 ### Permissions for live commands
 
-In order to send a `live` command to a thing, the authorized subject needs to have WRITE permission at the resource
-that should be changed by the request. 
+Sending live commands to devices is restricted by the policy of the thing
+Thus Ditto ensures that only authorized parties with `WRITE` permission are able to send commands or messages.
+Ditto also filters responses from the device based on the policy. This ensures that the requester only gets the data
+where he/she has READ permission on.
 
 For retrieve commands, the authorized subject needs to have (at least partial) READ permission at the resource which 
 is requested. In case a `RetrieveThing` command is send to a real device and the requester only have partial READ 
@@ -48,7 +45,7 @@ READ permission is granted are returned.
 
 ### Live commands via HTTP API
 When using the HTTP API the `channel` parameter can either be specified via HTTP Header or via HTTP query parameter.
-In the shown examples below both ways are equivalent to specify the `live` channel.
+In the examples below both ways are possible to specify the channel parameter.
 
 #### Live command with HTTP Header
 ```
@@ -63,7 +60,7 @@ curl -X GET /api/2/things/org.eclipse.ditto:coffeebrewer?channel=live&timeout=30
 ## Example
 The following section provides an example how to use the HTTP `live` channel together with the Ditto Java client. 
 
-For demonstration purpose, we assume that the following thing with id `org.eclipse.ditto:outdoor-sensor` already exists.
+For demonstration purpose, we assume that the thing with ID `org.eclipse.ditto:outdoor-sensor` already exists.
 
 In this example we want to retrieve the live state of the device by sending a `RetrieveThing` command via
 the `live` channel directly to the device.
@@ -73,8 +70,8 @@ For this example, the authorized subject could have READ and WRITE permissions o
 the command and retrieve the full response.
 
 ### Executing the example
-When sending a command over the `live` channel to a device, then the device needs to take action and send back a response.
-The response from the device is than routed back to the initial requester of the `live` command at the HTTP API.
+When sending a command over the `live` channel to a device, the device needs to take action and send back a response.
+The response from the device is routed back to the initial requester of the `live` command at the HTTP API.
  
 In this example the [Ditto Java Client](client-sdk-java.html) acts as device and sends back the response.
 The following snippet shows how to register for retrieve thing live commands and send back a `RetrieveThingResponse`. 
@@ -114,7 +111,8 @@ When the above shown code snippet is running and the following HTTP request is s
 ```
 curl -X GET /api/2/things/org.eclipse.ditto:outdoor-sensor?channel=live&timeout=15s
 ```
-then the response should look like this:
+
+The response should look like this:
 ```json
 {
     "thingId": "org.eclipse.ditto:outdoor-sensor",
