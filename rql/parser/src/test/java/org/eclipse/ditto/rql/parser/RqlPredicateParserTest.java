@@ -592,4 +592,16 @@ public class RqlPredicateParserTest {
     public void testFieldExistsInvalidWithMoreParams() throws ParserException {
         parser.parse("exists(features/scanner,\"test\")");
     }
+
+    @Test
+    public void testTopicActionExists() throws ParserException {
+        final RootNode root = parser.parse("exists(topic:action)");
+
+        assertThat(root).isNotNull();
+        assertThat(root.getChildren().size()).isEqualTo(1);
+
+        final ExistsNode existsNode = (ExistsNode) root.getChildren().get(0);
+        assertThat(existsNode.getProperty().getClass()).isEqualTo(String.class);
+        assertThat(existsNode.getProperty()).isEqualTo("topic:action");
+    }
 }

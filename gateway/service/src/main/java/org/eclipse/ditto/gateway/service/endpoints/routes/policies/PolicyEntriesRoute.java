@@ -18,15 +18,16 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
-import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyEntry;
@@ -39,8 +40,6 @@ import org.eclipse.ditto.policies.model.SubjectAnnouncement;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.Subjects;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyActionFailedException;
@@ -59,6 +58,7 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResources;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubject;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjects;
+import org.eclipse.ditto.protocol.HeaderTranslator;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;

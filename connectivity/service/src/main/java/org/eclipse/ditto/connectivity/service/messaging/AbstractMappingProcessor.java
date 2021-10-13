@@ -23,6 +23,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
@@ -30,11 +31,10 @@ import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
-import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
-import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.internal.models.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.placeholders.ExpressionResolver;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.PlaceholderFilter;
 
 /**
  * Abstract implementation for mapping one type to another.

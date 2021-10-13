@@ -34,7 +34,7 @@ public interface FieldExpressionFactory {
      * @return the exists field expression
      * @throws IllegalArgumentException if there is no corresponding field to the given {@code propertyName}.
      */
-    ExistsFieldExpression existsBy(final String propertyName) throws IllegalArgumentException;
+    ExistsFieldExpression existsBy(String propertyName) throws IllegalArgumentException;
 
     /**
      * Retrieve the persistence specific field expression for sorting according to the given {@code propertyName}.

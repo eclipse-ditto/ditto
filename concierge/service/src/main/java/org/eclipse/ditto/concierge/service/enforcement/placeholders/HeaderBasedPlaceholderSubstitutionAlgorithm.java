@@ -26,9 +26,9 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
-import org.eclipse.ditto.internal.models.placeholders.PipelineElement;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayPlaceholderNotResolvableException;
+import org.eclipse.ditto.placeholders.ExpressionResolver;
+import org.eclipse.ditto.placeholders.PipelineElement;
 
 /**
  * An algorithm for placeholder substitution based on {@link DittoHeaders}.

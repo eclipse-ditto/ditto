@@ -29,12 +29,12 @@ import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationR
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
+import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;

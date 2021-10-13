@@ -16,12 +16,12 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.protocol.adapter.Adapter;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.base.model.signals.ErrorRegistry;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.protocol.adapter.Adapter;
+import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
@@ -31,9 +31,10 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
-import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
+import org.eclipse.ditto.thingsearch.model.signals.commands.SearchErrorResponse;
+import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 
@@ -57,6 +58,7 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
     private final ThingErrorResponseAdapter errorResponseAdapter;
     private final RetrieveThingsCommandAdapter retrieveThingsCommandAdapter;
     private final RetrieveThingsCommandResponseAdapter retrieveThingsCommandResponseAdapter;
+    private final SearchErrorResponseAdapter searchErrorResponseAdapter;
 
     public DefaultThingCommandAdapterProvider(final ErrorRegistry<DittoRuntimeException> errorRegistry,
             final HeaderTranslator headerTranslator) {
@@ -75,6 +77,7 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
         this.thingMergedEventAdapter = ThingMergedEventAdapter.of(headerTranslator);
         this.subscriptionEventAdapter = SubscriptionEventAdapter.of(headerTranslator, errorRegistry);
         this.errorResponseAdapter = ThingErrorResponseAdapter.of(headerTranslator, errorRegistry);
+        this.searchErrorResponseAdapter = SearchErrorResponseAdapter.of(headerTranslator, errorRegistry);
     }
 
     @Override
@@ -94,7 +97,8 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
                 thingMergedEventAdapter,
                 searchCommandAdapter,
                 subscriptionEventAdapter,
-                errorResponseAdapter
+                errorResponseAdapter,
+                searchErrorResponseAdapter
         );
     }
 
@@ -171,5 +175,10 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
     @Override
     public Adapter<RetrieveThingsResponse> getRetrieveThingsCommandResponseAdapter() {
         return retrieveThingsCommandResponseAdapter;
+    }
+
+    @Override
+    public Adapter<SearchErrorResponse> getSearchErrorResponseAdapter() {
+        return searchErrorResponseAdapter;
     }
 }

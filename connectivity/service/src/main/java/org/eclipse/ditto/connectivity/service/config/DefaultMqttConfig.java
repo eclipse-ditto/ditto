@@ -33,6 +33,7 @@ final class DefaultMqttConfig implements MqttConfig {
     private static final String CONFIG_PATH = "mqtt";
     private static final String RECONNECT_PATH = "reconnect";
 
+    private final int maxQueueSize;
     private final int eventLoopThreads;
     private final boolean cleanSession;
     private final boolean reconnectForRedelivery;
@@ -48,8 +49,9 @@ final class DefaultMqttConfig implements MqttConfig {
         reconnectForRedeliveryDelay =
                 config.getNonNegativeDurationOrThrow(MqttConfigValue.RECONNECT_FOR_REDELIVERY_DELAY);
         useSeparateClientForPublisher = config.getBoolean(MqttConfigValue.SEPARATE_PUBLISHER_CLIENT.getConfigPath());
-        reconnectMinTimeoutForMqttBrokerInitiatedDisconnect =
-                config.getNonNegativeDurationOrThrow(MqttConfigValue.RECONNECT_MIN_TIMEOUT_FOR_MQTT_BROKER_INITIATED_DISCONNECT);
+        maxQueueSize = config.getInt(MqttConfigValue.MAX_QUEUE_SIZE.getConfigPath());
+        reconnectMinTimeoutForMqttBrokerInitiatedDisconnect = config.getNonNegativeDurationOrThrow(
+                MqttConfigValue.RECONNECT_MIN_TIMEOUT_FOR_MQTT_BROKER_INITIATED_DISCONNECT);
         reconnectBackOffConfig = DefaultBackOffConfig.of(config.hasPath(RECONNECT_PATH)
                 ? config.getConfig(RECONNECT_PATH)
                 : ConfigFactory.parseString("backoff" + "={}"));
@@ -97,6 +99,11 @@ final class DefaultMqttConfig implements MqttConfig {
     }
 
     @Override
+    public int getMaxQueueSize() {
+        return maxQueueSize;
+    }
+
+    @Override
     public BackOffConfig getReconnectBackOffConfig() {
         return reconnectBackOffConfig;
     }
@@ -117,6 +124,7 @@ final class DefaultMqttConfig implements MqttConfig {
                 Objects.equals(useSeparateClientForPublisher, that.useSeparateClientForPublisher) &&
                 Objects.equals(reconnectMinTimeoutForMqttBrokerInitiatedDisconnect,
                         that.reconnectMinTimeoutForMqttBrokerInitiatedDisconnect) &&
+                Objects.equals(maxQueueSize, that.maxQueueSize) &&
                 Objects.equals(reconnectBackOffConfig, that.reconnectBackOffConfig);
     }
 
@@ -124,7 +132,7 @@ final class DefaultMqttConfig implements MqttConfig {
     public int hashCode() {
         return Objects.hash(eventLoopThreads, cleanSession, reconnectForRedelivery,
                 reconnectForRedeliveryDelay, useSeparateClientForPublisher,
-                reconnectMinTimeoutForMqttBrokerInitiatedDisconnect, reconnectBackOffConfig);
+                reconnectMinTimeoutForMqttBrokerInitiatedDisconnect, maxQueueSize, reconnectBackOffConfig);
     }
 
     @Override
@@ -137,6 +145,7 @@ final class DefaultMqttConfig implements MqttConfig {
                 ", useSeparateClientForPublisher=" + useSeparateClientForPublisher +
                 ", reconnectMinTimeoutForMqttBrokerInitiatedDisconnect=" +
                 reconnectMinTimeoutForMqttBrokerInitiatedDisconnect +
+                ", maxQueueSize=" + maxQueueSize +
                 ", reconnectBackOffConfig=" + reconnectBackOffConfig +
                 "]";
     }

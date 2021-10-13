@@ -17,7 +17,7 @@ import static org.apache.qpid.jms.message.JmsMessageSupport.MODIFIED_FAILED;
 import static org.apache.qpid.jms.message.JmsMessageSupport.REJECTED;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory.newEnforcementFilterFactory;
-import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
+import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;

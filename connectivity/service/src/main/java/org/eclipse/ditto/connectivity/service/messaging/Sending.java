@@ -23,9 +23,6 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
@@ -33,15 +30,18 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
-import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithHttpStatus;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
+import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.placeholders.ExpressionResolver;
 
 /**
  * A signal being sent represented by a future sending result holding an acknowledgement or other command response

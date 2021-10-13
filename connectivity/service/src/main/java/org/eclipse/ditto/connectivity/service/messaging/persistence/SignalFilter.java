@@ -24,31 +24,38 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.namespaces.NamespaceReader;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithResource;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.FilteredTopic;
+import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectivityAnnouncement;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.entity.id.WithEntityId;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.FilteredTopic;
-import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.base.model.namespaces.NamespaceReader;
-import org.eclipse.ditto.rql.query.criteria.Criteria;
-import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
-import org.eclipse.ditto.rql.parser.RqlPredicateParser;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
-import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.PlaceholderResolver;
+import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
+import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
+import org.eclipse.ditto.rql.parser.RqlPredicateParser;
+import org.eclipse.ditto.rql.query.criteria.Criteria;
+import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
 
@@ -60,6 +67,10 @@ import org.eclipse.ditto.things.model.signals.events.ThingEventToThingConverter;
  * </ul>
  */
 public final class SignalFilter {
+
+    private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
+    private static final TopicPathPlaceholder TOPIC_PATH_PLACEHOLDER = TopicPathPlaceholder.getInstance();
+    private static final ResourcePlaceholder RESOURCE_PLACEHOLDER = ResourcePlaceholder.getInstance();
 
     private final Connection connection;
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
@@ -147,17 +158,29 @@ public final class SignalFilter {
 
     private static boolean matchesFilterBeforeEnrichment(final FilteredTopic filteredTopic, final Signal<?> signal) {
         final Optional<String> filterOptional = filteredTopic.getFilter();
-        if (filterOptional.isPresent() && signal instanceof ThingEvent) {
+        if (filterOptional.isPresent()) {
             // match filter ignoring "extraFields"
-            return ThingEventToThingConverter.thingEventToThing((ThingEvent<?>) signal)
-                    .filter(thing -> {
-                        final Criteria criteria = parseCriteria(filterOptional.get(), signal.getDittoHeaders());
-                        final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
-                                .map(JsonFieldSelector::getPointers)
-                                .orElse(Collections.emptySet());
-                        return Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, thing);
-                    })
-                    .isPresent();
+
+            final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
+            final PlaceholderResolver<TopicPath> topicPathPlaceholderResolver =
+                    PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER, topicPath);
+            final PlaceholderResolver<WithResource> resourcePlaceholderResolver = PlaceholderFactory
+                    .newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal);
+            final Criteria criteria = parseCriteria(filterOptional.get(), signal.getDittoHeaders(),
+                    topicPathPlaceholderResolver, resourcePlaceholderResolver);
+            final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
+                    .map(JsonFieldSelector::getPointers)
+                    .orElse(Collections.emptySet());
+            if (signal instanceof ThingEvent) {
+                return ThingEventToThingConverter.thingEventToThing((ThingEvent<?>) signal)
+                        .filter(thing -> Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, thing,
+                                topicPathPlaceholderResolver, resourcePlaceholderResolver))
+                        .isPresent();
+            } else {
+                final Thing emptyThing = Thing.newBuilder().build();
+                return Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, emptyThing,
+                        topicPathPlaceholderResolver, resourcePlaceholderResolver);
+            }
         } else {
             return true;
         }
@@ -167,8 +190,9 @@ public final class SignalFilter {
      * @throws org.eclipse.ditto.base.model.exceptions.InvalidRqlExpressionException if the filter string cannot be
      * mapped to a valid criterion
      */
-    private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {
-        return QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance())
+    private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders,
+            final PlaceholderResolver<?>... placeholderResolvers) {
+        return QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(), placeholderResolvers)
                 .filterCriteria(filter, dittoHeaders);
     }
 

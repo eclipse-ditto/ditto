@@ -22,10 +22,13 @@ import org.eclipse.ditto.base.model.common.DittoConstants;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
+import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 
 /**
@@ -116,7 +119,12 @@ public final class ProtocolFactory {
     public static TopicPathBuilder newTopicPathBuilder(final NamespacedEntityId entityId) {
         checkNotNull(entityId, "entityId");
         final TopicPathBuilder result = ImmutableTopicPath.newBuilder(entityId.getNamespace(), entityId.getName());
-        return result.things();
+        if (entityId.getEntityType().equals(ThingConstants.ENTITY_TYPE)) {
+            return result.things();
+        } else if (entityId.getEntityType().equals(PolicyConstants.ENTITY_TYPE)) {
+            return result.policies();
+        }
+        return result;
     }
 
     /**

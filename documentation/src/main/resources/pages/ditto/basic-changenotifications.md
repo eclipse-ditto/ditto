@@ -19,15 +19,16 @@ At the Ditto API there are different ways for getting notified of such events:
 
 ## Filtering
 
-In order to not get all of the events an authenticated [subject](basic-auth.html) (e.g. a user added in nginx) is allowed
-to see, but to filter for specific criteria, events may be filtered on the Ditto backend side.
+In order to not get all of the events an [authenticated subject](basic-auth.html#authenticated-subjects) 
+(e.g. a user added in nginx) is allowed to see, but to filter for specific criteria, 
+events may be filtered on the Ditto backend side before they are sent to an event receiver.
 
 The above mentioned different APIs provide their own mechanisms on how to define such filters, but they all share the
 common functionality of based on which information events may be filtered.
 
-{% include note.html content="All filters are specified in an URL query format, therefore their values should be URL
-encoded before sending them to the backend. The equal (=) and the ampersand (&) character must be encoded in any RQL
-filter!" %}
+{% include note.html content="All filters are specified in a URL query format, therefore their values should be URL
+    encoded before sending them to the backend. The equal (=) and the ampersand (&) character must be encoded in any RQL
+    filter!" %}
 
 ### By namespaces
 
@@ -44,11 +45,22 @@ namespaces=org.eclipse.ditto.one,org.eclipse.ditto.two
 
 ### By RQL expression
 
-If filtering by namespaces it not sufficient, Ditto also allows to provide an [RQL expression](basic-rql.html) specifying 
-a Thing payload based condition determining which events should be emitted and which don't.
+If filtering by namespaces is not sufficient, Ditto also allows to provide an [RQL expression](basic-rql.html) 
+specifying:
 
-{% include note.html content="This filter is applied on the modified data of a Thing, data which was not changed will 
-    not be considered when applying the filter." %}
+* a Thing payload based condition determining which events should be emitted and which should not
+* a filter based on the fields of the [Ditto Protocol](protocol-specification.html) message which should be filtered, 
+  e.g.:
+   * using the `topic:action` placeholder as query property, filtering for lifecycle events (`created`, `deleted`) 
+     and other filter options on the [Ditto Protocol topic](protocol-specification-topic.html) can be done
+   * using the `resource:path` placeholder as query property, filtering based on the affected 
+     [Ditto Protocol path](protocol-specification.html#path) of a Ditto Protocol message can be done
+   * for all supported placeholders, please refer to the 
+     [placeholders documentation](basic-placeholders.html#scope-rql-expressions-when-filtering-for-ditto-protocol-messages)
+
+{% include note.html content="This filter is *by default* applied on the modified data of a Thing.<br/>
+    Data which was not changed will only be considered when it was 
+    [enriched via \"extraFields\"](basic-enrichment.html)." %}
 
 This provides the opportunity to formulate filters like the following:
 
@@ -68,6 +80,11 @@ Only emit events when the attribute "manufacturer" was changed to starting with 
 The `&` must be escaped in that case:
 ```
 filter=like(attributes/manufacturer,"ACME %26 Sons*")
+```
+
+Only emit events for Thing creation and deletion:
+```
+filter=and(in(topic:action,'created','deleted'),eq(resource:path,'/'))
 ```
 
 You get the idea of how mighty this becomes by utilizing Ditto's [RQL expressions](basic-rql.html).

@@ -56,12 +56,24 @@ public interface Adapter<T extends Jsonifiable<?>> {
      * Maps the given {@code t} to its corresponding {@code Adaptable}.
      *
      * @param t the object to map.
-     * @param channel the channel that was used to send the signal
+     * @param channel the channel that was used to send the signal.
      * @return the mapped adaptable.
-     * @throws NullPointerException if {@code t} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code channel} is unknown.
      */
     Adaptable toAdaptable(T t, TopicPath.Channel channel);
+
+    /**
+     * Maps the given {@code t} to its corresponding {@code TopicPath}.
+     *
+     * @param t the object to map.
+     * @param channel the channel that was used to send the signal.
+     * @return the mapped topic path.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code channel} is unknown.
+     * @since 2.2.0
+     */
+    TopicPath toTopicPath(T t, TopicPath.Channel channel);
 
     /**
      * Retrieve the set of groups supported by this adapter.

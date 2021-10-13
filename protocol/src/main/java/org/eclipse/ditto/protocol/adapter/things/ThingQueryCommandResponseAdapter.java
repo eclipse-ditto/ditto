@@ -16,11 +16,10 @@ import static java.util.Objects.requireNonNull;
 
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.adapter.QueryCommandResponseAdapter;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
-import org.eclipse.ditto.protocol.mapper.SignalMapper;
+import org.eclipse.ditto.protocol.adapter.QueryCommandResponseAdapter;
 import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
+import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 
 /**
@@ -29,13 +28,10 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandRe
 final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQueryCommandResponse<?>>
         implements QueryCommandResponseAdapter<ThingQueryCommandResponse<?>> {
 
-
-    private final SignalMapper<ThingQueryCommandResponse<?>>
-            thingQueryResponseSignalMapper =
-            SignalMapperFactory.newThingQueryResponseSignalMapper();
-
     private ThingQueryCommandResponseAdapter(final HeaderTranslator headerTranslator) {
-        super(MappingStrategiesFactory.getThingQueryCommandResponseMappingStrategies(), headerTranslator);
+        super(MappingStrategiesFactory.getThingQueryCommandResponseMappingStrategies(),
+                SignalMapperFactory.newThingQueryResponseSignalMapper(),
+                headerTranslator);
     }
 
     /**
@@ -53,10 +49,4 @@ final class ThingQueryCommandResponseAdapter extends AbstractThingAdapter<ThingQ
         return RESPONSES_CRITERION;
     }
 
-    @Override
-    public Adaptable mapSignalToAdaptable(final ThingQueryCommandResponse<?> commandResponse,
-            final TopicPath.Channel channel) {
-        return thingQueryResponseSignalMapper.mapSignalToAdaptable(commandResponse, channel);
-
-    }
 }
