@@ -26,9 +26,9 @@ import akka.japi.pf.ReceiveBuilder;
 public interface ConnectivityConfigModifiedBehavior extends Actor {
 
     /**
-     * Injectable behavior to handle {@code ConnectivityConfigBuildable}.
+     * Injectable behavior to handle an {@code Event} that transports config changes.
      *
-     * @return behavior to handle {@code ConnectivityConfigBuildable}.
+     * @return behavior to handle an {@code Event} that transports config changes.
      */
     default AbstractActor.Receive connectivityConfigModifiedBehavior() {
         return ReceiveBuilder.create()
