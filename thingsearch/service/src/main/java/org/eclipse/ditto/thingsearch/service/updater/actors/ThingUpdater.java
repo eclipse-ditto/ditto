@@ -65,6 +65,8 @@ import akka.cluster.sharding.ShardRegion;
  */
 final class ThingUpdater extends AbstractActor {
 
+    private static final String FORCE_UPDATE = "force-update";
+
     private static final AcknowledgementRequest SEARCH_PERSISTED_REQUEST =
             AcknowledgementRequest.of(DittoAcknowledgementLabel.SEARCH_PERSISTED);
 
@@ -132,7 +134,7 @@ final class ThingUpdater extends AbstractActor {
 
     private void onNextWriteModel(final AbstractWriteModel nextWriteModel) {
         final WriteModel<BsonDocument> mongoWriteModel;
-        final boolean forceUpdate = Math.random() < forceUpdateProbability;
+        final boolean forceUpdate = forceUpdateProbability > 0 && Math.random() < forceUpdateProbability;
         if (!forceUpdate && lastWriteModel instanceof ThingWriteModel && nextWriteModel instanceof ThingWriteModel) {
             final var last = (ThingWriteModel) lastWriteModel;
             final var next = (ThingWriteModel) nextWriteModel;
@@ -220,7 +222,9 @@ final class ThingUpdater extends AbstractActor {
     private void updateThing(final UpdateThing updateThing) {
         log.withCorrelationId(updateThing)
                 .info("Requested to update search index <{}> by <{}>", updateThing, getSender());
-        lastWriteModel = null;
+        if (updateThing.getDittoHeaders().containsKey(FORCE_UPDATE)) {
+            lastWriteModel = null;
+        }
         final Metadata metadata = exportMetadata(null, null)
                 .invalidateCaches(updateThing.shouldInvalidateThing(), updateThing.shouldInvalidatePolicy());
         if (updateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)) {
