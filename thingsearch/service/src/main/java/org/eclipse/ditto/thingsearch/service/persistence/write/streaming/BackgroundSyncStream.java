@@ -99,12 +99,7 @@ public final class BackgroundSyncStream {
         final Comparator<Metadata> comparator = BackgroundSyncStream::compareMetadata;
         return MergeSortedAsPair.merge(emptyMetadata(), comparator, metadataFromSnapshots, metadataFromSearchIndex)
                 .throttle(throttleThroughput, throttlePeriod)
-                .flatMapConcat(this::filterForInconsistency)
-                // log elements at warning level because out-of-date metadata are detected
-                .withAttributes(Attributes.logLevels(
-                        Attributes.logLevelWarning(),
-                        Attributes.logLevelDebug(),
-                        Attributes.logLevelError()));
+                .flatMapConcat(this::filterForInconsistency);
     }
 
     private boolean isInsideToleranceWindow(final Metadata metadata, final Instant toleranceCutOff) {

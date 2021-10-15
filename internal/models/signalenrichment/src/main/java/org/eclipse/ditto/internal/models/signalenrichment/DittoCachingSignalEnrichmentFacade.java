@@ -237,19 +237,17 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
                 .orElse(thingEvents);
 
         // Check if minimum acceptable sequence number is met
-        if (minAcceptableSeqNr >= 0 && (events.isEmpty() || getLast(events).getRevision() < minAcceptableSeqNr)) {
+        if (minAcceptableSeqNr < 0 || events.isEmpty() || getLast(events).getRevision() < minAcceptableSeqNr) {
             return Optional.empty();
         }
 
         // Validate sequence numbers. Discard if events have gaps
-        if (!events.isEmpty()) {
-            long lastSeq = -1;
-            for (final ThingEvent<?> event : events) {
-                if (lastSeq >= 0 && event.getRevision() != lastSeq + 1) {
-                    return Optional.empty();
-                } else {
-                    lastSeq = event.getRevision();
-                }
+        long lastSeq = -1;
+        for (final ThingEvent<?> event : events) {
+            if (lastSeq >= 0 && event.getRevision() != lastSeq + 1) {
+                return Optional.empty();
+            } else {
+                lastSeq = event.getRevision();
             }
         }
         return Optional.of(events);
