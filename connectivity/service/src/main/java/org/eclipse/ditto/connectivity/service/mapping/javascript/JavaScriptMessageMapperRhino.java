@@ -15,6 +15,10 @@ package org.eclipse.ditto.connectivity.service.mapping.javascript;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +37,9 @@ import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.RhinoException;
 import org.mozilla.javascript.Scriptable;
+import org.mozilla.javascript.commonjs.module.RequireBuilder;
+import org.mozilla.javascript.commonjs.module.provider.SoftCachingModuleScriptProvider;
+import org.mozilla.javascript.commonjs.module.provider.UrlModuleSourceProvider;
 
 /**
  * This mapper executes its mapping methods on the <b>current thread</b>. The caller should be aware of that.
@@ -99,7 +106,7 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
                 } else {
                     scope = cx.initSafeStandardObjects(); // that one disables "print, exit, quit", etc.
                 }
-                initLibraries(cx, scope);
+                initLibraries(cx, scope, javaScriptConfig.getCommonJsModulesPath().orElse(null));
                 return scope;
             });
         } catch (final RhinoException e) {
@@ -124,7 +131,7 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
         return outgoingMapping.apply(adaptable);
     }
 
-    private void initLibraries(final Context cx, final Scriptable scope) {
+    private void initLibraries(final Context cx, final Scriptable scope, @Nullable final Path commonJsModulePath) {
         if (getConfiguration().map(JavaScriptMessageMapperConfiguration::isLoadLongJS).orElse(false)) {
             loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(WEBJARS_LONG)),
                     WEBJARS_LONG);
@@ -133,6 +140,22 @@ final class JavaScriptMessageMapperRhino extends AbstractMessageMapper {
             loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(WEBJARS_BYTEBUFFER)),
                     WEBJARS_BYTEBUFFER);
         }
+
+        final List<URI> paths = new ArrayList<>();
+        try {
+            paths.add(getClass().getResource(WEBJARS_LONG).toURI());
+            paths.add(getClass().getResource(WEBJARS_BYTEBUFFER).toURI());
+        } catch (URISyntaxException e) {
+            throw new IllegalStateException("Could not webjars", e);
+        }
+        if (null != commonJsModulePath) {
+            paths.add(commonJsModulePath.toUri());
+        }
+        new RequireBuilder().setModuleScriptProvider(
+                        new SoftCachingModuleScriptProvider(new UrlModuleSourceProvider(paths, null)))
+                .setSandboxed(true)
+                .createRequire(cx, scope)
+                .install(scope);
 
         loadJavascriptLibrary(cx, scope, new InputStreamReader(getClass().getResourceAsStream(DITTO_SCOPE_SCRIPT)),
                 DITTO_SCOPE_SCRIPT);

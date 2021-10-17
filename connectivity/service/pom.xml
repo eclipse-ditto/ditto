@@ -208,6 +208,18 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
             <artifactId>akka-stream-kafka-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.webjars.npm</groupId>
+            <artifactId>github-com-protobufjs-protobuf-js</artifactId>
+            <version>6.11.1</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.webjars.npm</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 
     <build>
@@ -323,6 +335,34 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
                         <arg>java.base/sun.security.util=ALL-UNNAMED</arg>
                     </compilerArgs>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>unpack-webjars</id>
+                        <phase>generate-test-resources</phase>
+                        <goals>
+                            <goal>unpack</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.webjars.npm</groupId>
+                                    <artifactId>github-com-protobufjs-protobuf-js</artifactId>
+                                    <version>6.11.1</version>
+                                    <type>jar</type>
+                                    <includes>META-INF/resources/webjars/github-com-protobufjs-protobuf-js/6.11.1/protobuf.min.js</includes>
+                                    <fileMappers>
+                                        <org.codehaus.plexus.components.io.filemappers.FlattenFileMapper/>
+                                    </fileMappers>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>${project.build.testOutputDirectory}/unpacked-test-webjars</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
