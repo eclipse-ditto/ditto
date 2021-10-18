@@ -24,6 +24,7 @@ import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.BsonValue;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 
 import akka.japi.Pair;
@@ -41,20 +42,21 @@ public final class BsonDiff {
     /**
      * MongoDB operator to unset a value.
      */
-    public static final String UNSET = "$unset";
+    private static final String UNSET = "$unset";
 
     final int replacementSize;
     final int diffSize;
-    final Stream<Pair<JsonPointer, BsonValue>> set;
-    final Stream<JsonPointer> unset;
+    final Stream<Pair<JsonPointer, BsonValue>> setPointers;
+    final Stream<JsonPointer> unsetPointers;
 
     BsonDiff(final int replacementSize, final int diffSize,
-            final Stream<Pair<JsonPointer, BsonValue>> set,
-            final Stream<JsonPointer> unset) {
+            final Stream<Pair<JsonPointer, BsonValue>> setPointers,
+            final Stream<JsonPointer> unsetPointers) {
+
         this.replacementSize = replacementSize;
         this.diffSize = diffSize;
-        this.set = set;
-        this.unset = unset;
+        this.setPointers = setPointers;
+        this.unsetPointers = unsetPointers;
     }
 
     static BsonDiff empty(final int replacementSize) {
@@ -112,8 +114,8 @@ public final class BsonDiff {
         return new BsonDiff(
                 replacementSize + that.replacementSize,
                 diffSize + that.diffSize,
-                Stream.concat(set, that.set),
-                Stream.concat(unset, that.unset)
+                Stream.concat(setPointers, that.setPointers),
+                Stream.concat(unsetPointers, that.unsetPointers)
         );
     }
 
@@ -123,7 +125,7 @@ public final class BsonDiff {
      * @return Update document.
      */
     public List<BsonDocument> consumeAndExport() {
-        final var result = new ArrayList<BsonDocument>(2);
+        final List<BsonDocument> result = new ArrayList<>(2);
         final var setDoc = consumeAndExportSet();
         if (!setDoc.isEmpty()) {
             result.add(new BsonDocument().append(SET, setDoc));
@@ -150,22 +152,22 @@ public final class BsonDiff {
      * @return exported set and unset lists.
      */
     BsonDiffList consumeAndExportToList() {
-        return new BsonDiffList(set.collect(Collectors.toList()), unset.collect(Collectors.toList()));
+        return new BsonDiffList(setPointers.collect(Collectors.toList()), unsetPointers.collect(Collectors.toList()));
     }
 
     private BsonDocument consumeAndExportSet() {
         final BsonDocument setDocument = new BsonDocument();
-        set.forEach(pair -> setDocument.append(getPathString(pair.first()), pair.second()));
+        setPointers.forEach(pair -> setDocument.append(getPathString(pair.first()), pair.second()));
         return setDocument;
     }
 
     private BsonArray consumeAndExportUnset() {
         final var unsetArray = new BsonArray();
-        unset.forEach(path -> unsetArray.add(new BsonString(getPathString(path))));
+        unsetPointers.forEach(path -> unsetArray.add(new BsonString(getPathString(path))));
         return unsetArray;
     }
 
-    private static String getPathString(final JsonPointer jsonPointer) {
+    private static String getPathString(final Iterable<JsonKey> jsonPointer) {
         return StreamSupport.stream(jsonPointer.spliterator(), false).collect(Collectors.joining("."));
     }
 }

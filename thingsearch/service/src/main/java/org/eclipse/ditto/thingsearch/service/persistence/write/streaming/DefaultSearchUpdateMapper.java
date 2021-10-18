@@ -36,6 +36,7 @@ public final class DefaultSearchUpdateMapper extends SearchUpdateMapper {
     /**
      * Instantiate this provider. Called by reflection.
      */
+    @SuppressWarnings("unused")
     private DefaultSearchUpdateMapper(final ActorSystem actorSystem) {
         super(actorSystem);
         // Nothing to initialize.
@@ -44,6 +45,7 @@ public final class DefaultSearchUpdateMapper extends SearchUpdateMapper {
     @Override
     public Source<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>, NotUsed>
     processWriteModels(final List<AbstractWriteModel> writeModels) {
+
         return Source.single(writeModels).mapAsync(1, models -> toIncrementalMongo(models, logger));
     }
 

@@ -20,12 +20,12 @@ import java.util.stream.Collectors;
 
 import org.bson.BsonDocument;
 import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
+import org.slf4j.Logger;
 
 import com.mongodb.client.model.WriteModel;
 
@@ -82,7 +82,8 @@ public abstract class SearchUpdateMapper implements Extension {
      * change.
      */
     protected static CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>>
-    toIncrementalMongo(final AbstractWriteModel model, final ThreadSafeDittoLogger logger) {
+    toIncrementalMongo(final AbstractWriteModel model, final Logger logger) {
+
         return model.toIncrementalMongo()
                 .thenApply(mongoWriteModelOpt -> {
                     if (mongoWriteModelOpt.isEmpty()) {
@@ -119,8 +120,7 @@ public abstract class SearchUpdateMapper implements Extension {
      * @return a list of write models together with their update documents.
      */
     protected static CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>> toIncrementalMongo(
-            final Collection<AbstractWriteModel> models,
-            final ThreadSafeDittoLogger logger) {
+            final Collection<AbstractWriteModel> models, final Logger logger) {
 
         final var writeModelFutures = models.stream()
                 .map(model -> toIncrementalMongo(model, logger))

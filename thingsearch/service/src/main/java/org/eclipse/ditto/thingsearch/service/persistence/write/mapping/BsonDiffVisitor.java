@@ -99,8 +99,8 @@ final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, Bson
                         final var nextDiff = eval(nextKey, nextValue).apply(prevValue);
                         final var nextReplacementSize = nextDiff.replacementSize + nextKey.length();
                         if (nextDiff.diffSize <= nextReplacementSize) {
-                            set = Stream.concat(set, nextDiff.set);
-                            unset = Stream.concat(unset, nextDiff.unset);
+                            set = Stream.concat(set, nextDiff.setPointers);
+                            unset = Stream.concat(unset, nextDiff.unsetPointers);
                             diffSize += nextDiff.diffSize;
                         } else {
                             set = Stream.concat(set, Stream.of(Pair.create(nextKey, literal(nextValue))));
