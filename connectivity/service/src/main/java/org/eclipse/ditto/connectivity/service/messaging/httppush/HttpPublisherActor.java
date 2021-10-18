@@ -80,7 +80,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.http.javadsl.model.HttpCharset;
 import akka.http.javadsl.model.HttpEntities;
-import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
@@ -93,13 +92,11 @@ import akka.stream.KillSwitches;
 import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.QueueOfferResult;
-import akka.stream.UniqueKillSwitch;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SourceQueue;
-import akka.stream.javadsl.SourceQueueWithComplete;
 import scala.util.Try;
 
 /**
@@ -126,18 +123,19 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
     private final KillSwitch killSwitch;
     private final HttpRequestSigning httpRequestSigning;
+    private final CommandAndCommandResponseMatchingValidator commandAndCommandResponseMatchingValidator;
 
     @SuppressWarnings("unused")
     private HttpPublisherActor(final Connection connection,
             final HttpPushFactory factory,
             final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver) {
+
         super(connection, clientId, connectivityStatusResolver);
         this.factory = factory;
         materializer = Materializer.createMaterializer(this::getContext);
-        final HttpPushConfig config = connectionConfig.getHttpPushConfig();
-        final Pair<Pair<SourceQueueWithComplete<Pair<HttpRequest, HttpPushContext>>, UniqueKillSwitch>,
-                CompletionStage<Done>> materialized =
+        final var config = connectionConfig.getHttpPushConfig();
+        final var materialized =
                 Source.<Pair<HttpRequest, HttpPushContext>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
                         .viaMat(buildHttpRequestFlow(config), Keep.left())
                         .viaMat(KillSwitches.single(), Keep.both())
@@ -154,6 +152,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         httpRequestSigning = connection.getCredentials()
                 .map(credentials -> credentials.accept(HttpRequestSigningExtension.get(getContext().getSystem())))
                 .orElse(NoOpSigning.INSTANCE);
+        commandAndCommandResponseMatchingValidator =
+                CommandAndCommandResponseMatchingValidator.newInstance(connectionLogger);
     }
 
     /**
@@ -172,9 +172,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     private static Uri setPathAndQuery(final Uri uri, @Nullable final String path, @Nullable final String query) {
-        final String slash = "/";
         var newUri = uri;
         if (path != null) {
+            final var slash = "/";
             newUri = path.startsWith(slash) ? newUri.path(path) : newUri.path(slash + path);
         }
         if (query != null) {
@@ -183,12 +183,12 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return newUri;
     }
 
-    private static Pair<Iterable<HttpHeader>, ContentType> getHttpHeadersPair(final ExternalMessage message) {
-        final Collection<HttpHeader> headers = new ArrayList<>(message.getHeaders().size());
+    private static Pair<Iterable<HttpHeader>, ContentType> getHttpHeadersPair(final Map<String, String> messageHeaders) {
+        final Collection<HttpHeader> headers = new ArrayList<>(messageHeaders.size());
         ContentType contentType = null;
-        for (final Map.Entry<String, String> entry : message.getHeaders().entrySet()) {
+        for (final var entry : messageHeaders.entrySet()) {
             if (!ReservedHeaders.contains(entry.getKey())) {
-                final HttpHeader httpHeader = HttpHeader.parse(entry.getKey(), entry.getValue());
+                final var httpHeader = HttpHeader.parse(entry.getKey(), entry.getValue());
                 if (httpHeader instanceof ContentType) {
                     contentType = (ContentType) httpHeader;
                 } else {
@@ -330,26 +330,32 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     private HttpRequest createRequest(final HttpPublishTarget publishTarget, final ExternalMessage message) {
-        final Pair<Iterable<HttpHeader>, ContentType> headersPair = getHttpHeadersPair(message);
-        final HttpRequest requestWithoutEntity = newRequestWithoutEntity(publishTarget, headersPair.first(), message);
+        final HttpRequest result;
+
+        final Pair<Iterable<HttpHeader>, ContentType> headersPair = getHttpHeadersPair(message.getHeaders());
+        final var requestWithoutEntity = newRequestWithoutEntity(publishTarget, headersPair.first(), message);
         final ContentType contentTypeHeader = headersPair.second();
         if (contentTypeHeader != null) {
-            final HttpEntity.Strict httpEntity =
-                    HttpEntities.create(contentTypeHeader.contentType(), getPayloadAsBytes(message));
-            return requestWithoutEntity.withEntity(httpEntity);
+            final var httpEntity = HttpEntities.create(contentTypeHeader.contentType(), getPayloadAsBytes(message));
+            result = requestWithoutEntity.withEntity(httpEntity);
         } else if (message.isTextMessage()) {
-            return requestWithoutEntity.withEntity(getTextPayload(message));
+            result = requestWithoutEntity.withEntity(getTextPayload(message));
         } else {
-            return requestWithoutEntity.withEntity(getBytePayload(message));
+            result = requestWithoutEntity.withEntity(getBytePayload(message));
         }
+
+        return result;
     }
 
     private HttpRequest newRequestWithoutEntity(final HttpPublishTarget publishTarget,
-            final Iterable<HttpHeader> headers, final ExternalMessage message) {
-        final HttpRequest request = factory.newRequest(publishTarget).addHeaders(headers);
-        final String httpPath = message.getHeaders().get(ReservedHeaders.HTTP_PATH.name);
-        final String httpQuery = message.getHeaders().get(ReservedHeaders.HTTP_QUERY.name);
-        return request.withUri(setPathAndQuery(request.getUri(), httpPath, httpQuery));
+            final Iterable<HttpHeader> headers,
+            final ExternalMessage message) {
+
+        final var request = factory.newRequest(publishTarget).addHeaders(headers);
+        final var messageHeaders = message.getHeaders();
+        return request.withUri(setPathAndQuery(request.getUri(),
+                messageHeaders.get(ReservedHeaders.HTTP_PATH.name),
+                messageHeaders.get(ReservedHeaders.HTTP_QUERY.name)));
     }
 
     // Async callback. Must be thread-safe.
@@ -435,7 +441,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             return CompletableFuture.failedFuture(error);
         }
 
-        final var isSentSignalLiveCommand = HttpLiveResponseHandling.isLiveCommand(sentSignal);
+        final var isSentSignalLiveCommand = SignalInformationPoint.isLiveCommand(sentSignal);
         final int maxResponseSize = isSentSignalLiveCommand ? maxTotalMessageSize : ackSizeQuota;
         return getResponseBody(response, maxResponseSize, materializer).thenApply(body -> {
             @Nullable final CommandResponse<?> result;
@@ -449,7 +455,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     if (sentSignal instanceof MessageCommand) {
                         result = toMessageCommandResponse((MessageCommand<?, ?>) sentSignal, mergedDittoHeaders, body,
                                 httpStatus);
-                    } else if(sentSignal instanceof ThingCommand && HttpLiveResponseHandling.isChannelLive(sentSignal)) {
+                    } else if (sentSignal instanceof ThingCommand &&
+                            SignalInformationPoint.isChannelLive(sentSignal)) {
                         result = toLiveCommandResponse(sentSignal, mergedDittoHeaders, body, httpStatus);
                     } else {
                         result = null;
@@ -469,7 +476,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     final CommandResponse<?> parsedResponse = toCommandResponse(body.asObject());
                     if (parsedResponse instanceof Acknowledgement) {
                         result = parsedResponse;
-                    } else if (HttpLiveResponseHandling.isLiveCommandResponse(parsedResponse)) {
+                    } else if (SignalInformationPoint.isLiveCommandResponse(parsedResponse)) {
                         result = parsedResponse;
                     } else {
                         result = null;
@@ -479,13 +486,13 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 }
             }
 
-            final var liveCommandWithEntityId = HttpLiveResponseHandling.getLiveCommandWithEntityId(sentSignal);
+            final var liveCommandWithEntityId = SignalInformationPoint.tryToGetAsLiveCommandWithEntityId(sentSignal);
             if (liveCommandWithEntityId.isPresent()
                     && null != result
-                    && HttpLiveResponseHandling.isLiveCommandResponse(result)) {
+                    && SignalInformationPoint.isLiveCommandResponse(result)) {
 
                 // Do only return command response for live commands with a correct response.
-                HttpLiveResponseHandling.validateLiveResponse(result, liveCommandWithEntityId.get(), connectionLogger);
+                commandAndCommandResponseMatchingValidator.accept(liveCommandWithEntityId.get(), result);
             }
             if (result == null) {
                 connectionLogger.success(
@@ -575,7 +582,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             if (commandResponse == null) {
                 return null;
             } else if (commandResponse instanceof ThingCommandResponse &&
-                    HttpLiveResponseHandling.isChannelLive(commandResponse)) {
+                    SignalInformationPoint.isChannelLive(commandResponse)) {
                 return commandResponse;
             } else {
                 connectionLogger.failure("Expected <{0}> to be of type <{1}> but was of type <{2}>.",
