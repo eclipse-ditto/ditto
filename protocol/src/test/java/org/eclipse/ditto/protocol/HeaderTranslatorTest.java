@@ -157,7 +157,6 @@ public final class HeaderTranslatorTest {
                 .dryRun(true)
                 .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                         AuthorizationSubject.newInstance("foo"), AuthorizationSubject.newInstance("bar")))
-                .channel("no5")
                 .origin("Cthulhu")
                 .build();
 
