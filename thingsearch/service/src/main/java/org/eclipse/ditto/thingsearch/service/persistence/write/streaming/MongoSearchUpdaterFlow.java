@@ -127,7 +127,7 @@ final class MongoSearchUpdaterFlow {
         final var writeModels = pairs.stream().map(Pair::second).collect(Collectors.toList());
 
         if (writeModels.isEmpty()) {
-            LOGGER.warn("Requested to make empty update by write models <{}>", abstractWriteModels);
+            LOGGER.debug("Requested to make empty update by write models <{}>", abstractWriteModels);
             for (final var abstractWriteModel : abstractWriteModels) {
                 abstractWriteModel.getMetadata().sendWeakAck(null);
             }
