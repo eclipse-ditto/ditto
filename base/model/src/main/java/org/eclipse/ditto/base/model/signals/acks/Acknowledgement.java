@@ -59,7 +59,12 @@ import org.eclipse.ditto.json.JsonValue;
 public final class Acknowledgement implements CommandResponse<Acknowledgement>, WithOptionalEntity, WithEntityType,
         SignalWithEntityId<Acknowledgement> {
 
-    static final String TYPE = "acknowledgement";
+    /**
+     * The type of {@code Acknowledgement} signals.
+     * @since 2.2.0
+     */
+    public static final String TYPE = "acknowledgement";
+
     private static final String TRUE_STRING = Boolean.TRUE.toString();
 
     private final AcknowledgementLabel label;
