@@ -134,6 +134,7 @@ final class MongoSearchUpdaterFlow {
             return Source.empty();
         }
 
+        LOGGER.debug("Executing BulkWrite <{}>", writeModels);
         final var bulkWriteTimer = startBulkWriteTimer(writeModels);
         return Source.fromPublisher(theCollection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))
                 .map(bulkWriteResult -> WriteResultAndErrors.success(abstractWriteModels, bulkWriteResult))
