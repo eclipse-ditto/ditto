@@ -252,8 +252,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     @Override
     protected Set<Pattern> getExcludedAddressReportingChildNamePatterns() {
-        final Set<Pattern> excludedChildNamePatterns = new HashSet<>(super.getExcludedAddressReportingChildNamePatterns());
-        excludedChildNamePatterns.add(Pattern.compile(Pattern.quote(JMSConnectionHandlingActor.ACTOR_NAME_PREFIX) + ".*"));
+        final Set<Pattern> excludedChildNamePatterns =
+                new HashSet<>(super.getExcludedAddressReportingChildNamePatterns());
+        excludedChildNamePatterns.add(
+                Pattern.compile(Pattern.quote(JMSConnectionHandlingActor.ACTOR_NAME_PREFIX) + ".*"));
         return excludedChildNamePatterns;
     }
 
@@ -427,18 +429,17 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         if (isConsuming()) {
             stopCommandConsumers();
             // wait a fraction of the configured timeout before asking to allow the consumer to stabilize
-            final CompletionStage<Done> identity =
-                    new CompletableFuture<Done>().completeOnTimeout(Done.getInstance(),
+            final CompletionStage<Object> identity =
+                    new CompletableFuture<>().completeOnTimeout(Done.getInstance(),
                             initialConsumerResourceStatusAskTimeout.toMillis() / 2, TimeUnit.MILLISECONDS);
-            final CompletionStage<Done> completionStage = consumers.stream()
+            final CompletionStage<Object> completionStage = consumers.stream()
                     .map(consumer -> startCommandConsumer(consumer, getInboundMappingSink(), jmsActor))
-                    .map(ref -> Patterns.ask(ref, RetrieveAddressStatus.getInstance(),
-                            initialConsumerResourceStatusAskTimeout).thenApply(result -> Done.getInstance()))
-                    .reduce(identity, (done, reply) -> done.thenCompose(result -> done))
-                    .exceptionally(t -> Done.getInstance());
+                    .map(ref -> identity.thenCompose(done -> Patterns.ask(ref, RetrieveAddressStatus.getInstance(),
+                            initialConsumerResourceStatusAskTimeout)))
+                    .reduce(identity, (done, reply) -> done.thenCombine(reply, (x, y) -> x));
             connectionLogger.success("Subscriptions {0} initialized successfully.", consumers);
             logger.info("Subscribed Connection <{}> to sources: {}", connectionId(), consumers);
-            return completionStage;
+            return completionStage.thenApply(object -> Done.getInstance()).exceptionally(t -> Done.getInstance());
         } else {
             logger.debug("Not starting consumers, no sources were configured.");
             return CompletableFuture.completedStage(Done.getInstance());

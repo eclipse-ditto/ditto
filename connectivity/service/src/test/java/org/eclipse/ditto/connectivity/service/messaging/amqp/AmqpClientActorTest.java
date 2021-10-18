@@ -142,8 +142,6 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     private static final JMSException JMS_EXCEPTION = new JMSException("FAIL");
     private static final URI DUMMY = URI.create("amqp://test:1234");
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
-    private static final ConnectionFailedException SESSION_EXCEPTION =
-            ConnectionFailedException.newBuilder(CONNECTION_ID).build();
 
     private ActorSystem actorSystem;
     private Connection connection;
