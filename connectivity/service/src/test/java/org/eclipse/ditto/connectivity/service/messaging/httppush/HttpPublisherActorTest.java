@@ -701,8 +701,8 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             assertThat(acknowledgements.getSize()).isOne();
             assertThat(acknowledgements.getAcknowledgement(DittoAcknowledgementLabel.LIVE_RESPONSE)).hasValueSatisfying(
                     ack -> assertThat(ack.toJsonString())
-                            .contains("Type of live message response <response> is not related to type of message" +
-                                    " command <messages.commands:thingMessage>"));
+                            .contains("Type of live message response <messages.responses:featureResponseMessage> is" +
+                                    " not related to type of message command <messages.commands:thingMessage>"));
         }};
     }
 
