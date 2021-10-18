@@ -23,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
@@ -43,7 +44,6 @@ import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
@@ -252,8 +252,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     @Override
     protected Set<Pattern> getExcludedAddressReportingChildNamePatterns() {
-        final Set<Pattern> excludedChildNamePatterns = new HashSet<>(super.getExcludedAddressReportingChildNamePatterns());
-        excludedChildNamePatterns.add(Pattern.compile(Pattern.quote(JMSConnectionHandlingActor.ACTOR_NAME_PREFIX) + ".*"));
+        final Set<Pattern> excludedChildNamePatterns =
+                new HashSet<>(super.getExcludedAddressReportingChildNamePatterns());
+        excludedChildNamePatterns.add(
+                Pattern.compile(Pattern.quote(JMSConnectionHandlingActor.ACTOR_NAME_PREFIX) + ".*"));
         return excludedChildNamePatterns;
     }
 
@@ -423,41 +425,25 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         return amqpPublisherActor;
     }
 
-    private CompletionStage<Object> startCommandConsumers(final List<ConsumerData> consumers, final ActorRef jmsActor) {
+    private CompletionStage<Done> startCommandConsumers(final List<ConsumerData> consumers, final ActorRef jmsActor) {
         if (isConsuming()) {
             stopCommandConsumers();
+            // wait a fraction of the configured timeout before asking to allow the consumer to stabilize
+            final CompletionStage<Object> identity =
+                    new CompletableFuture<>().completeOnTimeout(Done.getInstance(),
+                            initialConsumerResourceStatusAskTimeout.toMillis() / 2, TimeUnit.MILLISECONDS);
             final CompletionStage<Object> completionStage = consumers.stream()
                     .map(consumer -> startCommandConsumer(consumer, getInboundMappingSink(), jmsActor))
-                    .map(this::retrieveAddressStatusFromConsumerActor)
-                    .reduce(CompletableFuture.completedStage(Done.getInstance()),
-                            // not interested in the actual result, just if it failed or not
-                            (stage, reply) -> stage.thenCompose(unused -> reply));
+                    .map(ref -> identity.thenCompose(done -> Patterns.ask(ref, RetrieveAddressStatus.getInstance(),
+                            initialConsumerResourceStatusAskTimeout)))
+                    .reduce(identity, (done, reply) -> done.thenCombine(reply, (x, y) -> x));
             connectionLogger.success("Subscriptions {0} initialized successfully.", consumers);
             logger.info("Subscribed Connection <{}> to sources: {}", connectionId(), consumers);
-            return completionStage;
+            return completionStage.thenApply(object -> Done.getInstance()).exceptionally(t -> Done.getInstance());
         } else {
             logger.debug("Not starting consumers, no sources were configured.");
             return CompletableFuture.completedStage(Done.getInstance());
         }
-    }
-
-    private CompletionStage<Object> retrieveAddressStatusFromConsumerActor(final ActorRef ref) {
-        return Patterns.ask(ref, RetrieveAddressStatus.getInstance(), initialConsumerResourceStatusAskTimeout)
-                .thenApply(reply -> {
-                    if (reply instanceof ResourceStatus) {
-                        final ResourceStatus resourceStatus = (ResourceStatus) reply;
-                        // if status of the consumer actors is not OPEN after initialization, we must fail the stage
-                        // with an exception, otherwise the client actor wil go to CONNECTED state, despite the
-                        // failure that occurred in the consumer
-                        if (resourceStatus.getStatus() != ConnectivityStatus.OPEN) {
-                            final String msg = String.format("Resource status of consumer is not OPEN, but %s: %s",
-                                    resourceStatus.getStatus(),
-                                    resourceStatus.getStatusDetails().orElse("(no status details provided)"));
-                            throw new IllegalStateException(msg);
-                        }
-                    }
-                    return reply;
-                });
     }
 
     private ActorRef startCommandConsumer(final ConsumerData consumer, final Sink<Object, NotUsed> inboundMappingSink,
