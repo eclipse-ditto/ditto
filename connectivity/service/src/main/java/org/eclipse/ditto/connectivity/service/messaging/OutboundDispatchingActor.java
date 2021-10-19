@@ -31,7 +31,6 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
-import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementForwarderActor;
@@ -60,19 +59,17 @@ final class OutboundDispatchingActor extends AbstractActor {
 
     private final OutboundMappingSettings settings;
     private final ActorRef outboundMappingProcessorActor;
-    private final ActorRef proxyActor;
 
     @SuppressWarnings("unused")
     private OutboundDispatchingActor(final OutboundMappingSettings settings,
-            final ActorRef outboundMappingProcessorActor, final ActorRef proxyActor) {
+            final ActorRef outboundMappingProcessorActor) {
+
         this.settings = settings;
         this.outboundMappingProcessorActor = outboundMappingProcessorActor;
-        this.proxyActor = proxyActor;
     }
 
-    static Props props(final OutboundMappingSettings settings, final ActorRef outboundMappingProcessorActor,
-            final ActorRef proxyActor) {
-        return Props.create(OutboundDispatchingActor.class, settings, outboundMappingProcessorActor, proxyActor);
+    static Props props(final OutboundMappingSettings settings, final ActorRef outboundMappingProcessorActor) {
+        return Props.create(OutboundDispatchingActor.class, settings, outboundMappingProcessorActor);
     }
 
     @Override
@@ -120,8 +117,7 @@ final class OutboundDispatchingActor extends AbstractActor {
         logger.debug("Forwarding signal <{}> to client actor with targets: {}.", signalToForward.getType(),
                 subscribedAndAuthorizedTargets);
 
-        final OutboundSignal outbound =
-                OutboundSignalFactory.newOutboundSignal(signalToForward, subscribedAndAuthorizedTargets);
+        final var outbound = OutboundSignalFactory.newOutboundSignal(signalToForward, subscribedAndAuthorizedTargets);
 
         outboundMappingProcessorActor.tell(outbound, getSender());
     }
@@ -134,11 +130,6 @@ final class OutboundDispatchingActor extends AbstractActor {
         OutboundMappingProcessorActor.issueWeakAcknowledgements(signal,
                 this::isSourceDeclaredOrTargetIssuedAck,
                 sender);
-    }
-
-    private void denyNonSourceDeclaredAck(final Acknowledgement ack) {
-        getSender().tell(AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders()),
-                ActorRef.noSender());
     }
 
     private boolean isNotSourceDeclaredAck(final Acknowledgement acknowledgement) {
@@ -177,40 +168,50 @@ final class OutboundDispatchingActor extends AbstractActor {
         }
     }
 
-    private void handleInboundResponseOrAcknowledgement(final WithDittoHeaders responseOrAck) {
-        if (responseOrAck instanceof Acknowledgement) {
-            final Acknowledgement ack = (Acknowledgement) responseOrAck;
-            if (isNotSourceDeclaredAck(ack)) {
-                denyNonSourceDeclaredAck(ack);
+    private void handleInboundResponseOrAcknowledgement(final Signal<?> responseOrAck) {
+        if (Acknowledgement.TYPE.equals(responseOrAck.getType())) {
+            final var acknowledgement = (Acknowledgement) responseOrAck;
+            if (isNotSourceDeclaredAck(acknowledgement)) {
+                denyNonSourceDeclaredAck(acknowledgement);
                 return;
             }
         }
 
         final ActorContext context = getContext();
-        final Consumer<ActorRef> action = forwarder -> {
+        final var proxyActor = settings.getProxyActor();
+        final Consumer<ActorRef> action = acknowledgementForwarder -> {
             if (responseOrAck instanceof ThingQueryCommandResponse && isLiveResponse(responseOrAck)) {
                 // forward live command responses to concierge to filter response
                 proxyActor.tell(responseOrAck, getSender());
             } else {
-                forwarder.forward(responseOrAck, context);
+                acknowledgementForwarder.forward(responseOrAck, context);
             }
         };
         final Runnable emptyAction = () -> {
-            final String template = "No AcknowledgementForwarderActor found, forwarding to concierge: <{}>";
+            final var forwarderActorClassName = AcknowledgementForwarderActor.class.getSimpleName();
+            final var template = "No {} found. Forwarding signal to concierge. <{}>";
             if (logger.isDebugEnabled()) {
-                logger.withCorrelationId(responseOrAck).debug(template, responseOrAck);
+                logger.withCorrelationId(responseOrAck).debug(template, forwarderActorClassName, responseOrAck);
             } else {
-                logger.withCorrelationId(responseOrAck).info(template, responseOrAck.getClass().getCanonicalName());
+                logger.withCorrelationId(responseOrAck)
+                        .info(template, forwarderActorClassName, responseOrAck.getClass().getCanonicalName());
             }
-            settings.getProxyActor().tell(responseOrAck, ActorRef.noSender());
+            proxyActor.tell(responseOrAck, ActorRef.noSender());
         };
 
         context.findChild(AcknowledgementForwarderActor.determineActorName(responseOrAck.getDittoHeaders()))
                 .ifPresentOrElse(action, emptyAction);
     }
 
-    private boolean isLiveResponse(final WithDittoHeaders response) {
-        return response.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
+    private void denyNonSourceDeclaredAck(final Acknowledgement ack) {
+        final var sender = getSender();
+        sender.tell(AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders()),
+                ActorRef.noSender());
+    }
+
+    private static boolean isLiveResponse(final WithDittoHeaders response) {
+        final var dittoHeaders = response.getDittoHeaders();
+        return dittoHeaders.getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
 }

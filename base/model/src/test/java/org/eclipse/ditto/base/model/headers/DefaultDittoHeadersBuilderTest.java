@@ -14,8 +14,8 @@ package org.eclipse.ditto.base.model.headers;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.entry;
-import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.eclipse.ditto.base.model.headers.DefaultDittoHeadersBuilder.of;
+import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -25,13 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonKey;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.assertions.DittoBaseAssertions;
@@ -42,6 +35,13 @@ import org.eclipse.ditto.base.model.headers.metadata.MetadataHeader;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonValue;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -451,6 +451,51 @@ public final class DefaultDittoHeadersBuilderTest {
                         .hasValueSatisfying(description -> assertThat(description)
                                 .startsWith("Failed to parse JSON string '" + invalidValue + "'!")))
                 .withCauseInstanceOf(JsonParseException.class);
+    }
+
+    @Test
+    public void setValidTwinChannelCharSequence() {
+        final DittoHeaders dittoHeaders = DefaultDittoHeadersBuilder.newInstance()
+                .channel(" twIn ")
+                .build();
+
+        assertThat(dittoHeaders).containsEntry(DittoHeaderDefinition.CHANNEL.getKey(), "twin");
+    }
+
+    @Test
+    public void setValidLiveChannelCharSequence() {
+        final DittoHeaders dittoHeaders = DefaultDittoHeadersBuilder.newInstance()
+                .channel("LIve   ")
+                .build();
+
+        assertThat(dittoHeaders).containsEntry(DittoHeaderDefinition.CHANNEL.getKey(), "live");
+    }
+
+    @Test
+    public void setInvalidChannelCharSequence() {
+        final String invalidChannelCharSequence = "quuz";
+        final DefaultDittoHeadersBuilder defaultDittoHeadersBuilder = DefaultDittoHeadersBuilder.newInstance();
+
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> defaultDittoHeadersBuilder.channel(invalidChannelCharSequence))
+                .withMessage("The value '%s' of the header '%s' is not a valid channel.",
+                        invalidChannelCharSequence,
+                        DittoHeaderDefinition.CHANNEL)
+                .withNoCause();
+    }
+
+    @Test
+    public void putInvalidChannelCharSequenceAsHeader() {
+        final String channelKey = DittoHeaderDefinition.CHANNEL.getKey();
+        final String invalidChannelCharSequence = "qux";
+        final DefaultDittoHeadersBuilder defaultDittoHeadersBuilder = DefaultDittoHeadersBuilder.newInstance();
+
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> defaultDittoHeadersBuilder.putHeader(channelKey, invalidChannelCharSequence))
+                .withMessage("The value '%s' of the header '%s' is not a valid channel.",
+                        invalidChannelCharSequence,
+                        channelKey)
+                .withNoCause();
     }
 
 }

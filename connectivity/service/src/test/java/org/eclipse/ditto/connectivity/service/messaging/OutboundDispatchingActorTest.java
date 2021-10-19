@@ -340,7 +340,7 @@ public final class OutboundDispatchingActorTest {
                             DittoProtocolAdapter.newInstance(),
                             MockActor.getThreadSafeDittoLoggingAdapter(actorSystem));
             final ActorRef underTest =
-                    childActorOf(OutboundDispatchingActor.props(settings, mappingActor.ref(), proxyActor.ref()));
+                    childActorOf(OutboundDispatchingActor.props(settings, mappingActor.ref()));
 
             underTest.tell(signal, getRef());
 
@@ -366,7 +366,7 @@ public final class OutboundDispatchingActorTest {
         final OutboundMappingSettings settings =
                 OutboundMappingSettings.of(connectionContext, actorSystem, proxyActorSelection,
                         DittoProtocolAdapter.newInstance(), MockActor.getThreadSafeDittoLoggingAdapter(actorSystem));
-        return actorSystem.actorOf(OutboundDispatchingActor.props(settings, mappingActor, proxyActor.ref()));
+        return actorSystem.actorOf(OutboundDispatchingActor.props(settings, mappingActor));
     }
 
     private static AcknowledgementLabel getTestAck(final ConnectionId connectionId) {

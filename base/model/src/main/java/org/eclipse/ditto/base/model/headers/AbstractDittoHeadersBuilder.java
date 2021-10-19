@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -306,7 +307,14 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     @Override
     public S channel(@Nullable final CharSequence channel) {
-        putCharSequence(DittoHeaderDefinition.CHANNEL, channel);
+        final DittoHeaderDefinition headerDefinition = DittoHeaderDefinition.CHANNEL;
+        if (null != channel) {
+            final ValueValidator dittoChannelValidator = HeaderValueValidators.getDittoChannelValidator();
+            dittoChannelValidator.accept(headerDefinition, channel);
+            putCharSequence(headerDefinition, channel.toString().trim().toLowerCase(Locale.ENGLISH));
+        } else {
+            removeHeader(headerDefinition.getKey());
+        }
         return myself;
     }
 

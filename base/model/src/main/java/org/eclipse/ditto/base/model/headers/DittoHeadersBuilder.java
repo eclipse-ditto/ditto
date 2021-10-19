@@ -98,10 +98,14 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
 
     /**
      * Sets the specified String as channel of the Signal/Exception.
+     * Allowed values are {@code "twin"} and {@code "live"}.
+     * If omitted, {@code "twin"} is used as default.
      *
      * @param channel the channel of the Signal/Exception to be set.
+     * {@code null} removes an already set channel header.
      * @return this builder for Method Chaining.
-     * @throws IllegalArgumentException if {@code channel} is empty.
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException if {@code channel} after trimming and
+     * converting to lower case does not match {@code "twin"} or {@code "live"}.
      */
     B channel(@Nullable CharSequence channel);
 

@@ -838,6 +838,12 @@
                 <version>${awaitility.version}</version>
                 <scope>test</scope>
             </dependency>
+            <dependency>
+                <groupId>io.github.classgraph</groupId>
+                <artifactId>classgraph</artifactId>
+                <version>4.8.126</version>
+                <scope>test</scope>
+            </dependency>
 
             <!-- scalatest dependency leaked from akka-http-testkit -->
             <dependency>

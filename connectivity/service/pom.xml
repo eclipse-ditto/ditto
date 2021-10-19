@@ -208,6 +208,11 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
             <artifactId>akka-stream-kafka-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.github.classgraph</groupId>
+            <artifactId>classgraph</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

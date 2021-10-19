@@ -103,15 +103,19 @@ public final class RetrieveFeatureDesiredPropertiesResponse
      * @param jsonObject the retrieved desired properties JSON.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code jsonObject} is {@code null}.
      */
     public static RetrieveFeatureDesiredPropertiesResponse of(final ThingId thingId,
             final CharSequence featureId,
             @Nullable final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        checkNotNull(jsonObject, "jsonObject");
-        final FeatureProperties desiredProperties = ThingsModelFactory.newFeatureProperties(jsonObject);
+        final FeatureProperties desiredProperties;
+        if (null == jsonObject) {
+            desiredProperties = ThingsModelFactory.newFeatureProperties(JsonFactory.nullObject());
+        } else {
+            desiredProperties = ThingsModelFactory.newFeatureProperties(jsonObject);
+        }
 
         return of(thingId, featureId, desiredProperties, dittoHeaders);
     }

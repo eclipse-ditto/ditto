@@ -13,14 +13,9 @@
 package org.eclipse.ditto.gateway.service.streaming.actors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Set;
@@ -28,6 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotDeclaredException;
@@ -40,11 +36,11 @@ import org.eclipse.ditto.base.model.common.BinaryValidationResult;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionExpiredException;
+import org.eclipse.ditto.base.service.ActorSystemResource;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtValidator;
@@ -53,7 +49,6 @@ import org.eclipse.ditto.gateway.service.streaming.IncomingSignal;
 import org.eclipse.ditto.gateway.service.streaming.Jwt;
 import org.eclipse.ditto.gateway.service.streaming.StartStreaming;
 import org.eclipse.ditto.gateway.service.streaming.StreamingAck;
-import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
@@ -65,17 +60,20 @@ import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
-import org.junit.After;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.Actor;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.stream.KillSwitch;
@@ -94,141 +92,154 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests {@link StreamingSessionActor}.
  */
+@RunWith(MockitoJUnitRunner.class)
 public final class StreamingSessionActorTest {
+
+    private static AuthorizationContext authorizationContext;
+
+    @Rule
+    public final ActorSystemResource actorSystemResource = ActorSystemResource.newInstance();
 
     @Rule
     public final TestName testName = new TestName();
 
-    private final ActorSystem actorSystem;
-    private final DittoProtocolSub mockSub;
-    private final TestProbe commandRouterProbe;
-    private final SourceQueueWithComplete<SessionedJsonifiable> sourceQueue;
-    private final TestSubscriber.Probe<SessionedJsonifiable> sinkProbe;
-    private final KillSwitch killSwitch;
-    private final JwtValidator mockValidator = mock(JwtValidator.class);
-    private final JwtAuthenticationResultProvider mockAuthenticationResultProvider =
-            mock(JwtAuthenticationResultProvider.class);
-    final AuthorizationSubject authorizationSubject1 = AuthorizationSubject.newInstance("test-subject-1");
-    final AuthorizationSubject authorizationSubject2 = AuthorizationSubject.newInstance("test-subject-2");
-    final AuthorizationSubject authorizationSubject3 = AuthorizationSubject.newInstance("test-subject-3");
-    final AuthorizationContext authorizationContext =
-            AuthorizationContext.newInstance(DittoAuthorizationContextType.JWT,
-                    authorizationSubject1, authorizationSubject2, authorizationSubject3);
+    @Mock private DittoProtocolSub mockSub;
+    @Mock private JwtValidator mockValidator;
+    @Mock private JwtAuthenticationResultProvider mockAuthenticationResultProvider;
 
-    public StreamingSessionActorTest() {
-        actorSystem = ActorSystem.create();
-        mockSub = mock(DittoProtocolSub.class);
-        when(mockSub.declareAcknowledgementLabels(any(), any(), any()))
+    private TestProbe commandRouterProbe;
+    private SourceQueueWithComplete<SessionedJsonifiable> sourceQueue;
+    private TestSubscriber.Probe<SessionedJsonifiable> sinkProbe;
+    private KillSwitch killSwitch;
+
+    @BeforeClass
+    public static void beforeClass() {
+        authorizationContext = AuthorizationContext.newInstance(DittoAuthorizationContextType.JWT,
+                AuthorizationSubject.newInstance("test-subject-1"),
+                AuthorizationSubject.newInstance("test-subject-2"),
+                AuthorizationSubject.newInstance("test-subject-3"));
+    }
+
+    @Before
+    public void before() {
+        commandRouterProbe = actorSystemResource.newTestProbe("commandRouter");
+
+        Mockito.when(mockSub.declareAcknowledgementLabels(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(null));
-        commandRouterProbe = TestProbe.apply("commandRouter", actorSystem);
+
         final Sink<SessionedJsonifiable, TestSubscriber.Probe<SessionedJsonifiable>> sink =
-                TestSink.probe(actorSystem);
+                TestSink.probe(actorSystemResource.getActorSystem());
         final Source<SessionedJsonifiable, SourceQueueWithComplete<SessionedJsonifiable>> source =
                 Source.queue(100, OverflowStrategy.fail());
-        final var pair =
-                source.viaMat(KillSwitches.single(), Keep.both()).toMat(sink, Keep.both()).run(actorSystem);
+        final var pair = source.viaMat(KillSwitches.single(), Keep.both())
+                .toMat(sink, Keep.both())
+                .run(actorSystemResource.getActorSystem());
         sourceQueue = pair.first().first();
         sinkProbe = pair.second();
         killSwitch = pair.first().second();
     }
 
-    @After
-    public void cleanUp() {
-        TestKit.shutdownActorSystem(actorSystem);
-    }
-
     @Test
     public void terminateOnStreamFailure() {
-        new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
-            killSwitch.abort(new IllegalStateException("expected exception"));
-            expectTerminated(underTest);
-        }};
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getProps()));
+        killSwitch.abort(new IllegalStateException("expected exception"));
+
+        testKit.expectTerminated(underTest);
     }
 
     @Test
     public void completeStreamWhenStopped() {
-        new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
-            underTest.tell(PoisonPill.getInstance(), getRef());
-            expectTerminated(underTest);
-            sinkProbe.ensureSubscription();
-            sinkProbe.expectComplete();
-        }};
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getProps()));
+        underTest.tell(PoisonPill.getInstance(), testKit.getRef());
+
+        testKit.expectTerminated(underTest);
+        sinkProbe.ensureSubscription();
+        sinkProbe.expectComplete();
     }
 
     @Test
     public void terminateOnAckLabelDeclarationFailure() {
         onDeclareAckLabels(CompletableFuture.failedStage(AcknowledgementLabelNotUniqueException.getInstance()));
-        new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(actorSystem.actorOf(getProps("ack")));
-            expectTerminated(underTest);
-        }};
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getProps("ack")));
+
+        testKit.expectTerminated(underTest);
     }
 
     @Test
     public void sendDeclaredAckForGlobalDispatching() {
         onDeclareAckLabels(CompletableFuture.completedStage(null));
-        new TestKit(actorSystem) {{
-            final var underTest = watch(actorSystem.actorOf(getProps("ack")));
-            final var ack = Acknowledgement.of(AcknowledgementLabel.of("ack"), ThingId.of("thing:id"), HttpStatus.OK,
-                    DittoHeaders.newBuilder().correlationId("corr:" + testName.getMethodName()).build());
-            underTest.tell(IncomingSignal.of(ack), ActorRef.noSender());
-            commandRouterProbe.expectMsg(ack);
-        }};
+        final var acknowledgement = Acknowledgement.of(AcknowledgementLabel.of("ack"),
+                ThingId.of("thing:id"),
+                HttpStatus.OK,
+                DittoHeaders.newBuilder().correlationId("corr:" + testName.getMethodName()).build());
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getProps("ack")));
+
+        underTest.tell(IncomingSignal.of(acknowledgement), ActorRef.noSender());
+
+        commandRouterProbe.expectMsg(acknowledgement);
     }
 
     @Test
     public void sendMalformedAck() {
         onDeclareAckLabels(CompletableFuture.completedStage(null));
-        new TestKit(actorSystem) {{
-            final var underTest = watch(actorSystem.actorOf(getProps("ack")));
-            final var ack = Acknowledgement.of(AcknowledgementLabel.of("ack"), ThingId.of("thing:id"), HttpStatus.OK,
-                    DittoHeaders.empty());
-            underTest.tell(IncomingSignal.of(ack), ActorRef.noSender());
-            final var sessionedJsonifiable = sinkProbe.requestNext();
+        final var acknowledgement = Acknowledgement.of(AcknowledgementLabel.of("ack"),
+                ThingId.of("thing:id"),
+                HttpStatus.OK,
+                DittoHeaders.empty());
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getProps("ack")));
 
-            assertThat(sessionedJsonifiable.getJsonifiable())
-                    .isInstanceOf(AcknowledgementCorrelationIdMissingException.class);
-        }};
+        underTest.tell(IncomingSignal.of(acknowledgement), ActorRef.noSender());
+
+        final var sessionedJsonifiable = sinkProbe.requestNext();
+
+        assertThat(sessionedJsonifiable.getJsonifiable())
+                .isInstanceOf(AcknowledgementCorrelationIdMissingException.class);
     }
 
     @Test
     public void sendNonDeclaredAck() {
         onDeclareAckLabels(CompletableFuture.completedStage(null));
-        new TestKit(actorSystem) {{
-            final var underTest = watch(actorSystem.actorOf(getProps("ack")));
-            final var ack = Acknowledgement.of(AcknowledgementLabel.of("ack2"), ThingId.of("thing:id"), HttpStatus.OK,
-                    DittoHeaders.empty());
-            underTest.tell(IncomingSignal.of(ack), ActorRef.noSender());
-            final var sessionedJsonifiable = sinkProbe.requestNext();
+        final var acknowledgement = Acknowledgement.of(AcknowledgementLabel.of("ack2"),
+                ThingId.of("thing:id"),
+                HttpStatus.OK,
+                DittoHeaders.empty());
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getProps("ack")));
 
-            assertThat(sessionedJsonifiable.getJsonifiable())
-                    .isInstanceOf(AcknowledgementLabelNotDeclaredException.class);
-        }};
+        underTest.tell(IncomingSignal.of(acknowledgement), ActorRef.noSender());
+        final var sessionedJsonifiable = sinkProbe.requestNext();
+
+        assertThat(sessionedJsonifiable.getJsonifiable())
+                .isInstanceOf(AcknowledgementLabelNotDeclaredException.class);
     }
 
     @Test
     public void acknowledgementRequestsAreRestrictedToDeclaredAcks() {
         onDeclareAckLabels(CompletableFuture.completedStage(null));
         setUpMockForTwinEventsSubscription();
-        new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(actorSystem.actorOf(getProps("ack")));
-            subscribeForTwinEvents(underTest);
-            final Signal<?> signal = ThingDeleted.of(ThingId.of("thing:id"), 2L, null, DittoHeaders.newBuilder()
-                            .correlationId("corr:" + testName.getMethodName())
-                            .readGrantedSubjects(List.of(AuthorizationSubject.newInstance("ditto:ditto")))
-                            .acknowledgementRequests(ackRequests("ack", "ack2"))
-                            .build(),
-                    null);
-            underTest.tell(signal, ActorRef.noSender());
+        final var dittoHeaders = DittoHeaders.newBuilder()
+                .correlationId("corr:" + testName.getMethodName())
+                .readGrantedSubjects(List.of(AuthorizationSubject.newInstance("ditto:ditto")))
+                .acknowledgementRequests(getAcknowledgementRequests("ack", "ack2"))
+                .build();
+        final var signal = ThingDeleted.of(ThingId.of("thing:id"), 2L, null, dittoHeaders, null);
+        final var expectedSignal = signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
+                .acknowledgementRequests(getAcknowledgementRequests("ack"))
+                .build());
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getProps("ack")));
+        subscribeForTwinEvents(underTest);
 
-            final Signal<?> expectedSignal = signal.setDittoHeaders(signal.getDittoHeaders()
-                    .toBuilder()
-                    .acknowledgementRequests(ackRequests("ack"))
-                    .build());
-            assertThat(sinkProbe.requestNext().getJsonifiable()).isEqualTo(expectedSignal);
-        }};
+        underTest.tell(signal, ActorRef.noSender());
+
+        final var sessionedJsonifiable = sinkProbe.requestNext();
+
+        assertThat(sessionedJsonifiable.getJsonifiable()).isEqualTo(expectedSignal);
     }
 
     @Test
@@ -236,127 +247,112 @@ public final class StreamingSessionActorTest {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(
                         BinaryValidationResult.invalid(JwtInvalidException.newBuilder().build())));
+        final var jwt = Jwt.newInstance(getTokenString(), testName.getMethodName());
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getProps()));
 
-        new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
+        underTest.tell(jwt, testKit.getRef());
 
-            final Jwt jwt = Jwt.newInstance(getTokenString(), testName.getMethodName());
-
-            underTest.tell(jwt, getRef());
-
-            assertThat(sinkProbe.expectSubscriptionAndError())
-                    .isInstanceOf(GatewayWebsocketSessionClosedException.class)
-                    .hasMessageContaining("invalid");
-        }};
+        assertThat(sinkProbe.expectSubscriptionAndError())
+                .isInstanceOf(GatewayWebsocketSessionClosedException.class)
+                .hasMessageContaining("invalid");
     }
 
     @Test
     public void changingAuthorizationContextClosesStream() {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
-        Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(any(), any()))
-                .thenReturn(CompletableFuture.completedStage(JwtAuthenticationResult.successful(
-                        DittoHeaders.empty(),
+        Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedStage(JwtAuthenticationResult.successful(DittoHeaders.empty(),
                         AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                                 AuthorizationSubject.newInstance("new:auth-subject")),
-                        mock(JsonWebToken.class))));
+                        Mockito.mock(JsonWebToken.class))));
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getProps()));
+        final var jwt = Jwt.newInstance(getTokenString(), testName.getMethodName());
 
-        new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
+        underTest.tell(jwt, testKit.getRef());
 
-            final Jwt jwt = Jwt.newInstance(getTokenString(), testName.getMethodName());
-
-            underTest.tell(jwt, getRef());
-
-            assertThat(sinkProbe.expectSubscriptionAndError())
-                    .isInstanceOf(GatewayWebsocketSessionClosedException.class)
-                    .hasMessageContaining("authorization context");
-        }};
+        assertThat(sinkProbe.expectSubscriptionAndError())
+                .isInstanceOf(GatewayWebsocketSessionClosedException.class)
+                .hasMessageContaining("authorization context");
     }
 
     @Test
     public void keepingAuthorizationContextDoesNotCloseStream() {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
-        Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(any(), any()))
-                .thenReturn(CompletableFuture.completedStage(
-                        JwtAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext,
-                                mock(JsonWebToken.class))));
+        Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedStage(JwtAuthenticationResult.successful(DittoHeaders.empty(),
+                        authorizationContext,
+                        Mockito.mock(JsonWebToken.class))));
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getProps()));
+        final var jwt = Jwt.newInstance(getTokenString(), testName.getMethodName());
 
-        new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
+        underTest.tell(jwt, testKit.getRef());
 
-            final Jwt jwt = Jwt.newInstance(getTokenString(), testName.getMethodName());
-
-            underTest.tell(jwt, getRef());
-
-            sinkProbe.expectSubscription();
-            sinkProbe.expectNoMessage();
-        }};
+        sinkProbe.expectSubscription();
+        sinkProbe.expectNoMessage();
     }
 
     @Test
     public void hugeJwtExpirationTimeDoesNotCloseStream() {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
-        Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(any(), any()))
-                .thenReturn(CompletableFuture.completedStage(
-                        JwtAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext,
-                                mock(JsonWebToken.class))));
+        Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedStage(JwtAuthenticationResult.successful(DittoHeaders.empty(),
+                        authorizationContext,
+                        Mockito.mock(JsonWebToken.class))));
 
-        new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
+        // maximum expiration is too far in the future
+        final var jwt =
+                Jwt.newInstance(getTokenString(Instant.now().plus(Duration.ofDays(999))), testName.getMethodName());
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getProps()));
 
-            // maximum expiration is too far in the future
-            final Jwt jwt =
-                    Jwt.newInstance(getTokenString(Instant.now().plus(Duration.ofDays(999))), testName.getMethodName());
+        underTest.tell(jwt, testKit.getRef());
 
-            underTest.tell(jwt, getRef());
-
-            sinkProbe.expectSubscription();
-            sinkProbe.expectNoMessage();
-        }};
+        sinkProbe.expectSubscription();
+        sinkProbe.expectNoMessage();
     }
 
     @Test
     public void jwtExpirationTimeClosesStream() {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
-        Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(any(), any()))
-                .thenReturn(CompletableFuture.completedStage(
-                        JwtAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext,
-                                mock(JsonWebToken.class))));
+        Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedStage(JwtAuthenticationResult.successful(DittoHeaders.empty(),
+                        authorizationContext,
+                        Mockito.mock(JsonWebToken.class))));
+        final var jwt = Jwt.newInstance(getTokenString(Instant.now()), testName.getMethodName());
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getProps()));
 
-        new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
+        underTest.tell(jwt, testKit.getRef());
 
-            final Jwt jwt = Jwt.newInstance(getTokenString(Instant.now()), testName.getMethodName());
+        sinkProbe.expectSubscription();
 
-            underTest.tell(jwt, getRef());
-
-            sinkProbe.expectSubscription();
-            assertThat(sinkProbe.expectError())
-                    .isInstanceOf(GatewayWebsocketSessionExpiredException.class)
-                    .hasMessageContaining("expired");
-        }};
+        assertThat(sinkProbe.expectError())
+                .isInstanceOf(GatewayWebsocketSessionExpiredException.class)
+                .hasMessageContaining("expired");
     }
 
 
     @Test
     public void sendLiveCommandResponseAndEnsureForwarding() {
-        new TestKit(actorSystem) {{
-            final var underTest = watch(actorSystem.actorOf(getProps()));
-            final DittoHeaders dittoHeaders =
-                    DittoHeaders.newBuilder()
-                            .channel(TopicPath.Channel.LIVE.getName())
-                            .correlationId("corr:" + testName.getMethodName()).build();
+        final var dittoHeaders = DittoHeaders.newBuilder()
+                .channel(TopicPath.Channel.LIVE.getName())
+                .correlationId("corr:" + testName.getMethodName())
+                .build();
+        final var retrieveThingResponse =
+                RetrieveThingResponse.of(ThingId.generateRandom(), JsonObject.empty(), dittoHeaders);
+        final var testKit = actorSystemResource.newTestKit();
+        final var underTest = testKit.watch(actorSystemResource.newActor(getProps()));
 
-            final RetrieveThingResponse retrieveThingResponse =
-                    RetrieveThingResponse.of(ThingId.generateRandom(), JsonObject.empty(), dittoHeaders);
+        underTest.tell(IncomingSignal.of(retrieveThingResponse), ActorRef.noSender());
 
-            underTest.tell(IncomingSignal.of(retrieveThingResponse), ActorRef.noSender());
-            commandRouterProbe.expectMsg(retrieveThingResponse);
-        }};
+        commandRouterProbe.expectMsg(retrieveThingResponse);
     }
 
     private static String getTokenString() {
@@ -364,9 +360,9 @@ public final class StreamingSessionActorTest {
     }
 
     private static String getTokenString(final Instant expiration) {
-        final String header = "{\"header\":\"foo\"}";
-        final String payload = "{\"payload\":\"bar\",\"exp\":" + expiration.getEpochSecond() + "}";
-        final String signature = "{\"signature\":\"baz\"}";
+        final var header = "{\"header\":\"foo\"}";
+        final var payload = "{\"payload\":\"bar\",\"exp\":" + expiration.getEpochSecond() + "}";
+        final var signature = "{\"signature\":\"baz\"}";
         return base64(header) + "." + base64(payload) + "." + base64(signature);
     }
 
@@ -375,46 +371,58 @@ public final class StreamingSessionActorTest {
     }
 
     private Props getProps(final String... declaredAcks) {
-        final Connect connect = getConnect(acks(declaredAcks));
-        final AcknowledgementConfig acknowledgementConfig = DefaultAcknowledgementConfig.of(ConfigFactory.empty());
-        final HeaderTranslator headerTranslator = HeaderTranslator.empty();
-        final Props mockProps = Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>()));
-        return StreamingSessionActor.props(connect, mockSub, commandRouterProbe.ref(), acknowledgementConfig,
-                headerTranslator, mockProps, mockValidator, mockAuthenticationResultProvider);
+        return StreamingSessionActor.props(getConnect(getAcknowledgementLabels(declaredAcks)),
+                mockSub,
+                commandRouterProbe.ref(),
+                DefaultAcknowledgementConfig.of(ConfigFactory.empty()),
+                HeaderTranslator.empty(),
+                Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>())),
+                mockValidator,
+                mockAuthenticationResultProvider);
     }
 
     private void onDeclareAckLabels(final CompletionStage<Void> answer) {
-        doAnswer(invocation -> answer).when(mockSub).declareAcknowledgementLabels(any(), any(), any());
+        Mockito.when(mockSub.declareAcknowledgementLabels(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(answer);
     }
 
     private void setUpMockForTwinEventsSubscription() {
-        doAnswer(invocation -> CompletableFuture.completedStage(null))
-                .when(mockSub)
-                .subscribe(any(), any(), any());
+        Mockito.when(mockSub.subscribe(Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedStage(null));
     }
 
     private void subscribeForTwinEvents(final ActorRef underTest) {
-        final AuthorizationContext authorizationContext =
+        final var authorizationContext =
                 AuthorizationContext.newInstance(DittoAuthorizationContextType.PRE_AUTHENTICATED_HTTP,
                         AuthorizationSubject.newInstance("ditto:ditto"));
-        underTest.tell(StartStreaming.getBuilder(StreamingType.EVENTS, testName.getMethodName(), authorizationContext)
-                .build(), ActorRef.noSender());
-        assertThat(sinkProbe.requestNext().getJsonifiable())
-                .isEqualTo(new StreamingAck(StreamingType.EVENTS, true));
+
+        final var startStreaming =
+                StartStreaming.getBuilder(StreamingType.EVENTS, testName.getMethodName(), authorizationContext).build();
+        underTest.tell(startStreaming, ActorRef.noSender());
+
+        final var sessionedJsonifiable = sinkProbe.requestNext();
+
+        assertThat(sessionedJsonifiable.getJsonifiable()).isEqualTo(new StreamingAck(StreamingType.EVENTS, true));
     }
 
     private Connect getConnect(final Set<AcknowledgementLabel> declaredAcks) {
-        return new Connect(sourceQueue, testName.getMethodName(), "WS", JsonSchemaVersion.LATEST, null, declaredAcks,
+        return new Connect(sourceQueue,
+                testName.getMethodName(),
+                "WS",
+                JsonSchemaVersion.LATEST,
+                null,
+                declaredAcks,
                 authorizationContext);
     }
 
-    private Set<AcknowledgementLabel> acks(final String... ackLabelNames) {
-        return Arrays.stream(ackLabelNames).map(AcknowledgementLabel::of).collect(Collectors.toSet());
+    private static Set<AcknowledgementLabel> getAcknowledgementLabels(final String... ackLabelNames) {
+        return Stream.of(ackLabelNames).map(AcknowledgementLabel::of).collect(Collectors.toSet());
     }
 
-    private Set<AcknowledgementRequest> ackRequests(final String... ackLabelNames) {
-        return Arrays.stream(ackLabelNames)
+    private static Set<AcknowledgementRequest> getAcknowledgementRequests(final String... ackLabelNames) {
+        return Stream.of(ackLabelNames)
                 .map(AcknowledgementRequest::parseAcknowledgementRequest)
                 .collect(Collectors.toSet());
     }
+
 }
