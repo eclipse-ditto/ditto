@@ -21,10 +21,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 
@@ -118,7 +118,6 @@ public final class ThingSearchRoute extends AbstractRoute {
 
     private Route thingSearchParameterOptional(
             final Function<EnumMap<ThingSearchParameter, Optional<String>>, Route> inner) {
-
         return thingSearchParameterOptionalImpl(ThingSearchParameter.values(),
                 new EnumMap<>(ThingSearchParameter.class), inner);
     }
@@ -126,7 +125,6 @@ public final class ThingSearchRoute extends AbstractRoute {
     private Route thingSearchParameterOptionalImpl(final ThingSearchParameter[] values,
             final EnumMap<ThingSearchParameter, Optional<String>> accumulator,
             final Function<EnumMap<ThingSearchParameter, Optional<String>>, Route> inner) {
-
         if (accumulator.size() >= values.length) {
             return inner.apply(accumulator);
         } else {

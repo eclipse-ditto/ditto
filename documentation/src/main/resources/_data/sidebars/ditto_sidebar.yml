@@ -23,23 +23,26 @@ entries:
       - title: Release Notes
         output: web
         folderitems:
+          - title: 2.1.0
+            url: /release_notes_210.html
+            output: web
           - title: 2.0.1
             url: /release_notes_201.html
             output: web
           - title: 2.0.0
             url: /release_notes_200.html
             output: web
-          - title: 1.5.1
-            url: /release_notes_151.html
-            output: web
-          - title: 1.5.0
-            url: /release_notes_150.html
-            output: web
 
             subfolders:
               - title: Archive
                 output: web
                 subfolderitems:
+                  - title: 1.5.1
+                    url: /release_notes_151.html
+                    output: web
+                  - title: 1.5.0
+                    url: /release_notes_150.html
+                    output: web
                   - title: 1.4.0
                     url: /release_notes_140.html
                     output: web

@@ -93,4 +93,5 @@ public class ThingJsonObjectCreator {
             throw PolicyIdNotDeletableException.newBuilder().build();
         }
     }
+
 }

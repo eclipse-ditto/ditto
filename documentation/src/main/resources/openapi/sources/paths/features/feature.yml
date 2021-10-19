@@ -23,6 +23,7 @@ get:
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/conditionParam.yml'
+    - $ref: '../../parameters/channelParam.yml'
   responses:
     '200':
       description: The feature was successfully retrieved.
@@ -99,6 +100,7 @@ put:
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/responseRequiredParam.yml'
     - $ref: '../../parameters/conditionParam.yml'
+    - $ref: '../../parameters/channelParam.yml'
   responses:
     '201':
       description: The feature was successfully created.
@@ -220,6 +222,7 @@ patch:
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/responseRequiredParam.yml'
     - $ref: '../../parameters/conditionParam.yml'
+    - $ref: '../../parameters/channelParam.yml'
   responses:
     '204':
       description: The feature was successfully patched.
@@ -301,6 +304,7 @@ delete:
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/responseRequiredParam.yml'
     - $ref: '../../parameters/conditionParam.yml'
+    - $ref: '../../parameters/channelParam.yml'
   responses:
     '204':
       description: The feature was successfully deleted.

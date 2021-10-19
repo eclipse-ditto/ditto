@@ -95,7 +95,7 @@ public final class HiveMqtt5ClientActor
      * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
+    public static Props props(final Connection connection, final ActorRef proxyActor,
             final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
         return Props.create(HiveMqtt5ClientActor.class, connection, proxyActor, connectionActor, dittoHeaders);
     }

@@ -20,6 +20,7 @@ get:
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/conditionParam.yml'
+    - $ref: '../../parameters/channelParam.yml'
   responses:
     '200':
       description: The request successfully returned the definition of the specific thing.
@@ -85,6 +86,7 @@ put:
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/responseRequiredParam.yml'
     - $ref: '../../parameters/conditionParam.yml'
+    - $ref: '../../parameters/channelParam.yml'
   responses:
     '201':
       description: The definition was successfully created.
@@ -173,6 +175,7 @@ patch:
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/responseRequiredParam.yml'
     - $ref: '../../parameters/conditionParam.yml'
+    - $ref: '../../parameters/channelParam.yml'
   responses:
     '204':
       description: The definition was successfully patched.
@@ -253,6 +256,7 @@ delete:
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/responseRequiredParam.yml'
     - $ref: '../../parameters/conditionParam.yml'
+    - $ref: '../../parameters/channelParam.yml'
   responses:
     '204':
       description: The definition was successfully deleted.

@@ -63,7 +63,7 @@ public final class KafkaClientActor extends BaseClientActor {
     private final KafkaConfig kafkaConfig;
 
     private KafkaClientActor(final Connection connection,
-            @Nullable final ActorRef proxyActor,
+            final ActorRef proxyActor,
             final ActorRef connectionActor,
             final KafkaPublisherActorFactory publisherActorFactory,
             final DittoHeaders dittoHeaders) {
@@ -79,7 +79,7 @@ public final class KafkaClientActor extends BaseClientActor {
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private KafkaClientActor(final Connection connection,
-            @Nullable final ActorRef proxyActor,
+            final ActorRef proxyActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders) {
 
@@ -96,7 +96,7 @@ public final class KafkaClientActor extends BaseClientActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection,
-            @Nullable final ActorRef proxyActor,
+            final ActorRef proxyActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders) {
 
@@ -105,7 +105,7 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     static Props propsForTests(final Connection connection,
-            @Nullable final ActorRef proxyActor,
+            final ActorRef proxyActor,
             final ActorRef connectionActor,
             final KafkaPublisherActorFactory factory,
             final DittoHeaders dittoHeaders) {

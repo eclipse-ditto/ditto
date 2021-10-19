@@ -12,9 +12,8 @@
  */
 package org.eclipse.ditto.rql.query.things;
 
-import static org.eclipse.ditto.rql.query.expression.FieldExpressionUtil.FIELD_NAMESPACE;
-import static org.eclipse.ditto.rql.query.expression.FieldExpressionUtil.FIELD_NAME_THING_ID;
-
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,6 +21,7 @@ import java.util.Map;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.placeholders.Placeholder;
 import org.eclipse.ditto.rql.query.expression.ExistsFieldExpression;
 import org.eclipse.ditto.rql.query.expression.FilterFieldExpression;
 import org.eclipse.ditto.rql.query.expression.SortFieldExpression;
@@ -37,8 +37,8 @@ public final class ModelBasedThingsFieldExpressionFactory implements ThingsField
 
     static {
         final Map<String, String> hashMap = new HashMap<>();
-        hashMap.put(FIELD_NAME_THING_ID, FIELD_NAME_THING_ID);
-        hashMap.put(FIELD_NAMESPACE, FIELD_NAMESPACE);
+        addMapping(hashMap, Thing.JsonFields.ID);
+        addMapping(hashMap, Thing.JsonFields.NAMESPACE);
         addMapping(hashMap, Thing.JsonFields.POLICY_ID);
         addMapping(hashMap, Thing.JsonFields.REVISION);
         addMapping(hashMap, Thing.JsonFields.CREATED);
@@ -47,21 +47,44 @@ public final class ModelBasedThingsFieldExpressionFactory implements ThingsField
         filteringSimpleFieldMappings = Collections.unmodifiableMap(hashMap);
     }
 
-    private static final ModelBasedThingsFieldExpressionFactory INSTANCE = new ModelBasedThingsFieldExpressionFactory();
+    private static final ModelBasedThingsFieldExpressionFactory INSTANCE =
+            new ModelBasedThingsFieldExpressionFactory(Collections.emptyList());
 
     private final ThingsFieldExpressionFactory delegate;
 
-    private ModelBasedThingsFieldExpressionFactory() {
-        this.delegate = ThingsFieldExpressionFactory.of(filteringSimpleFieldMappings);
+    private ModelBasedThingsFieldExpressionFactory(final Collection<Placeholder<?>> placeholders) {
+        this.delegate = ThingsFieldExpressionFactory.of(filteringSimpleFieldMappings, placeholders);
     }
 
     /**
-     * Returns the ModelBasedThingsFieldExpressionFactory.
+     * Returns the ModelBasedThingsFieldExpressionFactory instance without any {@code Placeholder}s.
      *
-     * @return the ModelBasedThingsFieldExpressionFactory.
+     * @return the singletone ModelBasedThingsFieldExpressionFactory.
      */
     public static ModelBasedThingsFieldExpressionFactory getInstance() {
         return INSTANCE;
+    }
+
+    /**
+     * Creates a new ModelBasedThingsFieldExpressionFactory instance with the provided {@code placeholders}.
+     *
+     * @param placeholders the {@link Placeholder}s to accept when parsing the fields of RQL strings.
+     * @return the created ModelBasedThingsFieldExpressionFactory.
+     * @since 2.2.0
+     */
+    public static ThingsFieldExpressionFactory createInstance(final Placeholder<?>... placeholders) {
+        return createInstance(Arrays.asList(placeholders));
+    }
+
+    /**
+     * Creates a new ModelBasedThingsFieldExpressionFactory instance with the provided {@code placeholders}.
+     *
+     * @param placeholders the {@link Placeholder}s to accept when parsing the fields of RQL strings.
+     * @return the created ModelBasedThingsFieldExpressionFactory.
+     * @since 2.2.0
+     */
+    public static ThingsFieldExpressionFactory createInstance(final Collection<Placeholder<?>> placeholders) {
+        return new ModelBasedThingsFieldExpressionFactory(placeholders);
     }
 
     @Override

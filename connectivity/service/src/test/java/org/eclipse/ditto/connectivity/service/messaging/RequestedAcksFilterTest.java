@@ -21,12 +21,12 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.internal.models.placeholders.PlaceholderFunctionSignatureInvalidException;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.placeholders.PlaceholderFunctionSignatureInvalidException;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
 import org.junit.Test;
 

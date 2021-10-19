@@ -67,6 +67,12 @@ final class AuthorizedSubjectsEnforcer implements Enforcer {
     }
 
     @Override
+    public Set<AuthorizationSubject> getSubjectsWithUnrestrictedPermission(final ResourceKey resourceKey,
+            final Permissions permissions) {
+        return new HashSet<>(authorizationContext.getAuthorizationSubjects());
+    }
+
+    @Override
     public JsonObject buildJsonView(final ResourceKey resourceKey,
             final Iterable<JsonField> jsonFields,
             final AuthorizationContext authorizationContext,

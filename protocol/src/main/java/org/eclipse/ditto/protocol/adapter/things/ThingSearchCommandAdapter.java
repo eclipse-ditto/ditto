@@ -21,9 +21,8 @@ import java.util.Set;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
-import org.eclipse.ditto.protocol.mapper.SignalMapper;
 import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
+import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 
 /**
@@ -32,12 +31,12 @@ import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
  *
  * @since 1.2.0
  */
-public class ThingSearchCommandAdapter extends AbstractThingAdapter<ThingSearchCommand<?>> {
-
-    private final SignalMapper<ThingSearchCommand<?>> signalMapper = SignalMapperFactory.newThingSearchSignalMapper();
+final class ThingSearchCommandAdapter extends AbstractThingAdapter<ThingSearchCommand<?>> {
 
     private ThingSearchCommandAdapter(final HeaderTranslator headerTranslator) {
-        super(MappingStrategiesFactory.getThingSearchCommandMappingStrategies(), headerTranslator);
+        super(MappingStrategiesFactory.getThingSearchCommandMappingStrategies(),
+                SignalMapperFactory.newThingSearchSignalMapper(),
+                headerTranslator);
     }
 
     /**
@@ -48,11 +47,6 @@ public class ThingSearchCommandAdapter extends AbstractThingAdapter<ThingSearchC
      */
     public static ThingSearchCommandAdapter of(final HeaderTranslator headerTranslator) {
         return new ThingSearchCommandAdapter(requireNonNull(headerTranslator));
-    }
-
-    @Override
-    public Adaptable mapSignalToAdaptable(final ThingSearchCommand<?> command, final TopicPath.Channel channel) {
-        return signalMapper.mapSignalToAdaptable(command, channel);
     }
 
     @Override

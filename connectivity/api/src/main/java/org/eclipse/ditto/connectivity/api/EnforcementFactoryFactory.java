@@ -16,11 +16,11 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
-import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
-import org.eclipse.ditto.internal.models.placeholders.Placeholder;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.placeholders.Placeholder;
 
 /**
  * Factory class that creates instances of {@link EnforcementFilterFactory}s.

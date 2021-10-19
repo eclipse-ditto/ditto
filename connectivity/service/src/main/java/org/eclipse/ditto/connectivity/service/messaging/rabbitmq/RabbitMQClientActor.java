@@ -92,7 +92,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
      */
     @SuppressWarnings("unused")
     private RabbitMQClientActor(final Connection connection,
-            @Nullable final ActorRef proxyActor,
+            final ActorRef proxyActor,
             final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
 
         super(connection, proxyActor, connectionActor, dittoHeaders);
@@ -109,7 +109,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * This constructor is called via reflection by the static method props(Connection, ActorRef).
      */
     @SuppressWarnings("unused")
-    private RabbitMQClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
+    private RabbitMQClientActor(final Connection connection, final ActorRef proxyActor,
             final ActorRef connectionActor, final RabbitConnectionFactoryFactory rabbitConnectionFactoryFactory,
             final DittoHeaders dittoHeaders) {
 
@@ -130,7 +130,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
      * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
+    public static Props props(final Connection connection, final ActorRef proxyActor,
             final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
 
         return Props.create(RabbitMQClientActor.class, validateConnection(connection), proxyActor,

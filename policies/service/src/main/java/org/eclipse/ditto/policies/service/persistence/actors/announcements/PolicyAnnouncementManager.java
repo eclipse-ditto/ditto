@@ -12,10 +12,12 @@
  */
 package org.eclipse.ditto.policies.service.persistence.actors.announcements;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -46,26 +48,26 @@ public final class PolicyAnnouncementManager extends AbstractActor {
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
-    private final PolicyId policyId;
-    private final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub;
+    private final Function<Subject, Props> createChildProps;
     private final Map<Subject, ActorRef> subjectExpiryActors;
     private final Map<ActorRef, Subject> activeSubjects;
     private final Map<SubjectId, Integer> activeSubjectIds;
-    private final ActorRef commandForwarder;
-    private final PolicyAnnouncementConfig config;
 
     @SuppressWarnings("unused")
     private PolicyAnnouncementManager(final PolicyId policyId,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
             final ActorRef commandForwarder,
             final PolicyAnnouncementConfig config) {
-        this.policyId = policyId;
-        this.policyAnnouncementPub = policyAnnouncementPub;
-        this.commandForwarder = commandForwarder;
-        this.subjectExpiryActors = new HashMap<>();
-        this.activeSubjects = new HashMap<>();
-        this.activeSubjectIds = new HashMap<>();
-        this.config = config;
+
+        this(subject -> SubjectExpiryActor.props(policyId, subject, config.getGracePeriod(), policyAnnouncementPub,
+                config.getMaxTimeout(), commandForwarder, config));
+    }
+
+    PolicyAnnouncementManager(final Function<Subject, Props> createChildProps) {
+        subjectExpiryActors = new HashMap<>();
+        activeSubjects = new HashMap<>();
+        activeSubjectIds = new HashMap<>();
+        this.createChildProps = createChildProps;
     }
 
     /**
@@ -102,18 +104,16 @@ public final class PolicyAnnouncementManager extends AbstractActor {
         for (final var newSubject : newSubjects) {
             startChild(newSubject);
         }
+        // copy current active subject IDs so that deleted subjects are immediately accounted for
+        final Map<SubjectId, Integer> counterMap = new HashMap<>(activeSubjectIds);
         for (final var deletedSubject : deletedSubjects) {
             // precondition: child actors have started for new subjects so that modified subjects can be recognized
-            sendSubjectDeleted(deletedSubject);
+            sendSubjectDeleted(deletedSubject, counterMap);
         }
     }
 
     private void startChild(final Subject subject) {
-        final var props =
-                SubjectExpiryActor.props(policyId, subject, config.getGracePeriod(), policyAnnouncementPub,
-                        config.getMaxTimeout(), commandForwarder, config);
-
-        final var child = getContext().actorOf(props);
+        final var child = getContext().actorOf(createChildProps.apply(subject));
         getContext().watch(child);
         subjectExpiryActors.put(subject, child);
         activeSubjects.put(child, subject);
@@ -132,10 +132,10 @@ public final class PolicyAnnouncementManager extends AbstractActor {
         }
     }
 
-    private void sendSubjectDeleted(final Subject subject) {
+    private void sendSubjectDeleted(final Subject subject, final Map<SubjectId, Integer> counterMap) {
         final var child = subjectExpiryActors.get(subject);
         if (child != null) {
-            notifyChildOfSubjectDeletion(subject, child);
+            notifyChildOfSubjectDeletion(subject, child, counterMap);
         } else {
             log.error("Attempting to notify nonexistent child for deleted subject <{}>", subject);
         }
@@ -146,9 +146,13 @@ public final class PolicyAnnouncementManager extends AbstractActor {
      *
      * @param subject the subject.
      * @param child the recipient.
+     * @param counterMap reference counter map.
      */
-    private void notifyChildOfSubjectDeletion(final Subject subject, final ActorRef child) {
-        final var activeSubjectIdCount = activeSubjectIds.getOrDefault(subject.getId(), 0);
+    private void notifyChildOfSubjectDeletion(final Subject subject,
+            final ActorRef child,
+            final Map<SubjectId, Integer> counterMap) {
+
+        final var activeSubjectIdCount = counterMap.getOrDefault(subject.getId(), 0);
         if (activeSubjectIdCount >= 2) {
             // another actor took over the responsibility of child; terminate it.
             log.debug("Terminating child <{}> of updated subject <{}>", child, subject);
@@ -157,9 +161,10 @@ public final class PolicyAnnouncementManager extends AbstractActor {
             log.debug("Notifying child <{}> of deleted subject <{}>", child, subject);
             child.tell(SubjectExpiryActor.Message.SUBJECT_DELETED, ActorRef.noSender());
         }
+        decrementReferenceCount(subject, counterMap);
     }
 
-    private Set<Subject> getSubjectsWithExpiryOrAnnouncements(final Policy policy) {
+    private static Set<Subject> getSubjectsWithExpiryOrAnnouncements(final Policy policy) {
         if (policy.getLifecycle().filter(lifeCycle -> lifeCycle == PolicyLifecycle.ACTIVE).isPresent()) {
             return StreamSupport.stream(policy.spliterator(), false)
                     .map(PolicyEntry::getSubjects)
@@ -182,7 +187,11 @@ public final class PolicyAnnouncementManager extends AbstractActor {
     }
 
     private void removeActiveSubjectId(final Subject subject) {
-        activeSubjectIds.computeIfPresent(subject.getId(), (k, count) -> {
+        decrementReferenceCount(subject, activeSubjectIds);
+    }
+
+    private static void decrementReferenceCount(final Subject subject, final Map<SubjectId, Integer> counterMap) {
+        counterMap.computeIfPresent(subject.getId(), (k, count) -> {
             if (count <= 1) {
                 return null;
             } else {
@@ -191,7 +200,9 @@ public final class PolicyAnnouncementManager extends AbstractActor {
         });
     }
 
-    private static List<Subject> calculateDifference(final Set<Subject> minuend, final Set<Subject> subtrahend) {
+    private static List<Subject> calculateDifference(final Collection<Subject> minuend,
+            final Collection<Subject> subtrahend) {
+
         return minuend.stream()
                 .filter(subject -> !subtrahend.contains(subject))
                 .collect(Collectors.toList());

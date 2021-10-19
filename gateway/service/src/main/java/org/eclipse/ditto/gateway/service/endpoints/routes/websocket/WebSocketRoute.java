@@ -266,7 +266,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     private CompletionStage<WebsocketConfig> retrieveWebsocketConfig() {
         return Patterns.ask(streamingActor, StreamingActor.Control.RETRIEVE_WEBSOCKET_CONFIG, LOCAL_ASK_TIMEOUT)
-                .thenApply(reply -> (WebsocketConfig) reply); // fail future with ClassCastException on type error
+                .thenApply(WebsocketConfig.class::cast); // fail future with ClassCastException on type error
     }
 
     private CompletionStage<HttpResponse> createWebSocket(final WebSocketUpgrade upgradeToWebSocket,
@@ -689,15 +689,13 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable =
                     sessionedJsonifiable.getJsonifiable();
             final ActorRef streamingSessionActor = session.getStreamingSessionActor();
-            WithEntityId.getEntityIdOfType(EntityId.class, jsonifiable).ifPresent(entityId -> {
-                if (entityId instanceof EntityId) {
+            WithEntityId.getEntityIdOfType(EntityId.class, jsonifiable).ifPresent(entityId ->
                     dittoHeaders.getAcknowledgementRequests()
-                            .stream()
-                            .map(request -> weakAck(request.getLabel(), entityId, dittoHeaders))
-                            .map(IncomingSignal::of)
-                            .forEach(weakAck -> streamingSessionActor.tell(weakAck, ActorRef.noSender()));
-                }
-            });
+                    .stream()
+                    .map(request -> weakAck(request.getLabel(), entityId, dittoHeaders))
+                    .map(IncomingSignal::of)
+                    .forEach(weakAck -> streamingSessionActor.tell(weakAck, ActorRef.noSender()))
+            );
         });
     }
 
@@ -750,10 +748,11 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable = sessionedJsonifiable.getJsonifiable();
         return sessionedJsonifiable.getSession()
                 .filter(session -> jsonifiable instanceof Signal)
-                .map(session ->
+                .map(session -> {
                         // evaluate to false if filter is present but does not match or has insufficient info to match
-                        session.matchesFilter(session.mergeThingWithExtra((Signal<?>) jsonifiable, extra))
-                )
+                        final Signal<?> signal = (Signal<?>) jsonifiable;
+                        return session.matchesFilter(session.mergeThingWithExtra(signal, extra), signal);
+                })
                 .orElse(true);
     }
 

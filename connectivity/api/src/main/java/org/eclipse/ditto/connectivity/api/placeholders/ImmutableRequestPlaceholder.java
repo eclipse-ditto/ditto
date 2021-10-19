@@ -21,7 +21,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.internal.models.placeholders.Placeholder;
+import org.eclipse.ditto.placeholders.Placeholder;
 
 /**
  * Placeholder implementation that replaces {@code request} related things based on an {@link AuthorizationContext}.

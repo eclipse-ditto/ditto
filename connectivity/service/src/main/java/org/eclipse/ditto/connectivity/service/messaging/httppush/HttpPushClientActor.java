@@ -58,8 +58,7 @@ public final class HttpPushClientActor extends BaseClientActor {
     private final HttpPushFactory factory;
     private final ConnectionLogger connectionLogger;
 
-    @Nullable
-    private ActorRef httpPublisherActor;
+    @Nullable private ActorRef httpPublisherActor;
     private final HttpPushConfig httpPushConfig;
 
     @SuppressWarnings("unused")

@@ -17,9 +17,9 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.internal.models.placeholders.ExpressionResolver;
-import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.placeholders.ExpressionResolver;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.signals.commands.actions.PolicyActionCommand;

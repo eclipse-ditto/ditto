@@ -30,6 +30,8 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonKey;
@@ -37,15 +39,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.eclipse.ditto.policies.model.enforcers.tree.EffectedResources;
-import org.eclipse.ditto.policies.model.enforcers.tree.PolicyTreeNode;
-import org.eclipse.ditto.policies.model.enforcers.tree.ResourceNode;
-import org.eclipse.ditto.policies.model.enforcers.tree.SubjectNode;
-import org.eclipse.ditto.policies.model.enforcers.tree.Visitor;
-import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.Policy;
@@ -55,6 +48,8 @@ import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Resources;
 import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.policies.model.Subjects;
+import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 
 /**
  * Holds Algorithms to create a policy tree and to perform different policy checks on this tree.
@@ -222,6 +217,16 @@ public final class TreeBasedPolicyEnforcer implements Enforcer {
         final Collection<String> authSubjectIds = getAuthorizationSubjectIds(authorizationContext);
         final JsonPointer resourcePointer = createAbsoluteResourcePointer(resourceKey);
         return visitTree(new CheckPartialPermissionsVisitor(resourcePointer, authSubjectIds, permissions));
+    }
+
+    @Override
+    public Set<AuthorizationSubject> getSubjectsWithUnrestrictedPermission(final ResourceKey resourceKey,
+            final Permissions permissions) {
+
+        checkResourceKey(resourceKey);
+        checkPermissions(permissions);
+        final JsonPointer resourcePointer = createAbsoluteResourcePointer(resourceKey);
+        return visitTree(new CollectUnrestrictedSubjectsVisitor(resourcePointer, permissions));
     }
 
     @Override

@@ -172,6 +172,7 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
         jsonObject.getValue(JsonFields.STATUS).flatMap(HttpStatus::tryGetInstance).ifPresent(builder::httpStatus);
         jsonObject.getValue(JsonFields.DESCRIPTION).ifPresent(builder::description);
         jsonObject.getValue(JsonFields.HREF).map(URI::create).ifPresent(builder::href);
+
         return builder.build();
     }
 

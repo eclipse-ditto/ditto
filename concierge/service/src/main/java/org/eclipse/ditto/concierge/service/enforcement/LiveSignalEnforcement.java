@@ -46,6 +46,7 @@ import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.protocol.UnknownCommandException;
+import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.EventSendNotAllowedException;
@@ -228,7 +229,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
 
                 ThingCommandEnforcement.authorizeByPolicyOrThrow(enforcer, (ThingCommand<?>) liveSignal);
                 final ThingCommand<?> withReadSubjects =
-                        addEffectedReadSubjectsToThingSignal((ThingCommand<?>) liveSignal, enforcer);
+                        addEffectedReadSubjectsToThingLiveSignal((ThingCommand<?>) liveSignal, enforcer);
                 log(withReadSubjects).info("Live Command was authorized: <{}>", withReadSubjects);
                 return publishLiveSignal(withReadSubjects, THING_COMMAND_ACK_EXTRACTOR, liveSignalPub.command());
             default:
@@ -238,6 +239,27 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
                         .dittoHeaders(liveSignal.getDittoHeaders())
                         .build();
         }
+    }
+
+    /**
+     * Extend a signal by subject headers given with granted and revoked READ access.
+     * The subjects are provided by the given enforcer for the resource type {@link org.eclipse.ditto.things.model.ThingConstants#ENTITY_TYPE}.
+     *
+     * @param signal the signal to extend.
+     * @param enforcer the enforcer.
+     * @return the extended signal.
+     */
+    static <T extends Signal<T>> T addEffectedReadSubjectsToThingLiveSignal(final Signal<T> signal,
+            final Enforcer enforcer) {
+
+        final var resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, signal.getResourcePath());
+        final var effectedSubjects = enforcer.getSubjectsWithPermission(resourceKey, Permission.READ);
+        final var newHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
+                .readGrantedSubjects(effectedSubjects.getGranted())
+                .readRevokedSubjects(effectedSubjects.getRevoked())
+                .build();
+
+        return signal.setDittoHeaders(newHeaders);
     }
 
     private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveEvent(final Signal<?> liveSignal,
