@@ -13,11 +13,11 @@
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -26,8 +26,6 @@ import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import scala.util.Try;
 
 /**
  * Holds an instance for each actual sub-class of the interface class provided to {@link #newInstance(Class)}.
@@ -38,9 +36,13 @@ final class SignalInterfaceImplementations implements Iterable<SignalWithEntityI
     private static final Logger LOGGER = LoggerFactory.getLogger(SignalInterfaceImplementations.class);
 
     private final List<SignalWithEntityId<?>> signals;
+    private final List<Throwable> failures;
 
-    private SignalInterfaceImplementations(final List<SignalWithEntityId<?>> signals) {
-        this.signals = signals;
+    private SignalInterfaceImplementations(final List<SignalWithEntityId<?>> signals,
+            final List<Throwable> failures) {
+
+        this.signals = List.copyOf(signals);
+        this.failures = List.copyOf(failures);
     }
 
     static <T extends SignalWithEntityId<?>> SignalInterfaceImplementations newInstance(final Class<T> signalInterfaceClass) {
@@ -49,17 +51,22 @@ final class SignalInterfaceImplementations implements Iterable<SignalWithEntityI
             throw new IllegalArgumentException(MessageFormat.format("<{0}> is not an interface.",
                     signalInterfaceClass.getName()));
         }
-        return new SignalInterfaceImplementations(instantiateImplementingSignals(signalInterfaceClass));
-    }
 
-    private static List<SignalWithEntityId<?>> instantiateImplementingSignals(
-            final Class<? extends SignalWithEntityId<?>> signalInterfaceClass
-    ) {
-        return SignalImplementationClassFinder.findImplementationClasses(signalInterfaceClass)
+        final List<SignalWithEntityId<?>> successful = new ArrayList<>();
+        final List<Throwable> failed = new ArrayList<>();
+
+        SignalImplementationClassFinder.findImplementationClasses(signalInterfaceClass)
                 .map(ReflectionBasedSignalInstantiator::tryToInstantiateSignal)
-                .filter(Try::isSuccess)
-                .map(Try::get)
-                .collect(Collectors.toUnmodifiableList());
+                .forEach(aTry -> {
+                    if (aTry.isSuccess()) {
+                        successful.add(aTry.get());
+                    } else {
+                        final var failure = aTry.failed();
+                        failed.add(failure.get());
+                    }
+                });
+
+        return new SignalInterfaceImplementations(successful, failed);
     }
 
     Optional<SignalWithEntityId<?>> getSignalBySimpleClassName(final CharSequence expectedSimpleClassName) {
@@ -73,6 +80,10 @@ final class SignalInterfaceImplementations implements Iterable<SignalWithEntityI
             LOGGER.info("Found no signal for type <{}>.", expectedSimpleClassName);
         }
         return result;
+    }
+
+    List<Throwable> getFailures() {
+        return failures;
     }
 
     @NotNull

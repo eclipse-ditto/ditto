@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.util.HashMap;
@@ -26,6 +27,7 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.Mockito;
@@ -36,57 +38,93 @@ import org.mockito.Mockito;
  * The same is ensured for implementations of {@link MessageCommand} with the associated implementations of
  * {@link MessageCommandResponse}.
  */
-@RunWith(Parameterized.class)
+@RunWith(Enclosed.class)
 public final class CommandAndCommandResponseMatchingValidatorParameterizedTest {
 
-    @Parameterized.Parameter
-    public SignalWithEntityId<?> command;
+    private static final SignalInterfaceImplementations MESSAGE_COMMANDS =
+            SignalInterfaceImplementations.newInstance(MessageCommand.class);
+    private static final SignalInterfaceImplementations MESSAGE_COMMAND_RESPONSES =
+            SignalInterfaceImplementations.newInstance(MessageCommandResponse.class);
+    private static final SignalInterfaceImplementations THING_COMMANDS =
+            SignalInterfaceImplementations.newInstance(ThingCommand.class);
+    private static final SignalInterfaceImplementations THING_COMMAND_RESPONSES =
+            SignalInterfaceImplementations.newInstance(ThingCommandResponse.class);
 
-    @Parameterized.Parameter(1)
-    public CommandResponse<?> commandResponse;
+    public static final class ReflectionBasedInstantiationTest {
 
-    private ConnectionLogger connectionLoggerMock;
-    private CommandAndCommandResponseMatchingValidator underTest;
+        @Test
+        public void allMessageCommandsCouldBeInstantiated() {
+            assertThat(MESSAGE_COMMANDS.getFailures()).isEmpty();
+        }
 
-    @Before
-    public void before() {
-        connectionLoggerMock = Mockito.mock(ConnectionLogger.class);
-        underTest = CommandAndCommandResponseMatchingValidator.newInstance(connectionLoggerMock);
+        @Test
+        public void allMessageCommandResponsesCouldBeInstantiated() {
+            assertThat(MESSAGE_COMMAND_RESPONSES.getFailures()).isEmpty();
+        }
+
+        @Test
+        public void allThingCommandsCouldBeInstantiated() {
+            assertThat(THING_COMMANDS.getFailures()).isEmpty();
+        }
+
+        @Test
+        public void allThingCommandResponsesCouldBeInstantiated() {
+            assertThat(THING_COMMAND_RESPONSES.getFailures()).isEmpty();
+        }
+
     }
 
-    @Parameterized.Parameters(name = "Command: {0}, response: {1}")
-    public static Object[][] getParameters() {
-        final Map<SignalWithEntityId<?>, SignalWithEntityId<?>> commandsAndResponses = new HashMap<>();
-        commandsAndResponses.putAll(getCommandsAndResponses(MessageCommand.class, MessageCommandResponse.class));
-        commandsAndResponses.putAll(getCommandsAndResponses(ThingCommand.class, ThingCommandResponse.class));
-        final var commandAndResponsesEntrySet = commandsAndResponses.entrySet();
-        return commandAndResponsesEntrySet.stream()
-                .map(entry -> new SignalWithEntityId<?>[]{entry.getKey(), entry.getValue()})
-                .toArray(SignalWithEntityId<?>[][]::new);
-    }
+    @RunWith(Parameterized.class)
+    public static final class ParameterizedTest {
 
-    private static <C extends SignalWithEntityId<?>, R extends SignalWithEntityId<?>> Map<SignalWithEntityId<?>, SignalWithEntityId<?>> getCommandsAndResponses(
-            final Class<C> commandInterfaceClass,
-            final Class<R> commandResponseInterfaceClass
-    ) {
-        final Map<SignalWithEntityId<?>, SignalWithEntityId<?>> result = new HashMap<>();
+        @Parameterized.Parameter
+        public SignalWithEntityId<?> command;
 
-        final var commands = SignalInterfaceImplementations.newInstance(commandInterfaceClass);
-        final var commandResponses = SignalInterfaceImplementations.newInstance(commandResponseInterfaceClass);
-        commands.forEach(command -> {
-            final var commandClass = command.getClass();
-            final var commandClassSimpleName = commandClass.getSimpleName();
-            commandResponses.getSignalBySimpleClassName(commandClassSimpleName + "Response")
-                    .ifPresent(commandResponse -> result.put(command, commandResponse));
-        });
+        @Parameterized.Parameter(1)
+        public CommandResponse<?> commandResponse;
 
-        return result;
-    }
+        private ConnectionLogger connectionLoggerMock;
+        private CommandAndCommandResponseMatchingValidator underTest;
 
-    @Test
-    public void commandAndItsResponseMatch() {
-        assertThatCode(() -> underTest.accept(command, commandResponse)).doesNotThrowAnyException();
-        Mockito.verifyNoInteractions(connectionLoggerMock);
+        @Before
+        public void before() {
+            connectionLoggerMock = Mockito.mock(ConnectionLogger.class);
+            underTest = CommandAndCommandResponseMatchingValidator.newInstance(connectionLoggerMock);
+        }
+
+        @Parameterized.Parameters(name = "Command: {0}, response: {1}")
+        public static Object[][] getParameters() {
+            final Map<SignalWithEntityId<?>, SignalWithEntityId<?>> commandsAndResponses = new HashMap<>();
+            commandsAndResponses.putAll(getCommandsAndResponses(MESSAGE_COMMANDS, MESSAGE_COMMAND_RESPONSES));
+            commandsAndResponses.putAll(getCommandsAndResponses(THING_COMMANDS, THING_COMMAND_RESPONSES));
+            final var commandAndResponsesEntrySet = commandsAndResponses.entrySet();
+            return commandAndResponsesEntrySet.stream()
+                    .map(entry -> new SignalWithEntityId<?>[]{entry.getKey(), entry.getValue()})
+                    .toArray(SignalWithEntityId<?>[][]::new);
+        }
+
+        private static Map<SignalWithEntityId<?>, SignalWithEntityId<?>> getCommandsAndResponses(
+                final SignalInterfaceImplementations commands,
+                final SignalInterfaceImplementations commandResponses
+        ) {
+            final Map<SignalWithEntityId<?>, SignalWithEntityId<?>> result = new HashMap<>();
+
+            commands.forEach(command -> {
+                final var commandClass = command.getClass();
+                final var commandClassSimpleName = commandClass.getSimpleName();
+                commandResponses.getSignalBySimpleClassName(commandClassSimpleName + "Response")
+                        .ifPresent(commandResponse -> result.put(command, commandResponse));
+            });
+
+            return result;
+        }
+
+        @Test
+        public void commandAndItsResponseMatch() {
+            assertThatCode(() -> underTest.accept(command, commandResponse)).doesNotThrowAnyException();
+            Mockito.verifyNoInteractions(connectionLoggerMock);
+        }
+
     }
 
 }
