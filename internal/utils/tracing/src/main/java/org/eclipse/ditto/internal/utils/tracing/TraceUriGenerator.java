@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 /**
  * TraceUriGenerator generates a trace uri based on a specified path.
  * <p>
- * The purpose of this class is to minimize the amount of requests to be logged (e. g. by shortening requests),
+ * The purpose of this class is to minimize the amount of requests to be logged (e.g. by shortening requests),
  * in order to avoid the creation of too many Kamon traces (causing OutOfMemory).
  */
 @Immutable
@@ -65,7 +65,7 @@ public final class TraceUriGenerator implements Function<String, TraceInformatio
     private static final List<String> PATHS_EXACT = Arrays.asList("ws/2", "health", "status", "status/health",
             "overall/status/health", "devops/logging", "devops/config");
     private static final String PATHS_EXACT_REGEX_TEMPLATE = "(?<" + PATHS_EXACT_LENGTH_GROUP + ">^/({0}))/?$";
-    private static final Pattern messagePattern = Pattern.compile("(.*/messages/.*)|(.*/claim)");
+    private static final Pattern messagePattern = Pattern.compile("(.*/(inbox|outbox)/messages/.*)|(.*/inbox/claim)");
 
     @Nullable private static TraceUriGenerator instance = null;
 

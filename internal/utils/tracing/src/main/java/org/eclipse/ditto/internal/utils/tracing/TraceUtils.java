@@ -38,7 +38,7 @@ public final class TraceUtils {
     private static final String FILTER_AUTH_METRIC_NAME = "filter_auth";
     private static final String LIVE_CHANNEL_NAME = "live";
     private static final String TWIN_CHANNEL_NAME = "twin";
-    private static final Pattern messagePattern = Pattern.compile("(.*/messages/.*)|(.*/claim)");
+    private static final Pattern messagePattern = Pattern.compile("(.*/(inbox|outbox)/messages/.*)|(.*/inbox/claim)");
 
     private TraceUtils() {
         throw new AssertionError();
