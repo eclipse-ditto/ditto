@@ -140,6 +140,7 @@ import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
 import akka.stream.Materializer;
+import akka.stream.javadsl.MergeHub;
 import akka.stream.javadsl.Sink;
 
 /**
@@ -1744,7 +1745,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 mappingConfig,
                 getThrottlingConfig().orElse(null),
                 messageMappingProcessorDispatcher);
-        return sink;
+        return MergeHub.of(Object.class)
+                .map(Object.class::cast)
+                .to(sink)
+                .run(materializer);
     }
 
     protected Optional<ConnectionThrottlingConfig> getThrottlingConfig() {
