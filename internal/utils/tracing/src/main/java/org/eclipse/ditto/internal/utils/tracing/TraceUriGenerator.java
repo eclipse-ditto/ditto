@@ -49,7 +49,6 @@ public final class TraceUriGenerator implements Function<String, TraceInformatio
     static final String MESSAGES_PATH_SUFFIX = "/messages";
     static final String FALLBACK_PATH = "/other";
 
-    private static final String SLASH = "/";
 
     private static final int FIRST_API_VERSION = JsonSchemaVersion.V_2.toInt();
     private static final int LATEST_API_VERSION = JsonSchemaVersion.LATEST.toInt();
@@ -66,7 +65,6 @@ public final class TraceUriGenerator implements Function<String, TraceInformatio
     private static final List<String> PATHS_EXACT = Arrays.asList("ws/2", "health", "status", "status/health",
             "overall/status/health", "devops/logging", "devops/config");
     private static final String PATHS_EXACT_REGEX_TEMPLATE = "(?<" + PATHS_EXACT_LENGTH_GROUP + ">^/({0}))/?$";
-    private static final Pattern DUPLICATE_SLASH_PATTERN = Pattern.compile("\\/+");
     private static final Pattern messagePattern = Pattern.compile("(.*/messages/.*)|(.*/claim)");
 
     @Nullable private static TraceUriGenerator instance = null;
@@ -130,7 +128,7 @@ public final class TraceUriGenerator implements Function<String, TraceInformatio
     }
 
     private TraceInformation extractTraceInformation(final String path) {
-        final String normalizedPath = normalizePath(path);
+        final String normalizedPath = TraceUtils.normalizePath(path);
         final Matcher messageMatcher = messagePattern.matcher(normalizedPath);
         final Matcher matcher = pathPattern.matcher(normalizedPath);
 
@@ -190,27 +188,6 @@ public final class TraceUriGenerator implements Function<String, TraceInformatio
                     group, matcher.pattern());
         }
         return Optional.empty();
-    }
-
-    private static String normalizePath(final String path) {
-        if (path.isEmpty()) {
-            return SLASH;
-        }
-
-        // remove duplicate slashes
-        String normalized = DUPLICATE_SLASH_PATTERN.matcher(path).replaceAll(SLASH);
-
-        // strip trailing slash if necessary
-        if (normalized.length() > 1 && normalized.endsWith(SLASH)) {
-            normalized = normalized.substring(0, normalized.length() - 1);
-        }
-
-        // add leading slash if necessary
-        if (!normalized.startsWith(SLASH)) {
-            normalized = SLASH + normalized;
-        }
-
-        return normalized;
     }
 
     @Override

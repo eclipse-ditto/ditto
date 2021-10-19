@@ -14,6 +14,7 @@ package org.eclipse.ditto.internal.utils.tracing;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -30,11 +31,14 @@ import akka.http.javadsl.model.HttpRequest;
 public final class TraceUtils {
 
     private static final String TRACING_FILTER_DELIMITER = "_";
+    private static final String SLASH = "/";
+    private static final Pattern DUPLICATE_SLASH_PATTERN = Pattern.compile("\\/+");
 
     private static final String HTTP_ROUNDTRIP_METRIC_NAME = "roundtrip_http";
     private static final String FILTER_AUTH_METRIC_NAME = "filter_auth";
     private static final String LIVE_CHANNEL_NAME = "live";
     private static final String TWIN_CHANNEL_NAME = "twin";
+    private static final Pattern messagePattern = Pattern.compile("(.*/messages/.*)|(.*/claim)");
 
     private TraceUtils() {
         throw new AssertionError();
@@ -120,7 +124,8 @@ public final class TraceUtils {
                 .filter(LIVE_CHANNEL_NAME::equals)
                 .isPresent();
         // messages are always live commands
-        final boolean messageRequest = request.getUri().path().contains("messages");
+        final String normalizePath = normalizePath(request.getUri().path());
+        final boolean messageRequest = messagePattern.matcher(normalizePath).matches();
 
         return (liveHeaderPresent || liveQueryPresent || messageRequest) ? LIVE_CHANNEL_NAME : TWIN_CHANNEL_NAME;
     }
@@ -130,6 +135,30 @@ public final class TraceUtils {
      */
     public static String metricizeTraceUri(final String traceUri) {
         return traceUri.replaceAll("[./:-]", TRACING_FILTER_DELIMITER);
+    }
+
+    /**
+     * Normalizes the path and removes duplicate slashes.
+     */
+    public static String normalizePath(final String path) {
+        if (path.isEmpty()) {
+            return SLASH;
+        }
+
+        // remove duplicate slashes
+        String normalized = DUPLICATE_SLASH_PATTERN.matcher(path).replaceAll(SLASH);
+
+        // strip trailing slash if necessary
+        if (normalized.length() > 1 && normalized.endsWith(SLASH)) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+
+        // add leading slash if necessary
+        if (!normalized.startsWith(SLASH)) {
+            normalized = SLASH + normalized;
+        }
+
+        return normalized;
     }
 
 }
