@@ -140,7 +140,6 @@ import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
 import akka.stream.Materializer;
-import akka.stream.javadsl.MergeHub;
 import akka.stream.javadsl.Sink;
 
 /**
@@ -189,7 +188,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ProtocolAdapter protocolAdapter;
     private final ConnectivityCounterRegistry connectionCounterRegistry;
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
-    private final Materializer materializer;
     protected final ConnectionLogger connectionLogger;
     protected final ConnectivityStatusResolver connectivityStatusResolver;
     private final boolean dryRun;
@@ -214,7 +212,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final Config config = system.settings().config();
         final Config withOverwrites = connectivityConfigOverwrites.withFallback(config);
         this.connectivityConfig = ConnectivityConfig.of(withOverwrites);
-        materializer = Materializer.createMaterializer(system);
         this.connectionActor = connectionActor;
         // this is retrieve via the extension for each baseClientActor in order to not pass it as constructor arg
         //  as all constructor arguments need to be serializable as the BaseClientActor is started behind a cluster
@@ -1738,17 +1735,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final var mappingConfig = connectivityConfig().getMappingConfig();
         final MessageDispatcher messageMappingProcessorDispatcher =
                 getContext().system().dispatchers().lookup(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
-        final Sink<Object, NotUsed> sink = InboundMappingSink.createSink(inboundMappingProcessor,
+        return InboundMappingSink.createSink(inboundMappingProcessor,
                 connection.getId(),
                 processorPoolSize,
                 inboundDispatchingSink,
                 mappingConfig,
                 getThrottlingConfig().orElse(null),
                 messageMappingProcessorDispatcher);
-        return MergeHub.of(Object.class)
-                .map(Object.class::cast)
-                .to(sink)
-                .run(materializer);
     }
 
     protected Optional<ConnectionThrottlingConfig> getThrottlingConfig() {
