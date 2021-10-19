@@ -35,7 +35,9 @@ import akka.kafka.javadsl.Consumer;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
+import scala.util.Either;
+import scala.util.Left;
+import scala.util.Right;
 
 /**
  * Kafka consumer stream with "at least once" (QoS 1) semantics.
@@ -72,7 +74,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         consumerControl = sourceSupplier.get()
                 .filter(committableMessage -> isNotDryRun(committableMessage.record(), dryRun))
                 .map(kafkaMessageTransformer::transform)
-                .flatMapConcat(this::processTransformationResult)
+                .via(processTransformationResult())
                 .mapAsync(consumerMaxInflight, x -> x)
                 .toMat(Committer.sink(committerSettings), Consumer::createDrainingControl)
                 .run(materializer);
@@ -88,42 +90,60 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         return consumerControl.drainAndShutdown(materializer.executionContext());
     }
 
-    private Source<CompletableFuture<CommittableOffset>, NotUsed> processTransformationResult(
-            final CommittableTransformationResult result) {
-
-        if (isExpired(result)) {
-            return Source.single(result)
-                    .map(CommittableTransformationResult::getCommittableOffset)
-                    .map(CompletableFuture::completedFuture);
-        }
-
-        if (isExternalMessage(result)) {
-            return Source.single(result)
-                    .map(this::toAcknowledgeableMessage)
-                    .alsoTo(this.externalMessageSink())
-                    .map(KafkaAcknowledgableMessage::getAcknowledgementFuture);
-        }
-        /*
-         * For all other cases a retry for consuming this message makes no sense, so we want to commit these offsets.
-         * Therefore, we return an already completed future holding the offset to commit. No reject needed.
-         */
-        final CompletableFuture<CommittableOffset> offsetFuture =
-                CompletableFuture.completedFuture(result.getCommittableOffset());
-        if (isDittoRuntimeException(result)) {
-            return Source.single(result)
-                    .map(AtLeastOnceConsumerStream::extractDittoRuntimeException)
-                    .alsoTo(dreSink)
-                    .map(dre -> offsetFuture);
-        }
-        return Source.single(result)
-                .alsoTo(unexpectedMessageSink())
-                .map(unexpected -> offsetFuture);
+    private Flow<CommittableTransformationResult, CompletableFuture<CommittableOffset>, NotUsed> processTransformationResult() {
+        return Flow.<CommittableTransformationResult>create()
+                .via(externalMessageFlow())
+                .via(dittoRuntimeExceptionFlow())
+                .via(unexpectedMessageFlow());
     }
 
-    private Sink<KafkaAcknowledgableMessage, NotUsed> externalMessageSink() {
-        return Flow.of(KafkaAcknowledgableMessage.class)
-                .map(KafkaAcknowledgableMessage::getAcknowledgeableMessage)
-                .to(inboundMappingSink);
+    private Flow<CommittableTransformationResult, Either<CommittableTransformationResult, CompletableFuture<CommittableOffset>>, NotUsed>
+    externalMessageFlow() {
+        return Flow.of(CommittableTransformationResult.class)
+                .<Either<CommittableTransformationResult, KafkaAcknowledgableMessage>>map(transformationResult ->
+                        isExternalMessage(transformationResult)
+                                ? new Right<>(toAcknowledgeableMessage(transformationResult))
+                                : new Left<>(transformationResult))
+                .alsoTo(Flow.<Either<CommittableTransformationResult, KafkaAcknowledgableMessage>>create()
+                        .filter(Either::isRight)
+                        .map(either -> either.right().get())
+                        .map(KafkaAcknowledgableMessage::getAcknowledgeableMessage)
+                        .to(inboundMappingSink))
+                .map(either -> either.right().map(KafkaAcknowledgableMessage::getAcknowledgementFuture));
+    }
+
+    private Flow<Either<CommittableTransformationResult, CompletableFuture<CommittableOffset>>, Either<CommittableTransformationResult, CompletableFuture<CommittableOffset>>, NotUsed>
+    dittoRuntimeExceptionFlow() {
+        return Flow.<Either<CommittableTransformationResult, CompletableFuture<CommittableOffset>>>create()
+                .alsoTo(Flow.<Either<CommittableTransformationResult, CompletableFuture<CommittableOffset>>>create()
+                        .filter(either -> either.isLeft() && isDittoRuntimeException(either.left().get()))
+                        .map(either -> either.left().get())
+                        .map(AtLeastOnceConsumerStream::extractDittoRuntimeException)
+                        .to(dreSink))
+                .map(either -> {
+                    if (either.isLeft() && isDittoRuntimeException(either.left().get())) {
+                        return new Right<>(
+                                CompletableFuture.completedFuture(either.left().get().getCommittableOffset()));
+                    } else {
+                        return either;
+                    }
+                });
+    }
+
+    private Flow<Either<CommittableTransformationResult, CompletableFuture<CommittableOffset>>, CompletableFuture<CommittableOffset>, NotUsed>
+    unexpectedMessageFlow() {
+        return Flow.<Either<CommittableTransformationResult, CompletableFuture<CommittableOffset>>>create()
+                .alsoTo(Flow.<Either<CommittableTransformationResult, CompletableFuture<CommittableOffset>>>create()
+                        .filter(Either::isLeft)
+                        .map(either -> either.left().get())
+                        .to(unexpectedMessageSink()))
+                .map(either -> {
+                    if (either.isLeft()) {
+                        return CompletableFuture.completedFuture(either.left().get().getCommittableOffset());
+                    } else {
+                        return either.right().get();
+                    }
+                });
     }
 
     private static boolean isExpired(final CommittableTransformationResult transformationResult) {
@@ -131,7 +151,8 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
     }
 
     private static boolean isExternalMessage(final CommittableTransformationResult transformationResult) {
-        return transformationResult.getTransformationResult().getExternalMessage().isPresent();
+        return !isExpired(transformationResult) &&
+                transformationResult.getTransformationResult().getExternalMessage().isPresent();
     }
 
     private KafkaAcknowledgableMessage toAcknowledgeableMessage(final CommittableTransformationResult value) {
@@ -151,7 +172,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
     }
 
     private static boolean isDittoRuntimeException(final CommittableTransformationResult value) {
-        return value.getTransformationResult().getDittoRuntimeException().isPresent();
+        return !isExpired(value) && value.getTransformationResult().getDittoRuntimeException().isPresent();
     }
 
     private static DittoRuntimeException extractDittoRuntimeException(final CommittableTransformationResult value) {
