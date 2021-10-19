@@ -13,13 +13,22 @@
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.internal.utils.cache.Cache;
+import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -27,6 +36,8 @@ import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Thing;
@@ -46,11 +57,16 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteM
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
+import akka.pattern.Patterns;
 import akka.stream.Attributes;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
@@ -67,12 +83,18 @@ import scala.concurrent.duration.FiniteDuration;
 /**
  * Unit tests for {@link EnforcementFlow}.
  */
+@RunWith(MockitoJUnitRunner.class)
 public final class EnforcementFlowTest {
 
     private static ActorSystem system;
 
     private TestPublisher.Probe<Map<ThingId, Metadata>> sourceProbe;
     private TestSubscriber.Probe<List<AbstractWriteModel>> sinkProbe;
+
+    @Mock
+    private Cache<EnforcementCacheKey, Entry<Policy>> policyCacheMock;
+    @Mock
+    private Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCacheMock;
 
     @BeforeClass
     public static void init() {
@@ -102,10 +124,12 @@ public final class EnforcementFlowTest {
             final TestProbe thingsProbe = TestProbe.apply(system);
             final TestProbe policiesProbe = TestProbe.apply(system);
 
+            setupPolicyCacheMock(policyId, policiesProbe);
+
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
             final EnforcementFlow underTest =
-                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
-                            system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
+                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policyCacheMock, policyEnforcerCacheMock,
+                            system.dispatchers().defaultGlobalDispatcher());
 
             materializeTestProbes(underTest.create(false, 1));
 
@@ -153,10 +177,12 @@ public final class EnforcementFlowTest {
         final TestProbe thingsProbe = TestProbe.apply(system);
         final TestProbe policiesProbe = TestProbe.apply(system);
 
+        setupPolicyCacheMock(policyId, policiesProbe);
+
         final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
         final EnforcementFlow underTest =
-                EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
-                        system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
+                EnforcementFlow.of(streamConfig, thingsProbe.ref(), policyCacheMock, policyEnforcerCacheMock,
+                        system.dispatchers().defaultGlobalDispatcher());
 
         materializeTestProbes(underTest.create(false, 1));
 
@@ -187,6 +213,8 @@ public final class EnforcementFlowTest {
         sourceProbe.sendComplete();
         thingsProbe.expectMsgClass(SudoRetrieveThing.class);
         thingsProbe.reply(SudoRetrieveThingResponse.of(thingJson, DittoHeaders.empty()));
+
+        setupPolicyCacheMock(policyId, policiesProbe);
 
         // THEN: policy cache is reloaded
         policiesProbe.expectMsgClass(SudoRetrievePolicy.class);
@@ -231,8 +259,8 @@ public final class EnforcementFlowTest {
 
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
             final EnforcementFlow underTest =
-                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
-                            system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
+                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policyCacheMock, policyEnforcerCacheMock,
+                            system.dispatchers().defaultGlobalDispatcher());
 
             materializeTestProbes(underTest.create(false, 1));
 
@@ -244,9 +272,11 @@ public final class EnforcementFlowTest {
             sourceProbe.sendComplete();
 
             // WHEN: policy is retrieved with up-to-date revisions
-            policiesProbe.expectMsgClass(SudoRetrievePolicy.class);
             final var policy = Policy.newBuilder(policyId).setRevision(1).build();
-            policiesProbe.reply(SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty()));
+            when(policyCacheMock.get(any()))
+                    .thenReturn(CompletableFuture.completedFuture(Optional.of(Entry.of(1, policy))));
+            when(policyEnforcerCacheMock.get(any()))
+                    .thenReturn(CompletableFuture.completedFuture(Optional.of(Entry.of(1, PolicyEnforcers.defaultEvaluator(policy)))));
 
             // THEN: the write model contains up-to-date revisions
             final AbstractWriteModel writeModel = sinkProbe.expectNext().get(0);
@@ -288,12 +318,11 @@ public final class EnforcementFlowTest {
             final Map<ThingId, Metadata> inputMap = Map.of(thingId, metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
-            final TestProbe policiesProbe = TestProbe.apply(system);
 
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
             final EnforcementFlow underTest =
-                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
-                            system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
+                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policyCacheMock, policyEnforcerCacheMock,
+                            system.dispatchers().defaultGlobalDispatcher());
 
             materializeTestProbes(underTest.create(false, 1));
 
@@ -333,12 +362,11 @@ public final class EnforcementFlowTest {
             final Map<ThingId, Metadata> inputMap = Map.of(thingId, metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
-            final TestProbe policiesProbe = TestProbe.apply(system);
 
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
             final EnforcementFlow underTest =
-                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
-                            system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
+                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policyCacheMock, policyEnforcerCacheMock,
+                            system.dispatchers().defaultGlobalDispatcher());
 
             materializeTestProbes(underTest.create(false, 1));
 
@@ -377,12 +405,11 @@ public final class EnforcementFlowTest {
             final Map<ThingId, Metadata> inputMap = Map.of(thingId, metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
-            final TestProbe policiesProbe = TestProbe.apply(system);
 
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
             final EnforcementFlow underTest =
-                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
-                            system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
+                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policyCacheMock, policyEnforcerCacheMock,
+                            system.dispatchers().defaultGlobalDispatcher());
 
             materializeTestProbes(underTest.create(false, 1));
 
@@ -420,12 +447,11 @@ public final class EnforcementFlowTest {
             final Map<ThingId, Metadata> inputMap = Map.of(thingId, metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
-            final TestProbe policiesProbe = TestProbe.apply(system);
 
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
             final EnforcementFlow underTest =
-                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
-                            system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
+                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policyCacheMock, policyEnforcerCacheMock,
+                            system.dispatchers().defaultGlobalDispatcher());
 
             materializeTestProbes(underTest.create(false, 1));
 
@@ -436,14 +462,18 @@ public final class EnforcementFlowTest {
             sourceProbe.sendNext(inputMap);
             sourceProbe.sendComplete();
 
+            final var policy = Policy.newBuilder(policyId).setRevision(1).build();
+            when(policyCacheMock.get(any()))
+                    .thenReturn(CompletableFuture.completedFuture(Optional.of(Entry.of(1, policy))));
+            when(policyEnforcerCacheMock.get(any()))
+                    .thenReturn(CompletableFuture.completedFuture(Optional.of(
+                            Entry.of(1, PolicyEnforcers.defaultEvaluator(policy)))));
+
             // WHEN: thing and policy caches are loaded
             final var sudoRetrieveThing = thingsProbe.expectMsgClass(SudoRetrieveThing.class);
             thingsProbe.reply(SudoRetrieveThingResponse.of(
                     thing.toBuilder().setRevision(2).build().toJson(FieldType.all()),
                     sudoRetrieveThing.getDittoHeaders()));
-            policiesProbe.expectMsgClass(SudoRetrievePolicy.class);
-            final var policy = Policy.newBuilder(policyId).setRevision(1).build();
-            policiesProbe.reply(SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty()));
 
             // THEN: the write model contains up-to-date revisions
             final AbstractWriteModel writeModel = sinkProbe.expectNext().get(0);
@@ -487,12 +517,11 @@ public final class EnforcementFlowTest {
             final Map<ThingId, Metadata> inputMap = Map.of(thingId, metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
-            final TestProbe policiesProbe = TestProbe.apply(system);
 
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
             final EnforcementFlow underTest =
-                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
-                            system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
+                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policyCacheMock, policyEnforcerCacheMock,
+                            system.dispatchers().defaultGlobalDispatcher());
 
             materializeTestProbes(underTest.create(false, 1));
 
@@ -503,14 +532,18 @@ public final class EnforcementFlowTest {
             sourceProbe.sendNext(inputMap);
             sourceProbe.sendComplete();
 
+            final var policy = Policy.newBuilder(policyId).setRevision(1).build();
+            when(policyCacheMock.get(any()))
+                    .thenReturn(CompletableFuture.completedFuture(Optional.of(Entry.of(1, policy))));
+            when(policyEnforcerCacheMock.get(any()))
+                    .thenReturn(CompletableFuture.completedFuture(Optional.of(
+                            Entry.of(1, PolicyEnforcers.defaultEvaluator(policy)))));
+
             // WHEN: thing and policy caches are loaded
             final var sudoRetrieveThing = thingsProbe.expectMsgClass(SudoRetrieveThing.class);
             thingsProbe.reply(SudoRetrieveThingResponse.of(
                     thing.toBuilder().setRevision(2).build().toJson(FieldType.all()),
                     sudoRetrieveThing.getDittoHeaders()));
-            policiesProbe.expectMsgClass(SudoRetrievePolicy.class);
-            final var policy = Policy.newBuilder(policyId).setRevision(1).build();
-            policiesProbe.reply(SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty()));
 
             // THEN: the write model contains up-to-date revisions
             final AbstractWriteModel writeModel = sinkProbe.expectNext().get(0);
@@ -526,6 +559,31 @@ public final class EnforcementFlowTest {
             // THEN: thing is computed in the cache
             thingsProbe.expectNoMessage(FiniteDuration.Zero());
         }};
+    }
+
+    private void setupPolicyCacheMock(final PolicyId policyId, final TestProbe policiesProbe) {
+
+        final Function<Object, Optional<Entry<Policy>>> policyResponseFunction = resp -> {
+                final Policy policy = ((SudoRetrievePolicyResponse) resp).getPolicy();
+                return Optional.of(Entry.of(policy.getRevision().get().toLong(), policy));
+        };
+
+        final CompletableFuture<Optional<Entry<Policy>>> policyCacheMockPolicyRetrieval =
+                Patterns.ask(policiesProbe.ref(),
+                        SudoRetrievePolicy.of(policyId, DittoHeaders.empty()), Duration.ofSeconds(2))
+                        .thenApply(policyResponseFunction)
+                        .toCompletableFuture();
+        when(policyCacheMock.getBlocking(Mockito.any()))
+                .thenAnswer(invocation -> policyCacheMockPolicyRetrieval.get());
+        when(policyCacheMock.get(Mockito.any()))
+                .thenAnswer(invocation -> policyCacheMockPolicyRetrieval);
+
+        final CompletableFuture<Optional<Entry<Enforcer>>> policyEnforcerCacheMockPolicyRetrieval =
+                policyCacheMockPolicyRetrieval
+                        .thenApply(pp -> pp.map(p ->
+                                Entry.of(p.getRevision(), PolicyEnforcers.defaultEvaluator(p.getValueOrThrow()))));
+        when(policyEnforcerCacheMock.get(Mockito.any()))
+                .thenAnswer(invocation -> policyEnforcerCacheMockPolicyRetrieval);
     }
 
     private void materializeTestProbes(

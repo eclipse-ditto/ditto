@@ -12,79 +12,125 @@
  */
 package org.eclipse.ditto.internal.utils.cacheloaders;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
+import org.eclipse.ditto.internal.utils.cache.Cache;
+import org.eclipse.ditto.internal.utils.cache.CacheInvalidationListener;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
-import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
-import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
-import org.eclipse.ditto.policies.model.PolicyConstants;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyEntry;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.PolicyImporter;
 import org.eclipse.ditto.policies.model.PolicyRevision;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
-
-import akka.actor.ActorRef;
-import akka.actor.Scheduler;
+import com.github.benmanes.caffeine.cache.RemovalCause;
 
 /**
  * Loads a policy-enforcer by asking the policies shard-region-proxy.
  */
 @Immutable
-public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> {
+public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>>,
+        CacheInvalidationListener<EnforcementCacheKey, Entry<Enforcer>> {
 
-    private final ActorAskCacheLoader<PolicyEnforcer, Command<?>, EnforcementContext> delegate;
+    private final Cache<EnforcementCacheKey, Entry<Policy>> policyCache;
+    private final Map<EnforcementCacheKey, Set<EnforcementCacheKey>> policyIdsUsedInImports;
+    private final Set<Consumer<EnforcementCacheKey>> invalidators;
 
     /**
      * Constructor.
      *
-     * @param askWithRetryConfig the configuration for the "ask with retry" pattern applied for the cache loader.
-     * @param scheduler the scheduler to use for the "ask with retry" for retries.
-     * @param policiesShardRegionProxy the shard-region-proxy.
+     * @param policyCache policy cache to load policies from.
      */
-    public PolicyEnforcerCacheLoader(final AskWithRetryConfig askWithRetryConfig,
-            final Scheduler scheduler, final ActorRef policiesShardRegionProxy) {
-        requireNonNull(askWithRetryConfig);
-        requireNonNull(policiesShardRegionProxy);
+    public PolicyEnforcerCacheLoader(final Cache<EnforcementCacheKey, Entry<Policy>> policyCache) {
+        this.policyCache = checkNotNull(policyCache, "policyCache");
+        policyIdsUsedInImports = new HashMap<>();
+        invalidators = new HashSet<>();
+    }
 
-        final BiFunction<EntityId, EnforcementContext, Command<?>> commandCreator =
-                PolicyCommandFactory::sudoRetrievePolicy;
-        final BiFunction<Object, EnforcementContext, Entry<PolicyEnforcer>> responseTransformer =
-                PolicyEnforcerCacheLoader::handleSudoRetrievePolicyResponse;
-
-        delegate = ActorAskCacheLoader.forShard(askWithRetryConfig, scheduler, PolicyConstants.ENTITY_TYPE,
-                policiesShardRegionProxy, commandCreator, responseTransformer);
+    /**
+     * Registers a Consumer to call for when {@link org.eclipse.ditto.internal.utils.cache.Cache} entries are
+     * invalidated.
+     *
+     * @param invalidator the Consumer to call for cache invalidation.
+     */
+    public void registerCacheInvalidator(final Consumer<EnforcementCacheKey> invalidator) {
+        invalidators.add(invalidator);
     }
 
     @Override
     public CompletableFuture<Entry<PolicyEnforcer>> asyncLoad(final EnforcementCacheKey key,
             final Executor executor) {
-        return delegate.asyncLoad(key, executor);
+        return policyCache.get(key)
+                .thenApply(optionalPolicyEntry -> optionalPolicyEntry
+                        .filter(Entry::exists)
+                        .map(entry -> {
+                            final Policy initialPolicy = entry.getValueOrThrow();
+
+                            rememberImportedPolicies(initialPolicy);
+
+                            final Set<PolicyEntry> mergedPolicyEntriesSet =
+                                    PolicyImporter.mergeImportedPolicyEntries(initialPolicy, this::loadPolicyBlocking);
+                            final Policy mergedPolicy = initialPolicy.toBuilder()
+                                    .setAll(mergedPolicyEntriesSet)
+                                    .build();
+                            final long revision = initialPolicy.getRevision().map(PolicyRevision::toLong)
+                                    .orElseThrow(() -> new IllegalStateException("Bad loaded Policy: no revision"));
+                            return Entry.of(revision, PolicyEnforcer.of(mergedPolicy,
+                                    PolicyEnforcers.defaultEvaluator(mergedPolicyEntriesSet)));
+                        })
+                        .orElse(Entry.nonexistent())
+                );
     }
 
-    private static Entry<PolicyEnforcer> handleSudoRetrievePolicyResponse(final Object response,
-            @Nullable final EnforcementContext cacheLookupContext) {
-        if (response instanceof SudoRetrievePolicyResponse) {
-            final var sudoRetrievePolicyResponse = (SudoRetrievePolicyResponse) response;
-            final var policy = sudoRetrievePolicyResponse.getPolicy();
-            final long revision = policy.getRevision().map(PolicyRevision::toLong)
-                    .orElseThrow(() -> new IllegalStateException("Bad SudoRetrievePolicyResponse: no revision"));
-            return Entry.of(revision, PolicyEnforcer.of(policy, PolicyEnforcers.defaultEvaluator(policy)));
-        } else if (response instanceof PolicyNotAccessibleException) {
-            return Entry.nonexistent();
-        } else {
-            throw new IllegalStateException("expect SudoRetrievePolicyResponse, got: " + response);
+    private void rememberImportedPolicies(final Policy policy) {
+        policy.getEntityId().ifPresent(policyIdUsingImports ->
+                policy.getImports().ifPresent(imports ->
+                        imports.stream()
+                                .map(PolicyImport::getImportedPolicyId)
+                                .forEach(importedPolicyId -> {
+                                    final EnforcementCacheKey importedPolicyIdKey = EnforcementCacheKey.of(importedPolicyId);
+                                    final Set<EnforcementCacheKey> usedImports =
+                                            policyIdsUsedInImports.getOrDefault(importedPolicyIdKey, new HashSet<>());
+                                    usedImports.add(EnforcementCacheKey.of(policyIdUsingImports));
+                                    policyIdsUsedInImports.put(importedPolicyIdKey, usedImports);
+                                })
+                )
+        );
+    }
+
+    @Override
+    public void onCacheEntryInvalidated(final EnforcementCacheKey key, @Nullable final Entry<Enforcer> value,
+            final RemovalCause removalCause) {
+        if (!removalCause.wasEvicted()) {
+            Optional.ofNullable(policyIdsUsedInImports.get(key))
+                    .ifPresent(usedImports ->
+                            usedImports.forEach(id -> invalidators.forEach(invalidator -> invalidator.accept(id)))
+                    );
         }
+        // remove imports as when loading the policyEnforcer again in #loadAsync, the key is re-added
+        policyIdsUsedInImports.remove(key);
+    }
+
+    private Optional<Policy> loadPolicyBlocking(final PolicyId policyId) {
+        return policyCache.getBlocking(EnforcementCacheKey.of(policyId))
+                .filter(Entry::exists)
+                .map(Entry::getValueOrThrow);
     }
 
 }

@@ -16,19 +16,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.policies.api.PolicyReferenceTag;
+import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.internal.models.streaming.IdentifiableStreamingMessage;
-import org.eclipse.ditto.things.api.ThingTag;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
-import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
@@ -37,11 +35,15 @@ import org.eclipse.ditto.internal.utils.cluster.RetrieveStatisticsDetailsRespons
 import org.eclipse.ditto.internal.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
-import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
-import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
-import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.api.PolicyReferenceTag;
+import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.things.api.ThingTag;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
+import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -64,7 +66,8 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     static final String ACTOR_NAME = "thingsUpdater";
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-    private final ActorRef shardRegion;
+    private final ActorRef updaterShardRegion;
+    private final Consumer<PolicyTag> policyCacheInvalidationConsumer;
     private final BlockNamespaceBehavior namespaceBlockingBehavior;
     private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
     private final DistributedSub thingEventSub;
@@ -73,19 +76,21 @@ final class ThingsUpdater extends AbstractActorWithTimers {
 
     @SuppressWarnings("unused")
     private ThingsUpdater(final DistributedSub thingEventSub,
-            final ActorRef thingUpdaterShardRegion,
+            final ActorRef updaterShardRegion,
+            final ActorRef policiesShardRegion,
+            final Consumer<PolicyTag> policyCacheInvalidationConsumer,
             final UpdaterConfig updaterConfig,
             final BlockedNamespaces blockedNamespaces,
             final ActorRef pubSubMediator) {
 
         this.thingEventSub = thingEventSub;
-
-        shardRegion = thingUpdaterShardRegion;
+        this.updaterShardRegion = updaterShardRegion;
+        this.policyCacheInvalidationConsumer = policyCacheInvalidationConsumer;
 
         namespaceBlockingBehavior = BlockNamespaceBehavior.of(blockedNamespaces);
 
         retrieveStatisticsDetailsResponseSupplier =
-                RetrieveStatisticsDetailsResponseSupplier.of(shardRegion, ShardRegionFactory.UPDATER_SHARD_REGION, log);
+                RetrieveStatisticsDetailsResponseSupplier.of(updaterShardRegion, ShardRegionFactory.UPDATER_SHARD_REGION, log);
 
         if (updaterConfig.isEventProcessingActive()) {
             // schedule regular updates of subscriptions
@@ -102,7 +107,9 @@ final class ThingsUpdater extends AbstractActorWithTimers {
      * Creates Akka configuration object for this actor.
      *
      * @param thingEventSub Ditto distributed-sub access for thing events.
-     * @param thingUpdaterShardRegion shard region of thing-updaters
+     * @param updaterShardRegion shard region of thing-updaters
+     * @param policiesShardRegion shard region of policies in order to look up policies in the policies cache.
+     * @param policyCacheInvalidationConsumer the consumer to invoke for invalidation of policy caches.
      * @param updaterConfig configuration for updaters.
      * @param blockedNamespaces cache of namespaces to block.
      * @param pubSubMediator the pubsub mediator for subscription for UpdateThing commands, or null if
@@ -110,13 +117,15 @@ final class ThingsUpdater extends AbstractActorWithTimers {
      * @return the Akka configuration Props object
      */
     static Props props(final DistributedSub thingEventSub,
-            final ActorRef thingUpdaterShardRegion,
+            final ActorRef updaterShardRegion,
+            final ActorRef policiesShardRegion,
+            final Consumer<PolicyTag> policyCacheInvalidationConsumer,
             final UpdaterConfig updaterConfig,
             final BlockedNamespaces blockedNamespaces,
             final ActorRef pubSubMediator) {
 
-        return Props.create(ThingsUpdater.class, thingEventSub, thingUpdaterShardRegion, updaterConfig,
-                blockedNamespaces, pubSubMediator);
+        return Props.create(ThingsUpdater.class, thingEventSub, updaterShardRegion,
+                policiesShardRegion, policyCacheInvalidationConsumer, updaterConfig, blockedNamespaces, pubSubMediator);
     }
 
     @Override
@@ -126,7 +135,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                 .match(ThingTag.class, this::processThingTag)
                 .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
                 .matchEquals(ShardRegion.getShardRegionStateInstance(), getShardRegionState ->
-                        shardRegion.forward(getShardRegionState, getContext()))
+                        updaterShardRegion.forward(getShardRegionState, getContext()))
                 .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
                 .matchEquals(Clock.REBALANCE_TICK, this::retrieveShardIds)
                 .match(ShardRegion.ShardRegionStats.class, this::updateSubscriptions)
@@ -141,7 +150,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     }
 
     private void retrieveShardIds(final Clock rebalanceTick) {
-        shardRegion.tell(ShardRegion.getRegionStatsInstance(), getSelf());
+        updaterShardRegion.tell(ShardRegion.getRegionStatsInstance(), getSelf());
     }
 
     private void updateSubscriptions(final ShardRegion.ShardRegionStats stats) {
@@ -195,6 +204,8 @@ final class ThingsUpdater extends AbstractActorWithTimers {
         final String elementIdentifier = policyReferenceTag.asIdentifierString();
         log.withCorrelationId("policies-tags-sync-" + elementIdentifier)
                 .debug("Forwarding PolicyReferenceTag '{}'", elementIdentifier);
+        // TODO TJ cache invalidation must be done cluster wide on all search instances!
+        policyCacheInvalidationConsumer.accept(policyReferenceTag.getPolicyTag());
         forwardJsonifiableToShardRegion(policyReferenceTag, unused -> policyReferenceTag.getThingId());
     }
 
@@ -242,7 +253,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
         final ActorRef deadLetters = getContext().getSystem().deadLetters();
 
         namespaceBlockingBehavior.block(messageEnvelope)
-                .thenAccept(m -> shardRegion.tell(m, sender))
+                .thenAccept(m -> updaterShardRegion.tell(m, sender))
                 .exceptionally(throwable -> {
                     if (!Objects.equals(sender, deadLetters)) {
                         // Only acknowledge IdentifiableStreamingMessage. No other messages should be acknowledged.

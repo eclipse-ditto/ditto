@@ -12,11 +12,20 @@
  */
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
+import java.util.function.Consumer;
+
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.service.actors.StartChildActor;
 import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
+import org.eclipse.ditto.internal.utils.cache.Cache;
+import org.eclipse.ditto.internal.utils.cache.CacheFactory;
+import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
+import org.eclipse.ditto.internal.utils.cacheloaders.PolicyCacheLoader;
+import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
+import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.internal.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
@@ -28,6 +37,10 @@ import org.eclipse.ditto.internal.utils.persistence.mongo.monitoring.KamonComman
 import org.eclipse.ditto.internal.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.internal.utils.pubsub.ThingEventPubSubFactory;
+import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.thingsearch.service.common.config.SearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.util.RootSupervisorStrategyFactory;
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
@@ -68,6 +81,9 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     private static final String KAMON_METRICS_PREFIX = "updater";
 
     private static final String SEARCH_ROLE = "things-search";
+
+    private static final String POLICY_CACHE_METRIC_NAME_PREFIX = "ditto_search_updater_policy_cache_";
+    private static final String POLICY_ENFORCER_CACHE_METRIC_NAME_PREFIX = "ditto_search_updater_policy_enforcer_cache_";
 
     private final LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
@@ -112,10 +128,35 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         final ActorRef updaterShard =
                 shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps, CLUSTER_ROLE);
 
+        final PolicyCacheLoader policyCacheLoader =
+                new PolicyCacheLoader(updaterConfig.getCachesConfig().getAskWithRetryConfig(),
+                        actorSystem.getScheduler(), policiesShard);
+        final Cache<EnforcementCacheKey, Entry<Policy>> policyCache =
+                CacheFactory.createCache(policyCacheLoader, updaterConfig.getCachesConfig().getPolicyCacheConfig(),
+                        POLICY_CACHE_METRIC_NAME_PREFIX + PolicyCommand.RESOURCE_TYPE,
+                            getContext().system().dispatchers().lookup("policy-cache-dispatcher")
+                        );
+
+        final PolicyEnforcerCacheLoader policyEnforcerCacheLoader = new PolicyEnforcerCacheLoader(policyCache);
+        final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache =
+                CacheFactory.createCache(policyEnforcerCacheLoader,
+                        updaterConfig.getCachesConfig().getEnforcerCacheConfig(),
+                        POLICY_ENFORCER_CACHE_METRIC_NAME_PREFIX + PolicyCommand.RESOURCE_TYPE,
+                                getContext().system().dispatchers().lookup("policy-enforcer-cache-dispatcher"));
+
+        final Consumer<PolicyTag> policyCacheInvalidationConsumer = policyTag -> {
+                final EnforcementCacheKey cacheKey = EnforcementCacheKey.of(policyTag.getEntityId());
+                policyCache.invalidate(cacheKey);
+                policyEnforcerCache.invalidate(cacheKey);
+        };
+
+        final Cache<EnforcementCacheKey, Entry<Enforcer>> projectedEnforcerCache =
+                policyEnforcerCache.projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
+
         final var searchUpdateMapper = SearchUpdateMapper.get(actorSystem);
         final SearchUpdaterStream searchUpdaterStream =
-                SearchUpdaterStream.of(updaterConfig, actorSystem, thingsShard, policiesShard, updaterShard,
-                        changeQueueActor, dittoMongoClient.getDefaultDatabase(), blockedNamespaces,
+                SearchUpdaterStream.of(updaterConfig, actorSystem, thingsShard, policyCache, projectedEnforcerCache,
+                        updaterShard, changeQueueActor, dittoMongoClient.getDefaultDatabase(), blockedNamespaces,
                         searchUpdateMapper);
         updaterStreamKillSwitch = searchUpdaterStream.start(getContext(), false);
         updaterStreamWithAcknowledgementsKillSwitch = searchUpdaterStream.start(getContext(), true);
@@ -130,8 +171,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 ThingEventPubSubFactory.shardIdOnly(getContext(), numberOfShards, DistributedAcks.empty())
                         .startDistributedSub();
         final var thingsUpdaterProps =
-                ThingsUpdater.props(thingEventSub, updaterShard, updaterConfig, blockedNamespaces,
-                        pubSubMediator);
+                ThingsUpdater.props(thingEventSub, updaterShard, policiesShard, policyCacheInvalidationConsumer,
+                        updaterConfig, blockedNamespaces, pubSubMediator);
 
         thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME, thingsUpdaterProps);
         startClusterSingletonActor(NewEventForwarder.ACTOR_NAME,

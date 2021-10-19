@@ -12,15 +12,15 @@
  */
 package org.eclipse.ditto.gateway.service.proxy.actors;
 
-import org.eclipse.ditto.json.JsonRuntimeException;
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatistics;
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatistics;
-import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
+import org.eclipse.ditto.json.JsonRuntimeException;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
@@ -73,13 +73,13 @@ public abstract class AbstractProxyActor extends AbstractActor {
                 .match(NullPointerException.class, e -> {
                     log.error(e, "NullPointer in child actor - restarting it...", e.getMessage());
                     log.info("Restarting child...");
-                    return SupervisorStrategy.restart();
+                    return (SupervisorStrategy.Directive) SupervisorStrategy.restart();
                 })
                 .match(ActorKilledException.class, e -> {
                     log.error(e.getCause(), "ActorKilledException in child actor - stopping it...");
-                    return SupervisorStrategy.stop();
+                    return (SupervisorStrategy.Directive) SupervisorStrategy.stop();
                 })
-                .matchAny(e -> SupervisorStrategy.escalate())
+                .matchAny(e -> (SupervisorStrategy.Directive) SupervisorStrategy.escalate())
                 .build());
     }
 

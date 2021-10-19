@@ -14,16 +14,16 @@ package org.eclipse.ditto.policies.service.persistence.actors.strategies.command
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractCommandStrategies;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 
 import akka.actor.ActorSystem;
 
@@ -58,6 +58,13 @@ public final class PolicyCommandStrategies
         addStrategy(new DeletePolicyEntryStrategy(policyConfig));
         addStrategy(new ActivateTokenIntegrationStrategy(policyConfig, system));
         addStrategy(new DeactivateTokenIntegrationStrategy(policyConfig, system));
+
+        // Policy Import
+        addStrategy(new ModifyPolicyImportsStrategy(policyConfig));
+        addStrategy(new ModifyPolicyImportStrategy(policyConfig));
+        addStrategy(new RetrievePolicyImportsStrategy(policyConfig));
+        addStrategy(new RetrievePolicyImportStrategy(policyConfig));
+        addStrategy(new DeletePolicyImportStrategy(policyConfig));
 
         // Subjects
         addStrategy(new ModifySubjectsStrategy(policyConfig));

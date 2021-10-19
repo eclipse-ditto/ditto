@@ -136,9 +136,8 @@ public final class Metadata {
             @Nullable final Instant modified,
             final Collection<StartedTimer> timers,
             final Collection<ActorRef> senders) {
-
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, List.of(), timers, senders,
-                false, null);
+        return new Metadata(thingId, thingRevision, policyId, policyRevision,
+                modified, List.of(), timers, senders, false, null);
     }
 
     /**
@@ -182,8 +181,8 @@ public final class Metadata {
      * @return the copy.
      */
     public Metadata invalidateCache() {
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders, true,
-                origin);
+        return new Metadata(thingId, thingRevision, policyId, policyRevision,
+            modified, events, timers, senders, true, origin);
     }
 
     /**
@@ -371,8 +370,8 @@ public final class Metadata {
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateCache, origin);
+        return Objects.hash(thingId, thingRevision, policyId, policyRevision,
+                modified, events, timers, senders, invalidateCache, origin);
     }
 
     @Override

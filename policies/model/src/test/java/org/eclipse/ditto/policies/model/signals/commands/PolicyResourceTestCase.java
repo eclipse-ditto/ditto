@@ -19,6 +19,8 @@ import org.eclipse.ditto.json.JsonPointer;
  */
 enum PolicyResourceTestCase {
     POLICY("", PolicyResource.POLICY),
+    POLICY_IMPORTS("imports", PolicyResource.POLICY_IMPORTS),
+    POLICY_IMPORT("imports/importedPolicyId", PolicyResource.POLICY_IMPORT),
     POLICY_ENTRIES("entries", PolicyResource.POLICY_ENTRIES),
     POLICY_ENTRY("entries/label", PolicyResource.POLICY_ENTRY),
     POLICY_ENTRY_RESOURCES("entries/label/resources", PolicyResource.POLICY_ENTRY_RESOURCES),

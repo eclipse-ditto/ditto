@@ -64,6 +64,13 @@ public interface Cache<K, V> {
     boolean invalidate(K key);
 
     /**
+     * Subscribe for when cache entries are (manually/explicitly) invalidated.
+     *
+     * @param invalidationListener the {@link CacheInvalidationListener} to invoke when cache entries are invalided.
+     */
+    void subscribeForInvalidation(CacheInvalidationListener<K, V> invalidationListener);
+
+    /**
      * Associates the {@code value} with the {@code key} in this cache.
      * <p>
      * Prefer using a cache-loader instead. The current thread will not wait for cache update to complete.
@@ -73,7 +80,7 @@ public interface Cache<K, V> {
      * @param value the value.
      * @throws NullPointerException if either the given {@code key} or {@code value} is null.
      */
-    void put(final K key, final V value);
+    void put(K key, V value);
 
     /**
      * Returns a synchronous view of the entries stored in this cache as a (thread-safe) map.

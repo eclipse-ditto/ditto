@@ -20,6 +20,7 @@ import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConst
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_PATH_KEY;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_PATH_VALUE;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_ID;
+import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_IMPORTS;
 import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants.FIELD_POLICY_REVISION;
 
 import java.util.Arrays;
@@ -56,6 +57,12 @@ public final class Indices {
     private static final Index POLICY = IndexFactory.newInstance("policyId",
             Arrays.asList(FIELD_POLICY_ID, FIELD_POLICY_REVISION), false);
 
+    /**
+     * Index for dispatching policy events including policyImports.
+     */
+    private static final Index POLICY_WITH_IMPORTS = IndexFactory.newInstance("policyIdWithImports",
+            Arrays.asList(FIELD_POLICY_ID, FIELD_POLICY_REVISION, FIELD_POLICY_IMPORTS), false);
+
     private static final Index DELETE_AT = IndexFactory.newExpirationIndex(FIELD_DELETE_AT, FIELD_DELETE_AT, 0L);
 
     /**
@@ -71,7 +78,7 @@ public final class Indices {
      */
     public static List<Index> all() {
         return Collections.unmodifiableList(
-                Arrays.asList(KEY_VALUE, GLOBAL_READ, POLICY, NAMESPACE, DELETE_AT));
+                Arrays.asList(KEY_VALUE, GLOBAL_READ, POLICY, POLICY_WITH_IMPORTS, NAMESPACE, DELETE_AT));
     }
 
 }

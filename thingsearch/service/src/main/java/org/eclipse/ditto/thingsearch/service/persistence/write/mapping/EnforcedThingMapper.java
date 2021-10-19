@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.mapping;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -79,7 +82,7 @@ public final class EnforcedThingMapper {
             final Enforcer enforcer,
             final long policyRevision) {
 
-        return toWriteModel(thing, enforcer, policyRevision, -1, null);
+        return toWriteModel(thing, enforcer, policyRevision, Collections.emptyList(), -1, null);
     }
 
     /**
@@ -87,7 +90,7 @@ public final class EnforcedThingMapper {
      *
      * @param thing the Thing in JSON format.
      * @param enforcer the policy-enforcer of the Thing.
-     * @param policyRevision revision of the policy for an policy enforcer.
+     * @param policyRevision revision of the policy for a policy enforcer, or any number for an ACL enforcer.
      * @param maxArraySize only arrays smaller than this are indexed.
      * @param oldMetadata the metadata that triggered the search update, possibly containing sender information.
      * @return BSON document to write into the search index.
@@ -96,6 +99,28 @@ public final class EnforcedThingMapper {
     public static ThingWriteModel toWriteModel(final JsonObject thing,
             final Enforcer enforcer,
             final long policyRevision,
+            final int maxArraySize,
+            @Nullable final Metadata oldMetadata) {
+
+        return toWriteModel(thing, enforcer, policyRevision, Collections.emptyList(), maxArraySize, oldMetadata);
+    }
+
+    /**
+     * Map a Thing JSON into a search index write model.
+     *
+     * @param thing the Thing in JSON format.
+     * @param enforcer the policy-enforcer of the Thing.
+     * @param policyRevision revision of the policy for a policy enforcer.
+     * @param importedPolicyIds the imported PolicyIds to be set.
+     * @param maxArraySize only arrays smaller than this are indexed.
+     * @param oldMetadata the metadata that triggered the search update, possibly containing sender information.
+     * @return BSON document to write into the search index.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
+     */
+    public static ThingWriteModel toWriteModel(final JsonObject thing,
+            final Enforcer enforcer,
+            final long policyRevision,
+            final Collection<PolicyId> importedPolicyIds,
             final int maxArraySize,
             @Nullable final Metadata oldMetadata) {
 
@@ -109,19 +134,25 @@ public final class EnforcedThingMapper {
                         Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(List.of()))
                 .withOrigin(Optional.ofNullable(oldMetadata).flatMap(Metadata::getOrigin).orElse(null));
 
-        return ThingWriteModel.of(metadata, toBsonDocument(thing, enforcer, maxArraySize, metadata));
+        return ThingWriteModel.of(metadata, toBsonDocument(thing, enforcer, maxArraySize, metadata, importedPolicyIds));
     }
 
     static BsonDocument toBsonDocument(final JsonObject thing,
             final Enforcer enforcer,
             final int maxArraySize,
-            final Metadata metadata) {
+            final Metadata metadata,
+            final Collection<PolicyId> importedPolicyIds) {
 
         final var thingId = metadata.getThingId();
         final var thingRevision = metadata.getThingRevision();
         final var policyRevision = metadata.getPolicyRevision().orElse(0L);
         final BsonValue thingCopyForSorting = JsonToBson.convert(pruneArrays(thing, maxArraySize));
         final BsonArray flattenedValues = EnforcedThingFlattener.flattenJson(thing, enforcer, maxArraySize);
+
+        final BsonArray policyImports = new BsonArray(
+                importedPolicyIds.stream().map(PolicyId::toString).map(BsonString::new).collect(Collectors.toList())
+        );
+
         return new BsonDocument().append(PersistenceConstants.FIELD_ID, new BsonString(thingId.toString()))
                 .append(PersistenceConstants.FIELD_REVISION, new BsonInt64(thingRevision))
                 .append(PersistenceConstants.FIELD_NAMESPACE,
@@ -130,6 +161,7 @@ public final class EnforcedThingMapper {
                 .append(PersistenceConstants.FIELD_POLICY_ID,
                         new BsonString(metadata.getPolicyIdInPersistence()))
                 .append(PersistenceConstants.FIELD_POLICY_REVISION, new BsonInt64(policyRevision))
+                .append(PersistenceConstants.FIELD_POLICY_IMPORTS, policyImports)
                 .append(PersistenceConstants.FIELD_SORTING, thingCopyForSorting)
                 .append(PersistenceConstants.FIELD_INTERNAL, flattenedValues);
     }

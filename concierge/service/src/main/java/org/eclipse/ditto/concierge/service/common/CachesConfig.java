@@ -38,6 +38,13 @@ public interface CachesConfig {
     CacheConfig getIdCacheConfig();
 
     /**
+     * Returns the config of the policy cache.
+     *
+     * @return the config.
+     */
+    CacheConfig getPolicyCacheConfig();
+
+    /**
      * Returns the config of the enforcer cache.
      *
      * @return the config.

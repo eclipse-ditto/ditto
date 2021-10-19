@@ -16,20 +16,23 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonParseOptions;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonParseOptions;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.model.EffectedImports;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.PolicyRevision;
 import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.ResourceKey;
@@ -178,15 +181,15 @@ public final class TestConstants {
         /**
          * A known {@code PolicyEntry} for a {@code Policy}.
          */
-        public static final PolicyEntry POLICY_ENTRY = PoliciesModelFactory.newPolicyEntry(LABEL, SUBJECTS, RESOURCES);
+        public static final PolicyEntry POLICY_ENTRY = PoliciesModelFactory.newPolicyEntry(LABEL, SUBJECTS, RESOURCES, false);
 
         /**
          * known {@code PolicyEntry}s for a {@code Policy}.
          */
         public static final Iterable<PolicyEntry> POLICY_ENTRIES =
-                new HashSet<>(Arrays.asList(PoliciesModelFactory.newPolicyEntry(LABEL, SUBJECTS, RESOURCES),
-                        PoliciesModelFactory.newPolicyEntry(Label.of("foo"), SUBJECTS, RESOURCES),
-                        PoliciesModelFactory.newPolicyEntry(Label.of("bar"), SUBJECTS, RESOURCES)));
+                new HashSet<>(Arrays.asList(PoliciesModelFactory.newPolicyEntry(LABEL, SUBJECTS, RESOURCES, false),
+                        PoliciesModelFactory.newPolicyEntry(Label.of("foo"), SUBJECTS, RESOURCES, false),
+                        PoliciesModelFactory.newPolicyEntry(Label.of("bar"), SUBJECTS, RESOURCES, false)));
 
         /**
          * A known identifier for a {@code Policy}.
@@ -325,6 +328,22 @@ public final class TestConstants {
          */
         public static final SubjectNotModifiableException SUBJECT_NOT_MODIFIABLE_EXCEPTION =
                 SubjectNotModifiableException.newBuilder(POLICY_ID, LABEL.toString(), SUBJECT_ID.toString()).build();
+
+        /**
+         * A known identifier for a {@code Policy}.
+         */
+        public static final PolicyId IMPORTED_POLICY_ID = PolicyId.of("org.eclipse.ditto.example", "mySupportPolicy");
+
+        /**
+         * A known {@code PolicyImport} for a {@code Policy}.
+         */
+        public static final PolicyImport
+                POLICY_IMPORT = PolicyImport.newInstance(IMPORTED_POLICY_ID, EffectedImports.newInstance(null, null));
+
+        /**
+         * A known {@code PolicyImports} for a {@code Policy}.
+         */
+        public static final PolicyImports POLICY_IMPORTS = PolicyImports.newInstance(POLICY_IMPORT);
 
         private Policy() {
             throw new AssertionError();

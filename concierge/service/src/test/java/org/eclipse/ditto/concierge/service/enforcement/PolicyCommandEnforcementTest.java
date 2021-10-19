@@ -37,6 +37,7 @@ import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
+import org.eclipse.ditto.internal.utils.cacheloaders.PolicyCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
@@ -132,7 +133,8 @@ public final class PolicyCommandEnforcementTest {
             PolicyEntry.newInstance("defaultLabel", Collections.singleton(AUTH_SUBJECT), Collections.singleton(
                     Resource.newInstance(POLICIES_ROOT_RESOURCE_KEY,
                             EffectedPermissions.newInstance(Permission.DEFAULT_POLICY_PERMISSIONS,
-                                    Collections.emptySet()))));
+                                    Collections.emptySet()))),
+                                    false);
     private static final long POLICY_REVISION = 4712;
     private static final Policy POLICY = Policy.newBuilder(POLICY_ID)
             .setRevision(POLICY_REVISION)
@@ -142,6 +144,7 @@ public final class PolicyCommandEnforcementTest {
 
     private ActorSystem system;
     private TestProbe policiesShardRegionProbe;
+    private Cache<EnforcementCacheKey, Entry<Policy>> policyCache;
     private Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> enforcerCache;
     private ActorRef enforcer;
 
@@ -151,9 +154,9 @@ public final class PolicyCommandEnforcementTest {
 
         policiesShardRegionProbe = createPoliciesShardRegionProbe();
 
-        enforcerCache = createCache(new PolicyEnforcerCacheLoader(
-                DefaultAskWithRetryConfig.of(ConfigFactory.empty(), "test"),
+        policyCache = createCache(new PolicyCacheLoader(DefaultAskWithRetryConfig.of(ConfigFactory.empty(), "test"),
                 system.getScheduler(), policiesShardRegionProbe.ref()));
+        enforcerCache = createCache(new PolicyEnforcerCacheLoader(policyCache));
 
         enforcer = createEnforcer();
     }
@@ -723,7 +726,7 @@ public final class PolicyCommandEnforcementTest {
             final PolicyEntry entry =
                     PolicyEntry.newInstance("defaultLabel", Collections.singleton(AUTH_SUBJECT), Collections.singleton(
                             Resource.newInstance(POLICIES_ROOT_RESOURCE_KEY,
-                                    EffectedPermissions.newInstance(grants, Collections.emptySet()))));
+                                    EffectedPermissions.newInstance(grants, Collections.emptySet()))), false);
 
             final Policy policy = Policy.newBuilder(POLICY_ID)
                     .setRevision(POLICY_REVISION)
@@ -770,7 +773,8 @@ public final class PolicyCommandEnforcementTest {
         final PolicyEntry revokeWriteEntry = PolicyEntry.newInstance("revokeRead",
                 Collections.singleton(AUTH_SUBJECT), Collections.singleton(Resource.newInstance(
                         POLICIES_ROOT_RESOURCE_KEY, EffectedPermissions.newInstance(Collections.emptySet(),
-                                Collections.singleton(Permission.READ)))));
+                                Collections.singleton(Permission.READ)))),
+                        false);
         final Policy policy = POLICY.toBuilder()
                 .set(revokeWriteEntry)
                 .build();
@@ -782,7 +786,8 @@ public final class PolicyCommandEnforcementTest {
         final PolicyEntry revokeWriteEntry = PolicyEntry.newInstance("revokeWrite",
                 Collections.singleton(AUTH_SUBJECT), Collections.singleton(Resource.newInstance(
                         POLICIES_ROOT_RESOURCE_KEY, EffectedPermissions.newInstance(Collections.emptySet(),
-                                Collections.singleton(Permission.WRITE)))));
+                                Collections.singleton(Permission.WRITE)))),
+                        false);
         final Policy policy = POLICY.toBuilder()
                 .set(revokeWriteEntry)
                 .build();
@@ -794,7 +799,8 @@ public final class PolicyCommandEnforcementTest {
         final PolicyEntry revokeWriteEntry = PolicyEntry.newInstance("revokeReadOnEntries",
                 Collections.singleton(AUTH_SUBJECT), Collections.singleton(Resource.newInstance(
                         POLICIES_ENTRIES_RESOURCE_KEY, EffectedPermissions.newInstance(Collections.emptySet(),
-                                Collections.singleton(Permission.READ)))));
+                                Collections.singleton(Permission.READ)))),
+                        false);
         final Policy policy = POLICY.toBuilder()
                 .set(revokeWriteEntry)
                 .build();
@@ -807,7 +813,8 @@ public final class PolicyCommandEnforcementTest {
                 Collections.singleton(AUTH_SUBJECT), Collections.singleton(Resource.newInstance(
                         POLICIES_ENTRIES_RESOURCE_KEY,
                         EffectedPermissions.newInstance(Collections.singleton(Permission.READ),
-                                Collections.emptySet()))));
+                                Collections.emptySet()))),
+                        false);
         final Policy policy = Policy.newBuilder(POLICY_ID)
                 .setRevision(POLICY_REVISION)
                 .set(readOnEntries)
@@ -820,7 +827,8 @@ public final class PolicyCommandEnforcementTest {
         final PolicyEntry revokeWriteEntry = PolicyEntry.newInstance("revokeWriteOnEntries",
                 Collections.singleton(AUTH_SUBJECT), Collections.singleton(Resource.newInstance(
                         POLICIES_ENTRIES_RESOURCE_KEY, EffectedPermissions.newInstance(Collections.emptySet(),
-                                Collections.singleton(Permission.WRITE)))));
+                                Collections.singleton(Permission.WRITE)))),
+                        false);
         final Policy policy = POLICY.toBuilder()
                 .set(revokeWriteEntry)
                 .build();
@@ -832,7 +840,8 @@ public final class PolicyCommandEnforcementTest {
         final PolicyEntry adminEntry = PolicyEntry.newInstance("admin",
                 List.of(AUTH_SUBJECT_2),
                 Set.of(Resource.newInstance(POLICIES_ROOT_RESOURCE_KEY,
-                        EffectedPermissions.newInstance(Permission.DEFAULT_POLICY_PERMISSIONS, Set.of()))));
+                        EffectedPermissions.newInstance(Permission.DEFAULT_POLICY_PERMISSIONS, Set.of()))),
+                        false);
         final PolicyEntry executeEntry = PolicyEntry.newInstance("execute",
                 List.of(AUTH_SUBJECT),
                 Set.of(Resource.newInstance(
@@ -841,9 +850,9 @@ public final class PolicyCommandEnforcementTest {
                         Resource.newInstance(PoliciesResourceType.policyResource(
                                 "/entries/allowed/actions/deactivateTokenIntegration"),
                                 EffectedPermissions.newInstance(Set.of(Permission.EXECUTE), Set.of()))
-                ));
-        final PolicyEntry allowedEntry = PolicyEntry.newInstance("allowed", List.of(), Set.of());
-        final PolicyEntry forbiddenEntry = PolicyEntry.newInstance("forbidden", List.of(), Set.of());
+                ), false);
+        final PolicyEntry allowedEntry = PolicyEntry.newInstance("allowed", List.of(), Set.of(), false);
+        final PolicyEntry forbiddenEntry = PolicyEntry.newInstance("forbidden", List.of(), Set.of(), false);
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
                 .setRevision(POLICY_REVISION)
                 .set(adminEntry)
@@ -864,12 +873,12 @@ public final class PolicyCommandEnforcementTest {
         final ActorRef conciergeForwarder = new TestProbe(system, createUniqueName("conciergeForwarder-")).ref();
 
         final PolicyCommandEnforcement.Provider enforcementProvider =
-                new PolicyCommandEnforcement.Provider(policiesShardRegionProbe.ref(), enforcerCache);
+                new PolicyCommandEnforcement.Provider(policiesShardRegionProbe.ref(), policyCache, enforcerCache);
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(enforcementProvider);
 
         return system.actorOf(EnforcerActor.props(pubSubMediator, enforcementProviders, conciergeForwarder,
-                null, null, null),
+                null, null, null, null),
                 ENTITY_ID.toString());
     }
 

@@ -96,6 +96,12 @@ final class ImmutablePolicyBuilderLabelScoped implements PolicyBuilder.LabelScop
     }
 
     @Override
+    public PolicyBuilder setImports(@Nullable final PolicyImports imports) {
+        delegate.setImports(imports);
+        return this;
+    }
+
+    @Override
     public ImmutablePolicyBuilderLabelScoped set(final PolicyEntry entry) {
         delegate.set(entry);
         return this;
@@ -216,6 +222,12 @@ final class ImmutablePolicyBuilderLabelScoped implements PolicyBuilder.LabelScop
             final String... furtherRevokedPermissions) {
 
         delegate.setRevokedPermissionsFor(label, resourceKey, revokedPermission, furtherRevokedPermissions);
+        return this;
+    }
+
+    @Override
+    public ImmutablePolicyBuilderLabelScoped setImportableFor(final CharSequence label, final boolean importable) {
+        delegate.setImportableFor(label, importable);
         return this;
     }
 

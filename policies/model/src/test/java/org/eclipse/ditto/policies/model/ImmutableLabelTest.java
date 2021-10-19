@@ -53,4 +53,9 @@ public final class ImmutableLabelTest extends LengthRestrictionTestBase {
         ImmutableLabel.of(generateStringExceedingMaxLength());
     }
 
+    @Test(expected = LabelInvalidException.class)
+    public void createBlocklistedLabel() {
+        final String invalidLabel = "imported-someLabel";
+        ImmutableLabel.of(invalidLabel);
+    }
 }

@@ -23,14 +23,14 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.Entity;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.entity.Entity;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * A Policy contains {@link PolicyEntry}s containing information about which {@link Subjects} are granted/revoked
@@ -152,12 +152,23 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
     /**
      * Removes the entry identified by the specified label from this Policy.
      *
-     * @param label the nabel identifying the entry to be removed from this Policy.
+     * @param label the label identifying the entry to be removed from this Policy.
      * @return a copy of this Policy which does not contain the identified entry anymore.
      * @throws NullPointerException if {@code entry} is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
      */
     Policy removeEntry(CharSequence label);
+
+    /**
+     * Removes the entry identified by the specified labels from this Policy.
+     *
+     * @param labels the labels identifying the entries to be removed from this Policy.
+     * @return a copy of this Policy which does not contain the identified entries anymore.
+     * @throws NullPointerException if {@code labels} is {@code null}.
+     * @throws IllegalArgumentException if {@code labels} is empty.
+     * @since 2.x.0 TODO TJ
+     */
+    Policy removeEntries(Iterable<CharSequence> labels);
 
     /**
      * Removes the specified entry from this Policy.
@@ -336,6 +347,19 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
     Optional<EffectedPermissions> getEffectedPermissionsFor(CharSequence label, SubjectId subjectId,
             ResourceKey resourceKey);
 
+
+    /**
+     * Sets the importable flag for the specified label.
+     *
+     * @param label the label identifying the PolicyEntry to modify.
+     * @param importable the Importable flag.
+     * @return a copy of this Policy with the changed state.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code label} is empty.
+     * @since 2.x.0 TODO TJ
+     */
+    Policy setImportableFor(CharSequence label, boolean importable);
+
     /**
      * Indicates whether this Policy is empty.
      *
@@ -349,6 +373,14 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
      * @return this Policy's entries amount.
      */
     int getSize();
+
+    /**
+     * Returns the PolicyImports this Policy has.
+     *
+     * @return the PolicyImports of this Policy.
+     * @since 2.x.0 TODO TJ
+     */
+    Optional<PolicyImports> getImports();
 
     /**
      * Returns the entries of this Policy as set. The returned set is modifiable but disjoint from this Policy; thus
@@ -448,6 +480,13 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
          */
         public static final JsonFieldDefinition<String> ID =
                 JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the Policy's imports.
+         * @since 2.x.0 TODO TJ
+         */
+        public static final JsonFieldDefinition<JsonObject> IMPORTS =
+                JsonFactory.newJsonObjectFieldDefinition("imports", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Policy's entries.

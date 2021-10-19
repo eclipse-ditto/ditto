@@ -17,22 +17,24 @@ import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
-import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
-import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
+import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
@@ -45,12 +47,10 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDelete
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
-
 import akka.NotUsed;
 import akka.actor.ActorRef;
-import akka.actor.Scheduler;
 import akka.dispatch.MessageDispatcher;
+import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
@@ -62,14 +62,18 @@ import akka.stream.javadsl.Source;
 final class EnforcementFlow {
 
     private static final Source<Entry<Enforcer>, NotUsed> ENFORCER_NONEXISTENT = Source.single(Entry.nonexistent());
+    private static final Source<Entry<Policy>, NotUsed> POLICY_NONEXISTENT = Source.single(Entry.nonexistent());
+    private static final Source<List<PolicyId>, NotUsed> POLICY_IMPORTS_NONEXISTENT = Source.single(List.of());
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final CachingSignalEnrichmentFacade thingsFacade;
+    private final Cache<EnforcementCacheKey, Entry<Policy>> policyCache;
     private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
     private final Duration cacheRetryDelay;
     private final int maxArraySize;
 
     private EnforcementFlow(final ActorRef thingsShardRegion,
+            final Cache<EnforcementCacheKey, Entry<Policy>> policyCache,
             final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
             final AskWithRetryConfig askWithRetryConfig,
             final StreamCacheConfig streamCacheConfig,
@@ -78,6 +82,7 @@ final class EnforcementFlow {
 
         this.thingsFacade = createThingsFacade(thingsShardRegion, askWithRetryConfig.getAskTimeout(), streamCacheConfig,
                 cacheDispatcher);
+        this.policyCache = policyCache;
         this.policyEnforcerCache = policyEnforcerCache;
         this.cacheRetryDelay = streamCacheConfig.getRetryDelay();
         this.maxArraySize = maxArraySize;
@@ -88,28 +93,21 @@ final class EnforcementFlow {
      *
      * @param updaterStreamConfig configuration of the updater stream.
      * @param thingsShardRegion the shard region to retrieve things from.
-     * @param policiesShardRegion the shard region to retrieve policies from.
+     * @param policyCache the policy cache to use in order to load policies.
+     * @param policyEnforcerCache the policy enforcer cache to use.
      * @param cacheDispatcher dispatcher for the enforcer cache.
-     * @param scheduler the scheduler to use for retrying timed out asks for the policy enforcer cache loader.
      * @return an EnforcementFlow object.
      */
     public static EnforcementFlow of(final StreamConfig updaterStreamConfig,
             final ActorRef thingsShardRegion,
-            final ActorRef policiesShardRegion,
-            final MessageDispatcher cacheDispatcher,
-            final Scheduler scheduler) {
+            final Cache<EnforcementCacheKey, Entry<Policy>> policyCache,
+            final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
+            final MessageDispatcher cacheDispatcher) {
 
         final var askWithRetryConfig = updaterStreamConfig.getAskWithRetryConfig();
         final var streamCacheConfig = updaterStreamConfig.getCacheConfig();
 
-        final AsyncCacheLoader<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
-                new PolicyEnforcerCacheLoader(askWithRetryConfig, scheduler, policiesShardRegion);
-        final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache =
-                CacheFactory.createCache(policyEnforcerCacheLoader, streamCacheConfig,
-                                "things-search_enforcementflow_enforcer_cache_policy", cacheDispatcher)
-                        .projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
-
-        return new EnforcementFlow(thingsShardRegion, policyEnforcerCache, askWithRetryConfig,
+        return new EnforcementFlow(thingsShardRegion, policyCache, policyEnforcerCache, askWithRetryConfig,
                 streamCacheConfig, updaterStreamConfig.getMaxArraySize(), cacheDispatcher);
     }
 
@@ -123,15 +121,25 @@ final class EnforcementFlow {
      *
      * @param entry the enforcer cache entry
      * @param metadata the metadata
+     * @param policyId the policy ID for which a cache entry should be read - might differ from the one contained in
+     * {@code metadata} - if that is the case, a cache reload is never forced.
      * @param iteration how many times cache read was attempted
      * @return whether to reload the cache
      */
     private static boolean shouldReloadCache(@Nullable final Entry<?> entry, final Metadata metadata,
-            final int iteration) {
+            final EnforcementCacheKey policyId, final int iteration) {
 
         if (iteration <= 0) {
-            return metadata.shouldInvalidateCache() || entry == null || !entry.exists() ||
-                    entry.getRevision() < metadata.getPolicyRevision().orElse(Long.MAX_VALUE);
+            // the following will result to "false" when e.g. the "metadata" contains a changed imported policyId,
+            // but the "policyId" to load the enforcer for did not change
+            final boolean updatedPolicyEqualsPolicyToLoad = metadata.getPolicyId()
+                    .filter(updatedPolicyId -> policyId.getId().equals(updatedPolicyId))
+                    .isPresent();
+
+            return updatedPolicyEqualsPolicyToLoad && (
+                    metadata.shouldInvalidateCache() || entry == null || !entry.exists() ||
+                    entry.getRevision() < metadata.getPolicyRevision().orElse(Long.MAX_VALUE)
+            );
         } else {
             // never attempt to reload cache more than once
             return false;
@@ -192,7 +200,7 @@ final class EnforcementFlow {
             thingFuture = thingsFacade.retrieveThing(thingId, metadata.getEvents(), metadata.getThingRevision());
         }
 
-        return Source.fromCompletionStage(thingFuture)
+        return Source.completionStage(thingFuture)
                 .filter(thing -> !thing.isEmpty())
                 .<Map.Entry<ThingId, JsonObject>>map(thing -> new AbstractMap.SimpleImmutableEntry<>(thingId, thing))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<Map.Entry<ThingId, JsonObject>, NotUsed>>()
@@ -211,11 +219,20 @@ final class EnforcementFlow {
             return Source.single(ThingDeleteModel.of(metadata));
         } else {
             return getEnforcer(metadata, thing)
-                    .map(entry -> {
-                        if (entry.exists()) {
+                    .flatMapConcat(entry ->
+                            getPolicyImports(metadata, thing)
+                                    .map(imports -> Pair.create(entry, imports))
+                    )
+                    .map(entryAndPolicies -> {
+                        final Entry<Enforcer> enforcerEntry = entryAndPolicies.first();
+                        final List<PolicyId> importedPolicyIds = entryAndPolicies.second();
+
+                        if (enforcerEntry.exists()) {
                             try {
-                                return EnforcedThingMapper.toWriteModel(thing, entry.getValueOrThrow(),
-                                        entry.getRevision(),
+                                return EnforcedThingMapper.toWriteModel(thing,
+                                        enforcerEntry.getValueOrThrow(),
+                                        enforcerEntry.getRevision(),
+                                        importedPolicyIds,
                                         maxArraySize,
                                         metadata);
                             } catch (final JsonRuntimeException e) {
@@ -254,7 +271,7 @@ final class EnforcementFlow {
         final Source<Entry<Enforcer>, ?> lazySource = Source.lazySource(() -> {
             final CompletionStage<Source<Entry<Enforcer>, NotUsed>> enforcerFuture = policyEnforcerCache.get(policyId)
                     .thenApply(optionalEnforcerEntry -> {
-                        if (shouldReloadCache(optionalEnforcerEntry.orElse(null), metadata, iteration)) {
+                        if (shouldReloadCache(optionalEnforcerEntry.orElse(null), metadata, policyId, iteration)) {
                             // invalid entry; invalidate and retry after delay
                             policyEnforcerCache.invalidate(policyId);
                             return readCachedEnforcer(metadata, policyId, iteration + 1)
@@ -282,6 +299,109 @@ final class EnforcementFlow {
         final var sudoRetrieveThingFacade = SudoSignalEnrichmentFacade.of(thingsShardRegion, timeout);
         return CachingSignalEnrichmentFacade.of(sudoRetrieveThingFacade, streamCacheConfig, cacheDispatcher,
                 "things-search_enforcementflow_enforcer_cache_things");
+    }
+
+    /**
+     * Get the imports of a thing's policy or an empty source if it does not exist.
+     *
+     * @param metadata metadata of the thing.
+     * @param thing    the thing
+     * @return source of list of policies or an empty source.
+     */
+    private Source<List<PolicyId>, NotUsed> getPolicyImports(final Metadata metadata, final JsonObject thing) {
+        try {
+            return thing.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of)
+                    .map(policyId -> readCachedImportedPolicies(metadata, EnforcementCacheKey.of(policyId)))
+                    .orElse(POLICY_IMPORTS_NONEXISTENT);
+        } catch (final PolicyIdInvalidException e) {
+            return POLICY_IMPORTS_NONEXISTENT;
+        }
+    }
+
+    private Source<Entry<Policy>, NotUsed> readCachedPolicy(final Metadata metadata,
+            final EnforcementCacheKey policyId, final int iteration) {
+
+        final Source<Entry<Policy>, ?> lazySource = Source.lazySource(() -> {
+            final CompletionStage<Source<Entry<Policy>, NotUsed>> policyFuture = policyCache.get(policyId)
+                    .thenApply(optionalPolicyEntry -> {
+                        if (shouldReloadCache(optionalPolicyEntry.orElse(null), metadata, policyId, iteration)) {
+                            // invalid entry; invalidate and retry after delay
+                            policyCache.invalidate(policyId);
+                            return readCachedPolicy(metadata, policyId, iteration + 1)
+                                    .initialDelay(cacheRetryDelay);
+                        } else {
+                            return optionalPolicyEntry.map(Source::single)
+                                    .orElse(POLICY_NONEXISTENT);
+                        }
+                    })
+                    .exceptionally(error -> {
+                        log.error("Failed to read policyCache", error);
+                        return POLICY_NONEXISTENT;
+                    });
+
+            return Source.completionStageSource(policyFuture);
+        });
+
+        return lazySource.viaMat(Flow.create(), Keep.none());
+    }
+
+    private Source<Optional<PolicyId>, NotUsed> readCachedPolicy(final EnforcementCacheKey policyId) {
+
+        final Source<Optional<PolicyId>, ?> lazySource = Source.lazySource(() -> {
+            final CompletionStage<Source<Optional<PolicyId>, NotUsed>> policyFuture =
+                    policyCache.get(policyId)
+                            .thenApply(optionalPolicyEntry ->
+                                            Source.single(optionalPolicyEntry.flatMap(policyEntry -> {
+                                                    try {
+                                                        return Optional.of(policyEntry
+                                                                .getValueOrThrow()
+                                                                .getEntityId()
+                                                                .orElseThrow()
+                                                        );
+                                                    } catch (final NoSuchElementException e) {
+                                                        return Optional.empty();
+                                                    }
+                                            }))
+                            )
+                            .exceptionally(error -> {
+                                log.error("Failed to read policyCache", error);
+                                return Source.single(Optional.empty());
+                            });
+
+            return Source.completionStageSource(policyFuture);
+        });
+
+        return lazySource.viaMat(Flow.create(), Keep.none());
+    }
+
+    private Source<List<PolicyId>, NotUsed> readCachedImportedPolicies(final Metadata metadata,
+            final EnforcementCacheKey policyId) {
+
+        return readCachedPolicy(metadata, policyId, 0).flatMapConcat(policyEntry -> {
+            final Policy policy;
+            try {
+                policy = policyEntry.getValueOrThrow();
+            } catch (NoSuchElementException e) {
+                return POLICY_IMPORTS_NONEXISTENT;
+            }
+
+            final Optional<PolicyImports> optionalPolicyImports = policy.getImports();
+            if (optionalPolicyImports.isEmpty()) {
+                return POLICY_IMPORTS_NONEXISTENT;
+            }
+
+            final PolicyImports policyImports = optionalPolicyImports.get();
+            final Source<Optional<PolicyId>, NotUsed> policySource =
+                    Source.from(policyImports)
+                            .flatMapConcat(policyImport -> readCachedPolicy(
+                                    EnforcementCacheKey.of(policyImport.getImportedPolicyId())));
+
+            return policySource.grouped(policyImports.getSize()).map(entries ->
+                    entries.stream().filter(Optional::isPresent)
+                            .map(Optional::get)
+                            .collect(Collectors.toList())
+            );
+        });
     }
 
 }

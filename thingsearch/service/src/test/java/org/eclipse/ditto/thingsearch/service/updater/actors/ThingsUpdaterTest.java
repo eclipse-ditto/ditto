@@ -31,23 +31,23 @@ import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.policies.api.PolicyReferenceTag;
-import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
-import org.eclipse.ditto.things.api.ThingTag;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
-import org.eclipse.ditto.thingsearch.service.common.config.DefaultUpdaterConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.ddata.DistributedData;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
-import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
+import org.eclipse.ditto.policies.api.PolicyReferenceTag;
+import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.things.api.ThingTag;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
+import org.eclipse.ditto.thingsearch.service.common.config.DefaultUpdaterConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -210,11 +210,12 @@ public final class ThingsUpdaterTest {
         final UpdaterConfig config =
                 DefaultUpdaterConfig.of(ConfigFactory.parseString("updater.event-processing-active=false"));
         final ActorRef thingsShardRegion = shardRegionFactory.getThingsShardRegion(NUMBER_OF_SHARDS);
+        final ActorRef policiesShardRegion = shardRegionFactory.getPoliciesShardRegion(NUMBER_OF_SHARDS);
         final DistributedSub mockDistributedSub = Mockito.mock(DistributedSub.class);
         final TestProbe pubSubMediatorProbe = TestProbe.apply(actorSystem);
         return actorSystem.actorOf(
-                ThingsUpdater.props(mockDistributedSub, thingsShardRegion, config, blockedNamespaces,
-                        pubSubMediatorProbe.ref()));
+                ThingsUpdater.props(mockDistributedSub, thingsShardRegion, policiesShardRegion, foo -> {}, config,
+                        blockedNamespaces, pubSubMediatorProbe.ref()));
     }
 
     /**

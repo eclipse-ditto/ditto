@@ -14,14 +14,14 @@ package org.eclipse.ditto.policies.model;
 
 import javax.annotation.Nonnull;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Represents a single entry of a {@link Policy} consisting of a {@code label}, {@code subjects} and {@code resources}.
@@ -40,8 +40,24 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
      */
     static PolicyEntry newInstance(final CharSequence label, final Iterable<Subject> subjects,
             final Iterable<Resource> resources) {
-
         return PoliciesModelFactory.newPolicyEntry(label, subjects, resources);
+    }
+
+    /**
+     * Returns a new {@code PolicyEntry} with the specified {@code label}, {@code subjects} and {@code resources}.
+     *
+     * @param label the Label of the PolicyEntry to create.
+     * @param subjects the Subjects contained in the PolicyEntry to create.
+     * @param resources the Resources of the PolicyEntry to create.
+     * @param importable the importable flag.
+     * @return the new {@code PolicyEntry}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code label} is empty.
+     * @since 2.x.0 TODO TJ
+     */
+    static PolicyEntry newInstance(final CharSequence label, final Iterable<Subject> subjects,
+            final Iterable<Resource> resources, final boolean importable) {
+        return PoliciesModelFactory.newPolicyEntry(label, subjects, resources, importable);
     }
 
     /**
@@ -74,6 +90,14 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
      * @return the Resources of this Policy Entry.
      */
     Resources getResources();
+
+    /**
+     * Returns if this Policy Entry is allowed to be imported by others.
+     *
+     * @return whether or not this entry is importable.
+     * @since 2.x.0 TODO TJ
+     */
+    boolean isImportable();
 
     /**
      * Returns all non hidden marked fields of this Policy entry.
@@ -114,6 +138,13 @@ public interface PolicyEntry extends Jsonifiable.WithFieldSelectorAndPredicate<J
          */
         public static final JsonFieldDefinition<JsonObject> RESOURCES =
                 JsonFactory.newJsonObjectFieldDefinition("resources", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the PolicyEntry's importable flag.
+         * @since 2.x.0 TODO TJ
+         */
+        public static final JsonFieldDefinition<Boolean> IMPORTABLE = JsonFactory
+                .newBooleanFieldDefinition("importable", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

@@ -138,7 +138,7 @@ public final class AskWithRetryTest {
 
             expectMsg(ASK_MESSAGE);
             for (int i = 0; i < retryAttempts; i++) {
-                expectMsg(askTimeout.multipliedBy(3 + i), ASK_MESSAGE);
+                expectMsg(askTimeout.multipliedBy(4 + i), ASK_MESSAGE);
                 if (i == 2) {
                     reply(ASK_MESSAGE_SUCCESS_RESPONSE);
                     break;

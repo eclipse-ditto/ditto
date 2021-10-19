@@ -34,16 +34,19 @@ import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
+import org.eclipse.ditto.internal.utils.cacheloaders.PolicyCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.ThingEnforcementIdCacheLoader;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
+import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.ThingBuilder;
@@ -79,8 +82,8 @@ public final class TestSetup {
 
     static {
         final DefaultScopedConfig dittoScopedConfig = DefaultScopedConfig.dittoScoped(RAW_CONFIG);
-        final DefaultScopedConfig conciergeScopedConfig =
-                DefaultScopedConfig.newInstance(dittoScopedConfig, "concierge");
+        final DefaultScopedConfig conciergeScopedConfig = DefaultScopedConfig.newInstance(dittoScopedConfig,
+                "concierge");
 
         CACHES_CONFIG = DefaultCachesConfig.of(conciergeScopedConfig);
     }
@@ -91,20 +94,16 @@ public final class TestSetup {
         return new EnforcerActorBuilder(system, testActorRef, mockEntitiesActor).build();
     }
 
-    public static ActorRef newEnforcerActor(final ActorSystem system,
-            final ActorRef testActorRef,
-            final ActorRef mockEntitiesActor,
-            @Nullable final PreEnforcer preEnforcer) {
+    public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
+            final ActorRef mockEntitiesActor, @Nullable final PreEnforcer preEnforcer) {
         return new EnforcerActorBuilder(system, testActorRef, mockEntitiesActor).setPreEnforcer(preEnforcer).build();
     }
 
-    public static ActorRef newEnforcerActor(final ActorSystem system,
-            final ActorRef testActorRef,
-            final ActorRef thingsShardRegion,
-            final ActorRef policiesShardRegion,
+    public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
+            final ActorRef thingsShardRegion, final ActorRef policiesShardRegion,
             @Nullable final PreEnforcer preEnforcer) {
-        return new EnforcerActorBuilder(system, testActorRef, thingsShardRegion, policiesShardRegion).setPreEnforcer(
-                preEnforcer).build();
+        return new EnforcerActorBuilder(system, testActorRef, thingsShardRegion, policiesShardRegion)
+                .setPreEnforcer(preEnforcer).build();
     }
 
     static class EnforcerActorBuilder {
@@ -113,19 +112,20 @@ public final class TestSetup {
         private final ActorRef testActorRef;
         private final ActorRef thingsShardRegion;
         private final ActorRef policiesShardRegion;
-        @Nullable private ActorRef conciergeForwarder;
-        @Nullable private PreEnforcer preEnforcer;
+        @Nullable
+        private ActorRef conciergeForwarder;
+        @Nullable
+        private PreEnforcer preEnforcer;
 
-        EnforcerActorBuilder(final ActorSystem system, final ActorRef testActorRef,
-                final ActorRef mockEntityActors) {
+        EnforcerActorBuilder(final ActorSystem system, final ActorRef testActorRef, final ActorRef mockEntityActors) {
             this.system = system;
             this.testActorRef = testActorRef;
             this.thingsShardRegion = mockEntityActors;
             this.policiesShardRegion = mockEntityActors;
         }
 
-        EnforcerActorBuilder(final ActorSystem system, final ActorRef testActorRef,
-                final ActorRef thingsShardRegion, final ActorRef policiesShardRegion) {
+        EnforcerActorBuilder(final ActorSystem system, final ActorRef testActorRef, final ActorRef thingsShardRegion,
+                final ActorRef policiesShardRegion) {
             this.system = system;
             this.testActorRef = testActorRef;
             this.thingsShardRegion = thingsShardRegion;
@@ -150,8 +150,11 @@ public final class TestSetup {
 
             final AskWithRetryConfig askWithRetryConfig = CACHES_CONFIG.getAskWithRetryConfig();
 
-            final PolicyEnforcerCacheLoader policyEnforcerCacheLoader =
-                    new PolicyEnforcerCacheLoader(askWithRetryConfig, system.getScheduler(), policiesShardRegion);
+            final PolicyCacheLoader policyCacheLoader = new PolicyCacheLoader(
+                    DefaultAskWithRetryConfig.of(ConfigFactory.empty(), "test"), system.getScheduler(), policiesShardRegion);
+            final Cache<EnforcementCacheKey, Entry<Policy>> policyCache = CaffeineCache.of(Caffeine.newBuilder(),
+                    policyCacheLoader);
+            final PolicyEnforcerCacheLoader policyEnforcerCacheLoader = new PolicyEnforcerCacheLoader(policyCache);
             final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache =
                     CaffeineCache.of(Caffeine.newBuilder(), policyEnforcerCacheLoader);
             final Cache<EnforcementCacheKey, Entry<Enforcer>> projectedEnforcerCache =
@@ -163,15 +166,15 @@ public final class TestSetup {
 
             final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
             enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
-                    policiesShardRegion, thingIdCache, projectedEnforcerCache, preEnforcer));
-            enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
+                    policiesShardRegion, thingIdCache, policyCache, projectedEnforcerCache, preEnforcer));
+            enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyCache, policyEnforcerCache));
             enforcementProviders.add(
                     new LiveSignalEnforcement.Provider(thingIdCache, projectedEnforcerCache,
                             new DummyLiveSignalPub(testActorRef)));
 
             final Props props =
                     EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, preEnforcer, null,
-                            null);
+                            null, null);
             return system.actorOf(props, EnforcerActor.ACTOR_NAME);
         }
 
@@ -181,14 +184,11 @@ public final class TestSetup {
         return "conciergeForwarder-" + UUID.randomUUID();
     }
 
-
     public static DittoHeaders headers(final JsonSchemaVersion schemaVersion) {
         return DittoHeaders.newBuilder()
-                .authorizationContext(
-                        AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, SUBJECT,
-                                AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))))
-                .schemaVersion(schemaVersion)
-                .build();
+                .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        SUBJECT, AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))))
+                .schemaVersion(schemaVersion).build();
     }
 
     public static ThingBuilder.FromScratch newThing() {

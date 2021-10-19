@@ -17,9 +17,9 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.model.signals.commands.PolicyResource;
 import org.eclipse.ditto.protocol.PayloadPathMatcher;
 import org.eclipse.ditto.protocol.UnknownPathException;
-import org.eclipse.ditto.policies.model.signals.commands.PolicyResource;
 
 /**
  * PayloadPathMatcher implementation that handles policy resources.
@@ -37,6 +37,8 @@ final class PolicyPathMatcher implements PayloadPathMatcher {
 
     static {
         resourceNames.put(PolicyResource.POLICY, "policy");
+        resourceNames.put(PolicyResource.POLICY_IMPORTS, "policyImports");
+        resourceNames.put(PolicyResource.POLICY_IMPORT, "policyImport");
         resourceNames.put(PolicyResource.POLICY_ENTRIES, "policyEntries");
         resourceNames.put(PolicyResource.POLICY_ENTRY, "policyEntry");
         resourceNames.put(PolicyResource.POLICY_ENTRY_RESOURCES, "resources");

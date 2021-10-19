@@ -20,12 +20,13 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
-import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 
 import akka.Done;
 import akka.NotUsed;
@@ -58,9 +59,10 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             final ActorRef conciergeForwarder,
             @Nullable final PreEnforcer preEnforcer,
             @Nullable final Cache<CacheKey, Entry<CacheKey>> thingIdCache,
+            @Nullable final Cache<CacheKey, Entry<Policy>> policyCache,
             @Nullable final Cache<CacheKey, Entry<Enforcer>> policyEnforcerCache) {
 
-        super(pubSubMediator, conciergeForwarder, thingIdCache, policyEnforcerCache);
+        super(pubSubMediator, conciergeForwarder, thingIdCache, policyCache, policyEnforcerCache);
         final ActorRef enforcementScheduler =
                 getContext().actorOf(EnforcementScheduler.props(), EnforcementScheduler.ACTOR_NAME);
         sink = assembleSink(enforcementProviders, preEnforcer, enforcementScheduler);
@@ -74,7 +76,8 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param conciergeForwarder an actorRef to concierge forwarder.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
      * @param thingIdCache the cache for Thing IDs to Policy ID.
-     * @param policyEnforcerCache the Policy cache.
+     * @param policyCache the Policy cache.
+     * @param policyEnforcerCache the Policy enforcer cache.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
@@ -82,10 +85,11 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             final ActorRef conciergeForwarder,
             @Nullable final PreEnforcer preEnforcer,
             @Nullable final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
+            @Nullable final Cache<EnforcementCacheKey, Entry<Policy>> policyCache,
             @Nullable final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache) {
 
         return Props.create(EnforcerActor.class, pubSubMediator, enforcementProviders, conciergeForwarder, preEnforcer,
-                thingIdCache, policyEnforcerCache);
+                thingIdCache, policyCache, policyEnforcerCache);
     }
 
     /**
@@ -96,16 +100,19 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param conciergeForwarder an actorRef to concierge forwarder.
      * @param thingIdCache the cache for Thing IDs to Policy ID.
-     * @param policyEnforcerCache the Policy cache.
+     * @param policyCache the Policy cache.
+     * @param policyEnforcerCache the Policy enforcer cache.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
             final Set<EnforcementProvider<?>> enforcementProviders,
             final ActorRef conciergeForwarder,
             @Nullable final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
+            @Nullable final Cache<EnforcementCacheKey, Entry<Policy>> policyCache,
             @Nullable final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> policyEnforcerCache) {
 
-        return props(pubSubMediator, enforcementProviders, conciergeForwarder, null, thingIdCache, policyEnforcerCache);
+        return props(pubSubMediator, enforcementProviders, conciergeForwarder, null, thingIdCache,
+                policyCache, policyEnforcerCache);
     }
 
     @Override

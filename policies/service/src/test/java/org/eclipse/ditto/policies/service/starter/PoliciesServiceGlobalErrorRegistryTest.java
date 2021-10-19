@@ -31,6 +31,7 @@ import org.eclipse.ditto.placeholders.PlaceholderFunctionUnknownException;
 import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyImportNotAccessibleException;
 import org.eclipse.ditto.protocol.UnknownChannelException;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
@@ -57,6 +58,7 @@ public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorReg
                 AcknowledgementLabelInvalidException.class,
                 AcknowledgementCorrelationIdMissingException.class,
                 PathUnknownException.class,
+                PolicyImportNotAccessibleException.class,
 
                 // added due to ditto-model-placeholders
                 PlaceholderFunctionUnknownException.class,

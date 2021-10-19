@@ -17,7 +17,12 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
+import org.eclipse.ditto.internal.utils.cache.Cache;
+import org.eclipse.ditto.internal.utils.cache.entry.Entry;
+import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamCacheConfig;
@@ -75,7 +80,8 @@ public final class SearchUpdaterStream {
      * @param updaterConfig the search updater configuration settings.
      * @param actorSystem actor system to run the stream in.
      * @param thingsShard shard region proxy of things.
-     * @param policiesShard shard region proxy of policies.
+     * @param policyCache the policy cache to use in order to load policies.
+     * @param policyEnforcerCache the policy enforcer cache to use.
      * @param updaterShard shard region of search updaters.
      * @param changeQueueActor reference of the change queue actor.
      * @param database MongoDB database.
@@ -85,7 +91,8 @@ public final class SearchUpdaterStream {
     public static SearchUpdaterStream of(final UpdaterConfig updaterConfig,
             final ActorSystem actorSystem,
             final ActorRef thingsShard,
-            final ActorRef policiesShard,
+            final Cache<EnforcementCacheKey, Entry<Policy>> policyCache,
+            final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
             final ActorRef updaterShard,
             final ActorRef changeQueueActor,
             final MongoDatabase database,
@@ -99,8 +106,7 @@ public final class SearchUpdaterStream {
         final var messageDispatcher = actorSystem.dispatchers().lookup(dispatcherName);
 
         final var enforcementFlow =
-                EnforcementFlow.of(streamConfig, thingsShard, policiesShard, messageDispatcher,
-                        actorSystem.getScheduler());
+                EnforcementFlow.of(streamConfig, thingsShard, policyCache, policyEnforcerCache, messageDispatcher);
 
         final var mongoSearchUpdaterFlow =
                 MongoSearchUpdaterFlow.of(database, streamConfig.getPersistenceConfig(), searchUpdateMapper);

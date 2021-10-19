@@ -71,6 +71,7 @@ public final class EnforcedThingMapperTest {
                 "  \"gr\":[\"g:1\",\"g:0\"],\n" +
                 "  \"policyId\": \"hello:world\",\n" +
                 "  \"__policyRev\": 56,\n" +
+                "  \"__policyImports\": [],\n" +
                 "  \"s\": {\n" +
                 "    \"thingId\": \"hello:world\",\n" +
                 "    \"_namespace\": \"hello\",\n" +

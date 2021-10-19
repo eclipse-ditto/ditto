@@ -144,6 +144,9 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!-- <exclude></exclude> -->
+                            <exclude>org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers</exclude>
+                            <exclude>org.eclipse.ditto.policies.model.enforcers.tree.TreeBasedPolicyEnforcer</exclude>
+                            <exclude>org.eclipse.ditto.policies.model.enforcers.trie.TrieBasedPolicyEnforcer</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

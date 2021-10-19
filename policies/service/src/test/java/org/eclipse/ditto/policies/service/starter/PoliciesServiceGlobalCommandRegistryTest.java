@@ -27,6 +27,7 @@ import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessage;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubject;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
@@ -52,6 +53,7 @@ public final class PoliciesServiceGlobalCommandRegistryTest extends GlobalComman
                 RetrieveHealth.class,
                 PurgeEntities.class,
                 PublishSignal.class,
+                ModifyPolicyImports.class,
 
                 // connectivity-model is pulled in as transitive dependency of ditto-protocol, pulled in by ditto-internal-model-acks:
                 // acks are used in Policies enabling "at least once" for policy announcements

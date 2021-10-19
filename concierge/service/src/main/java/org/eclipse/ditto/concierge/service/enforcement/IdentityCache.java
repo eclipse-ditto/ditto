@@ -17,6 +17,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 
 import org.eclipse.ditto.internal.utils.cache.Cache;
+import org.eclipse.ditto.internal.utils.cache.CacheInvalidationListener;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 
@@ -53,6 +54,12 @@ final class IdentityCache implements Cache<EnforcementCacheKey, Entry<Enforcemen
     public boolean invalidate(final EnforcementCacheKey key) {
         // do nothing
         return false;
+    }
+
+    @Override
+    public void subscribeForInvalidation(
+            final CacheInvalidationListener<EnforcementCacheKey, Entry<EnforcementCacheKey>> invalidationListener) {
+        // do nothing
     }
 
     @Override

@@ -22,10 +22,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.assertions.DittoPolicyAssertions;
 import org.junit.Test;
 
@@ -51,10 +51,13 @@ public final class ImmutablePolicyTest {
     private static final Label SUPPORT_LABEL = Label.of("SupportGroup");
     private static final PolicyId POLICY_ID = PolicyId.of("com.example", "myPolicy");
 
+    private static final PolicyImports POLICY_IMPORTS = PoliciesModelFactory.newPolicyImports(
+            PoliciesModelFactory.newPolicyImport(PolicyId.of("com.example:importedPolicy")));
+
     private static Policy createPolicy() {
         final List<PolicyEntry> policyEntries = Arrays.asList(createPolicyEntry1(), createPolicyEntry2());
         return ImmutablePolicy.of(POLICY_ID, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null,
-                null, policyEntries);
+                null, POLICY_IMPORTS, policyEntries);
     }
 
     private static PolicyEntry createPolicyEntry2() {
@@ -65,21 +68,24 @@ public final class ImmutablePolicyTest {
                                 EffectedPermissions.newInstance(
                                         Permissions.newInstance(TestConstants.Policy.PERMISSION_READ,
                                                 TestConstants.Policy.PERMISSION_WRITE),
-                                        Permissions.none()))));
+                                        Permissions.none()))),
+                true);
     }
 
     private static PolicyEntry createPolicyEntry1() {
         return ImmutablePolicyEntry.of(END_USER_LABEL,
                 Subjects.newInstance(Subject.newInstance(END_USER_SUBJECT_ID_1, END_USER_SUBJECT_TYPE_1)),
                 Resources.newInstance(Resource.newInstance(TestConstants.Policy.RESOURCE_TYPE, END_USER_RESOURCE_1,
-                        END_USER_EFFECTED_PERMISSIONS_1)));
+                        END_USER_EFFECTED_PERMISSIONS_1)),
+                false);
     }
 
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutablePolicy.class,
                 areImmutable(),
-                provided(PolicyId.class, Label.class, PolicyRevision.class, Metadata.class, PolicyEntry.class)
+                provided(PolicyId.class, Label.class, PolicyRevision.class, PolicyImports.class, Metadata.class,
+                        PolicyEntry.class)
                         .areAlsoImmutable());
     }
 
@@ -95,8 +101,8 @@ public final class ImmutablePolicyTest {
         final PolicyEntry policyEntry1 = createPolicyEntry1();
         final PolicyEntry policyEntry2 = createPolicyEntry2();
 
-        final Policy policy = ImmutablePolicy.of(POLICY_ID, null, null, null, null, null, Arrays.asList(policyEntry1,
-                policyEntry2));
+        final Policy policy = ImmutablePolicy.of(POLICY_ID, null, null, null,
+                null, null, null, Arrays.asList(policyEntry1, policyEntry2));
 
         final JsonObject policyJson = policy.toJson();
         final Policy policy1 = ImmutablePolicy.fromJson(policyJson);
@@ -110,7 +116,7 @@ public final class ImmutablePolicyTest {
         final PolicyEntry policyEntry2 = createPolicyEntry2();
 
         final Policy policy = ImmutablePolicy.of(POLICY_ID, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1),
-                null, null, null, Arrays.asList(policyEntry1, policyEntry2));
+                null, null, null, null, Arrays.asList(policyEntry1, policyEntry2));
 
         final JsonObject policyJson = policy.toJson(FieldType.regularOrSpecial());
         final Policy policy1 = ImmutablePolicy.fromJson(policyJson);
@@ -320,7 +326,7 @@ public final class ImmutablePolicyTest {
     @Test
     public void modifyingTheEntrySetDoesNotModifyThePolicy() {
         final Policy policy = ImmutablePolicy.of(POLICY_ID, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1),
-                null, null, null, Collections.singleton(createPolicyEntry1()));
+                null, null, null, null, Collections.singleton(createPolicyEntry1()));
 
         final PolicyEntry policyEntry = createPolicyEntry2();
         final Set<PolicyEntry> entriesSet = policy.getEntriesSet();

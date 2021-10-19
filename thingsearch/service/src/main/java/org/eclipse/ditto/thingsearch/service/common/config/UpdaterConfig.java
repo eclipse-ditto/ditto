@@ -76,6 +76,13 @@ public interface UpdaterConfig {
     UpdaterPersistenceConfig getUpdaterPersistenceConfig();
 
     /**
+     * Returns the caches configuration
+     *
+     * @return the config.
+     */
+    CachesConfig getCachesConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * UpdaterConfig.
      */

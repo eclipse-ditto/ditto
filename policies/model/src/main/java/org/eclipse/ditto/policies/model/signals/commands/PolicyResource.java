@@ -16,10 +16,10 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Optional;
 
+import org.eclipse.ditto.base.model.signals.commands.ResourceMap;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
-import org.eclipse.ditto.base.model.signals.commands.ResourceMap;
 
 /**
  * Defines all valid policy resources and provides the method {@link #from(org.eclipse.ditto.json.JsonPointer)} to
@@ -30,6 +30,8 @@ import org.eclipse.ditto.base.model.signals.commands.ResourceMap;
 public enum PolicyResource {
 
     POLICY,
+    POLICY_IMPORTS,
+    POLICY_IMPORT,
     POLICY_ENTRIES,
     POLICY_ENTRY,
     POLICY_ENTRY_RESOURCES,
@@ -41,6 +43,9 @@ public enum PolicyResource {
 
     static {
         resources = ResourceMap.newBuilder(POLICY)
+                .add(Policy.JsonFields.IMPORTS, ResourceMap.newBuilder(POLICY_IMPORTS)
+                        .addOne(ResourceMap.newBuilder(POLICY_IMPORT).end())
+                )
                 .add(Policy.JsonFields.ENTRIES, ResourceMap.newBuilder(POLICY_ENTRIES)
                         .addOne(ResourceMap.newBuilder(POLICY_ENTRY)
                                 .add(PolicyEntry.JsonFields.RESOURCES,

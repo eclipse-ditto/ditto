@@ -76,7 +76,7 @@ final class ThingUpdater extends AbstractActor {
     // state of Thing and Policy
     private long thingRevision = -1L;
     @Nullable private PolicyId policyId = null;
-    private long policyRevision = -1L;
+    @Nullable private Long policyRevision = null;
 
     // cache last update document for incremental updates
     @Nullable AbstractWriteModel lastWriteModel = null;
@@ -239,9 +239,14 @@ final class ThingUpdater extends AbstractActor {
 
         final var policyTag = policyReferenceTag.getPolicyTag();
         final var policyIdOfTag = policyTag.getEntityId();
-        if (!Objects.equals(policyId, policyIdOfTag) || policyRevision < policyTag.getRevision()) {
+        if (!Objects.equals(policyId, policyIdOfTag) ||
+                null == policyRevision ||
+                policyRevision < policyTag.getRevision() ||
+                policyTag.isResultingBasedOnImportedPolicyUpdate()) {
             this.policyId = policyIdOfTag;
-            policyRevision = policyTag.getRevision();
+            if (!policyTag.isResultingBasedOnImportedPolicyUpdate()) {
+                policyRevision = policyTag.getRevision();
+            }
             enqueueMetadata();
         } else {
             log.debug("Dropping <{}> because my policyId=<{}> and policyRevision=<{}>",

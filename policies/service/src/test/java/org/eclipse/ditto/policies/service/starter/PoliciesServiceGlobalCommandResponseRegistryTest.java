@@ -28,6 +28,7 @@ import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyErrorResponse;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegrationResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResourceResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeaturePropertyResponse;
@@ -54,6 +55,8 @@ public final class PoliciesServiceGlobalCommandResponseRegistryTest extends Glob
                 RetrieveConfigResponse.class,
                 RetrieveHealthResponse.class,
                 PurgeEntitiesResponse.class,
+                ModifyPolicyImportsResponse.class,
+
                 Acknowledgement.class,
 
                 // connectivity-model is pulled in as transitive dependency of ditto-protocol, pulled in by ditto-internal-model-acks:

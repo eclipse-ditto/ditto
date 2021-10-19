@@ -105,7 +105,7 @@ public final class ThingUpdaterTest {
                 Assertions.assertThat((CharSequence) metadata.getThingId()).isEqualTo(THING_ID);
                 Assertions.assertThat(metadata.getThingRevision()).isEqualTo(1L);
                 Assertions.assertThat(metadata.getPolicyId()).isEmpty();
-                Assertions.assertThat(metadata.getPolicyRevision()).contains(-1L);
+                Assertions.assertThat(metadata.getPolicyRevision()).isEmpty();
             }
         };
     }
@@ -131,14 +131,14 @@ public final class ThingUpdaterTest {
                 Assertions.assertThat((CharSequence) metadata.getThingId()).isEqualTo(THING_ID);
                 Assertions.assertThat(metadata.getThingRevision()).isEqualTo(revision);
                 Assertions.assertThat(metadata.getPolicyId()).isEmpty();
-                Assertions.assertThat(metadata.getPolicyRevision()).contains(-1L);
+                Assertions.assertThat(metadata.getPolicyRevision()).isEmpty();
 
                 underTest.tell(thingTag, ActorRef.noSender());
                 final Metadata metadata2 = changeQueueTestProbe.expectMsgClass(Metadata.class);
                 Assertions.assertThat((CharSequence) metadata2.getThingId()).isEqualTo(THING_ID);
                 Assertions.assertThat(metadata2.getThingRevision()).isEqualTo(thingTagRevision);
                 Assertions.assertThat(metadata2.getPolicyId()).isEmpty();
-                Assertions.assertThat(metadata2.getPolicyRevision()).contains(-1L);
+                Assertions.assertThat(metadata2.getPolicyRevision()).isEmpty();
             }
         };
     }
@@ -164,7 +164,7 @@ public final class ThingUpdaterTest {
                 Assertions.assertThat((CharSequence) metadata.getThingId()).isEqualTo(THING_ID);
                 Assertions.assertThat(metadata.getThingRevision()).isEqualTo(revision);
                 Assertions.assertThat(metadata.getPolicyId()).isEmpty();
-                Assertions.assertThat(metadata.getPolicyRevision()).contains(-1L);
+                Assertions.assertThat(metadata.getPolicyRevision()).isEmpty();
 
                 underTest.tell(thingTag, ActorRef.noSender());
                 changeQueueTestProbe.expectNoMessage();

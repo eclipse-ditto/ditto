@@ -20,12 +20,12 @@ import java.util.List;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.concierge.service.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.Subjects;
-import org.eclipse.ditto.concierge.service.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
 
 /**
  * Abstract base class for instances of {@link SubstitutionStrategy} which matches on a concrete subtype of
@@ -74,7 +74,7 @@ abstract class AbstractTypedSubstitutionStrategy<T extends DittoHeadersSettable<
             resultEntry = existingPolicyEntry;
         } else {
             resultEntry = PolicyEntry.newInstance(existingPolicyEntry.getLabel(), substitutedSubjects,
-                    existingPolicyEntry.getResources());
+                    existingPolicyEntry.getResources(), existingPolicyEntry.isImportable());
         }
 
         return resultEntry;

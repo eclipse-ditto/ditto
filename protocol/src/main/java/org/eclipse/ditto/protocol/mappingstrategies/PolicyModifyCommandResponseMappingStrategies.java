@@ -20,21 +20,24 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.policies.model.ResourceKey;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.JsonifiableMapper;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyImportResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteResourceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeleteSubjectResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntriesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyEntryResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportResponse;
+import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyImportsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResourceResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResourcesResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.JsonifiableMapper;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for policy modify command responses.
@@ -59,6 +62,8 @@ final class PolicyModifyCommandResponseMappingStrategies
         addPolicyEntryResourceResponses(mappingStrategies);
 
         addPolicyEntrySubjectResponses(mappingStrategies);
+
+        addPolicyImportResponses(mappingStrategies);
 
         return mappingStrategies;
     }
@@ -95,6 +100,20 @@ final class PolicyModifyCommandResponseMappingStrategies
         mappingStrategies.put(ModifyPolicyEntriesResponse.TYPE,
                 adaptable -> ModifyPolicyEntriesResponse.of(policyIdFromTopicPath(adaptable.getTopicPath()),
                         dittoHeadersFrom(adaptable)));
+    }
+
+    private static void addPolicyImportResponses(
+            final Map<String, JsonifiableMapper<PolicyModifyCommandResponse<?>>> mappingStrategies) {
+
+        mappingStrategies.put(ModifyPolicyImportResponse.TYPE,
+                adaptable -> isCreated(adaptable) ? importCreated(adaptable) : importModified(adaptable));
+
+        mappingStrategies.put(DeletePolicyImportResponse.TYPE,
+                adaptable -> DeletePolicyImportResponse.of(policyIdFromTopicPath(adaptable.getTopicPath()),
+                        importedPolicyIdFrom(adaptable), dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(ModifyPolicyImportsResponse.TYPE,
+                adaptable -> isCreated(adaptable) ? importsCreated(adaptable) : importsModified(adaptable));
     }
 
     private static void addPolicyEntryResourceResponses(
@@ -149,6 +168,28 @@ final class PolicyModifyCommandResponseMappingStrategies
     private static ModifyPolicyEntryResponse entryModified(final Adaptable adaptable) {
         final PolicyId policyId = policyIdFromTopicPath(adaptable.getTopicPath());
         return ModifyPolicyEntryResponse.modified(policyId, labelFrom(adaptable), dittoHeadersFrom(adaptable));
+    }
+
+    private static ModifyPolicyImportResponse importCreated(final Adaptable adaptable) {
+        final PolicyId policyId = policyIdFromTopicPath(adaptable.getTopicPath());
+        return ModifyPolicyImportResponse.created(policyId, policyImportFrom(adaptable), dittoHeadersFrom(adaptable));
+    }
+
+    private static ModifyPolicyImportResponse importModified(final Adaptable adaptable) {
+        final PolicyId policyId = policyIdFromTopicPath(adaptable.getTopicPath());
+        return ModifyPolicyImportResponse.modified(policyId, importedPolicyIdFrom(adaptable),
+                dittoHeadersFrom(adaptable));
+    }
+
+    private static ModifyPolicyImportsResponse importsCreated(final Adaptable adaptable) {
+        final PolicyId policyId = policyIdFromTopicPath(adaptable.getTopicPath());
+        return ModifyPolicyImportsResponse.created(policyId, policyImportsFrom(adaptable),
+                dittoHeadersFrom(adaptable));
+    }
+
+    private static ModifyPolicyImportsResponse importsModified(final Adaptable adaptable) {
+        final PolicyId policyId = policyIdFromTopicPath(adaptable.getTopicPath());
+        return ModifyPolicyImportsResponse.modified(policyId, dittoHeadersFrom(adaptable));
     }
 
     private static ModifyResourceResponse resourceCreated(final Adaptable adaptable) {

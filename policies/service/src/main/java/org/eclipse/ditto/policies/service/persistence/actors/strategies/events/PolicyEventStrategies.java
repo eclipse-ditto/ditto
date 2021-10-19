@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.policies.service.persistence.actors.strategies.events;
 
-import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.internal.utils.persistentactors.events.AbstractEventStrategies;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.signals.events.PolicyCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntriesModified;
@@ -21,6 +21,10 @@ import org.eclipse.ditto.policies.model.signals.events.PolicyEntryCreated;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryDeleted;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEntryModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportCreated;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportDeleted;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportModified;
+import org.eclipse.ditto.policies.model.signals.events.PolicyImportsModified;
 import org.eclipse.ditto.policies.model.signals.events.PolicyModified;
 import org.eclipse.ditto.policies.model.signals.events.ResourceCreated;
 import org.eclipse.ditto.policies.model.signals.events.ResourceDeleted;
@@ -44,6 +48,10 @@ public final class PolicyEventStrategies extends AbstractEventStrategies<PolicyE
         addStrategy(PolicyCreated.class, new PolicyCreatedStrategy());
         addStrategy(PolicyModified.class, new PolicyModifiedStrategy());
         addStrategy(PolicyDeleted.class, new PolicyDeletedStrategy());
+        addStrategy(PolicyImportsModified.class, new PolicyImportsModifiedStrategy());
+        addStrategy(PolicyImportCreated.class, new PolicyImportCreatedStrategy());
+        addStrategy(PolicyImportModified.class, new PolicyImportModifiedStrategy());
+        addStrategy(PolicyImportDeleted.class, new PolicyImportDeletedStrategy());
         addStrategy(PolicyEntriesModified.class, new PolicyEntriesModifiedStrategy());
         addStrategy(PolicyEntryCreated.class, new PolicyEntryCreatedStrategy());
         addStrategy(PolicyEntryModified.class, new PolicyEntryModifiedStrategy());

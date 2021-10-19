@@ -16,9 +16,9 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.internal.models.streaming.AbstractEntityIdWithRevision;
 
 /**
  * Represents the ID and revision of a Policy.
@@ -31,6 +31,11 @@ public final class PolicyTag extends AbstractEntityIdWithRevision<PolicyId> {
      * of the policyId contained in the published PolicyTag should be invalidated.
      */
     public static final String PUB_SUB_TOPIC_INVALIDATE_ENFORCERS = "policy-invalidate-enforcers";
+
+    /**
+     * A revision number indicating that the PolicyTag was created based on the update of an imported policy.
+     */
+    public static final long IMPORTED_POLICY_UPDATE_CAUSE_REVISION = -100L;
 
     private PolicyTag(final PolicyId policyId, final long revision) {
         super(policyId, revision);
@@ -64,6 +69,13 @@ public final class PolicyTag extends AbstractEntityIdWithRevision<PolicyId> {
         final Long revision = jsonObject.getValueOrThrow(JsonFields.REVISION);
 
         return new PolicyTag(policyId, revision);
+    }
+
+    /**
+     * @return {@code true} when the PolicyTag results based on the update of an imported policy.
+     */
+    public boolean isResultingBasedOnImportedPolicyUpdate() {
+        return getRevision() == IMPORTED_POLICY_UPDATE_CAUSE_REVISION;
     }
 
 }

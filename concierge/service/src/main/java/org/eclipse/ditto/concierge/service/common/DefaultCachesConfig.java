@@ -36,11 +36,13 @@ public final class DefaultCachesConfig implements CachesConfig {
 
     private final AskWithRetryConfig askWithRetryConfig;
     private final CacheConfig idCacheConfig;
+    private final CacheConfig policyCacheConfig;
     private final CacheConfig enforcerCacheConfig;
 
     private DefaultCachesConfig(final ScopedConfig config) {
         askWithRetryConfig = DefaultAskWithRetryConfig.of(config, ASK_WITH_RETRY_CONFIG_PATH);
         idCacheConfig = DefaultCacheConfig.of(config, "id");
+        policyCacheConfig = DefaultCacheConfig.of(config, "policy");
         enforcerCacheConfig = DefaultCacheConfig.of(config, "enforcer");
     }
 
@@ -66,6 +68,11 @@ public final class DefaultCachesConfig implements CachesConfig {
     }
 
     @Override
+    public CacheConfig getPolicyCacheConfig() {
+        return policyCacheConfig;
+    }
+
+    @Override
     public CacheConfig getEnforcerCacheConfig() {
         return enforcerCacheConfig;
     }
@@ -80,12 +87,14 @@ public final class DefaultCachesConfig implements CachesConfig {
         }
         final DefaultCachesConfig that = (DefaultCachesConfig) o;
         return askWithRetryConfig.equals(that.askWithRetryConfig) &&
-                idCacheConfig.equals(that.idCacheConfig) && enforcerCacheConfig.equals(that.enforcerCacheConfig);
+                idCacheConfig.equals(that.idCacheConfig) &&
+                policyCacheConfig.equals(that.policyCacheConfig) &&
+                enforcerCacheConfig.equals(that.enforcerCacheConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askWithRetryConfig, idCacheConfig, enforcerCacheConfig);
+        return Objects.hash(askWithRetryConfig, idCacheConfig, policyCacheConfig, enforcerCacheConfig);
     }
 
     @Override
@@ -93,6 +102,7 @@ public final class DefaultCachesConfig implements CachesConfig {
         return getClass().getSimpleName() + " [" +
                 "askWithRetryConfig=" + askWithRetryConfig +
                 ", idCacheConfig=" + idCacheConfig +
+                ", policyCacheConfig=" + policyCacheConfig +
                 ", enforcerCacheConfig=" + enforcerCacheConfig +
                 "]";
     }

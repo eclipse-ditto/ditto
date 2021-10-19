@@ -12,14 +12,14 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.impl;
 
-import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.in;
-import static com.mongodb.client.model.Filters.lt;
+import static com.mongodb.client.model.Filters.or;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.bson.BsonDateTime;
@@ -76,15 +76,20 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
 
     @Override
     public Source<PolicyReferenceTag, NotUsed> getPolicyReferenceTags(final Map<PolicyId, Long> policyRevisions) {
-        final Bson filter =
-                in(PersistenceConstants.FIELD_POLICY_ID, policyRevisions.keySet()
+        final Set<String> policyIds = policyRevisions.keySet()
                         .stream()
                         .map(String::valueOf)
-                        .collect(Collectors.toSet()));
+                        .collect(Collectors.toSet());
+        final Bson filter = or(
+                in(PersistenceConstants.FIELD_POLICY_ID, policyIds),
+                in(PersistenceConstants.FIELD_POLICY_IMPORTS, policyIds)
+        );
         final Publisher<Document> publisher =
                 collection.find(filter).projection(new Document()
                         .append(PersistenceConstants.FIELD_ID, new BsonInt32(1))
-                        .append(PersistenceConstants.FIELD_POLICY_ID, new BsonInt32(1)));
+                        .append(PersistenceConstants.FIELD_POLICY_ID, new BsonInt32(1))
+                        .append(PersistenceConstants.FIELD_POLICY_IMPORTS, new BsonInt32(1))
+                );
         return Source.fromPublisher(publisher)
                 .mapConcat(doc -> {
                     final ThingId thingId = ThingId.of(doc.getString(PersistenceConstants.FIELD_ID));
@@ -92,24 +97,32 @@ public final class MongoThingsSearchUpdaterPersistence implements ThingsSearchUp
                     final PolicyId policyId = PolicyId.of(policyIdString);
                     final Long revision = policyRevisions.get(policyId);
                     if (revision == null) {
-                        return Collections.emptyList();
+                        if (policyIds.contains(policyIdString)) {
+                            return Collections.emptyList();
+                        } else {
+                            // in that case, a policy was modified (being contained in Set `policyIds`) which was
+                            // imported by the `policyId`
+                            final Set<PolicyReferenceTag> combinedPolicyReferenceTags = new HashSet<>();
+                            combinedPolicyReferenceTags.add(PolicyReferenceTag.of(thingId, PolicyTag.of(policyId,
+                                    PolicyTag.IMPORTED_POLICY_UPDATE_CAUSE_REVISION)));
+
+                            doc.getList(
+                                    PersistenceConstants.FIELD_POLICY_IMPORTS, String.class, Collections.emptyList()
+                            ).stream()
+                                    .filter(policyIds::contains)
+                                    .map(importedPolicyId -> {
+                                        final PolicyId imported = PolicyId.of(importedPolicyId);
+                                        return PolicyTag.of(imported, policyRevisions.get(imported));
+                                    })
+                                    .map(policyTag -> PolicyReferenceTag.of(thingId, policyTag))
+                                    .forEach(combinedPolicyReferenceTags::add);
+                            return combinedPolicyReferenceTags;
+                        }
                     } else {
                         final PolicyTag policyTag = PolicyTag.of(policyId, revision);
                         return Collections.singletonList(PolicyReferenceTag.of(thingId, policyTag));
                     }
                 });
-    }
-
-    @Override
-    public Source<ThingId, NotUsed> getOutdatedThingIds(final PolicyTag policyTag) {
-        final PolicyId policyId = policyTag.getEntityId();
-        final Bson filter = and(eq(PersistenceConstants.FIELD_POLICY_ID, policyId.toString()), lt(
-                PersistenceConstants.FIELD_POLICY_REVISION, policyTag.getRevision()));
-        final Publisher<Document> publisher =
-                collection.find(filter).projection(new BsonDocument(PersistenceConstants.FIELD_ID, new BsonInt32(1)));
-        return Source.fromPublisher(publisher)
-                .map(doc -> doc.getString(PersistenceConstants.FIELD_ID))
-                .map(ThingId::of);
     }
 
     @Override

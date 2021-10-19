@@ -14,9 +14,17 @@ package org.eclipse.ditto.concierge.service.enforcement;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.base.model.json.JsonSchemaVersion.V_2;
+import static org.eclipse.ditto.concierge.service.enforcement.TestSetup.POLICY_SUDO;
+import static org.eclipse.ditto.concierge.service.enforcement.TestSetup.SUBJECT_ID;
+import static org.eclipse.ditto.concierge.service.enforcement.TestSetup.THING_ID;
+import static org.eclipse.ditto.concierge.service.enforcement.TestSetup.THING_SUDO;
+import static org.eclipse.ditto.concierge.service.enforcement.TestSetup.fishForMsgClass;
 import static org.eclipse.ditto.policies.model.SubjectIssuer.GOOGLE;
+import static org.eclipse.ditto.things.api.Permission.READ;
+import static org.eclipse.ditto.things.api.Permission.WRITE;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -26,6 +34,7 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatcher;
@@ -39,12 +48,16 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.policies.model.EffectedImports;
+import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
+import org.eclipse.ditto.policies.model.PolicyImport;
+import org.eclipse.ditto.policies.model.PolicyImports;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
@@ -131,12 +144,12 @@ public final class ThingCommandEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, emptyPolicy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
-            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
+            mockEntitiesActorInstance.setReply(THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setReply(POLICY_SUDO, sudoRetrievePolicyResponse);
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(getReadCommand(), getRef());
-            TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
+            fishForMsgClass(this, ThingNotAccessibleException.class);
 
             underTest.tell(getModifyCommand(), getRef());
             expectMsgClass(FeatureNotModifiableException.class);
@@ -145,10 +158,10 @@ public final class ThingCommandEnforcementTest {
 
     @Test
     public void rejectQueryByThingNotAccessibleException() {
-        final DittoRuntimeException error = ThingNotAccessibleException.newBuilder(TestSetup.THING_ID).build();
+        final DittoRuntimeException error = ThingNotAccessibleException.newBuilder(THING_ID).build();
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, error);
+            mockEntitiesActorInstance.setReply(THING_SUDO, error);
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(getReadCommand(), getRef());
@@ -158,13 +171,13 @@ public final class ThingCommandEnforcementTest {
 
     @Test
     public void rejectUpdateByThingNotAccessibleException() {
-        final DittoRuntimeException error = ThingNotAccessibleException.newBuilder(TestSetup.THING_ID).build();
+        final DittoRuntimeException error = ThingNotAccessibleException.newBuilder(THING_ID).build();
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, error);
+            mockEntitiesActorInstance.setReply(THING_SUDO, error);
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(getModifyCommand(), getRef());
-            TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
+            fishForMsgClass(this, ThingNotAccessibleException.class);
         }};
     }
 
@@ -175,13 +188,13 @@ public final class ThingCommandEnforcementTest {
                 SudoRetrieveThingResponse.of(newThingWithPolicyId(policyId), DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
-            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO,
+            mockEntitiesActorInstance.setReply(THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setReply(POLICY_SUDO,
                     PolicyNotAccessibleException.newBuilder(policyId).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(getReadCommand(), getRef());
-            final DittoRuntimeException error = TestSetup.fishForMsgClass(this, ThingNotAccessibleException.class);
+            final DittoRuntimeException error = fishForMsgClass(this, ThingNotAccessibleException.class);
             assertThat(error.getMessage()).contains(policyId);
             assertThat(error.getDescription().orElse("")).contains(policyId);
         }};
@@ -194,13 +207,13 @@ public final class ThingCommandEnforcementTest {
                 SudoRetrieveThingResponse.of(newThingWithPolicyId(policyId), DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
-            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO,
+            mockEntitiesActorInstance.setReply(THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setReply(POLICY_SUDO,
                     PolicyNotAccessibleException.newBuilder(policyId).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
             underTest.tell(getModifyCommand(), getRef());
-            final DittoRuntimeException error = TestSetup.fishForMsgClass(this, ThingNotModifiableException.class);
+            final DittoRuntimeException error = fishForMsgClass(this, ThingNotModifiableException.class);
             assertThat(error.getMessage()).contains(policyId);
             assertThat(error.getDescription().orElse("")).contains(policyId);
         }};
@@ -213,18 +226,18 @@ public final class ThingCommandEnforcementTest {
                 .forLabel("dummy")
                 .setSubject(GOOGLE, "not-subject")
                 .setGrantedPermissions(PoliciesResourceType.policyResource("/"),
-                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                        Permissions.newInstance(READ, WRITE))
                 .build();
         final Thing thing = newThing().build();
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO,
-                    ThingNotAccessibleException.newBuilder(TestSetup.THING_ID).build());
+            mockEntitiesActorInstance.setReply(THING_SUDO,
+                    ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers(V_2));
             underTest.tell(createThing, getRef());
-            TestSetup.fishForMsgClass(this, ThingNotModifiableException.class);
+            fishForMsgClass(this, ThingNotModifiableException.class);
         }};
 
     }
@@ -236,9 +249,9 @@ public final class ThingCommandEnforcementTest {
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                        Permissions.newInstance(READ, WRITE))
                 .build()
                 .toJson(FieldType.all());
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
@@ -247,20 +260,20 @@ public final class ThingCommandEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
-            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
+            mockEntitiesActorInstance.setReply(THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setReply(POLICY_SUDO, sudoRetrievePolicyResponse);
 
             final ActorRef underTest = newEnforcerActor(getRef());
 
             final ThingCommand write = getModifyCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
-            assertThat((CharSequence) TestSetup.fishForMsgClass(this, write.getClass()).getEntityId())
+            assertThat((CharSequence) fishForMsgClass(this, write.getClass()).getEntityId())
                     .isEqualTo(write.getEntityId());
 
             final ThingCommand read = getReadCommand();
             final RetrieveThingResponse retrieveThingResponse =
-                    RetrieveThingResponse.of(TestSetup.THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
+                    RetrieveThingResponse.of(THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
             mockEntitiesActorInstance.setReply(retrieveThingResponse);
             underTest.tell(read, getRef());
             assertThat((CharSequence) expectMsgClass(retrieveThingResponse.getClass()).getEntityId()).isEqualTo(
@@ -276,11 +289,11 @@ public final class ThingCommandEnforcementTest {
         final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                        Permissions.newInstance(READ, WRITE))
                 .setRevokedPermissions(PoliciesResourceType.thingResource(attributePointer),
-                        Permissions.newInstance(Permission.READ))
+                        Permissions.newInstance(READ))
                 .build()
                 .toJson(FieldType.all());
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
@@ -289,23 +302,23 @@ public final class ThingCommandEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
-            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
+            mockEntitiesActorInstance.setReply(THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setReply(POLICY_SUDO, sudoRetrievePolicyResponse);
 
             final ActorRef underTest = newEnforcerActor(getRef());
 
             final ThingCommand modifyCommand = getModifyCommand();
             mockEntitiesActorInstance.setReply(modifyCommand);
             underTest.tell(modifyCommand, getRef());
-            assertThat((CharSequence) TestSetup.fishForMsgClass(this, modifyCommand.getClass()).getEntityId())
+            assertThat((CharSequence) fishForMsgClass(this, modifyCommand.getClass()).getEntityId())
                     .isEqualTo(modifyCommand.getEntityId());
 
             final RetrieveThingResponse retrieveThingResponseWithAttr =
-                    RetrieveThingResponse.of(TestSetup.THING_ID, thingWithPolicy, headers(V_2));
+                    RetrieveThingResponse.of(THING_ID, thingWithPolicy, headers(V_2));
 
             final JsonObject jsonObjectWithoutAttr = thingWithPolicy.remove(attributePointer);
             final RetrieveThingResponse retrieveThingResponseWithoutAttr =
-                    RetrieveThingResponse.of(TestSetup.THING_ID, jsonObjectWithoutAttr, headers(V_2));
+                    RetrieveThingResponse.of(THING_ID, jsonObjectWithoutAttr, headers(V_2));
 
             mockEntitiesActorInstance.setReply(retrieveThingResponseWithAttr);
             underTest.tell(getReadCommand(), getRef());
@@ -321,27 +334,27 @@ public final class ThingCommandEnforcementTest {
 
     @Test
     public void acceptCreateByInlinePolicy() {
-        final PolicyId policyId = PolicyId.of(TestSetup.THING_ID);
+        final PolicyId policyId = PolicyId.of(THING_ID);
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.WRITE))
+                        Permissions.newInstance(WRITE))
                 .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.WRITE))
+                        Permissions.newInstance(WRITE))
                 .build();
         final Thing thing = newThing().build();
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO,
-                    ThingNotAccessibleException.newBuilder(TestSetup.THING_ID).build());
+            mockEntitiesActorInstance.setReply(THING_SUDO,
+                    ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers(V_2));
             mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
                     .setReply(CreatePolicyResponse.of(policyId, policy, headers(V_2)));
             underTest.tell(createThing, getRef());
-            final CreateThingResponse expectedCreateThingResponse = TestSetup.fishForMsgClass(this, CreateThingResponse.class);
+            final CreateThingResponse expectedCreateThingResponse = fishForMsgClass(this, CreateThingResponse.class);
             assertThat(expectedCreateThingResponse.getThingCreated().orElse(null)).isEqualTo(thing);
         }};
     }
@@ -349,15 +362,15 @@ public final class ThingCommandEnforcementTest {
     @Test
     public void acceptCreateByImplicitPolicyAndInvalidateCache() {
         final Thing thing = newThing().build();
-        final PolicyId policyId = PolicyId.of(TestSetup.THING_ID);
+        final PolicyId policyId = PolicyId.of(THING_ID);
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId).build();
         final AtomicInteger sudoRetrieveThingCounter = new AtomicInteger(0);
         new TestKit(system) {{
             mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
                     .setReply(CreatePolicyResponse.of(policyId, policy, headers(V_2)))
-                    .setHandler(TestSetup.THING_SUDO, sudo -> {
+                    .setHandler(THING_SUDO, sudo -> {
                         sudoRetrieveThingCounter.getAndIncrement();
-                        return ThingNotAccessibleException.newBuilder(TestSetup.THING_ID).build();
+                        return ThingNotAccessibleException.newBuilder(THING_ID).build();
                     });
 
             final ActorRef underTest = newEnforcerActor(getRef());
@@ -367,11 +380,11 @@ public final class ThingCommandEnforcementTest {
             underTest.tell(createThing, getRef());
 
             // cache should be invalidated before response is sent
-            TestSetup.fishForMsgClass(this, CreateThingResponse.class);
+            fishForMsgClass(this, CreateThingResponse.class);
 
             // second Thing command should trigger cache load again
             underTest.tell(createThing, getRef());
-            TestSetup.fishForMsgClass(this, CreateThingResponse.class);
+            fishForMsgClass(this, CreateThingResponse.class);
 
             // verify cache is loaded twice
             assertThat(sudoRetrieveThingCounter.get()).isEqualTo(2);
@@ -384,23 +397,23 @@ public final class ThingCommandEnforcementTest {
         final TestProbe entitiesProbe = TestProbe.apply("entities", system);
 
         final Thing thing = newThing().build();
-        final PolicyId policyId = PolicyId.of(TestSetup.THING_ID);
+        final PolicyId policyId = PolicyId.of(THING_ID);
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                        Permissions.newInstance(READ, WRITE))
                 .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                        Permissions.newInstance(READ, WRITE))
                 .build();
         final CreatePolicyResponse createPolicyResponse = CreatePolicyResponse.of(policyId, policy, headers(V_2));
         final ThingNotAccessibleException thingNotAccessibleException =
-                ThingNotAccessibleException.newBuilder(TestSetup.THING_ID).build();
+                ThingNotAccessibleException.newBuilder(THING_ID).build();
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
                 SudoRetrieveThingResponse.of(
                         JsonObject.newBuilder()
-                                .set(Thing.JsonFields.ID, TestSetup.THING_ID.toString())
+                                .set(Thing.JsonFields.ID, THING_ID.toString())
                                 .set(Thing.JsonFields.POLICY_ID, policyId.toString())
                                 .set(Thing.JsonFields.REVISION, 1L)
                                 .build(),
@@ -409,19 +422,19 @@ public final class ThingCommandEnforcementTest {
                 SudoRetrievePolicyResponse.of(policyId, policy.toJson(FieldType.all()), headers(V_2));
         final CreateThing createThing = CreateThing.of(thing, null, headers(V_2));
         final CreateThingResponse createThingResponse = CreateThingResponse.of(thing, headers(V_2));
-        final RetrieveThing retrieveThing = RetrieveThing.of(TestSetup.THING_ID, headers(V_2));
+        final RetrieveThing retrieveThing = RetrieveThing.of(THING_ID, headers(V_2));
         final RetrieveThingResponse retrieveThingResponse =
-                RetrieveThingResponse.of(TestSetup.THING_ID, JsonObject.empty(), headers(V_2));
-        final ModifyPolicyId modifyPolicyId = ModifyPolicyId.of(TestSetup.THING_ID, policyId, headers(V_2));
-        final ModifyPolicyIdResponse modifyPolicyIdResponse = ModifyPolicyIdResponse.modified(TestSetup.THING_ID, headers(V_2));
+                RetrieveThingResponse.of(THING_ID, JsonObject.empty(), headers(V_2));
+        final ModifyPolicyId modifyPolicyId = ModifyPolicyId.of(THING_ID, policyId, headers(V_2));
+        final ModifyPolicyIdResponse modifyPolicyIdResponse = ModifyPolicyIdResponse.modified(THING_ID, headers(V_2));
         final ModifyAttribute modifyAttribute =
-                ModifyAttribute.of(TestSetup.THING_ID, JsonPointer.of("x"), JsonValue.of(5), headers(V_2));
+                ModifyAttribute.of(THING_ID, JsonPointer.of("x"), JsonValue.of(5), headers(V_2));
         final ModifyAttributeResponse modifyAttributeResponse =
-                ModifyAttributeResponse.created(TestSetup.THING_ID, JsonPointer.of("x"), JsonValue.of(5), headers(V_2));
+                ModifyAttributeResponse.created(THING_ID, JsonPointer.of("x"), JsonValue.of(5), headers(V_2));
         final RetrieveAttribute retrieveAttribute =
-                RetrieveAttribute.of(TestSetup.THING_ID, JsonPointer.of("x"), headers(V_2));
+                RetrieveAttribute.of(THING_ID, JsonPointer.of("x"), headers(V_2));
         final RetrieveAttributeResponse retrieveAttributeResponse =
-                RetrieveAttributeResponse.of(TestSetup.THING_ID, JsonPointer.of("x"), JsonValue.of(5), headers(V_2));
+                RetrieveAttributeResponse.of(THING_ID, JsonPointer.of("x"), JsonValue.of(5), headers(V_2));
 
         new TestKit(system) {{
             final ActorRef underTest =
@@ -498,24 +511,24 @@ public final class ThingCommandEnforcementTest {
         final PolicyId policyId = PolicyId.of("policy:id");
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.WRITE))
+                        Permissions.newInstance(WRITE))
                 .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.WRITE))
+                        Permissions.newInstance(WRITE))
                 .build();
         final Thing thing = newThing().build();
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO,
-                    ThingNotAccessibleException.newBuilder(TestSetup.THING_ID).build());
+            mockEntitiesActorInstance.setReply(THING_SUDO,
+                    ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
             final CreateThing createThing = CreateThing.of(thing, policy.toJson(), headers(V_2));
             mockEntitiesActorInstance.setReply(CreateThingResponse.of(thing, headers(V_2)))
-                    .setReply(CreatePolicyResponse.of(PolicyId.of(TestSetup.THING_ID), policy, headers(V_2)));
+                    .setReply(CreatePolicyResponse.of(PolicyId.of(THING_ID), policy, headers(V_2)));
             underTest.tell(createThing, getRef());
-            final CreateThingResponse expectedCreateThingResponse = TestSetup.fishForMsgClass(this, CreateThingResponse.class);
+            final CreateThingResponse expectedCreateThingResponse = fishForMsgClass(this, CreateThingResponse.class);
             assertThat(expectedCreateThingResponse.getThingCreated().orElse(null)).isEqualTo(thing);
         }};
 
@@ -547,21 +560,21 @@ public final class ThingCommandEnforcementTest {
         final PolicyId policyId = PolicyId.of("policy:id");
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setSubject(GOOGLE, SUBJECT_ID)
                 // authorized subject has WRITE on thing:/ resource
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.WRITE))
+                        Permissions.newInstance(WRITE))
                 .forLabel("admin")
                 .setSubject(GOOGLE, "admin")
                 // some other subject has WRITE on policy:/ resource
                 .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.WRITE))
+                        Permissions.newInstance(WRITE))
                 .build();
         final Thing thing = newThing().build();
 
         new TestKit(system) {{
             mockEntitiesActorInstance
-                    .setReply(TestSetup.THING_SUDO, ThingNotAccessibleException.newBuilder(TestSetup.THING_ID).build())
+                    .setReply(THING_SUDO, ThingNotAccessibleException.newBuilder(THING_ID).build())
                     .setReply(CreatePolicyResponse.of(policyId, policy, headers(V_2)));
 
             final TestProbe conciergeProbe = new TestProbe(system, TestSetup.createUniqueName());
@@ -579,28 +592,28 @@ public final class ThingCommandEnforcementTest {
             conciergeProbe.lastSender().tell(RetrievePolicyResponse.of(policyId, policy,
                     retrievePolicy.getDittoHeaders()), ActorRef.noSender());
 
-            TestSetup.fishForMsgClass(this, expectedResponseClass);
+            fishForMsgClass(this, expectedResponseClass);
         }};
     }
 
     @Test
     public void rejectCreateByInlinePolicyWithInvalidId() {
-        final PolicyId policyId = PolicyId.of(TestSetup.THING_ID);
+        final PolicyId policyId = PolicyId.of(THING_ID);
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.WRITE))
+                        Permissions.newInstance(WRITE))
                 .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.WRITE))
+                        Permissions.newInstance(WRITE))
                 .build();
         final JsonObject invalidPolicyJson = policy.toJson()
                 .setValue("policyId", "invalid-policy-id");
         final Thing thing = newThing().build();
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO,
-                    ThingNotAccessibleException.newBuilder(TestSetup.THING_ID).build());
+            mockEntitiesActorInstance.setReply(THING_SUDO,
+                    ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
             final CreateThing createThing = CreateThing.of(thing, invalidPolicyJson, headers(V_2));
@@ -609,21 +622,21 @@ public final class ThingCommandEnforcementTest {
             underTest.tell(createThing, getRef());
 
             // result may not be an instance of PolicyIdInvalidException but should have the same error code.
-            final DittoRuntimeException response = TestSetup.fishForMsgClass(this, DittoRuntimeException.class);
+            final DittoRuntimeException response = fishForMsgClass(this, DittoRuntimeException.class);
             assertThat(response.getErrorCode()).isEqualTo(PolicyIdInvalidException.ERROR_CODE);
         }};
     }
 
     @Test
     public void rejectCreateByInvalidPolicy() {
-        final PolicyId policyId = PolicyId.of(TestSetup.THING_ID);
+        final PolicyId policyId = PolicyId.of(THING_ID);
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .forLabel("authorize-self")
-                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setSubject(GOOGLE, SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.WRITE))
+                        Permissions.newInstance(WRITE))
                 .setGrantedPermissions(PoliciesResourceType.policyResource(JsonPointer.empty()),
-                        Permissions.newInstance(Permission.WRITE))
+                        Permissions.newInstance(WRITE))
                 .setModified(Instant.now())
                 .build();
         final JsonObject invalidPolicyJson = policy.toJson()
@@ -631,8 +644,8 @@ public final class ThingCommandEnforcementTest {
         final Thing thing = newThing().build();
 
         new TestKit(system) {{
-            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO,
-                    ThingNotAccessibleException.newBuilder(TestSetup.THING_ID).build());
+            mockEntitiesActorInstance.setReply(THING_SUDO,
+                    ThingNotAccessibleException.newBuilder(THING_ID).build());
 
             final ActorRef underTest = newEnforcerActor(getRef());
             final CreateThing createThing = CreateThing.of(thing, invalidPolicyJson, headers(V_2));
@@ -641,7 +654,7 @@ public final class ThingCommandEnforcementTest {
             underTest.tell(createThing, getRef());
 
             // result may not be an instance of PolicyInvalidException but should have the same error code.
-            final DittoRuntimeException response = TestSetup.fishForMsgClass(this, DittoRuntimeException.class);
+            final DittoRuntimeException response = fishForMsgClass(this, DittoRuntimeException.class);
             assertThat(response.getErrorCode()).isEqualTo(PolicyInvalidException.ERROR_CODE);
         }};
 
@@ -649,21 +662,138 @@ public final class ThingCommandEnforcementTest {
 
     @Test
     public void transformModifyThingToCreateThing() {
-        final Thing thingInPayload = newThing().setId(TestSetup.THING_ID).build();
+        final Thing thingInPayload = newThing().setId(THING_ID).build();
 
         new TestKit(system) {{
             final ActorRef underTest = TestSetup.newEnforcerActor(system, getRef(), getRef());
-            final ModifyThing modifyThing = ModifyThing.of(TestSetup.THING_ID, thingInPayload, null, headers(V_2));
+            final ModifyThing modifyThing = ModifyThing.of(THING_ID, thingInPayload, null, headers(V_2));
             underTest.tell(modifyThing, getRef());
 
-            TestSetup.fishForMsgClass(this, SudoRetrieveThing.class);
-            reply(ThingNotAccessibleException.newBuilder(TestSetup.THING_ID).build());
+            fishForMsgClass(this, SudoRetrieveThing.class);
+            reply(ThingNotAccessibleException.newBuilder(THING_ID).build());
 
-            final CreatePolicy createPolicy = TestSetup.fishForMsgClass(this, CreatePolicy.class);
+            final CreatePolicy createPolicy = fishForMsgClass(this, CreatePolicy.class);
             reply(CreatePolicyResponse.of(createPolicy.getEntityId(), createPolicy.getPolicy(),
                     createPolicy.getDittoHeaders()));
 
-            TestSetup.fishForMsgClass(this, CreateThing.class);
+            fishForMsgClass(this, CreateThing.class);
+        }};
+    }
+
+    @Test
+    public void acceptByImportedPolicy() {
+        final PolicyId policyId = PolicyId.of("empty:policy");
+        final PolicyId importedPolicyId = PolicyId.of("policy:importedId");
+        final Label importableLabel = Label.of("authorize-importable");
+
+        final JsonObject thingWithPolicy = newThingWithPolicyId(policyId);
+
+        final JsonObject importedPolicy = PoliciesModelFactory.newPolicyBuilder(importedPolicyId)
+                .setRevision(1L)
+                .forLabel(importableLabel)
+                .setSubject(GOOGLE, SUBJECT_ID)
+                .setImportable(true)
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        READ,
+                        WRITE)
+                .build()
+                .toJson(FieldType.all());
+
+        final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .setImports(PolicyImports.newInstance(
+                        PolicyImport.newInstance(
+                                importedPolicyId,
+                                EffectedImports.newInstance(Arrays.asList(importableLabel), null))))
+                .build()
+                .toJson(FieldType.all());
+
+        final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
+        final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
+                SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+        final SudoRetrievePolicyResponse sudoRetrieveImportedPolicyResponse =
+                SudoRetrievePolicyResponse.of(importedPolicyId, importedPolicy, DittoHeaders.empty());
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setHandler(POLICY_SUDO, (signal) -> {
+                if (((WithEntityId) signal).getEntityId().equals(importedPolicyId)) {
+                    return sudoRetrieveImportedPolicyResponse;
+                } else {
+                    return sudoRetrievePolicyResponse;
+                }
+            });
+
+            final ActorRef underTest = newEnforcerActor(getRef());
+
+            final ThingCommand write = getModifyCommand();
+            mockEntitiesActorInstance.setReply(write);
+            underTest.tell(write, getRef());
+            assertThat((CharSequence) fishForMsgClass(this, write.getClass()).getEntityId())
+                    .isEqualTo(write.getEntityId());
+
+            final ThingCommand read = getReadCommand();
+            final RetrieveThingResponse retrieveThingResponse =
+                    RetrieveThingResponse.of(THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
+            mockEntitiesActorInstance.setReply(retrieveThingResponse);
+            underTest.tell(read, getRef());
+            assertThat((CharSequence) expectMsgClass(retrieveThingResponse.getClass()).getEntityId()).isEqualTo(
+                    read.getEntityId());
+        }};
+    }
+
+
+    @Test
+    public void rejectByNonImportablePolicyEntry() {
+        final PolicyId policyId = PolicyId.of("empty:policy");
+        final PolicyId importedPolicyId = PolicyId.of("policy:importedId");
+        final Label importableLabel = Label.of("authorize-importable");
+
+        final JsonObject thingWithPolicy = newThingWithPolicyId(policyId);
+
+        final JsonObject importedPolicy = PoliciesModelFactory.newPolicyBuilder(importedPolicyId)
+                .setRevision(1L)
+                .forLabel(importableLabel)
+                .setSubject(GOOGLE, SUBJECT_ID)
+                .setImportable(false)
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        READ,
+                        WRITE)
+                .build()
+                .toJson(FieldType.all());
+
+        final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .setImports(PolicyImports.newInstance(
+                        PolicyImport.newInstance(
+                                importedPolicyId,
+                                EffectedImports.newInstance(Arrays.asList(importableLabel), null))))
+                .build()
+                .toJson(FieldType.all());
+
+        final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                SudoRetrieveThingResponse.of(thingWithPolicy, DittoHeaders.empty());
+        final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
+                SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+        final SudoRetrievePolicyResponse sudoRetrieveImportedPolicyResponse =
+                SudoRetrievePolicyResponse.of(importedPolicyId, importedPolicy, DittoHeaders.empty());
+
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setHandler(POLICY_SUDO, (signal) -> {
+                if (((WithEntityId) signal).getEntityId().equals(importedPolicyId)) {
+                    return sudoRetrieveImportedPolicyResponse;
+                } else {
+                    return sudoRetrievePolicyResponse;
+                }
+            });
+
+            final ActorRef underTest = newEnforcerActor(getRef());
+            underTest.tell(getReadCommand(), getRef());
+            fishForMsgClass(this, ThingNotAccessibleException.class);
+
+            underTest.tell(getModifyCommand(), getRef());
+            expectMsgClass(FeatureNotModifiableException.class);
         }};
     }
 
@@ -762,7 +892,7 @@ public final class ThingCommandEnforcementTest {
         return DittoHeaders.newBuilder()
                 .authorizationContext(
                         AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, TestSetup.SUBJECT,
-                                AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, TestSetup.SUBJECT_ID))))
+                                AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, SUBJECT_ID))))
                 .correlationId(testName.getMethodName())
                 .schemaVersion(schemaVersion)
                 .build();
@@ -770,13 +900,13 @@ public final class ThingCommandEnforcementTest {
 
     private static ThingBuilder.FromScratch newThing() {
         return ThingsModelFactory.newThingBuilder()
-                .setId(TestSetup.THING_ID)
+                .setId(THING_ID)
                 .setRevision(1L);
     }
 
     private static JsonObject newThingWithAttributeWithPolicyId(final CharSequence policyId) {
         return ThingsModelFactory.newThingBuilder()
-                .setId(TestSetup.THING_ID)
+                .setId(THING_ID)
                 .setAttribute(JsonPointer.of("/testAttr"), JsonValue.of("testString"))
                 .setRevision(1L)
                 .setPolicyId(PolicyId.of(policyId))
@@ -785,7 +915,7 @@ public final class ThingCommandEnforcementTest {
     }
 
     private ThingCommand getReadCommand() {
-        return RetrieveThing.of(TestSetup.THING_ID, headers(V_2));
+        return RetrieveThing.of(THING_ID, headers(V_2));
     }
 
     private ThingCommand getModifyCommand() {
@@ -793,7 +923,7 @@ public final class ThingCommandEnforcementTest {
     }
 
     private ThingCommand getModifyCommand(final DittoHeaders dittoHeaders) {
-        return ModifyFeature.of(TestSetup.THING_ID, Feature.newBuilder().withId("x").build(), dittoHeaders);
+        return ModifyFeature.of(THING_ID, Feature.newBuilder().withId("x").build(), dittoHeaders);
     }
 
 }

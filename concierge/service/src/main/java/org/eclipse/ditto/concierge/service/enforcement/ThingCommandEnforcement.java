@@ -65,8 +65,10 @@ import org.eclipse.ditto.policies.model.Permissions;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PoliciesResourceType;
 import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyException;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.PolicyImporter;
 import org.eclipse.ditto.policies.model.ResourceKey;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.SubjectId;
@@ -135,6 +137,7 @@ public final class ThingCommandEnforcement
     private final EnforcerRetriever<Enforcer> thingEnforcerRetriever;
     private final EnforcerRetriever<Enforcer> policyEnforcerRetriever;
     private final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache;
+    private final Cache<EnforcementCacheKey, Entry<Policy>> policyCache;
     private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
     private final PreEnforcer preEnforcer;
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
@@ -143,6 +146,7 @@ public final class ThingCommandEnforcement
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
             final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
+            final Cache<EnforcementCacheKey, Entry<Policy>> policyCache,
             final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
             final PreEnforcer preEnforcer) {
 
@@ -151,6 +155,7 @@ public final class ThingCommandEnforcement
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
 
         this.thingIdCache = requireNonNull(thingIdCache);
+        this.policyCache = requireNonNull(policyCache);
         this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
         this.preEnforcer = preEnforcer;
         thingEnforcerRetriever = PolicyEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache);
@@ -540,6 +545,7 @@ public final class ThingCommandEnforcement
 
     private void invalidatePolicyCache(final PolicyId policyId) {
         final var policyCacheKey = EnforcementCacheKey.of(policyId);
+        policyCache.invalidate(policyCacheKey);
         policyEnforcerCache.invalidate(policyCacheKey);
         pubSubMediator().tell(DistPubSubAccess.sendToAll(
                         ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
@@ -720,9 +726,11 @@ public final class ThingCommandEnforcement
             final JsonObject inlinedPolicy) {
 
         final var initialPolicy = getInitialPolicy(createThing, inlinedPolicy);
-        final var policiesValidator = PoliciesValidator.newInstance(initialPolicy);
+        final Set<PolicyEntry> mergedPolicyEntriesSet =
+                PolicyImporter.mergeImportedPolicyEntries(initialPolicy, this::loadPolicyBlocking);
+        final PoliciesValidator policiesValidator = PoliciesValidator.newInstance(mergedPolicyEntriesSet);
         if (policiesValidator.isValid()) {
-            final var initialEnforcer = PolicyEnforcers.defaultEvaluator(initialPolicy);
+            final var initialEnforcer = PolicyEnforcers.defaultEvaluator(mergedPolicyEntriesSet);
             return attachEnforcerOrThrow(createThing, initialEnforcer,
                     ThingCommandEnforcement::authorizeByPolicyOrThrow);
         } else {
@@ -730,6 +738,12 @@ public final class ThingCommandEnforcement
                     .dittoHeaders(createThing.getDittoHeaders())
                     .build();
         }
+    }
+
+    private Optional<Policy> loadPolicyBlocking(final PolicyId policyId) {
+        return policyCache.getBlocking(EnforcementCacheKey.of(policyId))
+                .filter(Entry::exists)
+                .map(Entry::getValueOrThrow);
     }
 
     @SuppressWarnings("java:S1193")
@@ -1132,6 +1146,7 @@ public final class ThingCommandEnforcement
         private final ActorRef thingsShardRegion;
         private final ActorRef policiesShardRegion;
         private final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache;
+        private final Cache<EnforcementCacheKey, Entry<Policy>> policyCache;
         private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
         private final PreEnforcer preEnforcer;
 
@@ -1141,18 +1156,21 @@ public final class ThingCommandEnforcement
          * @param thingsShardRegion the ActorRef to the Things shard region.
          * @param policiesShardRegion the ActorRef to the Policies shard region.
          * @param thingIdCache the thing-id-cache.
+         * @param policyCache the policy cache.
          * @param policyEnforcerCache the policy-enforcer cache.
          * @param preEnforcer pre-enforcer function to block undesirable messages to policies shard region.
          */
         public Provider(final ActorRef thingsShardRegion,
                 final ActorRef policiesShardRegion,
                 final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
+                final Cache<EnforcementCacheKey, Entry<Policy>> policyCache,
                 final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
                 @Nullable final PreEnforcer preEnforcer) {
 
             this.thingsShardRegion = requireNonNull(thingsShardRegion);
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
             this.thingIdCache = requireNonNull(thingIdCache);
+            this.policyCache = requireNonNull(policyCache);
             this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
             this.preEnforcer = Optional.ofNullable(preEnforcer).orElse(CompletableFuture::completedFuture);
         }
@@ -1178,7 +1196,7 @@ public final class ThingCommandEnforcement
         @Override
         public AbstractEnforcement<ThingCommand<?>> createEnforcement(final Contextual<ThingCommand<?>> context) {
             return new ThingCommandEnforcement(context, thingsShardRegion, policiesShardRegion, thingIdCache,
-                    policyEnforcerCache, preEnforcer);
+                    policyCache, policyEnforcerCache, preEnforcer);
         }
 
     }

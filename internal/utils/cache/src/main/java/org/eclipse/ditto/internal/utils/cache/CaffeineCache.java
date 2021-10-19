@@ -15,18 +15,23 @@ package org.eclipse.ditto.internal.utils.cache;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Policy;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.RemovalListener;
 
 
 /**
@@ -35,9 +40,10 @@ import com.github.benmanes.caffeine.cache.Policy;
  * @param <K> the type of the key.
  * @param <V> the type of the value.
  */
-public class CaffeineCache<K, V> implements Cache<K, V> {
+public class CaffeineCache<K, V> implements Cache<K, V>, RemovalListener<K, V> {
 
     @Nullable private final MetricsStatsCounter metricStatsCounter;
+    private final Set<CacheInvalidationListener<K, V>> invalidationListeners;
     private final BiFunction<K, Executor, CompletableFuture<? extends V>> asyncLoad;
     private final AsyncCache<K, V> asyncCache;
     private final com.github.benmanes.caffeine.cache.Cache<K, V> synchronousCacheView;
@@ -47,15 +53,18 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
             @Nullable final AsyncCacheLoader<K, V> loader,
             @Nullable final String cacheName) {
 
+        invalidationListeners = new HashSet<>();
+
+        final Caffeine<K, V> withRemovalListener = caffeine.removalListener(this);
         if (cacheName != null) {
             this.metricStatsCounter =
                     MetricsStatsCounter.of(cacheName, this::getMaxCacheSize, this::getCurrentCacheSize);
-            caffeine.recordStats(() -> metricStatsCounter);
+            withRemovalListener.recordStats(() -> metricStatsCounter);
         } else {
             this.metricStatsCounter = null;
         }
         asyncLoad = getLoaderFunction(loader);
-        this.asyncCache = loader != null ? caffeine.buildAsync(loader) : caffeine.buildAsync();
+        this.asyncCache = loader != null ? withRemovalListener.buildAsync(loader) : withRemovalListener.buildAsync();
         this.synchronousCacheView = asyncCache.synchronous();
     }
 
@@ -235,4 +244,15 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         return synchronousCacheView.asMap();
     }
 
+    @Override
+    public void subscribeForInvalidation(final CacheInvalidationListener<K, V> invalidationListener) {
+        invalidationListeners.add(invalidationListener);
+    }
+
+    @Override
+    public void onRemoval(@Nullable final K key, @Nullable final V value, @Nonnull final RemovalCause removalCause) {
+        if (key != null) {
+            invalidationListeners.forEach(listener -> listener.onCacheEntryInvalidated(key, value, removalCause));
+        }
+    }
 }

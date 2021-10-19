@@ -39,6 +39,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     private final BackgroundSyncConfig backgroundSyncConfig;
     private final StreamConfig streamConfig;
     private final UpdaterPersistenceConfig updaterPersistenceConfig;
+    private final CachesConfig cachesConfig;
 
     private DefaultUpdaterConfig(final ConfigWithFallback updaterScopedConfig) {
         maxIdleTime = updaterScopedConfig.getNonNegativeDurationOrThrow(UpdaterConfigValue.MAX_IDLE_TIME);
@@ -51,6 +52,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
         backgroundSyncConfig = DefaultBackgroundSyncConfig.fromUpdaterConfig(updaterScopedConfig);
         streamConfig = DefaultStreamConfig.of(updaterScopedConfig);
         updaterPersistenceConfig = DefaultUpdaterPersistenceConfig.of(updaterScopedConfig);
+        cachesConfig = DefaultCachesConfig.of(updaterScopedConfig);
     }
 
     /**
@@ -101,6 +103,11 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     }
 
     @Override
+    public CachesConfig getCachesConfig() {
+        return cachesConfig;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -115,13 +122,14 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 Double.compare(forceUpdateProbability, that.forceUpdateProbability) == 0 &&
                 Objects.equals(backgroundSyncConfig, that.backgroundSyncConfig) &&
                 Objects.equals(streamConfig, that.streamConfig) &&
-                Objects.equals(updaterPersistenceConfig, that.updaterPersistenceConfig);
+                Objects.equals(updaterPersistenceConfig, that.updaterPersistenceConfig) &&
+                Objects.equals(cachesConfig, that.cachesConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(maxIdleTime, shardingStatePollInterval, eventProcessingActive, forceUpdateProbability,
-                backgroundSyncConfig, streamConfig, updaterPersistenceConfig);
+                backgroundSyncConfig, streamConfig, updaterPersistenceConfig, cachesConfig);
     }
 
     @Override
@@ -134,6 +142,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 ", backgroundSyncConfig=" + backgroundSyncConfig +
                 ", streamConfig=" + streamConfig +
                 ", updaterPersistenceConfig=" + updaterPersistenceConfig +
+                ", cachesConfig=" + cachesConfig +
                 "]";
     }
 

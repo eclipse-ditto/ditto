@@ -64,6 +64,12 @@ final class ProjectedCache<K, U, V> implements Cache<K, U> {
     }
 
     @Override
+    public void subscribeForInvalidation(final CacheInvalidationListener<K, U> invalidationListener) {
+        cache.subscribeForInvalidation((key, value, removalCause) ->
+                invalidationListener.onCacheEntryInvalidated(key, project.apply(value), removalCause));
+    }
+
+    @Override
     public void put(final K key, final U value) {
         cache.put(key, embed.apply(value));
     }

@@ -41,9 +41,27 @@ final class ImmutableLabel implements Label {
      * @return a new Label.
      * @throws NullPointerException if {@code labelValue} is {@code null}.
      * @throws IllegalArgumentException if {@code labelValue} is empty.
+     * @throws LabelInvalidException of the {@code labelValue} can not be used to to blocklisted prefixes.
      */
     public static Label of(final CharSequence labelValue) {
+        return of(labelValue, false);
+    }
+
+    /**
+     * Returns a new Label based on the provided string.
+     *
+     * @param labelValue the character sequence forming the Label's value.
+     * @param importedLabel whether the created label should be treated as imported label or not.
+     * @return a new Label.
+     * @throws NullPointerException if {@code labelValue} is {@code null}.
+     * @throws IllegalArgumentException if {@code labelValue} is empty.
+     * @throws LabelInvalidException of the {@code labelValue} can not be used to to blocklisted prefixes.
+     */
+    public static Label of(final CharSequence labelValue, final boolean importedLabel) {
         argumentNotEmpty(labelValue, "label value");
+        if (!importedLabel && labelValue.toString().startsWith(ImmutableImportedLabel.IMPORTED_PREFIX)) {
+            throw LabelInvalidException.newBuilder(labelValue).build();
+        }
 
         final Validator validator = NoControlCharactersNoSlashesValidator.getInstance(labelValue);
         if (!validator.isValid()) {

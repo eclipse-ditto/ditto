@@ -26,9 +26,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayJwtIssuerNotSupportedException;
@@ -52,7 +49,6 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.RemovalListener;
 
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
@@ -90,10 +86,9 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
 
         final AsyncCacheLoader<PublicKeyIdWithIssuer, PublicKey> loader = this::loadPublicKey;
 
-        final Caffeine<PublicKeyIdWithIssuer, PublicKey> caffeine = Caffeine.newBuilder()
+        final Caffeine<Object, Object> caffeine = Caffeine.newBuilder()
                 .maximumSize(publicKeysConfig.getMaximumSize())
-                .expireAfterWrite(publicKeysConfig.getExpireAfterWrite())
-                .removalListener(new CacheRemovalListener());
+                .expireAfterWrite(publicKeysConfig.getExpireAfterWrite());
 
         publicKeyCache = CaffeineCache.of(caffeine, loader, cacheName);
     }
@@ -253,18 +248,6 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
 
         LOGGER.debug("Did not find key with id <{}>.", keyId);
         return null;
-    }
-
-    private static final class CacheRemovalListener implements RemovalListener<PublicKeyIdWithIssuer, PublicKey> {
-
-        @Override
-        public void onRemoval(@Nullable final PublicKeyIdWithIssuer key, @Nullable final PublicKey value,
-                @Nonnull final com.github.benmanes.caffeine.cache.RemovalCause cause) {
-
-            final String msgTemplate = "Removed PublicKey with ID <{}> from cache due to cause '{}'.";
-            LOGGER.debug(msgTemplate, key, cause);
-        }
-
     }
 
 }
