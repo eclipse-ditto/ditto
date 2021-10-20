@@ -115,30 +115,33 @@ public final class SearchUpdaterStream {
      * Start a perpetual search updater stream killed only by the kill-switch.
      *
      * @param actorContext where to create actors for this stream.
-     * @param withAcknowledgements defines whether for the created updater stream the requested ack
-     * {@link org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} is required or not.
      * @return kill-switch to terminate the stream.
      */
-    public KillSwitch start(final ActorContext actorContext, final boolean withAcknowledgements) {
-        final Source<Source<AbstractWriteModel, NotUsed>, NotUsed> restartSource =
-                createRestartSource(withAcknowledgements);
-        final Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> restartSink = createRestartSink(withAcknowledgements);
+    public KillSwitch start(final ActorContext actorContext) {
+        final Source<Source<AbstractWriteModel, NotUsed>, NotUsed> restartSource = createRestartSource();
+        final Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> restartSink = createRestartSink();
         return restartSource.viaMat(KillSwitches.single(), Keep.right())
                 .toMat(restartSink, Keep.left())
                 .run(actorContext.system());
     }
 
-    private Source<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSource(
-            final boolean shouldAcknowledge) {
+    private Source<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSource() {
         final var streamConfig = updaterConfig.getStreamConfig();
         final StreamStageConfig retrievalConfig = streamConfig.getRetrievalConfig();
 
+        final var acknowledgedSource =
+                ChangeQueueActor.createSource(changeQueueActor, true, streamConfig.getWriteInterval());
+        final var unacknowledgedSource =
+                ChangeQueueActor.createSource(changeQueueActor, false, streamConfig.getWriteInterval());
+
+        final var mergedSource =
+                acknowledgedSource.mergePrioritized(unacknowledgedSource, 1023, 1, true);
+
         final Source<Source<AbstractWriteModel, NotUsed>, NotUsed> source =
-                ChangeQueueActor.createSource(changeQueueActor, shouldAcknowledge, streamConfig.getWriteInterval())
-                        .via(filterMapKeysByBlockedNamespaces())
-                        .via(enforcementFlow.create(shouldAcknowledge, retrievalConfig.getParallelism())
-                                .map(writeModelSource -> writeModelSource.via(
-                                        blockNamespaceFlow(SearchUpdaterStream::namespaceOfWriteModel))));
+                mergedSource.via(filterMapKeysByBlockedNamespaces())
+                        .via(enforcementFlow.create(retrievalConfig.getParallelism()))
+                        .map(writeModelSource ->
+                                writeModelSource.via(blockNamespaceFlow(SearchUpdaterStream::namespaceOfWriteModel)));
 
         final var backOffConfig = retrievalConfig.getExponentialBackOffConfig();
         return RestartSource.withBackoff(
@@ -146,16 +149,15 @@ public final class SearchUpdaterStream {
                 () -> source);
     }
 
-    private Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSink(
-            final boolean shouldAcknowledge) {
+    private Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSink() {
         final var streamConfig = updaterConfig.getStreamConfig();
         final PersistenceStreamConfig persistenceConfig = streamConfig.getPersistenceConfig();
 
         final int parallelism = persistenceConfig.getParallelism();
         final int maxBulkSize = persistenceConfig.getMaxBulkSize();
-        final String logName = "SearchUpdaterStream/BulkWriteResult<shouldAcknowledge=" + shouldAcknowledge + ">";
+        final String logName = "SearchUpdaterStream/BulkWriteResult";
         final Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> sink =
-                mongoSearchUpdaterFlow.start(shouldAcknowledge, parallelism, maxBulkSize)
+                mongoSearchUpdaterFlow.start(true, parallelism, maxBulkSize)
                         .via(bulkWriteResultAckFlow.start(persistenceConfig.getAckDelay()))
                         .log(logName)
                         .withAttributes(Attributes.logLevels(

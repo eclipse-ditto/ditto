@@ -111,7 +111,7 @@ public final class EnforcementFlowTest {
                     EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
-            materializeTestProbes(underTest.create(false, 1));
+            materializeTestProbes(underTest.create(1));
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
@@ -162,7 +162,7 @@ public final class EnforcementFlowTest {
                 EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                         system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
-        materializeTestProbes(underTest.create(false, 1));
+        materializeTestProbes(underTest.create(1));
 
         sinkProbe.ensureSubscription();
         sourceProbe.ensureSubscription();
@@ -238,7 +238,7 @@ public final class EnforcementFlowTest {
                     EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
-            materializeTestProbes(underTest.create(false, 1));
+            materializeTestProbes(underTest.create(1));
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
@@ -300,7 +300,7 @@ public final class EnforcementFlowTest {
                     EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
-            materializeTestProbes(underTest.create(false, 1));
+            materializeTestProbes(underTest.create(1));
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
@@ -345,7 +345,7 @@ public final class EnforcementFlowTest {
                     EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
-            materializeTestProbes(underTest.create(false, 1));
+            materializeTestProbes(underTest.create(1));
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
@@ -389,7 +389,7 @@ public final class EnforcementFlowTest {
                     EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
-            materializeTestProbes(underTest.create(false, 1));
+            materializeTestProbes(underTest.create(1));
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
@@ -432,7 +432,7 @@ public final class EnforcementFlowTest {
                     EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
-            materializeTestProbes(underTest.create(false, 1));
+            materializeTestProbes(underTest.create(1));
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
@@ -499,7 +499,7 @@ public final class EnforcementFlowTest {
                     EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
-            materializeTestProbes(underTest.create(false, 1));
+            materializeTestProbes(underTest.create(1));
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();

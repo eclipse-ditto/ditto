@@ -67,7 +67,6 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     private final SupervisorStrategy supervisorStrategy = RootSupervisorStrategyFactory.createStrategy(log);
 
     private final KillSwitch updaterStreamKillSwitch;
-    private final KillSwitch updaterStreamWithAcknowledgementsKillSwitch;
     private final ActorRef thingsUpdaterActor;
     private final ActorRef backgroundSyncActorProxy;
     private final DittoMongoClient dittoMongoClient;
@@ -106,8 +105,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 SearchUpdaterStream.of(updaterConfig, actorSystem, thingsShard, policiesShard, updaterShard,
                         changeQueueActor, dittoMongoClient.getDefaultDatabase(), blockedNamespaces,
                         searchUpdateMapper);
-        updaterStreamKillSwitch = searchUpdaterStream.start(getContext(), false);
-        updaterStreamWithAcknowledgementsKillSwitch = searchUpdaterStream.start(getContext(), true);
+        updaterStreamKillSwitch = searchUpdaterStream.start(getContext());
 
         final var searchUpdaterPersistence =
                 MongoThingsSearchUpdaterPersistence.of(dittoMongoClient.getDefaultDatabase(),
@@ -183,7 +181,6 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     @Override
     public void postStop() throws Exception {
         updaterStreamKillSwitch.shutdown();
-        updaterStreamWithAcknowledgementsKillSwitch.shutdown();
         dittoMongoClient.close();
         super.postStop();
     }

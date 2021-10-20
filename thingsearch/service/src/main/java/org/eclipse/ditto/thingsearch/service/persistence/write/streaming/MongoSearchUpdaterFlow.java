@@ -90,7 +90,7 @@ final class MongoSearchUpdaterFlow {
      * Create a new flow through the search persistence.
      * No logging or recovery is attempted.
      *
-     * @param shouldAcknowledge defines whether for this source the requested ack
+     * @param shouldAcknowledge whether to use a write concern to guarantee the consistency of acknowledgements.
      * {@link org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
      * @param parallelism How many write operations may run in parallel for this sink.
      * @param maxBulkSize How many writes to perform in one bulk.

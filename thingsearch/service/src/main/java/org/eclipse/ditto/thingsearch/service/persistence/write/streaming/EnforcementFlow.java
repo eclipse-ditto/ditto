@@ -26,7 +26,6 @@ import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmen
 import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacadeProvider;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
@@ -115,7 +114,7 @@ final class EnforcementFlow {
                 new PolicyEnforcerCacheLoader(askWithRetryConfig, scheduler, policiesShardRegion);
         final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, streamCacheConfig,
-                        "things-search_enforcementflow_enforcer_cache_policy", cacheDispatcher)
+                                "things-search_enforcementflow_enforcer_cache_policy", cacheDispatcher)
                         .projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
 
         return new EnforcementFlow(actorSystem, thingsShardRegion, policyEnforcerCache, askWithRetryConfig,
@@ -151,18 +150,14 @@ final class EnforcementFlow {
     /**
      * Create a flow from Thing changes to write models by retrieving data from Things shard region and enforcer cache.
      *
-     * @param shouldAcknowledge defines whether for the created flow the requested ack
-     * {@link org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
      * @param parallelism how many SudoRetrieveThing commands to send in parallel.
      * @return the flow.
      */
-    public Flow<Map<ThingId, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> create(
-            final boolean shouldAcknowledge, final int parallelism) {
+    public Flow<Map<ThingId, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> create(final int parallelism) {
 
         return Flow.<Map<ThingId, Metadata>>create()
                 .map(changeMap -> {
-                    log.info("Updating search index with <shouldAcknowledge={}> of <{}> things", shouldAcknowledge,
-                            changeMap.size());
+                    log.info("Updating search index of <{}> things", changeMap.size());
                     return sudoRetrieveThingJsons(parallelism, changeMap).flatMapConcat(responseMap ->
                             Source.fromIterator(changeMap.values()::iterator)
                                     .flatMapMerge(parallelism, metadataRef ->
