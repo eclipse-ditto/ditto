@@ -16,7 +16,9 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -66,14 +68,21 @@ final class CommandAndCommandResponseMatchingValidator
 
     @Override
     public void accept(final SignalWithEntityId<?> sentCommand, final CommandResponse<?> commandResponse) {
-        validateCorrelationIdsMatch(sentCommand, commandResponse);
-        validateTypesMatch(sentCommand, commandResponse);
-        validateEntityIdsMatch(sentCommand, commandResponse);
+        final var validationError = validateCorrelationIdsMatch(sentCommand, commandResponse)
+                .flatMap(aVoid -> validateTypesMatch(sentCommand, commandResponse))
+                .flatMap(aVoid -> validateEntityIdsMatch(sentCommand, commandResponse));
+
+        if (validationError.isPresent()) {
+            final var sendingFailedException = validationError.get();
+            connectionLogger.failure(commandResponse, sendingFailedException);
+            throw sendingFailedException;
+        }
     }
 
-    private void validateCorrelationIdsMatch(final SignalWithEntityId<?> command,
+    private static Optional<MessageSendingFailedException> validateCorrelationIdsMatch(final SignalWithEntityId<?> command,
             final CommandResponse<?> commandResponse) {
 
+        String detailMessage = null;
         final var commandDittoHeaders = command.getDittoHeaders();
         final var commandCorrelationIdOptional = commandDittoHeaders.getCorrelationId();
         final var commandResponseDittoHeaders = commandResponse.getDittoHeaders();
@@ -85,73 +94,61 @@ final class CommandAndCommandResponseMatchingValidator
                 if (!commandCorrelationId.equals(commandResponseCorrelationId)) {
                     final var pattern =
                             "Correlation ID of live response <{0}> differs from correlation ID of command <{1}>.";
-                    final var detailMessage =
+                    detailMessage =
                             MessageFormat.format(pattern, commandResponseCorrelationId, commandCorrelationId);
-                    final var exception = newMessageSendingFailedException(detailMessage, commandDittoHeaders);
-                    connectionLogger.failure(commandResponse, exception);
-                    throw exception;
                 }
             } else {
                 final var pattern = "Live response has no correlation ID while command has correlation ID <{0}>.";
-                final var detailMessage = MessageFormat.format(pattern, commandCorrelationId);
-                final var exception = newMessageSendingFailedException(detailMessage, commandDittoHeaders);
-                connectionLogger.failure(commandResponse, exception);
-                throw exception;
+                detailMessage = MessageFormat.format(pattern, commandCorrelationId);
+
             }
         } else if (commandResponseCorrelationIdOptional.isPresent()) {
             final var pattern = "Live response has correlation ID <{0}> while command has none.";
-            final var detailMessage = MessageFormat.format(pattern, commandResponseCorrelationIdOptional.get());
-            final var exception = newMessageSendingFailedException(detailMessage, commandDittoHeaders);
-            connectionLogger.failure(commandResponse, exception);
-            throw exception;
+            detailMessage = MessageFormat.format(pattern, commandResponseCorrelationIdOptional.get());
+
         }
+        return Optional.ofNullable(detailMessage).map(toMessageSendingFailedException(commandDittoHeaders));
     }
 
-    private static MessageSendingFailedException newMessageSendingFailedException(final String detailMessage,
+    private static Function<String, MessageSendingFailedException> toMessageSendingFailedException(
             final DittoHeaders dittoHeaders) {
 
-        return MessageSendingFailedException.newBuilder()
+        return detailMessage -> MessageSendingFailedException.newBuilder()
                 .httpStatus(HttpStatus.BAD_REQUEST)
                 .message(detailMessage)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }
 
-    private void validateTypesMatch(final SignalWithEntityId<?> command, final CommandResponse<?> commandResponse) {
+    private static Optional<MessageSendingFailedException> validateTypesMatch(final SignalWithEntityId<?> command,
+            final CommandResponse<?> commandResponse) {
+
         if (isAcknowledgement(commandResponse)) {
-            return;
+            return Optional.empty();
         }
 
+        String detailMessage = null;
         final var commandResponseType = commandResponse.getType();
         final var semanticCommandResponseType = SemanticSignalType.parseSemanticSignalType(commandResponseType);
         final var semanticCommandType = SemanticSignalType.parseSemanticSignalType(command.getType());
         if (!isSameSignalDomain(semanticCommandType, semanticCommandResponseType)) {
             final var pattern = "Type of live response <{0}> is not related to type of command <{1}>.";
-            final var detailMessage = MessageFormat.format(pattern, commandResponseType, command.getType());
-            final var exception = newMessageSendingFailedException(detailMessage, command.getDittoHeaders());
-            connectionLogger.failure(commandResponse, exception);
-            throw exception;
+            detailMessage = MessageFormat.format(pattern, commandResponseType, command.getType());
         }
         if (ResponseType.ERROR == commandResponse.getResponseType()) {
-            return;
+            return Optional.empty();
         }
         if (isMessagesSignalDomain(semanticCommandResponseType)) {
             if (!areCorrespondingMessageSignals(command.getName(), commandResponse.getName())) {
                 final var pattern =
                         "Type of live message response <{0}> is not related to type of message command <{1}>.";
-                final var detailMessage = MessageFormat.format(pattern, commandResponse.getType(), command.getType());
-                final var exception =
-                        newMessageSendingFailedException(detailMessage, command.getDittoHeaders());
-                connectionLogger.failure(commandResponse, exception);
-                throw exception;
+                detailMessage = MessageFormat.format(pattern, commandResponse.getType(), command.getType());
             }
         } else if (!isEqualNames(command, commandResponse)) {
             final var pattern = "Type of live response <{0}> is not related to type of command <{1}>.";
-            final var detailMessage = MessageFormat.format(pattern, commandResponseType, command.getType());
-            final var exception = newMessageSendingFailedException(detailMessage, command.getDittoHeaders());
-            connectionLogger.failure(commandResponse, exception);
-            throw exception;
+            detailMessage = MessageFormat.format(pattern, commandResponseType, command.getType());
         }
+        return Optional.ofNullable(detailMessage).map(toMessageSendingFailedException(command.getDittoHeaders()));
     }
 
     private static boolean isAcknowledgement(final CommandResponse<?> commandResponse) {
@@ -177,24 +174,23 @@ final class CommandAndCommandResponseMatchingValidator
         return Objects.equals(command.getName(), commandResponse.getName());
     }
 
-    private void validateEntityIdsMatch(final SignalWithEntityId<?> command, final CommandResponse<?> commandResponse) {
+    private static Optional<MessageSendingFailedException> validateEntityIdsMatch(final SignalWithEntityId<?> command,
+            final CommandResponse<?> commandResponse) {
+
+        String detailMessage = null;
         if (commandResponse instanceof WithEntityId) {
             final var commandResponseEntityId = ((WithEntityId) commandResponse).getEntityId();
             final var commandEntityId = command.getEntityId();
             if (!Objects.equals(commandResponseEntityId, commandEntityId)) {
                 final var pattern = "Entity ID of live response <{0}> differs from entity ID of command <{1}>.";
-                final var detailMessage = MessageFormat.format(pattern, commandResponseEntityId, commandEntityId);
-                final var exception = newMessageSendingFailedException(detailMessage, command.getDittoHeaders());
-                connectionLogger.failure(commandResponse, exception);
-                throw exception;
+                detailMessage = MessageFormat.format(pattern, commandResponseEntityId, commandEntityId);
+
             }
         } else {
             final var pattern = "Live response has no entity ID while command has entity ID <{0}>";
-            final var detailMessage = MessageFormat.format(pattern, command.getEntityId());
-            final var exception = newMessageSendingFailedException(detailMessage, command.getDittoHeaders());
-            connectionLogger.failure(commandResponse, exception);
-            throw exception;
+            detailMessage = MessageFormat.format(pattern, command.getEntityId());
         }
+        return Optional.ofNullable(detailMessage).map(toMessageSendingFailedException(command.getDittoHeaders()));
     }
 
 }

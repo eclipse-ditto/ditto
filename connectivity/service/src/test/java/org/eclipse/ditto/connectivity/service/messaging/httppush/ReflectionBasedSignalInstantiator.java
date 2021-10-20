@@ -12,13 +12,11 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -122,8 +120,11 @@ final class ReflectionBasedSignalInstantiator {
             throws InvocationTargetException, IllegalAccessException {
 
         final var staticFactoryMethod = getStaticFactoryMethodOrThrow(signalImplementationClass);
-        final var parameterValues = getParameterValues(staticFactoryMethod);
-        return (T) staticFactoryMethod.invoke(null, parameterValues.toArray());
+        final var parameterValues = Stream.of(staticFactoryMethod.getParameters())
+                .map(ReflectionBasedSignalInstantiator::getSuitableParameterValue)
+                .toArray();
+
+        return (T) staticFactoryMethod.invoke(null, parameterValues);
     }
 
     private static Method getStaticFactoryMethodOrThrow(final Class<?> clazz) {
@@ -141,38 +142,19 @@ final class ReflectionBasedSignalInstantiator {
                 });
     }
 
-    private static Collection<Object> getParameterValues(final Method staticFactoryMethod) {
-        final var parameterTypes = staticFactoryMethod.getParameterTypes();
-        final var parameterAnnotations = staticFactoryMethod.getParameterAnnotations();
-        final Collection<Object> result = new ArrayList<>(parameterTypes.length);
-        for (var i = 0; i < parameterTypes.length; i++) {
-            final var parameterType = parameterTypes[i];
-            if (isAnnotatedNullable(parameterAnnotations[i])) {
-                result.add(null);
-            } else {
-                result.add(getSuitableParameterValueOrNull(parameterType));
-            }
-        }
-        return result;
-    }
-
-    private static boolean isAnnotatedNullable(final Annotation[] annotations) {
-        var result = false;
-        for (final var annotation : annotations) {
-            if (Nullable.class.equals(annotation.annotationType())) {
-                result = true;
-                break;
-            }
-        }
-        return result;
-    }
-
     @Nullable
-    private static Object getSuitableParameterValueOrNull(final Class<?> parameterType) {
-        final var result = PARAMETER_VALUES_PER_TYPE.get(parameterType);
-        if (null == result) {
-            LOGGER.warn("Found not value for parameter type <{}>. Using null instead.", parameterType.getName());
+    private static Object getSuitableParameterValue(final Parameter parameter) {
+        final var parameterType = parameter.getType();
+        final Object result;
+        if (parameter.isAnnotationPresent(Nullable.class)) {
+            result = null;
+        } else {
+            result = PARAMETER_VALUES_PER_TYPE.get(parameterType);
+            if (null == result) {
+                LOGGER.warn("Found not value for parameter type <{}>. Using null instead.", parameterType.getName());
+            }
         }
+
         return result;
     }
 
