@@ -35,8 +35,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentMatchers;
 
-import com.typesafe.config.ConfigFactory;
-
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.japi.Pair;
@@ -127,7 +125,7 @@ public final class AtLeastOnceConsumerStreamTest {
 
             inboundSinkProbe.ensureSubscription();
             // Then we can offer those records and they are processed in parallel to the maximum of 'maxInflight'
-            for (int i = 0; i < maxInflight; i++) {
+            for (int i = 0; i < maxInflight + 1; i++) {
                 assertThat(sourceQueue.get().offer(committableMessage)).isEqualTo(QueueOfferResult.enqueued());
                 inboundSinkProbe.request(1);
                 inboundSinkProbe.expectNext();

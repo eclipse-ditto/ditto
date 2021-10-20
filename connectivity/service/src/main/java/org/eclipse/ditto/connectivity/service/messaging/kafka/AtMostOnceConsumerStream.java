@@ -31,10 +31,9 @@ import akka.NotUsed;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.MergeHub;
 import akka.stream.javadsl.Sink;
-import scala.util.Either;
-import scala.util.Left;
-import scala.util.Right;
+import akka.stream.javadsl.Source;
 
 /**
  * Kafka consumer stream with "at most once" (QoS 0) semantics.
@@ -44,11 +43,11 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
     private static final Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(AtMostOnceConsumerStream.class);
 
-    private final ConnectionMonitor inboundMonitor;
     private final Materializer materializer;
     private final Consumer.DrainingControl<Done> consumerControl;
-    private final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink;
-    private final Sink<DittoRuntimeException, ?> dreSink;
+    private final Sink<KafkaCompletableMessage, NotUsed> externalMessageSink;
+    private final Sink<TransformationResult, NotUsed> dreSink;
+    private final Sink<TransformationResult, NotUsed> unexpectedMessageSink;
 
     AtMostOnceConsumerStream(
             final AtMostOnceKafkaConsumerSourceSupplier sourceSupplier,
@@ -60,15 +59,33 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
             final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink,
             final Sink<DittoRuntimeException, ?> dreSink) {
 
-        this.inboundMonitor = inboundMonitor;
         this.materializer = materializer;
-        this.inboundMappingSink = inboundMappingSink;
-        this.dreSink = dreSink;
+
+        final Sink<KafkaCompletableMessage, NotUsed> externalMessageSink = Flow.of(KafkaCompletableMessage.class)
+                .map(KafkaCompletableMessage::getAcknowledgeableMessage)
+                .to(inboundMappingSink);
+        this.externalMessageSink = MergeHub.of(KafkaCompletableMessage.class)
+                .to(externalMessageSink)
+                .run(materializer);
+
+        final Sink<TransformationResult, NotUsed> exceptionSink = Flow.of(TransformationResult.class)
+                .map(AtMostOnceConsumerStream::extractDittoRuntimeException)
+                .to(dreSink);
+        this.dreSink = MergeHub.of(TransformationResult.class)
+                .to(exceptionSink)
+                .run(materializer);
+
+        unexpectedMessageSink = MergeHub.of(TransformationResult.class)
+                .to(Sink.foreach(result -> inboundMonitor.exception(
+                        "Got unexpected transformation result <{0}>. This is an internal error. " +
+                                "Please contact the service team.", result
+                )))
+                .run(materializer);
         consumerControl = sourceSupplier.get()
                 .filter(consumerRecord -> isNotDryRun(consumerRecord, dryRun))
                 .map(kafkaMessageTransformer::transform)
                 .filter(result -> !result.isExpired())
-                .via(processTransformationResult())
+                .flatMapConcat(this::processTransformationResult)
                 .mapAsync(consumerMaxInflight, x -> x)
                 .toMat(Sink.ignore(), Consumer::createDrainingControl)
                 .run(materializer);
@@ -84,59 +101,27 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
         return consumerControl.drainAndShutdown(materializer.executionContext());
     }
 
-    private Flow<TransformationResult, Either<TransformationResult, CompletableFuture<Done>>, NotUsed>
-    externalMessageFlow() {
-        return Flow.of(TransformationResult.class)
-                .<Either<TransformationResult, KafkaCompletableMessage>>map(transformationResult ->
-                        isExternalMessage(transformationResult)
-                                ? new Right<>(toAcknowledgeableMessage(transformationResult))
-                                : new Left<>(transformationResult))
-                .alsoTo(Flow.<Either<TransformationResult, KafkaCompletableMessage>>create()
-                        .filter(Either::isRight)
-                        .map(either -> either.right().get())
-                        .map(KafkaCompletableMessage::getAcknowledgeableMessage)
-                        .to(inboundMappingSink))
-                .map(either -> either.right().map(KafkaCompletableMessage::getAcknowledgementFuture));
-    }
+    private Source<CompletableFuture<Done>, NotUsed> processTransformationResult(
+            final TransformationResult result) {
 
-    private Flow<Either<TransformationResult, CompletableFuture<Done>>, Either<TransformationResult, CompletableFuture<Done>>, NotUsed>
-    dittoRuntimeExceptionFlow() {
-        return Flow.<Either<TransformationResult, CompletableFuture<Done>>>create()
-                .alsoTo(Flow.<Either<TransformationResult, CompletableFuture<Done>>>create()
-                        .filter(either -> either.isLeft() && isDittoRuntimeException(either.left().get()))
-                        .map(either -> either.left().get())
-                        .map(AtMostOnceConsumerStream::extractDittoRuntimeException)
-                        .to(dreSink))
-                .map(either -> {
-                    if (either.isLeft() && isDittoRuntimeException(either.left().get())) {
-                        return new Right<>(CompletableFuture.completedFuture(Done.getInstance()));
-                    } else {
-                        return either;
-                    }
-                });
-    }
+        if (isExternalMessage(result)) {
+            return Source.single(result)
+                    .map(this::toAcknowledgeableMessage)
+                    .alsoTo(this.externalMessageSink)
+                    .map(KafkaCompletableMessage::getAcknowledgementFuture);
+        }
 
-    private Flow<Either<TransformationResult, CompletableFuture<Done>>, CompletableFuture<Done>, NotUsed>
-    unexpectedMessageFlow() {
-        return Flow.<Either<TransformationResult, CompletableFuture<Done>>>create()
-                .alsoTo(Flow.<Either<TransformationResult, CompletableFuture<Done>>>create()
-                        .filter(Either::isLeft)
-                        .map(either -> either.left().get())
-                        .to(unexpectedMessageSink()))
-                .map(either -> {
-                    if (either.isLeft()) {
-                        return CompletableFuture.completedFuture(Done.getInstance());
-                    } else {
-                        return either.right().get();
-                    }
-                });
-    }
+        final CompletableFuture<Done> offsetFuture = CompletableFuture.completedFuture(Done.getInstance());
 
-    private Flow<TransformationResult, CompletableFuture<Done>, NotUsed> processTransformationResult() {
-        return Flow.<TransformationResult>create()
-                .via(externalMessageFlow())
-                .via(dittoRuntimeExceptionFlow())
-                .via(unexpectedMessageFlow());
+        if (isDittoRuntimeException(result)) {
+            return Source.single(result)
+                    .alsoTo(dreSink)
+                    .map(transformationResult -> offsetFuture);
+        }
+
+        return Source.single(result)
+                .alsoTo(unexpectedMessageSink)
+                .map(unexpected -> offsetFuture);
     }
 
     private KafkaCompletableMessage toAcknowledgeableMessage(final TransformationResult value) {
@@ -163,13 +148,6 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
     private static DittoRuntimeException extractDittoRuntimeException(final TransformationResult value) {
         return value.getDittoRuntimeException().orElseThrow(); // at this point, the DRE is present
-    }
-
-    private Sink<TransformationResult, CompletionStage<Done>> unexpectedMessageSink() {
-        return Sink.foreach(either -> inboundMonitor.exception(
-                "Got unexpected transformation result <{0}>. This is an internal error. " +
-                        "Please contact the service team.", either
-        ));
     }
 
 }

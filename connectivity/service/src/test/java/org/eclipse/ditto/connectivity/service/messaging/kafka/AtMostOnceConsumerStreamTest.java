@@ -115,7 +115,7 @@ public final class AtMostOnceConsumerStreamTest {
 
             inboundSinkProbe.ensureSubscription();
             // Then we can offer those records and they are processed in parallel to the maximum of 'maxInflight'
-            for (int i = 0; i < maxInflight; i++) {
+            for (int i = 0; i < maxInflight + 1; i++) {
                 assertThat(sourceQueue.get().offer(consumerRecord)).isEqualTo(QueueOfferResult.enqueued());
                 inboundSinkProbe.request(1);
                 inboundSinkProbe.expectNext();
