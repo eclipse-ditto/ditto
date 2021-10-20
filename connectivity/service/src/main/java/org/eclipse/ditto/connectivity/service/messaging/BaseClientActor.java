@@ -209,6 +209,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private ActorRef outboundMappingProcessorActor;
     private ActorRef subscriptionManager;
     private ActorRef tunnelActor;
+    private ActorRef proxyActor;
 
     protected BaseClientActor(final Connection connection,
             final ActorRef proxyActor,
@@ -219,6 +220,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         materializer = Materializer.createMaterializer(system);
         this.connection = checkNotNull(connection, "connection");
         this.connectionActor = connectionActor;
+        this.proxyActor = proxyActor;
 
         // this is retrieve via the extension for each baseClientActor in order to not pass it as constructor arg
         //  as all constructor arguments need to be serializable as the BaseClientActor is started behind a cluster
