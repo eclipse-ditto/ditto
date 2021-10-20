@@ -115,9 +115,10 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             final Session session,
             final ConnectionConfig connectionConfig,
             final String clientId,
+            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver) {
 
-        super(connection, clientId, connectivityStatusResolver);
+        super(connection, clientId, proxyActor, connectivityStatusResolver);
         this.session = checkNotNull(session, "session");
 
         final Executor jmsDispatcher = JMSConnectionHandlingActor.getOwnDispatcher(getContext().system());
@@ -159,8 +160,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      */
     private static CompletableFuture<Object> triggerPublishAsync(
             final Pair<ExternalMessage, AmqpMessageContext> messageToPublish,
-            final Executor jmsDispatcher
-    ) {
+            final Executor jmsDispatcher) {
         final ExternalMessage message = messageToPublish.first();
         final AmqpMessageContext context = messageToPublish.second();
         return CompletableFuture.supplyAsync(() -> context.onPublishMessage(message), jmsDispatcher)
@@ -176,6 +176,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      * @param session the jms session
      * @param connectionConfig configuration for all connections.
      * @param clientId identifier of the client actor.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @return the Akka configuration Props object.
@@ -184,13 +185,14 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             final Session session,
             final ConnectionConfig connectionConfig,
             final String clientId,
+            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver) {
 
         return Props.create(AmqpPublisherActor.class,
                 connection,
                 session,
                 connectionConfig,
-                clientId,
+                clientId, proxyActor,
                 connectivityStatusResolver);
     }
 

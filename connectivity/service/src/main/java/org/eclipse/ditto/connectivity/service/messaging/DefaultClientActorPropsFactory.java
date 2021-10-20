@@ -70,7 +70,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                 result = KafkaClientActor.props(connection, proxyActor, connectionActor, dittoHeaders);
                 break;
             case HTTP_PUSH:
-                result = HttpPushClientActor.props(connection, connectionActor, dittoHeaders);
+                result = HttpPushClientActor.props(connection, proxyActor, connectionActor, dittoHeaders);
                 break;
             default:
                 throw new IllegalArgumentException("ConnectionType <" + connectionType + "> is not supported.");

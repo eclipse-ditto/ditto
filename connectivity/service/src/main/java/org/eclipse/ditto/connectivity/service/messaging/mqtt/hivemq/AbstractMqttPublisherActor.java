@@ -47,6 +47,7 @@ import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttPublishTarget;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 
+import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
@@ -77,9 +78,10 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
             final Function<P, CompletableFuture<R>> client,
             final boolean dryRun,
             final String clientId,
+            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver) {
 
-        super(connection, clientId, connectivityStatusResolver);
+        super(connection, clientId, proxyActor, connectivityStatusResolver);
         this.client = client;
         this.dryRun = dryRun;
         final Materializer materializer = Materializer.createMaterializer(this::getContext);

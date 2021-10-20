@@ -108,8 +108,9 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     @SuppressWarnings("unused")
     private RabbitMQPublisherActor(final Connection connection,
             final String clientId,
+            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver) {
-        super(connection, clientId, connectivityStatusResolver);
+        super(connection, clientId, proxyActor, connectivityStatusResolver);
         final Config config = getContext().getSystem().settings().config();
         pendingAckTTL = DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(config))
                 .getConnectionConfig()
@@ -122,14 +123,14 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
      *
      * @param connection the connection this publisher belongs to
      * @param clientId identifier of the client actor.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connection connection, final String clientId,
+    static Props props(final Connection connection, final String clientId, final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver) {
-
-        return Props.create(RabbitMQPublisherActor.class, connection, clientId, connectivityStatusResolver);
+        return Props.create(RabbitMQPublisherActor.class, connection, clientId, proxyActor, connectivityStatusResolver);
     }
 
     @Override

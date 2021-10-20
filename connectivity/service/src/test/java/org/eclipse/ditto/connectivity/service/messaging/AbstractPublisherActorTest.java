@@ -60,10 +60,12 @@ public abstract class AbstractPublisherActorTest {
     protected static final Config CONFIG = ConfigFactory.load("test");
     protected static final ThingId THING_ID = ThingId.of("thing", "id");
     protected ActorSystem actorSystem;
+    protected ActorRef proxyActor;
 
     @Before
     public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", CONFIG);
+        proxyActor = TestProbe.apply("proxyActor", actorSystem).ref();
     }
 
     @After

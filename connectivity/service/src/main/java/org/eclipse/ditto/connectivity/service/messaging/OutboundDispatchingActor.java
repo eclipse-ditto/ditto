@@ -63,7 +63,6 @@ final class OutboundDispatchingActor extends AbstractActor {
     @SuppressWarnings("unused")
     private OutboundDispatchingActor(final OutboundMappingSettings settings,
             final ActorRef outboundMappingProcessorActor) {
-
         this.settings = settings;
         this.outboundMappingProcessorActor = outboundMappingProcessorActor;
     }
@@ -182,7 +181,7 @@ final class OutboundDispatchingActor extends AbstractActor {
         final Consumer<ActorRef> action = acknowledgementForwarder -> {
             if (responseOrAck instanceof ThingQueryCommandResponse && isLiveResponse(responseOrAck)) {
                 // forward live command responses to concierge to filter response
-                proxyActor.tell(responseOrAck, getSender());
+                settings.getProxyActor().tell(responseOrAck, getSender());
             } else {
                 acknowledgementForwarder.forward(responseOrAck, context);
             }

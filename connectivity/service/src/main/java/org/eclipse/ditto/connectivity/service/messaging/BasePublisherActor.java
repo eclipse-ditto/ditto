@@ -42,6 +42,7 @@ import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
@@ -81,8 +82,10 @@ import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
@@ -105,6 +108,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     protected final ConnectionConfig connectionConfig;
     protected final ConnectionLogger connectionLogger;
     protected final ConnectivityStatusResolver connectivityStatusResolver;
+    protected final ExpressionResolver connectionIdResolver;
 
     /**
      * Common logger for all sub-classes of BasePublisherActor as its MDC already contains the connection ID.
@@ -118,13 +122,15 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private final List<Optional<ReplyTarget>> replyTargets;
     private final int acknowledgementSizeBudget;
     private final String clientId;
-    protected final ExpressionResolver connectionIdResolver;
+    private final ActorRef proxyActor;
 
     protected BasePublisherActor(final Connection connection,
             final String clientId,
+            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver) {
         this.connection = checkNotNull(connection, "connection");
         this.clientId = checkNotNull(clientId, "clientId");
+        this.proxyActor = checkNotNull(proxyActor, "proxyActor");
         resourceStatusMap = new HashMap<>();
         final List<Target> targets = connection.getTargets();
         targets.forEach(target -> resourceStatusMap.put(target, getTargetResourceStatus(target)));
@@ -238,14 +244,37 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(multiMapped.getSource());
         if (!nonAcknowledgementsResponses.isEmpty() && sender != null) {
             nonAcknowledgementsResponses.forEach(response -> {
-                l.debug("CommandResponse created from HTTP response. Replying to <{}>: <{}>", sender, response);
-                sender.tell(response, getSelf());
+                // TODO remove header merging when mergeWithResponseHeaders in HttpPublisherActor is fixed
+                //  and headers are added to the response
+                final var sourceDittoHeaders = multiMapped.getSource().getDittoHeaders();
+                final var responseDittoHeaders = response.getDittoHeaders();
+                final var combinedHeaders = DittoHeaders.newBuilder(sourceDittoHeaders)
+                        .putHeaders(responseDittoHeaders)
+                        .build();
+
+                final var responseWithPreservedHeaders =
+                        response.setDittoHeaders(combinedHeaders);
+                if (responseWithPreservedHeaders instanceof ThingQueryCommandResponse
+                        && isLiveResponse(responseWithPreservedHeaders)) {
+                    l.debug("LiveQueryCommandResponse created from HTTP response. " +
+                            "Sending response <{}> to concierge for filtering", responseWithPreservedHeaders);
+
+                    proxyActor.tell(responseWithPreservedHeaders, sender);
+                } else {
+                    l.debug("CommandResponse created from HTTP response. Replying to <{}>: <{}>", sender,
+                            responseWithPreservedHeaders);
+                    sender.tell(responseWithPreservedHeaders, getSelf());
+                }
             });
         } else if (nonAcknowledgementsResponses.isEmpty()) {
             l.debug("No CommandResponse created from HTTP response.");
         } else {
             l.error("CommandResponse created from HTTP response, but no sender: <{}>", multiMapped.getSource());
         }
+    }
+
+    private boolean isLiveResponse(final WithDittoHeaders response) {
+        return response.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
     /**
@@ -279,7 +308,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         return Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getHttpStatus(),
                 acknowledgements.getDittoHeaders());
     }
-
 
     /**
      * Appends the ConnectionId to the processed {@code commandResponse} payload.

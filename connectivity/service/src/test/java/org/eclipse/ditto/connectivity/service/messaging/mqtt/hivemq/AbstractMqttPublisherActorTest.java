@@ -157,4 +157,5 @@ abstract class AbstractMqttPublisherActorTest extends AbstractPublisherActorTest
 
         return ConnectivityModelFactory.newHeaderMapping(mappingMap);
     }
+
 }

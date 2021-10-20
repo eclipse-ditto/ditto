@@ -128,9 +128,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private HttpPublisherActor(final Connection connection,
             final HttpPushFactory factory,
             final String clientId,
+            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver) {
 
-        super(connection, clientId, connectivityStatusResolver);
+        super(connection, clientId, proxyActor, connectivityStatusResolver);
         this.factory = factory;
         materializer = Materializer.createMaterializer(this::getContext);
         final var config = connectionConfig.getHttpPushConfig();
@@ -161,13 +162,15 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
      * @param connection the connection.
      * @param factory the http push factory to use.
      * @param clientId the client ID.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection, final HttpPushFactory factory, final String clientId,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
-        return Props.create(HttpPublisherActor.class, connection, factory, clientId, connectivityStatusResolver);
+            final ActorRef proxyActor, final ConnectivityStatusResolver connectivityStatusResolver) {
+        return Props.create(HttpPublisherActor.class, connection, factory, clientId, proxyActor,
+                connectivityStatusResolver);
     }
 
     private static Uri setPathAndQuery(final Uri uri, @Nullable final String path, @Nullable final String query) {
@@ -459,7 +462,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                                 httpStatus);
                     } else if (sentSignal instanceof ThingCommand &&
                             SignalInformationPoint.isChannelLive(sentSignal)) {
-                        result = toLiveCommandResponse(sentSignal, mergedDittoHeaders, body, httpStatus);
+                        result = toLiveCommandResponse(mergedDittoHeaders, body);
                     } else {
                         result = null;
                     }
@@ -488,7 +491,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 }
             }
 
-            final var liveCommandWithEntityId = SignalInformationPoint.tryToGetAsLiveCommandWithEntityId(sentSignal);
+            final var liveCommandWithEntityId =
+                    SignalInformationPoint.tryToGetAsLiveCommandWithEntityId(sentSignal);
             if (liveCommandWithEntityId.isPresent()
                     && null != result
                     && SignalInformationPoint.isLiveCommandResponse(result)) {
@@ -571,10 +575,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     @Nullable
-    private CommandResponse<?> toLiveCommandResponse(final Signal<?> sentSignal,
-            final DittoHeaders dittoHeaders,
-            final JsonValue jsonValue,
-            final HttpStatus status) {
+    private CommandResponse<?> toLiveCommandResponse(final DittoHeaders dittoHeaders,
+            final JsonValue jsonValue) {
 
         final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
                 .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
@@ -608,7 +610,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     jsonObject, CommandResponse.class.getSimpleName(), signal.getClass().getSimpleName());
             return null;
         }
-
     }
 
     private ConnectionFailure toConnectionFailure(@Nullable final Done done, @Nullable final Throwable error) {
@@ -635,5 +636,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             return name.equalsIgnoreCase(headerName);
         }
     }
+
 }
 

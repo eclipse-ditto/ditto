@@ -353,7 +353,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         if (null != jmsSession) {
             final Props props = AmqpPublisherActor.props(connection(), jmsSession,
                     connectionContext.getConnectivityConfig().getConnectionConfig(), getDefaultClientId(),
-                    connectivityStatusResolver);
+                    getProxyActor(), connectivityStatusResolver);
             amqpPublisherActor = startChildActorConflictFree(AmqpPublisherActor.ACTOR_NAME_PREFIX, props);
             Patterns.ask(amqpPublisherActor, AmqpPublisherActor.Control.INITIALIZE, clientAskTimeout)
                     .whenComplete((result, error) -> {

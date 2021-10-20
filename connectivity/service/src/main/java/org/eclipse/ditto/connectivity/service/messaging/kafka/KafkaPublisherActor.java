@@ -54,6 +54,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 
 import akka.Done;
 import akka.NotUsed;
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
@@ -91,8 +92,9 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             final SendProducerFactory producerFactory,
             final boolean dryRun,
             final String clientId,
+            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver) {
-        super(connection, clientId, connectivityStatusResolver);
+        super(connection, clientId, proxyActor, connectivityStatusResolver);
         this.dryRun = dryRun;
         final Materializer materializer = Materializer.createMaterializer(this::getContext);
         producerStream = new KafkaProducerStream(config, materializer, producerFactory);
@@ -106,6 +108,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
      * @param producerFactory factory to create kafka SendProducer.
      * @param dryRun whether this publisher is only created for a test or not.
      * @param clientId identifier of the client actor.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @return the Akka configuration Props object.
@@ -115,10 +118,11 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             final SendProducerFactory producerFactory,
             final boolean dryRun,
             final String clientId,
+            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver) {
 
         return Props.create(KafkaPublisherActor.class, connection, config, producerFactory, dryRun, clientId,
-                connectivityStatusResolver);
+                proxyActor, connectivityStatusResolver);
     }
 
     @Override

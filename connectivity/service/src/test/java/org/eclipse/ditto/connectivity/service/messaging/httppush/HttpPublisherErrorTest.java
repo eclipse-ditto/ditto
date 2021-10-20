@@ -64,21 +64,18 @@ import akka.http.javadsl.Http;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
-import akka.stream.ActorMaterializer;
 import akka.stream.KillSwitches;
 import akka.stream.javadsl.Flow;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests error handling of {@link HttpPublisherActor}
- * against {@link HttpPushFactory}.
+ * Tests error handling of {@link HttpPublisherActor} against {@link HttpPushFactory}.
  */
 public final class HttpPublisherErrorTest {
 
     private final Queue<CompletableFuture<Void>> killSwitchTrigger = new ConcurrentLinkedQueue<>();
 
     private ActorSystem actorSystem;
-    private ActorMaterializer mat;
     private ServerBinding binding;
     private Connection connection;
     private BlockingQueue<HttpRequest> requestQueue;
@@ -94,7 +91,6 @@ public final class HttpPublisherErrorTest {
         connectionConfig = DefaultConnectionConfig.of(
                 DittoServiceConfig.of(
                         DefaultScopedConfig.dittoScoped(config), "connectivity"));
-        mat = ActorMaterializer.create(actorSystem);
         newBinding();
         connection = createHttpPushConnection(binding);
     }
@@ -114,7 +110,7 @@ public final class HttpPublisherErrorTest {
             final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
                     mock(ConnectionLogger.class), SshTunnelState::disabled);
             final Props props = HttpPublisherActor.props(connection, factory, "clientId",
-                    mock(ConnectivityStatusResolver.class));
+                    actorSystem.deadLetters(), mock(ConnectivityStatusResolver.class));
             final ActorRef underTest = watch(childActorOf(props));
 
             // WHEN: it is asked to publish events with delay between them larger than connection pool timeout
@@ -146,7 +142,7 @@ public final class HttpPublisherErrorTest {
             final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
                     mock(ConnectionLogger.class), SshTunnelState::disabled);
             final Props props = HttpPublisherActor.props(connection, factory, "clientId",
-                    mock(ConnectivityStatusResolver.class));
+                    actorSystem.deadLetters(), mock(ConnectivityStatusResolver.class));
             final ActorRef underTest = watch(childActorOf(props));
 
             // GIVEN: The connection is working.

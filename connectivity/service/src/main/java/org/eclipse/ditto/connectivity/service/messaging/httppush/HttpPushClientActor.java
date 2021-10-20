@@ -57,14 +57,14 @@ public final class HttpPushClientActor extends BaseClientActor {
 
     private final HttpPushFactory factory;
     private final ConnectionLogger connectionLogger;
+    private final HttpPushConfig httpPushConfig;
 
     @Nullable private ActorRef httpPublisherActor;
-    private final HttpPushConfig httpPushConfig;
 
     @SuppressWarnings("unused")
     private HttpPushClientActor(final Connection connection, final ActorRef connectionActor,
-            final DittoHeaders dittoHeaders) {
-        super(connection, ActorRef.noSender(), connectionActor, dittoHeaders);
+            final ActorRef proxyActor, final DittoHeaders dittoHeaders) {
+        super(connection, proxyActor, connectionActor, dittoHeaders);
 
         final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -81,13 +81,14 @@ public final class HttpPushClientActor extends BaseClientActor {
      * Create the {@code Props} object for an {@code HttpPushClientActor}.
      *
      * @param connection the HTTP-push connection.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the {@code Props} object.
      */
-    public static Props props(final Connection connection, final ActorRef connectionActor,
-            final DittoHeaders dittoHeaders) {
-        return Props.create(HttpPushClientActor.class, connection, connectionActor, dittoHeaders);
+    public static Props props(final Connection connection, final ActorRef proxyActor,
+            final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
+        return Props.create(HttpPushClientActor.class, connection, connectionActor, proxyActor, dittoHeaders);
     }
 
     @Override
@@ -147,7 +148,7 @@ public final class HttpPushClientActor extends BaseClientActor {
     protected CompletionStage<Status.Status> startPublisherActor() {
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         stopChildActor(httpPublisherActor);
-        final Props props = HttpPublisherActor.props(connection(), factory, getDefaultClientId(),
+        final Props props = HttpPublisherActor.props(connection(), factory, getDefaultClientId(), getProxyActor(),
                 connectivityStatusResolver);
         httpPublisherActor = startChildActorConflictFree(HttpPublisherActor.ACTOR_NAME, props);
         future.complete(DONE);

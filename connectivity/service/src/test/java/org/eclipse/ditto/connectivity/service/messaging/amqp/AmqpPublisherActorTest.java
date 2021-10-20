@@ -245,6 +245,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                     session,
                     loadConnectionConfig(),
                     "clientId",
+                    proxyActor,
                     connectivityStatusResolver);
             final ActorRef publisherActor = actorSystem.actorOf(props);
 
@@ -307,6 +308,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                     session,
                     loadConnectionConfig(),
                     "clientId",
+                    proxyActor,
                     connectivityStatusResolver);
             final ActorRef publisherActor = actorSystem.actorOf(props);
             publisherCreated(this, publisherActor);
@@ -345,6 +347,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                         session,
                         loadConnectionConfig(),
                         "clientId",
+                        proxyActor,
                         connectivityStatusResolver);
                 final ActorRef publisherActor = actorSystem.actorOf(props);
                 publisherCreated(this, publisherActor);
@@ -400,6 +403,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                     session,
                     loadConnectionConfig(),
                     "clientId",
+                    proxyActor,
                     connectivityStatusResolver);
 
             final ActorRef publisherActor = actorSystem.actorOf(props);
@@ -471,8 +475,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return AmqpPublisherActor.props(TestConstants.createConnection(), session, loadConnectionConfig(), "clientId",
-                connectivityStatusResolver);
+        return AmqpPublisherActor.props(TestConstants.createConnection(), session, loadConnectionConfig(),
+                "clientId", proxyActor, connectivityStatusResolver);
     }
 
     @Override

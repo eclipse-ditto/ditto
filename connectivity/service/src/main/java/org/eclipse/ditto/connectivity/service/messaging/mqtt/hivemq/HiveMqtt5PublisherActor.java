@@ -30,6 +30,7 @@ import com.hivemq.client.mqtt.mqtt5.datatypes.Mqtt5UserProperties;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5PublishResult;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
@@ -51,8 +52,8 @@ public final class HiveMqtt5PublisherActor extends AbstractMqttPublisherActor<Mq
 
     @SuppressWarnings("squid:UnusedPrivateConstructor") // used by akka
     private HiveMqtt5PublisherActor(final Connection connection, final Mqtt5Client client, final boolean dryRun,
-            final String clientId, final ConnectivityStatusResolver connectivityStatusResolver) {
-        super(connection, client.toAsync()::publish, dryRun, clientId, connectivityStatusResolver);
+            final String clientId, final ActorRef proxyActor, final ConnectivityStatusResolver connectivityStatusResolver) {
+        super(connection, client.toAsync()::publish, dryRun, clientId, proxyActor, connectivityStatusResolver);
     }
 
     /**
@@ -62,13 +63,15 @@ public final class HiveMqtt5PublisherActor extends AbstractMqttPublisherActor<Mq
      * @param client the HiveMQ client.
      * @param dryRun whether this publisher is only created for a test or not.
      * @param clientId identifier of the client actor.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @return the Props object.
      */
     public static Props props(final Connection connection, final Mqtt5Client client, final boolean dryRun,
-            final String clientId, final ConnectivityStatusResolver connectivityStatusResolver) {
-        return Props.create(HiveMqtt5PublisherActor.class, connection, client, dryRun, clientId,
+            final String clientId, final ActorRef proxyActor,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
+        return Props.create(HiveMqtt5PublisherActor.class, connection, client, dryRun, clientId, proxyActor,
                 connectivityStatusResolver);
     }
 

@@ -102,14 +102,14 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         final Connection connection = TestConstants.createConnection();
         final String clientId = UUID.randomUUID().toString();
         return KafkaPublisherActor.props(connection, kafkaConfig, mockSendProducerFactory, false, clientId,
-                mock(ConnectivityStatusResolver.class));
+                proxyActor, mock(ConnectivityStatusResolver.class));
     }
 
     protected Props getPublisherActorPropsWithDebugEnabled() {
         final Connection connectionWithDebugEnabled = TestConstants.createConnectionWithDebugEnabled();
         final String clientId = UUID.randomUUID().toString();
         return KafkaPublisherActor.props(connectionWithDebugEnabled, kafkaConfig, mockSendProducerFactory, false,
-                clientId, mock(ConnectivityStatusResolver.class));
+                clientId, proxyActor, mock(ConnectivityStatusResolver.class));
     }
 
     @Override

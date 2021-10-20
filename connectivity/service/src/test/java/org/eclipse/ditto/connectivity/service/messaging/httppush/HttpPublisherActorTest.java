@@ -116,7 +116,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected Props getPublisherActorProps() {
         return HttpPublisherActor.props(TestConstants.createConnection(), httpPushFactory, "clientId",
-                mock(ConnectivityStatusResolver.class));
+                proxyActor, mock(ConnectivityStatusResolver.class));
     }
 
     @Override
@@ -739,7 +739,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .credentials(hmacCredentials)
                     .build();
             final var props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
-                    mock(ConnectivityStatusResolver.class));
+                    proxyActor, mock(ConnectivityStatusResolver.class));
             final var publisherActor = childActorOf(props);
             publisherCreated(this, publisherActor);
 
@@ -806,7 +806,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .credentials(hmacCredentials)
                     .build();
             final var props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
-                    mock(ConnectivityStatusResolver.class));
+                    proxyActor, mock(ConnectivityStatusResolver.class));
             final var publisherActor = childActorOf(props);
             publisherCreated(this, publisherActor);
 

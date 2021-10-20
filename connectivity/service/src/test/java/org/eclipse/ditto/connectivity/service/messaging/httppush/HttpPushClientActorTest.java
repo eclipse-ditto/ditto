@@ -25,23 +25,23 @@ import javax.net.ssl.SSLContext;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.connectivity.api.BaseClientState;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
+import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.junit.After;
 import org.junit.Before;
@@ -122,7 +122,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
     @Override
     protected Props createClientActor(final ActorRef proxyActor, final Connection connection) {
-        return HttpPushClientActor.props(connection, proxyActor, dittoHeaders);
+        return HttpPushClientActor.props(connection, proxyActor, proxyActor, dittoHeaders);
     }
 
     @Override

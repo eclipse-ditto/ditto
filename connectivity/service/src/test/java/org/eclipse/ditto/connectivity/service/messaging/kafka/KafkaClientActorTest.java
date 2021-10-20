@@ -237,6 +237,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
                             final SendProducerFactory producerFactory,
                             final boolean dryRun,
                             final String clientId,
+                            final ActorRef proxyActor,
                             final ConnectivityStatusResolver connectivityStatusResolver) {
                         return MockKafkaPublisherActor.props(ref, status);
                     }

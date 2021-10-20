@@ -161,24 +161,26 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         ConnectivityConfigModifiedBehavior {
 
     /**
+     * Common logger for all sub-classes of BaseClientActor as its MDC already contains the connection ID.
+     */
+    protected final ThreadSafeDittoLoggingAdapter logger;
+    protected static final Status.Success DONE = new Status.Success(Done.getInstance());
+
+    protected ConnectionContext connectionContext;
+    protected final ConnectionLogger connectionLogger;
+    protected final ConnectivityStatusResolver connectivityStatusResolver;
+
+    /**
      * The name of the dispatcher that will be used for async mapping.
      */
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
-
     private static final Pattern EXCLUDED_ADDRESS_REPORTING_CHILD_NAME_PATTERN = Pattern.compile(
             OutboundMappingProcessorActor.ACTOR_NAME + "|" + OutboundDispatchingActor.ACTOR_NAME + "|" +
                     "StreamSupervisor-.*|subscriptionManager");
-
-    protected static final Status.Success DONE = new Status.Success(Done.getInstance());
-
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
     private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
             "Closed because of unknown/failure/misconfiguration status in client.";
-    /**
-     * Common logger for all sub-classes of BaseClientActor as its MDC already contains the connection ID.
-     */
-    protected final ThreadSafeDittoLoggingAdapter logger;
 
     private final Connection connection;
     private final ActorRef connectionActor;
@@ -196,21 +198,17 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ConnectivityCounterRegistry connectionCounterRegistry;
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final Materializer materializer;
-    protected final ConnectionLogger connectionLogger;
-    protected final ConnectivityStatusResolver connectivityStatusResolver;
     private final boolean dryRun;
-
     private final ConnectionContextProvider connectionContextProvider;
-    protected ConnectionContext connectionContext;
+
+    // counter for all child actors ever started to disambiguate between them
+    private int childActorCount = 0;
 
     private Sink<Object, NotUsed> inboundMappingSink;
     private ActorRef outboundDispatchingActor;
     private ActorRef outboundMappingProcessorActor;
     private ActorRef subscriptionManager;
     private ActorRef tunnelActor;
-
-    // counter for all child actors ever started to disambiguate between them
-    private int childActorCount = 0;
 
     protected BaseClientActor(final Connection connection,
             final ActorRef proxyActor,
@@ -422,6 +420,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     protected String getDefaultClientId() {
         return getClientId(connection.getId());
+    }
+
+    /**
+     * Get the proxyActor reference.
+     *
+     * @return the proxyActor ref.
+     */
+
+    protected ActorRef getProxyActor() {
+        return proxyActor;
     }
 
     private boolean hasInboundMapperConfigChanged(final ConnectivityConfig connectivityConfig) {
