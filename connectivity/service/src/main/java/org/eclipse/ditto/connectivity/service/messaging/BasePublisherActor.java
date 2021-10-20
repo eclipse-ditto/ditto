@@ -588,9 +588,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @return the configured auto-ack label if any exists, or an empty optional.
      */
     protected Optional<AcknowledgementLabel> getAcknowledgementLabel(@Nullable final Target target) {
-        return Optional.ofNullable(target).flatMap(Target::getIssuedAcknowledgementLabel)
-                .flatMap(
-                        ackLabel -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel));
+        return Optional.ofNullable(target)
+                .flatMap(Target::getIssuedAcknowledgementLabel)
+                .flatMap(ackLbl -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLbl));
     }
 
     /**

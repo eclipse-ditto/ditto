@@ -126,7 +126,6 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
      * @return the acknowledgement.
      */
     protected SendResult buildResponse(final Signal<?> signal, @Nullable final Target target) {
-
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         final Optional<AcknowledgementLabel> autoAckLabel = getAcknowledgementLabel(target);
         final Optional<EntityId> entityIdOptional =
@@ -167,14 +166,16 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
             final int ackSizeQuota) {
 
         try {
-            final String topic = determineTopic(publishTarget, message);
-            final MqttQos qos = determineQos(message.getHeaders(), publishTarget);
-            final boolean retain = determineMqttRetainFromHeaders(message.getHeaders());
-            final P mqttMessage = mapExternalMessageToMqttMessage(topic, qos, retain, message);
-
-            final MqttSendingContext<P> mqttSendingContext =
-                    new MqttSendingContext<>(mqttMessage, signal, new CompletableFuture<>(), message, autoAckTarget);
-            return offerToSourceQueue(mqttSendingContext);
+            final var messageHeaders = message.getHeaders();
+            final var mqttMessage = mapExternalMessageToMqttMessage(determineTopic(messageHeaders, publishTarget),
+                    determineQos(messageHeaders, publishTarget),
+                    isMqttRetain(messageHeaders),
+                    message);
+            return offerToSourceQueue(new MqttSendingContext<>(mqttMessage,
+                    signal,
+                    new CompletableFuture<>(),
+                    message,
+                    autoAckTarget));
         } catch (final Exception e) {
             return CompletableFuture.failedFuture(e);
         }
@@ -216,34 +217,22 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
                 .thenAccept(sendResult -> sendingContext.getSendResult().complete(sendResult));
     }
 
-    private String determineTopic(final MqttPublishTarget publishTarget, final ExternalMessage message) {
-        return Optional.of(message)
-                .map(ExternalMessage::getHeaders)
-                .flatMap(m -> Optional.ofNullable(m.get(MQTT_TOPIC.getName())))
-                .orElse(publishTarget.getTopic());
+    private static String determineTopic(final Map<String, String> headers, final MqttPublishTarget publishTarget) {
+        return headers.getOrDefault(MQTT_TOPIC.getName(), publishTarget.getTopic());
     }
 
     private static MqttQos determineQos(final Map<String, String> headers, final MqttPublishTarget publishTarget) {
-        return getMqttQosFromHeaders(headers).orElseGet(() -> AbstractMqttValidator.getHiveQoS(publishTarget.getQos()));
+        int qosCode;
+        try {
+            qosCode = Integer.parseInt(headers.get(MQTT_QOS.getName()));
+        } catch (final NumberFormatException e) {
+            qosCode = publishTarget.getQos();
+        }
+        return AbstractMqttValidator.getHiveQoS(qosCode);
     }
 
-    private static Optional<MqttQos> getMqttQosFromHeaders(final Map<String, String> headers) {
-        return Optional.ofNullable(headers.get(MQTT_QOS.getName()))
-                .flatMap(qosHeader -> {
-                    try {
-                        return Optional.of(Integer.parseInt(qosHeader));
-                    } catch (final NumberFormatException nfe) {
-                        return Optional.empty();
-                    }
-                })
-                .map(MqttQos::fromCode);
-    }
-
-    private boolean determineMqttRetainFromHeaders(final Map<String, String> headers) {
-        return Optional.of(headers)
-                .map(h -> h.get(MQTT_RETAIN.getName()))
-                .map(Boolean::parseBoolean)
-                .orElse(false);
+    private static boolean isMqttRetain(final Map<String, String> headers) {
+        return Boolean.parseBoolean(headers.get(MQTT_RETAIN.getName()));
     }
 
     private boolean isDryRun(final Object message) {

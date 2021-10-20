@@ -173,7 +173,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
-private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
+    private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
             "Closed because of unknown/failure/misconfiguration status in client.";
     /**
      * Common logger for all sub-classes of BaseClientActor as its MDC already contains the connection ID.
@@ -182,7 +182,6 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
 
     private final Connection connection;
     private final ActorRef connectionActor;
-    private final ActorRef proxyActor;
     private final ActorSelection proxyActorSelection;
     private final Gauge clientGauge;
     private final Gauge clientConnectingGauge;
@@ -222,7 +221,7 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         materializer = Materializer.createMaterializer(system);
         this.connection = checkNotNull(connection, "connection");
         this.connectionActor = connectionActor;
-        this.proxyActor = proxyActor;
+
         // this is retrieve via the extension for each baseClientActor in order to not pass it as constructor arg
         //  as all constructor arguments need to be serializable as the BaseClientActor is started behind a cluster
         //  router
@@ -296,10 +295,13 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         when(TESTING, inTestingState());
 
         // start with UNKNOWN state but send self OpenConnection because client actors are never created closed
-        final BaseClientData startingData =
-                BaseClientData.BaseClientDataBuilder.from(connection.getId(), connection, ConnectivityStatus.UNKNOWN,
-                        ConnectivityStatus.OPEN, "initialized", Instant.now())
-                        .build();
+        final var startingData = BaseClientData.BaseClientDataBuilder.from(connection.getId(),
+                        connection,
+                        ConnectivityStatus.UNKNOWN,
+                        ConnectivityStatus.OPEN,
+                        "initialized",
+                        Instant.now())
+                .build();
         startWith(UNKNOWN, startingData);
 
         onTransition(this::onTransition);
@@ -311,7 +313,8 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
         // inform connection actor of my presence if there are other client actors
         if (connection.getClientCount() > 1 && !dryRun) {
             connectionActor.tell(getSelf(), getSelf());
-            startTimerWithFixedDelay(Control.REFRESH_CLIENT_ACTOR_REFS.name(), Control.REFRESH_CLIENT_ACTOR_REFS,
+            startTimerWithFixedDelay(Control.REFRESH_CLIENT_ACTOR_REFS.name(),
+                    Control.REFRESH_CLIENT_ACTOR_REFS,
                     clientActorRefsNotificationDelay);
         }
         clientActorRefs.add(getSelf());
@@ -783,10 +786,12 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
     private FSM.State<BaseClientState, BaseClientData> publishMappedMessage(final PublishMappedMessage message,
             final BaseClientData data) {
 
-        if (getPublisherActor() != null) {
-            getPublisherActor().forward(message.getOutboundSignal(), getContext());
+        final var publisherActor = getPublisherActor();
+        final var outboundSignal = message.getOutboundSignal();
+        if (publisherActor != null) {
+            publisherActor.forward(outboundSignal, getContext());
         } else {
-            logger.withCorrelationId(message.getOutboundSignal().getSource())
+            logger.withCorrelationId(outboundSignal.getSource())
                     .error("No publisher actor available, dropping message: {}", message);
         }
         return stay();
@@ -1237,10 +1242,10 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
             connectionLogger.success("Connection successful.");
             data.getSessionSenders().forEach(origin -> origin.first().tell(new Status.Success(CONNECTED), getSelf()));
             return goTo(CONNECTED).using(data.resetSession()
-                            .resetFailureCount()
-                            .setConnectionStatus(ConnectivityStatus.OPEN)
-                            .setConnectionStatusDetails("Connected at " + Instant.now())
-                    );
+                    .resetFailureCount()
+                    .setConnectionStatus(ConnectivityStatus.OPEN)
+                    .setConnectionStatusDetails("Connected at " + Instant.now())
+            );
         } else {
             logger.info("Initialization of consumers, publisher and subscriptions failed: {}. Staying in CONNECTING " +
                     "state to continue with connection recovery after backoff.", initializationResult.getFailure());
@@ -1279,22 +1284,22 @@ private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_S
     private State<BaseClientState, BaseClientData> clientDisconnected(final ClientDisconnected event,
             final BaseClientData data) {
 
-            connectionLogger.success("Disconnected successfully.");
+        connectionLogger.success("Disconnected successfully.");
 
-            cleanupResourcesForConnection();
-            tellTunnelActor(SshTunnelActor.TunnelControl.STOP_TUNNEL);
-            data.getSessionSenders()
-                    .forEach(sender -> sender.first().tell(new Status.Success(DISCONNECTED), getSelf()));
+        cleanupResourcesForConnection();
+        tellTunnelActor(SshTunnelActor.TunnelControl.STOP_TUNNEL);
+        data.getSessionSenders()
+                .forEach(sender -> sender.first().tell(new Status.Success(DISCONNECTED), getSelf()));
 
-            final BaseClientData nextStateData = data.resetSession()
-                    .setConnectionStatus(ConnectivityStatus.CLOSED)
-                    .setConnectionStatusDetails("Disconnected at " + Instant.now());
+        final BaseClientData nextStateData = data.resetSession()
+                .setConnectionStatus(ConnectivityStatus.CLOSED)
+                .setConnectionStatusDetails("Disconnected at " + Instant.now());
 
-            if (event.shutdownAfterDisconnected()) {
-                return stop(Normal(), nextStateData);
-            } else {
-                return goTo(DISCONNECTED).using(nextStateData);
-            }
+        if (event.shutdownAfterDisconnected()) {
+            return stop(Normal(), nextStateData);
+        } else {
+            return goTo(DISCONNECTED).using(nextStateData);
+        }
     }
 
     private void tellTunnelActor(final SshTunnelActor.TunnelControl control) {

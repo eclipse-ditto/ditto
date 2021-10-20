@@ -52,7 +52,6 @@ import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolv
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.signing.NoOpSigning;
-import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.json.JsonFactory;
@@ -320,10 +319,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final int maxTotalMessageSize,
             final int ackSizeQuota) {
 
-        final CompletableFuture<SendResult> resultFuture = new CompletableFuture<>();
-        final HttpRequest request = createRequest(publishTarget, message);
-        final HttpPushContext context = newContext(signal, autoAckTarget, request, message, maxTotalMessageSize,
-                ackSizeQuota, resultFuture);
+        final var resultFuture = new CompletableFuture<SendResult>();
+        final var request = createRequest(publishTarget, message);
+        final var context =
+                newContext(signal, autoAckTarget, request, message, maxTotalMessageSize, ackSizeQuota, resultFuture);
         sourceQueue.offer(Pair.create(request, context))
                 .handle(handleQueueOfferResult(message, resultFuture));
         return resultFuture;
@@ -388,22 +387,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final CompletableFuture<SendResult> resultFuture) {
 
         return tryResponse -> {
-            final Uri requestUri = stripUserInfo(request.getUri());
+            final var l = logger.withCorrelationId(message.getInternalHeaders());
 
-            final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(message.getInternalHeaders());
-
-            if (tryResponse.isFailure()) {
-                final Throwable error = tryResponse.toEither().left().get();
-                final String errorDescription = MessageFormat.format("Failed to send HTTP request to <{0}>.",
-                        requestUri);
-                l.info("Failed to send message due to <{}: {}>", error.getClass().getSimpleName(),
-                        error.getMessage());
-                l.debug("Failed to send message <{}> due to <{}: {}>", message, error.getClass().getSimpleName(),
-                        error.getMessage());
-                resultFuture.completeExceptionally(error);
-                escalate(error, errorDescription);
-            } else {
-                final HttpResponse response = tryResponse.toEither().right().get();
+            if (tryResponse.isSuccess()) {
+                final var response = tryResponse.get();
                 l.info("Got response status <{}>", response.status());
                 l.debug("Sent message <{}>.", message);
                 l.debug("Got response <{} {} {}>", response.status(), response.getHeaders(),
@@ -415,8 +402,23 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                             resultFuture.completeExceptionally(e);
                             return null;
                         });
+            } else {
+                final var failure = tryResponse.failed();
+                final var error = failure.get();
+                if (l.isDebugEnabled()) {
+                    l.debug("Failed to send message <{}> due to <{}: {}>",
+                            message,
+                            error.getClass().getSimpleName(),
+                            error.getMessage());
+                } else {
+                    l.info("Failed to send message due to <{}: {}>",
+                            error.getClass().getSimpleName(),
+                            error.getMessage());
+                }
+                resultFuture.completeExceptionally(error);
+                escalate(error,
+                        MessageFormat.format("Failed to send HTTP request to <{0}>.", stripUserInfo(request.getUri())));
             }
-
         };
     }
 

@@ -127,7 +127,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         final Pair<SourceQueueWithComplete<Pair<ExternalMessage, AmqpMessageContext>>, UniqueKillSwitch> materialized =
                 Source.<Pair<ExternalMessage, AmqpMessageContext>>queue(config.getPublisherConfig().getMaxQueueSize(),
                                 OverflowStrategy.dropNew())
-                        .mapAsync(config.getPublisherConfig().getParallelism(), msg -> triggerPublishAsync(msg, jmsDispatcher))
+                        .mapAsync(config.getPublisherConfig().getParallelism(),
+                                msg -> triggerPublishAsync(msg, jmsDispatcher))
                         .recover(new PFBuilder<Throwable, Object>()
                                 // the "Done" instance is not used, this just means to not fail the stream for any Throwables
                                 .matchAny(x -> Done.getInstance())
@@ -158,7 +159,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      */
     private static CompletableFuture<Object> triggerPublishAsync(
             final Pair<ExternalMessage, AmqpMessageContext> messageToPublish,
-            final Executor jmsDispatcher) {
+            final Executor jmsDispatcher
+    ) {
         final ExternalMessage message = messageToPublish.first();
         final AmqpMessageContext context = messageToPublish.second();
         return CompletableFuture.supplyAsync(() -> context.onPublishMessage(message), jmsDispatcher)
@@ -178,9 +180,17 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      * status.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connection connection, final Session session, final ConnectionConfig connectionConfig,
-            final String clientId, final ConnectivityStatusResolver connectivityStatusResolver) {
-        return Props.create(AmqpPublisherActor.class, connection, session, connectionConfig, clientId,
+    static Props props(final Connection connection,
+            final Session session,
+            final ConnectionConfig connectionConfig,
+            final String clientId,
+            final ConnectivityStatusResolver connectivityStatusResolver) {
+
+        return Props.create(AmqpPublisherActor.class,
+                connection,
+                session,
+                connectionConfig,
+                clientId,
                 connectivityStatusResolver);
     }
 
@@ -565,4 +575,5 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
          */
         START_PRODUCER
     }
+
 }
