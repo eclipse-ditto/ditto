@@ -67,7 +67,6 @@ import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessageResponse;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
-import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
@@ -185,7 +184,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return newUri;
     }
 
-    private static Pair<Iterable<HttpHeader>, ContentType> getHttpHeadersPair(final Map<String, String> messageHeaders) {
+    private static Pair<Iterable<HttpHeader>, ContentType> getHttpHeadersPair(
+            final Map<String, String> messageHeaders) {
         final Collection<HttpHeader> headers = new ArrayList<>(messageHeaders.size());
         ContentType contentType = null;
         for (final var entry : messageHeaders.entrySet()) {
@@ -465,7 +465,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                                 httpStatus);
                     } else if (sentSignal instanceof ThingCommand &&
                             SignalInformationPoint.isChannelLive(sentSignal)) {
-                        result = toLiveCommandResponse(mergedDittoHeaders, body);
+                        result = toLiveCommandResponse(sentSignal, mergedDittoHeaders, body);
                     } else {
                         result = null;
                     }
@@ -481,7 +481,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
                         .isPresent();
                 if (isDittoProtocolMessage && body.isObject()) {
-                    final CommandResponse<?> parsedResponse = toCommandResponse(body.asObject());
+                    final CommandResponse<?> parsedResponse = toCommandResponse(body.asObject(), sentSignal);
                     if (parsedResponse instanceof Acknowledgement) {
                         result = parsedResponse;
                     } else if (SignalInformationPoint.isLiveCommandResponse(parsedResponse)) {
@@ -529,7 +529,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     @Nullable
-    private MessageCommandResponse<?, ?> toMessageCommandResponse(final MessageCommand<?, ?> messageCommand,
+    private MessageCommandResponse<?, ?> toMessageCommandResponse(final MessageCommand<?, ?> sentMessageCommand,
             final DittoHeaders dittoHeaders,
             final JsonValue jsonValue,
             final HttpStatus status) {
@@ -538,7 +538,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
                 .isPresent();
         if (isDittoProtocolMessage && jsonValue.isObject()) {
-            final CommandResponse<?> commandResponse = toCommandResponse(jsonValue.asObject());
+            final CommandResponse<?> commandResponse = toCommandResponse(jsonValue.asObject(), sentMessageCommand);
             if (commandResponse == null) {
                 return null;
             } else if (commandResponse instanceof MessageCommandResponse) {
@@ -550,7 +550,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 return null;
             }
         } else {
-            final var commandMessage = messageCommand.getMessage();
+            final var commandMessage = sentMessageCommand.getMessage();
             final var messageHeaders = MessageHeadersBuilder.of(commandMessage.getHeaders())
                     .httpStatus(status)
                     .putHeaders(dittoHeaders)
@@ -559,34 +559,35 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     .payload(jsonValue)
                     .build();
 
-            switch (messageCommand.getType()) {
+            switch (sentMessageCommand.getType()) {
                 case SendClaimMessage.TYPE:
-                    return SendClaimMessageResponse.of(messageCommand.getEntityId(), message, status,
+                    return SendClaimMessageResponse.of(sentMessageCommand.getEntityId(), message, status,
                             dittoHeaders);
                 case SendThingMessage.TYPE:
-                    return SendThingMessageResponse.of(messageCommand.getEntityId(), message, status,
+                    return SendThingMessageResponse.of(sentMessageCommand.getEntityId(), message, status,
                             dittoHeaders);
                 case SendFeatureMessage.TYPE:
-                    final SendFeatureMessage<?> sendFeatureMessage = (SendFeatureMessage<?>) messageCommand;
-                    return SendFeatureMessageResponse.of(messageCommand.getEntityId(),
+                    final SendFeatureMessage<?> sendFeatureMessage = (SendFeatureMessage<?>) sentMessageCommand;
+                    return SendFeatureMessageResponse.of(sentMessageCommand.getEntityId(),
                             sendFeatureMessage.getFeatureId(), message, status, dittoHeaders);
                 default:
                     connectionLogger.failure("Initial message command type <{0}> is unknown.",
-                            messageCommand.getType());
+                            sentMessageCommand.getType());
                     return null;
             }
         }
     }
 
     @Nullable
-    private CommandResponse<?> toLiveCommandResponse(final DittoHeaders dittoHeaders,
+    private CommandResponse<?> toLiveCommandResponse(final Signal<?> sentSignal,
+            final DittoHeaders dittoHeaders,
             final JsonValue jsonValue) {
 
         final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
                 .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
                 .isPresent();
         if (isDittoProtocolMessage && jsonValue.isObject()) {
-            final CommandResponse<?> commandResponse = toCommandResponse(jsonValue.asObject());
+            final var commandResponse = toCommandResponse(jsonValue.asObject(), sentSignal);
             if (commandResponse == null) {
                 return null;
             } else if (commandResponse instanceof ThingCommandResponse &&
@@ -604,11 +605,18 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     @Nullable
-    private CommandResponse<?> toCommandResponse(final JsonObject jsonObject) {
-        final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
-        final Signal<?> signal = DITTO_PROTOCOL_ADAPTER.fromAdaptable(jsonifiableAdaptable);
+    private CommandResponse<?> toCommandResponse(final JsonObject jsonObject, final Signal<?> sentSignal) {
+        final var jsonifiableAdaptable = ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
+        final var signal = DITTO_PROTOCOL_ADAPTER.fromAdaptable(jsonifiableAdaptable);
         if (signal instanceof CommandResponse) {
-            return (CommandResponse<?>) signal;
+            // use ditto headers from original sent signal as base, so that headers like the ditto-auth-context are set,
+            // they might be needed by concierge for filtering,
+            final var commandResponse = (CommandResponse<?>) signal;
+            final var fromSourceHeaders = sentSignal.getDittoHeaders().toBuilder()
+                    .putHeaders(commandResponse.getDittoHeaders())
+                    .build();
+
+            return commandResponse.setDittoHeaders(fromSourceHeaders);
         } else {
             connectionLogger.exception("Expected <{}> to be of type <{}> but was of type <{}>.",
                     jsonObject, CommandResponse.class.getSimpleName(), signal.getClass().getSimpleName());
