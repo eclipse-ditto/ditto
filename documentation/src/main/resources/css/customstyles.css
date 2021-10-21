@@ -35,10 +35,38 @@ a.navbar-ditto-home:hover {
     padding-bottom: 1em;
 }
 
+.ditto-nutshell {
+    padding-left: 1em;
+    padding-right: 1em;
+}
+
 .ditto-supergraphic {
+    width: 1200px;
+    padding-top: 3em;
+    padding-bottom: 4em;
+}
+.ditto-overviewgraphic {
     width: 700px;
     padding-top: 3em;
     padding-bottom: 4em;
+}
+
+@media (max-width: 1199px) {
+    .ditto-supergraphic {
+        width: 700px;
+    }
+    .ditto-overviewgraphic {
+        width: 500px;
+    }
+}
+
+@media (max-width: 450px) {
+    .ditto-supergraphic {
+        width: 320px;
+    }
+    .ditto-overviewgraphic {
+        width: 320px;
+    }
 }
 
 .startpage h1 {
@@ -1340,7 +1368,7 @@ h4.panel-title {
     }
 }
 
-.highlight {
+.highlight.who {
     margin-left: 0;
     margin-right: 0;
     text-align: center;
@@ -1349,14 +1377,14 @@ h4.panel-title {
     padding-bottom: 2em;
 }
 
-.highlight h2 {
+.highlight.who h2 {
     font-size: 2.5em;
     line-height: 1.5em;
     color: #fff;
     margin-top: 0.5em;
     margin-bottom: 1em;
 }
-.highlight a {
+.highlight.who a {
     color: #fff;
 }
 .highlight.who img {
@@ -1381,10 +1409,10 @@ h4.panel-title {
     list-style: none;
 }
 
-.highlight p {
+.highlight.who p {
     padding-top: 2em;
     font-size: 1.2em;
 }
-.highlight p a {
+.highlight.who p a {
     text-decoration: underline;
 }
