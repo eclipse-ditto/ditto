@@ -174,10 +174,10 @@ public final class SearchUpdaterStream {
 
     private <T> Flow<Map<ThingId, T>, Map<ThingId, T>, NotUsed> filterMapKeysByBlockedNamespaces() {
         return Flow.<Map<ThingId, T>>create()
-                .flatMapConcat(map ->
+                .<Map<ThingId, T>, NotUsed>flatMapConcat(map ->
                         Source.fromIterator(map.entrySet()::iterator)
                                 .via(blockNamespaceFlow(entry -> entry.getKey().getNamespace()))
-                                .<Map<ThingId, T>>fold(new HashMap<>(), (accumulator, entry) -> {
+                                .fold(new HashMap<>(), (accumulator, entry) -> {
                                     accumulator.put(entry.getKey(), entry.getValue());
                                     return accumulator;
                                 })

@@ -30,13 +30,17 @@ import javax.annotation.Nullable;
 import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayQueryTimeExceededException;
+import org.eclipse.ditto.internal.models.streaming.LowerBound;
+import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
+import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexInitializer;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.rql.query.SortOption;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceResultEntry;
 import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
@@ -46,11 +50,11 @@ import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors.GetSortBsonVisitor;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQuery;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
-import org.eclipse.ditto.internal.utils.persistence.mongo.indices.IndexInitializer;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayQueryTimeExceededException;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
+import org.mongodb.scala.MongoClient;
 import org.reactivestreams.Publisher;
 
 import com.mongodb.MongoExecutionTimeoutException;
@@ -211,6 +215,23 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
                 .idleTimeout(maxQueryTime);
     }
 
+    /**
+     * Recover a write model from the persistence.
+     *
+     * @param thingId the thing ID.
+     * @return the last write model if the thing exists in the search index, or a {@code ThingDeleteModel} if the thing
+     * does not exist.
+     */
+    public Source<AbstractWriteModel, NotUsed> recoverLastWriteModel(final ThingId thingId) {
+        final var metadata = Metadata.of(thingId, -1, null, null, null);
+        final var publisher = collection.find(Filters.eq(PersistenceConstants.FIELD_ID, thingId.toString())).limit(1);
+        final var emptySource =
+                Source.<AbstractWriteModel>single(ThingDeleteModel.of(metadata));
+        return Source.fromPublisher(publisher)
+                .map(document -> documentToWriteModel(metadata, document))
+                .orElse(emptySource);
+    }
+
     private Source<Document, NotUsed> findAllInternal(final Query query, final List<String> authorizationSubjectIds,
             @Nullable final Set<String> namespaces,
             @Nullable final Integer limit,
@@ -256,7 +277,8 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
                 ? notDeletedFilter
                 : Filters.and(notDeletedFilter, Filters.gt(PersistenceConstants.FIELD_ID, lowerBound.toString()));
         final Bson relevantFieldsProjection =
-                Projections.include(PersistenceConstants.FIELD_ID, PersistenceConstants.FIELD_REVISION, PersistenceConstants.FIELD_POLICY_ID, PersistenceConstants.FIELD_POLICY_REVISION,
+                Projections.include(PersistenceConstants.FIELD_ID, PersistenceConstants.FIELD_REVISION,
+                        PersistenceConstants.FIELD_POLICY_ID, PersistenceConstants.FIELD_POLICY_REVISION,
                         PersistenceConstants.FIELD_PATH_MODIFIED);
         final Bson sortById = Sorts.ascending(PersistenceConstants.FIELD_ID);
         final Publisher<Document> publisher = collection.find(filter)
@@ -324,13 +346,21 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
     private static Metadata readAsMetadata(final Document document) {
         final ThingId thingId = ThingId.of(document.getString(PersistenceConstants.FIELD_ID));
-        final long thingRevision = Optional.ofNullable(document.getLong(PersistenceConstants.FIELD_REVISION)).orElse(0L);
+        final long thingRevision =
+                Optional.ofNullable(document.getLong(PersistenceConstants.FIELD_REVISION)).orElse(0L);
         final String policyIdInPersistence = document.getString(PersistenceConstants.FIELD_POLICY_ID);
         final PolicyId policyId = policyIdInPersistence.isEmpty() ? null : PolicyId.of(policyIdInPersistence);
-        final long policyRevision = Optional.ofNullable(document.getLong(PersistenceConstants.FIELD_POLICY_REVISION)).orElse(0L);
-        final String nullableTimestamp = document.getEmbedded(List.of(PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_MODIFIED), String.class);
+        final long policyRevision =
+                Optional.ofNullable(document.getLong(PersistenceConstants.FIELD_POLICY_REVISION)).orElse(0L);
+        final String nullableTimestamp =
+                document.getEmbedded(List.of(PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_MODIFIED),
+                        String.class);
         final Instant modified = Optional.ofNullable(nullableTimestamp).map(Instant::parse).orElse(null);
         return Metadata.of(thingId, thingRevision, policyId, policyRevision, modified, null);
     }
 
+    private static AbstractWriteModel documentToWriteModel(final Metadata metadata, final Document document) {
+        final var bsonDocument = document.toBsonDocument(Document.class, MongoClient.DEFAULT_CODEC_REGISTRY());
+        return ThingWriteModel.of(metadata, bsonDocument);
+    }
 }
