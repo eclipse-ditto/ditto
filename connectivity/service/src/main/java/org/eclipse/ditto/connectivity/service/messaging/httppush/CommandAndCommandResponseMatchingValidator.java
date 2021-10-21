@@ -138,8 +138,7 @@ final class CommandAndCommandResponseMatchingValidator
         final var semanticCommandResponseType = SemanticSignalType.parseSemanticSignalType(commandResponseType);
         final var semanticCommandType = SemanticSignalType.parseSemanticSignalType(command.getType());
         if (!isSameSignalDomain(semanticCommandType, semanticCommandResponseType)) {
-            final var pattern = "Type of live response <{0}> is not related to type of command <{1}>.";
-            detailMessage = MessageFormat.format(pattern, commandResponseType, command.getType());
+            detailMessage = messageFormatForLiveResponseNotRelatedToTypeOfCommand(commandResponseType, command);
         }
         else if (isMessagesSignalDomain(semanticCommandResponseType)) {
             if (!areCorrespondingMessageSignals(command.getName(), commandResponse.getName())) {
@@ -148,11 +147,17 @@ final class CommandAndCommandResponseMatchingValidator
                 detailMessage = MessageFormat.format(pattern, commandResponse.getType(), command.getType());
             }
         } else if (!isEqualNames(command, commandResponse)) {
-            final var pattern = "Type of live response <{0}> is not related to type of command <{1}>.";
-            detailMessage = MessageFormat.format(pattern, commandResponseType, command.getType());
+            detailMessage = messageFormatForLiveResponseNotRelatedToTypeOfCommand(commandResponseType, command);
         }
 
         return Optional.ofNullable(detailMessage).map(toMessageSendingFailedException(command.getDittoHeaders()));
+    }
+
+    private static String messageFormatForLiveResponseNotRelatedToTypeOfCommand(final String commandResponseType,
+            final SignalWithEntityId<?> command) {
+        final var pattern = "Type of live response <{0}> is not related to type of command <{1}>.";
+
+        return MessageFormat.format(pattern, commandResponseType, command.getType());
     }
 
     private static boolean isAcknowledgement(final CommandResponse<?> commandResponse) {
