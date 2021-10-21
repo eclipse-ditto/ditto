@@ -215,6 +215,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .exceptionally(e -> {
                     logger.withCorrelationId(multiMapped.getSource())
                             .error(e, "Message sending failed unexpectedly: <{}>", multiMapped);
+
                     return null;
                 });
     }

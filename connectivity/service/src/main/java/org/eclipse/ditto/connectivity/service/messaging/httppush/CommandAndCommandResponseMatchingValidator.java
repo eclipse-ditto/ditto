@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -68,9 +69,13 @@ final class CommandAndCommandResponseMatchingValidator
 
     @Override
     public void accept(final SignalWithEntityId<?> sentCommand, final CommandResponse<?> commandResponse) {
-        final var validationError = validateCorrelationIdsMatch(sentCommand, commandResponse)
-                .flatMap(aVoid -> validateTypesMatch(sentCommand, commandResponse))
-                .flatMap(aVoid -> validateEntityIdsMatch(sentCommand, commandResponse));
+        final Optional<MessageSendingFailedException> validationError =
+                Stream.of(validateCorrelationIdsMatch(sentCommand, commandResponse),
+                                validateTypesMatch(sentCommand, commandResponse),
+                                validateEntityIdsMatch(sentCommand, commandResponse))
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .findFirst();
 
         if (validationError.isPresent()) {
             final var sendingFailedException = validationError.get();
@@ -107,6 +112,7 @@ final class CommandAndCommandResponseMatchingValidator
             detailMessage = MessageFormat.format(pattern, commandResponseCorrelationIdOptional.get());
 
         }
+
         return Optional.ofNullable(detailMessage).map(toMessageSendingFailedException(commandDittoHeaders));
     }
 
@@ -123,7 +129,7 @@ final class CommandAndCommandResponseMatchingValidator
     private static Optional<MessageSendingFailedException> validateTypesMatch(final SignalWithEntityId<?> command,
             final CommandResponse<?> commandResponse) {
 
-        if (isAcknowledgement(commandResponse)) {
+        if (isAcknowledgement(commandResponse) || ResponseType.ERROR == commandResponse.getResponseType()) {
             return Optional.empty();
         }
 
@@ -135,10 +141,7 @@ final class CommandAndCommandResponseMatchingValidator
             final var pattern = "Type of live response <{0}> is not related to type of command <{1}>.";
             detailMessage = MessageFormat.format(pattern, commandResponseType, command.getType());
         }
-        if (ResponseType.ERROR == commandResponse.getResponseType()) {
-            return Optional.empty();
-        }
-        if (isMessagesSignalDomain(semanticCommandResponseType)) {
+        else if (isMessagesSignalDomain(semanticCommandResponseType)) {
             if (!areCorrespondingMessageSignals(command.getName(), commandResponse.getName())) {
                 final var pattern =
                         "Type of live message response <{0}> is not related to type of message command <{1}>.";
@@ -148,6 +151,7 @@ final class CommandAndCommandResponseMatchingValidator
             final var pattern = "Type of live response <{0}> is not related to type of command <{1}>.";
             detailMessage = MessageFormat.format(pattern, commandResponseType, command.getType());
         }
+
         return Optional.ofNullable(detailMessage).map(toMessageSendingFailedException(command.getDittoHeaders()));
     }
 
@@ -167,6 +171,7 @@ final class CommandAndCommandResponseMatchingValidator
 
     private static boolean areCorrespondingMessageSignals(final String commandName, final String commandResponseName) {
         final var indexOfResponseMessageSuffix = commandResponseName.indexOf("ResponseMessage");
+
         return commandName.startsWith(commandResponseName.substring(0, indexOfResponseMessageSuffix));
     }
 
@@ -190,6 +195,7 @@ final class CommandAndCommandResponseMatchingValidator
             final var pattern = "Live response has no entity ID while command has entity ID <{0}>";
             detailMessage = MessageFormat.format(pattern, command.getEntityId());
         }
+
         return Optional.ofNullable(detailMessage).map(toMessageSendingFailedException(command.getDittoHeaders()));
     }
 

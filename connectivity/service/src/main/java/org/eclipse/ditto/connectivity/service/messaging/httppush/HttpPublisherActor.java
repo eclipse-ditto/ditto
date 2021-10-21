@@ -328,6 +328,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 newContext(signal, autoAckTarget, request, message, maxTotalMessageSize, ackSizeQuota, resultFuture);
         sourceQueue.offer(Pair.create(request, context))
                 .handle(handleQueueOfferResult(message, resultFuture));
+
         return resultFuture;
     }
 
@@ -355,6 +356,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         final var request = factory.newRequest(publishTarget).addHeaders(headers);
         final var messageHeaders = message.getHeaders();
+
         return request.withUri(setPathAndQuery(request.getUri(),
                 messageHeaders.get(ReservedHeaders.HTTP_PATH.name),
                 messageHeaders.get(ReservedHeaders.HTTP_QUERY.name)));
@@ -377,6 +379,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         .dittoHeaders(message.getInternalHeaders())
                         .build());
             }
+
             return null;
         };
     }
@@ -419,8 +422,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                             error.getMessage());
                 }
                 resultFuture.completeExceptionally(error);
-                escalate(error,
-                        MessageFormat.format("Failed to send HTTP request to <{0}>.", stripUserInfo(request.getUri())));
+                escalate(error, MessageFormat.format("Failed to send HTTP request to <{0}>.",
+                        stripUserInfo(request.getUri())));
             }
         };
     }
@@ -520,6 +523,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             } else {
                 sendFailure = null;
             }
+
             return new SendResult(result, sendFailure, mergedDittoHeaders);
         });
     }

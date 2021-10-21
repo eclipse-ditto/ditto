@@ -464,7 +464,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         publisherActor.tell(signalToMultiMapped(command, target, testKit.getRef()), testKit.getRef());
 
         // Assert
-        final var responseSignal = testKit.expectMsgClass(Signal.class);
+        final var responseSignal = proxyActorTestProbe.expectMsgClass(Signal.class);
         assertThat(responseSignal).isInstanceOfSatisfying(RetrieveThingResponse.class, retrieveThingResponse -> {
             assertThat((CharSequence) retrieveThingResponse.getEntityId()).isEqualTo(thingId);
             assertThat(retrieveThingResponse.getHttpStatus()).isEqualTo(retrieveThingMockResponse.getHttpStatus());
@@ -535,7 +535,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     OutboundSignalFactory.newMultiMappedOutboundSignal(Collections.singletonList(mapped), getRef()),
                     getRef());
 
-            final var acknowledgements = expectMsgClass(Acknowledgements.class);
+            final var acknowledgements = expectMsgClass(Duration.ofSeconds(5), Acknowledgements.class);
             assertThat((CharSequence) acknowledgements.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
             assertThat(acknowledgements.getHttpStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
             assertThat(acknowledgements.getDittoHeaders().getCorrelationId())
@@ -936,6 +936,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             // THEN: reserved headers do not appear as HTTP headers
             published.setValue(received.take());
         }};
+
         return published.getValue();
     }
 
@@ -953,13 +954,10 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     }
 
-    private OutboundSignal.MultiMapped newMultiMappedWithContentType(final Target target,
-            final ActorRef sender) {
+    private OutboundSignal.MultiMapped newMultiMappedWithContentType(final Target target, final ActorRef sender) {
         return OutboundSignalFactory.newMultiMappedOutboundSignal(
                 List.of(getMockOutboundSignal(target, "requested-acks",
-                        JsonArray.of(JsonValue.of("please-verify")).toString())),
-                sender
-        );
+                        JsonArray.of(JsonValue.of("please-verify")).toString())), sender);
     }
 
     private HttpPushFactory mockHttpPushFactory(final String contentType, final HttpStatus httpStatus,
@@ -992,6 +990,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final var separator = httpPublishTarget.getPathWithQuery().startsWith("/") ? "" : "/";
             final var uri =
                     Uri.create("http://" + hostname + ":12345" + separator + httpPublishTarget.getPathWithQuery());
+
             return HttpRequest.create().withMethod(httpPublishTarget.getMethod()).withUri(uri);
         }
 
@@ -999,6 +998,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         public <T> Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> createFlow(final ActorSystem system,
                 final LoggingAdapter log, final Duration requestTimeout, @Nullable final PreparedTimer timer,
                 @Nullable final Consumer<Duration> consumer) {
+
             return Flow.<Pair<HttpRequest, T>>create()
                     .map(pair -> Pair.create(Try.apply(() -> mapper.apply(pair.first())), pair.second()));
         }
