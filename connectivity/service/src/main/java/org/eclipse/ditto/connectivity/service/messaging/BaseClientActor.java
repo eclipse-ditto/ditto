@@ -200,6 +200,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final Materializer materializer;
     private final boolean dryRun;
     private final ConnectionContextProvider connectionContextProvider;
+    private final ActorRef proxyActor;
 
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
@@ -209,7 +210,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private ActorRef outboundMappingProcessorActor;
     private ActorRef subscriptionManager;
     private ActorRef tunnelActor;
-    private ActorRef proxyActor;
 
     protected BaseClientActor(final Connection connection,
             final ActorRef proxyActor,
@@ -429,7 +429,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      *
      * @return the proxyActor ref.
      */
-
     protected ActorRef getProxyActor() {
         return proxyActor;
     }
