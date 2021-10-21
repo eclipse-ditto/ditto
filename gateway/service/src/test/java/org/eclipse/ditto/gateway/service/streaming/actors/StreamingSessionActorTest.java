@@ -40,7 +40,6 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionExpiredException;
-import org.eclipse.ditto.base.service.ActorSystemResource;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtValidator;
@@ -50,6 +49,7 @@ import org.eclipse.ditto.gateway.service.streaming.Jwt;
 import org.eclipse.ditto.gateway.service.streaming.StartStreaming;
 import org.eclipse.ditto.gateway.service.streaming.StreamingAck;
 import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonObject;
@@ -87,7 +87,6 @@ import akka.stream.testkit.TestSubscriber;
 import akka.stream.testkit.javadsl.TestSink;
 import akka.testkit.TestActor;
 import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link StreamingSessionActor}.

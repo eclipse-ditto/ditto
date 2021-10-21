@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.base.service.correlationid;
+package org.eclipse.ditto.internal.utils.test.correlationid;
 
 import java.text.MessageFormat;
 import java.util.UUID;

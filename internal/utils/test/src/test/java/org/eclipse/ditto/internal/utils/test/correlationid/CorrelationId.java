@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.base.service.correlationid;
+package org.eclipse.ditto.internal.utils.test.correlationid;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
