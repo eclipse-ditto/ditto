@@ -245,26 +245,15 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(multiMapped.getSource());
         if (!nonAcknowledgementsResponses.isEmpty() && sender != null) {
             nonAcknowledgementsResponses.forEach(response -> {
-                // TODO remove header merging when mergeWithResponseHeaders in HttpPublisherActor is fixed
-                //  and headers are added to the response
-                final var sourceDittoHeaders = multiMapped.getSource().getDittoHeaders();
-                final var responseDittoHeaders = response.getDittoHeaders();
-                final var combinedHeaders = DittoHeaders.newBuilder(sourceDittoHeaders)
-                        .putHeaders(responseDittoHeaders)
-                        .build();
-
-                final var responseWithPreservedHeaders =
-                        response.setDittoHeaders(combinedHeaders);
-                if (responseWithPreservedHeaders instanceof ThingQueryCommandResponse
-                        && isLiveResponse(responseWithPreservedHeaders)) {
+                if (response instanceof ThingQueryCommandResponse && isLiveResponse(response)) {
                     l.debug("LiveQueryCommandResponse created from HTTP response. " +
-                            "Sending response <{}> to concierge for filtering", responseWithPreservedHeaders);
+                            "Sending response <{}> to concierge for filtering", response);
 
-                    proxyActor.tell(responseWithPreservedHeaders, sender);
+                    proxyActor.tell(response, sender);
                 } else {
                     l.debug("CommandResponse created from HTTP response. Replying to <{}>: <{}>", sender,
-                            responseWithPreservedHeaders);
-                    sender.tell(responseWithPreservedHeaders, getSelf());
+                            response);
+                    sender.tell(response, getSelf());
                 }
             });
         } else if (nonAcknowledgementsResponses.isEmpty()) {
