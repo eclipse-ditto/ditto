@@ -30,7 +30,6 @@ import akka.Done;
 import akka.NotUsed;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.Materializer;
-import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.MergeHub;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -57,21 +56,18 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
             final Materializer materializer,
             final ConnectionMonitor inboundMonitor,
             final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink,
-            final Sink<DittoRuntimeException, ?> dreSink) {
+            final Sink<DittoRuntimeException, ?> exceptionSink) {
 
         this.materializer = materializer;
 
-        final Sink<KafkaCompletableMessage, NotUsed> externalMessageSink = Flow.of(KafkaCompletableMessage.class)
-                .map(KafkaCompletableMessage::getAcknowledgeableMessage)
-                .to(inboundMappingSink);
+        // Pre materialize sinks with MergeHub to avoid multiple materialization per kafka record in processTransformationResult
         this.externalMessageSink = MergeHub.of(KafkaCompletableMessage.class)
-                .to(externalMessageSink)
+                .map(KafkaCompletableMessage::getAcknowledgeableMessage)
+                .to(inboundMappingSink)
                 .run(materializer);
 
-        final Sink<TransformationResult, NotUsed> exceptionSink = Flow.of(TransformationResult.class)
-                .map(AtMostOnceConsumerStream::extractDittoRuntimeException)
-                .to(dreSink);
         this.dreSink = MergeHub.of(TransformationResult.class)
+                .map(AtMostOnceConsumerStream::extractDittoRuntimeException)
                 .to(exceptionSink)
                 .run(materializer);
 

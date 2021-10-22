@@ -33,7 +33,6 @@ import akka.kafka.ConsumerMessage.CommittableOffset;
 import akka.kafka.javadsl.Committer;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.Materializer;
-import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.MergeHub;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -63,31 +62,25 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
             final ConnectionMonitor inboundMonitor,
             final ConnectionMonitor ackMonitor,
             final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink,
-            final Sink<DittoRuntimeException, ?> dreSink) {
+            final Sink<DittoRuntimeException, ?> exceptionSink) {
 
         this.ackMonitor = ackMonitor;
 
         // Pre materialize sinks with MergeHub to avoid multiple materialization per kafka record in processTransformationResult
-        final Sink<KafkaAcknowledgableMessage, NotUsed> externalMessageSink = Flow.of(KafkaAcknowledgableMessage.class)
-                .map(KafkaAcknowledgableMessage::getAcknowledgeableMessage)
-                .to(inboundMappingSink);
         this.externalMessageSink = MergeHub.of(KafkaAcknowledgableMessage.class)
-                .to(externalMessageSink)
+                .map(KafkaAcknowledgableMessage::getAcknowledgeableMessage)
+                .to(inboundMappingSink)
                 .run(materializer);
 
-        final Sink<CommittableTransformationResult, NotUsed> exceptionSink =
-                Flow.of(CommittableTransformationResult.class)
-                        .map(AtLeastOnceConsumerStream::extractDittoRuntimeException)
-                        .to(dreSink);
         this.dreSink = MergeHub.of(CommittableTransformationResult.class)
+                .map(AtLeastOnceConsumerStream::extractDittoRuntimeException)
                 .to(exceptionSink)
                 .run(materializer);
 
         this.unexpectedMessageSink = MergeHub.of(CommittableTransformationResult.class)
                 .to(Sink.foreach(transformationResult -> inboundMonitor.exception(
                         "Got unexpected transformation result <{0}>. This is an internal error. " +
-                                "Please contact the service team.", transformationResult
-                )))
+                                "Please contact the service team.", transformationResult)))
                 .run(materializer);
 
         this.materializer = materializer;
@@ -113,10 +106,11 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
     private Source<CompletableFuture<CommittableOffset>, NotUsed> processTransformationResult(
             final CommittableTransformationResult result) {
 
+        final CompletableFuture<CommittableOffset> offsetFuture =
+                CompletableFuture.completedFuture(result.getCommittableOffset());
+
         if (isExpired(result)) {
-            return Source.single(result)
-                    .map(CommittableTransformationResult::getCommittableOffset)
-                    .map(CompletableFuture::completedFuture);
+            return Source.single(offsetFuture);
         }
 
         if (isExternalMessage(result)) {
@@ -129,8 +123,6 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
          * For all other cases a retry for consuming this message makes no sense, so we want to commit these offsets.
          * Therefore, we return an already completed future holding the offset to commit. No reject needed.
          */
-        final CompletableFuture<CommittableOffset> offsetFuture =
-                CompletableFuture.completedFuture(result.getCommittableOffset());
         if (isDittoRuntimeException(result)) {
             return Source.single(result)
                     .alsoTo(dreSink)
