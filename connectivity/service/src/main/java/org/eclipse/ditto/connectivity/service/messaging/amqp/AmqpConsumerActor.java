@@ -453,7 +453,8 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                 inboundAcknowledgedMonitor.success(InfoProviderFactory.forHeaders(externalMessageHeaders),
                         "Sending success acknowledgement: <{0}>", ackTypeName);
             } else {
-                inboundAcknowledgedMonitor.exception("Sending negative acknowledgement: <{0}>", ackTypeName);
+                inboundAcknowledgedMonitor.exception(externalMessageHeaders,
+                        "Sending negative acknowledgement: <{0}>", ackTypeName);
             }
         } catch (final Exception e) {
             logger.withCorrelationId(correlationId.orElse(null)).error(e, "Failed to ack an AMQP message");

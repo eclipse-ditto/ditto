@@ -23,6 +23,8 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.LogCategory;
 import org.eclipse.ditto.connectivity.model.LogType;
+import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
+import org.komamitsu.fluency.Fluency;
 
 /**
  * Factory for building {@link ConnectionLogger} instances that
@@ -70,7 +72,6 @@ final class ConnectionLoggerFactory {
             default:
                 throw new AssertionError("Missing switch case.");
         }
-
     }
 
     /**
@@ -84,8 +85,7 @@ final class ConnectionLoggerFactory {
     }
 
     /**
-     * Creates a new {@link MuteableConnectionLogger} that can
-     * be muted and unmuted.
+     * Creates a new {@link MuteableConnectionLogger} that can be muted and unmuted.
      *
      * @param connectionId the connection for which the logger is created.
      * @param delegate the delegate that will be called while the logger is unmuted.
@@ -94,6 +94,26 @@ final class ConnectionLoggerFactory {
      */
     static MuteableConnectionLogger newMuteableLogger(final ConnectionId connectionId, final ConnectionLogger delegate) {
         return new DefaultMuteableConnectionLogger(connectionId, checkNotNull(delegate));
+    }
+
+    /**
+     * Creates a new {@link FluentPublishingConnectionLogger} that is used to forward all connection logs to a fluentd
+     * or fluentbit endpoint.
+     *
+     * @param connectionId the connection for which the logger is created.
+     * @param logCategory
+     * @param logType
+     * @param address
+     * @param fluencyForwarder
+     * @return a ...
+     */
+    static FluentPublishingConnectionLogger newPublishingLogger(final ConnectionId connectionId,
+            final LogCategory logCategory, final LogType logType, @Nullable final String address,
+            final Fluency fluencyForwarder) {
+        return FluentPublishingConnectionLogger.newBuilder(connectionId, logCategory, logType, fluencyForwarder)
+                .withAddress(address)
+                .withInstanceIdentifier(InstanceIdentifierSupplier.getInstance().get())
+                .build();
     }
 
     private static ConnectionLogger newSourceLogger(final LogType type, final int successCapacity,

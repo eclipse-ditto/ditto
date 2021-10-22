@@ -184,7 +184,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
                     requeue -> {
                         try {
                             channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, requeue);
-                            inboundAcknowledgedMonitor.exception("Sending negative acknowledgement: " +
+                            inboundAcknowledgedMonitor.exception(externalMessage, "Sending negative acknowledgement: " +
                                             "basic.nack for deliveryTag={0}, requeue={0}",
                                     delivery.getEnvelope().getDeliveryTag(), requeue);
                         } catch (final IOException e) {

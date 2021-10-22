@@ -354,6 +354,7 @@ public final class EvictingConnectionLoggerTest {
     @Test
     public void testEqualsAndHashcode() {
         EqualsVerifier.forClass(EvictingConnectionLogger.class)
+                .usingGetClass()
                 .verify();
     }
 

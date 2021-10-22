@@ -342,7 +342,8 @@ public final class InboundDispatchingSink
                 final ConnectionMonitor mappedMonitor =
                         connectionMonitorRegistry.forInboundMapped(connection, source);
                 mappedMonitor.getLogger()
-                        .failure("Got exception {0} when processing external message with mapper <{1}>: {2}",
+                        .failure(InfoProviderFactory.forExternalMessage(message),
+                                "Got exception {0} when processing external message with mapper <{1}>: {2}",
                                 dittoRuntimeException.getErrorCode(),
                                 mapperId,
                                 e.getMessage());
@@ -362,7 +363,8 @@ public final class InboundDispatchingSink
                     ActorRef.noSender());
         } else if (e != null) {
             responseMappedMonitor.getLogger()
-                    .failure("Got unknown exception when processing external message: {0}", e.getMessage());
+                    .failure(InfoProviderFactory.forExternalMessage(message),
+                            "Got unknown exception when processing external message: {0}", e.getMessage());
             logger.withCorrelationId(Optional.ofNullable(message)
                     .map(ExternalMessage::getInternalHeaders)
                     .orElseGet(DittoHeaders::empty)
@@ -495,8 +497,8 @@ public final class InboundDispatchingSink
                 .info("Got 'DittoRuntimeException' during 'startAcknowledgementAggregator':" +
                         " {}: <{}>", e.getClass().getSimpleName(), e.getMessage());
         responseMappedMonitor.getLogger()
-                .failure("Got exception {0} when processing external message: {1}",
-                        e.getErrorCode(), e.getMessage());
+                .failure(InfoProviderFactory.forHeaders(dittoHeaders),
+                        "Got exception {0} when processing external message: {1}", e.getErrorCode(), e.getMessage());
         final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(e, null);
         // tell sender the error response for consumer settlement
         if (sender != null) {

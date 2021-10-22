@@ -107,7 +107,7 @@ public final class ImmutableInfoProvider implements ConnectionMonitor.InfoProvid
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", correlationId=" + correlationId +
+                "correlationId=" + correlationId +
                 ", timestamp=" + timestamp +
                 ", entityId=" + entityId +
                 ", headers=" + headers +
