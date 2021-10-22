@@ -499,7 +499,7 @@ public final class BaseClientActorTest {
 
             andConnectionFails(dummyClientActor, getRef());
             // not expecting a closed announcement after connection failure, since it's not possible to send a message
-            // if a connecting is failed and thus not connected
+            // if connecting is failed and thus not connected
 
             andConnectionSuccessful(dummyClientActor, getRef());
 
