@@ -124,6 +124,7 @@ public final class HiveMqtt3ClientActor
         final Props publisherActorProps =
                 HiveMqtt3PublisherActor.props(connection, client, isDryRun(), getDefaultClientId(),
                         connectivityStatusResolver);
+
         return startChildActorConflictFree(HiveMqtt3PublisherActor.NAME, publisherActorProps);
     }
 

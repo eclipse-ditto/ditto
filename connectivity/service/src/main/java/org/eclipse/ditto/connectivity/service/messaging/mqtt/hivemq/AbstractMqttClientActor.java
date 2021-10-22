@@ -591,6 +591,13 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
         }
     }
 
+    @Override
+    protected int determineNumberOfConsumers() {
+        return connection.getSources()
+                .stream()
+                .mapToInt(Source::getConsumerCount)
+                .sum();
+    }
 
     static class MqttClientConnected extends AbstractWithOrigin implements ClientConnected {
 

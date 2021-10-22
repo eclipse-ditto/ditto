@@ -1407,11 +1407,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                                 " Forwarding to consumers and publishers.", command.getEntityId(),
                         sender);
 
+        // only one PublisherActor is started for all targets (if targets are present)
         final int numberOfProducers = connection.getTargets().isEmpty() ? 0 : 1;
-        final int numberOfConsumers = connection.getSources()
-                .stream()
-                .mapToInt(source -> source.getConsumerCount() * source.getAddresses().size())
-                .sum();
+        final int numberOfConsumers = determineNumberOfConsumers();
         int expectedNumberOfChildren = numberOfProducers + numberOfConsumers;
         if (getSshTunnelState().isEnabled()) {
             expectedNumberOfChildren++;
@@ -1468,6 +1466,18 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         sender.tell(clientStatus, getSelf());
 
         return stay();
+    }
+
+    /**
+     * Determines the number of consumers.
+     *
+     * @return the number of consumers.
+     */
+    protected int determineNumberOfConsumers() {
+        return connection.getSources()
+                .stream()
+                .mapToInt(source -> source.getConsumerCount() * source.getAddresses().size())
+                .sum();
     }
 
     private void retrieveAddressStatusFromChildren(final RetrieveConnectionStatus command, final ActorRef sender,
