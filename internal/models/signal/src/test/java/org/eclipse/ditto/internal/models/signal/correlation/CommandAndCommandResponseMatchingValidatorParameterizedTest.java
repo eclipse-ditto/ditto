@@ -10,17 +10,16 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.messaging.httppush;
+package org.eclipse.ditto.internal.models.signal.correlation;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
@@ -30,7 +29,6 @@ import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.mockito.Mockito;
 
 /**
  * Ensures that for each implementation of {@link ThingCommand} the associated implementation of
@@ -78,18 +76,16 @@ public final class CommandAndCommandResponseMatchingValidatorParameterizedTest {
     public static final class ParameterizedTest {
 
         @Parameterized.Parameter
-        public SignalWithEntityId<?> command;
+        public Command<?> command;
 
         @Parameterized.Parameter(1)
         public CommandResponse<?> commandResponse;
 
-        private ConnectionLogger connectionLoggerMock;
         private CommandAndCommandResponseMatchingValidator underTest;
 
         @Before
         public void before() {
-            connectionLoggerMock = Mockito.mock(ConnectionLogger.class);
-            underTest = CommandAndCommandResponseMatchingValidator.newInstance(connectionLoggerMock);
+            underTest = CommandAndCommandResponseMatchingValidator.getInstance();
         }
 
         @Parameterized.Parameters(name = "Command: {0}, response: {1}")
@@ -121,8 +117,9 @@ public final class CommandAndCommandResponseMatchingValidatorParameterizedTest {
 
         @Test
         public void commandAndItsResponseMatch() {
-            assertThatCode(() -> underTest.accept(command, commandResponse)).doesNotThrowAnyException();
-            Mockito.verifyNoInteractions(connectionLoggerMock);
+            final var validationResult = underTest.apply(command, commandResponse);
+
+            assertThat(validationResult.isSuccess()).isTrue();
         }
 
     }

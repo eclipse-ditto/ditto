@@ -121,7 +121,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
     private final KillSwitch killSwitch;
     private final HttpRequestSigning httpRequestSigning;
-    private final CommandAndCommandResponseMatchingValidator commandAndCommandResponseMatchingValidator;
+    private final HttpPushRoundTripSignalsValidator httpPushRoundTripSignalValidator;
 
     @SuppressWarnings("unused")
     private HttpPublisherActor(final Connection connection,
@@ -151,8 +151,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         httpRequestSigning = connection.getCredentials()
                 .map(credentials -> credentials.accept(HttpRequestSigningExtension.get(getContext().getSystem())))
                 .orElse(NoOpSigning.INSTANCE);
-        commandAndCommandResponseMatchingValidator =
-                CommandAndCommandResponseMatchingValidator.newInstance(connectionLogger);
+        httpPushRoundTripSignalValidator = HttpPushRoundTripSignalsValidator.newInstance(connectionLogger);
     }
 
     /**
@@ -501,7 +500,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     && SignalInformationPoint.isLiveCommandResponse(result)) {
 
                 // Do only return command response for live commands with a correct response.
-                commandAndCommandResponseMatchingValidator.accept(liveCommandWithEntityId.get(), result);
+                httpPushRoundTripSignalValidator.accept(liveCommandWithEntityId.get(), result);
             }
             if (result == null) {
                 connectionLogger.success(

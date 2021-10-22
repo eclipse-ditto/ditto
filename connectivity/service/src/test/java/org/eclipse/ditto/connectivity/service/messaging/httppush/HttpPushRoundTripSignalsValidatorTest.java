@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
-
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
@@ -43,10 +41,10 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 /**
- * Unit test for {@link CommandAndCommandResponseMatchingValidator}.
+ * Unit test for {@link HttpPushRoundTripSignalsValidator}.
  */
 @RunWith(MockitoJUnitRunner.class)
-public final class CommandAndCommandResponseMatchingValidatorTest {
+public final class HttpPushRoundTripSignalsValidatorTest {
 
     private static final ThingId THING_ID = ThingId.generateRandom();
 
@@ -59,7 +57,7 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
     @Test
     public void newInstanceWithNullConnectionLogger() {
         Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> CommandAndCommandResponseMatchingValidator.newInstance(null))
+                .isThrownBy(() -> HttpPushRoundTripSignalsValidator.newInstance(null))
                 .withMessage("The connectionLogger must not be null!")
                 .withNoCause();
     }
@@ -69,9 +67,9 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
         final var emptyDittoHeaders = DittoHeaders.empty();
         final var command = RetrieveThing.of(THING_ID, emptyDittoHeaders);
         final var commandResponse = RetrieveThingResponse.of(THING_ID, JsonObject.empty(), emptyDittoHeaders);
-        final var underTest = CommandAndCommandResponseMatchingValidator.newInstance(connectionLogger);
+        final var underTest = HttpPushRoundTripSignalsValidator.newInstance(connectionLogger);
 
-        assertThatCode(() -> underTest.accept(command, commandResponse)).doesNotThrowAnyException();
+        Assertions.assertThatCode(() -> underTest.accept(command, commandResponse)).doesNotThrowAnyException();
 
         Mockito.verifyNoInteractions(connectionLogger);
     }
@@ -81,9 +79,9 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
         final var dittoHeaders = getDittoHeadersWithCorrelationId();
         final var command = RetrieveThing.of(THING_ID, dittoHeaders);
         final var commandResponse = RetrieveThingResponse.of(THING_ID, JsonObject.empty(), dittoHeaders);
-        final var underTest = CommandAndCommandResponseMatchingValidator.newInstance(connectionLogger);
+        final var underTest = HttpPushRoundTripSignalsValidator.newInstance(connectionLogger);
 
-        assertThatCode(() -> underTest.accept(command, commandResponse)).doesNotThrowAnyException();
+        Assertions.assertThatCode(() -> underTest.accept(command, commandResponse)).doesNotThrowAnyException();
 
         Mockito.verifyNoInteractions(connectionLogger);
     }
@@ -101,7 +99,7 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
                 .correlationId(correlationIdCommandResponse)
                 .build();
         final var commandResponse = RetrieveThingResponse.of(THING_ID, JsonObject.empty(), responseDittoHeaders);
-        final var underTest = CommandAndCommandResponseMatchingValidator.newInstance(connectionLogger);
+        final var underTest = HttpPushRoundTripSignalsValidator.newInstance(connectionLogger);
 
         Assertions.assertThatExceptionOfType(MessageSendingFailedException.class)
                 .isThrownBy(() -> underTest.accept(command, commandResponse))
@@ -120,7 +118,7 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
         final var dittoHeaders = DittoHeaders.newBuilder().correlationId(correlationIdCommand).build();
         final var command = RetrieveThing.of(THING_ID, dittoHeaders);
         final var commandResponse = RetrieveThingResponse.of(THING_ID, JsonObject.empty(), DittoHeaders.empty());
-        final var underTest = CommandAndCommandResponseMatchingValidator.newInstance(connectionLogger);
+        final var underTest = HttpPushRoundTripSignalsValidator.newInstance(connectionLogger);
 
         Assertions.assertThatExceptionOfType(MessageSendingFailedException.class)
                 .isThrownBy(() -> underTest.accept(command, commandResponse))
@@ -138,7 +136,7 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
         final var correlationIdCommandResponse = testNameCorrelationId.getCorrelationId();
         final var dittoHeaders = DittoHeaders.newBuilder().correlationId(correlationIdCommandResponse).build();
         final var commandResponse = RetrieveThingResponse.of(THING_ID, JsonObject.empty(), dittoHeaders);
-        final var underTest = CommandAndCommandResponseMatchingValidator.newInstance(connectionLogger);
+        final var underTest = HttpPushRoundTripSignalsValidator.newInstance(connectionLogger);
 
         Assertions.assertThatExceptionOfType(MessageSendingFailedException.class)
                 .isThrownBy(() -> underTest.accept(command, commandResponse))
@@ -160,9 +158,9 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
                 dittoHeaders);
         final var acknowledgement =
                 Acknowledgement.of(AcknowledgementLabel.of("property-modified"), THING_ID, HttpStatus.OK, dittoHeaders);
-        final var underTest = CommandAndCommandResponseMatchingValidator.newInstance(connectionLogger);
+        final var underTest = HttpPushRoundTripSignalsValidator.newInstance(connectionLogger);
 
-        assertThatCode(() -> underTest.accept(command, acknowledgement)).doesNotThrowAnyException();
+        Assertions.assertThatCode(() -> underTest.accept(command, acknowledgement)).doesNotThrowAnyException();
 
         Mockito.verifyNoInteractions(connectionLogger);
     }
@@ -173,7 +171,7 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
         final var command = RetrieveThing.of(THING_ID, dittoHeaders);
         final var commandResponse =
                 SendClaimMessageResponse.of(THING_ID, Mockito.mock(Message.class), HttpStatus.OK, dittoHeaders);
-        final var underTest = CommandAndCommandResponseMatchingValidator.newInstance(connectionLogger);
+        final var underTest = HttpPushRoundTripSignalsValidator.newInstance(connectionLogger);
 
         Assertions.assertThatExceptionOfType(MessageSendingFailedException.class)
                 .isThrownBy(() -> underTest.accept(command, commandResponse))
@@ -194,9 +192,9 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
         Mockito.when(dittoRuntimeException.getDittoHeaders()).thenReturn(dittoHeaders);
         Mockito.when(dittoRuntimeException.getHttpStatus()).thenReturn(HttpStatus.BAD_REQUEST);
         final var thingErrorResponse = ThingErrorResponse.of(THING_ID, dittoRuntimeException);
-        final var underTest = CommandAndCommandResponseMatchingValidator.newInstance(connectionLogger);
+        final var underTest = HttpPushRoundTripSignalsValidator.newInstance(connectionLogger);
 
-        assertThatCode(() -> underTest.accept(command, thingErrorResponse)).doesNotThrowAnyException();
+        Assertions.assertThatCode(() -> underTest.accept(command, thingErrorResponse)).doesNotThrowAnyException();
 
         Mockito.verifyNoInteractions(connectionLogger);
     }
@@ -207,7 +205,7 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
         final var command = RetrieveThing.of(THING_ID, dittoHeaders);
         final var mismatchingCommandResponse =
                 ModifyAttributeResponse.modified(THING_ID, JsonPointer.of("manufacturer"), dittoHeaders);
-        final var underTest = CommandAndCommandResponseMatchingValidator.newInstance(connectionLogger);
+        final var underTest = HttpPushRoundTripSignalsValidator.newInstance(connectionLogger);
 
         Assertions.assertThatExceptionOfType(MessageSendingFailedException.class)
                 .isThrownBy(() -> underTest.accept(command, mismatchingCommandResponse))
@@ -228,7 +226,7 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
         final var sendThingMessage = SendThingMessage.of(THING_ID, messageMock, dittoHeaders);
         final var sendClaimMessageResponse =
                 SendClaimMessageResponse.of(THING_ID, messageMock, HttpStatus.OK, dittoHeaders);
-        final var underTest = CommandAndCommandResponseMatchingValidator.newInstance(connectionLogger);
+        final var underTest = HttpPushRoundTripSignalsValidator.newInstance(connectionLogger);
 
         Assertions.assertThatExceptionOfType(MessageSendingFailedException.class)
                 .isThrownBy(() -> underTest.accept(sendThingMessage, sendClaimMessageResponse))
@@ -246,9 +244,9 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
         final var dittoHeaders = getDittoHeadersWithCorrelationId();
         final var command = RetrieveThing.of(THING_ID, dittoHeaders);
         final var commandResponse = RetrieveThingResponse.of(THING_ID, JsonObject.empty(), dittoHeaders);
-        final var underTest = CommandAndCommandResponseMatchingValidator.newInstance(connectionLogger);
+        final var underTest = HttpPushRoundTripSignalsValidator.newInstance(connectionLogger);
 
-        assertThatCode(() -> underTest.accept(command, commandResponse)).doesNotThrowAnyException();
+        Assertions.assertThatCode(() -> underTest.accept(command, commandResponse)).doesNotThrowAnyException();
 
         Mockito.verifyNoInteractions(connectionLogger);
     }
@@ -259,7 +257,7 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
         final var command = RetrieveThing.of(THING_ID, dittoHeaders);
         final var commandResponse =
                 RetrieveThingResponse.of(ThingId.generateRandom(), JsonObject.empty(), dittoHeaders);
-        final var underTest = CommandAndCommandResponseMatchingValidator.newInstance(connectionLogger);
+        final var underTest = HttpPushRoundTripSignalsValidator.newInstance(connectionLogger);
 
         Assertions.assertThatExceptionOfType(MessageSendingFailedException.class)
                 .isThrownBy(() -> underTest.accept(command, commandResponse))

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.messaging.httppush;
+package org.eclipse.ditto.internal.models.signal.correlation;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -37,6 +37,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageHeaders;
+import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
@@ -75,6 +76,7 @@ final class ReflectionBasedSignalInstantiator {
                 .randomCorrelationId()
                 .build();
         final var definitionIdentifier = "org.example:myDefinition:1.0.0";
+        final var policyId = PolicyId.inNamespaceWithRandomName("");
         PARAMETER_VALUES_PER_TYPE = Map.ofEntries(
                 Map.entry(Attributes.class, Attributes.newBuilder().set("manufacturer", "Bosch.IO").build()),
                 Map.entry(CharSequence.class, stringValue),
@@ -91,7 +93,8 @@ final class ReflectionBasedSignalInstantiator {
                 Map.entry(JsonValue.class, JsonObject.newBuilder().set("bar", "baz").build()),
                 Map.entry(Message.class, Message.newBuilder(messageHeaders).payload("myPayload").build()),
                 Map.entry(MessageHeaders.class, messageHeaders),
-                Map.entry(PolicyId.class, PolicyId.inNamespaceWithRandomName("")),
+                Map.entry(Policy.class, Policy.newBuilder().setId(policyId).build()),
+                Map.entry(PolicyId.class, policyId),
                 Map.entry(String.class, stringValue),
                 Map.entry(Thing.class, Thing.newBuilder().setId(thingId).build()),
                 Map.entry(ThingDefinition.class, ThingsModelFactory.newDefinition(definitionIdentifier)),
@@ -111,7 +114,12 @@ final class ReflectionBasedSignalInstantiator {
                     signalImplementationClass.getName(),
                     e.getMessage(),
                     e);
-            return new Failure<>(e);
+            final var instantiationExceptionMessage = MessageFormat.format("Failed to instantiate <{0}>: {1}",
+                    signalImplementationClass.getName(),
+                    e.getMessage());
+            final var instantiationException = new InstantiationException(instantiationExceptionMessage);
+            instantiationException.initCause(e);
+            return new Failure<>(instantiationException);
         }
     }
 

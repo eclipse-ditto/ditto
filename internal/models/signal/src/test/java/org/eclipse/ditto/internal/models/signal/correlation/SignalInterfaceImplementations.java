@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.messaging.httppush;
+package org.eclipse.ditto.internal.models.signal.correlation;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -23,7 +23,6 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,7 +85,6 @@ final class SignalInterfaceImplementations implements Iterable<SignalWithEntityI
         return failures;
     }
 
-    @NotNull
     @Override
     public Iterator<SignalWithEntityId<?>> iterator() {
         return signals.iterator();

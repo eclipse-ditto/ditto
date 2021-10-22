@@ -57,6 +57,10 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-models-signal</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-internal-models-signalenrichment</artifactId>
         </dependency>
         <dependency>
@@ -206,11 +210,6 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-stream-kafka-testkit_${scala.version}</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.github.classgraph</groupId>
-            <artifactId>classgraph</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

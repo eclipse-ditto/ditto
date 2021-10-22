@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.connectivity.service.messaging.httppush;
+package org.eclipse.ditto.internal.models.signal.correlation;
 
 import java.text.MessageFormat;
 import java.util.function.Predicate;
