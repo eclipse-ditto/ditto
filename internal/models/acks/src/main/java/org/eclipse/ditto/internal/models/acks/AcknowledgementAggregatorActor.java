@@ -48,9 +48,8 @@ import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 
-import akka.actor.AbstractActor;
+import akka.actor.AbstractActorWithTimers;
 import akka.actor.Props;
-import akka.actor.ReceiveTimeout;
 
 /**
  * Actor which is created for an {@code ThingModifyCommand} containing {@code AcknowledgementRequests} responsible for
@@ -59,7 +58,7 @@ import akka.actor.ReceiveTimeout;
  *
  * @since 1.1.0
  */
-public final class AcknowledgementAggregatorActor extends AbstractActor {
+public final class AcknowledgementAggregatorActor extends AbstractActorWithTimers {
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -84,7 +83,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
                 );
 
         timeout = getTimeout(requestCommandHeaders, maxTimeout);
-        getContext().setReceiveTimeout(timeout);
+        timers().startSingleTimer(Control.WAITING_FOR_ACKS_TIMED_OUT, Control.WAITING_FOR_ACKS_TIMED_OUT, timeout);
 
         final Set<AcknowledgementRequest> acknowledgementRequests = requestCommandHeaders.getAcknowledgementRequests();
         ackregator = AcknowledgementAggregator.getInstance(entityId, correlationId, timeout, headerTranslator);
@@ -146,7 +145,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
                 .match(Acknowledgement.class, this::handleAcknowledgement)
                 .match(Acknowledgements.class, this::handleAcknowledgements)
                 .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
-                .match(ReceiveTimeout.class, this::handleReceiveTimeout)
+                .match(Control.class, Control.WAITING_FOR_ACKS_TIMED_OUT::equals, this::handleReceiveTimeout)
                 .matchAny(m -> log.warning("Received unexpected message: <{}>", m))
                 .build();
     }
@@ -218,7 +217,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         return result;
     }
 
-    private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
+    private void handleReceiveTimeout(final Control receiveTimeout) {
         log.withCorrelationId(correlationId).info("Timed out waiting for all requested acknowledgements, " +
                 "completing Acknowledgements with timeouts...");
         completeAcknowledgements(null);
@@ -319,6 +318,10 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         return headers.getTimeout()
                 .filter(timeout -> timeout.minus(maxTimeout).isNegative())
                 .orElse(maxTimeout);
+    }
+
+    private enum Control {
+        WAITING_FOR_ACKS_TIMED_OUT;
     }
 
 }
