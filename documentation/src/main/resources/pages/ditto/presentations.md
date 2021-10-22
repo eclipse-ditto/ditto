@@ -7,6 +7,13 @@ topnav: topnav
 
 This page contains a collection of presentations, videos and workshops about Eclipse Ditto, sorted from most recent ones downwards.
 
+## 19.10.2020 EclipseCon Europe 2021 Community Day
+
+Topic: Project status update of Eclipse Ditto
+
+The slides can be found here: [2021_10_25-eclipse-iot-wg-community-day](slides/2021_10_25-eclipse-iot-wg-community-day/index.html).
+
+
 ## 22.06.2021 Eclipse IoT WorkingGroup status update
 
 Topic: Eclipse Ditto™ 2.0: Changes and roadmap
@@ -19,7 +26,6 @@ The slides can be found here: [2021_06_ditto-20-overview](slides/2021_06_ditto-2
 Topic: Project status update of Eclipse Ditto
 
 The slides can be found here: [2020_10_19-eclipse-iot-wg-community-day](slides/2020_10_19-eclipse-iot-wg-community-day/index.html).
-
 
 
 ## 28.07.2020 Eclipse IoT WorkingGroup status update
