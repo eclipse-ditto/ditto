@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
@@ -135,7 +136,10 @@ public final class InboundMappingSink {
         if (throttlingConfig != null) {
             flowWithOptionalThrottling = mapMessageFlow
                     .throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval(),
-                            outcomes -> outcomes.getOutcomes().size());
+                            outcomes -> (int) outcomes.getOutcomes()
+                                    .stream()
+                                    .filter(MappingOutcome::wasSuccessfullyMapped)
+                                    .count());
         } else {
             flowWithOptionalThrottling = mapMessageFlow;
         }

@@ -39,6 +39,12 @@ public interface MappingOutcome<T> {
     <R> R accept(Visitor<T, R> visitor);
 
     /**
+     * Indicates whether this outcome was a success.
+     * @return True if this outcome holds a successfully mapped message, otherwise false.
+     */
+    boolean wasSuccessfullyMapped();
+
+    /**
      * Create a mapped outcome.
      *
      * @param <T> type of the mapped message.

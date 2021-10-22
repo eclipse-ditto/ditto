@@ -39,6 +39,11 @@ final class ErrorOutcome<T> implements MappingOutcome<T> {
     }
 
     @Override
+    public boolean wasSuccessfullyMapped() {
+        return false;
+    }
+
+    @Override
     public String toString() {
         return getClass().getSimpleName() +
                 "[mapperId=" + mapperId +
