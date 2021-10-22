@@ -69,9 +69,7 @@
                         </goals>
                         <configuration>
                             <includes>
-                                <include>org/eclipse/ditto/internal/utils/test/*</include>
-                                <include>org/eclipse/ditto/internal/utils/test/correlationid/*</include>
-                                <include>org/eclipse/ditto/internal/utils/test/mongo/*</include>
+                                <include>org/eclipse/ditto/internal/utils/test/**</include>
                             </includes>
                         </configuration>
                     </execution>
