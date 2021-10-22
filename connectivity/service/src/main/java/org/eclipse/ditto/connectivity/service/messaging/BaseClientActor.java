@@ -702,6 +702,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(CloseConnectionAndShutdown.class, this::closeConnectionAndShutdown)
                 .event(SshTunnelActor.TunnelStarted.class, this::tunnelStarted)
                 .eventEquals(Control.CONNECT_AFTER_TUNNEL_ESTABLISHED, this::connectAfterTunnelStarted)
+                .eventEquals(Control.GOTO_CONNECTED_AFTER_INITIALIZATION, this::gotoConnectedAfterInitialization)
                 .event(SshTunnelActor.TunnelClosed.class, this::tunnelClosed)
                 .event(OpenConnection.class, this::openConnectionInConnectingState);
     }
@@ -1162,20 +1163,29 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private State<BaseClientState, BaseClientData> handleInitializationResult(
             final InitializationResult initializationResult, final BaseClientData data) {
-
         if (initializationResult.isSuccess()) {
-            logger.debug("Initialization of consumers, publisher and subscriptions successful, going to CONNECTED.");
+            getSelf().tell(Control.GOTO_CONNECTED_AFTER_INITIALIZATION, ActorRef.noSender());
+        } else {
+            logger.info("Initialization of consumers, publisher and subscriptions failed: {}. Staying in CONNECTING " +
+                    "state to continue with connection recovery after backoff.", initializationResult.getFailure());
+            getSelf().tell(initializationResult.getFailure(), ActorRef.noSender());
+        }
+        return stay();
+    }
+
+    private State<BaseClientState, BaseClientData> gotoConnectedAfterInitialization(final Control message,
+            final BaseClientData data) {
+        if (data.getFailureCount() == 0) {
+            logger.info("Initialization of consumers, publisher and subscriptions successful, going to CONNECTED.");
             connectionLogger.success("Connection successful.");
             data.getSessionSenders().forEach(origin -> origin.first().tell(new Status.Success(CONNECTED), getSelf()));
             return goTo(CONNECTED).using(data.resetSession()
                     .resetFailureCount()
                     .setConnectionStatus(ConnectivityStatus.OPEN)
-                    .setConnectionStatusDetails("Connected at " + Instant.now())
-            );
+                    .setConnectionStatusDetails("Connected at " + Instant.now()));
         } else {
-            logger.info("Initialization of consumers, publisher and subscriptions failed: {}. Staying in CONNECTING " +
-                    "state to continue with connection recovery after backoff.", initializationResult.getFailure());
-            getSelf().tell(initializationResult.getFailure(), ActorRef.noSender());
+            logger.info("Initialization of consumers, publisher and subscriptions successful, but failures were " +
+                    "received meanwhile. Staying in CONNECTING state to continue with connection recovery after backoff.");
             return stay();
         }
     }
@@ -1245,7 +1255,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         data.getSessionSenders().forEach(sender ->
                 sender.first().tell(getStatusToReport(event.getFailure(), sender.second()), getSelf()));
 
-        return backoffAfterFailure(event, data);
+        return backoffAfterFailure(event, data.increaseFailureCount());
     }
 
     private State<BaseClientState, BaseClientData> connectedConnectionFailed(final ConnectionFailure event,
@@ -1272,13 +1282,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         dittoProtocolSub.removeSubscriber(getSelf());
         if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
             if (reconnectTimeoutStrategy.canReconnect()) {
-                if (data.getFailureCount() > 0) {
+                if (data.getFailureCount() > 1) {
                     connectionLogger.failure(
-                            "Reconnection attempt <{0}> failed due to: {1}. Reconnect after backoff was " +
+                            "Received {0} subsequent failures during backoff: {1}. Reconnect after backoff was " +
                                     "already triggered.", data.getFailureCount(), event.getFailureDescription());
-                    logger.info("Reconnection attempt <{}> failed: {}. Reconnect was already triggered.",
+                    logger.info("Received {} subsequent failures during backoff: {}. Reconnect was already triggered.",
                             data.getFailureCount(), event);
-                    return stay().using(data.increaseFailureCount());
+                    return stay();
                 } else {
                     final Duration nextBackoff = reconnectTimeoutStrategy.getNextBackoff();
                     final var errorMessage =
@@ -1288,7 +1298,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     logger.info("Connection failed: {}. Reconnect after: {}. Resolved status: {}. " +
                             "Going to 'CONNECTING'", event, nextBackoff, resolvedStatus);
                     return goToConnecting(nextBackoff).using(data.resetSession()
-                            .increaseFailureCount()
                             .setConnectionStatus(resolvedStatus)
                             .setConnectionStatusDetails(event.getFailureDescription())
                     );
@@ -1305,6 +1314,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 // stay in INITIALIZED state until re-opened manually
                 return goTo(INITIALIZED)
                         .using(data.resetSession()
+                                .resetFailureCount()
                                 .setConnectionStatus(connectivityStatusResolver.resolve(event))
                                 .setConnectionStatusDetails(event.getFailureDescription()
                                         + " Reached maximum retries after backing off after failure and thus will " +
@@ -2150,7 +2160,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private enum Control {
         INIT_COMPLETE,
         REFRESH_CLIENT_ACTOR_REFS,
-        CONNECT_AFTER_TUNNEL_ESTABLISHED
+        CONNECT_AFTER_TUNNEL_ESTABLISHED,
+        GOTO_CONNECTED_AFTER_INITIALIZATION
     }
 
     private static final Object SEND_DISCONNECT_ANNOUNCEMENT = new Object();

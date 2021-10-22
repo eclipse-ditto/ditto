@@ -49,6 +49,7 @@ import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
@@ -116,6 +117,10 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
         this.consumerData = consumerData;
         this.jmsActor = checkNotNull(jmsActor, "jmsActor");
         jmsActorAskTimeout = connectionConfig.getClientActorAskTimeout();
+
+        // the amqp consumer is OPEN (ready to handle messages) after setMessageListener() was called successfully
+        handleAddressStatus(ConnectivityModelFactory.newSourceStatus(InstanceIdentifierSupplier.getInstance().get(),
+                ConnectivityStatus.UNKNOWN, sourceAddress, "Consumer is being initialized.", Instant.now()));
 
         messageRateLimiter = initMessageRateLimiter(amqp10Config);
         backOffActor = getContext().actorOf(BackOffActor.props(amqp10Config.getBackOffConfig()));
@@ -222,6 +227,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
             if (messageConsumer != null) {
                 messageConsumer.setMessageListener(this);
                 consumerData = consumerData.withMessageConsumer(messageConsumer);
+                resetResourceStatus();
             }
         } catch (final Exception e) {
             final ResourceStatus resourceStatus =
@@ -308,7 +314,6 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
             destroyMessageConsumer();
             messageConsumer = response.messageConsumer;
             initMessageConsumer();
-            resetResourceStatus();
         } else {
             // got an orphaned message consumer! this is an error.
             logger.error("RESOURCE_LEAK! Got created MessageConsumer <{}> for <{}>, while I have <{}> for <{}>",
@@ -321,6 +326,12 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
         final ConnectionFailure connectionFailed = ConnectionFailure.of(getSelf(), failure.cause(),
                 "Failed to recreate closed message consumer");
         getContext().getParent().tell(connectionFailed, getSelf());
+        final ResourceStatus addressStatus =
+                ConnectivityModelFactory.newStatusUpdate(InstanceIdentifierSupplier.getInstance().get(),
+                        connectivityStatusResolver.resolve(failure.cause()), sourceAddress,
+                        "Failed to recreate closed message consumer.",
+                        Instant.now());
+        handleAddressStatus(addressStatus);
     }
 
     private void handleJmsMessage(final JmsMessage message) {

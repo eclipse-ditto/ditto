@@ -18,13 +18,13 @@ import java.util.function.Predicate;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.base.api.common.CommonCommand;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.api.common.CommonCommand;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
  * Command to retrieve information about the current user.
@@ -101,7 +101,7 @@ public final class Whoami extends CommonCommand<Whoami> {
 
     @Override
     public String toString() {
-        return "Whoami{} " + super.toString();
+        return getClass().getSimpleName() + "[" + super.toString() + "]";
     }
 
     @Override
