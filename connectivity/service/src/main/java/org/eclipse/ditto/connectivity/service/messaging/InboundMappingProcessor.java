@@ -33,9 +33,10 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.MappedInboundExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
@@ -78,7 +79,8 @@ public final class InboundMappingProcessor
      * Initializes a new command processor with mappers defined in mapping mappingContext.
      * The dynamic access is needed to instantiate message mappers for an actor system.
      *
-     * @param connectionContext the context of the connection that the processor works for.
+     * @param connection the connection that the processor works for.
+     * @param connectivityConfig the connectivity config related to the given connection.
      * @param actorSystem the dynamic access used for message mapper instantiation.
      * @param protocolAdapter the ProtocolAdapter to be used.
      * @param logger the logging adapter to be used for log statements.
@@ -88,19 +90,18 @@ public final class InboundMappingProcessor
      * @throws org.eclipse.ditto.connectivity.model.MessageMapperConfigurationFailedException if the configuration of
      * one of the {@code mappingContext} failed for a mapper specific reason.
      */
-    public static InboundMappingProcessor of(final ConnectionContext connectionContext,
+    public static InboundMappingProcessor of(final Connection connection,
+            final ConnectivityConfig connectivityConfig,
             final ActorSystem actorSystem,
             final ProtocolAdapter protocolAdapter,
             final ThreadSafeDittoLoggingAdapter logger) {
 
-        final var connectionId = connectionContext.getConnection().getId();
-        final var mappingDefinition = connectionContext.getConnection().getPayloadMappingDefinition();
-        final var connectivityConfig = connectionContext.getConnectivityConfig();
+        final var mappingDefinition = connection.getPayloadMappingDefinition();
         final ThreadSafeDittoLoggingAdapter loggerWithConnectionId =
-                logger.withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
+                logger.withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
 
         final MessageMapperFactory messageMapperFactory =
-                DefaultMessageMapperFactory.of(connectionContext, actorSystem, loggerWithConnectionId);
+                DefaultMessageMapperFactory.of(connection, connectivityConfig, actorSystem, loggerWithConnectionId);
         final MessageMapperRegistry registry =
                 messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingDefinition);
 
@@ -108,14 +109,14 @@ public final class InboundMappingProcessor
         final DittoHeadersSizeChecker dittoHeadersSizeChecker =
                 DittoHeadersSizeChecker.of(limitsConfig.getHeadersMaxSize(), limitsConfig.getAuthSubjectsMaxCount());
 
-        return of(connectionContext, registry, loggerWithConnectionId, protocolAdapter, dittoHeadersSizeChecker);
+        return of(connection, registry, loggerWithConnectionId, protocolAdapter, dittoHeadersSizeChecker);
     }
 
-    static InboundMappingProcessor of(final ConnectionContext connectionContext,
+    static InboundMappingProcessor of(final Connection connection,
             final MessageMapperRegistry registry, final ThreadSafeDittoLoggingAdapter logger,
             final ProtocolAdapter adapter, final DittoHeadersSizeChecker sizeChecker) {
-        final var connectionId = connectionContext.getConnection().getId();
-        final var connectionType = connectionContext.getConnection().getConnectionType();
+        final var connectionId = connection.getId();
+        final var connectionType = connection.getConnectionType();
         return new InboundMappingProcessor(connectionId, connectionType, registry, logger, adapter, sizeChecker);
     }
 

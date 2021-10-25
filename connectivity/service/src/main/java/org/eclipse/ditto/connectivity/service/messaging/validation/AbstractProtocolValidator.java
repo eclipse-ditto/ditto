@@ -28,13 +28,12 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.DefaultMessageMapperFactory;
-import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperFactory;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
-import org.eclipse.ditto.internal.models.placeholders.Placeholder;
-import org.eclipse.ditto.internal.models.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.placeholders.Placeholder;
+import org.eclipse.ditto.placeholders.PlaceholderFilter;
 
 import akka.actor.ActorSystem;
 
@@ -147,9 +146,8 @@ public abstract class AbstractProtocolValidator {
      */
     protected void validatePayloadMappings(final Connection connection, final ActorSystem actorSystem,
             final ConnectivityConfig connectivityConfig, final DittoHeaders dittoHeaders) {
-        final var connectionContext = DittoConnectionContext.of(connection, connectivityConfig);
         final MessageMapperFactory messageMapperFactory =
-                DefaultMessageMapperFactory.of(connectionContext, actorSystem, actorSystem.log());
+                DefaultMessageMapperFactory.of(connection, connectivityConfig, actorSystem, actorSystem.log());
 
         try {
             final MessageMapperRegistry messageMapperRegistry =

@@ -38,7 +38,7 @@ public final class ConnectionContextProviderFailedException extends DittoRuntime
         super(ERROR_CODE, HttpStatus.INTERNAL_SERVER_ERROR, dittoHeaders, message, description, cause, href);
     }
 
-    public static Builder newBuilder(final Class<? extends ConnectionContextProvider> failedConfigProvider) {
+    public static Builder newBuilder(final Class<? extends ConnectionConfigProvider> failedConfigProvider) {
         return new Builder(MessageFormat.format(MESSAGE_TEMPLATE, failedConfigProvider.getName()));
     }
 

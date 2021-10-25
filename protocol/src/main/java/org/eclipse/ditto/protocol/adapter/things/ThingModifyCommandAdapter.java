@@ -17,10 +17,8 @@ import static java.util.Objects.requireNonNull;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.adapter.ModifyCommandAdapter;
-import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
-import org.eclipse.ditto.protocol.mapper.SignalMapper;
 import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
+import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
 /**
@@ -29,12 +27,10 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand
 final class ThingModifyCommandAdapter extends AbstractThingAdapter<ThingModifyCommand<?>>
         implements ModifyCommandAdapter<ThingModifyCommand<?>> {
 
-    private final SignalMapper<ThingModifyCommand<?>> signalMapper =
-            SignalMapperFactory.newThingModifySignalMapper();
-
-    private ThingModifyCommandAdapter(
-            final HeaderTranslator headerTranslator) {
-        super(MappingStrategiesFactory.getThingModifyCommandMappingStrategies(), headerTranslator);
+    private ThingModifyCommandAdapter(final HeaderTranslator headerTranslator) {
+        super(MappingStrategiesFactory.getThingModifyCommandMappingStrategies(),
+                SignalMapperFactory.newThingModifySignalMapper(),
+                headerTranslator);
     }
 
     /**
@@ -47,8 +43,4 @@ final class ThingModifyCommandAdapter extends AbstractThingAdapter<ThingModifyCo
         return new ThingModifyCommandAdapter(requireNonNull(headerTranslator));
     }
 
-    @Override
-    public Adaptable mapSignalToAdaptable(final ThingModifyCommand<?> command, final TopicPath.Channel channel) {
-        return signalMapper.mapSignalToAdaptable(command, channel);
-    }
 }

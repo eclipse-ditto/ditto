@@ -32,17 +32,15 @@ public final class InboundMappingOutcomes {
     private final ExternalMessage externalMessage;
     @Nullable private final Exception error;
     private final ActorRef sender;
-    private final int costPerMessage;
 
     private InboundMappingOutcomes(final List<MappingOutcome<MappedInboundExternalMessage>> outcomes,
             final ExternalMessage externalMessage,
             @Nullable final Exception error,
-            final ActorRef sender, final int costPerMessage) {
+            final ActorRef sender) {
         this.outcomes = outcomes;
         this.externalMessage = externalMessage;
         this.error = error;
         this.sender = sender;
-        this.costPerMessage = costPerMessage;
     }
 
     /**
@@ -51,12 +49,11 @@ public final class InboundMappingOutcomes {
      * @param message the inbound message.
      * @param error the error.
      * @param sender the actor who cares about the result of the error response.
-     * @param costPerMessage the cost of one single message (used to control the actual throughput)
      * @return the {@code InboundMappingOutcomes} object.
      */
     public static InboundMappingOutcomes of(final ExternalMessage message, final Exception error,
-            final ActorRef sender, final int costPerMessage) {
-        return new InboundMappingOutcomes(List.of(), message, error, sender, costPerMessage);
+            final ActorRef sender) {
+        return new InboundMappingOutcomes(List.of(), message, error, sender);
     }
 
     /**
@@ -65,13 +62,12 @@ public final class InboundMappingOutcomes {
      * @param outcomes the mapping outcomes.
      * @param externalMessage the external message.
      * @param sender actor who cares about the outcome of this message.
-     * @param costPerMessage the cost of one single message (used to control the actual throughput)
      * @return the {@code InboundMappingOutcomes} object.
      */
     public static InboundMappingOutcomes of(final List<MappingOutcome<MappedInboundExternalMessage>> outcomes,
             final ExternalMessage externalMessage,
-            final ActorRef sender, final int costPerMessage) {
-        return new InboundMappingOutcomes(outcomes, externalMessage, null, sender, costPerMessage);
+            final ActorRef sender) {
+        return new InboundMappingOutcomes(outcomes, externalMessage, null, sender);
     }
 
     /**
@@ -118,13 +114,6 @@ public final class InboundMappingOutcomes {
      */
     public ActorRef getSender() {
         return sender;
-    }
-
-    /**
-     * @return the costs of processing the messages of this InboundMappingOutcomes
-     */
-    public int getCosts() {
-        return getOutcomes().size() * costPerMessage;
     }
 
     @Override

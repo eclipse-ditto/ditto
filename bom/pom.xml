@@ -494,7 +494,7 @@
             </dependency>
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
-                <artifactId>ditto-internal-models-placeholders</artifactId>
+                <artifactId>ditto-placeholders</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

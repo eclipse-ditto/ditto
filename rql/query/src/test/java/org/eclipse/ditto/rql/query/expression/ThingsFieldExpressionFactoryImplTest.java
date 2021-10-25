@@ -43,14 +43,13 @@ public final class ThingsFieldExpressionFactoryImplTest {
     private static final String KNOWN_FEATURE_DESIRED_PROPERTY_WITH_ID =
             "features/" + KNOWN_FEATURE_ID + "/desiredProperties/" + KNOWN_STRING + "_desired";
 
-    private static final String KNOWN_THING_DEFINITION = "definition/example:test:definition";
-
     private static final String KNOWN_METADATA = "_metadata/" + KNOWN_FEATURE_PROPERTY_WITH_ID;
 
     private static final Map<String, String> SIMPLE_FIELD_MAPPINGS = new HashMap<>();
     static {
         SIMPLE_FIELD_MAPPINGS.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
         SIMPLE_FIELD_MAPPINGS.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
+        SIMPLE_FIELD_MAPPINGS.put(FieldExpressionUtil.FIELD_NAME_DEFINITION, FieldExpressionUtil.FIELD_NAME_DEFINITION);
     }
 
     private final ThingsFieldExpressionFactory ef = ThingsFieldExpressionFactory.of(SIMPLE_FIELD_MAPPINGS);
@@ -270,25 +269,25 @@ public final class ThingsFieldExpressionFactoryImplTest {
 
     @Test
     public void filterByDefinition() {
-        final FilterFieldExpression fieldExpression = ef.filterBy(KNOWN_THING_DEFINITION);
+        final FilterFieldExpression fieldExpression = ef.filterByDefinition();
 
-        final FilterFieldExpression expected = new SimpleFieldExpressionImpl(KNOWN_THING_DEFINITION);
+        final FilterFieldExpression expected = new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_NAME_DEFINITION);
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
     @Test
     public void sortByDefinition() {
-        final SortFieldExpression fieldExpression = ef.sortBy(KNOWN_THING_DEFINITION);
+        final SortFieldExpression fieldExpression = ef.sortByDefinition();
 
-        final SortFieldExpression expected = new SimpleFieldExpressionImpl(KNOWN_THING_DEFINITION);
+        final SortFieldExpression expected = new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_NAME_DEFINITION);
         assertThat(fieldExpression).isEqualTo(expected);
     }
 
     @Test
     public void existsByWithDefinition() {
-        final FieldExpression fieldExpression = ef.existsBy(KNOWN_THING_DEFINITION);
+        final FieldExpression fieldExpression = ef.existsBy(FieldExpressionUtil.FIELD_NAME_DEFINITION);
 
-        final ExistsFieldExpression expected = new SimpleFieldExpressionImpl(KNOWN_THING_DEFINITION);
+        final ExistsFieldExpression expected = new SimpleFieldExpressionImpl(FieldExpressionUtil.FIELD_NAME_DEFINITION);
         assertThat(fieldExpression).isEqualTo(expected);
     }
 

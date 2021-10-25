@@ -16,13 +16,9 @@ import static java.util.Objects.requireNonNull;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.EventsTopicPathBuilder;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.adapter.MergedEventAdapter;
-import org.eclipse.ditto.protocol.Payload;
-import org.eclipse.ditto.protocol.PayloadBuilder;
-import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 
@@ -33,7 +29,9 @@ import org.eclipse.ditto.things.model.signals.events.ThingMerged;
 final class ThingMergedEventAdapter extends AbstractThingAdapter<ThingMerged> implements MergedEventAdapter {
 
     private ThingMergedEventAdapter(final HeaderTranslator headerTranslator) {
-        super(MappingStrategiesFactory.getThingMergedEventMappingStrategies(), headerTranslator,
+        super(MappingStrategiesFactory.getThingMergedEventMappingStrategies(),
+                SignalMapperFactory.newThingMergedEventSignalMapper(),
+                headerTranslator,
                 ThingMergePathMatcher.getInstance());
     }
 
@@ -51,21 +49,6 @@ final class ThingMergedEventAdapter extends AbstractThingAdapter<ThingMerged> im
     protected String getType(final Adaptable adaptable) {
         final JsonPointer path = adaptable.getPayload().getPath();
         return payloadPathMatcher.match(path);
-    }
-
-    @Override
-    protected Adaptable mapSignalToAdaptable(final ThingMerged event, final TopicPath.Channel channel) {
-        final EventsTopicPathBuilder eventsTopicPathBuilder = getEventTopicPathBuilderFor(event, channel);
-
-        final PayloadBuilder payloadBuilder = Payload.newBuilder(event.getResourcePath())
-                .withRevision(event.getRevision());
-        event.getTimestamp().ifPresent(payloadBuilder::withTimestamp);
-        payloadBuilder.withValue(event.getValue());
-
-        return Adaptable.newBuilder(eventsTopicPathBuilder.build())
-                .withPayload(payloadBuilder.build())
-                .withHeaders(ProtocolFactory.newHeadersWithJsonMergePatchContentType(event.getDittoHeaders()))
-                .build();
     }
 
 }

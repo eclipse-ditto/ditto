@@ -25,6 +25,8 @@ import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 
+import akka.actor.ActorSystem;
+
 @State(Scope.Benchmark)
 public class Test5DecodeBinaryToDitto implements MapToDittoProtocolScenario {
 
@@ -86,14 +88,17 @@ public class Test5DecodeBinaryToDitto implements MapToDittoProtocolScenario {
 
     @Override
     public MessageMapper getMessageMapper() {
+        final ActorSystem actorSystem = ActorSystem.create("Test", CONFIG);
         final MessageMapper javaScriptRhinoMapperPlain =
                 JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
-        javaScriptRhinoMapperPlain.configure(CONNECTION_CONTEXT,
+        javaScriptRhinoMapperPlain.configure(CONNECTION, CONNECTIVITY_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("decode", Collections.emptyMap())
                         .incomingScript(MAPPING_INCOMING_PLAIN)
-                        .build()
+                        .build(),
+                actorSystem
         );
+        actorSystem.terminate();
         return javaScriptRhinoMapperPlain;
     }
 

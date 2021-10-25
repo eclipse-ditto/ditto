@@ -19,10 +19,11 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperFactory;
@@ -80,14 +81,13 @@ final class OutboundMappingSettings {
         this.proxyActor = proxyActor;
     }
 
-    static OutboundMappingSettings of(final ConnectionContext connectionContext,
+    static OutboundMappingSettings of(final Connection connection,
+            final ConnectivityConfig connectivityConfig,
             final ActorSystem actorSystem,
             final ActorSelection proxyActor,
             final ProtocolAdapter protocolAdapter,
             final ThreadSafeDittoLoggingAdapter logger) {
 
-        final var connection = connectionContext.getConnection();
-        final var connectivityConfig = connectionContext.getConnectivityConfig();
         final ConnectionId connectionId = connection.getId();
         final ConnectionType connectionType = connection.getConnectionType();
         final PayloadMappingDefinition mappingDefinition = connection.getPayloadMappingDefinition();
@@ -104,7 +104,7 @@ final class OutboundMappingSettings {
                 logger.withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
 
         final MessageMapperFactory messageMapperFactory =
-                DefaultMessageMapperFactory.of(connectionContext, actorSystem, loggerWithConnectionId);
+                DefaultMessageMapperFactory.of(connection, connectivityConfig, actorSystem, loggerWithConnectionId);
         final MessageMapperRegistry registry =
                 messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingDefinition);
 

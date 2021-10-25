@@ -176,6 +176,41 @@ public interface Enforcer {
             Permissions permissions);
 
     /**
+     * Returns a set of authorization subjects each of which has all the given permissions granted on the given resource
+     * or on any sub resource down in the hierarchy.
+     * Revoked permissions are taken into account.
+     *
+     * @param resourceKey the ResourceKey (containing Resource type and path) to use as starting point to check the
+     * partial permission(s) in the hierarchy for.
+     * @param permission the permission to check.
+     * @param furtherPermissions further permissions to check.
+     * @return the authorization subjects with unrestricted permissions on the passed resourceKey or any other
+     * resources in the hierarchy below.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 2.2.0
+     */
+    default Set<AuthorizationSubject> getSubjectsWithUnrestrictedPermission(ResourceKey resourceKey,
+            final String permission, final String... furtherPermissions) {
+        return getSubjectsWithUnrestrictedPermission(resourceKey,
+                Permissions.newInstance(permission, furtherPermissions));
+    }
+
+    /**
+     * Returns a set of authorization subjects each of which has all the given permissions granted on the given resource
+     * or on any sub resource down in the hierarchy.
+     * Revoked permissions are taken into account.
+     *
+     * @param resourceKey the ResourceKey (containing Resource type and path) to use as starting point to check the
+     * partial permission(s) in the hierarchy for.
+     * @param permissions the permissions to be checked.
+     * @return the authorization subjects with unrestricted permissions on the passed resourceKey or any other
+     * resources in the hierarchy below.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 2.2.0
+     */
+    Set<AuthorizationSubject> getSubjectsWithUnrestrictedPermission(ResourceKey resourceKey, Permissions permissions);
+
+    /**
      * Builds a view of the passed {@code jsonFields} (e.g. a {@link org.eclipse.ditto.json.JsonObject} or a {@link
      * org.eclipse.ditto.json.JsonObjectBuilder}) {@code authorizationContext} and {@code permissions}. The resulting
      * {@code JsonObject} only contains {@code JsonFields} for which the {@code authorizationContext} has the required

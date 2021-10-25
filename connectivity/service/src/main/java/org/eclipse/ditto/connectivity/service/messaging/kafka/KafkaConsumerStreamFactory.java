@@ -13,7 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import static org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory.newEnforcementFilterFactory;
-import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
+import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 import java.util.Map;
 
@@ -86,7 +86,7 @@ final class KafkaConsumerStreamFactory {
 
         final KafkaMessageTransformer kafkaMessageTransformer = buildKafkaMessageTransformer(inboundMonitor);
         return new AtMostOnceConsumerStream(atMostOnceKafkaConsumerSourceSupplier,
-                throttlingConfig.getMaxInFlight(),
+                throttlingConfig,
                 kafkaMessageTransformer,
                 dryRun,
                 materializer,
@@ -105,7 +105,7 @@ final class KafkaConsumerStreamFactory {
         final KafkaMessageTransformer kafkaMessageTransformer = buildKafkaMessageTransformer(inboundMonitor);
         return new AtLeastOnceConsumerStream(atLeastOnceKafkaConsumerSourceSupplier,
                 propertiesFactory.getCommitterSettings(),
-                throttlingConfig.getMaxInFlight(),
+                throttlingConfig,
                 kafkaMessageTransformer,
                 dryRun,
                 materializer,

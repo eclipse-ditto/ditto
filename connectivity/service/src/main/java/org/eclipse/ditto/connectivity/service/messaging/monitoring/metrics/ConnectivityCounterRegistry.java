@@ -26,7 +26,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -57,18 +56,18 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 public final class ConnectivityCounterRegistry implements ConnectionMonitorRegistry<ConnectionMetricsCounter> {
 
     private static final ConcurrentMap<MapKey, DefaultConnectionMetricsCounter> counters = new ConcurrentHashMap<>();
+    private static final MetricAlertRegistry alertRegistry = new MetricAlertRegistry();
 
     // artificial internal address for responses
     private static final String RESPONSES_ADDRESS = "_responses";
 
     private static final Clock CLOCK_UTC = Clock.systemUTC();
 
-    private final MetricAlertRegistry alertRegistry = new MetricAlertRegistry();
-    private final AtomicReference<ConnectivityConfig> connectivityConfig;
+    private final ConnectivityConfig connectivityConfig;
 
     private ConnectivityCounterRegistry(final ConnectivityConfig connectivityConfig) {
         // intentionally empty
-        this.connectivityConfig = new AtomicReference<>(connectivityConfig);
+        this.connectivityConfig = connectivityConfig;
     }
 
     public static ConnectivityCounterRegistry newInstance(final ConnectivityConfig connectivityConfig) {
@@ -77,17 +76,6 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
 
     static ConnectionMetricsCounter lookup(final MapKey mapKey) {
         return counters.get(mapKey);
-    }
-
-    public void onConnectivityConfigModified(final Connection connection, final ConnectivityConfig modifiedConnectivityConfig) {
-        connection.getSources().stream()
-                .map(Source::getAddresses)
-                .flatMap(Collection::stream)
-                .forEach(address -> alertRegistry.updateAlert(MetricsAlert.Key.CONSUMED_INBOUND,
-                        connection.getId(), connection.getConnectionType(), address,
-                        modifiedConnectivityConfig));
-
-        connectivityConfig.set(modifiedConnectivityConfig);
     }
 
     /**
@@ -107,6 +95,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
                 .forEach(address ->
                         initCounter(connection, MetricDirection.OUTBOUND, address));
         initCounter(connection, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
+        updateAlertsForConnection(connection);
     }
 
     /**
@@ -120,6 +109,21 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
         counters.entrySet().stream()
                 .filter(entry -> entry.getKey().connectionId.equals(connectionId))
                 .forEach(entry -> entry.getValue().reset());
+        updateAlertsForConnection(connection);
+    }
+
+    /**
+     * Ensures that all alerts for this connection use the current {@link #connectivityConfig}.
+     *
+     * @param connection the connection for which the alerts should get updated.
+     */
+    private void updateAlertsForConnection(final Connection connection) {
+        connection.getSources().stream()
+                .map(Source::getAddresses)
+                .flatMap(Collection::stream)
+                .forEach(address -> alertRegistry.updateAlert(MetricsAlert.Key.CONSUMED_INBOUND,
+                        connection.getId(), connection.getConnectionType(), address,
+                        connectivityConfig));
     }
 
     private void initCounter(final Connection connection, final MetricDirection metricDirection,
@@ -132,8 +136,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
                     final MapKey key = new MapKey(connectionId, metricType, metricDirection, address);
                     final MetricsAlert alert =
                             new DelegatingAlert(() -> alertRegistry.getAlert(metricDirection, metricType, connectionId,
-                                    connectionType, address,
-                                    connectivityConfig.get()));
+                                    connectionType, address, connectivityConfig));
                     counters.computeIfAbsent(key,
                             m -> ConnectionMetricsCounterFactory.create(metricType, metricDirection, connectionId,
                                     connectionType, address, CLOCK_UTC, alert));
@@ -179,7 +182,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
         final MapKey key = new MapKey(connectionId, metricType, metricDirection, address);
         final MetricsAlert alert = new DelegatingAlert(
                 () -> alertRegistry.getAlert(metricDirection, metricType, connectionId, connectionType, address,
-                        connectivityConfig.get()));
+                        connectivityConfig));
         return counters.computeIfAbsent(key,
                 m -> ConnectionMetricsCounterFactory.create(metricType, metricDirection, connectionId, connectionType,
                         address, clock, alert));

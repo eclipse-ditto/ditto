@@ -27,8 +27,8 @@ import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
 
 /**
  * Configuration for subject issuers.
@@ -139,7 +139,7 @@ public final class JwtSubjectIssuersConfig {
     public String toString() {
         return getClass().getSimpleName() +
                 "[protocolPrefix=" + protocolPrefix +
-                ",subjectIssuerConfigMap=" + subjectIssuerConfigMap +
+                ", subjectIssuerConfigMap=" + subjectIssuerConfigMap +
                 ']';
     }
 }

@@ -20,7 +20,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 
 import akka.kafka.ConsumerMessage;
 

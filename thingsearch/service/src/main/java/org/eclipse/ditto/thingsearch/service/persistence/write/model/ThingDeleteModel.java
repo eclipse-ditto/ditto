@@ -48,6 +48,6 @@ public final class ThingDeleteModel extends AbstractWriteModel {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[" + getMetadata() + "]";
+        return super.toString() + "]";
     }
 }

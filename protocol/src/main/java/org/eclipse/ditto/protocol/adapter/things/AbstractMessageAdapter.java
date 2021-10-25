@@ -17,17 +17,39 @@ import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.MessagePath;
 import org.eclipse.ditto.protocol.PayloadPathMatcher;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.AbstractAdapter;
+import org.eclipse.ditto.protocol.mapper.SignalMapper;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategies;
 
 abstract class AbstractMessageAdapter<T extends Signal<?>> extends AbstractAdapter<T>
         implements ThingMessageAdapter<T> {
 
+    private final SignalMapper<T> signalMapper;
+
     AbstractMessageAdapter(
             final MappingStrategies<T> mappingStrategies,
+            final SignalMapper<T> signalMapper,
             final HeaderTranslator headerTranslator,
             final PayloadPathMatcher payloadPathMatcher) {
+
         super(mappingStrategies, headerTranslator, payloadPathMatcher);
+        this.signalMapper = signalMapper;
+    }
+
+    @Override
+    protected Adaptable mapSignalToAdaptable(final T signal, final TopicPath.Channel channel) {
+        return signalMapper.mapSignalToAdaptable(signal, channel);
+    }
+
+    @Override
+    public Adaptable toAdaptable(final T t) {
+        return toAdaptable(t, TopicPath.Channel.LIVE);
+    }
+
+    @Override
+    public TopicPath toTopicPath(final T signal, final TopicPath.Channel channel) {
+        return signalMapper.mapSignalToTopicPath(signal, channel);
     }
 
     @Override

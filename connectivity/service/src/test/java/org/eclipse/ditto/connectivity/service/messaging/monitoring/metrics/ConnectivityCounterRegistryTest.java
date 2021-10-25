@@ -235,10 +235,12 @@ public class ConnectivityCounterRegistryTest {
         recordInboundMessageAndCheckThrottled(counterRegistry, connection, consumedInbound, false);
 
         // modify config with lower limit
-        counterRegistry.onConnectivityConfigModified(connection, mockConnectivityConfig(1, Duration.ofSeconds(10)));
+        final ConnectivityCounterRegistry newCounterRegistry =
+                ConnectivityCounterRegistry.newInstance(mockConnectivityConfig(1, Duration.ofSeconds(10)));
+        newCounterRegistry.initForConnection(connection);
 
         // and expect throttled metrics is updated accordingly
-        recordInboundMessageAndCheckThrottled(counterRegistry, connection, consumedInbound, true);
+        recordInboundMessageAndCheckThrottled(newCounterRegistry, connection, consumedInbound, true);
     }
 
     private void recordInboundMessageAndCheckThrottled(final ConnectivityCounterRegistry counterRegistry,

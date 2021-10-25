@@ -50,6 +50,11 @@ abstract class AbstractPolicyAdapter<T extends Signal<?>> extends AbstractAdapte
     }
 
     @Override
+    public TopicPath toTopicPath(final T signal, final TopicPath.Channel channel) {
+        return signalMapper.mapSignalToTopicPath(signal, channel);
+    }
+
+    @Override
     public Adaptable validateAndPreprocess(final Adaptable adaptable) {
         final String subjectsPathSegment = "subjects";
         final int subjectsPathLevel = 2;

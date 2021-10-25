@@ -12,20 +12,14 @@
  */
 package org.eclipse.ditto.protocol.adapter.things;
 
-import java.util.Locale;
-
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.protocol.EventsTopicPathBuilder;
+import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.PayloadPathMatcher;
-import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.protocol.TopicPathBuilder;
-import org.eclipse.ditto.protocol.UnknownChannelException;
-import org.eclipse.ditto.protocol.UnknownEventException;
 import org.eclipse.ditto.protocol.adapter.AbstractAdapter;
+import org.eclipse.ditto.protocol.mapper.SignalMapper;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategies;
-import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 /**
  * Base class for {@link org.eclipse.ditto.protocol.adapter.Adapter}s that handle thing commands.
@@ -34,17 +28,22 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  */
 abstract class AbstractThingAdapter<T extends Signal<?>> extends AbstractAdapter<T> implements ThingAdapter<T> {
 
+    private final SignalMapper<T> signalMapper;
+
     /**
      * Constructor.
      *
      * @param mappingStrategies the mapping strategies used to convert from
      * {@link org.eclipse.ditto.protocol.Adaptable}s to {@link org.eclipse.ditto.base.model.signals.Signal}s
+     * @param signalMapper the {@link SignalMapper} used to convert from a
+     * {@link org.eclipse.ditto.base.model.signals.Signal} to an {@link Adaptable}
      * @param headerTranslator the header translator used for the mapping
      */
     protected AbstractThingAdapter(final MappingStrategies<T> mappingStrategies,
+            final SignalMapper<T> signalMapper,
             final HeaderTranslator headerTranslator) {
 
-        this(mappingStrategies, headerTranslator, ThingModifyPathMatcher.getInstance());
+        this(mappingStrategies, signalMapper, headerTranslator, ThingModifyPathMatcher.getInstance());
     }
 
     /**
@@ -52,59 +51,27 @@ abstract class AbstractThingAdapter<T extends Signal<?>> extends AbstractAdapter
      *
      * @param mappingStrategies the mapping strategies used to convert from
      * {@link org.eclipse.ditto.protocol.Adaptable}s to {@link org.eclipse.ditto.base.model.signals.Signal}s
+     * @param signalMapper the signal mapper to use for mapping signals to adaptables and to topic paths.
      * @param headerTranslator the header translator used for the mapping
      * @param pathMatcher the path matcher used for the mapping
      */
     protected AbstractThingAdapter(final MappingStrategies<T> mappingStrategies,
+            final SignalMapper<T> signalMapper,
             final HeaderTranslator headerTranslator,
             final PayloadPathMatcher pathMatcher) {
 
         super(mappingStrategies, headerTranslator, pathMatcher);
+        this.signalMapper = signalMapper;
     }
 
-    protected static EventsTopicPathBuilder getEventTopicPathBuilderFor(final ThingEvent<?> event,
-            final TopicPath.Channel channel) {
-
-        final EventsTopicPathBuilder topicPathBuilder = getEventsTopicPathBuilderOrThrow(event, channel);
-        final String eventName = getLowerCaseEventName(event);
-        if (isAction(eventName, TopicPath.Action.CREATED)) {
-            topicPathBuilder.created();
-        } else if (isAction(eventName, TopicPath.Action.MODIFIED)) {
-            topicPathBuilder.modified();
-        } else if (isAction(eventName, TopicPath.Action.DELETED)) {
-            topicPathBuilder.deleted();
-        } else if (isAction(eventName, TopicPath.Action.MERGED)) {
-            topicPathBuilder.merged();
-        } else {
-            throw UnknownEventException.newBuilder(eventName).build();
-        }
-        return topicPathBuilder;
+    @Override
+    protected Adaptable mapSignalToAdaptable(final T signal, final TopicPath.Channel channel) {
+        return signalMapper.mapSignalToAdaptable(signal, channel);
     }
 
-    private static EventsTopicPathBuilder getEventsTopicPathBuilderOrThrow(final ThingEvent<?> event,
-            final TopicPath.Channel channel) {
-
-        TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(event.getEntityId());
-        if (TopicPath.Channel.TWIN == channel) {
-            topicPathBuilder = topicPathBuilder.twin();
-        } else if (TopicPath.Channel.LIVE == channel) {
-            topicPathBuilder = topicPathBuilder.live();
-        } else {
-            throw UnknownChannelException.newBuilder(channel, event.getType())
-                    .dittoHeaders(event.getDittoHeaders())
-                    .build();
-        }
-        return topicPathBuilder.events();
-    }
-
-    private static String getLowerCaseEventName(final ThingEvent<?> thingEvent) {
-        final Class<?> thingEventClass = thingEvent.getClass();
-        final String eventClassSimpleName = thingEventClass.getSimpleName();
-        return eventClassSimpleName.toLowerCase(Locale.ENGLISH);
-    }
-
-    private static boolean isAction(final String eventName, final TopicPath.Action expectedAction) {
-        return eventName.contains(expectedAction.getName());
+    @Override
+    public TopicPath toTopicPath(final T signal, final TopicPath.Channel channel) {
+        return signalMapper.mapSignalToTopicPath(signal, channel);
     }
 
 }

@@ -36,9 +36,9 @@ final class DefaultConnectionThrottlingConfig implements ConnectionThrottlingCon
     private final double throttlingDetectionTolerance;
 
     private DefaultConnectionThrottlingConfig(final ScopedConfig config, final ThrottlingConfig throttlingConfig) {
+        this.throttlingConfig = throttlingConfig;
         maxInFlightFactor = config.getPositiveDoubleOrThrow(ConfigValue.MAX_IN_FLIGHT_FACTOR);
         throttlingDetectionTolerance = config.getPositiveDoubleOrThrow(ConfigValue.THROTTLING_DETECTION_TOLERANCE);
-        this.throttlingConfig = throttlingConfig;
         if (maxInFlightFactor < 1.0) {
             throw new DittoConfigError(MessageFormat.format(
                     "The double value at <{0}> must be >= 1.0 but it was <{1}>!",

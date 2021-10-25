@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
-import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
+import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 import java.util.Collection;
 import java.util.List;
@@ -94,6 +94,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
                 ConnectivityPlaceholders.newEntityPlaceholder(),
                 ConnectivityPlaceholders.newThingPlaceholder(),
                 ConnectivityPlaceholders.newTopicPathPlaceholder(),
+                ConnectivityPlaceholders.newResourcePlaceholder(),
                 newHeadersPlaceholder(),
                 ConnectivityPlaceholders.newFeaturePlaceholder());
         validateTargetAddress(target.getAddress(), dittoHeaders, targetDescription);

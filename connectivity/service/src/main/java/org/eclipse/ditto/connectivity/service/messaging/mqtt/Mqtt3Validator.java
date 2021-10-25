@@ -29,9 +29,9 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
-import org.eclipse.ditto.internal.models.placeholders.HeadersPlaceholder;
-import org.eclipse.ditto.internal.models.placeholders.Placeholder;
-import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.HeadersPlaceholder;
+import org.eclipse.ditto.placeholders.Placeholder;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
 
 import akka.actor.ActorSystem;
 
@@ -92,7 +92,7 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
 
         if (containsMappings(source.getHeaderMapping()) && !sourceContainsOnlyAllowedMappings(source, dittoHeaders)) {
             throw ConnectionConfigurationInvalidException.newBuilder(
-                    "Header mapping is not supported for MQTT 3.1.1 sources.")
+                            "Header mapping is not supported for MQTT 3.1.1 sources.")
                     .dittoHeaders(dittoHeaders).build();
         }
 
@@ -124,7 +124,7 @@ public final class Mqtt3Validator extends AbstractMqttValidator {
         if (containsMappings(target.getHeaderMapping())
                 && !targetContainsOnlyAllowedHeaderMappings(target, dittoHeaders)) {
             throw ConnectionConfigurationInvalidException.newBuilder(
-                    "Header mapping is not supported for MQTT 3.1.1 targets.")
+                            "Header mapping is not supported for MQTT 3.1.1 targets.")
                     .dittoHeaders(dittoHeaders).build();
         }
     }

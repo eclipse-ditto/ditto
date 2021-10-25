@@ -325,7 +325,7 @@ public abstract class AbstractBackgroundStreamingActorWithConfigWithStatusReport
     }
 
     /**
-     * Get the most severe log level from evennts.
+     * Get the most severe log level from events.
      *
      * @return The most severe log level to report.
      */

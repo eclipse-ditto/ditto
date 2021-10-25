@@ -59,6 +59,12 @@ public final class TreeBasedPolicyAlgorithm implements PolicyAlgorithm {
     }
 
     @Override
+    public Set<AuthorizationSubject> getSubjectsWithUnrestrictedPermission(final ResourceKey resourceKey,
+            final Permissions permissions) {
+        return treeBasedPolicyEvaluator.getSubjectsWithUnrestrictedPermission(resourceKey, permissions);
+    }
+
+    @Override
     public JsonObject buildJsonView(final ResourceKey resourceKey, final Iterable<JsonField> jsonFields,
             final AuthorizationContext authorizationContext, final Permissions permissions) {
         return treeBasedPolicyEvaluator.buildJsonView(resourceKey, jsonFields, authorizationContext, permissions);

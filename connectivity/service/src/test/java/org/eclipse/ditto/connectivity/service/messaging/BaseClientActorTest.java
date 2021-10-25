@@ -69,6 +69,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.FSM;
@@ -133,15 +135,21 @@ public final class BaseClientActorTest {
 
     @Test
     public void reconnectsInConnectingStateAfterBackoffWhenMultipleFailuresAreReceived() {
-        reconnectsAfterBackoffWhenMultipleFailuresReceived(false);
+        // expect reconnects after 100ms + 200ms + 400ms + 400ms = 1100ms backoff in total
+        final long expectedTotalBackoffMs = 1100L;
+        reconnectsAfterBackoffWhenMultipleFailuresReceived(false, expectedTotalBackoffMs);
     }
 
     @Test
     public void reconnectsFromConnectedStateAfterBackoffWhenMultipleFailuresAreReceived() {
-        reconnectsAfterBackoffWhenMultipleFailuresReceived(true);
+        // expect reconnects after 200ms + 400ms + 400ms + 400ms = 1400ms backoff in total
+        // because we transition from CONNECTED -> CONNECTING which already adds 100ms backoff
+        final long expectedTotalBackoffMs = 1400L;
+        reconnectsAfterBackoffWhenMultipleFailuresReceived(true, expectedTotalBackoffMs);
     }
 
-    private void reconnectsAfterBackoffWhenMultipleFailuresReceived(final boolean initialConnectionSucceeds) {
+    private void reconnectsAfterBackoffWhenMultipleFailuresReceived(final boolean initialConnectionSucceeds,
+            final long expectedTotalBackoffMs) {
         new TestKit(actorSystem) {{
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
@@ -173,10 +181,8 @@ public final class BaseClientActorTest {
                 // verify that doConnectClient is called after correct backoff
                 thenExpectConnectClientCalledAfterTimeout(i + 2, connectivityConfig.getClientConfig().getMaxBackoff());
             }
-            // expecting 4 invocations of doConnectClient within 100ms + 200ms + 400ms + 400ms = 1100ms backoff in total
             final long totalBackoffDurationMs = System.currentTimeMillis() - start;
-            final long expectedTotalBackoffMs = 1100L;
-            final long tolerancePerBackoffMs = 50L; // allow 50ms tolerance per backoff until connectClient is called
+            final long tolerancePerBackoffMs = 100L; // allow 100ms tolerance per backoff until connectClient is called
             assertThat(totalBackoffDurationMs).isGreaterThan(expectedTotalBackoffMs);
             assertThat(totalBackoffDurationMs).isLessThan(
                     expectedTotalBackoffMs + (nrOfBackoffs * tolerancePerBackoffMs));
@@ -685,7 +691,7 @@ public final class BaseClientActorTest {
                 final ActorRef publisherActor,
                 final BaseClientActor delegate) {
 
-            super(connection, proxyActor, connectionActor, DittoHeaders.empty());
+            super(connection, proxyActor, connectionActor, DittoHeaders.empty(), ConfigFactory.empty());
             this.publisherActor = publisherActor;
             this.delegate = delegate;
         }

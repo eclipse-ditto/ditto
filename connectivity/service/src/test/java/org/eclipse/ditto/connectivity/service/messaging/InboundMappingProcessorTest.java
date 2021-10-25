@@ -33,15 +33,10 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
-import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.protocol.DittoProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
@@ -75,7 +70,6 @@ public final class InboundMappingProcessorTest {
     private static final String DUPLICATING_MAPPER = "duplicating";
 
     private static ActorSystem actorSystem;
-    private static ConnectivityConfig connectivityConfig;
     private static ProtocolAdapterProvider protocolAdapterProvider;
     private static ThreadSafeDittoLoggingAdapter logger;
 
@@ -91,8 +85,6 @@ public final class InboundMappingProcessorTest {
         when(logger.withCorrelationId(Mockito.nullable(DittoHeaders.class))).thenReturn(logger);
         when(logger.withCorrelationId(Mockito.nullable(CharSequence.class))).thenReturn(logger);
 
-        connectivityConfig =
-                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
         protocolAdapterProvider = new DittoProtocolAdapterProvider(Mockito.mock(ProtocolConfig.class));
     }
 
@@ -133,9 +125,8 @@ public final class InboundMappingProcessorTest {
                 .toBuilder()
                 .payloadMappingDefinition(payloadMappingDefinition)
                 .build();
-        final ConnectionContext connectionContext = DittoConnectionContext.of(connection, connectivityConfig);
 
-        underTest = InboundMappingProcessor.of(connectionContext, actorSystem,
+        underTest = InboundMappingProcessor.of(connection, TestConstants.CONNECTIVITY_CONFIG, actorSystem,
                 protocolAdapterProvider.getProtocolAdapter(null), logger);
     }
 

@@ -61,7 +61,7 @@ final class MetricAlertRegistry {
             }
     );
 
-    private final ConcurrentMap<ConnectivityCounterRegistry.MapKey, MetricsAlert> alerts = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<ConnectivityCounterRegistry.MapKey, MetricsAlert> alerts = new ConcurrentHashMap<>();
 
     void updateAlert(final MetricsAlert.Key key,
             final ConnectionId connectionId, final ConnectionType connectionType, final String address,
