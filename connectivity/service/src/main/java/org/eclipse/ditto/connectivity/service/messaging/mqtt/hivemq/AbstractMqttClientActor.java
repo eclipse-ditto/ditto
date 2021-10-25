@@ -24,6 +24,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -591,12 +592,25 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
         }
     }
 
+    /*
+     *  For MQTT connections only one Consumer Actor for all addresses is started.
+     */
     @Override
     protected int determineNumberOfConsumers() {
         return connection.getSources()
                 .stream()
                 .mapToInt(Source::getConsumerCount)
                 .sum();
+    }
+
+    /*
+     *  For MQTT connections only one Consumer Actor for all addresses is started.
+     */
+    @Override
+    protected Stream<String> getSourceAddresses() {
+        return connection.getSources().stream()
+                .map(Source::getAddresses)
+                .map(sourceAddresses -> String.join(";", sourceAddresses));
     }
 
     static class MqttClientConnected extends AbstractWithOrigin implements ClientConnected {
