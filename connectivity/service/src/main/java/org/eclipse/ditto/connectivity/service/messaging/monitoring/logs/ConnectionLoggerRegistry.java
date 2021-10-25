@@ -41,13 +41,14 @@ import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.config.FluencyLoggerPublisherConfig;
+import org.eclipse.ditto.connectivity.service.config.LoggerPublisherConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.komamitsu.fluency.Fluency;
-import org.komamitsu.fluency.fluentd.FluencyBuilderForFluentd;
 import org.slf4j.Logger;
 
 /**
@@ -72,20 +73,25 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     private final int failureCapacity;
     private final TemporalAmount loggingDuration;
     private final long maximumLogSizeInByte;
-    private final Fluency fluencyForwarder;
+    @Nullable private final Fluency fluencyForwarder;
 
     private ConnectionLoggerRegistry(final int successCapacity,
             final int failureCapacity,
             final long maximumLogSizeInByte,
-            final Duration loggingDuration) {
+            final Duration loggingDuration,
+            final LoggerPublisherConfig loggerPublisherConfig) {
 
         this.successCapacity = successCapacity;
         this.failureCapacity = failureCapacity;
         this.maximumLogSizeInByte = maximumLogSizeInByte;
         this.loggingDuration = checkNotNull(loggingDuration);
 
-        // TODO TJ instantiate based on own config providing all possible options:
-        fluencyForwarder = new FluencyBuilderForFluentd().build();
+        if (loggerPublisherConfig.isEnabled()) {
+            final FluencyLoggerPublisherConfig fluencyConfig = loggerPublisherConfig.getFluencyLoggerPublisherConfig();
+            fluencyForwarder = fluencyConfig.buildFluencyLoggerPublisher();
+        } else {
+            fluencyForwarder = null;
+        }
     }
 
     /**
@@ -97,7 +103,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     public static ConnectionLoggerRegistry fromConfig(final MonitoringLoggerConfig config) {
         checkNotNull(config);
         return new ConnectionLoggerRegistry(config.successCapacity(), config.failureCapacity(),
-                config.maxLogSizeInBytes(), config.logDuration());
+                config.maxLogSizeInBytes(), config.logDuration(), config.getLoggerPublisherConfig());
     }
 
     /**
@@ -455,9 +461,14 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 successCapacity, failureCapacity, logCategory, logType, address);
         final MuteableConnectionLogger muteableLogger = ConnectionLoggerFactory.newMuteableLogger(
                 connectionId, evictingLogger);
-        final FluentPublishingConnectionLogger publishingLogger = ConnectionLoggerFactory.newPublishingLogger(
-                connectionId, logCategory, logType, address, fluencyForwarder);
-        return new CompoundConnectionLogger(List.of(muteableLogger, publishingLogger));
+
+        if (null != fluencyForwarder) {
+            final FluentPublishingConnectionLogger publishingLogger = ConnectionLoggerFactory.newPublishingLogger(
+                    connectionId, logCategory, logType, address, fluencyForwarder);
+            return new CompoundConnectionLogger(List.of(muteableLogger, publishingLogger));
+        } else {
+            return muteableLogger;
+        }
     }
 
     @Override
