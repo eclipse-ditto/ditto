@@ -20,13 +20,15 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CreateConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.ModifyConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
+import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
+
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -65,7 +67,7 @@ public final class DittoConnectivityCommandValidator implements ConnectivityComm
                         .ifPresentOrElse(connection -> {
                                     connectionValidator.validate(connection, command.getDittoHeaders(), actorSystem);
                                     propsFactory.getActorPropsForType(connection, proxyActor, connectionActor, actorSystem,
-                                            DittoHeaders.empty());
+                                            DittoHeaders.empty(), ConfigFactory.empty());
                                 },
                                 // should never happen
                                 handleNullConnection(command));

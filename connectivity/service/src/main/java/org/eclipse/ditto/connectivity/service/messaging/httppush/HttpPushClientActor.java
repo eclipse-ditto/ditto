@@ -33,7 +33,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
@@ -41,7 +40,8 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+
+import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -64,16 +64,10 @@ public final class HttpPushClientActor extends BaseClientActor {
 
     @SuppressWarnings("unused")
     private HttpPushClientActor(final Connection connection, final ActorRef connectionActor,
-            final DittoHeaders dittoHeaders) {
-        super(connection, ActorRef.noSender(), connectionActor, dittoHeaders);
-
-        final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        );
-        httpPushConfig = connectivityConfig
-                .getConnectionConfig()
-                .getHttpPushConfig();
-        final MonitoringLoggerConfig loggerConfig = connectivityConfig.getMonitoringConfig().logger();
+            final DittoHeaders dittoHeaders, final Config connectivityConfigOverwrites) {
+        super(connection, ActorRef.noSender(), connectionActor, dittoHeaders, connectivityConfigOverwrites);
+        httpPushConfig = connectivityConfig().getConnectionConfig().getHttpPushConfig();
+        final MonitoringLoggerConfig loggerConfig = connectivityConfig().getMonitoringConfig().logger();
         connectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
         factory = HttpPushFactory.of(connection, httpPushConfig, connectionLogger, this::getSshTunnelState);
     }
@@ -84,11 +78,13 @@ public final class HttpPushClientActor extends BaseClientActor {
      * @param connection the HTTP-push connection.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param dittoHeaders headers of the command that caused this actor to be created.
+     * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
      * @return the {@code Props} object.
      */
     public static Props props(final Connection connection, final ActorRef connectionActor,
-            final DittoHeaders dittoHeaders) {
-        return Props.create(HttpPushClientActor.class, connection, connectionActor, dittoHeaders);
+            final DittoHeaders dittoHeaders, final Config connectivityConfigOverwrites) {
+        return Props.create(HttpPushClientActor.class, connection, connectionActor, dittoHeaders,
+                connectivityConfigOverwrites);
     }
 
     @Override

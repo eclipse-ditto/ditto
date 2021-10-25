@@ -24,10 +24,14 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MapperLimitsConfig;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocol.Adaptable;
+
+import akka.actor.ActorSystem;
 
 /**
  * Enforce message size limits on a {@link MessageMapper} and adds random correlation IDs should they not be present
@@ -87,12 +91,14 @@ final class WrappingMessageMapper implements MessageMapper {
     }
 
     @Override
-    public void configure(final ConnectionContext connectionContext, final MessageMapperConfiguration configuration) {
-        final MapperLimitsConfig mapperLimitsConfig =
-                connectionContext.getConnectivityConfig().getMappingConfig().getMapperLimitsConfig();
+    public void configure(final Connection connection,
+            final ConnectivityConfig connectivityConfig,
+            final MessageMapperConfiguration configuration,
+            final ActorSystem actorSystem) {
+        final MapperLimitsConfig mapperLimitsConfig = connectivityConfig.getMappingConfig().getMapperLimitsConfig();
         inboundMessageLimit = mapperLimitsConfig.getMaxMappedInboundMessages();
         outboundMessageLimit = mapperLimitsConfig.getMaxMappedOutboundMessages();
-        delegate.configure(connectionContext, configuration);
+        delegate.configure(connection, connectivityConfig, configuration, actorSystem);
     }
 
     @Override

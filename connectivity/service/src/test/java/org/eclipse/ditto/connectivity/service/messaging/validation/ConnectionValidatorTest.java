@@ -52,7 +52,7 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.SourceBuilder;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.connectivity.service.config.ConnectionContextProvider;
+import org.eclipse.ditto.connectivity.service.config.ConnectionConfigProvider;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.NormalizedMessageMapper;
@@ -115,7 +115,7 @@ public class ConnectionValidatorTest {
                 provided(QueryFilterCriteriaFactory.class,
                         LoggingAdapter.class,
                         DefaultHostValidator.class,
-                        ConnectionContextProvider.class,
+                        ConnectionConfigProvider.class,
                         ConnectivityConfig.class).areAlsoImmutable());
     }
 
@@ -178,7 +178,7 @@ public class ConnectionValidatorTest {
     public void rejectConnectionWithInvalidNumberOfSources() {
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10,
-                        ConnectivityStatus.OPEN, "amqp://localhost:5671")
+                                ConnectivityStatus.OPEN, "amqp://localhost:5671")
                         .setSources(getListFromFunction(
                                 () -> ConnectivityModelFactory.newSourceBuilder()
                                         .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
@@ -197,7 +197,7 @@ public class ConnectionValidatorTest {
     public void rejectConnectionWithInvalidNumberOfTargets() {
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10,
-                        ConnectivityStatus.OPEN, "amqp://localhost:5671")
+                                ConnectivityStatus.OPEN, "amqp://localhost:5671")
                         .setTargets(getListFromFunction(
                                 () -> ConnectivityModelFactory.newTargetBuilder()
                                         .address("")
@@ -575,7 +575,8 @@ public class ConnectionValidatorTest {
     }
 
     private ConnectionValidator getConnectionValidator() {
-        return ConnectionValidator.of(actorSystem.log(), ConnectivityConfig.forActorSystem(actorSystem),
+        return ConnectionValidator.of(actorSystem.log(),
+                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG)),
                 AmqpValidator.newInstance(), HttpPushValidator.newInstance());
     }
 

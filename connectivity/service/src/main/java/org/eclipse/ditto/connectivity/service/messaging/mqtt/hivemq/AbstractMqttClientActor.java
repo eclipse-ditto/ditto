@@ -50,6 +50,7 @@ import com.hivemq.client.mqtt.exceptions.MqttClientStateException;
 import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttDisconnectSource;
+import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -86,10 +87,11 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
     private final MqttConfig mqttConfig;
 
     AbstractMqttClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
-        super(connection, proxyActor, connectionActor, dittoHeaders);
+            final ActorRef connectionActor, final DittoHeaders dittoHeaders,
+            final Config connectivityConfigOverwrites) {
+        super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         this.connection = connection;
-        mqttConfig = connectionContext.getConnectivityConfig().getConnectionConfig().getMqttConfig();
+        mqttConfig = connectivityConfig().getConnectionConfig().getMqttConfig();
         mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
     }
 

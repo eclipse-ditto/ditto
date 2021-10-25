@@ -34,6 +34,7 @@ import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -59,7 +60,7 @@ public final class HttpPushValidatorTest {
         defaultSpecificConfig = new HashMap<>();
         defaultSpecificConfig.put("parallelism", "1");
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-        connectivityConfig = ConnectivityConfig.forActorSystem(actorSystem);
+        connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
     }
 
     @AfterClass
@@ -122,7 +123,7 @@ public final class HttpPushValidatorTest {
 
     private static Connection getConnectionWithHostAndTarget(final String host, final String target) {
         return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.HTTP_PUSH,
-                ConnectivityStatus.OPEN, "http://" + host + ":80")
+                        ConnectivityStatus.OPEN, "http://" + host + ":80")
                 .targets(singletonList(ConnectivityModelFactory.newTargetBuilder()
                         .address(target)
                         .authorizationContext(AUTHORIZATION_CONTEXT)

@@ -28,7 +28,6 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
-import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
@@ -133,7 +132,7 @@ public final class InboundMappingProcessorActorTest {
         Mockito.doAnswer(inv -> logger).when(logger).withCorrelationId(Mockito.<DittoHeaders>any());
         final Connection connection =
                 TestConstants.createConnection(ConnectionId.of("connectionId"), ConnectionType.MQTT);
-        return InboundMappingProcessor.of(DittoConnectionContext.of(connection, TestConstants.CONNECTIVITY_CONFIG),
+        return InboundMappingProcessor.of(connection,
                 registry,
                 logger,
                 Mockito.mock(ProtocolAdapter.class),

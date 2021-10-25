@@ -54,11 +54,8 @@ import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
-import org.eclipse.ditto.connectivity.service.config.Amqp10ConsumerConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConsumerClosedStatusReport;
@@ -82,8 +79,8 @@ import akka.stream.javadsl.Sink;
 /**
  * Actor which receives message from an AMQP source and forwards them to a {@code MessageMappingProcessorActor}.
  */
-final class AmqpConsumerActor extends LegacyBaseConsumerActor implements MessageListener,
-        MessageRateLimiterBehavior<String>, ConnectivityConfigModifiedBehavior {
+final class AmqpConsumerActor extends LegacyBaseConsumerActor
+        implements MessageListener, MessageRateLimiterBehavior<String> {
 
     /**
      * The name prefix of this Actor in the ActorSystem.
@@ -102,20 +99,18 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
     private ConsumerData consumerData;
     @Nullable
     private MessageConsumer messageConsumer;
-    private ConnectivityConfig connectivityConfig;
 
     @SuppressWarnings("unused")
     private AmqpConsumerActor(final Connection connection, final ConsumerData consumerData,
             final Sink<Object, ?> inboundMappingSink, final ActorRef jmsActor,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
         super(connection,
                 checkNotNull(consumerData, "consumerData").getAddress(),
                 inboundMappingSink,
                 consumerData.getSource(),
                 connectivityStatusResolver);
 
-        final ConnectionContext connectionContext = consumerData.getConnectionContext();
-        connectivityConfig = connectionContext.getConnectivityConfig();
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
         this.messageConsumer = consumerData.getMessageConsumer();
@@ -142,17 +137,19 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
      * @param connection the connection
      * @param consumerData the consumer data.
      * @param inboundMappingSink the message mapping sink where received messages are forwarded to
-     * @param jmsActor reference of the {@code JMSConnectionHandlingActor).
+     * @param jmsActor reference of the {@code JMSConnectionHandlingActor}.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
+     * @param connectivityConfig the connectivity config related to the given connection.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection, final ConsumerData consumerData,
             final Sink<Object, ?> inboundMappingSink, final ActorRef jmsActor,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
 
         return Props.create(AmqpConsumerActor.class, connection, consumerData, inboundMappingSink, jmsActor,
-                connectivityStatusResolver);
+                connectivityStatusResolver, connectivityConfig);
     }
 
     @Override
@@ -175,19 +172,12 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                 }).build();
         return messageHandlingBehavior
                 .orElse(rateLimiterBehavior)
-                .orElse(connectivityConfigModifiedBehavior())
                 .orElse(matchAnyBehavior);
     }
 
     @Override
     public void preStart() throws Exception {
         super.preStart();
-        getConnectivityConfigProvider()
-                .registerForConnectivityConfigChanges(consumerData.getConnectionContext(), getSelf())
-                .exceptionally(e -> {
-                    logger.error(e, "Failed to register for connectivity config changes");
-                    return null;
-                });
         initMessageConsumer();
     }
 
@@ -285,7 +275,8 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
         // destroy current message consumer in any case
         destroyMessageConsumer();
 
-        logger.info("Consumer for destination '{}' was closed. Will try to recreate after some backoff.", sourceAddress);
+        logger.info("Consumer for destination '{}' was closed. Will try to recreate after some backoff.",
+                sourceAddress);
         backOffActor.tell(BackOffActor.createBackOffWithAnswerMessage(Control.CREATE_CONSUMER),
                 getSelf());
     }
@@ -374,8 +365,8 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
                     .build();
             inboundMonitor.success(externalMessage);
             final Map<String, String> externalMessageHeaders = externalMessage.getHeaders();
-            logger.withCorrelationId(correlationId).info("Received message from AMQP 1.0 with externalMessageHeaders: {}",
-                    externalMessageHeaders);
+            logger.withCorrelationId(correlationId)
+                    .info("Received message from AMQP 1.0 with externalMessageHeaders: {}", externalMessageHeaders);
             if (logger.isDebugEnabled()) {
                 logger.withCorrelationId(correlationId).debug("Received message from AMQP 1.0 with payload: {}",
                         externalMessage.getTextPayload().orElse("binary"));
@@ -495,28 +486,6 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor implements Message
     @Override
     public ThreadSafeDittoLoggingAdapter log() {
         return logger;
-    }
-
-    @Override
-    public void onConnectivityConfigModified(final ConnectivityConfig connectivityConfig) {
-        final Amqp10Config amqp10Config = connectivityConfig.getConnectionConfig().getAmqp10Config();
-        if (hasMessageRateLimiterConfigChanged(amqp10Config)) {
-            this.messageRateLimiter = MessageRateLimiter.of(amqp10Config, messageRateLimiter);
-            logger.info("Built new rate limiter from existing one with modified config: {}", amqp10Config);
-        } else {
-            logger.debug("Relevant config for MessageRateLimiter unchanged, do nothing.");
-        }
-        this.connectivityConfig = connectivityConfig;
-    }
-
-    private boolean hasMessageRateLimiterConfigChanged(final Amqp10Config amqp10Config) {
-        if (messageRateLimiter == null) {
-            return false;
-        }
-        final Amqp10ConsumerConfig consumerConfig = amqp10Config.getConsumerConfig();
-        return messageRateLimiter.getMaxPerPeriod() != consumerConfig.getThrottlingConfig().getLimit()
-        || messageRateLimiter.getMaxInFlight() != consumerConfig.getThrottlingConfig().getMaxInFlight()
-        || !messageRateLimiter.getRedeliveryExpectationTimeout().equals(consumerConfig.getRedeliveryExpectationTimeout());
     }
 
     /**

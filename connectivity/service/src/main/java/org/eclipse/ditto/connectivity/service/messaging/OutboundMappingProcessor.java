@@ -31,12 +31,13 @@ import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
@@ -78,7 +79,8 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
      * Initializes a new command processor with mappers defined in mapping mappingContext.
      * The dynamic access is needed to instantiate message mappers for an actor system.
      *
-     * @param connectionContext the context of the connection that the processor works for.
+     * @param connection the connection that the processor works for.
+     * @param connectivityConfig the connectivity config related to the given connection.
      * @param actorSystem the dynamic access used for message mapper instantiation.
      * @param protocolAdapter the ProtocolAdapter to be used.
      * @param logger the logging adapter to be used for log statements.
@@ -88,14 +90,15 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
      * @throws org.eclipse.ditto.connectivity.model.MessageMapperConfigurationFailedException if the configuration of
      * one of the {@code mappingContext} failed for a mapper specific reason.
      */
-    public static OutboundMappingProcessor of(final ConnectionContext connectionContext,
+    public static OutboundMappingProcessor of(final Connection connection,
+            final ConnectivityConfig connectivityConfig,
             final ActorSystem actorSystem,
             final ProtocolAdapter protocolAdapter,
             final ThreadSafeDittoLoggingAdapter logger) {
 
         final ActorSelection deadLetterSelection = actorSystem.actorSelection(actorSystem.deadLetters().path());
-        return of(OutboundMappingSettings.of(connectionContext, actorSystem, deadLetterSelection, protocolAdapter,
-                logger));
+        return of(OutboundMappingSettings.of(connection, connectivityConfig, actorSystem, deadLetterSelection,
+                protocolAdapter, logger));
     }
 
     /**

@@ -53,7 +53,7 @@ public final class RabbitMQValidatorTest {
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-        connectivityConfig = ConnectivityConfig.forActorSystem(actorSystem);
+        connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
     }
 
     @AfterClass

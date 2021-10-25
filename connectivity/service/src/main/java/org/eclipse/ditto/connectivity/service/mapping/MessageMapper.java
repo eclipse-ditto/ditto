@@ -20,9 +20,13 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageMapperConfigurationInvalidException;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocol.Adaptable;
+
+import akka.actor.ActorSystem;
 
 /**
  * Defines a message mapper which maps a {@link ExternalMessage} to a {@link Adaptable} and vice versa.
@@ -44,7 +48,7 @@ public interface MessageMapper {
     /**
      * Returns a blocklist of content-types which shall not be handled by this message mapper.
      * Is determined from the passed in {@code MessageMapperConfiguration} in
-     * {@link #configure(ConnectionContext, MessageMapperConfiguration)}.
+     * {@link #configure(Connection, ConnectivityConfig, MessageMapperConfiguration, ActorSystem)}
      *
      * @return a blocklist of content-types which shall not be handled by this message mapper.
      */
@@ -53,13 +57,16 @@ public interface MessageMapper {
     /**
      * Applies configuration for this MessageMapper.
      *
-     * @param connectionContext the connection and its contextual information including its connectivity config.
+     * @param connection the connection
+     * @param connectivityConfig the connectivity config related to the given connection.
      * @param configuration the configuration to apply.
+     * @param actorSystem the actor system.
      * @throws MessageMapperConfigurationInvalidException if configuration is invalid.
      * @throws org.eclipse.ditto.connectivity.model.MessageMapperConfigurationFailedException if the configuration
      * failed for a mapper specific reason.
      */
-    void configure(ConnectionContext connectionContext, MessageMapperConfiguration configuration);
+    void configure(Connection connection, final ConnectivityConfig connectivityConfig,
+            MessageMapperConfiguration configuration, final ActorSystem actorSystem);
 
     /**
      * Maps an {@link ExternalMessage} to an {@link Adaptable}

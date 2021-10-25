@@ -25,15 +25,16 @@ import java.util.List;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -41,6 +42,8 @@ import org.junit.rules.ExpectedException;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+
+import akka.actor.ActorSystem;
 
 /**
  * Tests for {@link WrappingMessageMapper}.
@@ -54,8 +57,9 @@ public class WrappingMessageMapperTest {
     private MessageMapperConfiguration mockConfiguration;
     private ExternalMessage mockMessage;
     private Adaptable mockAdaptable;
-
-    private ConnectionContext connectionContext;
+    private ActorSystem actorSystem;
+    private Connection connection;
+    private ConnectivityConfig connectivityConfig;
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
@@ -79,23 +83,31 @@ public class WrappingMessageMapperTest {
         final Config config = ConfigFactory.load("mapping-test")
                 .atKey("ditto.connectivity.mapping")
                 .withFallback(ConfigFactory.load("test"));
-        final ConnectivityConfig connectivityConfig =
-                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(config));
-        connectionContext = DittoConnectionContext.of(TestConstants.createConnection(), connectivityConfig);
+        connection = TestConstants.createConnection();
+        actorSystem = ActorSystem.create("Test", config);
+        connectivityConfig = ConnectivityConfig.of(config);
         underTest = WrappingMessageMapper.wrap(mockMapper);
+    }
+
+    @After
+    public void tearDown() {
+        if (actorSystem != null) {
+            actorSystem.terminate();
+            actorSystem = null;
+        }
     }
 
     @Test
     public void configure() {
         when(mockConfiguration.getContentTypeBlocklist()).thenReturn(Collections.singletonList("blockedContentType"));
 
-        underTest.configure(connectionContext, mockConfiguration);
-        verify(mockMapper).configure(connectionContext, mockConfiguration);
+        underTest.configure(connection, connectivityConfig, mockConfiguration, actorSystem);
+        verify(mockMapper).configure(connection, connectivityConfig, mockConfiguration, actorSystem);
     }
 
     @Test
     public void mapMessage() {
-        underTest.configure(connectionContext, mockConfiguration);
+        underTest.configure(connection, connectivityConfig, mockConfiguration, actorSystem);
         underTest.map(mockMessage);
         verify(mockMapper).map(any(ExternalMessage.class));
         verify(mockMapper).map(any(ExternalMessage.class));
@@ -106,7 +118,7 @@ public class WrappingMessageMapperTest {
         final var headers = DittoHeaders.newBuilder().contentType("contentType").build();
         when(mockAdaptable.getDittoHeaders()).thenReturn(headers);
 
-        underTest.configure(connectionContext, mockConfiguration);
+        underTest.configure(connection, connectivityConfig, mockConfiguration, actorSystem);
         underTest.map(mockAdaptable);
         verify(mockMapper).map(mockAdaptable);
     }
@@ -115,13 +127,13 @@ public class WrappingMessageMapperTest {
     public void mapMessageWithInvalidNumberOfMessages() {
         exception.expect(MessageMappingFailedException.class);
         final List<Adaptable> adaptables = listOfElements(mockAdaptable,
-                connectionContext.getConnectivityConfig()
+                connectivityConfig
                         .getMappingConfig()
                         .getMapperLimitsConfig()
                         .getMaxMappedInboundMessages());
         when(mockMapper.map(any(ExternalMessage.class))).thenReturn(adaptables);
 
-        underTest.configure(connectionContext, mockConfiguration);
+        underTest.configure(connection, connectivityConfig, mockConfiguration, actorSystem);
         underTest.map(mockMessage);
     }
 
@@ -130,13 +142,13 @@ public class WrappingMessageMapperTest {
         exception.expect(MessageMappingFailedException.class);
         final List<ExternalMessage> externalMessages =
                 listOfElements(mockMessage,
-                        connectionContext.getConnectivityConfig()
+                        connectivityConfig
                                 .getMappingConfig()
                                 .getMapperLimitsConfig()
                                 .getMaxMappedOutboundMessages());
         when(mockMapper.map(any(Adaptable.class))).thenReturn(externalMessages);
 
-        underTest.configure(connectionContext, mockConfiguration);
+        underTest.configure(connection, connectivityConfig, mockConfiguration, actorSystem);
         underTest.map(mockAdaptable);
     }
 
