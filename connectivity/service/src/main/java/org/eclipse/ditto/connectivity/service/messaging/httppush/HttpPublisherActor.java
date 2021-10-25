@@ -40,6 +40,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -500,7 +501,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     && SignalInformationPoint.isLiveCommandResponse(result)) {
 
                 // Do only return command response for live commands with a correct response.
-                httpPushRoundTripSignalValidator.accept(liveCommandWithEntityId.get(), result);
+                httpPushRoundTripSignalValidator.accept((Command<?>) liveCommandWithEntityId.get(), result);
             }
             if (result == null) {
                 connectionLogger.success(

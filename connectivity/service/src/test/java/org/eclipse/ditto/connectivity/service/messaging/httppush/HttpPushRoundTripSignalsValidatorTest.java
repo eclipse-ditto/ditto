@@ -122,7 +122,8 @@ public final class HttpPushRoundTripSignalsValidatorTest {
 
         Assertions.assertThatExceptionOfType(MessageSendingFailedException.class)
                 .isThrownBy(() -> underTest.accept(command, commandResponse))
-                .withMessage("Live response has no correlation ID while command has correlation ID <%s>.",
+                .withMessage("Correlation ID of live response <%s> differs from correlation ID of command <%s>.",
+                        null,
                         correlationIdCommand)
                 .withNoCause();
 
@@ -140,8 +141,9 @@ public final class HttpPushRoundTripSignalsValidatorTest {
 
         Assertions.assertThatExceptionOfType(MessageSendingFailedException.class)
                 .isThrownBy(() -> underTest.accept(command, commandResponse))
-                .withMessage("Live response has correlation ID <%s> while command has none.",
-                        correlationIdCommandResponse)
+                .withMessage("Correlation ID of live response <%s> differs from correlation ID of command <%s>.",
+                        correlationIdCommandResponse,
+                        null)
                 .withNoCause();
 
         Mockito.verify(connectionLogger)
@@ -230,7 +232,7 @@ public final class HttpPushRoundTripSignalsValidatorTest {
 
         Assertions.assertThatExceptionOfType(MessageSendingFailedException.class)
                 .isThrownBy(() -> underTest.accept(sendThingMessage, sendClaimMessageResponse))
-                .withMessage("Type of live message response <%s> is not related to type of message command <%s>.",
+                .withMessage("Type of live response <%s> is not related to type of command <%s>.",
                         sendClaimMessageResponse.getType(),
                         sendThingMessage.getType())
                 .withNoCause();

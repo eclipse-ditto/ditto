@@ -19,15 +19,15 @@ import java.util.function.BiConsumer;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandResponseMatchingValidator;
 
 /**
- * Validates that a specified {@link org.eclipse.ditto.base.model.signals.SignalWithEntityId} and
- * {@link CommandResponse} are associated with each other, i.e. that the command response correlates to a command.
+ * Validates that a specified {@link Command} and {@link CommandResponse} are associated with each other, i.e. that the
+ * command response correlates to a command.
  * <p>
  * Both signals correlate if
  * <ul>
@@ -44,7 +44,7 @@ import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandRes
  * </p>
  */
 @NotThreadSafe
-final class HttpPushRoundTripSignalsValidator implements BiConsumer<SignalWithEntityId<?>, CommandResponse<?>> {
+final class HttpPushRoundTripSignalsValidator implements BiConsumer<Command<?>, CommandResponse<?>> {
 
     private final ConnectionLogger connectionLogger;
     private final CommandAndCommandResponseMatchingValidator validator;
@@ -59,13 +59,13 @@ final class HttpPushRoundTripSignalsValidator implements BiConsumer<SignalWithEn
     }
 
     @Override
-    public void accept(final SignalWithEntityId<?> signalWithEntityId, final CommandResponse<?> commandResponse) {
-        final var validationResult = validator.apply(signalWithEntityId, commandResponse);
+    public void accept(final Command<?> command, final CommandResponse<?> commandResponse) {
+        final var validationResult = validator.apply(command, commandResponse);
         if (!validationResult.isSuccess()) {
             final var messageSendingFailedException = MessageSendingFailedException.newBuilder()
                     .httpStatus(HttpStatus.BAD_REQUEST)
                     .message(validationResult.getDetailMessageOrThrow())
-                    .dittoHeaders(signalWithEntityId.getDittoHeaders())
+                    .dittoHeaders(command.getDittoHeaders())
                     .build();
             connectionLogger.failure(commandResponse, messageSendingFailedException);
             throw messageSendingFailedException;
