@@ -33,10 +33,10 @@ import javax.naming.NamingException;
 
 import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsQueue;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnauthorizedException;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
@@ -84,7 +84,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
-    private final ConnectionContext connectionContext;
+    private final Connection connection;
     private final ExceptionListener exceptionListener;
     private final JmsConnectionFactory jmsConnectionFactory;
     private final ConnectionLogger connectionLogger;
@@ -92,11 +92,11 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     @Nullable private Session currentSession = null;
 
     @SuppressWarnings("unused")
-    private JMSConnectionHandlingActor(final ConnectionContext connectionContext,
+    private JMSConnectionHandlingActor(final Connection connection,
             final ExceptionListener exceptionListener,
             final JmsConnectionFactory jmsConnectionFactory, final ConnectionLogger connectionLogger) {
 
-        this.connectionContext = checkNotNull(connectionContext, "connection");
+        this.connection = checkNotNull(connection, "connection");
         this.exceptionListener = exceptionListener;
         this.jmsConnectionFactory = jmsConnectionFactory;
         this.connectionLogger = connectionLogger;
@@ -105,25 +105,25 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     /**
      * Creates Akka configuration object {@link Props} for this {@code JMSConnectionHandlingActor}.
      *
-     * @param connectionContext the connection context
+     * @param connection the connection
      * @param exceptionListener the exception listener
      * @param jmsConnectionFactory the jms connection factory
      * @param connectionLogger used to log failures during certificate validation.
      * @return the Akka configuration Props object.
      */
-    static Props props(final ConnectionContext connectionContext, final ExceptionListener exceptionListener,
+    static Props props(final Connection connection, final ExceptionListener exceptionListener,
             final JmsConnectionFactory jmsConnectionFactory, final ConnectionLogger connectionLogger) {
 
-        return Props.create(JMSConnectionHandlingActor.class, connectionContext, exceptionListener,
+        return Props.create(JMSConnectionHandlingActor.class, connection, exceptionListener,
                 jmsConnectionFactory,
                 connectionLogger);
     }
 
-    static Props propsWithOwnDispatcher(final ConnectionContext connectionContext,
+    static Props propsWithOwnDispatcher(final Connection connection,
             final ExceptionListener exceptionListener,
             final JmsConnectionFactory jmsConnectionFactory,
             final ConnectionLogger connectionLogger) {
-        return props(connectionContext, exceptionListener, jmsConnectionFactory, connectionLogger)
+        return props(connection, exceptionListener, jmsConnectionFactory, connectionLogger)
                 .withDispatcher(DISPATCHER_NAME);
     }
 
@@ -215,8 +215,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                 final AmqpClientActor.JmsSessionRecovered r =
                         new AmqpClientActor.JmsSessionRecovered(origin, session, consumers);
                 sender.tell(r, self);
-                log.debug("Session of connection <{}> recovered successfully.",
-                        connectionContext.getConnection().getId());
+                log.debug("Session of connection <{}> recovered successfully.", connection.getId());
             } catch (final ConnectionFailedException e) {
                 sender.tell(ConnectionFailure.of(origin, e, null), self);
                 log.warning(e.getMessage());
@@ -258,7 +257,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         try {
             final AmqpClientActor.JmsConnected connectedMessage = tryConnect(origin, clientId);
             sender.tell(connectedMessage, self);
-            log.debug("Connection <{}> established successfully.", connectionContext.getConnection().getId());
+            log.debug("Connection <{}> established successfully.", connection.getId());
         } catch (final ConnectionFailedException e) {
             sender.tell(ConnectionFailure.of(origin, e, null), self);
             log.warning(e.getMessage());
@@ -291,8 +290,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         } else {
             log.error("Created JMS connection for clientId <{}> was null, " +
                     "not creating connection as a result!", clientId);
-            throw ConnectionFailedException.newBuilder(connectionContext.getConnection().getId())
-                    .build();
+            throw ConnectionFailedException.newBuilder(connection.getId()).build();
         }
     }
 
@@ -320,11 +318,10 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
             return jmsOperation.get();
         } catch (final JMSSecurityException e) {
             terminateConnection(jmsConnection);
-            throw ConnectionUnauthorizedException.forConnectionId(connectionContext.getConnection().getId(),
-                    e.getMessage());
+            throw ConnectionUnauthorizedException.forConnectionId(connection.getId(), e.getMessage());
         } catch (final JMSException | NamingException e) {
             terminateConnection(jmsConnection);
-            throw ConnectionFailedException.newBuilder(connectionContext.getConnection().getId())
+            throw ConnectionFailedException.newBuilder(connection.getId())
                     .message("Failed to " + task + ":" + e.getMessage())
                     .cause(e)
                     .build();
@@ -342,12 +339,11 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     private List<ConsumerData> createConsumers(@Nullable final Session session) {
         if (null == session) {
             log.warning("Trying to create consumer for 'null' session, throwing ConnectionFailedException");
-            throw ConnectionFailedException.newBuilder(connectionContext.getConnection().getId())
-                    .build();
+            throw ConnectionFailedException.newBuilder(connection.getId()).build();
         }
 
         final Map<String, Exception> failedSources = new HashMap<>();
-        final List<ConsumerData> consumers = connectionContext.getConnection().getSources().stream().flatMap(source ->
+        final List<ConsumerData> consumers = connection.getSources().stream().flatMap(source ->
                 source.getAddresses().stream().flatMap(sourceAddress ->
                         IntStream.range(0, source.getConsumerCount())
                                 .mapToObj(i -> sourceAddress + "-" + i)
@@ -381,7 +377,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         try {
             final Destination destination = new JmsQueue(sourceAddress);
             final MessageConsumer messageConsumer = session.createConsumer(destination);
-            return ConsumerData.of(source, sourceAddress, addressWithIndex, messageConsumer, connectionContext);
+            return ConsumerData.of(source, sourceAddress, addressWithIndex, messageConsumer);
         } catch (final JMSException jmsException) {
             failedSources.put(addressWithIndex, jmsException);
             return null;
@@ -396,10 +392,9 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     private JmsConnection createJmsConnection(final String clientId) {
         return safelyExecuteJmsOperation(null, "create JMS connection", () -> {
             final JmsConnection jmsConnection =
-                    jmsConnectionFactory.createConnection(connectionContext.getConnection(), exceptionListener,
-                            connectionLogger, clientId);
+                    jmsConnectionFactory.createConnection(connection, exceptionListener, connectionLogger, clientId);
             if (log.isDebugEnabled()) {
-                log.debug("Attempt to create connection {} for URI [{}]", connectionContext.getConnection().getId(),
+                log.debug("Attempt to create connection {} for URI [{}]", connection.getId(),
                         jmsConnection.getConfiguredURI());
             }
             return jmsConnection;
@@ -408,7 +403,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
 
     private ConnectionFailedException buildConnectionFailedException(final Map<String, Exception> failedSources) {
         return ConnectionFailedException
-                .newBuilder(connectionContext.getConnection().getId())
+                .newBuilder(connection.getId())
                 .message("Failed to consume sources: " + failedSources.keySet())
                 .description(() -> failedSources.entrySet()
                         .stream()
@@ -423,15 +418,13 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
             try {
                 jmsConnection.stop();
             } catch (final JMSException e) {
-                log.debug("Stopping connection <{}> failed, probably it was already stopped: {}",
-                        connectionContext.getConnection().getId(),
+                log.debug("Stopping connection <{}> failed, probably it was already stopped: {}", connection.getId(),
                         e.getMessage());
             }
             try {
                 jmsConnection.close();
             } catch (final JMSException e) {
-                log.debug("Closing connection <{}> failed, probably it was already closed: {}",
-                        connectionContext.getConnection().getId(),
+                log.debug("Closing connection <{}> failed, probably it was already closed: {}", connection.getId(),
                         e.getMessage());
             }
         }
@@ -439,9 +432,9 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
 
     private void disconnectAndTell(final javax.jms.Connection connection, @Nullable final ActorRef origin,
             final boolean shutdownAfterDisconnect) {
-        log.debug("Closing JMS connection {}", connectionContext.getConnection().getId());
+        log.debug("Closing JMS connection {}", this.connection.getId());
         terminateConnection(connection);
-        log.info("Connection <{}> closed.", this.connectionContext.getConnection().getId());
+        log.info("Connection <{}> closed.", this.connection.getId());
 
         getSender().tell(ClientDisconnected.of(origin, shutdownAfterDisconnect), getSelf());
     }

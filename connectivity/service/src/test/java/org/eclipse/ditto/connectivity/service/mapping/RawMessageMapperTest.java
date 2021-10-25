@@ -47,6 +47,8 @@ import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.Before;
 import org.junit.Test;
 
+import akka.actor.ActorSystem;
+
 /**
  * Tests {@link RawMessageMapper}.
  */
@@ -56,13 +58,10 @@ public final class RawMessageMapperTest {
     private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
 
     private MessageMapper underTest;
-    private ConnectionContext connectionContext;
 
     @Before
     public void setUp() {
         underTest = new RawMessageMapper();
-        connectionContext =
-                DittoConnectionContext.of(TestConstants.createConnection(), TestConstants.CONNECTIVITY_CONFIG);
     }
 
     @Test
@@ -227,12 +226,13 @@ public final class RawMessageMapperTest {
                 "ditto-message-thing-id", "thing:id"
         );
         final String payload = "lorem ipsum dolor sit amet";
-        underTest.configure(connectionContext,
+        final ActorSystem actorSystem = ActorSystem.create("Test", TestConstants.CONFIG);
+        underTest.configure(TestConstants.createConnection(), TestConstants.CONNECTIVITY_CONFIG,
                 DefaultMessageMapperConfiguration.of("RawMessage",
                         Map.of("incomingMessageHeaders", JsonObject.newBuilder()
                                 .set("content-type", "text/plain")
                                 .build()
-                        ), Map.of(), Map.of()));
+                        ), Map.of(), Map.of()), actorSystem);
         final List<Adaptable> adaptables =
                 underTest.map(ExternalMessageFactory.newExternalMessageBuilder(headers)
                         .withBytes(payload.getBytes())
@@ -243,6 +243,7 @@ public final class RawMessageMapperTest {
         final SendThingMessage<?> sendThingMessage = (SendThingMessage<?>) signal;
         assertThat(sendThingMessage.getEntityId().toString()).isEqualTo("thing:id");
         assertThat(sendThingMessage.getMessage().getPayload().orElseThrow()).isEqualTo(payload);
+        actorSystem.terminate();
     }
 
     @Test
@@ -253,12 +254,14 @@ public final class RawMessageMapperTest {
                 "ditto-message-thing-id", "thing:id"
         );
         final String payload = "lorem ipsum dolor sit amet";
-        underTest.configure(connectionContext,
+        final ActorSystem actorSystem = ActorSystem.create("Test", TestConstants.CONFIG);
+        underTest.configure(TestConstants.createConnection(), TestConstants.CONNECTIVITY_CONFIG,
                 DefaultMessageMapperConfiguration.of("RawMessage",
                         Map.of("incomingMessageHeaders", JsonObject.newBuilder()
                                 .set("content-type", "application/octet-stream")
                                 .build()
-                        ), Map.of(), Map.of()));
+                        ), Map.of(), Map.of()),
+                actorSystem);
         final List<Adaptable> adaptables =
                 underTest.map(ExternalMessageFactory.newExternalMessageBuilder(headers)
                         .withText(payload)
@@ -270,6 +273,7 @@ public final class RawMessageMapperTest {
         assertThat(sendThingMessage.getEntityId().toString()).isEqualTo("thing:id");
         assertThat(sendThingMessage.getMessage().getPayload().orElseThrow())
                 .isEqualTo(ByteBuffer.wrap(payload.getBytes()));
+        actorSystem.terminate();
     }
 
     @Test

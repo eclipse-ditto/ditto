@@ -233,9 +233,15 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
                         .sort(sortOptions)
                         .skip(skip)
                         .projection(projection);
-        final FindPublisher<Document> findPublisherWithLimit = limit != null
-                ? findPublisher.limit(limit)
-                : findPublisher;
+
+        final FindPublisher<Document> findPublisherWithLimit;
+        if (null != limit) {
+            findPublisherWithLimit = findPublisher
+                    .limit(limit)
+                    .batchSize(limit);
+        } else {
+            findPublisherWithLimit = findPublisher;
+        }
         final FindPublisher<Document> findPublisherWithMaxQueryTime = maxQueryTime != null
                 ? findPublisherWithLimit.maxTime(maxQueryTime.getSeconds(), TimeUnit.SECONDS)
                 : findPublisherWithLimit;

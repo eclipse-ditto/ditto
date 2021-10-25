@@ -34,8 +34,8 @@ final class DefaultConnectionThrottlingConfig implements ConnectionThrottlingCon
     private final ThrottlingConfig throttlingConfig;
     private final double maxInFlightFactor;
 
-    private DefaultConnectionThrottlingConfig(final ScopedConfig config) {
-        throttlingConfig = ThrottlingConfig.of(config);
+    private DefaultConnectionThrottlingConfig(final ScopedConfig config, final ThrottlingConfig throttlingConfig) {
+        this.throttlingConfig = throttlingConfig;
         maxInFlightFactor = config.getPositiveDoubleOrThrow(ConfigValue.MAX_IN_FLIGHT_FACTOR);
         if (maxInFlightFactor < 1.0) {
             throw new DittoConfigError(MessageFormat.format(
@@ -45,8 +45,10 @@ final class DefaultConnectionThrottlingConfig implements ConnectionThrottlingCon
     }
 
     static ConnectionThrottlingConfig of(final Config config) {
+        final ThrottlingConfig throttlingConfig = ThrottlingConfig.of(config);
         return new DefaultConnectionThrottlingConfig(
-                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()));
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, ConfigValue.values()),
+                throttlingConfig);
     }
 
     @Override

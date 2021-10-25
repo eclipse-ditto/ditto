@@ -43,7 +43,7 @@ import akka.japi.Creator;
 public class MockClientActor extends AbstractActor {
 
     public static final ClientActorPropsFactory mockClientActorPropsFactory =
-            (connection, connectionActor, proxyActor, actorSystem, dittoHeaders) -> MockClientActor.props();
+            (connection, connectionActor, proxyActor, actorSystem, dittoHeaders, overwrites) -> MockClientActor.props();
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     @Nullable private final ActorRef delegate;
@@ -114,24 +114,24 @@ public class MockClientActor extends AbstractActor {
                 .match(RetrieveConnectionStatus.class, rcs -> {
                     log.info("Retrieve connection status...");
                     sender().tell(ConnectivityModelFactory.newClientStatus("client1",
-                            ConnectivityStatus.OPEN, "connection is open", TestConstants.INSTANT),
+                                    ConnectivityStatus.OPEN, "connection is open", TestConstants.INSTANT),
                             getSelf());
 
                     // simulate consumer and pusblisher actor response
                     sender().tell(ConnectivityModelFactory.newSourceStatus("client1",
-                            ConnectivityStatus.OPEN, "source1", "consumer started"),
+                                    ConnectivityStatus.OPEN, "source1", "consumer started"),
                             getSelf());
                     sender().tell(ConnectivityModelFactory.newSourceStatus("client1",
-                            ConnectivityStatus.OPEN, "source2", "consumer started"),
+                                    ConnectivityStatus.OPEN, "source2", "consumer started"),
                             getSelf());
                     sender().tell(ConnectivityModelFactory.newTargetStatus("client1",
-                            ConnectivityStatus.OPEN, "target1", "publisher started"),
+                                    ConnectivityStatus.OPEN, "target1", "publisher started"),
                             getSelf());
                     sender().tell(ConnectivityModelFactory.newTargetStatus("client1",
-                            ConnectivityStatus.OPEN, "target2", "publisher started"),
+                                    ConnectivityStatus.OPEN, "target2", "publisher started"),
                             getSelf());
                     sender().tell(ConnectivityModelFactory.newTargetStatus("client1",
-                            ConnectivityStatus.OPEN, "target3", "publisher started"),
+                                    ConnectivityStatus.OPEN, "target3", "publisher started"),
                             getSelf());
                 })
                 .match(RetrieveConnectionLogs.class, rcl -> {

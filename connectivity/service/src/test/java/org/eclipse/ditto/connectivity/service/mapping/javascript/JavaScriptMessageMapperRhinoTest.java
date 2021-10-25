@@ -35,11 +35,10 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectionOpenedAnnouncement;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
-import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -62,10 +61,14 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingResponse;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+
+import akka.actor.ActorSystem;
 
 /**
  * Tests the {@link JavaScriptMessageMapperRhino} by initializing different mapping templates and ensuring that they
@@ -89,20 +92,18 @@ public final class JavaScriptMessageMapperRhinoTest {
     private static final ByteBuffer MAPPING_INCOMING_PAYLOAD_BYTES = ByteBuffer.wrap(
             MAPPING_INCOMING_PAYLOAD_STRING.getBytes(StandardCharsets.UTF_8));
 
-    private static final ConnectionContext CONNECTION_CONTEXT = DittoConnectionContext.of(
-            TestConstants.createConnection(),
-            DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(
-                    ConfigFactory.parseString(
-                            "mapping {\n" +
-                                    "  javascript {\n" +
-                                    "    maxScriptSizeBytes = 50000 # 50kB\n" +
-                                    "    maxScriptExecutionTime = 500ms\n" +
-                                    "    maxScriptStackDepth = 10\n" +
-                                    "  }\n" +
-                                    "}")
-                            .atKey("ditto.connectivity")
-                            .withFallback(ConfigFactory.load("test"))
-            )));
+    private static final Connection CONNECTION = TestConstants.createConnection();
+    private static final Config CONFIG = ConfigFactory.parseString(
+                    "mapping {\n" +
+                            "  javascript {\n" +
+                            "    maxScriptSizeBytes = 50000 # 50kB\n" +
+                            "    maxScriptExecutionTime = 500ms\n" +
+                            "    maxScriptStackDepth = 10\n" +
+                            "  }\n" +
+                            "}")
+            .atKey("ditto.connectivity")
+            .withFallback(ConfigFactory.load("test"));
+    private static final ConnectivityConfig CONNECTIVITY_CONFIG = ConnectivityConfig.of(CONFIG);
 
     private static final String MAPPING_INCOMING_PLAIN =
             "function mapToDittoProtocolMsg(\n" +
@@ -391,80 +392,107 @@ public final class JavaScriptMessageMapperRhinoTest {
     private static MessageMapper javaScriptRhinoMapperChannelAsValue;
     private static MessageMapper javaScriptRhinoMapperDefault;
 
+    private static ActorSystem actorSystem;
+
     @BeforeClass
     public static void setup() {
+        actorSystem = ActorSystem.create("Test", CONFIG);
         javaScriptRhinoMapperNoop = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
-        javaScriptRhinoMapperNoop.configure(CONNECTION_CONTEXT,
+        javaScriptRhinoMapperNoop.configure(CONNECTION,
+                CONNECTIVITY_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("noop", Collections.emptyMap())
                         .incomingScript("")
                         .outgoingScript("")
-                        .build()
+                        .build(),
+                actorSystem
         );
 
         javaScriptRhinoMapperPlain = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
-        javaScriptRhinoMapperPlain.configure(CONNECTION_CONTEXT,
+        javaScriptRhinoMapperPlain.configure(CONNECTION,
+                CONNECTIVITY_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("plain", Collections.emptyMap())
                         .incomingScript(MAPPING_INCOMING_PLAIN)
                         .outgoingScript(MAPPING_OUTGOING_PLAIN)
-                        .build()
+                        .build(),
+                actorSystem
         );
 
         javaScriptRhinoMapperPlainWithStatus = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
-        javaScriptRhinoMapperPlainWithStatus.configure(CONNECTION_CONTEXT,
+        javaScriptRhinoMapperPlainWithStatus.configure(CONNECTION,
+                CONNECTIVITY_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("plainStatus", Collections.emptyMap())
                         .incomingScript(MAPPING_INCOMING_WITH_STATUS)
                         .outgoingScript(MAPPING_OUTGOING_PLAIN)
-                        .build()
+                        .build(),
+                actorSystem
         );
 
         javaScriptRhinoMapperPlainWithStatusAndExtra =
                 JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
-        javaScriptRhinoMapperPlainWithStatusAndExtra.configure(CONNECTION_CONTEXT,
+        javaScriptRhinoMapperPlainWithStatusAndExtra.configure(CONNECTION,
+                CONNECTIVITY_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("plainStatus", Collections.emptyMap())
                         .incomingScript(MAPPING_INCOMING_WITH_STATUS_AND_EXTRA)
                         .outgoingScript(MAPPING_OUTGOING_PLAIN)
-                        .build()
+                        .build(),
+                actorSystem
         );
 
         javaScriptRhinoMapperEmpty = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
-        javaScriptRhinoMapperEmpty.configure(CONNECTION_CONTEXT,
+        javaScriptRhinoMapperEmpty.configure(CONNECTION,
+                CONNECTIVITY_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("empty", Collections.emptyMap())
                         .incomingScript(MAPPING_INCOMING_EMPTY)
                         .outgoingScript(MAPPING_OUTGOING_EMPTY)
-                        .build()
+                        .build(),
+                actorSystem
         );
 
         javaScriptRhinoMapperBinary = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
-        javaScriptRhinoMapperBinary.configure(CONNECTION_CONTEXT,
+        javaScriptRhinoMapperBinary.configure(CONNECTION,
+                CONNECTIVITY_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("binary", Collections.emptyMap())
                         .incomingScript(MAPPING_INCOMING_BINARY)
                         .outgoingScript(MAPPING_OUTGOING_BINARY)
-                        .build()
+                        .build(),
+                actorSystem
         );
 
         javaScriptRhinoMapperChannelAsValue = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
-        javaScriptRhinoMapperChannelAsValue.configure(CONNECTION_CONTEXT,
+        javaScriptRhinoMapperChannelAsValue.configure(CONNECTION,
+                CONNECTIVITY_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("channelAsValue", Collections.emptyMap())
                         .incomingScript(MAPPING_INCOMING_BINARY)
                         .outgoingScript(MAPPING_OUTGOING_CHANNEL_AS_VALUE)
-                        .build()
+                        .build(),
+                actorSystem
         );
 
         javaScriptRhinoMapperDefault = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
-        javaScriptRhinoMapperDefault.configure(CONNECTION_CONTEXT,
+        javaScriptRhinoMapperDefault.configure(CONNECTION,
+                CONNECTIVITY_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("default", Collections.emptyMap())
                         .incomingScript(MAPPING_INCOMING_DEFAULT)
                         .outgoingScript(MAPPING_OUTGOING_DEFAULT)
-                        .build()
+                        .build(),
+                actorSystem
         );
+    }
+
+    @AfterClass
+    public static void tearDown() {
+        if (actorSystem != null) {
+            actorSystem.terminate();
+            actorSystem = null;
+        }
     }
 
     @Test

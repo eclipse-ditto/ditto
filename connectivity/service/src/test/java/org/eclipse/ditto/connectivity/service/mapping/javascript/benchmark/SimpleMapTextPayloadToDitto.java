@@ -24,6 +24,8 @@ import org.eclipse.ditto.connectivity.service.mapping.javascript.JavaScriptMessa
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 
+import akka.actor.ActorSystem;
+
 @State(Scope.Benchmark)
 public class SimpleMapTextPayloadToDitto implements MapToDittoProtocolScenario {
 
@@ -79,14 +81,17 @@ public class SimpleMapTextPayloadToDitto implements MapToDittoProtocolScenario {
 
     @Override
     public MessageMapper getMessageMapper() {
+        final ActorSystem actorSystem = ActorSystem.create("Test", CONFIG);
         final MessageMapper javaScriptRhinoMapperPlain =
                 JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
-        javaScriptRhinoMapperPlain.configure(CONNECTION_CONTEXT,
+        javaScriptRhinoMapperPlain.configure(CONNECTION, CONNECTIVITY_CONFIG,
                 JavaScriptMessageMapperFactory
                         .createJavaScriptMessageMapperConfigurationBuilder("text", Collections.emptyMap())
                         .incomingScript(MAPPING_INCOMING_PLAIN)
-                        .build()
+                        .build(),
+                actorSystem
         );
+        actorSystem.terminate();
         return javaScriptRhinoMapperPlain;
     }
 

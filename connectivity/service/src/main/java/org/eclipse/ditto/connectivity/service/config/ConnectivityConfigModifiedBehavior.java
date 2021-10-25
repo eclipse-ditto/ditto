@@ -14,6 +14,8 @@ package org.eclipse.ditto.connectivity.service.config;
 
 import org.eclipse.ditto.base.model.signals.events.Event;
 
+import com.typesafe.config.Config;
+
 import akka.actor.AbstractActor;
 import akka.actor.Actor;
 import akka.japi.pf.ReceiveBuilder;
@@ -24,9 +26,9 @@ import akka.japi.pf.ReceiveBuilder;
 public interface ConnectivityConfigModifiedBehavior extends Actor {
 
     /**
-     * Injectable behavior to handle {@code ConnectivityConfigBuildable}.
+     * Injectable behavior to handle an {@code Event} that transports config changes.
      *
-     * @return behavior to handle {@code ConnectivityConfigBuildable}.
+     * @return behavior to handle an {@code Event} that transports config changes.
      */
     default AbstractActor.Receive connectivityConfigModifiedBehavior() {
         return ReceiveBuilder.create()
@@ -35,8 +37,8 @@ public interface ConnectivityConfigModifiedBehavior extends Actor {
     }
 
     /**
-     * Handles the received event by converting it to a {@link ConnectivityConfig} and passing it to
-     * {@link #onConnectivityConfigModified(ConnectivityConfig)}.
+     * Handles the received event by converting it to a {@link Config} and passing it to
+     * {@link #onConnectivityConfigModified(Config)}.
      *
      * @param event the received event
      */
@@ -45,17 +47,17 @@ public interface ConnectivityConfigModifiedBehavior extends Actor {
     }
 
     /**
-     * @return a {@link ConnectionContextProvider} required to register this actor for config changes
+     * @return a {@link ConnectionConfigProvider} required to register this actor for config changes
      */
-    default ConnectionContextProvider getConnectivityConfigProvider() {
-        return ConnectionContextProviderFactory.getInstance(context().system());
+    default ConnectionConfigProvider getConnectivityConfigProvider() {
+        return ConnectionConfigProviderFactory.getInstance(context().system());
     }
 
     /**
      * This method is called when a config modification is received. Implementations must handle the modified config
      * appropriately i.e. check if any relevant config has changed and re-initialize state if necessary.
      *
-     * @param connectivityConfig the modified config
+     * @param connectivityConfigOverwrites the modified config
      */
-    void onConnectivityConfigModified(ConnectivityConfig connectivityConfig);
+    void onConnectivityConfigModified(Config connectivityConfigOverwrites);
 }

@@ -14,6 +14,10 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Objects;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 import javax.jms.JMSRuntimeException;
@@ -25,10 +29,14 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionUnavailableException;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigModifiedBehavior;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.AbstractPersistenceSupervisor;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorKilledException;
 import akka.actor.ActorRef;
@@ -36,6 +44,8 @@ import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
 import akka.japi.pf.DeciderBuilder;
+import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.Patterns;
 
 /**
  * Supervisor for {@link ConnectionPersistenceActor} which means it will create, start and watch it as child actor.
@@ -45,20 +55,26 @@ import akka.japi.pf.DeciderBuilder;
  * {@link ConnectionUnavailableException} as fail fast strategy.
  * </p>
  */
-public final class ConnectionSupervisorActor extends AbstractPersistenceSupervisor<ConnectionId> {
+public final class ConnectionSupervisorActor extends AbstractPersistenceSupervisor<ConnectionId> implements
+        ConnectivityConfigModifiedBehavior {
+
+    private static final Duration MAX_CONFIG_RETRIEVAL_DURATION = Duration.ofSeconds(5);
 
     private static final SupervisorStrategy SUPERVISOR_STRATEGY =
             new OneForOneStrategy(true,
                     DeciderBuilder.match(JMSRuntimeException.class, e ->
-                            (SupervisorStrategy.Directive) SupervisorStrategy.resume())
+                                    (SupervisorStrategy.Directive) SupervisorStrategy.resume())
                             .build()
                             .orElse(SupervisorStrategy.stoppingStrategy().decider()));
+    private static final Duration OVERWRITES_CHECK_BACKOFF_DURATION = Duration.ofSeconds(30);
 
     private final ActorRef proxyActor;
     private final ClientActorPropsFactory propsFactory;
     @Nullable private final ConnectivityCommandInterceptor commandInterceptor;
     private final ConnectionPriorityProviderFactory connectionPriorityProviderFactory;
     private final ActorRef pubSubMediator;
+    private Config connectivityConfigOverwrites = ConfigFactory.empty();
+    private boolean isRegisteredForConnectivityConfigChanges = false;
 
     @SuppressWarnings("unused")
     private ConnectionSupervisorActor(
@@ -104,9 +120,47 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
     }
 
     @Override
+    public Receive createReceive() {
+        return ReceiveBuilder.create()
+                .match(Config.class, config -> {
+                    this.connectivityConfigOverwrites = config;
+                    getSelf().tell(AbstractPersistenceSupervisor.Control.INIT_DONE, getSelf());
+                })
+                .build()
+                .orElse(super.createReceive());
+    }
+
+    @Override
+    protected Receive activeBehaviour() {
+        return ReceiveBuilder.create()
+                .match(Config.class, this::onConnectivityConfigModified)
+                .matchEquals(Control.CHECK_FOR_OVERWRITES_CONFIG,
+                        checkForOverwrites -> initConfigOverwrites(getEntityId()))
+                .matchEquals(Control.REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL, c -> {
+                    log.debug("Successfully registered for connectivity config changes.");
+                    isRegisteredForConnectivityConfigChanges = true;
+                })
+                .build()
+                .orElse(connectivityConfigModifiedBehavior())
+                .orElse(super.activeBehaviour());
+    }
+
+    @Override
+    public void preStart() throws Exception {
+        try {
+            final ConnectionId connectionId = getEntityId();
+            initConfigOverwrites(connectionId);
+            super.preStart();
+        } catch (final Exception e) {
+            log.error(e, "Failed to determine entity ID; becoming corrupted.");
+            becomeCorrupted();
+        }
+    }
+
+    @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
         return ConnectionPersistenceActor.props(entityId, proxyActor, pubSubMediator, propsFactory, commandInterceptor,
-                connectionPriorityProviderFactory);
+                connectionPriorityProviderFactory, connectivityConfigOverwrites);
     }
 
     @Override
@@ -133,4 +187,68 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
         return SUPERVISOR_STRATEGY;
     }
 
+    @Override
+    public void onConnectivityConfigModified(final Config modifiedConfig) {
+        if (Objects.equals(connectivityConfigOverwrites, modifiedConfig)) {
+            log.debug("Received modified config is unchanged, not restarting persistence actor.");
+        } else {
+            log.info("Restarting persistence actor with modified config: {}", modifiedConfig);
+            restartPersistenceActorWithModifiedConfig(modifiedConfig);
+        }
+    }
+
+    @Override
+    protected boolean isStartChildImmediately() {
+        // do not start persistence actor immediately, wait for retrieval or timeout of connectivity config
+        return false;
+    }
+
+    private void restartPersistenceActorWithModifiedConfig(final Config connectivityConfigOverwrites) {
+        this.connectivityConfigOverwrites = connectivityConfigOverwrites;
+        restartChild();
+    }
+
+    private void initConfigOverwrites(final ConnectionId connectionId) {
+        log.debug("Retrieve config overwrites for connection: {}", connectionId);
+        Patterns.pipe(retrieveConfigOverwritesOrTimeout(connectionId), getContext().getDispatcher()).to(getSelf());
+    }
+
+    private CompletionStage<Config> retrieveConfigOverwritesOrTimeout(final ConnectionId connectionId) {
+        return getConnectivityConfigProvider().getConnectivityConfigOverwrites(connectionId)
+                .thenApply(config -> {
+                    // try to register for connectivity changes after retrieval was successful and the actor is not
+                    // yet registered
+                    if (!isRegisteredForConnectivityConfigChanges) {
+                        getConnectivityConfigProvider()
+                                .registerForConnectivityConfigChanges(connectionId, getSelf())
+                                .thenAccept(unused -> getSelf().tell(Control.REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL,
+                                        getSelf()));
+                    }
+                    return config;
+                })
+                .toCompletableFuture()
+                .orTimeout(MAX_CONFIG_RETRIEVAL_DURATION.toSeconds(), TimeUnit.SECONDS)
+                .exceptionally(this::handleConfigRetrievalException);
+    }
+
+    private void triggerCheckForOverwritesConfig() {
+        getTimers().startSingleTimer(Control.CHECK_FOR_OVERWRITES_CONFIG, Control.CHECK_FOR_OVERWRITES_CONFIG,
+                OVERWRITES_CHECK_BACKOFF_DURATION);
+    }
+
+    private Config handleConfigRetrievalException(final Throwable throwable) {
+        // If not possible to retrieve overwrites in time, keep going with empty overwrites and potentially restart
+        // the actor later.
+        log.error(throwable,
+                "Could not retrieve overwrites within timeout of <{}>. Persistence actor is started anyway " +
+                        "and retrieval of overwrites will be retried after <{}> potentially causing the actor to " +
+                        "restart.", MAX_CONFIG_RETRIEVAL_DURATION, OVERWRITES_CHECK_BACKOFF_DURATION);
+        triggerCheckForOverwritesConfig();
+        return ConfigFactory.empty();
+    }
+
+    private enum Control {
+        CHECK_FOR_OVERWRITES_CONFIG,
+        REGISTRATION_FOR_CONFIG_CHANGES_SUCCESSFUL
+    }
 }
