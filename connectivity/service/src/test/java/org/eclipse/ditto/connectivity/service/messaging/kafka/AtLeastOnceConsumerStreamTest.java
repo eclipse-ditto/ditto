@@ -29,6 +29,7 @@ import org.apache.kafka.common.record.TimestampType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.junit.After;
 import org.junit.Before;
@@ -91,7 +92,7 @@ public final class AtLeastOnceConsumerStreamTest {
     }
 
     @Test
-    public void appliesBackPressureWhenMessagesAreNotAcknowledged() throws InterruptedException {
+    public void appliesBackPressureWhenMessagesAreNotAcknowledged() {
         new TestKit(actorSystem) {{
             /*
              * Given we have a kafka source which emits records that are all transformed to External messages.
@@ -113,13 +114,14 @@ public final class AtLeastOnceConsumerStreamTest {
                     .thenReturn(CommittableTransformationResult.of(result, committableMessage.committableOffset()));
             final ConnectionMonitor connectionMonitor = mock(ConnectionMonitor.class);
             final ConnectionMonitor ackMonitor = mock(ConnectionMonitor.class);
-            final int maxInflight = 10;
+            final int maxInflight = TestConstants.KAFKA_THROTTLING_CONFIG.getMaxInFlight();
             final Materializer materializer = Materializer.createMaterializer(actorSystem);
             final Sink<DittoRuntimeException, TestSubscriber.Probe<DittoRuntimeException>> dreSink =
                     TestSink.create(actorSystem);
 
             // When starting the stream
-            new AtLeastOnceConsumerStream(sourceSupplier, CommitterSettings.apply(actorSystem), maxInflight,
+            new AtLeastOnceConsumerStream(sourceSupplier, CommitterSettings.apply(actorSystem),
+                    TestConstants.KAFKA_THROTTLING_CONFIG,
                     messageTransformer, false, materializer,
                     connectionMonitor, ackMonitor, inboundMappingSink, dreSink);
 

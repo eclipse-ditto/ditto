@@ -94,7 +94,7 @@ import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.connectivity.service.config.ClientConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
-import org.eclipse.ditto.connectivity.service.config.ConnectionConfigProvider;
+import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
@@ -161,6 +161,7 @@ public final class TestConstants {
     public static final PingConfig PING_CONFIG;
     public static final ProtocolConfig PROTOCOL_CONFIG;
     public static final MonitoringConfig MONITORING_CONFIG;
+    public static final ConnectionThrottlingConfig KAFKA_THROTTLING_CONFIG;
 
     static {
         final DefaultScopedConfig dittoScopedConfig = DefaultScopedConfig.dittoScoped(CONFIG);
@@ -172,6 +173,7 @@ public final class TestConstants {
         PING_CONFIG = CONNECTIVITY_CONFIG.getPingConfig();
         PROTOCOL_CONFIG = CONNECTIVITY_CONFIG.getProtocolConfig();
         MONITORING_CONFIG = CONNECTIVITY_CONFIG.getMonitoringConfig();
+        KAFKA_THROTTLING_CONFIG = CONNECTION_CONFIG.getKafkaConfig().getConsumerConfig().getThrottlingConfig();
     }
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;

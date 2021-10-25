@@ -21,6 +21,7 @@ import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -50,7 +51,7 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
     AtMostOnceConsumerStream(
             final AtMostOnceKafkaConsumerSourceSupplier sourceSupplier,
-            final int consumerMaxInflight,
+            final ConnectionThrottlingConfig throttlingConfig,
             final KafkaMessageTransformer kafkaMessageTransformer,
             final boolean dryRun,
             final Materializer materializer,
@@ -81,8 +82,9 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
                 .filter(consumerRecord -> isNotDryRun(consumerRecord, dryRun))
                 .map(kafkaMessageTransformer::transform)
                 .filter(result -> !result.isExpired())
+                .throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval())
                 .flatMapConcat(this::processTransformationResult)
-                .mapAsync(consumerMaxInflight, x -> x)
+                .mapAsync(throttlingConfig.getMaxInFlight(), x -> x)
                 .toMat(Sink.ignore(), Consumer::createDrainingControl)
                 .run(materializer);
     }

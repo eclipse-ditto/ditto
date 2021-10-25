@@ -29,6 +29,7 @@ import org.apache.kafka.common.record.TimestampType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.junit.After;
 import org.junit.Before;
@@ -88,7 +89,7 @@ public final class AtMostOnceConsumerStreamTest {
     }
 
     @Test
-    public void appliesBackPressureWhenMessagesAreNotAcknowledged() throws InterruptedException {
+    public void appliesBackPressureWhenMessagesAreNotAcknowledged() {
         new TestKit(actorSystem) {{
             /*
              * Given we have a kafka source which emits records that are all transformed to External messages.
@@ -104,13 +105,14 @@ public final class AtMostOnceConsumerStreamTest {
             when(messageTransformer.transform(ArgumentMatchers.<ConsumerRecord<String, String>>any())).thenReturn(
                     result);
             final ConnectionMonitor connectionMonitor = mock(ConnectionMonitor.class);
-            final int maxInflight = 10;
+            final int maxInflight = TestConstants.KAFKA_THROTTLING_CONFIG.getMaxInFlight();
             final Materializer materializer = Materializer.createMaterializer(actorSystem);
             final Sink<DittoRuntimeException, TestSubscriber.Probe<DittoRuntimeException>> dreSink =
                     TestSink.create(actorSystem);
 
             // When starting the stream
-            new AtMostOnceConsumerStream(sourceSupplier, maxInflight, messageTransformer, false, materializer,
+            new AtMostOnceConsumerStream(sourceSupplier, TestConstants.KAFKA_THROTTLING_CONFIG, messageTransformer,
+                    false, materializer,
                     connectionMonitor, inboundMappingSink, dreSink);
 
             inboundSinkProbe.ensureSubscription();
