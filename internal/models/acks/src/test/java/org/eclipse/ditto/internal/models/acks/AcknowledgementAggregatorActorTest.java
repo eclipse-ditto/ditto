@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.models.acks;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
@@ -23,12 +24,12 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
+import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteThingResponse;
@@ -188,6 +189,49 @@ public final class AcknowledgementAggregatorActorTest {
                             .build()
             );
             assertThat(acks.getSize()).isEqualTo(2);
+            assertThat(acks.getAcknowledgement(label1).map(Acknowledgement::getHttpStatus)).contains(
+                    HttpStatus.UNAUTHORIZED);
+            assertThat(acks.getAcknowledgement(label2).map(Acknowledgement::getHttpStatus)).contains(
+                    HttpStatus.PAYMENT_REQUIRED);
+        }};
+    }
+
+    @Test
+    public void awaitsOnlyUntilTimeout() throws InterruptedException {
+        new TestKit(actorSystem) {{
+            // GIVEN
+            final Duration timeout = Duration.ofSeconds(5);
+            final String tag = "tag";
+            final String correlationId = "awaitsOnlyUntilTimeout";
+            final ThingId thingId = ThingId.of("thing:id");
+            final AcknowledgementLabel label1 = AcknowledgementLabel.of("ack1");
+            final AcknowledgementLabel label2 = AcknowledgementLabel.of("ack2");
+            final ThingModifyCommand<?> command = DeleteThing.of(thingId, DittoHeaders.newBuilder()
+                    .correlationId(correlationId)
+                    .timeout(timeout)
+                    .acknowledgementRequest(AcknowledgementRequest.of(label1), AcknowledgementRequest.of(label2))
+                    .build());
+            final ActorRef underTest = childActorOf(getAcknowledgementAggregatorProps(command, this));
+
+            // WHEN
+            final Acknowledgement ack1 = Acknowledgement.of(label1, thingId, HttpStatus.UNAUTHORIZED,
+                    DittoHeaders.newBuilder().correlationId(correlationId).putHeader(tag, label1.toString()).build());
+            final Acknowledgement ack2 = Acknowledgement.of(label2, thingId, HttpStatus.PAYMENT_REQUIRED,
+                    DittoHeaders.newBuilder().correlationId(correlationId).putHeader(tag, label2.toString()).build());
+            TimeUnit.SECONDS.sleep(
+                    timeout.toSeconds() / 2 + 1); // Wait more than half the time before sending first ack
+            underTest.tell(ack1, ActorRef.noSender());
+            TimeUnit.SECONDS.sleep(timeout.toSeconds() / 2 +
+                    1); // Wait more than half the time before sending second ack. This should not be taken into account.
+            underTest.tell(ack2, ActorRef.noSender());
+
+            // THEN
+            final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
+            assertThat(acks.getSize()).isEqualTo(2);
+            assertThat(acks.getAcknowledgement(label1).map(Acknowledgement::getHttpStatus)).contains(
+                    HttpStatus.UNAUTHORIZED);
+            assertThat(acks.getAcknowledgement(label2).map(Acknowledgement::getHttpStatus)).contains(
+                    HttpStatus.REQUEST_TIMEOUT);
         }};
     }
 
