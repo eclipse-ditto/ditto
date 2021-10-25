@@ -14,6 +14,7 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,6 +28,7 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -43,12 +45,13 @@ public final class Metadata {
     private final long thingRevision;
     @Nullable private final PolicyId policyId;
     @Nullable private final Long policyRevision;
-    @Nullable final Instant modified;
+    @Nullable private final Instant modified;
     private final List<ThingEvent<?>> events;
     private final List<StartedTimer> timers;
     private final List<ActorRef> senders;
-    private final boolean invalidateCache;
-    @Nullable final ActorRef origin;
+    private final boolean invalidateThing;
+    private final boolean invalidatePolicy;
+    @Nullable private final ActorRef origin;
 
     private Metadata(final ThingId thingId,
             final long thingRevision,
@@ -58,7 +61,8 @@ public final class Metadata {
             final List<ThingEvent<?>> events,
             final Collection<StartedTimer> timers,
             final Collection<ActorRef> senders,
-            final boolean invalidateCache,
+            final boolean invalidateThing,
+            final boolean invalidatePolicy,
             @Nullable final ActorRef origin) {
 
         this.thingId = thingId;
@@ -69,7 +73,8 @@ public final class Metadata {
         this.events = events;
         this.timers = List.copyOf(timers);
         this.senders = List.copyOf(senders);
-        this.invalidateCache = invalidateCache;
+        this.invalidateThing = invalidateThing;
+        this.invalidatePolicy = invalidatePolicy;
         this.origin = origin;
     }
 
@@ -90,7 +95,7 @@ public final class Metadata {
             @Nullable final StartedTimer timer) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, null,
-                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, null);
+                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, false, null);
     }
 
     /**
@@ -114,7 +119,7 @@ public final class Metadata {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, null, events,
                 null != timer ? List.of(timer) : List.of(),
-                null != sender ? List.of(sender) : List.of(), false, null);
+                null != sender ? List.of(sender) : List.of(), false, false, null);
     }
 
     /**
@@ -138,7 +143,7 @@ public final class Metadata {
             final Collection<ActorRef> senders) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, List.of(), timers, senders,
-                false, null);
+                false, false, null);
     }
 
     /**
@@ -160,7 +165,7 @@ public final class Metadata {
             @Nullable final StartedTimer timer) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified,
-                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, null);
+                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, false, null);
     }
 
     /**
@@ -179,11 +184,13 @@ public final class Metadata {
     /**
      * Create a copy of this metadata requesting cache invalidation.
      *
+     * @param invalidateThing whether to invalidate the cached thing.
+     * @param invalidatePolicy whether to invalidate the cached policy enforcer.
      * @return the copy.
      */
-    public Metadata invalidateCache() {
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders, true,
-                origin);
+    public Metadata invalidateCaches(final boolean invalidateThing, final boolean invalidatePolicy) {
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
+                invalidateThing, invalidatePolicy, origin);
     }
 
     /**
@@ -193,7 +200,17 @@ public final class Metadata {
      */
     public Metadata withOrigin(@Nullable final ActorRef origin) {
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateCache, origin);
+                invalidateThing, invalidatePolicy, origin);
+    }
+
+    /**
+     * Create a copy of this metadata with senders replaced by the argument.
+     *
+     * @return the copy.
+     */
+    public Metadata withSender(final ActorRef sender) {
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, List.of(sender),
+                invalidateThing, invalidatePolicy, origin);
     }
 
     /**
@@ -266,7 +283,7 @@ public final class Metadata {
      * @return the known thing events.
      */
     public List<ThingEvent<?>> getEvents() {
-        return events;
+        return Collections.unmodifiableList(events);
     }
 
     /**
@@ -297,12 +314,21 @@ public final class Metadata {
     }
 
     /**
-     * Returns whether this metadata should invalidate the enforcer cache.
+     * Returns whether this metadata should invalidate the cached thing.
      *
-     * @return whether to invalidate the enforcer cache.
+     * @return whether to invalidate the cached thing.
      */
-    public boolean shouldInvalidateCache() {
-        return invalidateCache;
+    public boolean shouldInvalidateThing() {
+        return invalidateThing;
+    }
+
+    /**
+     * Returns whether this metadata should invalidate the cached policy.
+     *
+     * @return whether to invalidate the cached policy.
+     */
+    public boolean shouldInvalidatePolicy() {
+        return invalidatePolicy;
     }
 
     /**
@@ -320,7 +346,9 @@ public final class Metadata {
                 Stream.concat(senders.stream(), newMetadata.senders.stream()).collect(Collectors.toList());
         return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.policyId,
                 newMetadata.policyRevision, newMetadata.modified, newEvents, newTimers, newSenders,
-                invalidateCache || newMetadata.invalidateCache, newMetadata.origin);
+                invalidateThing || newMetadata.invalidateThing,
+                invalidatePolicy || newMetadata.invalidatePolicy,
+                newMetadata.origin);
     }
 
     /**
@@ -337,6 +365,15 @@ public final class Metadata {
     public void sendAck() {
         send(Acknowledgement.of(DittoAcknowledgementLabel.SEARCH_PERSISTED, thingId, HttpStatus.NO_CONTENT,
                 DittoHeaders.empty()));
+    }
+
+    /**
+     * Send weak acknowledgement to senders.
+     *
+     * @param payload the payload of the weak acknowledgement.
+     */
+    public void sendWeakAck(@Nullable final JsonValue payload) {
+        send(Acknowledgement.weak(DittoAcknowledgementLabel.SEARCH_PERSISTED, thingId, DittoHeaders.empty(), payload));
     }
 
     private void send(final Acknowledgement ack) {
@@ -365,14 +402,15 @@ public final class Metadata {
                 Objects.equals(events, that.events) &&
                 Objects.equals(timers, that.timers) &&
                 Objects.equals(senders, that.senders) &&
-                invalidateCache == that.invalidateCache &&
+                invalidateThing == that.invalidateThing &&
+                invalidatePolicy == that.invalidatePolicy &&
                 Objects.equals(origin, that.origin);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateCache, origin);
+                invalidateThing, invalidatePolicy, origin);
     }
 
     @Override
@@ -386,7 +424,8 @@ public final class Metadata {
                 ", events=" + events +
                 ", timers=[" + timers.size() + " timers]" +
                 ", senders=" + senders +
-                ", invalidateCache=" + invalidateCache +
+                ", invalidateThing=" + invalidateThing +
+                ", invalidatePolicy=" + invalidatePolicy +
                 ", origin=" + origin +
                 "]";
     }

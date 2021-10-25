@@ -185,8 +185,6 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     }
 
     private void updateThing(final UpdateThing updateThing) {
-        log.withCorrelationId(updateThing)
-                .warning("Out-of-sync thing is reported: <{}>", updateThing);
         forwardToShardRegion(updateThing, UpdateThing::getEntityId, UpdateThing::getType, UpdateThing::toJson,
                 UpdateThing::getDittoHeaders);
     }

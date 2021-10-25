@@ -17,7 +17,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
@@ -75,13 +74,6 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
      * @return the config.
      */
     MappingConfig getMappingConfig();
-
-    /**
-     * Returns the configuration for signal enrichment.
-     *
-     * @return the config.
-     */
-    SignalEnrichmentConfig getSignalEnrichmentConfig();
 
     /**
      * Returns the configuration for acknowledgement handling.

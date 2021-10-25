@@ -45,7 +45,9 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -62,11 +64,13 @@ import akka.stream.testkit.javadsl.TestSink;
 import akka.stream.testkit.javadsl.TestSource;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import scala.concurrent.duration.Duration;
 import scala.concurrent.duration.FiniteDuration;
 
 /**
- * Unit tests for {@link EnforcementFlow}.
+ * Unit tests for {@link EnforcementFlow}. Contains fix method order to allow for longer setup during first test.
  */
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public final class EnforcementFlowTest {
 
     private static ActorSystem system;
@@ -104,10 +108,10 @@ public final class EnforcementFlowTest {
 
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
             final EnforcementFlow underTest =
-                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
+                    EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
-            materializeTestProbes(underTest.create(false, 1));
+            materializeTestProbes(underTest.create(1));
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
@@ -155,10 +159,10 @@ public final class EnforcementFlowTest {
 
         final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
         final EnforcementFlow underTest =
-                EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
+                EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                         system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
-        materializeTestProbes(underTest.create(false, 1));
+        materializeTestProbes(underTest.create(1));
 
         sinkProbe.ensureSubscription();
         sourceProbe.ensureSubscription();
@@ -182,7 +186,7 @@ public final class EnforcementFlowTest {
         assertThat(document1.getValue("__policyRev")).contains(JsonValue.of(policyRev1));
 
         // WHEN: a metadata with 'invalidateCache' flag is enqueued
-        final Metadata metadata2 = metadata1.invalidateCache();
+        final Metadata metadata2 = metadata1.invalidateCaches(true, true);
         sourceProbe.sendNext(Map.of(thingId, metadata2));
         sourceProbe.sendComplete();
         thingsProbe.expectMsgClass(SudoRetrieveThing.class);
@@ -231,10 +235,10 @@ public final class EnforcementFlowTest {
 
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
             final EnforcementFlow underTest =
-                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
+                    EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
-            materializeTestProbes(underTest.create(false, 1));
+            materializeTestProbes(underTest.create(1));
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
@@ -244,7 +248,7 @@ public final class EnforcementFlowTest {
             sourceProbe.sendComplete();
 
             // WHEN: policy is retrieved with up-to-date revisions
-            policiesProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesProbe.expectMsgClass(Duration.apply(30, TimeUnit.SECONDS), SudoRetrievePolicy.class);
             final var policy = Policy.newBuilder(policyId).setRevision(1).build();
             policiesProbe.reply(SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty()));
 
@@ -284,7 +288,8 @@ public final class EnforcementFlowTest {
                     AttributeDeleted.of(thingId, JsonPointer.of("w"), 6, null, headers, null)
             );
 
-            final Metadata metadata = Metadata.of(thingId, 6L, policyId, 1L, events, null, null).invalidateCache();
+            final Metadata metadata = Metadata.of(thingId, 6L, policyId, 1L, events, null, null)
+                    .invalidateCaches(true, true);
             final Map<ThingId, Metadata> inputMap = Map.of(thingId, metadata);
 
             final TestProbe thingsProbe = TestProbe.apply(system);
@@ -292,10 +297,10 @@ public final class EnforcementFlowTest {
 
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
             final EnforcementFlow underTest =
-                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
+                    EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
-            materializeTestProbes(underTest.create(false, 1));
+            materializeTestProbes(underTest.create(1));
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
@@ -337,10 +342,10 @@ public final class EnforcementFlowTest {
 
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
             final EnforcementFlow underTest =
-                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
+                    EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
-            materializeTestProbes(underTest.create(false, 1));
+            materializeTestProbes(underTest.create(1));
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
@@ -381,10 +386,10 @@ public final class EnforcementFlowTest {
 
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
             final EnforcementFlow underTest =
-                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
+                    EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
-            materializeTestProbes(underTest.create(false, 1));
+            materializeTestProbes(underTest.create(1));
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
@@ -424,10 +429,10 @@ public final class EnforcementFlowTest {
 
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
             final EnforcementFlow underTest =
-                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
+                    EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
-            materializeTestProbes(underTest.create(false, 1));
+            materializeTestProbes(underTest.create(1));
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();
@@ -491,10 +496,10 @@ public final class EnforcementFlowTest {
 
             final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
             final EnforcementFlow underTest =
-                    EnforcementFlow.of(streamConfig, thingsProbe.ref(), policiesProbe.ref(),
+                    EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
                             system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
 
-            materializeTestProbes(underTest.create(false, 1));
+            materializeTestProbes(underTest.create(1));
 
             sinkProbe.ensureSubscription();
             sourceProbe.ensureSubscription();

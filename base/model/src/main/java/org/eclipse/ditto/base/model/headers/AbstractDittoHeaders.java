@@ -129,7 +129,7 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
 
     @Override
     public boolean containsKey(final Object key) {
-        return key instanceof String && headers.containsKey(key.toString().toLowerCase());
+        return key instanceof CharSequence && headers.containsKey(key.toString().toLowerCase());
     }
 
     @Override

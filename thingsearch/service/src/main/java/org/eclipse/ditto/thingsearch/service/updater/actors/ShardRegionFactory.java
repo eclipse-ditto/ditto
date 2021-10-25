@@ -19,10 +19,10 @@ import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
 import org.eclipse.ditto.thingsearch.api.ThingsSearchConstants;
-import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -34,7 +34,7 @@ import akka.cluster.sharding.ClusterShardingSettings;
  * Factory for Shard Region {@link ActorRef}s of different services.
  */
 @NotThreadSafe
-final class ShardRegionFactory {
+public final class ShardRegionFactory {
 
     static final String UPDATER_SHARD_REGION = ThingsSearchConstants.SHARD_REGION;
 
@@ -65,7 +65,7 @@ final class ShardRegionFactory {
      */
     @Nonnull
     public ActorRef getThingsShardRegion(final int numberOfShards) {
-        return createShardRegion(ThingsMessagingConstants.SHARD_REGION, ThingsMessagingConstants.CLUSTER_ROLE,
+        return createShardRegionProxy(ThingsMessagingConstants.SHARD_REGION, ThingsMessagingConstants.CLUSTER_ROLE,
                 numberOfShards);
     }
 
@@ -77,11 +77,13 @@ final class ShardRegionFactory {
      */
     @Nonnull
     public ActorRef getPoliciesShardRegion(final int numberOfShards) {
-        return createShardRegion(PoliciesMessagingConstants.SHARD_REGION, PoliciesMessagingConstants.CLUSTER_ROLE,
+        return createShardRegionProxy(PoliciesMessagingConstants.SHARD_REGION, PoliciesMessagingConstants.CLUSTER_ROLE,
                 numberOfShards);
     }
 
-    private ActorRef createShardRegion(final String shardRegion, final String clusterRole, final int numberOfShards) {
+    private ActorRef createShardRegionProxy(final String shardRegion, final String clusterRole,
+            final int numberOfShards) {
+
         final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
         final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
         return clusterSharding.startProxy(shardRegion, Optional.of(clusterRole), shardRegionExtractor);
@@ -99,14 +101,25 @@ final class ShardRegionFactory {
     public ActorRef getSearchUpdaterShardRegion(final int numberOfShards,
             @Nonnull final Props thingUpdaterProps,
             final String clusterRole) {
-        checkNotNull(thingUpdaterProps, "Props of ThingUpdater");
 
+        return createShardRegion(numberOfShards, thingUpdaterProps, UPDATER_SHARD_REGION, clusterRole);
+    }
+
+    /**
+     * Create a new shard region.
+     *
+     * @param shards number of shards.
+     * @param props props of actors in the shard region.
+     * @param name name of the shard region.
+     * @param role cluster role where the shard region starts.
+     * @return the shard region.
+     */
+    public ActorRef createShardRegion(final int shards, final Props props, final String name, final String role) {
         final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
         final ClusterShardingSettings shardingSettings =
-                ClusterShardingSettings.create(actorSystem).withRole(clusterRole);
-        final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(numberOfShards, actorSystem);
-
-        return clusterSharding.start(UPDATER_SHARD_REGION, thingUpdaterProps, shardingSettings, shardRegionExtractor);
+                ClusterShardingSettings.create(actorSystem).withRole(role);
+        final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(shards, actorSystem);
+        return clusterSharding.start(name, props, shardingSettings, shardRegionExtractor);
     }
 
 }

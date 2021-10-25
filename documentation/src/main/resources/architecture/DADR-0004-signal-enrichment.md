@@ -45,7 +45,7 @@ The following alternatives were considered on how to implement that feature:
 We provide 2 different facade implementations providing approach 2 and 3:
 * `org.eclipse.ditto.internal.models.signalenrichment.ByRoundTripSignalEnrichmentFacade`: 
     Round-trip for each to-be-enriched event resulting in a guaranteed up-to-dateness of data and applied policy.
-* `org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade`: 
+* `org.eclipse.ditto.internal.models.signalenrichment.DittoCachingSignalEnrichmentFacade`: 
     Using cache for each to-be-enriched event resulting in reduced remoting effort and a time interval where the cache might be out of sync with the current data or policy information.
     * the implementation uses a cluster-instance wide cache using a cache key consisting of: `thingId, authSubjects, jsonFieldSelector`
     * the overall size of this cache is configured, by default to `20,000` entries
