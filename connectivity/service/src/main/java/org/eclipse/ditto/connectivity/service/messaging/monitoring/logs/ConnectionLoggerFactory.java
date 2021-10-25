@@ -101,11 +101,11 @@ final class ConnectionLoggerFactory {
      * or fluentbit endpoint.
      *
      * @param connectionId the connection for which the logger is created.
-     * @param logCategory
-     * @param logType
-     * @param address
-     * @param fluencyForwarder
-     * @return a ...
+     * @param logCategory the log category for which the logger is created.
+     * @param logType the log type for which the logger is created.
+     * @param address the address for which the logger is created.
+     * @param fluencyForwarder the fluency forwarder for the logger.
+     * @return a new fluent publishing connection logger instance.
      */
     static FluentPublishingConnectionLogger newPublishingLogger(final ConnectionId connectionId,
             final LogCategory logCategory, final LogType logType, @Nullable final String address,

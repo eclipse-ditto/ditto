@@ -202,7 +202,7 @@ final class FluentPublishingConnectionLogger
     static final class Builder extends AbstractConnectionLoggerBuilder
             <FluentPublishingConnectionLogger.Builder, FluentPublishingConnectionLogger> {
 
-        private static final String CONNECTIONTAG_PREFIX = "connection:";
+        private static final String CONNECTION_TAG_PREFIX = "connection:";
 
         final ConnectionId connectionId;
         String fluentTag;
@@ -216,7 +216,7 @@ final class FluentPublishingConnectionLogger
                 final Fluency fluencyForwarder) {
             super(category, type);
             this.connectionId = connectionId;
-            this.fluentTag = CONNECTIONTAG_PREFIX + connectionId; // default to the connectionId as tag
+            this.fluentTag = CONNECTION_TAG_PREFIX + connectionId; // default to the connectionId as tag
             this.fluencyForwarder = fluencyForwarder;
             this.additionalLogContext = Collections.emptyMap();
         }
