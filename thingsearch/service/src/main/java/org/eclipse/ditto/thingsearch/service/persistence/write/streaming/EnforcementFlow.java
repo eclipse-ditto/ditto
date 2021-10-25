@@ -79,8 +79,7 @@ final class EnforcementFlow {
             final AskWithRetryConfig askWithRetryConfig,
             final StreamCacheConfig streamCacheConfig,
             final int maxArraySize,
-            final Executor cacheDispatcher,
-            final boolean deleteImmediately) {
+            final Executor cacheDispatcher) {
 
         thingsFacade = createThingsFacade(actorSystem, thingsShardRegion, askWithRetryConfig.getAskTimeout(),
                 streamCacheConfig, cacheDispatcher);
@@ -118,8 +117,7 @@ final class EnforcementFlow {
                         .projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
 
         return new EnforcementFlow(actorSystem, thingsShardRegion, policyEnforcerCache, askWithRetryConfig,
-                streamCacheConfig, updaterStreamConfig.getMaxArraySize(), cacheDispatcher,
-                deleteImmediately);
+                streamCacheConfig, updaterStreamConfig.getMaxArraySize(), cacheDispatcher);
     }
 
     private static EnforcementCacheKey getPolicyCacheKey(final PolicyId policyId) {
