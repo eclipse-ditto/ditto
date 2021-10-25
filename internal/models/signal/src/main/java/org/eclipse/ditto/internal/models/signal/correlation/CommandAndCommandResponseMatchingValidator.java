@@ -42,7 +42,6 @@ import org.eclipse.ditto.internal.models.signal.type.SignalTypeFormatException;
  *     <li>their signal types match and</li>
  *     <li>their entity IDs match.</li>
  * </ul>
- * </p>
  * <p>
  * If any of the above evaluates to {@code false} the yielded {@link MatchingValidationResult} is a failure, else it is
  * a success.
