@@ -42,6 +42,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
@@ -1340,11 +1341,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                                 " Forwarding to consumers and publishers.", command.getEntityId(),
                         sender);
 
+        // only one PublisherActor is started for all targets (if targets are present)
         final int numberOfProducers = connection.getTargets().isEmpty() ? 0 : 1;
-        final int numberOfConsumers = connection.getSources()
-                .stream()
-                .mapToInt(source -> source.getConsumerCount() * source.getAddresses().size())
-                .sum();
+        final int numberOfConsumers = determineNumberOfConsumers();
         int expectedNumberOfChildren = numberOfProducers + numberOfConsumers;
         if (getSshTunnelState().isEnabled()) {
             expectedNumberOfChildren++;
@@ -1361,9 +1360,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                         .info("Responding early with static 'CLOSED' ResourceStatus for all sub-sources and " +
                                 "-targets and SSH tunnel, because some children could not be started, due to a " +
                                 "live status <{}> in the client actor.", clientConnectionStatus);
-                connection.getSources().stream()
-                        .map(Source::getAddresses)
-                        .flatMap(Collection::stream)
+                getSourceAddresses()
                         .map(sourceAddress -> ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
                                 ConnectivityStatus.CLOSED,
                                 sourceAddress,
@@ -1401,6 +1398,29 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         sender.tell(clientStatus, getSelf());
 
         return stay();
+    }
+
+    /**
+     * Determine the number of consumers.
+     *
+     * @return the number of consumers.
+     */
+    protected int determineNumberOfConsumers() {
+        return connection.getSources()
+                .stream()
+                .mapToInt(source -> source.getConsumerCount() * source.getAddresses().size())
+                .sum();
+    }
+
+    /**
+     * Get the source addresses as stream of strings.
+     *
+     * @return the stream of source addresses.
+     */
+    protected Stream<String> getSourceAddresses() {
+        return connection.getSources().stream()
+                .map(Source::getAddresses)
+                .flatMap(Collection::stream);
     }
 
     private void retrieveAddressStatusFromChildren(final RetrieveConnectionStatus command, final ActorRef sender,

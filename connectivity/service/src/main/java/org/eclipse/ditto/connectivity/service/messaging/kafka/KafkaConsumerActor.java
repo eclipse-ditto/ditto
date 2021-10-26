@@ -12,9 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
-import static org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory.newEnforcementFilterFactory;
-import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.CompletionException;

@@ -448,9 +448,8 @@ public final class ConnectionPersistenceActor
     }
 
     private void askSelfForRetrieveConnectionStatus(@Nullable final CharSequence correlationId) {
-        final var retrieveConnectionStatus = RetrieveConnectionStatus.of(entityId, DittoHeaders.newBuilder()
-                .correlationId(correlationId)
-                .build());
+        final var retrieveConnectionStatus = RetrieveConnectionStatus.of(entityId,
+                DittoHeaders.newBuilder().correlationId(correlationId).build());
         Patterns.ask(getSelf(), retrieveConnectionStatus, SELF_RETRIEVE_CONNECTION_STATUS_TIMEOUT)
                 .whenComplete((response, throwable) -> {
                     if (response instanceof RetrieveConnectionStatusResponse) {
