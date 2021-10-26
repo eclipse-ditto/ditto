@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.test.correlationid;
+package org.eclipse.ditto.base.model.correlationid;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
@@ -102,7 +102,7 @@ public final class CorrelationId implements CharSequence, Comparable<Correlation
 
     @Override
     public int compareTo(final CorrelationId correlationId) {
-        return CharSequence.compare(value, correlationId.toString());
+        return value.compareTo(correlationId.toString());
     }
 
     @Override
@@ -113,7 +113,7 @@ public final class CorrelationId implements CharSequence, Comparable<Correlation
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final var that = (CorrelationId) o;
+        final CorrelationId that = (CorrelationId) o;
         return Objects.equals(value, that.value);
     }
 

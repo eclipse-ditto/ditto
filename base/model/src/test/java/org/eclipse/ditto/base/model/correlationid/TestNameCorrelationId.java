@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.utils.test.correlationid;
+package org.eclipse.ditto.base.model.correlationid;
 
 import java.text.MessageFormat;
 import java.util.UUID;
@@ -46,7 +46,7 @@ public final class TestNameCorrelationId extends TestWatcher {
 
     @Override
     protected void starting(final Description description) {
-        final var testClass = description.getTestClass();
+        final Class<?> testClass = description.getTestClass();
         correlationId = CorrelationId.of(MessageFormat.format(CORRELATION_ID_PATTERN,
                 testClass.getName(),
                 description.getMethodName(),
@@ -54,7 +54,7 @@ public final class TestNameCorrelationId extends TestWatcher {
     }
 
     private static String getRandomPart() {
-        final var randomUuid = String.valueOf(UUID.randomUUID());
+        final String randomUuid = String.valueOf(UUID.randomUUID());
         return randomUuid.substring(0, 7);
     }
 

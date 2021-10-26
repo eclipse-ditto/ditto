@@ -22,14 +22,15 @@ import java.text.MessageFormat;
 
 import org.eclipse.ditto.base.model.assertions.DittoBaseAssertions;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
 /**
  * Unit test for {@link ThingNotCreatableException}.
@@ -37,7 +38,16 @@ import org.junit.rules.TestName;
 public final class ThingNotCreatableExceptionTest {
 
     @Rule
-    public final TestName testName = new TestName();
+    public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
+
+    private DittoHeaders dittoHeaders;
+
+    @Before
+    public void before() {
+        dittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(testNameCorrelationId.getCorrelationId())
+                .build();
+    }
 
     @Test
     public void assertImmutability() {
@@ -46,8 +56,6 @@ public final class ThingNotCreatableExceptionTest {
 
     @Test
     public void instanceFromBuilderForPolicyMissing() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-
         final ThingNotCreatableException underTest =
                 ThingNotCreatableException.newBuilderForPolicyMissing(THING_ID, POLICY_ID)
                         .dittoHeaders(dittoHeaders)
@@ -64,8 +72,6 @@ public final class ThingNotCreatableExceptionTest {
 
     @Test
     public void instanceFromBuilderForPolicyExisting() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-
         final ThingNotCreatableException underTest =
                 ThingNotCreatableException.newBuilderForPolicyExisting(THING_ID, POLICY_ID)
                         .dittoHeaders(dittoHeaders)
@@ -84,8 +90,6 @@ public final class ThingNotCreatableExceptionTest {
 
     @Test
     public void instanceForLiveChannel() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-
         final ThingNotCreatableException underTest = ThingNotCreatableException.forLiveChannel(dittoHeaders);
 
         assertThat(underTest)
@@ -99,8 +103,6 @@ public final class ThingNotCreatableExceptionTest {
 
     @Test
     public void setDittoHeaders() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-
         final ThingNotCreatableException thingNotCreatableException =
                 ThingNotCreatableException.forLiveChannel(DittoHeaders.empty());
 
@@ -117,8 +119,6 @@ public final class ThingNotCreatableExceptionTest {
 
     @Test
     public void instanceForLiveChannelToJson() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-
         final ThingNotCreatableException underTest = ThingNotCreatableException.forLiveChannel(dittoHeaders);
 
         final JsonObjectBuilder expectedJsonObject = JsonObject.newBuilder()
@@ -132,8 +132,6 @@ public final class ThingNotCreatableExceptionTest {
 
     @Test
     public void instanceForMissingPolicyFromJson() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-
         final ThingNotCreatableException thingNotCreatableException =
                 ThingNotCreatableException.forLiveChannel(dittoHeaders);
 
@@ -145,8 +143,6 @@ public final class ThingNotCreatableExceptionTest {
 
     @Test
     public void instanceForMissingPolicyToJson() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-
         final ThingNotCreatableException underTest =
                 ThingNotCreatableException.newBuilderForPolicyMissing(THING_ID, POLICY_ID)
                         .dittoHeaders(dittoHeaders)
@@ -163,8 +159,6 @@ public final class ThingNotCreatableExceptionTest {
 
     @Test
     public void instanceForLiveChannelFromJson() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-
         final ThingNotCreatableException thingNotCreatableException =
                 ThingNotCreatableException.newBuilderForPolicyMissing(THING_ID, POLICY_ID)
                         .dittoHeaders(dittoHeaders)
@@ -178,8 +172,6 @@ public final class ThingNotCreatableExceptionTest {
 
     @Test
     public void instanceForExistingPolicyToJson() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-
         final ThingNotCreatableException underTest =
                 ThingNotCreatableException.newBuilderForPolicyExisting(THING_ID, POLICY_ID)
                         .dittoHeaders(dittoHeaders)
@@ -196,8 +188,6 @@ public final class ThingNotCreatableExceptionTest {
 
     @Test
     public void instanceForExistingPolicyFromJson() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-
         final ThingNotCreatableException thingNotCreatableException =
                 ThingNotCreatableException.newBuilderForPolicyExisting(THING_ID, POLICY_ID)
                         .dittoHeaders(dittoHeaders)
@@ -211,8 +201,6 @@ public final class ThingNotCreatableExceptionTest {
 
     @Test
     public void parseInstanceForMissingPolicy() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-
         final ThingNotCreatableException thingNotCreatableException =
                 ThingNotCreatableException.newBuilderForPolicyMissing(THING_ID, POLICY_ID)
                         .dittoHeaders(dittoHeaders)
@@ -228,8 +216,6 @@ public final class ThingNotCreatableExceptionTest {
 
     @Test
     public void parseInstanceForExistingPolicy() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-
         final ThingNotCreatableException thingNotCreatableException =
                 ThingNotCreatableException.newBuilderForPolicyExisting(THING_ID, POLICY_ID)
                         .dittoHeaders(dittoHeaders)
@@ -245,8 +231,6 @@ public final class ThingNotCreatableExceptionTest {
 
     @Test
     public void parseInstanceForLiveChannel() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-
         final ThingNotCreatableException thingNotCreatableException =
                 ThingNotCreatableException.forLiveChannel(dittoHeaders);
 

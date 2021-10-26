@@ -176,6 +176,12 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-base-model</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-base-service</artifactId>
             <scope>test</scope>
             <type>test-jar</type>
