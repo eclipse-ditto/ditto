@@ -40,18 +40,20 @@ public final class UnsupportedSignalException extends DittoRuntimeException {
      */
     public static final String ERROR_CODE = "signal.unsupported";
 
-    private static final String MESSAGE_TEMPLATE = "The provided signal ''{0}'' is not supported.";
+    static final String MESSAGE_TEMPLATE = "The provided signal ''{0}'' is not supported.";
 
-    private static final String DEFAULT_DESCRIPTION = "Check if you specified the correct resource/path and payload.";
+    static final String DEFAULT_DESCRIPTION = "Check if you specified the correct resource/path and payload.";
 
     private static final long serialVersionUID = -8102351974097361762L;
 
-    private UnsupportedSignalException(final DittoHeaders dittoHeaders,
+    private UnsupportedSignalException(final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+
+        super(ERROR_CODE, httpStatus, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -62,12 +64,12 @@ public final class UnsupportedSignalException extends DittoRuntimeException {
      * @throws NullPointerException if {@code signal} is {@code null}.
      */
     public static Builder newBuilder(final String signal) {
-        checkNotNull(signal, "signal");
-        return new Builder(signal);
+        return new Builder(checkNotNull(signal, "signal"));
     }
 
     /**
      * Constructs a new {@code UnsupportedSignalException} object with given message.
+     * The HTTP status of the returned exception is {@link HttpStatus#BAD_REQUEST}.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
@@ -76,6 +78,7 @@ public final class UnsupportedSignalException extends DittoRuntimeException {
      */
     public static UnsupportedSignalException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
+
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
@@ -92,12 +95,23 @@ public final class UnsupportedSignalException extends DittoRuntimeException {
      * format.
      */
     public static UnsupportedSignalException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+        checkNotNull(jsonObject, "jsonObject");
+        checkNotNull(dittoHeaders, "dittoHeaders");
+
+        final Builder builder = new Builder();
+        builder.dittoHeaders(dittoHeaders);
+        builder.message(jsonObject.getValueOrThrow(JsonFields.MESSAGE));
+        jsonObject.getValue(JsonFields.STATUS).flatMap(HttpStatus::tryGetInstance).ifPresent(builder::httpStatus);
+        jsonObject.getValue(JsonFields.DESCRIPTION).ifPresent(builder::description);
+        jsonObject.getValue(JsonFields.HREF).map(URI::create).ifPresent(builder::href);
+
+        return builder.build();
     }
 
     @Override
     public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
+                .httpStatus(getHttpStatus())
                 .message(getMessage())
                 .description(getDescription().orElse(null))
                 .cause(getCause())
@@ -112,7 +126,10 @@ public final class UnsupportedSignalException extends DittoRuntimeException {
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<UnsupportedSignalException> {
 
+        private HttpStatus httpStatus;
+
         private Builder() {
+            httpStatus = HttpStatus.BAD_REQUEST;
             description(DEFAULT_DESCRIPTION);
         }
 
@@ -121,13 +138,32 @@ public final class UnsupportedSignalException extends DittoRuntimeException {
             message(MessageFormat.format(MESSAGE_TEMPLATE, signal));
         }
 
+        /**
+         * Sets the specified {@code HttpStatus} of the exception to be built.
+         * If not set, the default HTTP status of the exception is {@link HttpStatus#BAD_REQUEST}.
+         *
+         * @param httpStatus the HTTP status of the built exception.
+         * @return this builder instance to allow method chaining.
+         * @throws IllegalArgumentException if {@code httpStatus} is neither a client error (4xx)
+         * nor a server error (5xx).
+         */
+        public Builder httpStatus(final HttpStatus httpStatus) {
+            this.httpStatus = checkNotNull(httpStatus, "httpStatus");
+            if (!httpStatus.isClientError() && !httpStatus.isServerError()) {
+                final String pattern = "Category of <{0}> is neither client error nor server error.";
+                throw new IllegalArgumentException(MessageFormat.format(pattern, httpStatus));
+            }
+            return this;
+        }
+
         @Override
         protected UnsupportedSignalException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new UnsupportedSignalException(dittoHeaders, message, description, cause, href);
+
+            return new UnsupportedSignalException(httpStatus, dittoHeaders, message, description, cause, href);
         }
 
     }
