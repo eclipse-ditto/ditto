@@ -100,11 +100,11 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
         acknowledgementConfig = connectivityConfig.getAcknowledgementConfig();
 
-        inboundMonitor = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig())
+        inboundMonitor = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig)
                 .forInboundConsumed(connection, sourceAddress);
 
         inboundAcknowledgedMonitor =
-                DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig())
+                DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig)
                         .forInboundAcknowledged(connection, sourceAddress);
     }
 

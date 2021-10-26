@@ -236,7 +236,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 ProtocolAdapterProvider.load(connectivityConfig().getProtocolConfig(), system);
         protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         final var monitoringConfig = connectivityConfig().getMonitoringConfig();
-        connectionCounterRegistry = ConnectivityCounterRegistry.newInstance();
+        connectionCounterRegistry = ConnectivityCounterRegistry.newInstance(connectivityConfig);
         connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
         connectionLoggerRegistry.initForConnection(connection);
         connectionCounterRegistry.initForConnection(connection);
@@ -871,8 +871,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private State<BaseClientState, BaseClientData> disconnect(final Disconnect disconnect, final BaseClientData data) {
         doDisconnectClient(connection(), disconnect.getSender(), disconnect.shutdownAfterDisconnect());
-        return stay()
-                .using(data.setConnectionStatusDetails("disconnecting connection at " + Instant.now()));
+        return stay().using(data.setConnectionStatusDetails("disconnecting connection at " + Instant.now()));
     }
 
     private FSM.State<BaseClientState, BaseClientData> openConnection(final WithDittoHeaders openConnection,
@@ -1183,7 +1182,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             return goTo(CONNECTED).using(data.resetSession()
                     .resetFailureCount()
                     .setConnectionStatus(ConnectivityStatus.OPEN)
-                    .setConnectionStatusDetails("Connected at " + Instant.now()));
+                    .setConnectionStatusDetails("Connected at " + Instant.now())
+            );
         } else {
             logger.info("Initialization of consumers, publisher and subscriptions successful, but failures were " +
                     "received meanwhile. Staying in CONNECTING state to continue with connection recovery after backoff.");

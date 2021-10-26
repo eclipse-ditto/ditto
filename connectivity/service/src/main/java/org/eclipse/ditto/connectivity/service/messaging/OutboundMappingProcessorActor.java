@@ -61,7 +61,6 @@ import org.eclipse.ditto.connectivity.model.MetricDirection;
 import org.eclipse.ditto.connectivity.model.MetricType;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectivitySignalEnrichmentProvider;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
@@ -161,11 +160,10 @@ public final class OutboundMappingProcessorActor
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
 
         final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
-        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         mappingConfig = connectivityConfig.getMappingConfig();
         final LimitsConfig limitsConfig = DefaultLimitsConfig.of(dittoScoped);
 
-        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
+        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig);
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(this.connection);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(this.connection);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(this.connection);

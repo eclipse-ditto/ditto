@@ -58,7 +58,6 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnectionMonitorRegistry;
@@ -162,9 +161,8 @@ public final class InboundDispatchingSink
                 ConnectivityPlaceholders.newConnectionIdPlaceholder(),
                 connection.getId());
 
-        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
 
-        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
+        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(connection);
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
         acknowledgementConfig = connectivityConfig.getConnectionConfig().getAcknowledgementConfig();

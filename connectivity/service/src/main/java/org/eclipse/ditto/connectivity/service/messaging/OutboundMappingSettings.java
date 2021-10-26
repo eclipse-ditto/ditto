@@ -109,7 +109,7 @@ final class OutboundMappingSettings {
                 messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingDefinition);
 
         final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry =
-                DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig());
+                DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig);
         final SignalFilter signalFilter = SignalFilter.of(connection, connectionMonitorRegistry);
 
         final AcknowledgementConfig acknowledgementConfig = connectivityConfig.getAcknowledgementConfig();
