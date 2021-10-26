@@ -13,7 +13,6 @@
 package org.eclipse.ditto.internal.models.acks;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.internal.models.acks.AcknowledgementForwarderActorStarter.isLiveSignal;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -33,14 +32,12 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
-import akka.actor.Props;
 import akka.japi.pf.PFBuilder;
 import scala.PartialFunction;
 
@@ -52,12 +49,11 @@ import scala.PartialFunction;
  */
 public final class AcknowledgementAggregatorActorStarter {
 
-    protected final ActorRefFactory actorRefFactory;
-    protected final Duration maxTimeout;
-    protected final HeaderTranslator headerTranslator;
-    protected final PartialFunction<Signal<?>, Signal<?>> ackRequestSetter;
-
-    private int childCounter = 0;
+    private final ActorRefFactory actorRefFactory;
+    private final Duration maxTimeout;
+    private final HeaderTranslator headerTranslator;
+    private final PartialFunction<Signal<?>, Signal<?>> ackRequestSetter;
+    private int childCounter;
 
     private AcknowledgementAggregatorActorStarter(final ActorRefFactory actorRefFactory,
             final Duration maxTimeout,
@@ -68,6 +64,7 @@ public final class AcknowledgementAggregatorActorStarter {
         this.ackRequestSetter = ackRequestSetter;
         this.maxTimeout = checkNotNull(maxTimeout, "maxTimeout");
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
+        childCounter = 0;
     }
 
     /**
@@ -85,7 +82,9 @@ public final class AcknowledgementAggregatorActorStarter {
             final HeaderTranslator headerTranslator,
             final AbstractCommandAckRequestSetter<?>... ackRequestSetters) {
 
-        return of(actorRefFactory, acknowledgementConfig.getForwarderFallbackTimeout(), headerTranslator,
+        return of(actorRefFactory,
+                acknowledgementConfig.getForwarderFallbackTimeout(),
+                headerTranslator,
                 ackRequestSetters);
     }
 
@@ -104,7 +103,9 @@ public final class AcknowledgementAggregatorActorStarter {
             final HeaderTranslator headerTranslator,
             final AbstractCommandAckRequestSetter<?>... ackRequestSetters) {
 
-        return new AcknowledgementAggregatorActorStarter(actorRefFactory, maxTimeout, headerTranslator,
+        return new AcknowledgementAggregatorActorStarter(actorRefFactory,
+                maxTimeout,
+                headerTranslator,
                 buildAckRequestSetter(ackRequestSetters));
     }
 
@@ -151,8 +152,10 @@ public final class AcknowledgementAggregatorActorStarter {
     public <T> T preprocess(final Signal<?> signal,
             final BiFunction<Signal<?>, Boolean, T> preprocessor,
             final Function<? super DittoHeaderInvalidException, T> onInvalidHeader) {
-        final Signal<?> signalToForward = ackRequestSetter.apply(signal);
-        final Optional<DittoHeaderInvalidException> headerInvalid = getDittoHeaderInvalidException(signalToForward);
+
+        final var signalToForward = ackRequestSetter.apply(signal);
+        final var headerInvalid = getDittoHeaderInvalidException(signalToForward);
+
         return headerInvalid.map(onInvalidHeader)
                 .orElseGet(() -> preprocessor.apply(signalToForward, shouldStartForIncoming(signalToForward)));
     }
@@ -171,20 +174,24 @@ public final class AcknowledgementAggregatorActorStarter {
             final DittoHeaders dittoHeaders,
             final Consumer<Object> responseSignalConsumer,
             final Function<ActorRef, T> forwarderStartedFunction) {
+
         return forwarderStartedFunction.apply(startAckAggregatorActor(entityId, dittoHeaders, responseSignalConsumer));
     }
 
-    private ActorRef startAckAggregatorActor(final EntityId entityId, final DittoHeaders dittoHeaders,
+    private ActorRef startAckAggregatorActor(final EntityId entityId,
+            final DittoHeaders dittoHeaders,
             final Consumer<Object> responseSignalConsumer) {
-        final Props props = AcknowledgementAggregatorActor.props(entityId, dittoHeaders, maxTimeout, headerTranslator,
+
+        final var props = AcknowledgementAggregatorActor.props(entityId,
+                dittoHeaders,
+                maxTimeout,
+                headerTranslator,
                 responseSignalConsumer);
-        final String actorName = getNextActorName(dittoHeaders);
-        return actorRefFactory.actorOf(props, actorName);
+        return actorRefFactory.actorOf(props, getNextActorName(dittoHeaders));
     }
 
     private String getNextActorName(final DittoHeaders dittoHeaders) {
-        final String correlationId = dittoHeaders
-                .getCorrelationId()
+        final var correlationId = dittoHeaders.getCorrelationId()
                 .map(cid -> URLEncoder.encode(cid, StandardCharsets.UTF_8))
                 .orElse("_");
         return String.format("ackr%x-%s", childCounter++, correlationId);
@@ -193,6 +200,7 @@ public final class AcknowledgementAggregatorActorStarter {
     @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     private static PartialFunction<Signal<?>, Signal<?>> buildAckRequestSetter(
             final AbstractCommandAckRequestSetter<?>... ackRequestSetters) {
+
         PFBuilder<Signal<?>, Signal<?>> pfBuilder = new PFBuilder<>();
         // unavoidable raw type due to the lack of existential type
         for (final AbstractCommandAckRequestSetter ackRequestSetter : ackRequestSetters) {
@@ -203,34 +211,59 @@ public final class AcknowledgementAggregatorActorStarter {
     }
 
     private static Optional<DittoHeaderInvalidException> getDittoHeaderInvalidException(final Signal<?> signal) {
-        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-        final boolean isTimeoutZero = dittoHeaders.getTimeout().map(Duration::isZero).orElse(false);
-        final boolean isTimeoutHeaderInvalid = isTimeoutZero &&
-                (dittoHeaders.isResponseRequired() || !dittoHeaders.getAcknowledgementRequests().isEmpty());
-        if (isTimeoutHeaderInvalid) {
+        final Optional<DittoHeaderInvalidException> result;
+
+        final var dittoHeaders = signal.getDittoHeaders();
+        if (isTimeoutHeaderInvalid(dittoHeaders)) {
             final var invalidHeaderKey = DittoHeaderDefinition.TIMEOUT.getKey();
-            final String message = String.format("The value of the header '%s' must not be zero if " +
+            final var message = String.format("The value of the header '%s' must not be zero if " +
                     "response or acknowledgements are requested.", invalidHeaderKey);
-            return Optional.of(DittoHeaderInvalidException.newBuilder()
+            result = Optional.of(DittoHeaderInvalidException.newBuilder()
                     .withInvalidHeaderKey(invalidHeaderKey)
                     .message(message)
                     .description("Please provide a positive timeout.")
                     .dittoHeaders(dittoHeaders)
                     .build());
         } else {
-            return Optional.empty();
+            result = Optional.empty();
         }
+
+        return result;
     }
 
-    static boolean shouldStartForIncoming(final Signal<?> signal) {
-        final boolean isLiveSignal = isLiveSignal(signal);
+    private static boolean isTimeoutHeaderInvalid(final DittoHeaders dittoHeaders) {
+        final boolean result;
+
+        final var isTimeoutZero = dittoHeaders.getTimeout().filter(Duration::isZero).isPresent();
+        if (isTimeoutZero) {
+            if (dittoHeaders.isResponseRequired()) {
+                result = true;
+            } else {
+                final var acknowledgementRequests = dittoHeaders.getAcknowledgementRequests();
+                result = !acknowledgementRequests.isEmpty();
+            }
+        } else {
+            result = false;
+        }
+
+        return result;
+    }
+
+    private static boolean shouldStartForIncoming(final Signal<?> signal) {
+        final boolean result;
+
+        final var isLiveSignal = SignalInformationPoint.isChannelLive(signal);
         final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
         if (signal instanceof ThingModifyCommand && !isLiveSignal) {
-            return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotLiveResponse);
-        } else if (signal instanceof MessageCommand || (isLiveSignal && signal instanceof ThingCommand)) {
-            return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted);
+            result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotLiveResponse);
+        } else if (SignalInformationPoint.isMessageCommand(signal) ||
+                isLiveSignal && SignalInformationPoint.isThingCommand(signal)) {
+
+            result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted);
         } else {
-            return false;
+            result = false;
         }
+
+        return result;
     }
 }

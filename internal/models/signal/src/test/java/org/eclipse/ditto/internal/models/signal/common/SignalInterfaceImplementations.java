@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.models.signal.correlation;
+package org.eclipse.ditto.internal.models.signal.common;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -18,6 +18,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -30,7 +31,7 @@ import org.slf4j.LoggerFactory;
  * Holds an instance for each actual sub-class of the interface class provided to {@link #newInstance(Class)}.
  */
 @Immutable
-final class SignalInterfaceImplementations implements Iterable<SignalWithEntityId<?>> {
+public final class SignalInterfaceImplementations implements Iterable<SignalWithEntityId<?>> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SignalInterfaceImplementations.class);
 
@@ -44,7 +45,9 @@ final class SignalInterfaceImplementations implements Iterable<SignalWithEntityI
         this.failures = List.copyOf(failures);
     }
 
-    static <T extends SignalWithEntityId<?>> SignalInterfaceImplementations newInstance(final Class<T> signalInterfaceClass) {
+    public static <T extends SignalWithEntityId<?>> SignalInterfaceImplementations newInstance(
+            final Class<T> signalInterfaceClass
+    ) {
         ConditionChecker.checkNotNull(signalInterfaceClass, "signalInterfaceClass");
         if (!signalInterfaceClass.isInterface()) {
             throw new IllegalArgumentException(MessageFormat.format("<{0}> is not an interface.",
@@ -68,7 +71,7 @@ final class SignalInterfaceImplementations implements Iterable<SignalWithEntityI
         return new SignalInterfaceImplementations(successful, failed);
     }
 
-    Optional<SignalWithEntityId<?>> getSignalBySimpleClassName(final CharSequence expectedSimpleClassName) {
+    public Optional<SignalWithEntityId<?>> getSignalBySimpleClassName(final CharSequence expectedSimpleClassName) {
         final var result = signals.stream()
                 .filter(signal -> {
                     final var signalClass = signal.getClass();
@@ -81,13 +84,17 @@ final class SignalInterfaceImplementations implements Iterable<SignalWithEntityI
         return result;
     }
 
-    List<Throwable> getFailures() {
+    public List<Throwable> getFailures() {
         return failures;
     }
 
     @Override
     public Iterator<SignalWithEntityId<?>> iterator() {
         return signals.iterator();
+    }
+
+    public Stream<SignalWithEntityId<?>> stream() {
+        return signals.stream();
     }
 
 }

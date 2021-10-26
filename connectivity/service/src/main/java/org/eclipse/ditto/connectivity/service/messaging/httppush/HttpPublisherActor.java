@@ -39,6 +39,7 @@ import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
@@ -53,6 +54,7 @@ import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolv
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.signing.NoOpSigning;
+import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.json.JsonFactory;
@@ -494,8 +496,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 }
             }
 
-            final var liveCommandWithEntityId =
-                    SignalInformationPoint.tryToGetAsLiveCommandWithEntityId(sentSignal);
+            final var liveCommandWithEntityId = tryToGetAsLiveCommandWithEntityId(sentSignal);
             if (liveCommandWithEntityId.isPresent()
                     && null != result
                     && SignalInformationPoint.isLiveCommandResponse(result)) {
@@ -526,6 +527,16 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
             return new SendResult(result, sendFailure, mergedDittoHeaders);
         });
+    }
+
+    private static Optional<SignalWithEntityId<?>> tryToGetAsLiveCommandWithEntityId(@Nullable final Signal<?> signal) {
+        final SignalWithEntityId<?> result;
+        if (SignalInformationPoint.isLiveCommand(signal)) {
+            result = (SignalWithEntityId<?>) signal;
+        } else {
+            result = null;
+        }
+        return Optional.ofNullable(result);
     }
 
     @Nullable

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.internal.models.signal.correlation;
+package org.eclipse.ditto.internal.models.signal.common;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

@@ -27,28 +27,32 @@
     <name>Eclipse Ditto :: Internal :: Models :: Signal</name>
 
     <dependencies>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-things-model</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-messages-model</artifactId>
+        </dependency>
+
         <!-- Testing -->
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-base-model</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-things-model</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-messages-model</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-internal-utils-test</artifactId>
-            <type>test-jar</type>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
         </dependency>
 
         <dependency>
