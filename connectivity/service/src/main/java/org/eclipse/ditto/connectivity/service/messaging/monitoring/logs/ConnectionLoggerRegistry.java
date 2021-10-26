@@ -502,12 +502,15 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 failureCapacity == that.failureCapacity &&
                 maximumLogSizeInByte == that.maximumLogSizeInByte &&
                 Objects.equals(loggingDuration, that.loggingDuration) &&
-                Objects.equals(fluencyForwarder, that.fluencyForwarder);
+                Objects.equals(fluencyForwarder, that.fluencyForwarder) &&
+                Objects.equals(logTag, that.logTag) &&
+                Objects.equals(additionalLogContext, that.additionalLogContext);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(successCapacity, failureCapacity, loggingDuration, maximumLogSizeInByte, fluencyForwarder);
+        return Objects.hash(successCapacity, failureCapacity, loggingDuration, maximumLogSizeInByte, fluencyForwarder,
+                logTag, additionalLogContext);
     }
 
     @Override
@@ -518,6 +521,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 ", loggingDuration=" + loggingDuration +
                 ", maximumLogSizeInByte=" + maximumLogSizeInByte +
                 ", fluencyForwarder=" + fluencyForwarder +
+                ", logTag=" + logTag +
+                ", additionalLogContext=" + additionalLogContext +
                 "]";
     }
 
