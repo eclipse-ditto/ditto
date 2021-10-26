@@ -116,7 +116,7 @@ public final class DefaultMonitoringLoggerConfig implements MonitoringLoggerConf
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", successCapacity=" + successCapacity +
+                "successCapacity=" + successCapacity +
                 ", failureCapacity=" + failureCapacity +
                 ", maxLogSizeInBytes=" + maxLogSizeInBytes +
                 ", logDuration=" + logDuration +

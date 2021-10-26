@@ -363,7 +363,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private ActorRef startRmqPublisherActor() {
         stopChildActor(rmqPublisherActor);
         final Props publisherProps = RabbitMQPublisherActor.props(connection(), getDefaultClientId(),
-                connectivityStatusResolver);
+                connectivityStatusResolver, connectivityConfig());
         return startChildActorConflictFree(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
     }
 
@@ -393,7 +393,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         final ActorRef consumer = startChildActorConflictFree(
                                 CONSUMER_ACTOR_PREFIX + addressWithIndex,
                                 RabbitMQConsumerActor.props(sourceAddress, getInboundMappingSink(), source,
-                                        channel, connection(), connectivityStatusResolver));
+                                        channel, connection(), connectivityStatusResolver, connectivityConfig()));
                         consumerByAddressWithIndex.put(addressWithIndex, consumer);
                         try {
                             final String consumerTag = channel.basicConsume(sourceAddress, false,

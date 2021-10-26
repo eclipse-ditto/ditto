@@ -40,13 +40,11 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.InboundMappingSink.ExternalMessageWithSender;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
@@ -85,7 +83,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
             final String sourceAddress,
             final Sink<Object, ?> inboundMappingSink,
             final Source source,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
 
         connectionId = checkNotNull(connection, "connection").getId();
         this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
@@ -94,9 +93,6 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         connectionType = connection.getConnectionType();
         this.connectivityStatusResolver = checkNotNull(connectivityStatusResolver, "connectivityStatusResolver");
         resetResourceStatus();
-
-        final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
 
         acknowledgementConfig = connectivityConfig.getAcknowledgementConfig();
 

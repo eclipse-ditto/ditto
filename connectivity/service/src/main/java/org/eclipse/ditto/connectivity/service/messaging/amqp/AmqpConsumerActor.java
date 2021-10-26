@@ -69,6 +69,8 @@ import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
@@ -109,7 +111,8 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
                 checkNotNull(consumerData, "consumerData").getAddress(),
                 inboundMappingSink,
                 consumerData.getSource(),
-                connectivityStatusResolver);
+                connectivityStatusResolver,
+                connectivityConfig);
 
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();

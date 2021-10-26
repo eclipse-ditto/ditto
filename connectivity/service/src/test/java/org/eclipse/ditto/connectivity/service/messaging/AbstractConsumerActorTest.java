@@ -252,14 +252,16 @@ public abstract class AbstractConsumerActorTest<M> {
                 InboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
         final OutboundMappingProcessor outboundMappingProcessor =
                 OutboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
-        final Props props = OutboundMappingProcessorActor.props(clientActor, outboundMappingProcessor, CONNECTION, 43);
+        final Props props = OutboundMappingProcessorActor.props(clientActor, outboundMappingProcessor, CONNECTION,
+                connectivityConfig, 43);
         final ActorRef outboundProcessorActor = actorSystem.actorOf(props,
                 OutboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
 
         final Sink<Object, NotUsed> inboundDispatchingSink =
                 InboundDispatchingSink.createSink(CONNECTION, protocolAdapter.headerTranslator(),
                         ActorSelection.apply(proxyActor, ""), connectionActorProbe.ref(), outboundProcessorActor,
-                        TestProbe.apply(actorSystem).ref(), actorSystem, actorSystem.settings().config());
+                        TestProbe.apply(actorSystem).ref(), actorSystem,
+                        ConnectivityConfig.of(actorSystem.settings().config()));
 
         return InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99,
                 inboundDispatchingSink, connectivityConfig.getMappingConfig(), null,

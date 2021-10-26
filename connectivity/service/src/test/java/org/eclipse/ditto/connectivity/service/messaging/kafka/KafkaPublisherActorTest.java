@@ -82,7 +82,9 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
     private final Queue<ProducerRecord<String, String>> published = new ConcurrentLinkedQueue<>();
 
-    private final KafkaProducerConfig kafkaConfig = DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG))
+    private final DittoConnectivityConfig connectivityConfig =
+            DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG));
+    private final KafkaProducerConfig kafkaConfig = connectivityConfig
             .getConnectionConfig()
             .getKafkaConfig()
             .getProducerConfig();
@@ -101,15 +103,15 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     protected Props getPublisherActorProps() {
         final Connection connection = TestConstants.createConnection();
         final String clientId = UUID.randomUUID().toString();
-        return KafkaPublisherActor.props(connection, kafkaConfig, mockSendProducerFactory, false, clientId,
-                mock(ConnectivityStatusResolver.class));
+        return KafkaPublisherActor.props(connection, mockSendProducerFactory, false, clientId,
+                mock(ConnectivityStatusResolver.class), connectivityConfig);
     }
 
     protected Props getPublisherActorPropsWithDebugEnabled() {
         final Connection connectionWithDebugEnabled = TestConstants.createConnectionWithDebugEnabled();
         final String clientId = UUID.randomUUID().toString();
-        return KafkaPublisherActor.props(connectionWithDebugEnabled, kafkaConfig, mockSendProducerFactory, false,
-                clientId, mock(ConnectivityStatusResolver.class));
+        return KafkaPublisherActor.props(connectionWithDebugEnabled, mockSendProducerFactory, false,
+                clientId, mock(ConnectivityStatusResolver.class), connectivityConfig);
     }
 
     @Override

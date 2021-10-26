@@ -25,6 +25,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -74,6 +75,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     private final TemporalAmount loggingDuration;
     private final long maximumLogSizeInByte;
     @Nullable private final Fluency fluencyForwarder;
+    @Nullable private final String logTag;
+    private final Map<String, Object> additionalLogContext;
 
     private ConnectionLoggerRegistry(final int successCapacity,
             final int failureCapacity,
@@ -89,8 +92,12 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         if (loggerPublisherConfig.isEnabled()) {
             final FluencyLoggerPublisherConfig fluencyConfig = loggerPublisherConfig.getFluencyLoggerPublisherConfig();
             fluencyForwarder = fluencyConfig.buildFluencyLoggerPublisher();
+            logTag = loggerPublisherConfig.getLogTag().orElse(null);
+            additionalLogContext = Map.copyOf(loggerPublisherConfig.getAdditionalLogContext());
         } else {
             fluencyForwarder = null;
+            logTag = null;
+            additionalLogContext = Map.of();
         }
     }
 
@@ -265,6 +272,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     @Override
     public void initForConnection(final Connection connection) {
         final ConnectionId connectionId = connection.getId();
+        invalidateLoggers(connectionId);
         LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
                 .info("Initializing loggers for connection <{}>.", connectionId);
 
@@ -284,6 +292,16 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
                     .error("Failed initializing loggers for connection <{}>. Reason: <{}>.", connectionId, e);
         }
+    }
+
+    private void invalidateLoggers(final ConnectionId connectionId) {
+        LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
+                .info("Invalidating loggers for connection <{}>.", connectionId);
+        final Set<MapKey> mapsKeysToDelete = LOGGERS.keySet().stream()
+                .filter(mapKey -> mapKey.connectionId.equals(connectionId))
+                .collect(Collectors.toSet());
+        // TODO TJ flush logs before removing from loggers (next task)
+        mapsKeysToDelete.forEach(LOGGERS::remove);
     }
 
     private void initLogger(final ConnectionId connectionId) {
@@ -464,7 +482,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
 
         if (null != fluencyForwarder) {
             final FluentPublishingConnectionLogger publishingLogger = ConnectionLoggerFactory.newPublishingLogger(
-                    connectionId, logCategory, logType, address, fluencyForwarder);
+                    connectionId, logCategory, logType, address, fluencyForwarder, logTag, additionalLogContext);
             return new CompoundConnectionLogger(List.of(muteableLogger, publishingLogger));
         } else {
             return muteableLogger;
@@ -575,7 +593,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         @Override
         public String toString() {
             return getClass().getSimpleName() + " [" +
-                    ", enabledSince=" + enabledSince +
+                    "enabledSince=" + enabledSince +
                     ", enabledUntil=" + enabledUntil +
                     ", logs=" + logs +
                     "]";
@@ -635,7 +653,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         @Override
         public String toString() {
             return getClass().getSimpleName() + " [" +
-                    ", connectionId=" + connectionId +
+                    "connectionId=" + connectionId +
                     ", category=" + category +
                     ", type=" + type +
                     ", address=" + address +
@@ -706,7 +724,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         @Override
         public String toString() {
             return getClass().getSimpleName() + " [" +
-                    ", enabledSince=" + enabledSince +
+                    "enabledSince=" + enabledSince +
                     ", enabledUntil=" + enabledUntil +
                     "]";
         }

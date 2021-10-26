@@ -16,6 +16,7 @@ package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -105,15 +106,24 @@ final class ConnectionLoggerFactory {
      * @param logType the log type for which the logger is created.
      * @param address the address for which the logger is created.
      * @param fluencyForwarder the fluency forwarder for the logger.
+     * @param logTag an optional log-tag to use and overwrite the default one: {@code connection:<connection-id>}
+     * @param additionalLogContext additional log context to include in each logged entry.
      * @return a new fluent publishing connection logger instance.
      */
     static FluentPublishingConnectionLogger newPublishingLogger(final ConnectionId connectionId,
             final LogCategory logCategory, final LogType logType, @Nullable final String address,
-            final Fluency fluencyForwarder) {
-        return FluentPublishingConnectionLogger.newBuilder(connectionId, logCategory, logType, fluencyForwarder)
-                .withAddress(address)
-                .withInstanceIdentifier(InstanceIdentifierSupplier.getInstance().get())
-                .build();
+            final Fluency fluencyForwarder, @Nullable final CharSequence logTag,
+            final Map<String, Object> additionalLogContext) {
+
+        final FluentPublishingConnectionLogger.Builder builder = FluentPublishingConnectionLogger
+                .newBuilder(connectionId, logCategory, logType, fluencyForwarder)
+                        .withAddress(address)
+                        .withAdditionalLogContext(additionalLogContext)
+                        .withInstanceIdentifier(InstanceIdentifierSupplier.getInstance().get());
+        if (null != logTag) {
+            builder.withFluentTag(logTag);
+        }
+        return builder.build();
     }
 
     private static ConnectionLogger newSourceLogger(final LogType type, final int successCapacity,

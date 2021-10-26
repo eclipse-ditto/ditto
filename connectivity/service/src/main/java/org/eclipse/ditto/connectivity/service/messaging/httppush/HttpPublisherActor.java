@@ -46,6 +46,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.GenericTarget;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
@@ -133,8 +134,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private HttpPublisherActor(final Connection connection,
             final HttpPushFactory factory,
             final String clientId,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
-        super(connection, clientId, connectivityStatusResolver);
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
+        super(connection, clientId, connectivityStatusResolver, connectivityConfig);
         this.factory = factory;
         materializer = Materializer.createMaterializer(this::getContext);
         final HttpPushConfig config = connectionConfig.getHttpPushConfig();
@@ -166,11 +168,13 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
      * @param clientId the client ID.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
+     * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection, final HttpPushFactory factory, final String clientId,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
-        return Props.create(HttpPublisherActor.class, connection, factory, clientId, connectivityStatusResolver);
+            final ConnectivityStatusResolver connectivityStatusResolver, final ConnectivityConfig connectivityConfig) {
+        return Props.create(HttpPublisherActor.class, connection, factory, clientId, connectivityStatusResolver,
+                connectivityConfig);
     }
 
     private Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?>

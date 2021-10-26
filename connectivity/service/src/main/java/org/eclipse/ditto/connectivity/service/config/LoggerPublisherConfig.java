@@ -12,6 +12,10 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
+import java.util.Map;
+import java.util.Optional;
+
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
@@ -30,6 +34,21 @@ public interface LoggerPublisherConfig {
     boolean isEnabled();
 
     /**
+     * Returns a specific log-tag to use for the published logs. If empty, a default log-tag will be used:
+     * {@code connection:<connection-id>}.
+     *
+     * @return the optional specific log-tag to use for published logs.
+     */
+    Optional<String> getLogTag();
+
+    /**
+     * Returns additional log context to add to the published log entries.
+     *
+     * @return the additional log context.
+     */
+    Map<String, Object> getAdditionalLogContext();
+
+    /**
      * Returns the config for the fluency library used to forward logs to fluentd/fluentbit.
      *
      * @return the fluency library config.
@@ -45,18 +64,29 @@ public interface LoggerPublisherConfig {
         /**
          * Whether publishing to fluentd/fluentbit publishing is enabled.
          */
-        ENABLED("enabled", false);
+        ENABLED("enabled", false),
+
+        /**
+         * The optional specific log-tag to use for published logs.
+         */
+        LOG_TAG("log-tag", null),
+
+        /**
+         * The additional log context to add to log entries.
+         */
+        ADDITIONAL_LOG_CONTEXT("additional-log-context", Map.of());
 
 
         private final String path;
         private final Object defaultValue;
 
-        ConfigValue(final String thePath, final Object theDefaultValue) {
+        ConfigValue(final String thePath, @Nullable final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }
 
         @Override
+        @Nullable
         public Object getDefaultValue() {
             return defaultValue;
         }

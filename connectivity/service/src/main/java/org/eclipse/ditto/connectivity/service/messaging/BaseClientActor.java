@@ -326,7 +326,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
             tunnelActor = startChildActor(SshTunnelActor.ACTOR_NAME, SshTunnelActor.props(connection,
-                    connectivityStatusResolver));
+                    connectivityStatusResolver, connectivityConfig));
         } else {
             tunnelActor = null;
         }
@@ -1686,7 +1686,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final int processorPoolSize = connection.getProcessorPoolSize();
         logger.debug("Starting mapping processor actors with pool size of <{}>.", processorPoolSize);
         final Props outboundMappingProcessorActorProps =
-                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connection, processorPoolSize);
+                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connection, connectivityConfig,
+                        processorPoolSize);
 
         final ActorRef processorActor =
                 getContext().actorOf(outboundMappingProcessorActorProps, OutboundMappingProcessorActor.ACTOR_NAME);
@@ -1710,8 +1711,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final ActorRef outboundMappingProcessorActor) {
 
         return InboundDispatchingSink.createSink(connection, protocolAdapter.headerTranslator(), proxyActorSelection,
-                connectionActor, outboundMappingProcessorActor, getSelf(), getContext(),
-                getContext().system().settings().config());
+                connectionActor, outboundMappingProcessorActor, getSelf(), getContext(), connectivityConfig);
     }
 
     /**

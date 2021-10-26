@@ -48,7 +48,6 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
-import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignal.Mapped;
@@ -60,7 +59,7 @@ import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.connectivity.model.MetricDirection;
 import org.eclipse.ditto.connectivity.model.MetricType;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectivitySignalEnrichmentProvider;
@@ -75,7 +74,6 @@ import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade
 import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -146,6 +144,7 @@ public final class OutboundMappingProcessorActor
     private OutboundMappingProcessorActor(final ActorRef clientActor,
             final OutboundMappingProcessor outboundMappingProcessor,
             final Connection connection,
+            final ConnectivityConfig connectivityConfig,
             final int processorPoolSize) {
 
         super(OutboundSignal.class);
@@ -157,13 +156,9 @@ public final class OutboundMappingProcessorActor
         dittoLoggingAdapter = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, this.connection.getId());
 
-        final DefaultScopedConfig dittoScoped =
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
-
-        final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         mappingConfig = connectivityConfig.getMappingConfig();
-        final LimitsConfig limitsConfig = DefaultLimitsConfig.of(dittoScoped);
+        final LimitsConfig limitsConfig = connectivityConfig.getLimitsConfig();
 
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(this.connection);
@@ -221,18 +216,21 @@ public final class OutboundMappingProcessorActor
      * @param clientActor the client actor that created this mapping actor.
      * @param outboundMappingProcessor the MessageMappingProcessor to use for outbound messages.
      * @param connection the connection.
+     * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @param processorPoolSize how many message processing may happen in parallel per direction (incoming or outgoing).
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef clientActor,
             final OutboundMappingProcessor outboundMappingProcessor,
             final Connection connection,
+            final ConnectivityConfig connectivityConfig,
             final int processorPoolSize) {
 
         return Props.create(OutboundMappingProcessorActor.class,
                 clientActor,
                 outboundMappingProcessor,
                 connection,
+                connectivityConfig,
                 processorPoolSize
         ).withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
     }

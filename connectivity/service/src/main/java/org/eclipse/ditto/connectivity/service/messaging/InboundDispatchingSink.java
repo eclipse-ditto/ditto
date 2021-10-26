@@ -186,7 +186,7 @@ public final class InboundDispatchingSink
      * @param outboundMessageMappingProcessorActor used to publish errors.
      * @param clientActor the client actor ref to forward commands to.
      * @param actorRefFactory the ActorRefFactory to use in order to create new actors in.
-     * @param config the configuration of the Akka system.
+     * @param connectivityConfig the connectivity configuration including potential overwrites.
      * @throws java.lang.NullPointerException if any of the passed arguments was {@code null}.
      * @return the Sink.
      */
@@ -197,11 +197,9 @@ public final class InboundDispatchingSink
             final ActorRef outboundMessageMappingProcessorActor,
             final ActorRef clientActor,
             final ActorRefFactory actorRefFactory,
-            final Config config) {
+            final ConnectivityConfig connectivityConfig) {
 
-        final var dittoScoped = DefaultScopedConfig.dittoScoped(checkNotNull(config, "config"));
-        final var connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
-        final var limitsConfig = DefaultLimitsConfig.of(dittoScoped);
+        final var limitsConfig = connectivityConfig.getLimitsConfig();
         final var inboundDispatchingSink = new InboundDispatchingSink(
                 connection,
                 headerTranslator,

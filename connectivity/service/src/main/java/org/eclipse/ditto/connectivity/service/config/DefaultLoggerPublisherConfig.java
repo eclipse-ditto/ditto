@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -30,10 +32,14 @@ public final class DefaultLoggerPublisherConfig implements LoggerPublisherConfig
     private static final String CONFIG_PATH = "publisher";
 
     private final boolean enabled;
+    @Nullable private final String logTag;
+    private final Map<String, Object> additionalLogContext;
     private final FluencyLoggerPublisherConfig fluencyLoggerPublisherConfig;
 
     private DefaultLoggerPublisherConfig(final ConfigWithFallback config) {
         enabled = config.getBoolean(ConfigValue.ENABLED.getConfigPath());
+        logTag = config.getStringOrNull(ConfigValue.LOG_TAG);
+        additionalLogContext = config.getObject(ConfigValue.ADDITIONAL_LOG_CONTEXT.getConfigPath()).unwrapped();
         fluencyLoggerPublisherConfig = DefaultFluencyLoggerPublisherConfig.of(config);
     }
 
@@ -55,6 +61,16 @@ public final class DefaultLoggerPublisherConfig implements LoggerPublisherConfig
     }
 
     @Override
+    public Optional<String> getLogTag() {
+        return Optional.ofNullable(logTag);
+    }
+
+    @Override
+    public Map<String, Object> getAdditionalLogContext() {
+        return additionalLogContext;
+    }
+
+    @Override
     public FluencyLoggerPublisherConfig getFluencyLoggerPublisherConfig() {
         return fluencyLoggerPublisherConfig;
     }
@@ -69,18 +85,22 @@ public final class DefaultLoggerPublisherConfig implements LoggerPublisherConfig
         }
         final DefaultLoggerPublisherConfig that = (DefaultLoggerPublisherConfig) o;
         return enabled == that.enabled &&
+                Objects.equals(logTag, that.logTag) &&
+                Objects.equals(additionalLogContext, that.additionalLogContext) &&
                 Objects.equals(fluencyLoggerPublisherConfig, that.fluencyLoggerPublisherConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(enabled, fluencyLoggerPublisherConfig);
+        return Objects.hash(enabled, logTag, additionalLogContext, fluencyLoggerPublisherConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", enabled=" + enabled +
+                "enabled=" + enabled +
+                ", logTag=" + logTag +
+                ", additionalLogContext=" + additionalLogContext +
                 ", fluencyLoggerPublisherConfig=" + fluencyLoggerPublisherConfig +
                 "]";
     }
