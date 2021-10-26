@@ -19,6 +19,7 @@ import java.util.function.BiFunction;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
@@ -144,6 +145,7 @@ public final class CommandAndCommandResponseMatchingValidator
             // This should never ever happen in production as implementations
             // of Signal are supposed to have a valid type.
             throw UnsupportedSignalException.newBuilder(signal.getType())
+                    .httpStatus(HttpStatus.INTERNAL_SERVER_ERROR)
                     .dittoHeaders(signal.getDittoHeaders())
                     .description("The signal has an invalid type: " + e.getMessage())
                     .cause(e)
