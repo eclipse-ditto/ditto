@@ -91,6 +91,7 @@ public final class DefaultFluencyLoggerPublisherConfig implements FluencyLoggerP
     @Override
     public Fluency buildFluencyLoggerPublisher() {
         final FluencyBuilderForFluentd fluencyBuilderForFluentd = new FluencyBuilderForFluentd();
+
         fluencyBuilderForFluentd.setSslEnabled(sslEnabled);
         fluencyBuilderForFluentd.setConnectionTimeoutMilli((int) connectionTimeout.toMillis());
         fluencyBuilderForFluentd.setReadTimeoutMilli((int) readTimeout.toMillis());
@@ -107,6 +108,7 @@ public final class DefaultFluencyLoggerPublisherConfig implements FluencyLoggerP
         fluencyBuilderForFluentd.setSenderBaseRetryIntervalMillis((int) senderBaseRetryInterval.toMillis());
         fluencyBuilderForFluentd.setSenderMaxRetryIntervalMillis((int) senderMaxRetryInterval.toMillis());
         fluencyBuilderForFluentd.setAckResponseMode(ackResponseMode);
+
         return fluencyBuilderForFluentd.build(host, port);
     }
 
@@ -168,4 +170,5 @@ public final class DefaultFluencyLoggerPublisherConfig implements FluencyLoggerP
                 ", ackResponseMode=" + ackResponseMode +
                 "]";
     }
+
 }
