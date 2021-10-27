@@ -46,7 +46,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
     private static final Collection<String> SECURE_SCHEMES = List.of(HTTPS);
 
     private static final Collection<HttpMethod> SUPPORTED_METHODS =
-            List.of(HttpMethods.PUT, HttpMethods.PATCH, HttpMethods.POST, HttpMethods.GET);
+            List.of(HttpMethods.PUT, HttpMethods.PATCH, HttpMethods.POST, HttpMethods.GET, HttpMethods.DELETE);
 
     private static final String SUPPORTED_METHOD_NAMES = SUPPORTED_METHODS.stream()
             .map(HttpMethod::name)
