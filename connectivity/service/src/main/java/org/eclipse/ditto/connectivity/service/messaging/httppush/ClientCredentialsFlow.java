@@ -16,12 +16,16 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 import java.time.Duration;
 import java.time.Instant;
 
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.service.UriEncoding;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
+import org.eclipse.ditto.jwt.model.JwtInvalidException;
 
 import akka.NotUsed;
 import akka.http.javadsl.model.ContentTypes;
@@ -58,6 +62,12 @@ public final class ClientCredentialsFlow {
         this.maxClockSkew = maxClockSkew;
     }
 
+    /**
+     * Augment HTTP requests with OAuth2 bearer tokens.
+     *
+     * @param httpFlow Flow with which to send HTTP requests.
+     * @return The request-augmenting flow.
+     */
     public Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> withToken(
             final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?> httpFlow) {
 
@@ -100,11 +110,74 @@ public final class ClientCredentialsFlow {
         final HttpPushContext context = response -> {};
         return Source.single(Pair.create(tokenRequest, context))
                 .via(httpFlow)
-                .flatMapConcat(ClientCredentialsFlow::asJsonWebToken);
+                .flatMapConcat(this::asJsonWebToken);
     }
 
     private boolean shouldNotRefresh(final JsonWebToken jwt) {
         return maxClockSkew.minus(Duration.between(Instant.now(), jwt.getExpirationTime())).isNegative();
+    }
+
+    private Source<JsonWebToken, NotUsed> asJsonWebToken(final Pair<Try<HttpResponse>, HttpPushContext> pair) {
+        final var tryResponse = pair.first();
+        if (tryResponse.isFailure()) {
+            return Source.failed(convertException(tryResponse.failed().get()));
+        } else {
+            return parseJwt(tryResponse.get());
+        }
+    }
+
+    private Source<JsonWebToken, NotUsed> parseJwt(final HttpResponse response) {
+        final boolean areStatusAndContentTypeExpected = response.status().isSuccess() &&
+                response.entity().getContentType().equals(ContentTypes.APPLICATION_JSON);
+        if (areStatusAndContentTypeExpected) {
+            return response.entity()
+                    .getDataBytes()
+                    .fold(ByteString.emptyByteString(), ByteString::concat)
+                    .map(ByteString::utf8String)
+                    .flatMapConcat(this::extractJwt)
+                    .mapMaterializedValue(any -> NotUsed.getInstance());
+        } else {
+            final String description = String.format("Response status is <%d> and content type is <%s>.",
+                    response.status().intValue(), response.entity().getContentType());
+            return Source.failed(getJwtInvalidExceptionForResponse().description(description).build());
+        }
+    }
+
+    private Source<JsonWebToken, NotUsed> extractJwt(final String body) {
+        try {
+            final var json = JsonObject.of(body);
+            return Source.single(ImmutableJsonWebToken.fromToken(json.getValueOrThrow(ACCESS_TOKEN)));
+        } catch (final NullPointerException | IllegalArgumentException | JsonRuntimeException |
+                DittoRuntimeException e) {
+            final JwtInvalidException jwtInvalid;
+            if (e instanceof JwtInvalidException) {
+                jwtInvalid = (JwtInvalidException) e;
+            } else {
+                final var bodySummary = body.length() > 100 ? body.substring(0, 100) + "..." : body;
+                jwtInvalid = getJwtInvalidExceptionForResponse()
+                        .description(String.format("Response body: <%s>", bodySummary))
+                        .build();
+            }
+            return Source.failed(jwtInvalid);
+        }
+    }
+
+    private JwtInvalidException convertException(final Throwable error) {
+        if (error instanceof JwtInvalidException) {
+            return (JwtInvalidException) error;
+        } else {
+            return JwtInvalidException.newBuilder()
+                    .message(String.format("Request to token endpoint <%s> failed.", tokenRequest.getUri()))
+                    .description(
+                            String.format("Cause: %s: %s", error.getClass().getCanonicalName(), error.getMessage()))
+                    .build();
+        }
+    }
+
+    private DittoRuntimeExceptionBuilder<JwtInvalidException> getJwtInvalidExceptionForResponse() {
+        return JwtInvalidException.newBuilder()
+                .message(String.format("Received invalid JSON web token response from <%s>.", tokenRequest.getUri()))
+                .description("Please verify that the token endpoint and client credentials are correct.");
     }
 
     private static HttpRequest toTokenRequest(final String tokenEndpoint,
@@ -135,36 +208,5 @@ public final class ClientCredentialsFlow {
         final var augmentedRequest =
                 pair.first().first().addCredentials(HttpCredentials.createOAuth2BearerToken(jwt.getToken()));
         return Pair.create(augmentedRequest, context);
-    }
-
-    private static Source<JsonWebToken, NotUsed> asJsonWebToken(final Pair<Try<HttpResponse>, HttpPushContext> pair) {
-        final var tryResponse = pair.first();
-        if (tryResponse.isFailure()) {
-            return Source.failed(tryResponse.failed().get());
-        } else {
-            return parseJwt(tryResponse.get());
-        }
-    }
-
-    private static Source<JsonWebToken, NotUsed> parseJwt(final HttpResponse response) {
-        final boolean areStatusAndContentTypeExpected = response.status().isSuccess() &&
-                response.entity().getContentType().equals(ContentTypes.APPLICATION_JSON);
-        if (areStatusAndContentTypeExpected) {
-            return response.entity()
-                    .getDataBytes()
-                    .fold(ByteString.emptyByteString(), ByteString::concat)
-                    .map(ByteString::utf8String)
-                    .map(ClientCredentialsFlow::extractJwt)
-                    .mapMaterializedValue(any -> NotUsed.getInstance());
-        } else {
-            // TODO: use misconfiguration exception
-            return Source.failed(new IllegalStateException("Unexpected response from token endpoint"));
-        }
-    }
-
-    private static JsonWebToken extractJwt(final String body) {
-        // TODO: classify JSON exception as misconfiguration
-        final var json = JsonObject.of(body);
-        return ImmutableJsonWebToken.fromToken(json.getValueOrThrow(ACCESS_TOKEN));
     }
 }

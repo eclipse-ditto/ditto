@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -21,9 +22,11 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
+import org.eclipse.ditto.jwt.model.JwtInvalidException;
 import org.junit.After;
 import org.junit.Test;
 
@@ -151,6 +154,65 @@ public final class ClientCredentialsFlowTest {
         final var uniqueTokens = Set.copyOf(result);
         assertThat(uniqueTokens.size()).isEqualTo(tokens);
         assertThat(uniqueTokens).containsExactlyInAnyOrderElementsOf(result);
+    }
+
+    @Test
+    public void failedRequest() {
+        final var underTest = newClientCredentialsFlow(Duration.ZERO);
+        final var result = underTest.getSingleTokenSource(httpFlow).runWith(Sink.ignore(), actorSystem);
+        responseProbe.expectRequest();
+        responseProbe.sendNext(Try.apply(() -> {
+            throw new IllegalStateException("Expected error");
+        }));
+        assertThatExceptionOfType(CompletionException.class)
+                .isThrownBy(result.toCompletableFuture()::join)
+                .withCauseInstanceOf(JwtInvalidException.class);
+    }
+
+    @Test
+    public void incorrectStatusCode() {
+        final var underTest = newClientCredentialsFlow(Duration.ZERO);
+        final var result = underTest.getSingleTokenSource(httpFlow).runWith(Sink.ignore(), actorSystem);
+        responseProbe.expectRequest();
+        responseProbe.sendNext(Try.apply(() -> HttpResponse.create().withStatus(400)));
+        assertThatExceptionOfType(CompletionException.class)
+                .isThrownBy(result.toCompletableFuture()::join)
+                .withCauseInstanceOf(JwtInvalidException.class);
+    }
+
+    @Test
+    public void incorrectContentType() {
+        final var underTest = newClientCredentialsFlow(Duration.ZERO);
+        final var result = underTest.getSingleTokenSource(httpFlow).runWith(Sink.ignore(), actorSystem);
+        responseProbe.expectRequest();
+        responseProbe.sendNext(Try.apply(() -> HttpResponse.create().withStatus(200)
+                .withEntity(HttpEntities.create(ContentTypes.TEXT_PLAIN_UTF8, "hello world"))));
+        assertThatExceptionOfType(CompletionException.class)
+                .isThrownBy(result.toCompletableFuture()::join)
+                .withCauseInstanceOf(JwtInvalidException.class);
+    }
+
+    @Test
+    public void invalidJson() {
+        final var underTest = newClientCredentialsFlow(Duration.ZERO);
+        final var result = underTest.getSingleTokenSource(httpFlow).runWith(Sink.ignore(), actorSystem);
+        responseProbe.expectRequest();
+        responseProbe.sendNext(Try.apply(() -> HttpResponse.create().withStatus(200)
+                .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, "hello world"))));
+        assertThatExceptionOfType(CompletionException.class)
+                .isThrownBy(result.toCompletableFuture()::join)
+                .withCauseInstanceOf(JwtInvalidException.class);
+    }
+
+    @Test
+    public void invalidJwt() {
+        final var underTest = newClientCredentialsFlow(Duration.ZERO);
+        final var result = underTest.getSingleTokenSource(httpFlow).runWith(Sink.ignore(), actorSystem);
+        responseProbe.expectRequest();
+        responseProbe.sendNext(Try.apply(() -> getTokenResponse(Duration.ZERO, "one!.invalid!.token")));
+        assertThatExceptionOfType(CompletionException.class)
+                .isThrownBy(result.toCompletableFuture()::join)
+                .withCauseInstanceOf(JwtInvalidException.class);
     }
 
     private static ClientCredentialsFlow newClientCredentialsFlow(final Duration maxClockSkew) {
