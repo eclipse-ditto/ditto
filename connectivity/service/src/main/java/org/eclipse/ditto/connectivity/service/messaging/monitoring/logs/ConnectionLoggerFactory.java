@@ -16,6 +16,7 @@ package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.util.Collection;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -23,6 +24,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.LogCategory;
+import org.eclipse.ditto.connectivity.model.LogLevel;
 import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.komamitsu.fluency.Fluency;
@@ -98,6 +100,28 @@ final class ConnectionLoggerFactory {
     }
 
     /**
+     * Creates a new {@link FluentPublishingConnectionLoggerContext} used by
+     * {@link #newPublishingLogger(ConnectionId, LogCategory, LogType, String, FluentPublishingConnectionLoggerContext)}
+     * as connection static context information.
+     *
+     * @param fluencyForwarder the fluency forwarder for the logger.
+     * @param logLevels the log levels which should be included when publishing logs.
+     * @param logHeadersAndPayload whether to also include headers and payload information in published logs.
+     * @param logTag an optional log-tag to use and overwrite the default one: {@code connection:<connection-id>}
+     * @param additionalLogContext additional log context to include in each logged entry.
+     * @return a new fluent publishing connection logger context.
+     */
+    static FluentPublishingConnectionLoggerContext newPublishingLoggerContext(final Fluency fluencyForwarder,
+            final Collection<LogLevel> logLevels,
+            final boolean logHeadersAndPayload,
+            @Nullable final CharSequence logTag,
+            final Map<String, Object> additionalLogContext) {
+
+        return new FluentPublishingConnectionLoggerContext(fluencyForwarder, logLevels, logHeadersAndPayload,
+                logTag, additionalLogContext);
+    }
+
+    /**
      * Creates a new {@link FluentPublishingConnectionLogger} that is used to forward all connection logs to a fluentd
      * or fluentbit endpoint.
      *
@@ -105,24 +129,23 @@ final class ConnectionLoggerFactory {
      * @param logCategory the log category for which the logger is created.
      * @param logType the log type for which the logger is created.
      * @param address the address for which the logger is created.
-     * @param fluencyForwarder the fluency forwarder for the logger.
-     * @param logTag an optional log-tag to use and overwrite the default one: {@code connection:<connection-id>}
-     * @param additionalLogContext additional log context to include in each logged entry.
+     * @param context the connection static context information for creating the publishing connection logger.
      * @return a new fluent publishing connection logger instance.
      */
     static FluentPublishingConnectionLogger newPublishingLogger(final ConnectionId connectionId,
             final LogCategory logCategory, final LogType logType, @Nullable final String address,
-            final Fluency fluencyForwarder, @Nullable final CharSequence logTag,
-            final Map<String, Object> additionalLogContext) {
+            final FluentPublishingConnectionLoggerContext context) {
 
         final FluentPublishingConnectionLogger.Builder builder = FluentPublishingConnectionLogger
-                .newBuilder(connectionId, logCategory, logType, fluencyForwarder)
+                .newBuilder(connectionId, logCategory, logType, context.getFluencyForwarder())
                         .withAddress(address)
-                        .withAdditionalLogContext(additionalLogContext)
+                        .withAdditionalLogContext(context.getAdditionalLogContext())
+                        .withLogLevels(context.getLogLevels())
                         .withInstanceIdentifier(InstanceIdentifierSupplier.getInstance().get());
-        if (null != logTag) {
-            builder.withFluentTag(logTag);
+        if (context.isLogHeadersAndPayload()) {
+            builder.logHeadersAndPayload();
         }
+        context.getLogTag().ifPresent(builder::withFluentTag);
         return builder.build();
     }
 

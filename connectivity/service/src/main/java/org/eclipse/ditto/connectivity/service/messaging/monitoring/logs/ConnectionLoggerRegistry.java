@@ -74,9 +74,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     private final int failureCapacity;
     private final TemporalAmount loggingDuration;
     private final long maximumLogSizeInByte;
-    @Nullable private final Fluency fluencyForwarder;
-    @Nullable private final String logTag;
-    private final Map<String, Object> additionalLogContext;
+    @Nullable private final FluentPublishingConnectionLoggerContext fluentPublishingConnectionLoggerContext;
 
     private ConnectionLoggerRegistry(final int successCapacity,
             final int failureCapacity,
@@ -91,13 +89,15 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
 
         if (loggerPublisherConfig.isEnabled()) {
             final FluencyLoggerPublisherConfig fluencyConfig = loggerPublisherConfig.getFluencyLoggerPublisherConfig();
-            fluencyForwarder = fluencyConfig.buildFluencyLoggerPublisher();
-            logTag = loggerPublisherConfig.getLogTag().orElse(null);
-            additionalLogContext = Map.copyOf(loggerPublisherConfig.getAdditionalLogContext());
+            final Fluency fluency = fluencyConfig.buildFluencyLoggerPublisher();
+            fluentPublishingConnectionLoggerContext = ConnectionLoggerFactory.newPublishingLoggerContext(fluency,
+                    loggerPublisherConfig.getLogLevels(),
+                    loggerPublisherConfig.isLogHeadersAndPayload(),
+                    loggerPublisherConfig.getLogTag().orElse(null),
+                    loggerPublisherConfig.getAdditionalLogContext()
+            );
         } else {
-            fluencyForwarder = null;
-            logTag = null;
-            additionalLogContext = Map.of();
+            fluentPublishingConnectionLoggerContext = null;
         }
     }
 
@@ -480,9 +480,9 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         final MuteableConnectionLogger muteableLogger = ConnectionLoggerFactory.newMuteableLogger(
                 connectionId, evictingLogger);
 
-        if (null != fluencyForwarder) {
+        if (null != fluentPublishingConnectionLoggerContext) {
             final FluentPublishingConnectionLogger publishingLogger = ConnectionLoggerFactory.newPublishingLogger(
-                    connectionId, logCategory, logType, address, fluencyForwarder, logTag, additionalLogContext);
+                    connectionId, logCategory, logType, address, fluentPublishingConnectionLoggerContext);
             return new CompoundConnectionLogger(List.of(muteableLogger, publishingLogger));
         } else {
             return muteableLogger;
@@ -502,15 +502,13 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 failureCapacity == that.failureCapacity &&
                 maximumLogSizeInByte == that.maximumLogSizeInByte &&
                 Objects.equals(loggingDuration, that.loggingDuration) &&
-                Objects.equals(fluencyForwarder, that.fluencyForwarder) &&
-                Objects.equals(logTag, that.logTag) &&
-                Objects.equals(additionalLogContext, that.additionalLogContext);
+                Objects.equals(fluentPublishingConnectionLoggerContext, that.fluentPublishingConnectionLoggerContext);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(successCapacity, failureCapacity, loggingDuration, maximumLogSizeInByte, fluencyForwarder,
-                logTag, additionalLogContext);
+        return Objects.hash(successCapacity, failureCapacity, loggingDuration, maximumLogSizeInByte,
+                fluentPublishingConnectionLoggerContext);
     }
 
     @Override
@@ -520,9 +518,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 ", failureCapacity=" + failureCapacity +
                 ", loggingDuration=" + loggingDuration +
                 ", maximumLogSizeInByte=" + maximumLogSizeInByte +
-                ", fluencyForwarder=" + fluencyForwarder +
-                ", logTag=" + logTag +
-                ", additionalLogContext=" + additionalLogContext +
+                ", fluentPublishingConnectionLoggerContext=" + fluentPublishingConnectionLoggerContext +
                 "]";
     }
 

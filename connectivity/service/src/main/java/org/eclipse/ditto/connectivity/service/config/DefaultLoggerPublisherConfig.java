@@ -15,10 +15,14 @@ package org.eclipse.ditto.connectivity.service.config;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.connectivity.model.LogLevel;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 
 import com.typesafe.config.Config;
@@ -32,6 +36,8 @@ public final class DefaultLoggerPublisherConfig implements LoggerPublisherConfig
     private static final String CONFIG_PATH = "publisher";
 
     private final boolean enabled;
+    private final Set<LogLevel> logLevels;
+    private final boolean logHeadersAndPayload;
     @Nullable private final String logTag;
     private final Map<String, Object> additionalLogContext;
     private final FluencyLoggerPublisherConfig fluencyLoggerPublisherConfig;
@@ -39,6 +45,11 @@ public final class DefaultLoggerPublisherConfig implements LoggerPublisherConfig
     private DefaultLoggerPublisherConfig(final ConfigWithFallback config) {
         enabled = config.getBoolean(ConfigValue.ENABLED.getConfigPath());
         logTag = config.getStringOrNull(ConfigValue.LOG_TAG);
+        logLevels = Stream.of(config.getString(ConfigValue.LOG_LEVELS.getConfigPath()).split(","))
+                .map(LogLevel::forLevel)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toSet());
+        logHeadersAndPayload = config.getBoolean(ConfigValue.LOG_HEADERS_AND_PAYLOAD.getConfigPath());
         additionalLogContext = config.getObject(ConfigValue.ADDITIONAL_LOG_CONTEXT.getConfigPath()).unwrapped();
         fluencyLoggerPublisherConfig = DefaultFluencyLoggerPublisherConfig.of(config);
     }
@@ -58,6 +69,16 @@ public final class DefaultLoggerPublisherConfig implements LoggerPublisherConfig
     @Override
     public boolean isEnabled() {
         return enabled;
+    }
+
+    @Override
+    public Set<LogLevel> getLogLevels() {
+        return logLevels;
+    }
+
+    @Override
+    public boolean isLogHeadersAndPayload() {
+        return logHeadersAndPayload;
     }
 
     @Override
@@ -85,6 +106,8 @@ public final class DefaultLoggerPublisherConfig implements LoggerPublisherConfig
         }
         final DefaultLoggerPublisherConfig that = (DefaultLoggerPublisherConfig) o;
         return enabled == that.enabled &&
+                Objects.equals(logLevels, that.logLevels) &&
+                logHeadersAndPayload == that.logHeadersAndPayload &&
                 Objects.equals(logTag, that.logTag) &&
                 Objects.equals(additionalLogContext, that.additionalLogContext) &&
                 Objects.equals(fluencyLoggerPublisherConfig, that.fluencyLoggerPublisherConfig);
@@ -92,14 +115,17 @@ public final class DefaultLoggerPublisherConfig implements LoggerPublisherConfig
 
     @Override
     public int hashCode() {
-        return Objects.hash(enabled, logTag, additionalLogContext, fluencyLoggerPublisherConfig);
+        return Objects.hash(enabled, logLevels, logTag, logHeadersAndPayload, additionalLogContext,
+                fluencyLoggerPublisherConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "enabled=" + enabled +
+                ", logLevels=" + logLevels +
                 ", logTag=" + logTag +
+                ", logHeadersAndPayload=" + logHeadersAndPayload +
                 ", additionalLogContext=" + additionalLogContext +
                 ", fluencyLoggerPublisherConfig=" + fluencyLoggerPublisherConfig +
                 "]";

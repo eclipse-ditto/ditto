@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -64,6 +65,7 @@ final class FluentPublishingConnectionLogger
 
     private final ConnectionId connectionId;
     private final String fluentTag;
+    private final Set<LogLevel> logLevels;
     private final Fluency fluencyForwarder;
     private final Map<String, Object> additionalLogContext;
     @Nullable private final String instanceIdentifier;
@@ -72,6 +74,7 @@ final class FluentPublishingConnectionLogger
         super(builder);
         connectionId = builder.connectionId;
         fluentTag = builder.fluentTag;
+        logLevels = builder.logLevels;
         fluencyForwarder = builder.fluencyForwarder;
         additionalLogContext = Map.copyOf(builder.additionalLogContext);
         instanceIdentifier = builder.instanceIdentifier;
@@ -123,42 +126,48 @@ final class FluentPublishingConnectionLogger
     }
 
     private void emitLogEntry(final ConnectionMonitor.InfoProvider infoProvider, final String message,
-            final Object[] messageArguments, final LogLevel failure) {
+            final Object[] messageArguments, final LogLevel logLevel) {
         final String formattedMessage = formatMessage(infoProvider, message, messageArguments);
-        emitLogEntry(getLogEntry(infoProvider, formattedMessage, failure));
+        emitLogEntry(getLogEntry(infoProvider, formattedMessage, logLevel));
     }
 
     private void emitLogEntry(final LogEntry logEntry) {
-        try {
-            final Instant timestamp = logEntry.getTimestamp();
-            final EventTime eventTime = EventTime.fromEpoch(timestamp.getEpochSecond(), timestamp.getNano());
+        if (logLevels.contains(logEntry.getLogLevel())) {
+            try {
+                final Instant timestamp = logEntry.getTimestamp();
+                final EventTime eventTime = EventTime.fromEpoch(timestamp.getEpochSecond(), timestamp.getNano());
 
-            final Map<String, Object> logMap = new LinkedHashMap<>();
-            logMap.put(TAG_CONNECTION_ID, connectionId.toString());
-            logMap.put(TAG_LEVEL, logEntry.getLogLevel().toString());
-            logMap.put(TAG_CATEGORY, logEntry.getLogCategory().toString());
-            logMap.put(TAG_TYPE, logEntry.getLogType().toString());
-            logMap.put(TAG_CORRELATION_ID, logEntry.getCorrelationId());
-            logEntry.getAddress().ifPresent(address -> logMap.put(TAG_ADDRESS, address));
-            logEntry.getEntityId().ifPresent(entityId -> {
-                logMap.put(TAG_ENTITY_TYPE, entityId.getEntityType().toString());
-                logMap.put(TAG_ENTITY_ID, entityId.toString());
-            });
-            logMap.put(TAG_MESSAGE, logEntry.getMessage());
-            if (null != instanceIdentifier) {
-                logMap.put(TAG_INSTANCE_ID, instanceIdentifier);
+                final Map<String, Object> logMap = new LinkedHashMap<>();
+                logMap.put(TAG_CONNECTION_ID, connectionId.toString());
+                logMap.put(TAG_LEVEL, logEntry.getLogLevel().toString());
+                logMap.put(TAG_CATEGORY, logEntry.getLogCategory().toString());
+                logMap.put(TAG_TYPE, logEntry.getLogType().toString());
+                logMap.put(TAG_CORRELATION_ID, logEntry.getCorrelationId());
+                logEntry.getAddress().ifPresent(address -> logMap.put(TAG_ADDRESS, address));
+                logEntry.getEntityId().ifPresent(entityId -> {
+                    logMap.put(TAG_ENTITY_TYPE, entityId.getEntityType().toString());
+                    logMap.put(TAG_ENTITY_ID, entityId.toString());
+                });
+                logMap.put(TAG_MESSAGE, logEntry.getMessage());
+                if (null != instanceIdentifier) {
+                    logMap.put(TAG_INSTANCE_ID, instanceIdentifier);
+                }
+                logMap.putAll(additionalLogContext);
+
+                fluencyForwarder.emit(fluentTag, eventTime, logMap);
+            } catch (final BufferFullException e) {
+                LOGGER.withCorrelationId(logEntry.getCorrelationId())
+                        .error("Got BufferFullException when trying to emit further connection log entries to fluentd: {}",
+                                e.getMessage());
+            } catch (final IOException e) {
+                LOGGER.withCorrelationId(logEntry.getCorrelationId())
+                        .error("Got IOException when trying to emit further connection log entries to fluentd: <{}>: {}",
+                                e.getClass().getSimpleName(), e.getMessage());
             }
-            logMap.putAll(additionalLogContext);
-
-            fluencyForwarder.emit(fluentTag, eventTime, logMap);
-        } catch (final BufferFullException e) {
+        } else {
             LOGGER.withCorrelationId(logEntry.getCorrelationId())
-                    .error("Got BufferFullException when trying to emit further connection log entries to fluentd: {}",
-                            e.getMessage());
-        } catch (final IOException e) {
-            LOGGER.withCorrelationId(logEntry.getCorrelationId())
-                    .error("Got IOException when trying to emit further connection log entries to fluentd: <{}>: {}",
-                            e.getClass().getSimpleName(), e.getMessage());
+                    .debug("Not emitting log entry with logLevel <{}> as the configured logLevels contained: <{}>",
+                            logEntry.getLogLevel(), logLevels);
         }
     }
 
@@ -174,6 +183,7 @@ final class FluentPublishingConnectionLogger
         final FluentPublishingConnectionLogger that = (FluentPublishingConnectionLogger) o;
         return Objects.equals(connectionId, that.connectionId) &&
                 Objects.equals(fluentTag, that.fluentTag) &&
+                Objects.equals(logLevels, that.logLevels) &&
                 Objects.equals(fluencyForwarder, that.fluencyForwarder) &&
                 Objects.equals(additionalLogContext, that.additionalLogContext) &&
                 Objects.equals(instanceIdentifier, that.instanceIdentifier);
@@ -181,8 +191,8 @@ final class FluentPublishingConnectionLogger
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connectionId, fluentTag, fluencyForwarder, additionalLogContext,
-                instanceIdentifier);
+        return Objects.hash(super.hashCode(), connectionId, fluentTag, logLevels, fluencyForwarder,
+                additionalLogContext, instanceIdentifier);
     }
 
     @Override
@@ -190,6 +200,7 @@ final class FluentPublishingConnectionLogger
         return getClass().getSimpleName() + " [" + super.toString() +
                 ", connectionId=" + connectionId +
                 ", fluentTag=" + fluentTag +
+                ", logLevels=" + logLevels +
                 ", fluencyForwarder=" + fluencyForwarder +
                 ", additionalLogContext=" + additionalLogContext +
                 ", instanceIdentifier=" + instanceIdentifier +
@@ -206,6 +217,7 @@ final class FluentPublishingConnectionLogger
 
         final ConnectionId connectionId;
         String fluentTag;
+        Set<LogLevel> logLevels;
         final Fluency fluencyForwarder;
         Map<String, Object> additionalLogContext;
         @Nullable String instanceIdentifier;
@@ -230,6 +242,18 @@ final class FluentPublishingConnectionLogger
          */
         Builder withFluentTag(final CharSequence fluentTag) {
             this.fluentTag = checkNotNull(fluentTag, "fluentTag").toString();
+            return this;
+        }
+
+        /**
+         * Use the provided {@code logLevels}, only log entries in those levels will be published.
+         *
+         * @param logLevels the log levels to include for the log publishing.
+         * @return the builder for method chaining.
+         * @throws NullPointerException if the passed {@code logLevel} was {@code null}.
+         */
+        Builder withLogLevels(final Collection<LogLevel> logLevels) {
+            this.logLevels = Set.copyOf(checkNotNull(logLevels, "logLevels"));
             return this;
         }
 

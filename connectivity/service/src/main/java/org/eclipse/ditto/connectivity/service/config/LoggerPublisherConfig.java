@@ -14,10 +14,12 @@ package org.eclipse.ditto.connectivity.service.config;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.connectivity.model.LogLevel;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 /**
@@ -29,9 +31,23 @@ public interface LoggerPublisherConfig {
     /**
      * Indicates whether publishing connection logs to a fluentd/fluentbit endpoint should be enabled.
      *
-     * @return {@code true} if connection logs should be published, {@code false} else.
+     * @return {@code true} if connection logs should be published.
      */
     boolean isEnabled();
+
+    /**
+     * Returns the log levels to include for the publisher logs.
+     *
+     * @return the log levels to include for the publisher logs.
+     */
+    Set<LogLevel> getLogLevels();
+
+    /**
+     * Indicates whether the published log entries should contain headers and payloads if those were available.
+     *
+     * @return {@code true} if published connection logs should contain headers and payloads.
+     */
+    boolean isLogHeadersAndPayload();
 
     /**
      * Returns a specific log-tag to use for the published logs. If empty, a default log-tag will be used:
@@ -65,6 +81,16 @@ public interface LoggerPublisherConfig {
          * Whether publishing to fluentd/fluentbit publishing is enabled.
          */
         ENABLED("enabled", false),
+
+        /**
+         * The log levels to include for the publisher logs.
+         */
+        LOG_LEVELS("logLevels", LogLevel.SUCCESS.getLevel() + "," + LogLevel.FAILURE.getLevel()),
+
+        /**
+         * Whether to log headers and payload for publisher logs.
+         */
+        LOG_HEADERS_AND_PAYLOAD("logHeadersAndPayload", false),
 
         /**
          * The optional specific log-tag to use for published logs.
