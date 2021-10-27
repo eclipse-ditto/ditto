@@ -115,7 +115,7 @@ public final class HttpPushValidatorTest {
     public void testInvalidTargetAddress() {
         verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget(""));
         verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("events"));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("DELETE:/bar"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("OPTIONS:/bar"));
     }
 
     private static Connection getConnectionWithTarget(final String target) {
