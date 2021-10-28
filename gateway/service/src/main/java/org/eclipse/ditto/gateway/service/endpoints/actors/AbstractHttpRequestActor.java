@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
@@ -55,6 +57,8 @@ import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandResponseMatchingValidator;
+import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.JsonValueSourceRef;
@@ -110,8 +114,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private final CommandConfig commandConfig;
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     @Nullable private Uri responseLocationUri;
-
-    @Nullable private DittoHeaders incomingCommandHeaders = null;
+    private Command<?> receivedCommand;
 
     protected AbstractHttpRequestActor(final ActorRef proxyActor,
             final HeaderTranslator headerTranslator,
@@ -133,6 +136,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 MessageCommandAckRequestSetter.getInstance());
 
         responseLocationUri = null;
+        receivedCommand = null;
         getContext().setReceiveTimeout(httpConfig.getRequestTimeout());
     }
 
@@ -178,17 +182,17 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private void handleCommand(final Command<?> command) {
         try {
             logger.setCorrelationId(command);
-            incomingCommandHeaders = command.getDittoHeaders();
+            receivedCommand = command;
             ackregatorStarter.start(command,
                     this::onAggregatedResponseOrError,
                     this::handleCommandWithAckregator,
                     this::handleCommandWithoutAckregator
             );
-            final Receive responseBehavior = ReceiveBuilder.create()
+            final var responseBehavior = ReceiveBuilder.create()
                     .match(Acknowledgements.class, this::completeAcknowledgements)
                     .build();
-            getContext().become(
-                    responseBehavior.orElse(getResponseAwaitingBehavior(getTimeoutExceptionSupplier(command))));
+            final var context = getContext();
+            context.become(responseBehavior.orElse(getResponseAwaitingBehavior(getTimeoutExceptionSupplier(command))));
         } catch (final DittoRuntimeException e) {
             handleDittoRuntimeException(e);
         }
@@ -242,10 +246,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     getUriForLocationHeader(httpRequest, optionalEntityId.get(), commandResponse.getResourcePath());
             logger.debug("Setting responseLocationUri=<{}> from request <{}>", responseLocationUri, httpRequest);
         }
-    }
-
-    private DittoHeaders getExternalHeaders(final DittoHeaders dittoHeaders) {
-        return DittoHeaders.of(headerTranslator.toExternalAndRetainKnownHeaders(dittoHeaders));
     }
 
     private void handleWhoami(final Whoami command) {
@@ -302,36 +302,25 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
                 // If an actor downstream replies with an HTTP response, simply forward it.
                 .match(HttpResponse.class, this::completeWithResult)
-                .match(MessageCommandResponse.class, cmd -> completeWithResult(handleMessageResponseMessage(cmd)))
-                .match(CommandResponse.class, cR -> cR instanceof WithEntity, commandResponse -> {
+                .match(MessageCommandResponse.class,
+                        messageCommandResponse -> completeWithResult(handleMessageResponseMessage(messageCommandResponse)))
+                .match(CommandResponse.class, WithEntity.class::isInstance, commandResponse -> {
                     logger.withCorrelationId(commandResponse).debug("Got <{}> message.", commandResponse.getType());
-                    rememberResponseLocationUri(commandResponse);
-
-                    final WithEntity<?> withEntity = (WithEntity<?>) commandResponse;
-
-                    final var responseWithoutHeaders = createHttpResponse(commandResponse.getHttpStatus());
-                    final HttpResponse responseWithoutBody = enhanceResponseWithExternalDittoHeaders(
-                            responseWithoutHeaders, commandResponse.getDittoHeaders());
-
-                    final Optional<String> entityPlainStringOptional = withEntity.getEntityPlainString();
-                    final ContentType contentType = getContentType(commandResponse.getDittoHeaders());
-                    final HttpResponse response;
-                    if (entityPlainStringOptional.isPresent()) {
-                        response = addEntityAccordingToContentType(responseWithoutBody,
-                                entityPlainStringOptional.get(), contentType);
+                    final var matchingValidationResult = validateResponse(commandResponse);
+                    if (matchingValidationResult.isSuccess()) {
+                        handleCommandResponseWithEntity(commandResponse);
                     } else {
-                        response = addEntityAccordingToContentType(responseWithoutBody,
-                                withEntity.getEntity(commandResponse.getImplementedSchemaVersion()).toString(),
-                                contentType);
+                        handleMatchingValidationResultFailure(matchingValidationResult, commandResponse);
                     }
-                    completeWithResult(response);
                 })
-                .match(CommandResponse.class, cR -> cR instanceof WithOptionalEntity, commandResponse -> {
+                .match(CommandResponse.class, WithOptionalEntity.class::isInstance, commandResponse -> {
                     logger.withCorrelationId(commandResponse).debug("Got <{}> message.", commandResponse.getType());
-                    rememberResponseLocationUri(commandResponse);
-                    completeWithResult(
-                            createCommandResponse(commandResponse.getDittoHeaders(), commandResponse.getHttpStatus(),
-                                    (WithOptionalEntity) commandResponse));
+                    final var matchingValidationResult = validateResponse(commandResponse);
+                    if (matchingValidationResult.isSuccess()) {
+                        handleCommandResponseWithOptionalEntity(commandResponse);
+                    } else {
+                        handleMatchingValidationResultFailure(matchingValidationResult, commandResponse);
+                    }
                 })
                 .match(ErrorResponse.class,
                         errorResponse -> handleDittoRuntimeException(errorResponse.getDittoRuntimeException()))
@@ -366,6 +355,72 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     completeWithResult(createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR));
                 })
                 .build();
+    }
+
+    private MatchingValidationResult validateResponse(final CommandResponse<?> commandResponse) {
+        final MatchingValidationResult result;
+        if (isLiveChannel(commandResponse.getDittoHeaders())) {
+            result = validateLiveResponse(commandResponse);
+        } else {
+
+            // Non-live responses are supposed to be valid as they are generated by Ditto itself.
+            result = MatchingValidationResult.success();
+        }
+        return result;
+    }
+
+    private static boolean isLiveChannel(final DittoHeaders signalDittoHeaders) {
+        return signalDittoHeaders.getChannel()
+                .filter("live"::equals)
+                .isPresent();
+    }
+
+    private MatchingValidationResult validateLiveResponse(final CommandResponse<?> commandResponse) {
+        final var responseMatchingValidator = CommandAndCommandResponseMatchingValidator.getInstance();
+        return responseMatchingValidator.apply(receivedCommand, commandResponse);
+    }
+
+    private void handleMatchingValidationResultFailure(final MatchingValidationResult matchingValidationResult,
+            final CommandResponse<?> commandResponse) {
+
+        final var unsupportedSignalException = UnsupportedSignalException.newBuilder(commandResponse.getType())
+                .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+                .dittoHeaders(commandResponse.getDittoHeaders())
+                .message(matchingValidationResult.getDetailMessageOrThrow())
+                .build();
+
+        final var sender = getSender();
+        sender.tell(unsupportedSignalException, getSelf());
+    }
+
+    private void handleCommandResponseWithEntity(final CommandResponse<?> commandResponse) {
+        rememberResponseLocationUri(commandResponse);
+
+        final var withEntity = (WithEntity<?>) commandResponse;
+
+        final var responseWithoutHeaders = createHttpResponse(commandResponse.getHttpStatus());
+        final var responseWithoutBody = enhanceResponseWithExternalDittoHeaders(responseWithoutHeaders,
+                commandResponse.getDittoHeaders());
+
+        final var entityPlainStringOptional = withEntity.getEntityPlainString();
+        final var contentType = getContentType(commandResponse.getDittoHeaders());
+        final HttpResponse response;
+        if (entityPlainStringOptional.isPresent()) {
+            response = addEntityAccordingToContentType(responseWithoutBody,
+                    entityPlainStringOptional.get(), contentType);
+        } else {
+            response = addEntityAccordingToContentType(responseWithoutBody,
+                    withEntity.getEntity(commandResponse.getImplementedSchemaVersion()).toString(),
+                    contentType);
+        }
+        completeWithResult(response);
+    }
+
+    private void handleCommandResponseWithOptionalEntity(final CommandResponse<?> commandResponse) {
+        rememberResponseLocationUri(commandResponse);
+        completeWithResult(createCommandResponse(commandResponse.getDittoHeaders(),
+                commandResponse.getHttpStatus(),
+                (WithOptionalEntity) commandResponse));
     }
 
     private HttpResponse handleMessageResponseMessage(final MessageCommandResponse<?, ?> messageCommandResponse) {
@@ -455,27 +510,34 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private HttpResponse enhanceResponseWithExternalDittoHeaders(final HttpResponse response,
             final DittoHeaders allDittoHeaders) {
 
-        final DittoDiagnosticLoggingAdapter l = logger.withCorrelationId(allDittoHeaders);
-        final Map<String, String> externalHeaders = getExternalHeaders(allDittoHeaders);
+        final HttpResponse result;
 
+        final var externalHeaders = headerTranslator.toExternalAndRetainKnownHeaders(allDittoHeaders);
+        final var l = logger.withCorrelationId(allDittoHeaders);
         if (externalHeaders.isEmpty()) {
             l.debug("No external headers for enhancing the response, returning it as-is.");
-            return response;
+            result = response;
+        } else {
+            l.debug("Enhancing response with external headers <{}>.", externalHeaders);
+            final var externalHeadersEntries = externalHeaders.entrySet();
+
+            /*
+             * Content type is set by the entity.
+             * See response.entity().getContentType().
+             * If we set it here this will cause a WARN log.
+             */
+            final Predicate<Map.Entry<String, String>> isContentType = headerEntry -> {
+                final var headerName = headerEntry.getKey();
+                return headerName.equalsIgnoreCase(DittoHeaderDefinition.CONTENT_TYPE.getKey());
+            };
+            final List<HttpHeader> externalHttpHeaders = externalHeadersEntries.stream()
+                    .filter(Predicate.not(isContentType))
+                    .map(entry -> RawHeader.create(entry.getKey(), entry.getValue()))
+                    .collect(Collectors.toList());
+            result = response.withHeaders(externalHttpHeaders);
         }
 
-        l.debug("Enhancing response with external headers <{}>.", externalHeaders);
-        final List<HttpHeader> externalHttpHeaders = externalHeaders
-                .entrySet()
-                .stream()
-                /*
-                 * Content type is set by the entity. See response.entity().getContentType().
-                 * If we set it here this will cause a WARN log.
-                 */
-                .filter(entry -> !entry.getKey().equalsIgnoreCase(DittoHeaderDefinition.CONTENT_TYPE.getKey()))
-                .map(entry -> RawHeader.create(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
-
-        return response.withHeaders(externalHttpHeaders);
+        return result;
     }
 
     private void completeWithResult(final HttpResponse response) {
@@ -590,7 +652,14 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private boolean isResponseRequired() {
-        return incomingCommandHeaders == null || incomingCommandHeaders.isResponseRequired();
+        final boolean result;
+        if (null != receivedCommand) {
+            final var commandDittoHeaders = receivedCommand.getDittoHeaders();
+            result = commandDittoHeaders.isResponseRequired();
+        } else {
+            result = true;
+        }
+        return result;
     }
 
     private Acknowledgement setResponseLocationForAcknowledgement(final Acknowledgement acknowledgement) {
@@ -616,7 +685,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         logger.debug("Received <{}> from <{}>.", jsonValueSourceRef.getClass().getSimpleName(), getSender());
         final var jsonValueSourceToHttpResponse = JsonValueSourceToHttpResponse.getInstance();
         final var httpResponse = jsonValueSourceToHttpResponse.apply(jsonValueSourceRef.getSource());
-        enhanceResponseWithExternalDittoHeaders(httpResponse, incomingCommandHeaders);
+        enhanceResponseWithExternalDittoHeaders(httpResponse, receivedCommand.getDittoHeaders());
         completeWithResult(httpResponse);
     }
 

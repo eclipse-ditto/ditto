@@ -30,7 +30,10 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.service.config.http.DefaultHttpProxyConfig;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RootRouteExceptionHandler;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.DittoJwtAuthorizationSubjectsProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthorizationSubjectsProviderFactory;
@@ -53,11 +56,6 @@ import org.eclipse.ditto.gateway.service.util.config.security.AuthenticationConf
 import org.eclipse.ditto.gateway.service.util.config.security.DefaultAuthenticationConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.gateway.service.endpoints.routes.RootRouteExceptionHandler;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -65,6 +63,10 @@ import org.eclipse.ditto.internal.utils.health.StatusInfo;
 import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.internal.utils.protocol.config.DefaultProtocolConfig;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.junit.BeforeClass;
@@ -164,6 +166,14 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
      */
     protected ActorRef createDummyResponseActor(final Function<Object, Optional<Object>> responseProvider) {
         return system().actorOf(DummyResponseAnswer.props(responseProvider));
+    }
+
+    protected <T extends Command<?>> ActorRef startEchoActor(
+            final Class<? extends T> commandClass,
+            final Function<T, ? extends CommandResponse<?>> responseFactory
+    ) {
+        final var actorSystem = system();
+        return actorSystem.actorOf(EchoActor.props(commandClass, responseFactory));
     }
 
     protected Supplier<ClusterStatus> createClusterStatusSupplierMock() {
@@ -279,6 +289,34 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         @Override
         public ThingId getEntityId() {
             return EndpointTestConstants.KNOWN_THING_ID;
+        }
+
+    }
+
+    private static final class EchoActor<T> extends AbstractActor {
+
+        private final Class<T> handledMessageType;
+        private final Function<T, ?> responseFactory;
+
+        private EchoActor(final Class<T> handledMessageType, final Function<T, ?> responseFactory) {
+            this.handledMessageType = handledMessageType;
+            this.responseFactory = responseFactory;
+        }
+
+        private static <T> Props props(final Class<? extends T> handledMessageType,
+                final Function<? extends T, ?> responseFunction) {
+
+            return Props.create(EchoActor.class, handledMessageType, responseFunction);
+        }
+
+        @Override
+        public Receive createReceive() {
+            return ReceiveBuilder.create()
+                    .match(handledMessageType, message -> {
+                        final var sender = getSender();
+                        sender.tell(responseFactory.apply(message), getSelf());
+                    })
+                    .build();
         }
 
     }

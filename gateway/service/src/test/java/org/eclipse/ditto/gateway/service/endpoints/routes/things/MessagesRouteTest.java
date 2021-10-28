@@ -18,24 +18,34 @@ import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.
 import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.KNOWN_THING_ID;
 import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
+import java.nio.ByteBuffer;
+
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessage;
+import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessageResponse;
+import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessage;
+import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessageResponse;
+import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
+import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
-import akka.actor.ActorSystem;
+import com.google.common.base.Charsets;
+
+import akka.actor.ActorRef;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.TestRoute;
 import akka.http.javadsl.testkit.TestRouteResult;
 
@@ -49,47 +59,65 @@ public final class MessagesRouteTest extends EndpointTestBase {
     private static final String INBOX_MESSAGES_PATH = INBOX_PATH + "/" + MessagesRoute.PATH_MESSAGES;
     private static final String INBOX_MESSAGES_SUBJECT_PATH =
             INBOX_MESSAGES_PATH + "/" + EndpointTestConstants.KNOWN_SUBJECT;
-    private static final String INBOX_MESSAGES_SUBJECT_WITH_SLASHES_PATH = INBOX_MESSAGES_PATH + "/" +
-            KNOWN_SUBJECT_WITH_SLASHES;
+    private static final String INBOX_MESSAGES_SUBJECT_WITH_SLASHES_PATH =
+            INBOX_MESSAGES_PATH + "/" + KNOWN_SUBJECT_WITH_SLASHES;
     private static final String OUTBOX_PATH = "/" + MessagesRoute.PATH_OUTBOX;
     private static final String OUTBOX_MESSAGES_PATH = OUTBOX_PATH + "/" + MessagesRoute.PATH_MESSAGES;
     private static final String OUTBOX_MESSAGES_SUBJECT_PATH =
             OUTBOX_MESSAGES_PATH + "/" + EndpointTestConstants.KNOWN_SUBJECT;
-    private static final String OUTBOX_MESSAGES_SUBJECT_WITH_SLASHES_PATH = OUTBOX_MESSAGES_PATH + "/" +
-            KNOWN_SUBJECT_WITH_SLASHES;
+    private static final String OUTBOX_MESSAGES_SUBJECT_WITH_SLASHES_PATH =
+            OUTBOX_MESSAGES_PATH + "/" + KNOWN_SUBJECT_WITH_SLASHES;
     private static final String MESSAGE_PAYLOAD = "bumlux";
 
     @Rule
-    public final TestName testName = new TestName();
+    public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
 
-    private MessagesRoute messagesRoute;
-
+    private DittoHeaders dittoHeaders;
     private TestRoute thingsMessagesTestRoute;
     private TestRoute featuresMessagesTestRoute;
 
     @Before
     public void setUp() {
-        final ActorSystem actorSystem = system();
-        final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
+        dittoHeaders = DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
+        final var messagesRoute = getMessagesRoute(createDummyResponseActor());
+        thingsMessagesTestRoute = getThingsMessagesTestRoute(messagesRoute, dittoHeaders);
+        featuresMessagesTestRoute = getFeaturesMessagesTestRoute(messagesRoute, dittoHeaders);
+    }
 
-        messagesRoute = new MessagesRoute(createDummyResponseActor(), actorSystem, httpConfig, commandConfig,
-                messageConfig, claimMessageConfig, adapterProvider.getHttpHeaderTranslator());
+    private MessagesRoute getMessagesRoute(final ActorRef proxyActorRef) {
+        final var actorSystem = system();
+        final var adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
 
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-        final Route thingsMessagesRoute = extractRequestContext(
-                ctx -> messagesRoute.buildThingsInboxOutboxRoute(ctx, dittoHeaders, KNOWN_THING_ID));
-        thingsMessagesTestRoute = testRoute(thingsMessagesRoute);
-        final Route featuresMessagesRoute = extractRequestContext(
-                ctx -> messagesRoute.buildFeaturesInboxOutboxRoute(ctx, dittoHeaders, KNOWN_THING_ID,
-                        KNOWN_FEATURE_ID));
-        featuresMessagesTestRoute = testRoute(featuresMessagesRoute);
+        return new MessagesRoute(proxyActorRef,
+                actorSystem,
+                httpConfig,
+                commandConfig,
+                messageConfig,
+                claimMessageConfig,
+                adapterProvider.getHttpHeaderTranslator());
+    }
+
+    private TestRoute getThingsMessagesTestRoute(final MessagesRoute messagesRoute, final DittoHeaders dittoHeaders) {
+        return testRoute(extractRequestContext(ctx -> messagesRoute.buildThingsInboxOutboxRoute(ctx,
+                dittoHeaders,
+                KNOWN_THING_ID)));
+    }
+
+    private TestRoute getFeaturesMessagesTestRoute(final MessagesRoute messagesRoute, final DittoHeaders dittoHeaders) {
+        return testRoute(extractRequestContext(ctx -> messagesRoute.buildFeaturesInboxOutboxRoute(ctx,
+                dittoHeaders,
+                KNOWN_THING_ID,
+                KNOWN_FEATURE_ID)));
     }
 
     @Test
     public void postThingsClaimMessage() {
-        final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(INBOX_CLAIM_PATH)
-                .withEntity(MESSAGE_PAYLOAD));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        final var underTest =
+                getThingsMessagesTestRoute(getMessagesRoute(getClaimMessageCommandEchoActor()), dittoHeaders);
+
+        final var result = underTest.run(HttpRequest.POST(INBOX_CLAIM_PATH).withEntity(MESSAGE_PAYLOAD));
+
+        result.assertStatusCode(StatusCodes.OK);
         assertMessageCommandHasPayload(result, MESSAGE_PAYLOAD);
     }
 
@@ -101,24 +129,35 @@ public final class MessagesRouteTest extends EndpointTestBase {
 
     @Test
     public void postThingsClaimMessageWithTimeout() {
-        final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(INBOX_CLAIM_PATH + "?" +
-                DittoHeaderDefinition.TIMEOUT.getKey() + "=" + 42));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        final var underTest =
+                getThingsMessagesTestRoute(getMessagesRoute(getClaimMessageCommandEchoActor()), dittoHeaders);
+
+        final var result = underTest.run(
+                HttpRequest.POST(INBOX_CLAIM_PATH + "?" + DittoHeaderDefinition.TIMEOUT.getKey() + "=" + 42)
+        );
+
+        result.assertStatusCode(StatusCodes.OK);
     }
 
     @Test
     public void postThingsInboxMessage() {
-        final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_PATH)
-                .withEntity(MESSAGE_PAYLOAD));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        final var underTest =
+                getThingsMessagesTestRoute(getMessagesRoute(getSendThingMessageCommandEchoActor()), dittoHeaders);
+
+        final var result = underTest.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_PATH).withEntity(MESSAGE_PAYLOAD));
+
+        result.assertStatusCode(StatusCodes.OK);
         assertMessageCommandHasPayload(result, MESSAGE_PAYLOAD);
     }
 
     @Test
     public void postThingsInboxMessageWithSlashesInSubject() {
-        final TestRouteResult result =
-                thingsMessagesTestRoute.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_WITH_SLASHES_PATH));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        final var underTest =
+                getThingsMessagesTestRoute(getMessagesRoute(getSendThingMessageCommandEchoActor()), dittoHeaders);
+
+        final var result = underTest.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_WITH_SLASHES_PATH));
+
+        result.assertStatusCode(StatusCodes.OK);
     }
 
     @Test
@@ -129,17 +168,23 @@ public final class MessagesRouteTest extends EndpointTestBase {
 
     @Test
     public void postThingsOutboxMessage() {
-        final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_PATH)
-                .withEntity(MESSAGE_PAYLOAD));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        final var underTest =
+                getThingsMessagesTestRoute(getMessagesRoute(getSendThingMessageCommandEchoActor()), dittoHeaders);
+
+        final var result = underTest.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_PATH).withEntity(MESSAGE_PAYLOAD));
+
+        result.assertStatusCode(StatusCodes.OK);
         assertMessageCommandHasPayload(result, MESSAGE_PAYLOAD);
     }
 
     @Test
     public void postThingsOutboxMessageWithSlashesInSubject() {
-        final TestRouteResult result =
-                thingsMessagesTestRoute.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_WITH_SLASHES_PATH));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        final var underTest =
+                getThingsMessagesTestRoute(getMessagesRoute(getSendThingMessageCommandEchoActor()), dittoHeaders);
+
+        final var result = underTest.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_WITH_SLASHES_PATH));
+
+        result.assertStatusCode(StatusCodes.OK);
     }
 
     @Test
@@ -156,17 +201,25 @@ public final class MessagesRouteTest extends EndpointTestBase {
 
     @Test
     public void postFeaturesInboxMessage() {
-        final TestRouteResult result = featuresMessagesTestRoute.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_PATH)
-                .withEntity(MESSAGE_PAYLOAD));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        final var underTest =
+                getFeaturesMessagesTestRoute(getMessagesRoute(getSendFeatureMessageCommandEchoActor()), dittoHeaders);
+
+        final var result = underTest.run(
+                HttpRequest.POST(INBOX_MESSAGES_SUBJECT_PATH).withEntity(MESSAGE_PAYLOAD)
+        );
+
+        result.assertStatusCode(StatusCodes.OK);
         assertMessageCommandHasPayload(result, MESSAGE_PAYLOAD);
     }
 
     @Test
     public void postFeaturesInboxMessageWithSlashesInSubject() {
-        final TestRouteResult result =
-                featuresMessagesTestRoute.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_WITH_SLASHES_PATH));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        final var underTest =
+                getFeaturesMessagesTestRoute(getMessagesRoute(getSendFeatureMessageCommandEchoActor()), dittoHeaders);
+
+        final var result = underTest.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_WITH_SLASHES_PATH));
+
+        result.assertStatusCode(StatusCodes.OK);
     }
 
     @Test
@@ -177,17 +230,23 @@ public final class MessagesRouteTest extends EndpointTestBase {
 
     @Test
     public void postFeaturesOutboxMessage() {
-        final TestRouteResult result = featuresMessagesTestRoute.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_PATH)
-                .withEntity(MESSAGE_PAYLOAD));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        final var underTest =
+                getFeaturesMessagesTestRoute(getMessagesRoute(getSendFeatureMessageCommandEchoActor()), dittoHeaders);
+
+        final var result = underTest.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_PATH).withEntity(MESSAGE_PAYLOAD));
+
+        result.assertStatusCode(StatusCodes.OK);
         assertMessageCommandHasPayload(result, MESSAGE_PAYLOAD);
     }
 
     @Test
     public void postFeaturesOutboxMessageWithSlashesInSubject() {
-        final TestRouteResult result =
-                featuresMessagesTestRoute.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_WITH_SLASHES_PATH));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        final var underTest =
+                getFeaturesMessagesTestRoute(getMessagesRoute(getSendFeatureMessageCommandEchoActor()), dittoHeaders);
+
+        final var result = underTest.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_WITH_SLASHES_PATH));
+
+        result.assertStatusCode(StatusCodes.OK);
     }
 
     @Test
@@ -210,41 +269,104 @@ public final class MessagesRouteTest extends EndpointTestBase {
 
     @Test
     public void postThingClaimMessageWithoutContent() {
-        final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(INBOX_CLAIM_PATH));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        final var underTest =
+                getThingsMessagesTestRoute(getMessagesRoute(getClaimMessageCommandEchoActor()), dittoHeaders);
+
+        final var result = underTest.run(HttpRequest.POST(INBOX_CLAIM_PATH));
+
+        result.assertStatusCode(StatusCodes.OK);
         assertMessageCommandHasNoPayloadField(result);
     }
 
     @Test
     public void postThingInboxWithoutContent() {
-        final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_PATH));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        final var underTest =
+                getThingsMessagesTestRoute(getMessagesRoute(getSendThingMessageCommandEchoActor()), dittoHeaders);
+
+        final var result = underTest.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_PATH));
+
+        result.assertStatusCode(StatusCodes.OK);
         assertMessageCommandHasNoPayloadField(result);
     }
 
     @Test
     public void postThingOutboxWithoutContent() {
-        final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_PATH));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        final var underTest =
+                getThingsMessagesTestRoute(getMessagesRoute(getSendThingMessageCommandEchoActor()), dittoHeaders);
+
+        final var result = underTest.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_PATH));
+
+        result.assertStatusCode(StatusCodes.OK);
         assertMessageCommandHasNoPayloadField(result);
     }
 
     @Test
     public void postFeaturesInboxWithoutContent() {
-        final TestRouteResult result = featuresMessagesTestRoute.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_PATH));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        final var underTest =
+                getFeaturesMessagesTestRoute(getMessagesRoute(getSendFeatureMessageCommandEchoActor()), dittoHeaders);
+
+        final var result = underTest.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_PATH));
+
+        result.assertStatusCode(StatusCodes.OK);
         assertMessageCommandHasNoPayloadField(result);
     }
 
     @Test
     public void postFeaturesOutboxWithoutContent() {
-        final TestRouteResult result = featuresMessagesTestRoute.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_PATH));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        final var underTest =
+                getFeaturesMessagesTestRoute(getMessagesRoute(getSendFeatureMessageCommandEchoActor()), dittoHeaders);
+
+        final var result = underTest.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_PATH));
+
+        result.assertStatusCode(StatusCodes.OK);
         assertMessageCommandHasNoPayloadField(result);
     }
 
-    private static void assertMessageCommandHasPayload(final TestRouteResult routeResult, final String expectedPayload) {
-        final JsonObject message = JsonFactory.newObject(routeResult.entityString());
+    private ActorRef getClaimMessageCommandEchoActor() {
+        return startEchoActor(
+                SendClaimMessage.class,
+                sendClaimMessage -> SendClaimMessageResponse.of(sendClaimMessage.getEntityId(),
+                        getResponseMessage(sendClaimMessage),
+                        HttpStatus.OK,
+                        sendClaimMessage.getDittoHeaders())
+        );
+    }
+
+    private static Message<?> getResponseMessage(final MessageCommand<?, ?> command) {
+        final var commandMessage = command.getMessage();
+        final var commandJsonObject = command.toJson();
+        return Message.newBuilder(commandMessage.getHeaders())
+                .payload(commandJsonObject)
+                .rawPayload(ByteBuffer.wrap(commandJsonObject.toString().getBytes(Charsets.UTF_8)))
+                .build();
+    }
+
+    private ActorRef getSendThingMessageCommandEchoActor() {
+        return startEchoActor(
+                SendThingMessage.class,
+                sendThingMessage -> SendThingMessageResponse.of(sendThingMessage.getEntityId(),
+                        getResponseMessage(sendThingMessage),
+                        HttpStatus.OK,
+                        sendThingMessage.getDittoHeaders())
+        );
+    }
+
+    private ActorRef getSendFeatureMessageCommandEchoActor() {
+        return startEchoActor(
+                SendFeatureMessage.class,
+                sendFeatureMessage -> SendFeatureMessageResponse.of(sendFeatureMessage.getEntityId(),
+                        sendFeatureMessage.getFeatureId(),
+                        getResponseMessage(sendFeatureMessage),
+                        HttpStatus.OK,
+                        sendFeatureMessage.getDittoHeaders())
+        );
+    }
+
+    private static void assertMessageCommandHasPayload(final TestRouteResult routeResult,
+            final String expectedPayload) {
+
+        final var message = JsonFactory.newObject(routeResult.entityString());
+
         assertThat(message.getValueOrThrow(MessageCommand.JsonFields.JSON_MESSAGE)
                 .getValue(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD)
                 .map(JsonValue::asString))
@@ -252,7 +374,8 @@ public final class MessagesRouteTest extends EndpointTestBase {
     }
 
     private static void assertMessageCommandHasNoPayloadField(final TestRouteResult routeResult) {
-        final JsonObject message = JsonFactory.newObject(routeResult.entityString());
+        final var message = JsonFactory.newObject(routeResult.entityString());
+
         assertThat(message.getValueOrThrow(MessageCommand.JsonFields.JSON_MESSAGE)
                 .getValue(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD))
                 .isEmpty();

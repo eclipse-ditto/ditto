@@ -17,11 +17,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeResponse;
@@ -29,9 +29,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import akka.http.javadsl.model.StatusCode;
 import akka.http.javadsl.model.StatusCodes;
-import akka.testkit.javadsl.TestKit;
 
 /**
  * Test the interaction between timeout, response-required and requested-acks for {@link HttpRequestActor}.
@@ -73,19 +71,23 @@ public final class HttpRequestActorHeaderInteractionTest extends AbstractHttpReq
 
     @Test
     public void run() throws Exception {
-        new TestKit(system) {{
-            final ThingId thingId = ThingId.generateRandom();
-            final String attributeName = "foo";
-            final JsonPointer attributePointer = JsonPointer.of(attributeName);
+        final var thingId = ThingId.generateRandom();
+        final var attributeName = "foo";
+        final var attributePointer = JsonPointer.of(attributeName);
 
-            final DittoHeaders dittoHeaders = setHeadersByParameter(createAuthorizedHeaders());
-            final Object probeResponse = getProbeResponse(thingId, attributePointer, dittoHeaders);
+        final var dittoHeaders = setHeadersByParameter(createAuthorizedHeaders());
+        final var probeResponse = getProbeResponse(thingId, attributePointer, dittoHeaders);
 
-            final StatusCode expectedHttpStatusCode = StatusCodes.get(getExpectedHttpStatus().getCode());
+        final var expectedHttpStatusCode = StatusCodes.get(getExpectedHttpStatus().getCode());
 
-            testThingModifyCommand(thingId, attributeName, attributePointer, dittoHeaders, dittoHeaders,
-                    probeResponse, expectedHttpStatusCode, null);
-        }};
+        testThingModifyCommand(thingId,
+                attributeName,
+                attributePointer,
+                dittoHeaders,
+                dittoHeaders,
+                probeResponse,
+                expectedHttpStatusCode,
+                null);
     }
 
     private DittoHeaders setHeadersByParameter(final DittoHeaders dittoHeaders) {
