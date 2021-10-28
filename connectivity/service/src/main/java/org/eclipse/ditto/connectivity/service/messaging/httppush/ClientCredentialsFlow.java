@@ -28,6 +28,7 @@ import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.jwt.model.JwtInvalidException;
 
 import akka.NotUsed;
+import akka.http.javadsl.Http;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpHeader;
@@ -42,6 +43,8 @@ import akka.stream.Attributes;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Source;
 import akka.util.ByteString;
+import scala.util.Failure;
+import scala.util.Success;
 import scala.util.Try;
 
 /**
@@ -65,12 +68,17 @@ public final class ClientCredentialsFlow {
     /**
      * Augment HTTP requests with OAuth2 bearer tokens.
      *
-     * @param httpFlow Flow with which to send HTTP requests.
+     * @param http HTTP object with which to send single requests.
      * @return The request-augmenting flow.
      */
     public Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> withToken(
-            final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?> httpFlow) {
+            final Http http) {
 
+        final Flow<HttpRequest, Try<HttpResponse>, NotUsed> httpFlow = Flow.<HttpRequest>create()
+                .mapAsync(1, request -> http.singleRequest(request)
+                        .<Try<HttpResponse>>thenApply(Success::new)
+                        .exceptionally(Failure::new)
+                );
         return Flow.<Pair<HttpRequest, HttpPushContext>>create()
                 .zip(getTokenSource(httpFlow))
                 .map(ClientCredentialsFlow::augmentRequestWithJwt);
@@ -83,8 +91,7 @@ public final class ClientCredentialsFlow {
      * @param httpFlow Flow to send HTTP requests.
      * @return An infinite source of valid OAuth2 tokens, or a failed source.
      */
-    Source<JsonWebToken, NotUsed> getTokenSource(
-            final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?> httpFlow) {
+    Source<JsonWebToken, NotUsed> getTokenSource(final Flow<HttpRequest, Try<HttpResponse>, ?> httpFlow) {
 
         final var singleTokenSource = getSingleTokenSource(httpFlow);
         return singleTokenSource.flatMapConcat(token ->
@@ -104,11 +111,10 @@ public final class ClientCredentialsFlow {
      * @param httpFlow Flow to send HTTP requests.
      * @return Source of a single token, or a failed source.
      */
-    Source<JsonWebToken, NotUsed> getSingleTokenSource(
-            final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?> httpFlow) {
+    Source<JsonWebToken, NotUsed> getSingleTokenSource(final Flow<HttpRequest, Try<HttpResponse>, ?> httpFlow) {
 
         final HttpPushContext context = response -> {};
-        return Source.single(Pair.create(tokenRequest, context))
+        return Source.single(tokenRequest)
                 .via(httpFlow)
                 .flatMapConcat(this::asJsonWebToken);
     }
@@ -117,8 +123,7 @@ public final class ClientCredentialsFlow {
         return maxClockSkew.minus(Duration.between(Instant.now(), jwt.getExpirationTime())).isNegative();
     }
 
-    private Source<JsonWebToken, NotUsed> asJsonWebToken(final Pair<Try<HttpResponse>, HttpPushContext> pair) {
-        final var tryResponse = pair.first();
+    private Source<JsonWebToken, NotUsed> asJsonWebToken(final Try<HttpResponse> tryResponse) {
         if (tryResponse.isFailure()) {
             return Source.failed(convertException(tryResponse.failed().get()));
         } else {

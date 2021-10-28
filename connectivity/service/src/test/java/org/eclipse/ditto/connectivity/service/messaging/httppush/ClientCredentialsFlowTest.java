@@ -39,7 +39,6 @@ import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.Query;
 import akka.http.javadsl.model.Uri;
-import akka.japi.Pair;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.MergeHub;
@@ -50,6 +49,7 @@ import akka.stream.testkit.TestSubscriber;
 import akka.stream.testkit.javadsl.TestSink;
 import akka.stream.testkit.javadsl.TestSource;
 import akka.testkit.javadsl.TestKit;
+import scala.concurrent.duration.FiniteDuration;
 import scala.util.Try;
 
 /**
@@ -63,7 +63,7 @@ public final class ClientCredentialsFlowTest {
     private static final String CLIENT_SCOPE = "scope_1234";
 
     private final ActorSystem actorSystem;
-    private final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?> httpFlow;
+    private final Flow<HttpRequest, Try<HttpResponse>, ?> httpFlow;
     private final TestPublisher.Probe<Try<HttpResponse>> responseProbe;
     private final TestSubscriber.Probe<HttpRequest> requestProbe;
 
@@ -79,11 +79,9 @@ public final class ClientCredentialsFlowTest {
                 sourcePair.second().<Object>map(x -> x).runWith(partitionHub, actorSystem);
         final var sink =
                 MergeHub.of(HttpRequest.class).toMat(sinkPair.second(), Keep.left()).run(actorSystem);
-        httpFlow = Flow.<Pair<HttpRequest, HttpPushContext>>create()
-                .map(Pair::first)
+        httpFlow = Flow.<HttpRequest>create()
                 .via(Flow.fromSinkAndSource(sink, source))
-                .map(o -> (Try<HttpResponse>) o)
-                .map(tryResponse -> Pair.<Try<HttpResponse>, HttpPushContext>create(tryResponse, response -> {}));
+                .map(o -> (Try<HttpResponse>) o);
         responseProbe = sourcePair.first();
         requestProbe = sinkPair.first();
     }
@@ -145,7 +143,7 @@ public final class ClientCredentialsFlowTest {
             if (j <= i) {
                 j += responseProbe.expectRequest();
             }
-            requestProbe.expectNext();
+            requestProbe.expectNext(FiniteDuration.apply(10, "s"));
             final var ttl = Duration.ZERO;
             final var token = getToken(ttl, i);
             responseProbe.sendNext(Try.apply(() -> getTokenResponse(ttl, token)));
