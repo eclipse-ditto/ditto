@@ -40,14 +40,14 @@ public final class OAuthClientCredentials implements Credentials {
     private final String tokenEndpoint;
     private final String clientId;
     private final String clientSecret;
-    private final String scope;
+    private final String requestedScopes;
 
     private OAuthClientCredentials(final String tokenEndpoint, final String clientId, final String clientSecret,
-            final String scope) {
-        this.tokenEndpoint = tokenEndpoint;
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
-        this.scope = scope;
+            final String requestedScopes) {
+        this.tokenEndpoint = checkNotNull(tokenEndpoint, "tokenEndpoint");
+        this.clientId = checkNotNull(clientId, "clientId");
+        this.clientSecret = checkNotNull(clientSecret, "clientSecret");
+        this.requestedScopes = checkNotNull(requestedScopes, "requestedScopes");
     }
 
     @Override
@@ -79,8 +79,8 @@ public final class OAuthClientCredentials implements Credentials {
     /**
      * @return the scope
      */
-    public String getScope() {
-        return scope;
+    public String getRequestedScopes() {
+        return requestedScopes;
     }
 
     @Override
@@ -89,12 +89,12 @@ public final class OAuthClientCredentials implements Credentials {
         if (o == null || getClass() != o.getClass()) return false;
         final OAuthClientCredentials that = (OAuthClientCredentials) o;
         return tokenEndpoint.equals(that.tokenEndpoint) && clientId.equals(that.clientId) &&
-                clientSecret.equals(that.clientSecret) && scope.equals(that.scope);
+                clientSecret.equals(that.clientSecret) && requestedScopes.equals(that.requestedScopes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(tokenEndpoint, clientId, clientSecret, scope);
+        return Objects.hash(tokenEndpoint, clientId, clientSecret, requestedScopes);
     }
 
     @Override
@@ -103,7 +103,7 @@ public final class OAuthClientCredentials implements Credentials {
                 "tokenEndpoint=" + tokenEndpoint +
                 ", clientId=" + clientId +
                 ", clientSecret=" + clientSecret +
-                ", scope=" + scope +
+                ", requestedScopes=" + requestedScopes +
                 "]";
     }
 
@@ -114,7 +114,7 @@ public final class OAuthClientCredentials implements Credentials {
         jsonObjectBuilder.set(JsonFields.TOKEN_ENDPOINT, tokenEndpoint, Objects::nonNull);
         jsonObjectBuilder.set(JsonFields.CLIENT_ID, clientId, Objects::nonNull);
         jsonObjectBuilder.set(JsonFields.CLIENT_SECRET, clientSecret, Objects::nonNull);
-        jsonObjectBuilder.set(JsonFields.SCOPE, scope, Objects::nonNull);
+        jsonObjectBuilder.set(JsonFields.REQUESTED_SCOPES, requestedScopes, Objects::nonNull);
         return jsonObjectBuilder.build();
     }
 
@@ -123,7 +123,7 @@ public final class OAuthClientCredentials implements Credentials {
         jsonObject.getValue(JsonFields.TOKEN_ENDPOINT).ifPresent(builder::tokenEndpoint);
         jsonObject.getValue(JsonFields.CLIENT_ID).ifPresent(builder::clientId);
         jsonObject.getValue(JsonFields.CLIENT_SECRET).ifPresent(builder::clientSecret);
-        jsonObject.getValue(JsonFields.SCOPE).ifPresent(builder::scope);
+        jsonObject.getValue(JsonFields.REQUESTED_SCOPES).ifPresent(builder::scope);
         return builder.build();
     }
 
@@ -142,7 +142,8 @@ public final class OAuthClientCredentials implements Credentials {
      * @return a new builder.
      */
     public Builder toBuilder() {
-        return new Builder().clientId(clientId).clientSecret(clientSecret).tokenEndpoint(tokenEndpoint).scope(scope);
+        return new Builder().clientId(clientId).clientSecret(clientSecret).tokenEndpoint(tokenEndpoint).scope(
+                requestedScopes);
     }
 
     /**
@@ -179,7 +180,6 @@ public final class OAuthClientCredentials implements Credentials {
          */
         public Builder clientId(final String clientId) {
             this.clientId = checkNotNull(clientId, "clientId");
-            ;
             return this;
         }
 
@@ -189,7 +189,6 @@ public final class OAuthClientCredentials implements Credentials {
          */
         public Builder clientSecret(final String clientSecret) {
             this.clientSecret = checkNotNull(clientSecret, "clientSecret");
-            ;
             return this;
         }
 
@@ -199,7 +198,6 @@ public final class OAuthClientCredentials implements Credentials {
          */
         public Builder scope(final String scope) {
             this.scope = checkNotNull(scope, "scope");
-            ;
             return this;
         }
 
@@ -226,16 +224,17 @@ public final class OAuthClientCredentials implements Credentials {
         /**
          * JSON field definition of client ID.
          */
-        public static final JsonFieldDefinition<String> CLIENT_ID = JsonFieldDefinition.ofString("id");
+        public static final JsonFieldDefinition<String> CLIENT_ID = JsonFieldDefinition.ofString("clientId");
 
         /**
          * JSON field definition of client secret.
          */
-        public static final JsonFieldDefinition<String> CLIENT_SECRET = JsonFieldDefinition.ofString("secret");
+        public static final JsonFieldDefinition<String> CLIENT_SECRET = JsonFieldDefinition.ofString("clientSecret");
 
         /**
-         * JSON field definition of scope.
+         * JSON field definition of the requested scopes.
          */
-        public static final JsonFieldDefinition<String> SCOPE = JsonFieldDefinition.ofString("scope");
+        public static final JsonFieldDefinition<String> REQUESTED_SCOPES = JsonFieldDefinition.ofString(
+                "requestedScopes");
     }
 }

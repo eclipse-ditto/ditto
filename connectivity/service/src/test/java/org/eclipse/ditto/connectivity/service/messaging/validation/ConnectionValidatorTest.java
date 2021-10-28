@@ -588,6 +588,22 @@ public class ConnectionValidatorTest {
     }
 
     @Test
+    public void rejectInvalidScopesForOauthClientCredentials() {
+        final Connection connection = createHttpConnection().toBuilder()
+                .credentials(OAuthClientCredentials.newBuilder()
+                        .clientId("id")
+                        .clientSecret("secret")
+                        .scope("\"scope1\" scope2")
+                        .tokenEndpoint("http://localhost/token")
+                        .build())
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("Invalid format of requested scopes");
+    }
+
+    @Test
     public void rejectOauthClientCredentialsForAmqpConnection() {
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
                 .credentials(OAuthClientCredentials.newBuilder()

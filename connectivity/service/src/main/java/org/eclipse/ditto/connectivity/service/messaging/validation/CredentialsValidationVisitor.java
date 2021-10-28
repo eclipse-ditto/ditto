@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.validation;
 
 import java.net.URL;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -40,6 +41,10 @@ final class CredentialsValidationVisitor implements CredentialsVisitor<Void> {
     private final Connection connection;
     private final DittoHeaders dittoHeaders;
     private final Set<String> algorithms;
+
+    private static final String ALLOWED_CHARACTERS = "\\x21\\x23-\\x5B\\x5D-\\x7E";
+    private static final Pattern REQUESTED_SCOPES_REGEX =
+            Pattern.compile("^[" + ALLOWED_CHARACTERS + "]+( [" + ALLOWED_CHARACTERS + "]+)*$");
 
     private CredentialsValidationVisitor(final Connection connection, final DittoHeaders dittoHeaders,
             final ConnectivityConfig config) {
@@ -114,6 +119,14 @@ final class CredentialsValidationVisitor implements CredentialsVisitor<Void> {
             throw ConnectionConfigurationInvalidException.newBuilder(
                             "Invalid token endpoint provided: " + e.getMessage())
                     .description("Provide a valid URL as token endpoint.")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        if (!REQUESTED_SCOPES_REGEX.matcher(credentials.getRequestedScopes()).matches()) {
+            throw ConnectionConfigurationInvalidException.newBuilder(
+                            "Invalid format of requested scopes: " + credentials.getRequestedScopes())
+                    .description("Provide scopes as space separated list (RFC6749 section 3.3).")
+                    .href("https://datatracker.ietf.org/doc/html/rfc6749#section-3.3")
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
