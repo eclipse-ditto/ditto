@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 
@@ -107,5 +108,11 @@ public final class KeyManagerFactoryFactory implements CredentialsVisitor<KeyMan
     @Override
     public KeyManagerFactory hmac(final HmacCredentials credentials) {
         throw new UnsupportedOperationException("HMAC is not supported on certificate credentials authentication");
+    }
+
+    @Override
+    public KeyManagerFactory oauthClientCredentials(final OAuthClientCredentials credentials) {
+        throw new UnsupportedOperationException("OAuth client credentials is not supported on certificate credentials" +
+                " authentication");
     }
 }

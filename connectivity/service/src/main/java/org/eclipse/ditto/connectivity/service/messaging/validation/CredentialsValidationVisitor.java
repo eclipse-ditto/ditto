@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.validation;
 
+import java.net.URL;
 import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
@@ -20,8 +21,10 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
@@ -88,8 +91,29 @@ final class CredentialsValidationVisitor implements CredentialsVisitor<Void> {
         }
         if (!algorithms.contains(credentials.getAlgorithm())) {
             throw ConnectionConfigurationInvalidException.newBuilder(
-                    "Unsupported HMAC algorithm: " + credentials.getAlgorithm())
+                            "Unsupported HMAC algorithm: " + credentials.getAlgorithm())
                     .description("Supported algorithms: " + String.join(", ", algorithms))
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        return null;
+    }
+
+    @Override
+    public Void oauthClientCredentials(final OAuthClientCredentials credentials) {
+        if (ConnectionType.HTTP_PUSH != connection.getConnectionType()) {
+            throw ConnectionConfigurationInvalidException.newBuilder(
+                            "OAuth client credentials are only supported for HTTP connection type.")
+                    .description("Only HTTP connections support OAuth client credentials.")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        try {
+            new URL(credentials.getTokenEndpoint());
+        } catch (final Exception e) {
+            throw ConnectionConfigurationInvalidException.newBuilder(
+                            "Invalid token endpoint provided: " + e.getMessage())
+                    .description("Provide a valid URL as token endpoint.")
                     .dittoHeaders(dittoHeaders)
                     .build();
         }

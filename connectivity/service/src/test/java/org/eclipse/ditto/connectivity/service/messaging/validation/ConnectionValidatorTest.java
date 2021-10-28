@@ -47,6 +47,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
 import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.SourceBuilder;
@@ -554,6 +555,52 @@ public class ConnectionValidatorTest {
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
                 .withMessageContaining("HMAC credentials are not supported");
+    }
+
+    @Test
+    public void acceptHttpConnectionWithValidClientCredentials() {
+        final Connection connection = createHttpConnection().toBuilder()
+                .credentials(OAuthClientCredentials.newBuilder()
+                        .clientId("id")
+                        .clientSecret("secret")
+                        .scope("scope")
+                        .tokenEndpoint("http://localhost/token")
+                        .build())
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void rejectInvalidTokenEndpointForOauthClientCredentials() {
+        final Connection connection = createHttpConnection().toBuilder()
+                .credentials(OAuthClientCredentials.newBuilder()
+                        .clientId("id")
+                        .clientSecret("secret")
+                        .scope("scope")
+                        .tokenEndpoint("local:host")
+                        .build())
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("Invalid token endpoint provided");
+    }
+
+    @Test
+    public void rejectOauthClientCredentialsForAmqpConnection() {
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
+                .credentials(OAuthClientCredentials.newBuilder()
+                        .clientId("id")
+                        .clientSecret("secret")
+                        .scope("scope")
+                        .tokenEndpoint("http://localhost/token")
+                        .build())
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("OAuth client credentials are only supported for HTTP connection type");
     }
 
     private void rejectInvalidPayloadMappingReferenceInTarget(List<Source> sources, List<Target> targets) {

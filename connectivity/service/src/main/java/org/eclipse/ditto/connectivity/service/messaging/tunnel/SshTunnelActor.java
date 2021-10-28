@@ -37,6 +37,7 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
@@ -324,6 +325,12 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
 
     @Override
     public Void hmac(final HmacCredentials credentials) {
+        // not supported
+        return null;
+    }
+
+    @Override
+    public Void oauthClientCredentials(final OAuthClientCredentials credentials) {
         // not supported
         return null;
     }
