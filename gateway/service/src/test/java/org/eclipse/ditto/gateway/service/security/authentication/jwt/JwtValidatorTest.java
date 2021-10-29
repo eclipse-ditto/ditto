@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
+import java.security.PublicKey;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
@@ -28,6 +29,7 @@ import java.util.concurrent.ExecutionException;
 import org.eclipse.ditto.base.model.common.BinaryValidationResult;
 import org.eclipse.ditto.gateway.service.util.config.security.DefaultOAuthConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
+import org.eclipse.ditto.internal.utils.jwt.JjwtDeserializer;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.jwt.model.Audience;
@@ -42,6 +44,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.typesafe.config.ConfigFactory;
 
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.UnsupportedJwtException;
 
 /**
@@ -80,8 +84,8 @@ public final class JwtValidatorTest {
 
     @Test
     public void validate() throws ExecutionException, InterruptedException {
-        when(publicKeyProvider.getPublicKey(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID)).thenReturn(
-                CompletableFuture.completedFuture(Optional.of(JwtTestConstants.PUBLIC_KEY)));
+        when(publicKeyProvider.getPublicKeyWithParser(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID)).thenReturn(
+                CompletableFuture.completedFuture(Optional.of(new PublicKeyWithParser(JwtTestConstants.PUBLIC_KEY, getJwtParser(JwtTestConstants.PUBLIC_KEY)))));
 
         final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider, oAuthConfig);
 
@@ -90,10 +94,18 @@ public final class JwtValidatorTest {
         assertThat(jwtValidationResult.isValid()).isTrue();
     }
 
+    private JwtParser getJwtParser(final PublicKey publicKey) {
+        final var jwtParserBuilder = Jwts.parserBuilder();
+        return jwtParserBuilder.deserializeJsonWith(JjwtDeserializer.getInstance())
+            .setSigningKey(publicKey)
+            .setAllowedClockSkewSeconds(oAuthConfig.getAllowedClockSkew().getSeconds())
+            .build();
+    }
+
     @Test
     public void validateTokenWithNbfAheadOfTime() throws ExecutionException, InterruptedException {
-        when(publicKeyProvider.getPublicKey(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID)).thenReturn(
-                CompletableFuture.completedFuture(Optional.of(JwtTestConstants.PUBLIC_KEY)));
+        when(publicKeyProvider.getPublicKeyWithParser(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID)).thenReturn(
+                CompletableFuture.completedFuture(Optional.of(new PublicKeyWithParser(JwtTestConstants.PUBLIC_KEY, getJwtParser(JwtTestConstants.PUBLIC_KEY)))));
 
         final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider, oAuthConfig);
 
@@ -105,8 +117,8 @@ public final class JwtValidatorTest {
 
     @Test
     public void validateFailsIfNbfIsTooFarInTheFuture() throws ExecutionException, InterruptedException {
-        when(publicKeyProvider.getPublicKey(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID)).thenReturn(
-                CompletableFuture.completedFuture(Optional.of(JwtTestConstants.PUBLIC_KEY)));
+        when(publicKeyProvider.getPublicKeyWithParser(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID)).thenReturn(
+                CompletableFuture.completedFuture(Optional.of(new PublicKeyWithParser(JwtTestConstants.PUBLIC_KEY, getJwtParser(JwtTestConstants.PUBLIC_KEY)))));
 
         final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider, oAuthConfig);
 
@@ -118,8 +130,8 @@ public final class JwtValidatorTest {
 
     @Test
     public void validateFailsIfSignatureIsMissing() throws ExecutionException, InterruptedException {
-        when(publicKeyProvider.getPublicKey(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID)).thenReturn(
-                CompletableFuture.completedFuture(Optional.of(JwtTestConstants.PUBLIC_KEY)));
+        when(publicKeyProvider.getPublicKeyWithParser(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID)).thenReturn(
+                CompletableFuture.completedFuture(Optional.of(new PublicKeyWithParser(JwtTestConstants.PUBLIC_KEY, getJwtParser(JwtTestConstants.PUBLIC_KEY)))));
 
         final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider, oAuthConfig);
 
@@ -132,8 +144,9 @@ public final class JwtValidatorTest {
 
     @Test
     public void validateFails() throws ExecutionException, InterruptedException {
-        when(publicKeyProvider.getPublicKey(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID))
-                .thenReturn(CompletableFuture.completedFuture(Optional.of(JwtTestConstants.PUBLIC_KEY)));
+        when(publicKeyProvider.getPublicKeyWithParser(JwtTestConstants.ISSUER, JwtTestConstants.KEY_ID))
+                .thenReturn(CompletableFuture.completedFuture(Optional.of(new PublicKeyWithParser(JwtTestConstants.PUBLIC_KEY,
+                    getJwtParser(JwtTestConstants.PUBLIC_KEY)))));
 
         final JwtValidator underTest = DefaultJwtValidator.of(publicKeyProvider, oAuthConfig);
 
