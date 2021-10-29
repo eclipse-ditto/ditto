@@ -23,30 +23,28 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import org.assertj.core.util.Lists;
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingFieldSelector;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayServiceUnavailableException;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.streaming.Connect;
 import org.eclipse.ditto.gateway.service.streaming.StartStreaming;
 import org.eclipse.ditto.gateway.service.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayServiceUnavailableException;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingFieldSelector;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.StreamThings;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpHeader;
@@ -74,10 +72,7 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
     private static ActorSystem actorSystem;
     private static HttpHeader acceptHeader;
 
-    @Rule
-    public final TestName testName = new TestName();
-
-    private String connectionCorrelationId;
+    private CharSequence connectionCorrelationId;
     private TestProbe streamingActor;
     private TestRoute underTest;
     private TestProbe proxyActor;
@@ -98,16 +93,12 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
         streamingActor = TestProbe.apply("streaming", actorSystem);
         proxyActor = TestProbe.apply("proxy", actorSystem);
 
-        connectionCorrelationId = testName.getMethodName();
+        connectionCorrelationId = testNameCorrelationId.getCorrelationId();
 
-        final Supplier<CompletionStage<DittoHeaders>> dittoHeadersSupplier = () -> {
-            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                    .correlationId(connectionCorrelationId)
-                    .build();
-            return CompletableFuture.completedFuture(dittoHeaders);
-        };
+        final Supplier<CompletionStage<DittoHeaders>> dittoHeadersSupplier =
+                () -> CompletableFuture.completedFuture(dittoHeaders);
 
-        final ThingsSseRouteBuilder sseRouteBuilder =
+        final var sseRouteBuilder =
                 ThingsSseRouteBuilder.getInstance(streamingActor.ref(), streamingConfig, proxyActor.ref());
         sseRouteBuilder.withProxyActor(proxyActor.ref());
         final Route sseRoute = extractRequestContext(ctx -> sseRouteBuilder.build(ctx, dittoHeadersSupplier));
@@ -222,8 +213,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
         executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
-                        AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
-                                Collections.emptySet()))
+                                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                        Collections.emptySet()))
                         .withFilter(filter)
                         .build());
     }
@@ -236,8 +227,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
         executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
-                        AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
-                                Collections.emptySet()))
+                                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                        Collections.emptySet()))
                         .withNamespaces(namespaces)
                         .build());
     }
@@ -251,8 +242,8 @@ public final class ThingsSseRouteBuilderTest extends EndpointTestBase {
 
         executeThingsRouteTest(HttpRequest.GET(requestUrl).addHeader(acceptHeader),
                 StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
-                        AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
-                                Collections.emptySet()))
+                                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                                        Collections.emptySet()))
                         .withExtraFields(extraFields)
                         .build());
     }

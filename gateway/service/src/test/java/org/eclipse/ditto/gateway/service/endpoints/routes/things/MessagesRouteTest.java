@@ -21,12 +21,11 @@ import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.
 import java.nio.ByteBuffer;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
-import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.Message;
@@ -38,7 +37,6 @@ import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessageRespo
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.base.Charsets;
@@ -69,32 +67,21 @@ public final class MessagesRouteTest extends EndpointTestBase {
             OUTBOX_MESSAGES_PATH + "/" + KNOWN_SUBJECT_WITH_SLASHES;
     private static final String MESSAGE_PAYLOAD = "bumlux";
 
-    @Rule
-    public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
-
-    private DittoHeaders dittoHeaders;
     private TestRoute thingsMessagesTestRoute;
     private TestRoute featuresMessagesTestRoute;
 
     @Before
     public void setUp() {
-        dittoHeaders = DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
         final var messagesRoute = getMessagesRoute(createDummyResponseActor());
         thingsMessagesTestRoute = getThingsMessagesTestRoute(messagesRoute, dittoHeaders);
         featuresMessagesTestRoute = getFeaturesMessagesTestRoute(messagesRoute, dittoHeaders);
     }
 
     private MessagesRoute getMessagesRoute(final ActorRef proxyActorRef) {
-        final var actorSystem = system();
-        final var adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
-
-        return new MessagesRoute(proxyActorRef,
-                actorSystem,
-                httpConfig,
-                commandConfig,
-                messageConfig,
-                claimMessageConfig,
-                adapterProvider.getHttpHeaderTranslator());
+        final var routeBaseProperties = RouteBaseProperties.newBuilder(this.routeBaseProperties)
+                .proxyActor(proxyActorRef)
+                .build();
+        return new MessagesRoute(routeBaseProperties, messageConfig, claimMessageConfig);
     }
 
     private TestRoute getThingsMessagesTestRoute(final MessagesRoute messagesRoute, final DittoHeaders dittoHeaders) {

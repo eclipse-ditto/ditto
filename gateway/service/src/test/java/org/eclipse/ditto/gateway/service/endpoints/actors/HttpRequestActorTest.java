@@ -29,8 +29,10 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.connectivity.model.AddConnectionLogEntry;
+import org.eclipse.ditto.connectivity.model.LogLevel;
+import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -405,7 +407,8 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 getHttpRequest(modifyAttribute),
                 httpResponseFuture,
                 gatewayConfig.getHttpConfig(),
-                gatewayConfig.getCommandConfig()));
+                gatewayConfig.getCommandConfig(),
+                connectivityShardRegionProxy.ref()));
         final var testKit = ACTOR_SYSTEM_RESOURCE.newTestKit();
 
         underTest.tell(modifyAttribute, testKit.getRef());
@@ -432,10 +435,13 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
     public void liveCommandWithoutAckRequestWithInvalidResponseTimesOut()
             throws ExecutionException, InterruptedException, TimeoutException {
 
-        final var modifyAttribute = ModifyAttribute.of(ThingId.generateRandom(),
+        final var thingId = ThingId.generateRandom();
+        final var correlationId = testNameCorrelationId.getCorrelationId();
+        final var modifyAttribute = ModifyAttribute.of(thingId,
                 JsonPointer.of("manufacturer"),
                 JsonValue.of("ACME"),
                 DittoHeaders.newBuilder(createAuthorizedHeaders())
+                        .correlationId(correlationId)
                         .channel("live")
                         .build());
         final var proxyActorTestProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
@@ -446,7 +452,8 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 getHttpRequest(modifyAttribute),
                 httpResponseFuture,
                 httpConfig,
-                gatewayConfig.getCommandConfig()));
+                gatewayConfig.getCommandConfig(),
+                connectivityShardRegionProxy.ref()));
         final var commandHandler = ACTOR_SYSTEM_RESOURCE.newTestProbe();
 
         underTest.tell(modifyAttribute, commandHandler.ref());
@@ -461,11 +468,21 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 commandHandler.ref()
         );
 
-        // Assert expected exception for invalid response.
-        final var unsupportedSignalException = commandHandler.expectMsgClass(UnsupportedSignalException.class);
-        softly.assertThat(unsupportedSignalException.getHttpStatus())
-                .as("exception HTTP status")
-                .isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        commandHandler.expectNoMessage();
+
+        // Assert expected log entry for invalid response.
+        final var addConnectionLogEntry = connectivityShardRegionProxy.expectMsgClass(AddConnectionLogEntry.class);
+        softly.assertThat(addConnectionLogEntry.getLogEntry())
+                .as("log entry")
+                .satisfies(logEntry -> {
+                    softly.assertThat(logEntry.getCorrelationId())
+                            .as("correlation ID")
+                            .isEqualTo(correlationId.toString());
+                    softly.assertThat(logEntry.getLogLevel()).as("log level").isEqualTo(LogLevel.FAILURE);
+                    softly.assertThat(logEntry.getLogType()).as("log type").isEqualTo(LogType.DROPPED);
+                    softly.assertThat(logEntry.getEntityId()).as("entity ID").hasValue(thingId);
+                    softly.assertThat(logEntry.getMessage()).as("message").isNotBlank();
+                });
 
         final var futureCompletionTimeout = httpConfig.getRequestTimeout().plusSeconds(1L);
         final var httpResponse = httpResponseFuture.get(futureCompletionTimeout.toMillis(), TimeUnit.MILLISECONDS);
@@ -478,11 +495,14 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
     public void liveCommandWithoutAckRequestWithEventualValidResponseSucceeds()
             throws ExecutionException, InterruptedException, TimeoutException {
 
-        final var modifyAttribute = ModifyAttribute.of(ThingId.generateRandom(),
+        final var thingId = ThingId.generateRandom();
+        final var correlationId = testNameCorrelationId.getCorrelationId();
+        final var modifyAttribute = ModifyAttribute.of(thingId,
                 JsonPointer.of("manufacturer"),
                 JsonValue.of("ACME"),
                 DittoHeaders.newBuilder(createAuthorizedHeaders())
                         .channel("live")
+                        .correlationId(correlationId)
                         .build());
         final var proxyActorTestProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
         final var httpResponseFuture = new CompletableFuture<HttpResponse>();
@@ -492,7 +512,8 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 getHttpRequest(modifyAttribute),
                 httpResponseFuture,
                 httpConfig,
-                gatewayConfig.getCommandConfig()));
+                gatewayConfig.getCommandConfig(),
+                connectivityShardRegionProxy.ref()));
         final var commandHandler = ACTOR_SYSTEM_RESOURCE.newTestProbe();
 
         underTest.tell(modifyAttribute, commandHandler.ref());
@@ -507,11 +528,21 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 commandHandler.ref()
         );
 
-        // Assert expected exception for invalid response.
-        final var unsupportedSignalException = commandHandler.expectMsgClass(UnsupportedSignalException.class);
-        softly.assertThat(unsupportedSignalException.getHttpStatus())
-                .as("exception HTTP status")
-                .isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        commandHandler.expectNoMessage();
+
+        // Assert expected log entry for invalid response.
+        final var addConnectionLogEntry = connectivityShardRegionProxy.expectMsgClass(AddConnectionLogEntry.class);
+        softly.assertThat(addConnectionLogEntry.getLogEntry())
+                .as("log entry")
+                .satisfies(logEntry -> {
+                    softly.assertThat(logEntry.getCorrelationId())
+                            .as("correlation ID")
+                            .isEqualTo(correlationId.toString());
+                    softly.assertThat(logEntry.getLogLevel()).as("log level").isEqualTo(LogLevel.FAILURE);
+                    softly.assertThat(logEntry.getLogType()).as("log type").isEqualTo(LogType.DROPPED);
+                    softly.assertThat(logEntry.getEntityId()).as("entity ID").hasValue(thingId);
+                    softly.assertThat(logEntry.getMessage()).as("message").isNotBlank();
+                });
 
         // Eventually send valid response.
         underTest.tell(

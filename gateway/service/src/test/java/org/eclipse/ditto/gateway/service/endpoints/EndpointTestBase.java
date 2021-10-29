@@ -24,6 +24,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.service.config.http.DefaultHttpProxyConfig;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RootRouteExceptionHandler;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.DittoJwtAuthorizationSubjectsProvider;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthorizationSubjectsProviderFactory;
@@ -61,15 +63,19 @@ import org.eclipse.ditto.internal.utils.cache.config.DefaultCacheConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
 import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
+import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.protocol.config.DefaultProtocolConfig;
 import org.eclipse.ditto.internal.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
+import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -86,13 +92,14 @@ import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.JUnitRouteTest;
 import akka.http.javadsl.testkit.TestRouteResult;
 import akka.japi.pf.ReceiveBuilder;
+import akka.testkit.TestProbe;
 
 /**
  * Abstract base class for Endpoint tests for the gateway.
  */
 public abstract class EndpointTestBase extends JUnitRouteTest {
 
-    public static final JsonValue DEFAULT_DUMMY_ENTITY_JSON = JsonValue.of("dummy");
+    private static final JsonValue DEFAULT_DUMMY_ENTITY_JSON = JsonValue.of("dummy");
 
     private static final Function<Object, Optional<Object>> DUMMY_THING_MODIFY_RESPONSE_PROVIDER =
             DummyThingModifyCommandResponse::echo;
@@ -112,11 +119,18 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
     protected static HttpClientFacade httpClientFacade;
     protected static JwtAuthorizationSubjectsProviderFactory authorizationSubjectsProviderFactory;
 
+    @Rule
+    public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
+
+    protected TestProbe connectivityShardRegionProxyActor;
+    protected HeaderTranslator httpHeaderTranslator;
+    protected RouteBaseProperties routeBaseProperties;
+    protected DittoHeaders dittoHeaders;
+
     @BeforeClass
     public static void initTestFixture() {
-
-        final DefaultScopedConfig dittoScopedConfig = DefaultScopedConfig.dittoScoped(createTestConfig());
-        final DefaultScopedConfig gatewayScopedConfig = DefaultScopedConfig.newInstance(dittoScopedConfig, "gateway");
+        final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(createTestConfig());
+        final var gatewayScopedConfig = DefaultScopedConfig.newInstance(dittoScopedConfig, "gateway");
         httpConfig = GatewayHttpConfig.of(gatewayScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(gatewayScopedConfig);
         commandConfig = DefaultCommandConfig.of(gatewayScopedConfig);
@@ -132,8 +146,28 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
                 DefaultHttpClientFacade.getInstance(ActorSystem.create(EndpointTestBase.class.getSimpleName()),
                         DefaultHttpProxyConfig.ofProxy(DefaultScopedConfig.empty("/")));
         authorizationSubjectsProviderFactory = DittoJwtAuthorizationSubjectsProvider::of;
-        jwtAuthenticationFactory = JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(), cacheConfig,
-                httpClientFacade, authorizationSubjectsProviderFactory);
+        jwtAuthenticationFactory = JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(),
+                cacheConfig,
+                httpClientFacade,
+                authorizationSubjectsProviderFactory);
+    }
+
+    @Before
+    public void before() {
+        connectivityShardRegionProxyActor = new TestProbe(system());
+
+        final var adapterProvider = ProtocolAdapterProvider.load(protocolConfig, system());
+        httpHeaderTranslator = adapterProvider.getHttpHeaderTranslator();
+
+        routeBaseProperties = RouteBaseProperties.newBuilder()
+                .proxyActor(createDummyResponseActor())
+                .actorSystem(system())
+                .httpConfig(httpConfig)
+                .commandConfig(commandConfig)
+                .headerTranslator(httpHeaderTranslator)
+                .connectivityShardRegionProxy(connectivityShardRegionProxyActor.ref())
+                .build();
+        dittoHeaders = DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
     }
 
     @Override

@@ -18,23 +18,21 @@ import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.
 import java.util.Optional;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
-import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationProvider;
-import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
-import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
+import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
+import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationProvider;
+import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThingsResponse;
 import org.junit.Before;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.testkit.TestRoute;
-import akka.http.javadsl.testkit.TestRouteResult;
 
 /**
  * Tests {@link StatsRoute}.
@@ -49,42 +47,41 @@ public final class StatsRouteTest extends EndpointTestBase {
     @Before
     public void setUp() {
         devOpsConfig = authConfig.getDevOpsConfig();
-        final ActorRef proxyActor = createDummyResponseActor();
+        final var proxyActor = createDummyResponseActor();
         setUp(proxyActor);
     }
 
     private void setUp(final ActorRef proxyActor) {
-        final ActorSystem actorSystem = system();
-        final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
-        final JwtAuthenticationFactory devopsJwtAuthenticationFactory =
+        final var devopsJwtAuthenticationFactory =
                 JwtAuthenticationFactory.newInstance(devOpsConfig.getOAuthConfig(), cacheConfig, httpClientFacade,
                         authorizationSubjectsProviderFactory);
-        final JwtAuthenticationProvider jwtAuthenticationProvider = JwtAuthenticationProvider.newInstance(
+        final var jwtAuthenticationProvider = JwtAuthenticationProvider.newInstance(
                 devopsJwtAuthenticationFactory.newJwtAuthenticationResultProvider(),
                 devopsJwtAuthenticationFactory.getJwtValidator());
-        final DevOpsOAuth2AuthenticationDirective authenticationDirective =
-                DevOpsOAuth2AuthenticationDirective.status(devOpsConfig, jwtAuthenticationProvider);
-        final StatsRoute statsRoute = new StatsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
-                adapterProvider.getHttpHeaderTranslator(), authenticationDirective);
+        final var routeBaseProperties = RouteBaseProperties.newBuilder(this.routeBaseProperties)
+                .proxyActor(proxyActor)
+                .build();
+        final var statsRoute = new StatsRoute(routeBaseProperties,
+                DevOpsOAuth2AuthenticationDirective.status(devOpsConfig, jwtAuthenticationProvider));
 
         statsTestRoute = testRoute(statsRoute.buildStatsRoute(KNOWN_CORRELATION_ID));
     }
 
     @Test
     public void getStatsToplevelUrl() {
-        final TestRouteResult result = statsTestRoute.run(HttpRequest.GET(STATS_PATH));
+        final var result = statsTestRoute.run(HttpRequest.GET(STATS_PATH));
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
     @Test
     public void getStatsThingsUrl() {
-        final TestRouteResult result = statsTestRoute.run(HttpRequest.GET(STATS_PATH + "/" + StatsRoute.THINGS_PATH));
+        final var result = statsTestRoute.run(HttpRequest.GET(STATS_PATH + "/" + StatsRoute.THINGS_PATH));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
     @Test
     public void postStatsThingsUrlReturnsMethodNotAllowed() {
-        final TestRouteResult result = statsTestRoute.run(HttpRequest.POST(STATS_PATH +
+        final var result = statsTestRoute.run(HttpRequest.POST(STATS_PATH +
                 "/" + StatsRoute.THINGS_PATH));
         result.assertStatusCode(StatusCodes.METHOD_NOT_ALLOWED);
     }
@@ -93,14 +90,14 @@ public final class StatsRouteTest extends EndpointTestBase {
     public void getStatsSearchUrl() {
         setUp(createDummyResponseActor(m -> Optional.of(CountThingsResponse.of(42, DittoHeaders.empty()))));
 
-        final TestRouteResult result = statsTestRoute.run(HttpRequest.GET(STATS_PATH +
+        final var result = statsTestRoute.run(HttpRequest.GET(STATS_PATH +
                 "/" + StatsRoute.SEARCH_PATH));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
     @Test
     public void getNonExistingToplevelUrl() {
-        final TestRouteResult result = statsTestRoute.run(HttpRequest.GET(UNKNOWN_PATH));
+        final var result = statsTestRoute.run(HttpRequest.GET(UNKNOWN_PATH));
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 

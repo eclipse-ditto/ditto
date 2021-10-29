@@ -33,9 +33,16 @@ public final class DefaultHttpRequestActorPropsFactory implements HttpRequestAct
             final HttpRequest httpRequest,
             final CompletableFuture<HttpResponse> httpResponseFuture,
             final HttpConfig httpConfig,
-            final CommandConfig commandConfig) {
+            final CommandConfig commandConfig,
+            final ActorRef connectivityShardRegionProxy) {
 
-        return HttpRequestActor.props(proxyActor, headerTranslator, httpRequest, httpResponseFuture, httpConfig,
-                commandConfig);
+        return HttpRequestActor.props(proxyActor,
+                headerTranslator,
+                httpRequest,
+                httpResponseFuture,
+                httpConfig,
+                commandConfig,
+                connectivityShardRegionProxy);
     }
+
 }

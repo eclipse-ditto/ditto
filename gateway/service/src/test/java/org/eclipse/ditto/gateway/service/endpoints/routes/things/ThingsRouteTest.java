@@ -17,7 +17,6 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
-import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
@@ -28,9 +27,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyPolicyId;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThingDefinition;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributes;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpEntities;
@@ -47,28 +44,13 @@ import akka.http.scaladsl.model.HttpEntity;
  */
 public final class ThingsRouteTest extends EndpointTestBase {
 
-    @Rule
-    public final TestName testName = new TestName();
-
-    private DittoHeaders dittoHeaders;
     private ThingsRoute thingsRoute;
 
     private TestRoute underTest;
 
     @Before
     public void setUp() {
-        final var actorSystem = system();
-        final var adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
-
-        thingsRoute = new ThingsRoute(createDummyResponseActor(),
-                actorSystem,
-                httpConfig,
-                commandConfig,
-                messageConfig,
-                claimMessageConfig,
-                adapterProvider.getHttpHeaderTranslator());
-
-        dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        thingsRoute = new ThingsRoute(routeBaseProperties, messageConfig, claimMessageConfig);
         final Route route = extractRequestContext(ctx -> thingsRoute.buildThingsRoute(ctx, dittoHeaders));
         underTest = testRoute(handleExceptions(() -> route));
     }

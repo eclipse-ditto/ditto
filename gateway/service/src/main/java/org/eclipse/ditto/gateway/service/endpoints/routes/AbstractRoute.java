@@ -28,32 +28,28 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayTimeoutInvalidException;
+import org.eclipse.ditto.base.service.config.ThrottlingConfig;
+import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestActor;
+import org.eclipse.ditto.gateway.service.endpoints.actors.HttpRequestActorPropsFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.ContentTypeValidationDirective;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.base.service.config.ThrottlingConfig;
-import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestActor;
-import org.eclipse.ditto.gateway.service.endpoints.actors.HttpRequestActorPropsFactory;
-import org.eclipse.ditto.internal.utils.akka.AkkaClassLoader;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
-import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayTimeoutInvalidException;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.actor.Props;
 import akka.actor.Status;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
@@ -89,52 +85,36 @@ public abstract class AbstractRoute extends AllDirectives {
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(AbstractRoute.class);
 
-    protected final ActorRef proxyActor;
-    protected final ActorSystem actorSystem;
+    private final RouteBaseProperties routeBaseProperties;
 
-    private final HttpConfig httpConfig;
-    private final CommandConfig commandConfig;
-    private final HeaderTranslator headerTranslator;
     private final HttpRequestActorPropsFactory httpRequestActorPropsFactory;
     private final Attributes supervisionStrategy;
     private final Set<String> mediaTypeJsonWithFallbacks;
 
     /**
-     * Constructs the abstract route builder.
+     * Constructs a {@code AbstractRoute} object.
      *
-     * @param proxyActor an actor selection of the actor handling delegating to persistence.
-     * @param actorSystem the ActorSystem to use.
-     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
-     * @param commandConfig the configuration settings for incoming commands (via HTTP requests) in the gateway.
-     * @param headerTranslator translates headers from external sources or to external sources.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @param routeBaseProperties the base properties of the route.
+     * @throws NullPointerException if {@code routeBaseProperties} is {@code null}.
      */
-    protected AbstractRoute(final ActorRef proxyActor,
-            final ActorSystem actorSystem,
-            final HttpConfig httpConfig,
-            final CommandConfig commandConfig,
-            final HeaderTranslator headerTranslator) {
+    protected AbstractRoute(final RouteBaseProperties routeBaseProperties) {
+        this.routeBaseProperties = checkNotNull(routeBaseProperties, "routeBaseProperties");
 
-        this.proxyActor = checkNotNull(proxyActor, "delegate actor");
-        this.actorSystem = checkNotNull(actorSystem, "actor system");
-        this.httpConfig = httpConfig;
-        this.commandConfig = commandConfig;
-        this.headerTranslator = checkNotNull(headerTranslator, "header translator");
+        final var httpConfig = routeBaseProperties.getHttpConfig();
+        final var fallbackMediaTypes = httpConfig.getAdditionalAcceptedMediaTypes().stream();
+        final var jsonMediaType = Stream.of(MediaTypes.APPLICATION_JSON.toString());
+        mediaTypeJsonWithFallbacks = Stream.concat(jsonMediaType, fallbackMediaTypes).collect(Collectors.toSet());
 
-        final Stream<String> fallbackMediaTypes = httpConfig.getAdditionalAcceptedMediaTypes().stream();
-        final Stream<String> jsonMediaType = Stream.of(MediaTypes.APPLICATION_JSON.toString());
-        this.mediaTypeJsonWithFallbacks = Stream.concat(jsonMediaType, fallbackMediaTypes).collect(Collectors.toSet());
+        LOGGER.debug("Using headerTranslator <{}>.", routeBaseProperties.getHeaderTranslator());
 
-        LOGGER.debug("Using headerTranslator <{}>.", headerTranslator);
-
-        httpRequestActorPropsFactory =
-                AkkaClassLoader.instantiate(actorSystem, HttpRequestActorPropsFactory.class,
-                        httpConfig.getActorPropsFactoryFullQualifiedClassname());
+        httpRequestActorPropsFactory = AkkaClassLoader.instantiate(routeBaseProperties.getActorSystem(),
+                HttpRequestActorPropsFactory.class,
+                httpConfig.getActorPropsFactoryFullQualifiedClassname());
 
         supervisionStrategy = createSupervisionStrategy();
     }
 
-    private Attributes createSupervisionStrategy() {
+    private static Attributes createSupervisionStrategy() {
         return ActorAttributes.withSupervisionStrategy(exc -> {
             if (exc instanceof DittoRuntimeException) {
                 LOGGER.withCorrelationId((DittoRuntimeException) exc)
@@ -214,7 +194,10 @@ public abstract class AbstractRoute extends AllDirectives {
                 .map(TimeoutAccess::timeoutAccess)
                 .map(akka.http.javadsl.TimeoutAccess::getTimeout)
                 .map(scalaDuration -> Duration.ofNanos(scalaDuration.toNanos()))
-                .filter(akkaHttpTimeout -> akkaHttpTimeout.compareTo(commandConfig.getMaxTimeout()) > 0)
+                .filter(akkaHttpTimeout -> {
+                    final var commandConfig = routeBaseProperties.getCommandConfig();
+                    return akkaHttpTimeout.compareTo(commandConfig.getMaxTimeout()) > 0;
+                })
                 .isPresent();
 
         if (increasedAkkaHttpTimeout) {
@@ -230,7 +213,7 @@ public abstract class AbstractRoute extends AllDirectives {
     }
 
     protected <M> M runWithSupervisionStrategy(final RunnableGraph<M> graph) {
-        return graph.withAttributes(supervisionStrategy).run(actorSystem);
+        return graph.withAttributes(supervisionStrategy).run(routeBaseProperties.getActorSystem());
     }
 
     private Route doHandlePerRequest(final RequestContext ctx,
@@ -314,9 +297,15 @@ public abstract class AbstractRoute extends AllDirectives {
     protected ActorRef createHttpPerRequestActor(final RequestContext ctx,
             final CompletableFuture<HttpResponse> httpResponseFuture) {
 
-        final Props props = httpRequestActorPropsFactory.props(
-                proxyActor, headerTranslator, ctx.getRequest(), httpResponseFuture, httpConfig, commandConfig);
+        final var props = httpRequestActorPropsFactory.props(routeBaseProperties.getProxyActor(),
+                routeBaseProperties.getHeaderTranslator(),
+                ctx.getRequest(),
+                httpResponseFuture,
+                routeBaseProperties.getHttpConfig(),
+                routeBaseProperties.getCommandConfig(),
+                routeBaseProperties.getConnectivityShardRegionProxy());
 
+        final var actorSystem = routeBaseProperties.getActorSystem();
         return actorSystem.actorOf(props);
     }
 
@@ -416,12 +405,14 @@ public abstract class AbstractRoute extends AllDirectives {
      * @throws GatewayTimeoutInvalidException if the passed {@code timeout} was not within its bounds.
      */
     protected Duration validateCommandTimeout(final Duration timeout) {
-        final Duration maxTimeout = commandConfig.getMaxTimeout();
+        final var commandConfig = routeBaseProperties.getCommandConfig();
+        final var maxTimeout = commandConfig.getMaxTimeout();
+
         // check if the timeout is smaller than the maximum possible timeout and > 0:
         if (timeout.isNegative() || timeout.compareTo(maxTimeout) > 0) {
-            throw GatewayTimeoutInvalidException.newBuilder(timeout, maxTimeout)
-                    .build();
+            throw GatewayTimeoutInvalidException.newBuilder(timeout, maxTimeout).build();
         }
         return timeout;
     }
+
 }

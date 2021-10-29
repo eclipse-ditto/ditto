@@ -20,9 +20,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CloudEventsConfig;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
@@ -34,7 +33,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestActor;
@@ -44,8 +42,6 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Status;
 import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;
@@ -79,28 +75,18 @@ public final class CloudEventsRoute extends AbstractRoute {
     private final CloudEventsConfig cloudEventsConfig;
 
     /**
-     * Constructs the cloud events route builder.
+     * Constructs a {@code CloudEventsRoute} object.
      *
-     * @param proxyActor an actor selection of the actor handling delegating to persistence.
-     * @param actorSystem the ActorSystem to use.
-     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
-     * @param commandConfig the configuration settings for incoming commands (via HTTP requests) in the gateway.
-     * @param headerTranslator translates headers from external sources or to external sources.
+     * @param routeBaseProperties the base properties of the route.
      * @param cloudEventsConfig the configuration settings for cloud events.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public CloudEventsRoute(
-            final ActorRef proxyActor,
-            final ActorSystem actorSystem,
-            final HttpConfig httpConfig,
-            final CommandConfig commandConfig,
-            final HeaderTranslator headerTranslator,
-            final CloudEventsConfig cloudEventsConfig
-    ) {
-        super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
+    public CloudEventsRoute(final RouteBaseProperties routeBaseProperties,
+            final CloudEventsConfig cloudEventsConfig) {
+
+        super(routeBaseProperties);
         this.cloudEventsConfig = cloudEventsConfig;
     }
-
 
     /**
      * Builds the {@code /cloudevents} route.

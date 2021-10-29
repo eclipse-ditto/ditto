@@ -28,15 +28,13 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.service.UriEncoding;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.MessageConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.ThingDefinition;
@@ -64,8 +62,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingDefinition;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
@@ -85,42 +81,20 @@ public final class ThingsRoute extends AbstractRoute {
     private final MessagesRoute messagesRoute;
 
     /**
-     * Constructs the {@code /things} route builder.
+     * Constructs a {@code ThingsRoute} object.
      *
-     * @param proxyActor an actor selection of the command delegating actor.
-     * @param actorSystem the ActorSystem to use.
-     * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
+     * @param routeBaseProperties the base properties of the route.
      * @param messageConfig the MessageConfig.
      * @param claimMessageConfig the MessageConfig for claim messages.
-     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
-     * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public ThingsRoute(final ActorRef proxyActor,
-            final ActorSystem actorSystem,
-            final HttpConfig httpConfig,
-            final CommandConfig commandConfig,
+    public ThingsRoute(final RouteBaseProperties routeBaseProperties,
             final MessageConfig messageConfig,
-            final MessageConfig claimMessageConfig,
-            final HeaderTranslator headerTranslator) {
+            final MessageConfig claimMessageConfig) {
 
-        super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
-
-        featuresRoute = new FeaturesRoute(proxyActor,
-                actorSystem,
-                httpConfig,
-                commandConfig,
-                messageConfig,
-                claimMessageConfig,
-                headerTranslator);
-
-        messagesRoute = new MessagesRoute(proxyActor,
-                actorSystem,
-                httpConfig,
-                commandConfig,
-                messageConfig,
-                claimMessageConfig,
-                headerTranslator);
+        super(routeBaseProperties);
+        featuresRoute = new FeaturesRoute(routeBaseProperties, messageConfig, claimMessageConfig);
+        messagesRoute = new MessagesRoute(routeBaseProperties, messageConfig, claimMessageConfig);
     }
 
     @Nullable

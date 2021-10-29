@@ -22,14 +22,10 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.CountThings;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
@@ -46,22 +42,13 @@ public final class ThingSearchRoute extends AbstractRoute {
     private static final String PATH_COUNT = "count";
 
     /**
-     * Constructs the {@code /search/things} route builder.
+     * Constructs a {@code ThingSearchRoute} object.
      *
-     * @param proxyActor an actor selection of the command delegating actor.
-     * @param actorSystem the ActorSystem to use.
-     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
-     * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
-     * @param headerTranslator translates headers from external sources or to external sources.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @param routeBaseProperties the base properties of the route.
+     * @throws NullPointerException if {@code routeBaseProperties} is {@code null}.
      */
-    public ThingSearchRoute(final ActorRef proxyActor,
-            final ActorSystem actorSystem,
-            final HttpConfig httpConfig,
-            final CommandConfig commandConfig,
-            final HeaderTranslator headerTranslator) {
-
-        super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
+    public ThingSearchRoute(final RouteBaseProperties routeBaseProperties) {
+        super(routeBaseProperties);
     }
 
     /**

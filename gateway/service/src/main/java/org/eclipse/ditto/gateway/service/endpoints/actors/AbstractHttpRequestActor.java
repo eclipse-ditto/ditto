@@ -14,6 +14,7 @@ package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +40,6 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
@@ -49,6 +49,11 @@ import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayServiceUnavailableException;
+import org.eclipse.ditto.connectivity.model.AddConnectionLogEntry;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.LogCategory;
+import org.eclipse.ditto.connectivity.model.LogLevel;
+import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.DefaultUserInformation;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.UserInformation;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
@@ -57,6 +62,7 @@ import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandResponseMatchingValidator;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -112,6 +118,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private final CompletableFuture<HttpResponse> httpResponseFuture;
     private final HttpRequest httpRequest;
     private final CommandConfig commandConfig;
+    private final ActorRef connectivityShardRegionProxy;
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     @Nullable private Uri responseLocationUri;
     private Command<?> receivedCommand;
@@ -121,13 +128,15 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture,
             final HttpConfig httpConfig,
-            final CommandConfig commandConfig) {
+            final CommandConfig commandConfig,
+            final ActorRef connectivityShardRegionProxy) {
 
         this.proxyActor = proxyActor;
         this.headerTranslator = headerTranslator;
         this.httpResponseFuture = httpResponseFuture;
         httpRequest = request;
         this.commandConfig = commandConfig;
+        this.connectivityShardRegionProxy = connectivityShardRegionProxy;
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
                 HttpAcknowledgementConfig.of(httpConfig),
                 headerTranslator,
@@ -383,14 +392,34 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private void handleMatchingValidationResultFailure(final MatchingValidationResult matchingValidationResult,
             final CommandResponse<?> commandResponse) {
 
-        final var unsupportedSignalException = UnsupportedSignalException.newBuilder(commandResponse.getType())
-                .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
-                .dittoHeaders(commandResponse.getDittoHeaders())
-                .message(matchingValidationResult.getDetailMessageOrThrow())
-                .build();
+        final var detailMessage = matchingValidationResult.getDetailMessageOrThrow();
 
-        final var sender = getSender();
-        sender.tell(unsupportedSignalException, getSelf());
+        logger.warning("Received invalid response. Reason: {}, response: {}.", detailMessage, commandResponse);
+
+        final var logEntryBuilder = ConnectivityModelFactory.newLogEntryBuilder(
+                getCorrelationId(commandResponse).or(() -> getCorrelationId(receivedCommand)).orElse("n/a"),
+                Instant.now(),
+                LogCategory.RESPONSE,
+                LogType.DROPPED,
+                LogLevel.FAILURE,
+                detailMessage
+        );
+        getEntityId(commandResponse)
+                .or(() -> getEntityId(receivedCommand))
+                .ifPresent(logEntryBuilder::entityId);
+
+        // TODO jff handle message in ConnectionPersistenceActor by adding a connection log entry.
+        // TODO jff probably connection ID has to be added to `AddConnectionLogEntry` class.
+        connectivityShardRegionProxy.tell(AddConnectionLogEntry.of(logEntryBuilder.build()), getSelf());
+    }
+
+    private static Optional<String> getCorrelationId(final Signal<?> signal) {
+        final var dittoHeaders = signal.getDittoHeaders();
+        return dittoHeaders.getCorrelationId();
+    }
+
+    private static Optional<EntityId> getEntityId(final Signal<?> signal) {
+        return SignalInformationPoint.getEntityId(signal);
     }
 
     private void handleCommandResponseWithEntity(final CommandResponse<?> commandResponse) {

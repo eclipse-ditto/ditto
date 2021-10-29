@@ -18,11 +18,10 @@ import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.
 import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
-import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessageResponse;
 import org.eclipse.ditto.things.model.Feature;
@@ -32,7 +31,6 @@ import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperties;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 
 import akka.http.javadsl.model.ContentTypes;
@@ -71,28 +69,13 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     private static final String FEATURE_ENTRY_INBOX_MESSAGES_PATH =
             FEATURE_ENTRY_PATH + "/" + MessagesRoute.PATH_INBOX + "/" + MessagesRoute.PATH_MESSAGES;
 
-    @Rule
-    public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
-
-    private ProtocolAdapterProvider adapterProvider;
     private TestRoute underTest;
 
     @Before
     public void setUp() {
-        final var actorSystem = system();
-        adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
-
-        final var featuresRoute = new FeaturesRoute(createDummyResponseActor(),
-                actorSystem,
-                httpConfig,
-                commandConfig,
+        final var featuresRoute = new FeaturesRoute(routeBaseProperties,
                 messageConfig,
-                claimMessageConfig,
-                adapterProvider.getHttpHeaderTranslator());
-
-        final var dittoHeaders =
-                DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
-
+                claimMessageConfig);
         underTest = getTestRoute(featuresRoute, dittoHeaders);
     }
 
@@ -372,18 +355,12 @@ public final class FeaturesRouteTest extends EndpointTestBase {
                         sendFeatureMessage.getDittoHeaders())
         );
 
-        underTest = getTestRoute(
-                new FeaturesRoute(proxyActor,
-                        system(),
-                        httpConfig,
-                        commandConfig,
-                        messageConfig,
-                        claimMessageConfig,
-                        adapterProvider.getHttpHeaderTranslator()),
-                DittoHeaders.newBuilder()
-                        .correlationId(testNameCorrelationId.getCorrelationId())
-                        .build()
-        );
+        final var routeBaseProperties = RouteBaseProperties.newBuilder(this.routeBaseProperties)
+                .proxyActor(proxyActor)
+                .build();
+
+        underTest =
+                getTestRoute(new FeaturesRoute(routeBaseProperties, messageConfig, claimMessageConfig), dittoHeaders);
 
         final var result = underTest.run(
                 HttpRequest.create()
