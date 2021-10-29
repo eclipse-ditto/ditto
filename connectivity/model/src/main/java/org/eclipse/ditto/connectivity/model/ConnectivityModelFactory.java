@@ -19,7 +19,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -438,7 +438,7 @@ public final class ConnectivityModelFactory {
     public static AddressMetric newAddressMetric(final AddressMetric addressMetric,
             final Collection<Measurement> additionalMeasurements) {
 
-        final Set<Measurement> set = new HashSet<>(addressMetric.getMeasurements());
+        final Set<Measurement> set = new LinkedHashSet<>(addressMetric.getMeasurements());
         set.addAll(additionalMeasurements);
         return ImmutableAddressMetric.of(set);
     }
@@ -852,7 +852,7 @@ public final class ConnectivityModelFactory {
     public static Enforcement newEnforcement(final String input, final String requiredFilter,
             final String... additionalFilters) {
 
-        final Set<String> filters = new HashSet<>(1 + additionalFilters.length);
+        final Set<String> filters = new LinkedHashSet<>(1 + additionalFilters.length);
         filters.add(requiredFilter);
         Collections.addAll(filters, additionalFilters);
 
