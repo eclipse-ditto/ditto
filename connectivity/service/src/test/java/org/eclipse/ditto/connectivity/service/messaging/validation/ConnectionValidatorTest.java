@@ -56,6 +56,7 @@ import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfigProvider;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.mapping.NormalizedMessageMapper;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpValidator;
@@ -71,6 +72,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorSystem;
@@ -87,8 +89,6 @@ public class ConnectionValidatorTest {
     private static final Config CONFIG =
             TestConstants.CONFIG.withValue("ditto.connectivity.connection.blocked-hostnames",
                     ConfigValueFactory.fromAnyRef("8.8.8.8,2001:4860:4860:0000:0000:0000:0000:0001"));
-    private static final ConnectivityConfig CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST =
-            DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG));
     private static ActorSystem actorSystem;
 
     @BeforeClass
@@ -640,7 +640,7 @@ public class ConnectionValidatorTest {
     private ConnectionValidator getConnectionValidator() {
         return ConnectionValidator.of(actorSystem.log(),
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG)),
-                AmqpValidator.newInstance(), HttpPushValidator.newInstance());
+                AmqpValidator.newInstance(), HttpPushValidator.newInstance(HttpPushConfig.of(ConfigFactory.empty())));
     }
 
     private static Connection createHttpConnection() {

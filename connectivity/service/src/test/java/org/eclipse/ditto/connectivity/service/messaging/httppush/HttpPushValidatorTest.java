@@ -32,12 +32,15 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
@@ -72,7 +75,7 @@ public final class HttpPushValidatorTest {
 
     @Before
     public void setUp() {
-        underTest = HttpPushValidator.newInstance();
+        underTest = HttpPushValidator.newInstance(HttpPushConfig.of(ConfigFactory.empty()));
     }
 
     @Test

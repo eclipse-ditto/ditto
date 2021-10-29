@@ -37,12 +37,14 @@ final class DefaultHttpPushConfig implements HttpPushConfig, WithStringMapDecodi
     private final Duration requestTimeout;
     private final HttpProxyConfig httpProxyConfig;
     private final Map<String, String> hmacAlgorithms;
+    private final OAuth2Config oAuth2Config;
 
     private DefaultHttpPushConfig(final ScopedConfig config) {
         maxQueueSize = config.getPositiveIntOrThrow(ConfigValue.MAX_QUEUE_SIZE);
         requestTimeout = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.REQUEST_TIMEOUT);
         httpProxyConfig = DefaultHttpProxyConfig.ofProxy(config);
         hmacAlgorithms = asStringMap(config, ConfigValue.HMAC_ALGORITHMS.getConfigPath());
+        oAuth2Config = DefaultOAuth2Config.of(config);
     }
 
     static DefaultHttpPushConfig of(final Config config) {
@@ -70,6 +72,11 @@ final class DefaultHttpPushConfig implements HttpPushConfig, WithStringMapDecodi
     }
 
     @Override
+    public OAuth2Config getOAuth2Config() {
+        return oAuth2Config;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -81,12 +88,13 @@ final class DefaultHttpPushConfig implements HttpPushConfig, WithStringMapDecodi
         return maxQueueSize == that.maxQueueSize &&
                 Objects.equals(requestTimeout, that.requestTimeout) &&
                 Objects.equals(httpProxyConfig, that.httpProxyConfig) &&
-                Objects.equals(hmacAlgorithms, that.hmacAlgorithms);
+                Objects.equals(hmacAlgorithms, that.hmacAlgorithms) &&
+                Objects.equals(oAuth2Config, that.oAuth2Config);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxQueueSize, httpProxyConfig, hmacAlgorithms, requestTimeout);
+        return Objects.hash(maxQueueSize, httpProxyConfig, hmacAlgorithms, requestTimeout, oAuth2Config);
     }
 
     @Override
@@ -96,6 +104,7 @@ final class DefaultHttpPushConfig implements HttpPushConfig, WithStringMapDecodi
                 ", requestTimeout=" + requestTimeout +
                 ", httpProxyConfig=" + httpProxyConfig +
                 ", hmacAlgorithms=" + hmacAlgorithms +
+                ", oAuth2Config=" + oAuth2Config +
                 "]";
     }
 

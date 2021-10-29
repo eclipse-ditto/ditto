@@ -31,7 +31,7 @@ import com.typesafe.config.ConfigFactory;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-public class DefaultHttpPushConfigTest {
+public final class DefaultHttpPushConfigTest {
 
     private static Config config;
 

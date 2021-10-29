@@ -37,6 +37,7 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.service.config.DefaultConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
+import org.eclipse.ditto.connectivity.service.config.OAuth2Config;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
@@ -171,6 +172,11 @@ public final class HttpPushFactoryTest {
             @Override
             public Map<String, String> getHmacAlgorithms() {
                 return Map.of();
+            }
+
+            @Override
+            public OAuth2Config getOAuth2Config() {
+                return OAuth2Config.of(ConfigFactory.empty());
             }
         }, mock(ConnectionLogger.class), SshTunnelState::disabled);
         final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =

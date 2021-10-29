@@ -19,6 +19,8 @@ import java.time.Instant;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.service.UriEncoding;
+import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
+import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -66,6 +68,19 @@ public final class ClientCredentialsFlow {
     }
 
     /**
+     * Create a {@code ClientCredentialsFlow} object.
+     *
+     * @param credentials the credentials.
+     * @param config the HTTP-Push config.
+     * @return the object.
+     */
+    public static ClientCredentialsFlow of(final OAuthClientCredentials credentials, final HttpPushConfig config) {
+        return new ClientCredentialsFlow(credentials.getTokenEndpoint(), credentials.getClientId(),
+                credentials.getClientSecret(), credentials.getRequestedScopes(),
+                config.getOAuth2Config().getMaxClockSkew());
+    }
+
+    /**
      * Augment HTTP requests with OAuth2 bearer tokens.
      *
      * @param http HTTP object with which to send single requests.
@@ -99,7 +114,7 @@ public final class ClientCredentialsFlow {
                 Source.single(token).concatLazy(
                         Source.repeat(token)
                                 .takeWhile(this::shouldNotRefresh)
-                                .concatLazy(Source.lazily(() -> getTokenSource(httpFlow)))
+                                .concatLazy(Source.lazySource(() -> getTokenSource(httpFlow)))
                 )
         ).withAttributes(Attributes.inputBuffer(1, 1));
     }
@@ -112,8 +127,6 @@ public final class ClientCredentialsFlow {
      * @return Source of a single token, or a failed source.
      */
     Source<JsonWebToken, NotUsed> getSingleTokenSource(final Flow<HttpRequest, Try<HttpResponse>, ?> httpFlow) {
-
-        final HttpPushContext context = response -> {};
         return Source.single(tokenRequest)
                 .via(httpFlow)
                 .flatMapConcat(this::asJsonWebToken);

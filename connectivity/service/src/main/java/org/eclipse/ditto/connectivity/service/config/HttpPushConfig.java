@@ -18,10 +18,22 @@ import java.util.Map;
 import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
+import com.typesafe.config.Config;
+
 /**
  * Provides configuration settings of the http-push connection type.
  */
 public interface HttpPushConfig {
+
+    /**
+     * Create an HTTP Push config object from HOCON.
+     *
+     * @param config the HOCON.
+     * @return the HTTP Push config object.
+     */
+    static HttpPushConfig of(final Config config) {
+        return DefaultHttpPushConfig.of(config);
+    }
 
     /**
      * @return maximum number of messages buffered at the publisher actor before dropping them.
@@ -42,6 +54,11 @@ public interface HttpPushConfig {
      * @return configuration of HMAC request-signing algorithms.
      */
     Map<String, String> getHmacAlgorithms();
+
+    /**
+     * @return configuration for OAuth2.
+     */
+    OAuth2Config getOAuth2Config();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for

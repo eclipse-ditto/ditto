@@ -184,6 +184,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         final Consumer<Duration> logRequestTimes =
                 duration -> connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis());
 
+        final Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> oauthFlow =
+                ClientCredentialsFlowVisitor.eval(getContext().getSystem(), config, connection);
+
         final Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> requestSigningFlow =
                 Flow.<Pair<HttpRequest, HttpPushContext>>create()
                         .flatMapConcat(pair -> httpRequestSigning.sign(pair.first())
@@ -196,7 +199,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 factory.<HttpPushContext>createFlow(getContext().getSystem(), logger, requestTimeout, timer,
                         logRequestTimes);
 
-        return requestSigningFlow.via(httpPushFlow);
+        return oauthFlow.via(requestSigningFlow).via(httpPushFlow);
     }
 
     @Override
