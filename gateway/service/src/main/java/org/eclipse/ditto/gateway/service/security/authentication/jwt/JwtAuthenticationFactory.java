@@ -79,7 +79,8 @@ public final class JwtAuthenticationFactory {
                     getJwtSubjectIssuersConfig(),
                     httpClientFacade,
                     publicKeyCacheConfig,
-                    PUBLIC_KEY_CACHE_NAME);
+                    PUBLIC_KEY_CACHE_NAME,
+                    oAuthConfig);
         }
 
         return publicKeyProvider;

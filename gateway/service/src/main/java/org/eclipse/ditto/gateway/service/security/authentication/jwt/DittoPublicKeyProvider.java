@@ -31,6 +31,11 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.gateway.service.security.cache.PublicKeyIdWithIssuer;
 import org.eclipse.ditto.gateway.service.security.utils.HttpClientFacade;
+import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
+import org.eclipse.ditto.internal.utils.cache.Cache;
+import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.internal.utils.jwt.JjwtDeserializer;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -60,6 +65,8 @@ import akka.stream.Materializer;
 import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.util.ByteString;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
 
 /**
  * Implementation of {@link PublicKeyProvider}. This provider requests keys at the {@link SubjectIssuer} and caches
@@ -75,22 +82,25 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
     private final JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
     private final HttpClientFacade httpClient;
     private final Materializer materializer;
-    private final Cache<PublicKeyIdWithIssuer, PublicKey> publicKeyCache;
+    private final OAuthConfig oAuthConfig;
+    private final Cache<PublicKeyIdWithIssuer, PublicKeyWithParser> publicKeyCache;
 
     private DittoPublicKeyProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
-            final HttpClientFacade httpClient,
-            final CacheConfig publicKeysConfig,
-            final String cacheName) {
+        final HttpClientFacade httpClient,
+        final CacheConfig publicKeysConfig,
+        final String cacheName,
+        final OAuthConfig oAuthConfig) {
 
         this.jwtSubjectIssuersConfig = argumentNotNull(jwtSubjectIssuersConfig);
         this.httpClient = argumentNotNull(httpClient);
         materializer = SystemMaterializer.get(httpClient::getActorSystem).materializer();
+        this.oAuthConfig = oAuthConfig;
         argumentNotNull(publicKeysConfig, "config of the public keys cache");
         argumentNotNull(cacheName);
 
-        final AsyncCacheLoader<PublicKeyIdWithIssuer, PublicKey> loader = this::loadPublicKey;
+        final AsyncCacheLoader<PublicKeyIdWithIssuer, PublicKeyWithParser> loader = this::loadPublicKeyWithParser;
 
-        final Caffeine<PublicKeyIdWithIssuer, PublicKey> caffeine = Caffeine.newBuilder()
+        final Caffeine<PublicKeyIdWithIssuer, PublicKeyWithParser> caffeine = Caffeine.newBuilder()
                 .maximumSize(publicKeysConfig.getMaximumSize())
                 .expireAfterWrite(publicKeysConfig.getExpireAfterWrite())
                 .removalListener(new CacheRemovalListener());
@@ -105,19 +115,21 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
      * @param httpClient the http client.
      * @param publicKeysCacheConfig the config of the public keys cache.
      * @param cacheName The name of the cache.
+     * @param oAuthConfig the OAuth configuration.
      * @return the PublicKeyProvider.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static PublicKeyProvider of(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
-            final HttpClientFacade httpClient,
-            final CacheConfig publicKeysCacheConfig,
-            final String cacheName) {
+        final HttpClientFacade httpClient,
+        final CacheConfig publicKeysCacheConfig,
+        final String cacheName,
+        final OAuthConfig oAuthConfig) {
 
-        return new DittoPublicKeyProvider(jwtSubjectIssuersConfig, httpClient, publicKeysCacheConfig, cacheName);
+        return new DittoPublicKeyProvider(jwtSubjectIssuersConfig, httpClient, publicKeysCacheConfig, cacheName, oAuthConfig);
     }
 
     @Override
-    public CompletableFuture<Optional<PublicKey>> getPublicKey(final String issuer, final String keyId) {
+    public CompletableFuture<Optional<PublicKeyWithParser>> getPublicKeyWithParser(final String issuer, final String keyId) {
         argumentNotNull(issuer);
         argumentNotNull(keyId);
 
@@ -125,8 +137,8 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
     }
 
     /* this method is used to asynchronously load the public key into the cache */
-    private CompletableFuture<PublicKey> loadPublicKey(final PublicKeyIdWithIssuer publicKeyIdWithIssuer,
-            final Executor executor) {
+    private CompletableFuture<PublicKeyWithParser> loadPublicKeyWithParser(final PublicKeyIdWithIssuer publicKeyIdWithIssuer,
+        final Executor executor) {
 
         final String issuer = publicKeyIdWithIssuer.getIssuer();
         final String keyId = publicKeyIdWithIssuer.getKeyId();
@@ -139,6 +151,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         final CompletionStage<HttpResponse> responseFuture = getPublicKeysFromDiscoveryEndpoint(discoveryEndpoint);
         final CompletionStage<JsonArray> publicKeysFuture = responseFuture.thenCompose(this::mapResponseToJsonArray);
         return publicKeysFuture.thenApply(publicKeysArray -> mapToPublicKey(publicKeysArray, keyId, discoveryEndpoint))
+                .thenApply(publicKey -> mapToPublicKeyWithParser(publicKey))
                 .toCompletableFuture();
     }
 
@@ -250,10 +263,22 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         return null;
     }
 
-    private static final class CacheRemovalListener implements RemovalListener<PublicKeyIdWithIssuer, PublicKey> {
+    private PublicKeyWithParser mapToPublicKeyWithParser(final PublicKey publicKey){
+        if (publicKey == null){
+            return null;
+        }
+        final var jwtParserBuilder = Jwts.parserBuilder();
+        final JwtParser jwtParser = jwtParserBuilder.deserializeJsonWith(JjwtDeserializer.getInstance())
+            .setSigningKey(publicKey)
+            .setAllowedClockSkewSeconds(oAuthConfig.getAllowedClockSkew().getSeconds())
+            .build();
+        return new PublicKeyWithParser(publicKey, jwtParser);
+    }
+
+    private static final class CacheRemovalListener implements RemovalListener<PublicKeyIdWithIssuer, PublicKeyWithParser> {
 
         @Override
-        public void onRemoval(@Nullable final PublicKeyIdWithIssuer key, @Nullable final PublicKey value,
+        public void onRemoval(@Nullable final PublicKeyIdWithIssuer key, @Nullable final PublicKeyWithParser value,
                 @Nonnull final com.github.benmanes.caffeine.cache.RemovalCause cause) {
 
             final String msgTemplate = "Removed PublicKey with ID <{}> from cache due to cause '{}'.";
