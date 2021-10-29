@@ -107,6 +107,18 @@ final class FluentPublishingConnectionLogger
     }
 
     @Override
+    public void close() throws IOException {
+        LOGGER.info("Flushing and closing Fluency forwarder...");
+        // fluencyForwarder.close also flushes:
+        fluencyForwarder.close();
+        try {
+            fluencyForwarder.waitUntilAllBufferFlushed(10); // TODO TJ do we want this? if yes, make configurable
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    @Override
     public void success(final ConnectionMonitor.InfoProvider infoProvider, final String message,
             final Object... messageArguments) {
         emitLogEntry(infoProvider, message, messageArguments, LogLevel.SUCCESS);

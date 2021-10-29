@@ -42,13 +42,10 @@ import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
@@ -90,18 +87,15 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
     @Nullable Throwable error = null;
 
     @SuppressWarnings("unused")
-    private SshTunnelActor(final Connection connection, final ConnectivityStatusResolver connectivityStatusResolver,
-            final ConnectivityConfig connectivityConfig) {
+    private SshTunnelActor(final Connection connection,
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectionLogger connectionLogger) {
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
         this.connection = connection;
         this.connectivityStatusResolver = connectivityStatusResolver;
+        this.connectionLogger = connectionLogger;
         sshClient = SshClientProvider.get(getContext().getSystem()).getSshClient();
-
-        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
-        final ConnectionLoggerRegistry connectionLoggerRegistry =
-                ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
-        connectionLogger = connectionLoggerRegistry.forConnection(connection.getId());
 
         final SshTunnel sshTunnel = this.connection.getSshTunnel()
                 .orElseThrow(() -> ConnectionFailedException
@@ -127,13 +121,13 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
      * @param connection the connection to create the SSH tunnel for.
      * @param connectivityStatusResolver connectivity status resolver to resolve the SSH tunnel status based on
      * exceptions.
-     * @param connectivityConfig the connectivity configuration including potential overwrites.
+     * @param connectionLogger the connection logger to use for logging.
      * @return the Props object.
      */
     public static Props props(final Connection connection,
             final ConnectivityStatusResolver connectivityStatusResolver,
-            final ConnectivityConfig connectivityConfig) {
-        return Props.create(SshTunnelActor.class, connection, connectivityStatusResolver, connectivityConfig);
+            final ConnectionLogger connectionLogger) {
+        return Props.create(SshTunnelActor.class, connection, connectivityStatusResolver, connectionLogger);
     }
 
     @Override

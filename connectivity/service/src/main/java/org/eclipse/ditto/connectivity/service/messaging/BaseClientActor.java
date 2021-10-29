@@ -326,7 +326,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
             tunnelActor = startChildActor(SshTunnelActor.ACTOR_NAME, SshTunnelActor.props(connection,
-                    connectivityStatusResolver, connectivityConfig));
+                    connectivityStatusResolver, connectionLogger));
         } else {
             tunnelActor = null;
         }
@@ -358,6 +358,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         clientConnectingGauge.reset();
         stopChildActor(tunnelActor);
         logger.debug("Stopped client with id - <{}>", getDefaultClientId());
+        try {
+            connectionLogger.close();
+        } catch (final IOException e) {
+            logger.warning("Exception during closing connection logger <{}>: {}", e.getClass().getSimpleName(),
+                    e.getMessage());
+        }
         try {
             super.postStop();
         } catch (final Exception e) {

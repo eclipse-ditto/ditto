@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.TemporalAmount;
@@ -300,8 +301,17 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         final Set<MapKey> mapsKeysToDelete = LOGGERS.keySet().stream()
                 .filter(mapKey -> mapKey.connectionId.equals(connectionId))
                 .collect(Collectors.toSet());
-        // TODO TJ flush logs before removing from loggers (next task)
-        mapsKeysToDelete.forEach(LOGGERS::remove);
+
+        mapsKeysToDelete.forEach(loggerKey -> {
+            // flush logs before removing from loggers:
+            try {
+                LOGGERS.get(loggerKey).close();
+            } catch (final IOException e) {
+                LOGGER.warn("Exception during closing logger <{}>: <{}>: {}", loggerKey, e.getClass().getSimpleName(),
+                        e.getMessage());
+            }
+            LOGGERS.remove(loggerKey);
+        });
     }
 
     private void initLogger(final ConnectionId connectionId) {

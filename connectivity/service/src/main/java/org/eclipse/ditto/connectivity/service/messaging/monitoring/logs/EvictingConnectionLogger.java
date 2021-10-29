@@ -13,6 +13,7 @@
 
 package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
@@ -102,6 +103,11 @@ final class EvictingConnectionLogger extends AbstractConnectionLogger<EvictingCo
         LOGGER.trace("Clearing all logs.");
         successLogs.clear();
         failureLogs.clear();
+    }
+
+    @Override
+    public void close() throws IOException {
+        clear();
     }
 
     @Override

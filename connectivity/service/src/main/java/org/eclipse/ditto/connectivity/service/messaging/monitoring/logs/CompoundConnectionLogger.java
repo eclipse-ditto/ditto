@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -103,6 +104,13 @@ final class CompoundConnectionLogger implements ConnectionLogger, MuteableConnec
                 .filter(MuteableConnectionLogger.class::isInstance)
                 .map(MuteableConnectionLogger.class::cast)
                 .allMatch(MuteableConnectionLogger::isMuted);
+    }
+
+    @Override
+    public void close() throws IOException {
+        for (final var connectionLogger : connectionLoggers) {
+            connectionLogger.close();
+        }
     }
 
     @Override
