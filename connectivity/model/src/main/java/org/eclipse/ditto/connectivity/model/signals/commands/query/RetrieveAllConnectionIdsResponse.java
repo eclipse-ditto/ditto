@@ -13,7 +13,7 @@
 package org.eclipse.ditto.connectivity.model.signals.commands.query;
 
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -22,13 +22,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -36,6 +29,13 @@ import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Response to a {@link RetrieveAllConnectionIds} command.
@@ -57,7 +57,7 @@ public final class RetrieveAllConnectionIdsResponse extends AbstractCommandRespo
 
     private RetrieveAllConnectionIdsResponse(final Set<String> connectionIds, final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatus.OK, dittoHeaders);
-        this.connectionIds = Collections.unmodifiableSet(new HashSet<>(connectionIds));
+        this.connectionIds = Collections.unmodifiableSet(new LinkedHashSet<>(connectionIds));
     }
 
     /**
@@ -126,7 +126,7 @@ public final class RetrieveAllConnectionIdsResponse extends AbstractCommandRespo
         return array.stream()
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     @Override
