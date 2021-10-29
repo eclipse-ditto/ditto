@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -25,6 +25,8 @@ import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonKey;
@@ -32,8 +34,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.ConditionChecker;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Immutable implementation of {@link AddressMetric}.
@@ -47,7 +47,7 @@ final class ImmutableAddressMetric implements AddressMetric {
     private final Set<Measurement> measurements;
 
     private ImmutableAddressMetric(final Set<Measurement> measurements) {
-        this.measurements = Collections.unmodifiableSet(new HashSet<>(measurements));
+        this.measurements = Collections.unmodifiableSet(new LinkedHashSet<>(measurements));
     }
 
     /**
@@ -130,7 +130,7 @@ final class ImmutableAddressMetric implements AddressMetric {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static AddressMetric fromJson(final JsonObject jsonObject) {
-        final Set<Measurement> readMeasurements = new HashSet<>();
+        final Set<Measurement> readMeasurements = new LinkedHashSet<>();
         jsonObject.stream()
                 .filter(field -> field.getValue().isObject())
                 .forEach(f -> Stream.of(SUCCESS_KEY, FAILURE_KEY)
