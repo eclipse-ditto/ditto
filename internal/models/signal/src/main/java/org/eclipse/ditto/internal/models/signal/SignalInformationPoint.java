@@ -12,9 +12,13 @@
  */
 package org.eclipse.ditto.internal.models.signal;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithType;
@@ -125,6 +129,40 @@ public final class SignalInformationPoint {
             result = dittoHeaders.getChannel().filter(CHANNEL_LIVE_VALUE::equals).isPresent();
         } else {
             result = false;
+        }
+        return result;
+    }
+
+    /**
+     * Indicates whether the specified signal argument provides an entity ID.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} provides an entity ID because it implements {@link WithEntityId}.
+     * {@code false} else.
+     */
+    public static boolean isWithEntityId(@Nullable final Signal<?> signal) {
+        final boolean result;
+        if (null != signal) {
+            result = WithEntityId.class.isAssignableFrom(signal.getClass());
+        } else {
+            result = false;
+        }
+        return result;
+    }
+
+    /**
+     * Returns the {@link EntityId} for the specified signal argument.
+     *
+     * @param signal the signal to get the entity ID from.
+     * @return an {@code Optional} containing the signal's entity ID if it provides one, an empty {@code Optional} else.
+     * @see #isWithEntityId(Signal)
+     */
+    public static Optional<EntityId> getEntityId(@Nullable final Signal<?> signal) {
+        final Optional<EntityId> result;
+        if (isWithEntityId(signal)) {
+            result = Optional.of(((WithEntityId) signal).getEntityId());
+        } else {
+            result = Optional.empty();
         }
         return result;
     }

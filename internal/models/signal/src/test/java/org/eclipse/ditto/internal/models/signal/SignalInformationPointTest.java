@@ -24,8 +24,11 @@ import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.internal.models.signal.common.SignalInterfaceImplementations;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -251,6 +254,44 @@ public final class SignalInformationPointTest {
         Mockito.when(signalMock.getDittoHeaders()).thenReturn(dittoHeaders);
 
         assertThat(SignalInformationPoint.isChannelLive(signalMock)).isFalse();
+    }
+
+    @Test
+    public void isWithEntityIdForNullSignalReturnsFalse() {
+        assertThat(SignalInformationPoint.isWithEntityId(null)).isFalse();
+    }
+
+    @Test
+    public void isWithEntityIdForSignalImplementingWithEntityIdReturnsTrue() {
+        final var signal = RetrieveThing.of(ThingId.generateRandom(), dittoHeaders);
+
+        assertThat(SignalInformationPoint.isWithEntityId(signal)).isTrue();
+    }
+
+    @Test
+    public void isWithEntityIdForSignalNotImplementingWithEntityIdReturnsFalse() {
+        final var signal = RetrieveThings.getBuilder(ThingId.generateRandom()).dittoHeaders(dittoHeaders).build();
+
+        assertThat(SignalInformationPoint.isWithEntityId(signal)).isFalse();
+    }
+
+    @Test
+    public void getEntityIdForNullSignalReturnsEmptyOptional() {
+        assertThat(SignalInformationPoint.getEntityId(null)).isEmpty();
+    }
+
+    @Test
+    public void getEntityIdForSignalWithEntityIdReturnsOptionalWithEntityId() {
+        final var signal = RetrieveThing.of(ThingId.generateRandom(), dittoHeaders);
+
+        assertThat(SignalInformationPoint.getEntityId(signal)).hasValue(signal.getEntityId());
+    }
+
+    @Test
+    public void getEntityIdForSignalWithoutEntityIdReturnsEmptyOptional() {
+        final var signal = RetrieveThings.getBuilder(ThingId.generateRandom()).dittoHeaders(dittoHeaders).build();
+
+        assertThat(SignalInformationPoint.getEntityId(signal)).isEmpty();
     }
 
     private static String getSimpleClassName(final Object o) {
