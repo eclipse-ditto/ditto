@@ -212,7 +212,7 @@ public final class SlidingWindowCounter {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", successMeasurements=" + successMeasurements +
+                "successMeasurements=" + successMeasurements +
                 ", failureMeasurements=" + failureMeasurements +
                 ", lastSuccessTimestamp=" + lastSuccessTimestamp +
                 ", lastFailureTimestamp=" + lastFailureTimestamp +

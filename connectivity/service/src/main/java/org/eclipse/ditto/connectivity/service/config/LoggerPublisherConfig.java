@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -100,8 +101,7 @@ public interface LoggerPublisherConfig {
         /**
          * The additional log context to add to log entries.
          */
-        ADDITIONAL_LOG_CONTEXT("additional-log-context", Map.of());
-
+        ADDITIONAL_LOG_CONTEXT("additional-log-context", Collections.emptyMap());
 
         private final String path;
         private final Object defaultValue;

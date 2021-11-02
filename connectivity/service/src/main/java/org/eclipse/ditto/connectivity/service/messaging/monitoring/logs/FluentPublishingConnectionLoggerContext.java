@@ -99,4 +99,5 @@ final class FluentPublishingConnectionLoggerContext {
                 ", additionalLogContext=" + additionalLogContext +
                 "]";
     }
+
 }
