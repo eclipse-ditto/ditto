@@ -27,6 +27,7 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
@@ -165,7 +166,8 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
             final MqttPublishTarget publishTarget,
             final ExternalMessage message,
             final int maxTotalMessageSize,
-            final int ackSizeQuota) {
+            final int ackSizeQuota,
+            @Nullable final AuthorizationContext targetAuthorizationContext) {
 
         try {
             final var messageHeaders = message.getHeaders();

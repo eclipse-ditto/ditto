@@ -38,6 +38,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -439,6 +440,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .droppedMonitor(droppedMonitor)
                 .acknowledgedMonitor(acknowledgedMonitor)
                 .autoAckTarget(autoAckTarget)
+                .targetAuthorizationContext(target.getAuthorizationContext())
                 .build();
     }
 
@@ -478,6 +480,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             l.debug("Publishing mapped message of type <{}> to PublishTarget <{}>: {}", outboundSource.getType(),
                     publishTarget, sendingContext.getExternalMessage());
             @Nullable final Target autoAckTarget = sendingContext.getAutoAckTarget().orElse(null);
+
             final HeaderMapping headerMapping = genericTarget.getHeaderMapping();
             final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping);
             final Context context = DittoTracing.extractTraceContext(mappedMessage.getHeaders());
@@ -489,12 +492,14 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             final ExternalMessage mappedMessageWithTraceContext =
                     DittoTracing.propagateContext(trace.getContext(), mappedMessage,
                             (msg, entry) -> msg.withHeader(entry.getKey(), entry.getValue()));
+
             final CompletionStage<SendResult> responsesFuture = publishMessage(outboundSource,
                     autoAckTarget,
                     publishTarget,
                     mappedMessageWithTraceContext,
                     maxTotalMessageSize,
-                    quota
+                    quota,
+                    sendingContext.getTargetAuthorizationContext().orElse(null)
             );
             responsesFuture.whenComplete((sr, throwable) -> trace.finish());
             // set the external message after header mapping for the result of header mapping to show up in log
@@ -558,7 +563,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             T publishTarget,
             ExternalMessage message,
             int maxTotalMessageSize,
-            int ackSizeQuota);
+            int ackSizeQuota,
+            @Nullable AuthorizationContext targetAuthorizationContext);
 
     /**
      * Decode a byte buffer according to the charset specified in an external message.

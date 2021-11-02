@@ -32,6 +32,7 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -45,6 +46,7 @@ import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
 import org.eclipse.ditto.connectivity.model.GenericTarget;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
@@ -322,12 +324,21 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final HttpPublishTarget publishTarget,
             final ExternalMessage message,
             final int maxTotalMessageSize,
-            final int ackSizeQuota) {
+            final int ackSizeQuota,
+            @Nullable final AuthorizationContext targetAuthorizationContext) {
+
+        if (null == targetAuthorizationContext) {
+            // only for reply-targets this context is empty, but this can never be the case for http.
+            throw ConnectivityInternalErrorException.fromMessage("Authorization context for target is missing",
+                    message.getInternalHeaders());
+        }
 
         final var resultFuture = new CompletableFuture<SendResult>();
         final var request = createRequest(publishTarget, message);
         final var context =
-                newContext(signal, autoAckTarget, request, message, maxTotalMessageSize, ackSizeQuota, resultFuture);
+                newContext(signal, autoAckTarget, request, message, maxTotalMessageSize, ackSizeQuota,
+                        targetAuthorizationContext, resultFuture);
+
         sourceQueue.offer(Pair.create(request, context))
                 .handle(handleQueueOfferResult(message, resultFuture));
 
@@ -392,6 +403,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final ExternalMessage message,
             final int maxTotalMessageSize,
             final int ackSizeQuota,
+            final AuthorizationContext targetAuthorizationContext,
             final CompletableFuture<SendResult> resultFuture) {
 
         return tryResponse -> {
@@ -404,7 +416,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 l.debug("Got response <{} {} {}>", response.status(), response.getHeaders(),
                         response.entity().getContentType());
 
-                toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize, ackSizeQuota)
+                toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize, ackSizeQuota,
+                        targetAuthorizationContext)
                         .thenAccept(resultFuture::complete)
                         .exceptionally(e -> {
                             resultFuture.completeExceptionally(e);
@@ -434,7 +447,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             @Nullable final Target autoAckTarget,
             final HttpResponse response,
             final int maxTotalMessageSize,
-            final int ackSizeQuota) {
+            final int ackSizeQuota,
+            final AuthorizationContext targetAuthorizationContext) {
 
         final var autoAckLabel = getAcknowledgementLabel(autoAckTarget);
 
@@ -464,10 +478,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     // Live-Response is declared as issued ack => parse live response from response
                     if (sentSignal instanceof MessageCommand) {
                         result = toMessageCommandResponse((MessageCommand<?, ?>) sentSignal, mergedDittoHeaders, body,
-                                httpStatus);
+                                httpStatus, targetAuthorizationContext);
                     } else if (sentSignal instanceof ThingCommand &&
                             SignalInformationPoint.isChannelLive(sentSignal)) {
-                        result = toLiveCommandResponse(sentSignal, mergedDittoHeaders, body);
+                        result = toLiveCommandResponse(mergedDittoHeaders, body, targetAuthorizationContext);
                     } else {
                         result = null;
                     }
@@ -483,7 +497,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
                         .isPresent();
                 if (isDittoProtocolMessage && body.isObject()) {
-                    final CommandResponse<?> parsedResponse = toCommandResponse(body.asObject(), sentSignal);
+                    final CommandResponse<?> parsedResponse = toCommandResponse(body.asObject(), targetAuthorizationContext);
                     if (parsedResponse instanceof Acknowledgement) {
                         result = parsedResponse;
                     } else if (SignalInformationPoint.isLiveCommandResponse(parsedResponse)) {
@@ -543,13 +557,14 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private MessageCommandResponse<?, ?> toMessageCommandResponse(final MessageCommand<?, ?> sentMessageCommand,
             final DittoHeaders dittoHeaders,
             final JsonValue jsonValue,
-            final HttpStatus status) {
+            final HttpStatus status,
+            final AuthorizationContext targetAuthorizationContext) {
 
         final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
                 .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
                 .isPresent();
         if (isDittoProtocolMessage && jsonValue.isObject()) {
-            final CommandResponse<?> commandResponse = toCommandResponse(jsonValue.asObject(), sentMessageCommand);
+            final CommandResponse<?> commandResponse = toCommandResponse(jsonValue.asObject(), targetAuthorizationContext);
             if (commandResponse == null) {
                 return null;
             } else if (commandResponse instanceof MessageCommandResponse) {
@@ -590,15 +605,15 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     @Nullable
-    private CommandResponse<?> toLiveCommandResponse(final Signal<?> sentSignal,
-            final DittoHeaders dittoHeaders,
-            final JsonValue jsonValue) {
+    private CommandResponse<?> toLiveCommandResponse(final DittoHeaders dittoHeaders,
+            final JsonValue jsonValue,
+            final AuthorizationContext targetAuthorizationContext) {
 
         final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
                 .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
                 .isPresent();
         if (isDittoProtocolMessage && jsonValue.isObject()) {
-            final var commandResponse = toCommandResponse(jsonValue.asObject(), sentSignal);
+            final var commandResponse = toCommandResponse(jsonValue.asObject(), targetAuthorizationContext);
             if (commandResponse == null) {
                 return null;
             } else if (commandResponse instanceof ThingCommandResponse &&
@@ -616,18 +631,20 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     @Nullable
-    private CommandResponse<?> toCommandResponse(final JsonObject jsonObject, final Signal<?> sentSignal) {
+    private CommandResponse<?> toCommandResponse(final JsonObject jsonObject,
+            final AuthorizationContext targetAuthorizationContext) {
+
         final var jsonifiableAdaptable = ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
         final var signal = DITTO_PROTOCOL_ADAPTER.fromAdaptable(jsonifiableAdaptable);
+
         if (signal instanceof CommandResponse) {
-            // use ditto headers from original sent signal as base, so that headers like the ditto-auth-context are set,
-            // they might be needed by concierge for filtering,
             final var commandResponse = (CommandResponse<?>) signal;
-            final var fromSourceHeaders = sentSignal.getDittoHeaders().toBuilder()
-                    .putHeaders(commandResponse.getDittoHeaders())
+            final var dittoHeadersWithTargetAuthorization = signal.getDittoHeaders().toBuilder()
+                    .authorizationContext(targetAuthorizationContext)
                     .build();
 
-            return commandResponse.setDittoHeaders(fromSourceHeaders);
+            return commandResponse.setDittoHeaders(dittoHeadersWithTargetAuthorization);
+
         } else {
             connectionLogger.exception("Expected <{}> to be of type <{}> but was of type <{}>.",
                     jsonObject, CommandResponse.class.getSimpleName(), signal.getClass().getSimpleName());

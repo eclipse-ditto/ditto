@@ -708,14 +708,8 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected void verifyPublishedMessageToReplyTarget() throws Exception {
-        final var request = received.take();
-        assertThat(received).isEmpty();
-        assertThat(request.method()).isEqualTo(HttpMethods.POST);
-        assertThat(request.getUri().getPathString()).isEqualTo("/replyTarget/thing:id");
-        assertThat(request.getHeader("correlation-id"))
-                .contains(HttpHeader.parse("correlation-id", TestConstants.CORRELATION_ID));
-        assertThat(request.getHeader("mappedHeader2"))
-                .contains(HttpHeader.parse("mappedHeader2", "thing:id"));
+        // the Test: testPublishResponseToReplyTarget doesn't make any sense for HttpPush, because it's not possible
+        // to define httpPush sources, hence it's not possible to define reply-targets.
     }
 
     @Test

@@ -42,6 +42,7 @@ import javax.jms.Session;
 
 import org.apache.qpid.jms.message.JmsMessage;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -331,7 +332,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             final AmqpTarget publishTarget,
             final ExternalMessage message,
             final int maxTotalMessageSize,
-            final int ackSizeQuota) {
+            final int ackSizeQuota,
+            @Nullable final AuthorizationContext targetAuthorizationContext) {
 
         if (!isInBackOffMode) {
             final CompletableFuture<SendResult> resultFuture = new CompletableFuture<>();

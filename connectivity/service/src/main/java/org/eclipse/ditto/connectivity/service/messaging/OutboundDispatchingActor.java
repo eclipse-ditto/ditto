@@ -178,7 +178,7 @@ final class OutboundDispatchingActor extends AbstractActor {
 
         final var context = getContext();
         final var proxyActor = settings.getProxyActor();
-        final Consumer<ActorRef> action = acknowledgementForwarder -> {
+        final Consumer<ActorRef> forwardAck = acknowledgementForwarder -> {
             if (responseOrAck instanceof ThingQueryCommandResponse && isLiveResponse(responseOrAck)) {
                 // forward live command responses to concierge to filter response
                 proxyActor.tell(responseOrAck, getSender());
@@ -187,7 +187,7 @@ final class OutboundDispatchingActor extends AbstractActor {
             }
         };
 
-        final Runnable emptyAction = () -> {
+        final Runnable forwardToConcierge = () -> {
             final var forwarderActorClassName = AcknowledgementForwarderActor.class.getSimpleName();
             final var template = "No {} found. Forwarding signal to concierge. <{}>";
             if (logger.isDebugEnabled()) {
@@ -200,7 +200,7 @@ final class OutboundDispatchingActor extends AbstractActor {
         };
 
         context.findChild(AcknowledgementForwarderActor.determineActorName(responseOrAck.getDittoHeaders()))
-                .ifPresentOrElse(action, emptyAction);
+                .ifPresentOrElse(forwardAck, forwardToConcierge);
     }
 
     private void denyNonSourceDeclaredAck(final Acknowledgement ack) {
