@@ -40,7 +40,10 @@ final class ThingModifiedStrategy extends AbstractThingEventStrategy<ThingModifi
     protected ThingBuilder.FromCopy applyEvent(final ThingModified event, final ThingBuilder.FromCopy thingBuilder) {
 
         // we need to use the current thing as base otherwise we would loose its state
-        thingBuilder.setLifecycle(ThingLifecycle.ACTIVE);
+        thingBuilder.setLifecycle(ThingLifecycle.ACTIVE)
+                .removeAllAttributes()
+                .removeAllFeatures()
+                .removeDefinition();
 
         final Thing thingWithModifications = event.getThing();
         thingWithModifications.getPolicyEntityId().ifPresent(thingBuilder::setPolicyId);

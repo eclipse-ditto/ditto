@@ -26,6 +26,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithResource;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -386,16 +388,19 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
 
     private static JsonObject getDefaultJsonObject(final JsonObject jsonObject, final ThingEvent<?> thingEvent) {
         final var resourcePath = thingEvent.getResourcePath();
-        final var jsonObjectBuilder = jsonObject.toBuilder();
+        final var nonHiddenFieldsJsonObjectBuilder = jsonObject.stream()
+                .filter(field -> !field.isMarkedAs(FieldType.HIDDEN))
+                .collect(JsonCollectors.fieldsToObject())
+                .toBuilder();
         final Optional<JsonValue> optEntity = thingEvent.getEntity();
         if (resourcePath.isEmpty() && optEntity.filter(JsonValue::isObject).isPresent()) {
-            optEntity.map(JsonValue::asObject).ifPresent(jsonObjectBuilder::setAll);
+            optEntity.map(JsonValue::asObject).ifPresent(nonHiddenFieldsJsonObjectBuilder::setAll);
         } else {
-            optEntity.ifPresent(entity -> jsonObjectBuilder
+            optEntity.ifPresent(entity -> nonHiddenFieldsJsonObjectBuilder
                     .set(resourcePath.toString(), entity)
             );
         }
-        return jsonObjectBuilder.build();
+        return nonHiddenFieldsJsonObjectBuilder.build();
     }
 
     private Optional<CompletionStage<JsonObject>> invalidateCacheOnPolicyChange(final SignalEnrichmentCacheKey cacheKey,
@@ -420,8 +425,11 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
     private static JsonObject enhanceJsonObject(final JsonObject jsonObject, final List<ThingEvent<?>> concernedSignals,
             @Nullable final JsonFieldSelector enhancedFieldSelector) {
 
+        final ThingEvent<?> last = getLast(concernedSignals);
         final var jsonObjectBuilder = jsonObject.toBuilder()
-                .set(Thing.JsonFields.REVISION, getLast(concernedSignals).getRevision());
+                .set(Thing.JsonFields.REVISION, last.getRevision());
+        last.getTimestamp().ifPresent(timestamp ->
+                jsonObjectBuilder.set(Thing.JsonFields.MODIFIED, timestamp.toString()));
         return enhancedFieldSelector == null
                 ? jsonObjectBuilder.build()
                 : jsonObjectBuilder.build().get(enhancedFieldSelector);
@@ -445,6 +453,15 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
             this.minAcceptableSeqNr = minAcceptableSeqNr;
         }
 
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    "fieldSelector=" + fieldSelector +
+                    ", concernedEvents=" + concernedEvents +
+                    ", invalidateCacheOnPolicyChange=" + invalidateCacheOnPolicyChange +
+                    ", minAcceptableSeqNr=" + minAcceptableSeqNr +
+                    "]";
+        }
     }
 
 }
