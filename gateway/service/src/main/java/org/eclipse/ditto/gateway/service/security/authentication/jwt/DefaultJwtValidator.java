@@ -19,7 +19,6 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.base.model.common.BinaryValidationResult;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
-import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,22 +34,19 @@ public final class DefaultJwtValidator implements JwtValidator {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultJwtValidator.class);
 
     private final PublicKeyProvider publicKeyProvider;
-    private final OAuthConfig oAuthConfig;
 
-    private DefaultJwtValidator(final PublicKeyProvider publicKeyProvider, final OAuthConfig oAuthConfig) {
+    private DefaultJwtValidator(final PublicKeyProvider publicKeyProvider) {
         this.publicKeyProvider = publicKeyProvider;
-        this.oAuthConfig = oAuthConfig;
     }
 
     /**
      * Creates a new {@code JwtValidator} instance.
      *
      * @param publicKeyProvider provider for public keys of jwt issuers.
-     * @param oAuthConfig the OAuth config.
      * @return the instance.
      */
-    public static JwtValidator of(final PublicKeyProvider publicKeyProvider, final OAuthConfig oAuthConfig) {
-        return new DefaultJwtValidator(publicKeyProvider, oAuthConfig);
+    public static JwtValidator of(final PublicKeyProvider publicKeyProvider) {
+        return new DefaultJwtValidator(publicKeyProvider);
     }
 
     @Override
@@ -60,7 +56,8 @@ public final class DefaultJwtValidator implements JwtValidator {
 
         return publicKeyProvider.getPublicKeyWithParser(issuer, keyId)
                 .thenApply(publicKeyWithParserOpt -> publicKeyWithParserOpt
-                        .map(publicKeyWithParser -> tryToValidateWithJwtParser(jsonWebToken, publicKeyWithParser.getJwtParser()))
+                        .map(publicKeyWithParser -> tryToValidateWithJwtParser(jsonWebToken,
+                                publicKeyWithParser.getJwtParser()))
                         .orElseGet(() -> {
                             final var msgPattern = "Public Key of issuer <{0}> with key ID <{1}> not found!";
                             final var msg = MessageFormat.format(msgPattern, issuer, keyId);
@@ -70,7 +67,8 @@ public final class DefaultJwtValidator implements JwtValidator {
                         }));
     }
 
-    private BinaryValidationResult tryToValidateWithJwtParser(final JsonWebToken jsonWebToken, final JwtParser jwtParser) {
+    private BinaryValidationResult tryToValidateWithJwtParser(final JsonWebToken jsonWebToken,
+            final JwtParser jwtParser) {
         try {
             return validateWithJwtParser(jsonWebToken, jwtParser);
         } catch (final Exception e) {
