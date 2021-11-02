@@ -31,7 +31,6 @@ final class PublicKeyWithParser {
      *
      * @param publicKey publicKey to use for jwt parsing.
      * @param jwtParser the actual jwtParser using the given publicKey.
-     * @return the instance.
      */
     PublicKeyWithParser(final PublicKey publicKey, final JwtParser jwtParser) {
         this.publicKey = publicKey;
@@ -62,9 +61,9 @@ final class PublicKeyWithParser {
 
     @Override
     public String toString() {
-        return "PublicKeyWithParser{" +
-            "publicKey=" + publicKey +
-            ", jwtParser=" + jwtParser +
-            '}';
+        return getClass().getSimpleName() + " [" +
+                "publicKey=" + publicKey +
+                ", jwtParser=" + jwtParser +
+                "]";
     }
 }
