@@ -21,6 +21,7 @@ import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -35,6 +36,7 @@ import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Scheduler;
+import akka.japi.Pair;
 
 /**
  * A message together with contextual information about the actor processing it.
@@ -59,7 +61,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
 
     // for live signal enforcement
     @Nullable
-    private final Cache<String, ActorRef> responseReceivers;
+    private final Cache<String, Pair<ActorRef, AuthorizationContext>> responseReceivers;
 
     @Nullable
     private final Supplier<CompletionStage<Object>> askFuture;
@@ -76,7 +78,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
             @Nullable final EnforcementCacheKey cacheKey,
             @Nullable final ActorRef receiver,
             @Nullable final Function<Object, Object> receiverWrapperFunction,
-            @Nullable final Cache<String, ActorRef> responseReceivers,
+            @Nullable final Cache<String, Pair<ActorRef, AuthorizationContext>> responseReceivers,
             @Nullable final Supplier<CompletionStage<Object>> askFuture) {
         this.message = message;
         this.self = self;
@@ -100,7 +102,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
             final ActorRef conciergeForwarder,
             final AskWithRetryConfig askWithRetryConfig,
             final ThreadSafeDittoLoggingAdapter log,
-            @Nullable final Cache<String, ActorRef> responseReceivers) {
+            @Nullable final Cache<String, Pair<ActorRef, AuthorizationContext>> responseReceivers) {
 
         return new Contextual<>(null,
                 self,
@@ -229,7 +231,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         return receiverWrapperFunction != null ? receiverWrapperFunction : Function.identity();
     }
 
-    Optional<Cache<String, ActorRef>> getResponseReceivers() {
+    Optional<Cache<String, Pair<ActorRef, AuthorizationContext>>> getResponseReceivers() {
         return Optional.ofNullable(responseReceivers);
     }
 

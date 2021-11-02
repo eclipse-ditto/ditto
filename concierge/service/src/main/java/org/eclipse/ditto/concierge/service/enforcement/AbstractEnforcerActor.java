@@ -16,6 +16,7 @@ import java.time.Duration;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.concierge.service.common.ConciergeConfig;
 import org.eclipse.ditto.concierge.service.common.DittoConciergeConfig;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 import akka.actor.ActorRef;
+import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.javadsl.Sink;
 
@@ -130,7 +132,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     }
 
     @Nullable
-    private static Cache<String, ActorRef> createResponseReceiverCache(final ConciergeConfig conciergeConfig) {
+    private static Cache<String, Pair<ActorRef, AuthorizationContext>> createResponseReceiverCache(final ConciergeConfig conciergeConfig) {
         if (conciergeConfig.getEnforcementConfig().shouldDispatchLiveResponsesGlobally()) {
             return CaffeineCache.of(Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(120L)));
         } else {
