@@ -83,4 +83,11 @@ public final class ThingWriteModel extends AbstractWriteModel {
         return Objects.hash(super.hashCode(), thingDocument);
     }
 
+    @Override
+    public String toString() {
+        return super.toString() +
+                ", thingDocument=" + thingDocument
+                + "]";
+    }
+
 }

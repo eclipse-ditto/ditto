@@ -14,7 +14,7 @@ package org.eclipse.ditto.connectivity.model;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -27,13 +27,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
@@ -42,6 +35,13 @@ import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Immutable implementation of {@link Source}.
@@ -98,7 +98,7 @@ final class ImmutableSource implements Source {
 
     private ImmutableSource(final Builder builder) {
         this.addresses = Collections.unmodifiableSet(
-                new HashSet<>(ConditionChecker.checkNotNull(builder.addresses, "addresses")));
+                new LinkedHashSet<>(ConditionChecker.checkNotNull(builder.addresses, "addresses")));
         this.consumerCount = builder.consumerCount;
         this.qos = builder.qos;
         this.authorizationContext = ConditionChecker.checkNotNull(builder.authorizationContext, "authorizationContext");
@@ -238,7 +238,8 @@ final class ImmutableSource implements Source {
         final Set<String> readSources = jsonObject.getValue(JsonFields.ADDRESSES)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
-                        .collect(Collectors.toSet())).orElse(Collections.emptySet());
+                        .collect(Collectors.toCollection(LinkedHashSet::new)))
+                .orElseGet(LinkedHashSet::new);
         final int readConsumerCount =
                 jsonObject.getValue(JsonFields.CONSUMER_COUNT).orElse(DEFAULT_CONSUMER_COUNT);
         final Integer readQos = jsonObject.getValue(JsonFields.QOS).orElse(null);
@@ -378,7 +379,7 @@ final class ImmutableSource implements Source {
         return jsonArray.stream()
                 .map(JsonValue::formatAsString)
                 .map(AcknowledgementLabel::of)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     private static JsonArray declaredAcksToJson(final Set<AcknowledgementLabel> declaredAcks) {
@@ -394,7 +395,7 @@ final class ImmutableSource implements Source {
     static final class Builder implements SourceBuilder<Builder> {
 
         // required but changeable:
-        @Nullable private Set<String> addresses = new HashSet<>();
+        @Nullable private Set<String> addresses = new LinkedHashSet<>();
         @Nullable private AuthorizationContext authorizationContext;
 
         // optional:
@@ -436,7 +437,7 @@ final class ImmutableSource implements Source {
         @Override
         public Builder address(final String address) {
             if (this.addresses == null) {
-                this.addresses = new HashSet<>();
+                this.addresses = new LinkedHashSet<>();
             }
             this.addresses.add(address);
             return this;

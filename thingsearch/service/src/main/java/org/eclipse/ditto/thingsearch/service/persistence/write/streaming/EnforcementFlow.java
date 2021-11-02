@@ -18,12 +18,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
+import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacadeProvider;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
@@ -49,6 +52,7 @@ import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Scheduler;
 import akka.dispatch.MessageDispatcher;
 import akka.japi.pf.PFBuilder;
@@ -69,23 +73,25 @@ final class EnforcementFlow {
     private final Duration cacheRetryDelay;
     private final int maxArraySize;
 
-    private EnforcementFlow(final ActorRef thingsShardRegion,
+    private EnforcementFlow(final ActorSystem actorSystem,
+            final ActorRef thingsShardRegion,
             final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
             final AskWithRetryConfig askWithRetryConfig,
             final StreamCacheConfig streamCacheConfig,
             final int maxArraySize,
-            final MessageDispatcher cacheDispatcher) {
+            final Executor cacheDispatcher) {
 
-        this.thingsFacade = createThingsFacade(thingsShardRegion, askWithRetryConfig.getAskTimeout(), streamCacheConfig,
-                cacheDispatcher);
+        thingsFacade = createThingsFacade(actorSystem, thingsShardRegion, askWithRetryConfig.getAskTimeout(),
+                streamCacheConfig, cacheDispatcher);
         this.policyEnforcerCache = policyEnforcerCache;
-        this.cacheRetryDelay = streamCacheConfig.getRetryDelay();
+        cacheRetryDelay = streamCacheConfig.getRetryDelay();
         this.maxArraySize = maxArraySize;
     }
 
     /**
      * Create an EnforcementFlow object.
      *
+     * @param actorSystem the actor system for loading the {@link CachingSignalEnrichmentFacadeProvider}
      * @param updaterStreamConfig configuration of the updater stream.
      * @param thingsShardRegion the shard region to retrieve things from.
      * @param policiesShardRegion the shard region to retrieve policies from.
@@ -93,7 +99,8 @@ final class EnforcementFlow {
      * @param scheduler the scheduler to use for retrying timed out asks for the policy enforcer cache loader.
      * @return an EnforcementFlow object.
      */
-    public static EnforcementFlow of(final StreamConfig updaterStreamConfig,
+    public static EnforcementFlow of(final ActorSystem actorSystem,
+            final StreamConfig updaterStreamConfig,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
             final MessageDispatcher cacheDispatcher,
@@ -109,7 +116,7 @@ final class EnforcementFlow {
                                 "things-search_enforcementflow_enforcer_cache_policy", cacheDispatcher)
                         .projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
 
-        return new EnforcementFlow(thingsShardRegion, policyEnforcerCache, askWithRetryConfig,
+        return new EnforcementFlow(actorSystem, thingsShardRegion, policyEnforcerCache, askWithRetryConfig,
                 streamCacheConfig, updaterStreamConfig.getMaxArraySize(), cacheDispatcher);
     }
 
@@ -130,7 +137,7 @@ final class EnforcementFlow {
             final int iteration) {
 
         if (iteration <= 0) {
-            return metadata.shouldInvalidateCache() || entry == null || !entry.exists() ||
+            return metadata.shouldInvalidatePolicy() || entry == null || !entry.exists() ||
                     entry.getRevision() < metadata.getPolicyRevision().orElse(Long.MAX_VALUE);
         } else {
             // never attempt to reload cache more than once
@@ -141,17 +148,14 @@ final class EnforcementFlow {
     /**
      * Create a flow from Thing changes to write models by retrieving data from Things shard region and enforcer cache.
      *
-     * @param shouldAcknowledge defines whether for the created flow the requested ack
-     * {@link org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
      * @param parallelism how many SudoRetrieveThing commands to send in parallel.
      * @return the flow.
      */
-    public Flow<Map<ThingId, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> create(
-            final boolean shouldAcknowledge, final int parallelism) {
+    public Flow<Map<ThingId, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> create(final int parallelism) {
+
         return Flow.<Map<ThingId, Metadata>>create()
                 .map(changeMap -> {
-                    log.info("Updating search index with <shouldAcknowledge={}> of <{}> things", shouldAcknowledge,
-                            changeMap.size());
+                    log.info("Updating search index of <{}> things", changeMap.size());
                     return sudoRetrieveThingJsons(parallelism, changeMap).flatMapConcat(responseMap ->
                             Source.fromIterator(changeMap.values()::iterator)
                                     .flatMapMerge(parallelism, metadataRef ->
@@ -186,13 +190,13 @@ final class EnforcementFlow {
         final var metadata = entry.getValue();
         ConsistencyLag.startS3RetrieveThing(metadata);
         final CompletionStage<JsonObject> thingFuture;
-        if (metadata.shouldInvalidateCache()) {
+        if (metadata.shouldInvalidateThing()) {
             thingFuture = thingsFacade.retrieveThing(thingId, List.of(), -1);
         } else {
             thingFuture = thingsFacade.retrieveThing(thingId, metadata.getEvents(), metadata.getThingRevision());
         }
 
-        return Source.fromCompletionStage(thingFuture)
+        return Source.completionStage(thingFuture)
                 .filter(thing -> !thing.isEmpty())
                 .<Map.Entry<ThingId, JsonObject>>map(thing -> new AbstractMap.SimpleImmutableEntry<>(thingId, thing))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<Map.Entry<ThingId, JsonObject>, NotUsed>>()
@@ -243,7 +247,7 @@ final class EnforcementFlow {
                     .map(PolicyId::of)
                     .map(policyId -> readCachedEnforcer(metadata, getPolicyCacheKey(policyId), 0))
                     .orElse(ENFORCER_NONEXISTENT);
-        } catch (PolicyIdInvalidException e) {
+        } catch (final PolicyIdInvalidException e) {
             return ENFORCER_NONEXISTENT;
         }
     }
@@ -275,13 +279,16 @@ final class EnforcementFlow {
         return lazySource.viaMat(Flow.create(), Keep.none());
     }
 
-    private static CachingSignalEnrichmentFacade createThingsFacade(final ActorRef thingsShardRegion,
+    private static CachingSignalEnrichmentFacade createThingsFacade(final ActorSystem actorSystem,
+            final ActorRef thingsShardRegion,
             final Duration timeout,
-            final StreamCacheConfig streamCacheConfig,
-            final MessageDispatcher cacheDispatcher) {
+            final CacheConfig streamCacheConfig,
+            final Executor cacheDispatcher) {
+
         final var sudoRetrieveThingFacade = SudoSignalEnrichmentFacade.of(thingsShardRegion, timeout);
-        return CachingSignalEnrichmentFacade.of(sudoRetrieveThingFacade, streamCacheConfig, cacheDispatcher,
-                "things-search_enforcementflow_enforcer_cache_things");
+        final var cachingSignalEnrichmentFacadeProvider = CachingSignalEnrichmentFacadeProvider.get(actorSystem);
+        return cachingSignalEnrichmentFacadeProvider.getSignalEnrichmentFacade(actorSystem, sudoRetrieveThingFacade,
+                streamCacheConfig, cacheDispatcher, "things-search_enforcementflow_enforcer_cache_things");
     }
 
 }

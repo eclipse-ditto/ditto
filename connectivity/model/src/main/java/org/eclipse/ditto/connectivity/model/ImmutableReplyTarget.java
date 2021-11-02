@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -44,13 +45,13 @@ import org.eclipse.ditto.json.JsonValue;
 @Immutable
 final class ImmutableReplyTarget implements ReplyTarget {
 
-    private static final Set<ResponseType> DEFAULT_EXPECTED_RESPONSE_TYPES;
+    private static final LinkedHashSet<ResponseType> DEFAULT_EXPECTED_RESPONSE_TYPES;
 
     static {
-        final HashSet<ResponseType> defaultExpectedResponseTypes = new HashSet<>();
+        final HashSet<ResponseType> defaultExpectedResponseTypes = new LinkedHashSet<>();
         defaultExpectedResponseTypes.add(ResponseType.RESPONSE);
         defaultExpectedResponseTypes.add(ResponseType.ERROR);
-        DEFAULT_EXPECTED_RESPONSE_TYPES = Collections.unmodifiableSet(new HashSet<>(defaultExpectedResponseTypes));
+        DEFAULT_EXPECTED_RESPONSE_TYPES = new LinkedHashSet<>(defaultExpectedResponseTypes);
     }
 
     private final String address;
@@ -60,7 +61,7 @@ final class ImmutableReplyTarget implements ReplyTarget {
     private ImmutableReplyTarget(final Builder builder) {
         this.address = checkNotNull(builder.address);
         this.headerMapping = builder.headerMapping;
-        this.expectedResponseTypes = Collections.unmodifiableSet(new HashSet<>(builder.expectedResponseTypes));
+        this.expectedResponseTypes = Collections.unmodifiableSet(new LinkedHashSet<>(builder.expectedResponseTypes));
     }
 
     @Override
@@ -128,7 +129,7 @@ final class ImmutableReplyTarget implements ReplyTarget {
                                 .map(ResponseType::fromName)
                                 .filter(Optional::isPresent)
                                 .map(Optional::get)
-                                .collect(Collectors.toSet()))
+                                .collect(Collectors.toCollection(LinkedHashSet::new)))
                         .orElse(DEFAULT_EXPECTED_RESPONSE_TYPES))
                 .build());
 
@@ -170,7 +171,7 @@ final class ImmutableReplyTarget implements ReplyTarget {
 
         @Nullable private String address;
         private HeaderMapping headerMapping = ConnectivityModelFactory.emptyHeaderMapping();
-        private final Collection<ResponseType> expectedResponseTypes = new HashSet<>(DEFAULT_EXPECTED_RESPONSE_TYPES);
+        private final Collection<ResponseType> expectedResponseTypes = new LinkedHashSet<>(DEFAULT_EXPECTED_RESPONSE_TYPES);
 
         @Override
         public ReplyTarget build() {

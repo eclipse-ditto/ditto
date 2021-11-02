@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
@@ -75,6 +76,7 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
         configuredClientCount = connection.getClientCount();
         // one response per client actor
         expectedResponses.put(ResourceStatus.ResourceType.CLIENT, configuredClientCount);
+
         if (ConnectivityStatus.OPEN.equals(connection.getConnectionStatus())) {
             // one response per source/target
             expectedResponses.put(ResourceStatus.ResourceType.TARGET,
@@ -82,12 +84,8 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
                             .stream()
                             .mapToInt(target -> configuredClientCount)
                             .sum());
-            expectedResponses.put(ResourceStatus.ResourceType.SOURCE,
-                    connection.getSources()
-                            .stream()
-                            .mapToInt(source -> configuredClientCount * source.getConsumerCount() *
-                                    source.getAddresses().size())
-                            .sum());
+            expectedResponses.put(ResourceStatus.ResourceType.SOURCE, determineSourceCount(connection));
+
             if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
                 expectedResponses.put(ResourceStatus.ResourceType.SSH_TUNNEL, configuredClientCount);
             }
@@ -240,4 +238,23 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     private void stopSelf() {
         getContext().stop(getSelf());
     }
+
+    private int determineSourceCount(final Connection connection) {
+        final int sourceCount;
+        if(connection.getConnectionType().equals(ConnectionType.MQTT)) {
+            // for mqtt only one consumer actor for all addresses of a source is started.
+            sourceCount = connection.getSources()
+                    .stream()
+                    .mapToInt(source -> configuredClientCount * source.getConsumerCount())
+                    .sum();
+        } else {
+            sourceCount = connection.getSources()
+                    .stream()
+                    .mapToInt(source -> configuredClientCount * source.getConsumerCount() * source.getAddresses().size())
+                    .sum();
+        }
+
+        return sourceCount;
+    }
+
 }

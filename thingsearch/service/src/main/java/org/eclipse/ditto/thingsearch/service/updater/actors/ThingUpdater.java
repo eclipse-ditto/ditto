@@ -19,10 +19,12 @@ import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 
 import org.bson.BsonDocument;
+import org.bson.BsonInvalidOperationException;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
@@ -43,26 +45,34 @@ import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.BsonDiff;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ConsistencyLag;
+import org.eclipse.ditto.thingsearch.service.starter.actors.MongoClientExtension;
 
 import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.WriteModel;
 
-import akka.actor.AbstractActor;
+import akka.Done;
+import akka.actor.AbstractActorWithStash;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 import akka.cluster.sharding.ShardRegion;
+import akka.pattern.Patterns;
+import akka.stream.javadsl.Sink;
 
 /**
  * This Actor initiates persistence updates related to 1 thing.
  */
-final class ThingUpdater extends AbstractActor {
+final class ThingUpdater extends AbstractActorWithStash {
+
+    private static final String FORCE_UPDATE = "force-update";
 
     private static final AcknowledgementRequest SEARCH_PERSISTED_REQUEST =
             AcknowledgementRequest.of(DittoAcknowledgementLabel.SEARCH_PERSISTED);
@@ -85,6 +95,15 @@ final class ThingUpdater extends AbstractActor {
     private ThingUpdater(final ActorRef pubSubMediator,
             final ActorRef changeQueueActor,
             final double forceUpdateProbability) {
+        this(pubSubMediator, changeQueueActor, forceUpdateProbability, true, true);
+    }
+
+    ThingUpdater(final ActorRef pubSubMediator,
+            final ActorRef changeQueueActor,
+            final double forceUpdateProbability,
+            final boolean loadPreviousState,
+            final boolean awaitRecovery) {
+
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         final var dittoSearchConfig = DittoSearchConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
@@ -95,6 +114,14 @@ final class ThingUpdater extends AbstractActor {
         this.forceUpdateProbability = forceUpdateProbability;
 
         getContext().setReceiveTimeout(dittoSearchConfig.getUpdaterConfig().getMaxIdleTime());
+
+        if (loadPreviousState) {
+            recoverLastWriteModel(thingId);
+        } else if (!awaitRecovery) {
+            // Not loading the previous model is equivalent to initializing via a delete-one model.
+            final var noLastModel = ThingDeleteModel.of(Metadata.of(thingId, -1L, null, null, null));
+            getSelf().tell(noLastModel, getSelf());
+        }
     }
 
     /**
@@ -115,6 +142,21 @@ final class ThingUpdater extends AbstractActor {
     @Override
     public Receive createReceive() {
         return shutdownBehaviour.createReceive()
+                .match(AbstractWriteModel.class, this::recoveryComplete)
+                .match(ReceiveTimeout.class, this::stopThisActor)
+                .matchAny(this::matchAnyDuringRecovery)
+                .build();
+    }
+
+    private void recoveryComplete(final AbstractWriteModel writeModel) {
+        log.debug("Recovered: <{}>", writeModel);
+        lastWriteModel = writeModel;
+        getContext().become(recoveredBehavior());
+        unstashAll();
+    }
+
+    private Receive recoveredBehavior() {
+        return shutdownBehaviour.createReceive()
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(AbstractWriteModel.class, this::onNextWriteModel)
                 .match(ThingTag.class, this::processThingTag)
@@ -129,21 +171,32 @@ final class ThingUpdater extends AbstractActor {
                 .build();
     }
 
+    private void matchAnyDuringRecovery(final Object message) {
+        log.debug("Stashing during initialization: <{}>", message);
+        stash();
+    }
+
     private void onNextWriteModel(final AbstractWriteModel nextWriteModel) {
         final WriteModel<BsonDocument> mongoWriteModel;
-        final boolean forceUpdate = Math.random() < forceUpdateProbability;
+        final boolean forceUpdate = forceUpdateProbability > 0 && Math.random() < forceUpdateProbability;
         if (!forceUpdate && lastWriteModel instanceof ThingWriteModel && nextWriteModel instanceof ThingWriteModel) {
             final var last = (ThingWriteModel) lastWriteModel;
             final var next = (ThingWriteModel) nextWriteModel;
-            final var diff = BsonDiff.minusThingDocs(next.getThingDocument(), last.getThingDocument());
-            if (diff.isDiffSmaller()) {
-                final var aggregationPipeline = diff.consumeAndExport();
+            final Optional<BsonDiff> diff = tryComputeDiff(next.getThingDocument(), last.getThingDocument());
+            if (diff.isPresent() && diff.get().isDiffSmaller()) {
+                final var aggregationPipeline = diff.get().consumeAndExport();
+                if (aggregationPipeline.isEmpty()) {
+                    log.debug("Skipping update due to empty diff <{}>", nextWriteModel);
+                    getSender().tell(Done.getInstance(), getSelf());
+                    return;
+                }
                 mongoWriteModel = new UpdateOneModel<>(nextWriteModel.getFilter(), aggregationPipeline);
                 log.debug("Using incremental update <{}>", mongoWriteModel);
             } else {
                 mongoWriteModel = nextWriteModel.toMongo();
                 if (log.isDebugEnabled()) {
-                    log.debug("Using replacement because it is smaller. Diff=<{}>", diff.consumeAndExport());
+                    log.debug("Using replacement because diff is bigger or nonexistent. Diff=<{}>",
+                            diff.map(BsonDiff::consumeAndExport));
                 }
             }
         } else {
@@ -156,6 +209,15 @@ final class ThingUpdater extends AbstractActor {
         }
         getSender().tell(mongoWriteModel, getSelf());
         lastWriteModel = nextWriteModel;
+    }
+
+    private Optional<BsonDiff> tryComputeDiff(final BsonDocument minuend, final BsonDocument subtrahend) {
+        try {
+            return Optional.of(BsonDiff.minusThingDocs(minuend, subtrahend));
+        } catch (BsonInvalidOperationException e) {
+            log.error(e, "Failed to compute BSON diff between <{}> and <{}>", minuend, subtrahend);
+            return Optional.empty();
+        }
     }
 
     private void stopThisActor(final ReceiveTimeout receiveTimeout) {
@@ -214,15 +276,23 @@ final class ThingUpdater extends AbstractActor {
     private void updateThing(final UpdateThing updateThing) {
         log.withCorrelationId(updateThing)
                 .info("Requested to update search index <{}> by <{}>", updateThing, getSender());
-        lastWriteModel = null;
-        enqueueMetadata(exportMetadata(null, null).invalidateCache());
+        if (updateThing.getDittoHeaders().containsKey(FORCE_UPDATE)) {
+            lastWriteModel = null;
+        }
+        final Metadata metadata = exportMetadata(null, null)
+                .invalidateCaches(updateThing.shouldInvalidateThing(), updateThing.shouldInvalidatePolicy());
+        if (updateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)) {
+            enqueueMetadata(metadata.withSender(getSender()));
+        } else {
+            enqueueMetadata(metadata);
+        }
     }
 
     private void processUpdateThingResponse(final UpdateThingResponse response) {
         if (!response.isSuccess()) {
             // discard last write model: index document is not known
             lastWriteModel = null;
-            final Metadata metadata = exportMetadata(null, null).invalidateCache();
+            final Metadata metadata = exportMetadata(null, null).invalidateCaches(true, true);
             log.warning("Got negative acknowledgement for <{}>; updating to <{}>.",
                     Metadata.fromResponse(response),
                     metadata);
@@ -294,6 +364,15 @@ final class ThingUpdater extends AbstractActor {
         if (!getContext().system().deadLetters().equals(sender)) {
             getSender().tell(StreamAck.success(message.asIdentifierString()), getSelf());
         }
+    }
+
+    private void recoverLastWriteModel(final ThingId thingId) {
+        final var actorSystem = getContext().getSystem();
+        // using search client instead of updater client for READ to ensure consistency in case of shard migration
+        final var client = MongoClientExtension.get(actorSystem).getSearchClient();
+        final var searchPersistence = new MongoThingsSearchPersistence(client, actorSystem);
+        final var writeModelFuture = searchPersistence.recoverLastWriteModel(thingId).runWith(Sink.head(), actorSystem);
+        Patterns.pipe(writeModelFuture, getContext().getDispatcher()).to(getSelf());
     }
 
 }

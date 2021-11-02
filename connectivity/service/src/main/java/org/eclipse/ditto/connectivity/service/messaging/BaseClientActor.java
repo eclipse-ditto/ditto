@@ -42,6 +42,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
@@ -235,7 +236,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 ProtocolAdapterProvider.load(connectivityConfig().getProtocolConfig(), system);
         protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         final var monitoringConfig = connectivityConfig().getMonitoringConfig();
-        connectionCounterRegistry = ConnectivityCounterRegistry.newInstance();
+        connectionCounterRegistry = ConnectivityCounterRegistry.newInstance(connectivityConfig);
         connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
         connectionLoggerRegistry.initForConnection(connection);
         connectionCounterRegistry.initForConnection(connection);
@@ -876,8 +877,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private State<BaseClientState, BaseClientData> disconnect(final Disconnect disconnect, final BaseClientData data) {
         doDisconnectClient(connection(), disconnect.getSender(), disconnect.shutdownAfterDisconnect());
-        return stay()
-                .using(data.setConnectionStatusDetails("disconnecting connection at " + Instant.now()));
+        return stay().using(data.setConnectionStatusDetails("disconnecting connection at " + Instant.now()));
     }
 
     private FSM.State<BaseClientState, BaseClientData> openConnection(final WithDittoHeaders openConnection,
@@ -1188,7 +1188,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             return goTo(CONNECTED).using(data.resetSession()
                     .resetFailureCount()
                     .setConnectionStatus(ConnectivityStatus.OPEN)
-                    .setConnectionStatusDetails("Connected at " + Instant.now()));
+                    .setConnectionStatusDetails("Connected at " + Instant.now())
+            );
         } else {
             logger.info("Initialization of consumers, publisher and subscriptions successful, but failures were " +
                     "received meanwhile. Staying in CONNECTING state to continue with connection recovery after backoff.");
@@ -1346,11 +1347,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                                 " Forwarding to consumers and publishers.", command.getEntityId(),
                         sender);
 
+        // only one PublisherActor is started for all targets (if targets are present)
         final int numberOfProducers = connection.getTargets().isEmpty() ? 0 : 1;
-        final int numberOfConsumers = connection.getSources()
-                .stream()
-                .mapToInt(source -> source.getConsumerCount() * source.getAddresses().size())
-                .sum();
+        final int numberOfConsumers = determineNumberOfConsumers();
         int expectedNumberOfChildren = numberOfProducers + numberOfConsumers;
         if (getSshTunnelState().isEnabled()) {
             expectedNumberOfChildren++;
@@ -1367,9 +1366,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                         .info("Responding early with static 'CLOSED' ResourceStatus for all sub-sources and " +
                                 "-targets and SSH tunnel, because some children could not be started, due to a " +
                                 "live status <{}> in the client actor.", clientConnectionStatus);
-                connection.getSources().stream()
-                        .map(Source::getAddresses)
-                        .flatMap(Collection::stream)
+                getSourceAddresses()
                         .map(sourceAddress -> ConnectivityModelFactory.newSourceStatus(getInstanceIdentifier(),
                                 ConnectivityStatus.CLOSED,
                                 sourceAddress,
@@ -1407,6 +1404,29 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         sender.tell(clientStatus, getSelf());
 
         return stay();
+    }
+
+    /**
+     * Determine the number of consumers.
+     *
+     * @return the number of consumers.
+     */
+    protected int determineNumberOfConsumers() {
+        return connection.getSources()
+                .stream()
+                .mapToInt(source -> source.getConsumerCount() * source.getAddresses().size())
+                .sum();
+    }
+
+    /**
+     * Get the source addresses as stream of strings.
+     *
+     * @return the stream of source addresses.
+     */
+    protected Stream<String> getSourceAddresses() {
+        return connection.getSources().stream()
+                .map(Source::getAddresses)
+                .flatMap(Collection::stream);
     }
 
     private void retrieveAddressStatusFromChildren(final RetrieveConnectionStatus command, final ActorRef sender,

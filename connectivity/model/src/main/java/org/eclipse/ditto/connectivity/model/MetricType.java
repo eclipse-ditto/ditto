@@ -61,7 +61,12 @@ public enum MetricType {
     /**
      * Counts inbound/outbound messages that were acknowledged.
      */
-    ACKNOWLEDGED("acknowledged", MetricDirection.INBOUND, MetricDirection.OUTBOUND);
+    ACKNOWLEDGED("acknowledged", MetricDirection.INBOUND, MetricDirection.OUTBOUND),
+
+    /**
+     * Signals if the connection was throttled i.e. 1 = throttled, 0 not throttled.
+     */
+    THROTTLED("throttled", MetricDirection.INBOUND);
 
     private final String name;
     private final List<MetricDirection> possibleMetricDirections;

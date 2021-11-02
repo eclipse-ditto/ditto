@@ -15,8 +15,8 @@ package org.eclipse.ditto.connectivity.service.mapping;
 import java.util.concurrent.Executor;
 
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacade;
 import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacadeConfig;
+import org.eclipse.ditto.internal.models.signalenrichment.CachingSignalEnrichmentFacadeProvider;
 import org.eclipse.ditto.internal.models.signalenrichment.DefaultCachingSignalEnrichmentFacadeConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig;
 import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade;
@@ -29,7 +29,7 @@ import akka.actor.ActorSystem;
  */
 public final class ConnectivityCachingSignalEnrichmentProvider extends ConnectivitySignalEnrichmentProvider {
 
-    private final CachingSignalEnrichmentFacade cachingSignalEnrichmentFacade;
+    private final SignalEnrichmentFacade cachingSignalEnrichmentFacade;
 
     /**
      * Instantiate this provider. Called by reflection.
@@ -40,12 +40,15 @@ public final class ConnectivityCachingSignalEnrichmentProvider extends Connectiv
     @SuppressWarnings("unused")
     public ConnectivityCachingSignalEnrichmentProvider(final ActorSystem actorSystem,
             final SignalEnrichmentConfig signalEnrichmentConfig) {
+
         final ConnectivityByRoundTripSignalEnrichmentProvider cacheLoaderProvider =
                 new ConnectivityByRoundTripSignalEnrichmentProvider(actorSystem, signalEnrichmentConfig);
         final CachingSignalEnrichmentFacadeConfig cachingSignalEnrichmentFacadeConfig =
                 DefaultCachingSignalEnrichmentFacadeConfig.of(signalEnrichmentConfig.getProviderConfig());
         final Executor cacheLoaderExecutor = actorSystem.dispatchers().lookup("signal-enrichment-cache-dispatcher");
-        cachingSignalEnrichmentFacade = CachingSignalEnrichmentFacade.of(
+        final var signalEnrichmentFacadeProvider = CachingSignalEnrichmentFacadeProvider.get(actorSystem);
+        cachingSignalEnrichmentFacade = signalEnrichmentFacadeProvider.getSignalEnrichmentFacade(
+                actorSystem,
                 cacheLoaderProvider.getByRoundTripSignalEnrichmentFacade(),
                 cachingSignalEnrichmentFacadeConfig.getCacheConfig(),
                 cacheLoaderExecutor,

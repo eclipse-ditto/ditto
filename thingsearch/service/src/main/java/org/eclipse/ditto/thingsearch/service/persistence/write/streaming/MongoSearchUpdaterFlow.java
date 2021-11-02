@@ -12,9 +12,8 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import org.bson.BsonDocument;
@@ -91,7 +90,7 @@ final class MongoSearchUpdaterFlow {
      * Create a new flow through the search persistence.
      * No logging or recovery is attempted.
      *
-     * @param shouldAcknowledge defines whether for this source the requested ack
+     * @param shouldAcknowledge whether to use a write concern to guarantee the consistency of acknowledgements.
      * {@link org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
      * @param parallelism How many write operations may run in parallel for this sink.
      * @param maxBulkSize How many writes to perform in one bulk.
@@ -108,57 +107,15 @@ final class MongoSearchUpdaterFlow {
 
         final Flow<List<AbstractWriteModel>, WriteResultAndErrors, NotUsed> writeFlow =
                 Flow.<List<AbstractWriteModel>>create()
-                        .map(writeModels -> {
-                            try {
-                                return searchUpdateMapper.processWriteModels(writeModels);
-                            } catch (final Exception e) {
-                                LOGGER.error(
-                                        "Skipping mapping of search update write models because an unexpected error occurred.",
-                                        e);
-                                return writeModels;
-                            }
-                        })
-                        .mapAsync(1, this::toIncrementalMongo)
+                        .flatMapConcat(searchUpdateMapper::processWriteModels)
                         .flatMapMerge(parallelism, writeModels ->
                                 executeBulkWrite(shouldAcknowledge, writeModels).async(DISPATCHER_NAME, parallelism));
 
         return batchFlow.via(writeFlow);
     }
 
-    private CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>> toIncrementalMongo(
-            final List<AbstractWriteModel> models) {
-
-        final var writeModelFutures = models.stream()
-                .<CompletionStage<List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>>>>map(model ->
-                        model.toIncrementalMongo()
-                                .thenApply(mongoWriteModel -> List.of(Pair.create(model, mongoWriteModel)))
-                                .handle((result, error) -> {
-                                    if (result != null) {
-                                        ConsistencyLag.startS5MongoBulkWrite(model.getMetadata());
-                                        LOGGER.debug("MongoWriteModel={}", result);
-                                        return result;
-                                    } else {
-                                        LOGGER.error("Failed to compute write model " + model, error);
-                                        try {
-                                            model.getMetadata().getTimers().forEach(StartedTimer::stop);
-                                        } catch (final Exception e) {
-                                            // tolerate stopping stopped timers
-                                        }
-                                        return List.of();
-                                    }
-                                })
-                )
-                .map(CompletionStage::toCompletableFuture)
-                .collect(Collectors.toList());
-
-        final var allFutures = CompletableFuture.allOf(writeModelFutures.toArray(CompletableFuture[]::new));
-        return allFutures.thenApply(aVoid ->
-                writeModelFutures.stream().flatMap(future -> future.join().stream()).collect(Collectors.toList())
-        );
-    }
-
     private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,
-            final List<Pair<AbstractWriteModel, WriteModel<BsonDocument>>> pairs) {
+            final Collection<Pair<AbstractWriteModel, WriteModel<BsonDocument>>> pairs) {
 
         final MongoCollection<BsonDocument> theCollection;
         if (shouldAcknowledge) {
@@ -168,8 +125,17 @@ final class MongoSearchUpdaterFlow {
         }
         final var abstractWriteModels = pairs.stream().map(Pair::first).collect(Collectors.toList());
         final var writeModels = pairs.stream().map(Pair::second).collect(Collectors.toList());
-        final var bulkWriteTimer = startBulkWriteTimer(writeModels);
 
+        if (writeModels.isEmpty()) {
+            LOGGER.debug("Requested to make empty update by write models <{}>", abstractWriteModels);
+            for (final var abstractWriteModel : abstractWriteModels) {
+                abstractWriteModel.getMetadata().sendWeakAck(null);
+            }
+            return Source.empty();
+        }
+
+        LOGGER.debug("Executing BulkWrite <{}>", writeModels);
+        final var bulkWriteTimer = startBulkWriteTimer(writeModels);
         return Source.fromPublisher(theCollection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))
                 .map(bulkWriteResult -> WriteResultAndErrors.success(abstractWriteModels, bulkWriteResult))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<WriteResultAndErrors, NotUsed>>()

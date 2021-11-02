@@ -46,7 +46,6 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
-import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
@@ -57,8 +56,6 @@ import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnectionMonitorRegistry;
@@ -70,7 +67,6 @@ import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStar
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
@@ -88,8 +84,6 @@ import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckR
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.thingsearch.model.signals.commands.WithSubscriptionId;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
-
-import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -162,9 +156,8 @@ public final class InboundDispatchingSink
                 ConnectivityPlaceholders.newConnectionIdPlaceholder(),
                 connection.getId());
 
-        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
 
-        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
+        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(connection);
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
         acknowledgementConfig = connectivityConfig.getConnectionConfig().getAcknowledgementConfig();

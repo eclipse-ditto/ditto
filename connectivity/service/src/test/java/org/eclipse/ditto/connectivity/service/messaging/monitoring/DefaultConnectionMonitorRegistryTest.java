@@ -29,7 +29,7 @@ public class DefaultConnectionMonitorRegistryTest {
 
     @Test
     public void fromConfig() {
-        assertThat(DefaultConnectionMonitorRegistry.fromConfig(TestConstants.MONITORING_CONFIG))
+        assertThat(DefaultConnectionMonitorRegistry.fromConfig(TestConstants.CONNECTIVITY_CONFIG))
                 .isNotNull();
     }
 

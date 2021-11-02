@@ -45,6 +45,13 @@ public interface SignalEnrichmentConfig {
     Config getProviderConfig();
 
     /**
+     * Returns the implementation of the caching signal enrichment facade to be used.
+     *
+     * @return the implementation
+     */
+    Class<?> getCachingSignalEnrichmentFacadeImplementation();
+
+    /**
      * Render this object as a {@code Config}.
      *
      * @return the rendered {@code Config} object.
@@ -65,7 +72,13 @@ public interface SignalEnrichmentConfig {
         /**
          * Configuration for the provider.
          */
-        PROVIDER_CONFIG("provider-config", ConfigFactory.empty().root());
+        PROVIDER_CONFIG("provider-config", ConfigFactory.empty().root()),
+
+        /**
+         * Implementation of the caching signal enrichment facade to be used.
+         */
+        CACHING_SIGNAL_ENRICHMENT_FACADE("caching-signal-enrichment-facade.provider",
+                DittoCachingSignalEnrichmentFacadeProvider.class.getName());
 
         private final String path;
         private final Object defaultValue;
