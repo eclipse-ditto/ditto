@@ -233,7 +233,15 @@ public final class LiveSignalEnforcementTest {
             assertThat((CharSequence) ((ThingCommand<?>) publishRead.msg()).getEntityId()).isEqualTo(
                     read.getEntityId());
 
-            final ThingCommandResponse<?> readResponse = getRetrieveThingResponse(headers);
+            // the response auth ctx shall be ignored for filtering live retrieve responses,
+            // the auth ctx of the requester is the right one.
+            final var responseHeaders = headers.toBuilder()
+                    .authorizationContext(AuthorizationContext.newInstance(
+                            DittoAuthorizationContextType.PRE_AUTHENTICATED_CONNECTION,
+                            AuthorizationSubject.newInstance("myIssuer:mySubject")))
+                    .build();
+
+            final ThingCommandResponse<?> readResponse = getRetrieveThingResponse(responseHeaders);
             final Thing expectedThing = THING.toBuilder()
                     .removeFeatureProperty(FEATURE_ID, JsonPointer.of(FEATURE_PROPERTY_2))
                     .build();

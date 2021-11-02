@@ -122,7 +122,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
         }
 
         @Override
-        public AbstractEnforcement<SignalWithEntityId<?>> createEnforcement(final Contextual<SignalWithEntityId<?>> context) {
+        public AbstractEnforcement<SignalWithEntityId<?>> createEnforcement(
+                final Contextual<SignalWithEntityId<?>> context) {
             return new LiveSignalEnforcement(context, thingIdCache, policyEnforcerCache, liveSignalPub);
         }
 
@@ -181,20 +182,23 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
         final Optional<Cache<String, Pair<ActorRef, AuthorizationContext>>> responseReceiversOptional =
                 context.getResponseReceivers();
         if (responseReceiversOptional.isPresent()) {
-            final Cache<String, Pair<ActorRef, AuthorizationContext>> responseReceivers = responseReceiversOptional.get();
+            final Cache<String, Pair<ActorRef, AuthorizationContext>> responseReceivers =
+                    responseReceiversOptional.get();
             return returnCommandResponseContextual(responseReceivers, liveResponse, correlationId, enforcer);
         } else {
             log().info("Got live response when global dispatching is inactive: <{}> with correlation ID <{}>",
-                        liveResponse.getType(),
-                        liveResponse.getDittoHeaders().getCorrelationId().orElse(""));
+                    liveResponse.getType(),
+                    liveResponse.getDittoHeaders().getCorrelationId().orElse(""));
 
             return CompletableFuture.completedFuture(withMessageToReceiver(null, null));
         }
     }
 
     private CompletionStage<Contextual<WithDittoHeaders>> returnCommandResponseContextual(
-            final Cache<String, Pair<ActorRef, AuthorizationContext>> responseReceivers, final CommandResponse<?> liveResponse,
+            final Cache<String, Pair<ActorRef, AuthorizationContext>> responseReceivers,
+            final CommandResponse<?> liveResponse,
             final String correlationId, final Enforcer enforcer) {
+
         return responseReceivers.get(correlationId).thenApply(responseReceiverEntry -> {
             final Contextual<WithDittoHeaders> commandResponseContextual;
             if (responseReceiverEntry.isPresent()) {
@@ -202,12 +206,14 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
                 final Pair<ActorRef, AuthorizationContext> responseReceiver = responseReceiverEntry.get();
                 final CommandResponse<?> response;
                 if (liveResponse instanceof ThingQueryCommandResponse) {
-                    final var dittoHeadersWithResponseReceiverAuthContext = liveResponse.getDittoHeaders()
-                            .toBuilder()
-                            .authorizationContext(responseReceiver.second())
-                            .build();
+
+                    final var liveResponseWithRequesterAuthCtx = injectRequestersAuthContext(
+                            (ThingQueryCommandResponse<?>) liveResponse,
+                            responseReceiver.second());
+
                     response = ThingCommandEnforcement.buildJsonViewForThingQueryCommandResponse(
-                            (ThingQueryCommandResponse<?>) liveResponse.setDittoHeaders(dittoHeadersWithResponseReceiverAuthContext), enforcer);
+                            liveResponseWithRequesterAuthCtx,
+                            enforcer);
                 } else {
                     response = liveResponse;
                 }
@@ -221,6 +227,18 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
 
             return commandResponseContextual;
         });
+    }
+
+    private static ThingQueryCommandResponse<?> injectRequestersAuthContext(
+            final ThingQueryCommandResponse<?> liveResponse,
+            final AuthorizationContext requesterAuthContext) {
+
+        final var dittoHeadersWithResponseReceiverAuthContext = liveResponse.getDittoHeaders()
+                .toBuilder()
+                .authorizationContext(requesterAuthContext)
+                .build();
+
+        return liveResponse.setDittoHeaders(dittoHeadersWithResponseReceiverAuthContext);
     }
 
     private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveSignal(final StreamingType streamingType,
@@ -377,7 +395,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
         }
     }
 
-    private static CompletionStage<Signal<?>> insertResponseReceiverConflictFree(final Cache<String, Pair<ActorRef, AuthorizationContext>> cache,
+    private static CompletionStage<Signal<?>> insertResponseReceiverConflictFree(
+            final Cache<String, Pair<ActorRef, AuthorizationContext>> cache,
             final Signal<?> signal, final Pair<ActorRef, AuthorizationContext> responseReceiver) {
 
         return setUniqueCorrelationIdForGlobalDispatching(cache, signal)
