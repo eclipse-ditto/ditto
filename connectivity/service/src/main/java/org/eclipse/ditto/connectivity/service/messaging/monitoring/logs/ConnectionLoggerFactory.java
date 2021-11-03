@@ -146,6 +146,7 @@ final class ConnectionLoggerFactory {
             builder.logHeadersAndPayload();
         }
         context.getLogTag().ifPresent(builder::withFluentTag);
+
         return builder.build();
     }
 

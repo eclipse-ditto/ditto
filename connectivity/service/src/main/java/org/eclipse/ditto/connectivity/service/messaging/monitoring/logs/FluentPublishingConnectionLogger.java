@@ -90,8 +90,8 @@ final class FluentPublishingConnectionLogger
      * @return a new Builder for {@code FluentPublishingConnectionLogger}.
      * @throws java.lang.NullPointerException if any non-nullable argument is {@code null}.
      */
-    static Builder newBuilder(final ConnectionId connectionId,
-            final LogCategory category, final LogType type, final Fluency fluencyForwarder) {
+    static Builder newBuilder(final ConnectionId connectionId, final LogCategory category, final LogType type,
+            final Fluency fluencyForwarder) {
 
         return new Builder(connectionId, category, type, fluencyForwarder);
     }
