@@ -420,8 +420,16 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
     private static JsonObject enhanceJsonObject(final JsonObject jsonObject, final List<ThingEvent<?>> concernedSignals,
             @Nullable final JsonFieldSelector enhancedFieldSelector) {
 
+        final ThingEvent<?> last = getLast(concernedSignals);
         final var jsonObjectBuilder = jsonObject.toBuilder()
-                .set(Thing.JsonFields.REVISION, getLast(concernedSignals).getRevision());
+                .set(Thing.JsonFields.REVISION, last.getRevision());
+        concernedSignals.stream()
+                .filter(ThingCreated.class::isInstance)
+                .map(ThingCreated.class::cast)
+                .forEach(thingCreated -> thingCreated.getTimestamp().ifPresent(timestamp ->
+                        jsonObjectBuilder.set(Thing.JsonFields.CREATED, timestamp.toString())));
+        last.getTimestamp().ifPresent(timestamp ->
+                jsonObjectBuilder.set(Thing.JsonFields.MODIFIED, timestamp.toString()));
         return enhancedFieldSelector == null
                 ? jsonObjectBuilder.build()
                 : jsonObjectBuilder.build().get(enhancedFieldSelector);
@@ -445,6 +453,15 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
             this.minAcceptableSeqNr = minAcceptableSeqNr;
         }
 
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    "fieldSelector=" + fieldSelector +
+                    ", concernedEvents=" + concernedEvents +
+                    ", invalidateCacheOnPolicyChange=" + invalidateCacheOnPolicyChange +
+                    ", minAcceptableSeqNr=" + minAcceptableSeqNr +
+                    "]";
+        }
     }
 
 }

@@ -13,7 +13,7 @@
 package org.eclipse.ditto.connectivity.model;
 
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -21,13 +21,13 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Immutable implementation of {@link Enforcement}.
@@ -40,7 +40,7 @@ final class ImmutableEnforcement implements Enforcement {
 
     private ImmutableEnforcement(final String input, final Set<String> filters) {
         this.input = input;
-        this.filters = Collections.unmodifiableSet(new HashSet<>(filters));
+        this.filters = Collections.unmodifiableSet(new LinkedHashSet<>(filters));
     }
 
     /**
@@ -89,7 +89,8 @@ final class ImmutableEnforcement implements Enforcement {
         final Set<String> readFilters = jsonObject.getValue(JsonFields.FILTERS)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
-                        .collect(Collectors.toSet())).orElse(Collections.emptySet());
+                        .collect(Collectors.toCollection(LinkedHashSet::new)))
+                .orElseGet(LinkedHashSet::new);
         final String readInput =
                 jsonObject.getValueOrThrow(JsonFields.INPUT);
         return new ImmutableEnforcement(readInput, readFilters);

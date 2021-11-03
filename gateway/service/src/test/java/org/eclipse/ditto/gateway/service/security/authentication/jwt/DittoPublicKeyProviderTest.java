@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.eclipse.ditto.gateway.service.security.utils.HttpClientFacade;
+import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.jwt.model.JsonWebKey;
@@ -68,6 +69,9 @@ public final class DittoPublicKeyProviderTest {
     @Mock
     public CacheConfig cacheConfigMock;
 
+    @Mock
+    public OAuthConfig oauthConfigMock;
+
     @Before
     public void setup() {
         actorSystem = ActorSystem.create(getClass().getSimpleName());
@@ -76,8 +80,9 @@ public final class DittoPublicKeyProviderTest {
                 Collections.singleton(new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, "google.com")));
         when(cacheConfigMock.getMaximumSize()).thenReturn(100L);
         when(cacheConfigMock.getExpireAfterWrite()).thenReturn(Duration.ofMinutes(3));
+        when(oauthConfigMock.getAllowedClockSkew()).thenReturn(Duration.ofSeconds(1));
         underTest = DittoPublicKeyProvider.of(subjectIssuersConfig, httpClientMock, cacheConfigMock,
-                getClass().getSimpleName());
+                getClass().getSimpleName(), oauthConfigMock);
     }
 
     @After
@@ -94,16 +99,16 @@ public final class DittoPublicKeyProviderTest {
         mockSuccessfulDiscoveryEndpointRequest();
         mockSuccessfulPublicKeysRequest();
 
-        final Optional<PublicKey> publicKeyFromEndpoint =
-                underTest.getPublicKey("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS);
+        final Optional<PublicKeyWithParser> publicKeyFromEndpoint =
+                underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS);
         assertThat(publicKeyFromEndpoint).isNotEmpty();
         verify(httpClientMock).createSingleHttpRequest(DISCOVERY_ENDPOINT_REQUEST);
         verify(httpClientMock).createSingleHttpRequest(PUBLIC_KEYS_REQUEST);
 
         Mockito.clearInvocations(httpClientMock);
 
-        final Optional<PublicKey> publicKeyFromCache =
-                underTest.getPublicKey("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS);
+        final Optional<PublicKeyWithParser> publicKeyFromCache =
+                underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS);
         assertThat(publicKeyFromCache).contains(publicKeyFromEndpoint.get());
         assertThat(publicKeyFromCache).isNotEmpty();
         verifyNoMoreInteractions(httpClientMock);
@@ -115,7 +120,7 @@ public final class DittoPublicKeyProviderTest {
         mockErrorDiscoveryEndpointRequest();
 
         assertThatExceptionOfType(ExecutionException.class)
-                .isThrownBy(() -> underTest.getPublicKey("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS))
+                .isThrownBy(() -> underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS))
                 .withCauseExactlyInstanceOf(GatewayAuthenticationProviderUnavailableException.class);
         verify(httpClientMock).createSingleHttpRequest(DISCOVERY_ENDPOINT_REQUEST);
         verify(httpClientMock, never()).createSingleHttpRequest(PUBLIC_KEYS_REQUEST);
@@ -123,7 +128,7 @@ public final class DittoPublicKeyProviderTest {
         Mockito.clearInvocations(httpClientMock);
 
         assertThatExceptionOfType(ExecutionException.class)
-                .isThrownBy(() -> underTest.getPublicKey("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS))
+                .isThrownBy(() -> underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS))
                 .withCauseExactlyInstanceOf(GatewayAuthenticationProviderUnavailableException.class);
         verify(httpClientMock).createSingleHttpRequest(DISCOVERY_ENDPOINT_REQUEST);
         verify(httpClientMock, never()).createSingleHttpRequest(PUBLIC_KEYS_REQUEST);
@@ -136,13 +141,13 @@ public final class DittoPublicKeyProviderTest {
         mockSuccessfulDiscoveryEndpointRequest();
         mockSuccessfulPublicKeysRequestWithoutMatchingKeyId();
 
-        assertThat(underTest.getPublicKey("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS)).isEmpty();
+        assertThat(underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS)).isEmpty();
         verify(httpClientMock).createSingleHttpRequest(DISCOVERY_ENDPOINT_REQUEST);
         verify(httpClientMock).createSingleHttpRequest(PUBLIC_KEYS_REQUEST);
 
         Mockito.clearInvocations(httpClientMock);
 
-        assertThat(underTest.getPublicKey("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS)).isEmpty();
+        assertThat(underTest.getPublicKeyWithParser("google.com", KEY_ID).get(LATCH_TIMEOUT, TimeUnit.SECONDS)).isEmpty();
         verify(httpClientMock).createSingleHttpRequest(DISCOVERY_ENDPOINT_REQUEST);
         verify(httpClientMock).createSingleHttpRequest(PUBLIC_KEYS_REQUEST);
     }

@@ -1001,9 +1001,14 @@ public final class TestConstants {
         return jsonifiable.toJsonString();
     }
 
+
     public static String modifyThing() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(CORRELATION_ID).putHeader(
-                ExternalMessage.REPLY_TO_HEADER, "replies").build();
+        return modifyThing(CORRELATION_ID);
+    }
+
+    public static String modifyThing(final String correlationId) {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(correlationId)
+                .putHeader(ExternalMessage.REPLY_TO_HEADER, "replies").build();
         final ModifyThing modifyThing = ModifyThing.of(Things.THING_ID, Things.THING, null, dittoHeaders);
         final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(modifyThing);
         final JsonifiableAdaptable jsonifiable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
