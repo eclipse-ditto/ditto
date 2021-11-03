@@ -75,7 +75,7 @@ public final class DefaultFluencyLoggerPublisherConfig implements FluencyLoggerP
         senderMaxRetryInterval = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.SENDER_MAX_RETRY_INTERVAL);
         ackResponseMode = config.getBoolean(ConfigValue.ACK_RESPONSE_MODE.getConfigPath());
         waitUntilAllBufferFlushedDurationOnClose =
-                config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.WAIT_UNTIL_BUFFER_FLUSHED_DURATION_ON_CLOSE);
+                config.getDuration(ConfigValue.WAIT_UNTIL_BUFFER_FLUSHED_DURATION_ON_CLOSE.getConfigPath());
     }
 
     /**
