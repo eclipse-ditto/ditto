@@ -564,7 +564,7 @@ public class ConnectionValidatorTest {
                         .clientId("id")
                         .clientSecret("secret")
                         .scope("scope")
-                        .tokenEndpoint("http://localhost/token")
+                        .tokenEndpoint("https://localhost/token")
                         .build())
                 .build();
         final ConnectionValidator underTest = getConnectionValidator();
