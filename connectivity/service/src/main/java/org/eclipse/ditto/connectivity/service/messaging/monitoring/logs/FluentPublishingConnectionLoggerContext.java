@@ -87,25 +87,28 @@ final class FluentPublishingConnectionLoggerContext {
         final FluentPublishingConnectionLoggerContext that = (FluentPublishingConnectionLoggerContext) o;
         return logHeadersAndPayload == that.logHeadersAndPayload &&
                 Objects.equals(fluencyForwarder, that.fluencyForwarder) &&
-                Objects.equals(logLevels, that.logLevels) &&
-                Objects.equals(logTag, that.logTag) &&
+                Objects.equals(waitUntilAllBufferFlushedDurationOnClose,
+                        that.waitUntilAllBufferFlushedDurationOnClose) &&
+                Objects.equals(logLevels, that.logLevels) && Objects.equals(logTag, that.logTag) &&
                 Objects.equals(additionalLogContext, that.additionalLogContext);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(fluencyForwarder, logLevels, logHeadersAndPayload, logTag, additionalLogContext);
+        return Objects.hash(fluencyForwarder, waitUntilAllBufferFlushedDurationOnClose, logLevels, logHeadersAndPayload,
+                logTag, additionalLogContext);
     }
+
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "fluencyForwarder=" + fluencyForwarder +
+                ", waitUntilAllBufferFlushedDurationOnClose=" + waitUntilAllBufferFlushedDurationOnClose +
                 ", logLevels=" + logLevels +
                 ", logHeadersAndPayload=" + logHeadersAndPayload +
                 ", logTag=" + logTag +
                 ", additionalLogContext=" + additionalLogContext +
                 "]";
     }
-
 }

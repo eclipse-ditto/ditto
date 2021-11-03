@@ -120,13 +120,10 @@ final class FluentPublishingConnectionLogger
         // fluencyForwarder.close also flushes:
         fluencyForwarder.close();
 
-        if (!waitUntilAllBufferFlushedDurationOnClose.isZero() &&
-                !waitUntilAllBufferFlushedDurationOnClose.isNegative()) {
-            try {
-                fluencyForwarder.waitUntilAllBufferFlushed((int) waitUntilAllBufferFlushedDurationOnClose.getSeconds());
-            } catch (final InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+        try {
+            fluencyForwarder.waitUntilAllBufferFlushed((int) waitUntilAllBufferFlushedDurationOnClose.getSeconds());
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
