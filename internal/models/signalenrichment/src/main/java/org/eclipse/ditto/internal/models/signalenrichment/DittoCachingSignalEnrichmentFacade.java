@@ -358,13 +358,8 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
             }
         }
         final var enhancedJsonObject = enhanceJsonObject(jsonObject, concernedSignals, enhancedFieldSelector);
-        final ThingEvent<?> last = getLast(concernedSignals);
-        if (last instanceof ThingDeleted) {
-            extraFieldsCache.invalidate(cacheKey);
-        } else {
-            // update local cache with enhanced object:
-            extraFieldsCache.put(cacheKey, enhancedJsonObject);
-        }
+        // update local cache with enhanced object:
+        extraFieldsCache.put(cacheKey, enhancedJsonObject);
         return CompletableFuture.completedFuture(enhancedJsonObject);
     }
 
