@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
@@ -67,6 +68,7 @@ final class FluentPublishingConnectionLogger
     private final String fluentTag;
     private final Set<LogLevel> logLevels;
     private final Fluency fluencyForwarder;
+    private final Duration waitUntilAllBufferFlushedDurationOnClose;
     private final Map<String, Object> additionalLogContext;
     @Nullable private final String instanceIdentifier;
 
@@ -76,6 +78,7 @@ final class FluentPublishingConnectionLogger
         fluentTag = builder.fluentTag;
         logLevels = builder.logLevels;
         fluencyForwarder = builder.fluencyForwarder;
+        waitUntilAllBufferFlushedDurationOnClose = builder.waitUntilAllBufferFlushedDurationOnClose;
         additionalLogContext = Map.copyOf(builder.additionalLogContext);
         instanceIdentifier = builder.instanceIdentifier;
     }
@@ -87,13 +90,16 @@ final class FluentPublishingConnectionLogger
      * @param category category of logs stored by the logger.
      * @param type type of logs stored by the logger.
      * @param fluencyForwarder the {@code Fluency} forwarder used to forward logs to fluentd/fluentbit.
+     * @param waitUntilAllBufferFlushedDurationOnClose the duration of how long to wait after closing the Fluency buffer.
      * @return a new Builder for {@code FluentPublishingConnectionLogger}.
      * @throws java.lang.NullPointerException if any non-nullable argument is {@code null}.
      */
-    static Builder newBuilder(final ConnectionId connectionId, final LogCategory category, final LogType type,
-            final Fluency fluencyForwarder) {
+    static Builder newBuilder(final ConnectionId connectionId, final LogCategory category,
+            final LogType type,
+            final Fluency fluencyForwarder,
+            final Duration waitUntilAllBufferFlushedDurationOnClose) {
 
-        return new Builder(connectionId, category, type, fluencyForwarder);
+        return new Builder(connectionId, category, type, fluencyForwarder, waitUntilAllBufferFlushedDurationOnClose);
     }
 
     @Override
@@ -108,13 +114,19 @@ final class FluentPublishingConnectionLogger
 
     @Override
     public void close() throws IOException {
-        LOGGER.info("Flushing and closing Fluency forwarder...");
+        LOGGER.info("Flushing and closing Fluency forwarder, waiting <{}> for buffers being flushed...",
+                waitUntilAllBufferFlushedDurationOnClose);
+
         // fluencyForwarder.close also flushes:
         fluencyForwarder.close();
-        try {
-            fluencyForwarder.waitUntilAllBufferFlushed(10); // TODO TJ do we want this? if yes, make configurable
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
+
+        if (!waitUntilAllBufferFlushedDurationOnClose.isZero() &&
+                !waitUntilAllBufferFlushedDurationOnClose.isNegative()) {
+            try {
+                fluencyForwarder.waitUntilAllBufferFlushed((int) waitUntilAllBufferFlushedDurationOnClose.getSeconds());
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
@@ -231,17 +243,20 @@ final class FluentPublishingConnectionLogger
         String fluentTag;
         Set<LogLevel> logLevels;
         final Fluency fluencyForwarder;
+        final Duration waitUntilAllBufferFlushedDurationOnClose;
         Map<String, Object> additionalLogContext;
         @Nullable String instanceIdentifier;
 
         private Builder(final ConnectionId connectionId,
                 final LogCategory category,
                 final LogType type,
-                final Fluency fluencyForwarder) {
+                final Fluency fluencyForwarder,
+                final Duration waitUntilAllBufferFlushedDurationOnClose) {
             super(category, type);
             this.connectionId = connectionId;
             this.fluentTag = CONNECTION_TAG_PREFIX + connectionId; // default to the connectionId as tag
             this.fluencyForwarder = fluencyForwarder;
+            this.waitUntilAllBufferFlushedDurationOnClose = waitUntilAllBufferFlushedDurationOnClose;
             this.additionalLogContext = Collections.emptyMap();
         }
 

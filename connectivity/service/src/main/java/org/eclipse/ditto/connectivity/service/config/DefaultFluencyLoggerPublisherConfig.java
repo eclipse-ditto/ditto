@@ -50,7 +50,7 @@ public final class DefaultFluencyLoggerPublisherConfig implements FluencyLoggerP
     private final Duration senderBaseRetryInterval;
     private final Duration senderMaxRetryInterval;
     private final boolean ackResponseMode;
-
+    private final Duration waitUntilAllBufferFlushedDurationOnClose;
 
     private DefaultFluencyLoggerPublisherConfig(final ConfigWithFallback config) {
         host = config.getString(ConfigValue.HOST.getConfigPath());
@@ -74,6 +74,8 @@ public final class DefaultFluencyLoggerPublisherConfig implements FluencyLoggerP
                 config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.SENDER_BASE_RETRY_INTERVAL);
         senderMaxRetryInterval = config.getNonNegativeAndNonZeroDurationOrThrow(ConfigValue.SENDER_MAX_RETRY_INTERVAL);
         ackResponseMode = config.getBoolean(ConfigValue.ACK_RESPONSE_MODE.getConfigPath());
+        waitUntilAllBufferFlushedDurationOnClose = config.getDuration(
+                ConfigValue.WAIT_UNTIL_BUFFER_FLUSHED_DURATION_ON_CLOSE.getConfigPath());
     }
 
     /**
@@ -113,6 +115,11 @@ public final class DefaultFluencyLoggerPublisherConfig implements FluencyLoggerP
     }
 
     @Override
+    public Duration getWaitUntilAllBufferFlushedDurationOnClose() {
+        return waitUntilAllBufferFlushedDurationOnClose;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -135,7 +142,8 @@ public final class DefaultFluencyLoggerPublisherConfig implements FluencyLoggerP
                 Objects.equals(waitUntilBufferFlushed, that.waitUntilBufferFlushed) &&
                 Objects.equals(waitUntilFlusherTerminated, that.waitUntilFlusherTerminated) &&
                 Objects.equals(senderBaseRetryInterval, that.senderBaseRetryInterval) &&
-                Objects.equals(senderMaxRetryInterval, that.senderMaxRetryInterval);
+                Objects.equals(senderMaxRetryInterval, that.senderMaxRetryInterval) &&
+                Objects.equals(waitUntilAllBufferFlushedDurationOnClose, that.waitUntilAllBufferFlushedDurationOnClose);
     }
 
     @Override
@@ -144,7 +152,8 @@ public final class DefaultFluencyLoggerPublisherConfig implements FluencyLoggerP
                 bufferChunkInitialSize,
                 bufferChunkRetentionSize, bufferChunkRetentionTime, flushAttemptInterval, fileBackupDir,
                 waitUntilBufferFlushed, waitUntilFlusherTerminated, jvmHeapBufferMode, senderMaxRetryCount,
-                senderBaseRetryInterval, senderMaxRetryInterval, ackResponseMode);
+                senderBaseRetryInterval, senderMaxRetryInterval, ackResponseMode,
+                waitUntilAllBufferFlushedDurationOnClose);
     }
 
     @Override
@@ -168,6 +177,7 @@ public final class DefaultFluencyLoggerPublisherConfig implements FluencyLoggerP
                 ", senderBaseRetryInterval=" + senderBaseRetryInterval +
                 ", senderMaxRetryInterval=" + senderMaxRetryInterval +
                 ", ackResponseMode=" + ackResponseMode +
+                ", waitUntilAllBufferFlushedDurationOnClose=" + waitUntilAllBufferFlushedDurationOnClose +
                 "]";
     }
 

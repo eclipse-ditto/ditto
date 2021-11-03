@@ -34,6 +34,14 @@ public interface FluencyLoggerPublisherConfig {
     Fluency buildFluencyLoggerPublisher();
 
     /**
+     * Returns the duration of how long to wait after closing the Fluency buffer.
+     * If this is Zero or a negative duration, no waiting for the buffer will be performed.
+     *
+     * @return the duration of how long to wait after closing the Fluency buffer.
+     */
+    Duration getWaitUntilAllBufferFlushedDurationOnClose();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code FluencyLoggerPublisherConfig}.
      */
@@ -129,8 +137,13 @@ public interface FluencyLoggerPublisherConfig {
          * Whether ACK response mode is enabled, meaning that it is waited for the ACK of the fluentd/fluentbit
          * instance where the logs are published to. Enables "at-least-once" semantics.
          */
-        ACK_RESPONSE_MODE("ackResponseMode", false)
+        ACK_RESPONSE_MODE("ackResponseMode", false),
 
+        /**
+         * The duration of how long to wait after closing the Fluency buffer.
+         * If this is Zero or a negative duration, no waiting for the buffer will be performed.
+         */
+        WAIT_UNTIL_BUFFER_FLUSHED_DURATION_ON_CLOSE("waitUntilAllBufferFlushedDurationOnClose", Duration.ofSeconds(5)),
         ;
 
         private final String path;

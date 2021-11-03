@@ -16,6 +16,7 @@ package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 
@@ -105,6 +106,7 @@ final class ConnectionLoggerFactory {
      * as connection static context information.
      *
      * @param fluencyForwarder the fluency forwarder for the logger.
+     * @param waitUntilAllBufferFlushedDurationOnClose the duration of how long to wait after closing the Fluency buffer.
      * @param logLevels the log levels which should be included when publishing logs.
      * @param logHeadersAndPayload whether to also include headers and payload information in published logs.
      * @param logTag an optional log-tag to use and overwrite the default one: {@code connection:<connection-id>}
@@ -112,13 +114,14 @@ final class ConnectionLoggerFactory {
      * @return a new fluent publishing connection logger context.
      */
     static FluentPublishingConnectionLoggerContext newPublishingLoggerContext(final Fluency fluencyForwarder,
+            final Duration waitUntilAllBufferFlushedDurationOnClose,
             final Collection<LogLevel> logLevels,
             final boolean logHeadersAndPayload,
             @Nullable final CharSequence logTag,
             final Map<String, Object> additionalLogContext) {
 
-        return new FluentPublishingConnectionLoggerContext(fluencyForwarder, logLevels, logHeadersAndPayload,
-                logTag, additionalLogContext);
+        return new FluentPublishingConnectionLoggerContext(fluencyForwarder, waitUntilAllBufferFlushedDurationOnClose,
+                logLevels, logHeadersAndPayload, logTag, additionalLogContext);
     }
 
     /**
@@ -137,7 +140,9 @@ final class ConnectionLoggerFactory {
             final FluentPublishingConnectionLoggerContext context) {
 
         final FluentPublishingConnectionLogger.Builder builder = FluentPublishingConnectionLogger
-                .newBuilder(connectionId, logCategory, logType, context.getFluencyForwarder())
+                .newBuilder(connectionId, logCategory, logType, context.getFluencyForwarder(),
+                        context.getWaitUntilAllBufferFlushedDurationOnClose()
+                )
                         .withAddress(address)
                         .withAdditionalLogContext(context.getAdditionalLogContext())
                         .withLogLevels(context.getLogLevels())

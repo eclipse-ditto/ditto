@@ -92,6 +92,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             final FluencyLoggerPublisherConfig fluencyConfig = loggerPublisherConfig.getFluencyLoggerPublisherConfig();
             final Fluency fluency = fluencyConfig.buildFluencyLoggerPublisher();
             fluentPublishingConnectionLoggerContext = ConnectionLoggerFactory.newPublishingLoggerContext(fluency,
+                    fluencyConfig.getWaitUntilAllBufferFlushedDurationOnClose(),
                     loggerPublisherConfig.getLogLevels(),
                     loggerPublisherConfig.isLogHeadersAndPayload(),
                     loggerPublisherConfig.getLogTag().orElse(null),

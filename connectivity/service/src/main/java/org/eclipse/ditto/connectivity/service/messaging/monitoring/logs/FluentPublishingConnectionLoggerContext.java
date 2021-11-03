@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
@@ -31,17 +32,20 @@ import org.komamitsu.fluency.Fluency;
 final class FluentPublishingConnectionLoggerContext {
 
     private final Fluency fluencyForwarder;
+    private final Duration waitUntilAllBufferFlushedDurationOnClose;
     private final Set<LogLevel> logLevels;
     private final boolean logHeadersAndPayload;
     @Nullable private final String logTag;
     private final Map<String, Object> additionalLogContext;
 
     FluentPublishingConnectionLoggerContext(final Fluency fluencyForwarder,
+            final Duration waitUntilAllBufferFlushedDurationOnClose,
             final Collection<LogLevel> logLevels,
             final boolean logHeadersAndPayload,
             @Nullable final CharSequence logTag,
             final Map<String, Object> additionalLogContext) {
         this.fluencyForwarder = fluencyForwarder;
+        this.waitUntilAllBufferFlushedDurationOnClose = waitUntilAllBufferFlushedDurationOnClose;
         this.logLevels = Set.copyOf(logLevels);
         this.logHeadersAndPayload = logHeadersAndPayload;
         this.logTag = null != logTag ? logTag.toString() : null;
@@ -66,6 +70,10 @@ final class FluentPublishingConnectionLoggerContext {
 
     Map<String, Object> getAdditionalLogContext() {
         return additionalLogContext;
+    }
+
+    Duration getWaitUntilAllBufferFlushedDurationOnClose() {
+        return waitUntilAllBufferFlushedDurationOnClose;
     }
 
     @Override
