@@ -244,7 +244,7 @@ public final class SearchActor extends AbstractActor {
         final Source<Optional<ThingsSearchCursor>, ?> cursorSource =
                 ThingsSearchCursor.extractCursor(queryThings, getSystem());
 
-        final Source<Object, ?> replySource = cursorSource.flatMapConcat(cursor -> {
+        final Source<QueryThingsResponse, ?> replySource = cursorSource.flatMapConcat(cursor -> {
             cursor.ifPresent(c -> c.logCursorCorrelationId(l));
             final QueryThings command = ThingsSearchCursor.adjust(cursor, queryThings);
             final var dittoHeaders = command.getDittoHeaders();
@@ -363,7 +363,7 @@ public final class SearchActor extends AbstractActor {
             final T command) {
 
         try {
-            return Source.fromCompletionStage(parser.apply(command))
+            return Source.completionStage(parser.apply(command))
                     .recoverWithRetries(1, new PFBuilder<Throwable, Source<Query, NotUsed>>()
                             .match(CompletionException.class, e -> Source.failed(e.getCause()))
                             .build());
