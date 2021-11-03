@@ -103,7 +103,6 @@ public final class HttpPublisherErrorTest {
         }
     }
 
-    @Ignore
     @Test
     public void connectionPoolIdleTimeoutShouldNotDisturbEventPublishing() throws Exception {
         // GIVEN: HTTP publisher actor created with extremely short connection pool timeout
@@ -136,6 +135,7 @@ public final class HttpPublisherErrorTest {
         }};
     }
 
+    @Ignore
     @Test
     public void closingConnectionFromServerSideShouldNotDisturbEventPublishing() throws Exception {
         createActorSystem(TestConstants.CONFIG);
