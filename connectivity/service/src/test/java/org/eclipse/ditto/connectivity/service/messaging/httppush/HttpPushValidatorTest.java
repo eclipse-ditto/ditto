@@ -116,9 +116,34 @@ public final class HttpPushValidatorTest {
 
     @Test
     public void testInvalidTargetAddress() {
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget(""));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("events"));
-        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("OPTIONS:/bar"));
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget(""),
+                "Target address has invalid format.");
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("events"),
+                "Target address has invalid format.");
+        verifyConnectionConfigurationInvalidExceptionIsThrown(getConnectionWithTarget("OPTIONS:/bar"),
+                "The method 'OPTIONS' is not supported");
+    }
+
+    @Test
+    public void testInvalidOmitBodyHttpMethod() {
+        final Connection connection = getConnectionWithTarget("POST:events").toBuilder()
+                .specificConfig(Map.of(HttpPublisherActor.OMIT_REQUEST_BODY_CONFIG_KEY, "GET,DELET,POST"))
+                .build();
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connection, "It contains an invalid HTTP method");
+    }
+
+    @Test
+    public void testNullOmitBodyHttpMethods() {
+        final Connection connection = getConnectionWithTarget("POST:events").toBuilder().build();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem, connectivityConfig);
+    }
+
+    @Test
+    public void testEmptyOmitBodyHttpMethods() {
+        final Connection connection = getConnectionWithTarget("POST:events").toBuilder()
+                .specificConfig(Map.of(HttpPublisherActor.OMIT_REQUEST_BODY_CONFIG_KEY, ""))
+                .build();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem, connectivityConfig);
     }
 
     private static Connection getConnectionWithTarget(final String target) {
@@ -138,10 +163,11 @@ public final class HttpPushValidatorTest {
                 .build();
     }
 
-    private void verifyConnectionConfigurationInvalidExceptionIsThrown(final Connection connection) {
+    private void verifyConnectionConfigurationInvalidExceptionIsThrown(final Connection connection,
+            final String errorMessage) {
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
-                .isThrownBy(
-                        () -> underTest.validate(connection, DittoHeaders.empty(), actorSystem, connectivityConfig));
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem, connectivityConfig))
+                .withMessageContaining(errorMessage);
     }
 
 }

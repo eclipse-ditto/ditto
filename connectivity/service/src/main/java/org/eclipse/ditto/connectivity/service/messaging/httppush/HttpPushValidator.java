@@ -84,6 +84,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         validateTargetConfigs(connection, dittoHeaders);
         validatePayloadMappings(connection, actorSystem, connectivityConfig, dittoHeaders);
         validateParallelism(connection.getSpecificConfig(), dittoHeaders);
+        validateOmitBodyMethods(connection.getSpecificConfig(), dittoHeaders);
         validateCredentials(connection, dittoHeaders);
     }
 
@@ -152,6 +153,23 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
                 }
             } catch (final NumberFormatException e) {
                 throw parallelismValidationFailed(parallelismString, dittoHeaders);
+            }
+        }
+    }
+
+    private void validateOmitBodyMethods(final Map<String, String> specificConfig, final DittoHeaders dittoHeaders) {
+        final String omitBody = specificConfig.get(HttpPublisherActor.OMIT_REQUEST_BODY_CONFIG_KEY);
+        if (omitBody != null && !omitBody.isEmpty()) {
+            final String[] methodsArray = omitBody.split(",");
+            for (final String method : methodsArray) {
+                if (HttpMethods.lookup(method).isEmpty()) {
+                    final String errorMessage = String.format("The configured value '%s' of '%s' is invalid. " +
+                                    "It contains an invalid HTTP method: %s",
+                            omitBody, HttpPublisherActor.OMIT_REQUEST_BODY_CONFIG_KEY, method);
+                    throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
+                            .dittoHeaders(dittoHeaders)
+                            .build();
+                }
             }
         }
     }

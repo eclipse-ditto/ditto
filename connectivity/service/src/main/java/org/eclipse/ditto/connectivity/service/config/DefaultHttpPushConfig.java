@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.config;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -38,6 +39,7 @@ final class DefaultHttpPushConfig implements HttpPushConfig, WithStringMapDecodi
     private final HttpProxyConfig httpProxyConfig;
     private final Map<String, String> hmacAlgorithms;
     private final OAuth2Config oAuth2Config;
+    private final List<String> omitRequestBodyMethods;
 
     private DefaultHttpPushConfig(final ScopedConfig config) {
         maxQueueSize = config.getPositiveIntOrThrow(ConfigValue.MAX_QUEUE_SIZE);
@@ -45,6 +47,7 @@ final class DefaultHttpPushConfig implements HttpPushConfig, WithStringMapDecodi
         httpProxyConfig = DefaultHttpProxyConfig.ofProxy(config);
         hmacAlgorithms = asStringMap(config, ConfigValue.HMAC_ALGORITHMS.getConfigPath());
         oAuth2Config = DefaultOAuth2Config.of(config);
+        omitRequestBodyMethods = config.getStringList(ConfigValue.OMIT_REQUEST_BODY_METHODS.getConfigPath());
     }
 
     static DefaultHttpPushConfig of(final Config config) {
@@ -77,6 +80,11 @@ final class DefaultHttpPushConfig implements HttpPushConfig, WithStringMapDecodi
     }
 
     @Override
+    public List<String> getOmitRequestBodyMethods() {
+        return omitRequestBodyMethods;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -89,12 +97,14 @@ final class DefaultHttpPushConfig implements HttpPushConfig, WithStringMapDecodi
                 Objects.equals(requestTimeout, that.requestTimeout) &&
                 Objects.equals(httpProxyConfig, that.httpProxyConfig) &&
                 Objects.equals(hmacAlgorithms, that.hmacAlgorithms) &&
-                Objects.equals(oAuth2Config, that.oAuth2Config);
+                Objects.equals(oAuth2Config, that.oAuth2Config) &&
+                Objects.equals(omitRequestBodyMethods, that.omitRequestBodyMethods);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxQueueSize, httpProxyConfig, hmacAlgorithms, requestTimeout, oAuth2Config);
+        return Objects.hash(maxQueueSize, httpProxyConfig, hmacAlgorithms, requestTimeout, oAuth2Config,
+                omitRequestBodyMethods);
     }
 
     @Override
@@ -105,6 +115,7 @@ final class DefaultHttpPushConfig implements HttpPushConfig, WithStringMapDecodi
                 ", httpProxyConfig=" + httpProxyConfig +
                 ", hmacAlgorithms=" + hmacAlgorithms +
                 ", oAuth2Config=" + oAuth2Config +
+                ", omitRequestBodyMethods=" + omitRequestBodyMethods +
                 "]";
     }
 

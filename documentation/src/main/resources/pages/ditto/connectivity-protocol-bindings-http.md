@@ -137,6 +137,9 @@ automatically created [message response](protocol-specification-things-messages.
 The specific configuration properties contain the following optional keys:
 * `parallelism` (optional): Configures how many parallel requests per connection to perform, each takes one outgoing 
 TCP connection. Default (if not provided): 1
+* `omitRequestBody` (optional): Configures for which HTTP methods, provided as a comma separated list, the request 
+body is omitted for requests made via this connection. Default (if not provided): `GET,DELETE`. Leave empty to 
+always send the request body.
 
 ## Establishing connecting to an HTTP endpoint
 

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPublisherActor.OMIT_REQUEST_BODY_CONFIG_KEY;
 import static org.mockito.Mockito.mock;
 
 import java.nio.charset.StandardCharsets;
@@ -76,6 +77,7 @@ import akka.event.LoggingAdapter;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpHeader;
+import akka.http.javadsl.model.HttpMethod;
 import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
@@ -856,6 +858,61 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(request.getUri().getPathString()).isEqualTo("/my/awesome/path");
     }
 
+    @Test
+    public void testOmitRequestBody() throws Exception {
+        testOmitRequestBody(HttpMethods.GET, Collections.emptyMap(), true);
+        testOmitRequestBody(HttpMethods.GET, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, "GET"), true);
+        testOmitRequestBody(HttpMethods.GET, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, ""), true);
+        testOmitRequestBody(HttpMethods.GET, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, "POST"), false);
+        testOmitRequestBody(HttpMethods.DELETE, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, "GET,DELETE"), true);
+        testOmitRequestBody(HttpMethods.DELETE, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, "GET"), false);
+    }
+
+    private void testOmitRequestBody(final HttpMethod method, final Map<String, String> specificConfig,
+            final boolean expectEmptyBody) throws Exception {
+        new TestKit(actorSystem) {{
+
+            final TestProbe probe = new TestProbe(actorSystem);
+            setupMocks(probe);
+            final Target testTarget =
+                    ConnectivityModelFactory.newTargetBuilder(createTestTarget())
+                            .address(method.name() + ":/path")
+                            .build();
+            final OutboundSignal.MultiMapped multiMapped =
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(getMockOutboundSignal(testTarget)),
+                            getRef());
+
+            final Connection connection =
+                    TestConstants.createConnection().toBuilder().specificConfig(specificConfig).build();
+            final Props props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
+                    mock(ConnectivityStatusResolver.class));
+            final ActorRef publisherActor = childActorOf(props);
+
+            publisherCreated(this, publisherActor);
+
+            publisherActor.tell(multiMapped, getRef());
+
+            final HttpRequest request = received.take();
+            assertThat(received).isEmpty();
+            assertThat(request.method()).isEqualTo(method);
+            if (expectEmptyBody) {
+                request.entity().isKnownEmpty();
+            } else {
+                final HttpEntity.Strict entity = request.entity()
+                        .toStrict(60_000L, SystemMaterializer.get(actorSystem).materializer())
+                        .toCompletableFuture()
+                        .join();
+                assertThat(entity.getData().utf8String()).isEqualTo("payload");
+                if (!entity.getContentType().toString().equals(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)) {
+                    // Ditto protocol content type is parsed as binary for some reason
+                    assertThat(entity.getContentType().binary()).isFalse();
+                }
+            }
+        }};
+
+    }
+
+
     private HttpRequest publishMessageWithHeaders(final Map<String, String> headers) throws InterruptedException {
         final Container<HttpRequest> published = new Container<>();
         new TestKit(actorSystem) {{
@@ -866,7 +923,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final Target target = decorateTarget(createTestTarget());
             final Message<?> message = Message.newBuilder(
                     MessageHeaders.newBuilder(MessageDirection.FROM, TestConstants.Things.THING_ID,
-                            "please-respond")
+                                    "please-respond")
                             .build()
             ).build();
             final Signal<?> source =
@@ -894,6 +951,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     }
 
     private static class Container<T> {
+
         private T value;
 
         private void setValue(final T value) {

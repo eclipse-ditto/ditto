@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.config;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
@@ -61,6 +62,11 @@ public interface HttpPushConfig {
     OAuth2Config getOAuth2Config();
 
     /**
+     * @return list of http methods for which the request body is omitted.
+     */
+    List<String> getOmitRequestBodyMethods();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code HttpPushConfig}.
      */
@@ -80,7 +86,12 @@ public interface HttpPushConfig {
         /**
          * HMAC request-signing algorithms.
          */
-        HMAC_ALGORITHMS("hmac-algorithms", Map.of());
+        HMAC_ALGORITHMS("hmac-algorithms", Map.of()),
+
+        /**
+         * HTTP methods for which the request body is omitted.
+         */
+        OMIT_REQUEST_BODY_METHODS("omit-request-body-methods", List.of("GET", "DELETE"));
 
         private final String path;
         private final Object defaultValue;

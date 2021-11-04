@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -177,6 +179,11 @@ public final class HttpPushFactoryTest {
             @Override
             public OAuth2Config getOAuth2Config() {
                 return OAuth2Config.of(ConfigFactory.empty());
+            }
+
+            @Override
+            public List<String> getOmitRequestBodyMethods() {
+                return Collections.emptyList();
             }
         }, mock(ConnectionLogger.class), SshTunnelState::disabled);
         final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
