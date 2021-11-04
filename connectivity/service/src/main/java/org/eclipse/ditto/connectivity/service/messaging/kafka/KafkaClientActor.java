@@ -29,7 +29,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
@@ -63,6 +62,7 @@ public final class KafkaClientActor extends BaseClientActor {
     private ActorRef kafkaPublisherActor;
     private final List<ActorRef> kafkaConsumerActors;
     private final KafkaConfig kafkaConfig;
+    private final KafkaConsumerMetricsRegistry kafkaConsumerMetricsRegistry;
 
     private KafkaClientActor(final Connection connection,
             @Nullable final ActorRef proxyActor,
@@ -77,6 +77,7 @@ public final class KafkaClientActor extends BaseClientActor {
         propertiesFactory = PropertiesFactory.newInstance(connection, kafkaConfig, getClientId(connection.getId()));
         this.publisherActorFactory = publisherActorFactory;
         pendingStatusReportsFromStreams = new HashSet<>();
+        kafkaConsumerMetricsRegistry = KafkaConsumerMetricsRegistry.getInstance(kafkaConfig.getConsumerConfig().getMetricCollectingInterval());
     }
 
     @SuppressWarnings("unused") // used by `props` via reflection
@@ -185,7 +186,7 @@ public final class KafkaClientActor extends BaseClientActor {
      * @param connectionId the ID of the connection to connect the client for.
      * @param correlationId the correlation ID for logging or {@code null} if no correlation ID is known.
      */
-    private void connectClient(final boolean dryRun, final ConnectionId connectionId,
+    private void connectClient(final boolean dryRun, final CharSequence connectionId,
             @Nullable final CharSequence correlationId) {
 
         // start publisher
@@ -194,7 +195,7 @@ public final class KafkaClientActor extends BaseClientActor {
         startKafkaConsumers(dryRun, connectionId, correlationId);
     }
 
-    private void startKafkaPublisher(final boolean dryRun, final ConnectionId connectionId,
+    private void startKafkaPublisher(final boolean dryRun, final CharSequence connectionId,
             @Nullable final CharSequence correlationId) {
 
         logger.withCorrelationId(correlationId).withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId)
@@ -211,7 +212,7 @@ public final class KafkaClientActor extends BaseClientActor {
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
     }
 
-    private void startKafkaConsumers(final boolean dryRun, final ConnectionId connectionId,
+    private void startKafkaConsumers(final boolean dryRun, final CharSequence connectionId,
             @Nullable final CharSequence correlationId) {
 
         logger.withCorrelationId(correlationId).withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId)
@@ -221,11 +222,11 @@ public final class KafkaClientActor extends BaseClientActor {
 
         // start consumer actors
         connection().getSources().stream()
-                .flatMap(this::consumerDataFromSource)
-                .forEach(consumerData -> this.startKafkaConsumer(consumerData, dryRun));
+                .flatMap(KafkaClientActor::consumerDataFromSource)
+                .forEach(consumerData -> startKafkaConsumer(consumerData, dryRun));
     }
 
-    private Stream<ConsumerData> consumerDataFromSource(final Source source) {
+    private static Stream<ConsumerData> consumerDataFromSource(final Source source) {
         return source.getAddresses().stream()
                 .flatMap(sourceAddress ->
                         IntStream.range(0, source.getConsumerCount())
@@ -238,11 +239,11 @@ public final class KafkaClientActor extends BaseClientActor {
         final ConnectionThrottlingConfig throttlingConfig = consumerConfig.getThrottlingConfig();
         final ExponentialBackOffConfig consumerRestartBackOffConfig = consumerConfig.getRestartBackOffConfig();
         final KafkaConsumerStreamFactory streamFactory =
-                new KafkaConsumerStreamFactory(throttlingConfig, propertiesFactory, consumerData, dryRun);
+                new KafkaConsumerStreamFactory(throttlingConfig, propertiesFactory, consumerData, dryRun, kafkaConsumerMetricsRegistry);
         final Props consumerActorProps =
                 KafkaConsumerActor.props(connection(), streamFactory,
                         consumerData.getAddress(), consumerData.getSource(), getInboundMappingSink(),
-                        connectivityStatusResolver, consumerRestartBackOffConfig);
+                        connectivityStatusResolver, consumerRestartBackOffConfig, kafkaConsumerMetricsRegistry);
         final ActorRef consumerActor =
                 startChildActorConflictFree(consumerData.getActorNamePrefix(), consumerActorProps);
         kafkaConsumerActors.add(consumerActor);
@@ -308,4 +309,5 @@ public final class KafkaClientActor extends BaseClientActor {
             getSelf().tell(new Status.Failure(exception), getSelf());
         }
     }
+
 }

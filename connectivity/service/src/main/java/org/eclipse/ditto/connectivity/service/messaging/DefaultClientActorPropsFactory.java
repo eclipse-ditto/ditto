@@ -32,27 +32,38 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
- * The default implementation of {@link ClientActorPropsFactory}.
+ * The default implementation of {@link ClientActorPropsFactory}. Singleton which is created just once
+ * and otherwise returns the already created instance.
  */
 @Immutable
 public final class DefaultClientActorPropsFactory implements ClientActorPropsFactory {
 
-    private DefaultClientActorPropsFactory() {
-    }
+    @Nullable private static DefaultClientActorPropsFactory instance;
+
+
+
+    private DefaultClientActorPropsFactory() {}
 
     /**
-     * Returns an instance of {@code DefaultClientActorPropsFactory}.
+     * Returns an instance of {@code DefaultClientActorPropsFactory}. Creates a new one if not already done.
      *
      * @return the factory instance.
      */
     public static DefaultClientActorPropsFactory getInstance() {
-        return new DefaultClientActorPropsFactory();
+        if (null == instance) {
+            instance = new DefaultClientActorPropsFactory();
+        }
+        return instance;
     }
 
     @Override
-    public Props getActorPropsForType(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor, final ActorSystem actorSystem,
-            final DittoHeaders dittoHeaders, final Config connectivityConfigOverwrites) {
+    public Props getActorPropsForType(final Connection connection,
+            @Nullable final ActorRef proxyActor,
+            final ActorRef connectionActor,
+            final ActorSystem actorSystem,
+            final DittoHeaders dittoHeaders,
+            final Config connectivityConfigOverwrites) {
+
         final ConnectionType connectionType = connection.getConnectionType();
         final Props result;
         switch (connectionType) {

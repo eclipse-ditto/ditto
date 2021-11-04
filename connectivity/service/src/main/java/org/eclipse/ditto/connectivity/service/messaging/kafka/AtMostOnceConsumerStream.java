@@ -15,12 +15,14 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
@@ -30,7 +32,9 @@ import org.slf4j.Logger;
 import akka.Done;
 import akka.NotUsed;
 import akka.kafka.javadsl.Consumer;
+import akka.stream.Graph;
 import akka.stream.Materializer;
+import akka.stream.SinkShape;
 import akka.stream.javadsl.MergeHub;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -48,26 +52,30 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
     private final Sink<KafkaCompletableMessage, NotUsed> externalMessageSink;
     private final Sink<TransformationResult, NotUsed> dreSink;
     private final Sink<TransformationResult, NotUsed> unexpectedMessageSink;
+    private final KafkaConsumerMetricsRegistry kafkaConsumerMetricsRegistry;
+    private final ConnectionId connectionId;
 
     AtMostOnceConsumerStream(
-            final AtMostOnceKafkaConsumerSourceSupplier sourceSupplier,
+            final Supplier<Source<ConsumerRecord<String, String>, Consumer.Control>> sourceSupplier,
             final ConnectionThrottlingConfig throttlingConfig,
             final KafkaMessageTransformer kafkaMessageTransformer,
             final boolean dryRun,
             final Materializer materializer,
             final ConnectionMonitor inboundMonitor,
-            final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink,
-            final Sink<DittoRuntimeException, ?> exceptionSink) {
+            final Graph<SinkShape<AcknowledgeableMessage>, NotUsed> inboundMappingSink,
+            final Graph<SinkShape<DittoRuntimeException>, ?> exceptionSink,
+            final KafkaConsumerMetricsRegistry kafkaConsumerMetricsRegistry,
+            final ConnectionId connectionId) {
 
         this.materializer = materializer;
 
         // Pre materialize sinks with MergeHub to avoid multiple materialization per kafka record in processTransformationResult
-        this.externalMessageSink = MergeHub.of(KafkaCompletableMessage.class)
+        externalMessageSink = MergeHub.of(KafkaCompletableMessage.class)
                 .map(KafkaCompletableMessage::getAcknowledgeableMessage)
                 .to(inboundMappingSink)
                 .run(materializer);
 
-        this.dreSink = MergeHub.of(TransformationResult.class)
+        dreSink = MergeHub.of(TransformationResult.class)
                 .map(AtMostOnceConsumerStream::extractDittoRuntimeException)
                 .to(exceptionSink)
                 .run(materializer);
@@ -87,6 +95,10 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
                 .mapAsync(throttlingConfig.getMaxInFlight(), x -> x)
                 .toMat(Sink.ignore(), Consumer::createDrainingControl)
                 .run(materializer);
+
+        this.kafkaConsumerMetricsRegistry = kafkaConsumerMetricsRegistry;
+        this.connectionId = connectionId;
+        registerForMetricCollection();
     }
 
     @Override
@@ -96,6 +108,7 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
     @Override
     public CompletionStage<Done> stop() {
+        kafkaConsumerMetricsRegistry.deregisterConsumer(connectionId, getClass().getSimpleName());
         return consumerControl.drainAndShutdown(materializer.executionContext());
     }
 
@@ -104,8 +117,8 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
         if (isExternalMessage(result)) {
             return Source.single(result)
-                    .map(this::toAcknowledgeableMessage)
-                    .alsoTo(this.externalMessageSink)
+                    .map(AtMostOnceConsumerStream::toAcknowledgeableMessage)
+                    .alsoTo(externalMessageSink)
                     .map(KafkaCompletableMessage::getAcknowledgementFuture);
         }
 
@@ -122,7 +135,7 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
                 .map(unexpected -> offsetFuture);
     }
 
-    private KafkaCompletableMessage toAcknowledgeableMessage(final TransformationResult value) {
+    private static KafkaCompletableMessage toAcknowledgeableMessage(final TransformationResult value) {
         final ExternalMessage externalMessage =
                 value.getExternalMessage().orElseThrow(); // at this point, the ExternalMessage is present
         return new KafkaCompletableMessage(externalMessage);
@@ -146,6 +159,10 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
     private static DittoRuntimeException extractDittoRuntimeException(final TransformationResult value) {
         return value.getDittoRuntimeException().orElseThrow(); // at this point, the DRE is present
+    }
+
+    private void registerForMetricCollection() {
+        kafkaConsumerMetricsRegistry.registerConsumer(connectionId, consumerControl, getClass().getSimpleName());
     }
 
 }

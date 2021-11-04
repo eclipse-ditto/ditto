@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -28,6 +29,7 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
@@ -88,7 +90,7 @@ public final class AtLeastOnceConsumerStreamTest {
         assertInstancesOf(AtLeastOnceConsumerStream.class,
                 areImmutable(),
                 provided(ConnectionMonitor.class, Sink.class, Materializer.class,
-                        Consumer.DrainingControl.class).areAlsoImmutable());
+                        Consumer.DrainingControl.class, KafkaConsumerMetricsRegistry.class).areAlsoImmutable());
     }
 
     @Test
@@ -123,7 +125,8 @@ public final class AtLeastOnceConsumerStreamTest {
             new AtLeastOnceConsumerStream(sourceSupplier, CommitterSettings.apply(actorSystem),
                     TestConstants.KAFKA_THROTTLING_CONFIG,
                     messageTransformer, false, materializer,
-                    connectionMonitor, ackMonitor, inboundMappingSink, dreSink);
+                    connectionMonitor, ackMonitor, inboundMappingSink, dreSink, KafkaConsumerMetricsRegistry.getInstance(
+                    Duration.ofSeconds(5L)), ConnectionId.generateRandom());
 
             inboundSinkProbe.ensureSubscription();
             // Then we can offer those records and they are processed in parallel to the maximum of 'maxInflight'
