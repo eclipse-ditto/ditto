@@ -247,7 +247,6 @@ This is an example connection with OAuth2 credentials.
     "id": "http-example-connection-124",
     "connectionType": "http-push",
     "connectionStatus": "open",
-    "failoverEnabled": true,
     "uri": "https://localhost:443/event-publication",
     "credentials": {
       "type": "oauth-client-credentials",
