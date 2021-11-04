@@ -47,8 +47,9 @@ public final class DefaultHttpPushConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultHttpPushConfig.class,
                 areImmutable(),
-                provided(HttpPushConfig.class).isAlsoImmutable(),
-                assumingFields("hmacAlgorithms").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
+                provided(HttpProxyConfig.class, OAuth2Config.class).areAlsoImmutable(),
+                assumingFields("hmacAlgorithms", "omitRequestBodyMethods")
+                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test
