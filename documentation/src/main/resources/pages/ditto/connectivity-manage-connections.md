@@ -329,7 +329,7 @@ Clears all currently stored connection logs.
 
 ## Publishing connection logs
 
-In addition to [enable collecting im-memory connection logs](#enable-connection-logs), connection logs may aso be 
+In addition to [enable collecting in-memory connection logs](#enable-connection-logs), connection logs may also be 
 published to a [Fluentd](https://www.fluentd.org) or [Fluent Bit](https://fluentbit.io) endpoint from where they can be 
 forwarded into a logging backend of your choice.
 
