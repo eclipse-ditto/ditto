@@ -112,7 +112,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
 
     @Override
     public CompletionStage<JsonObject> retrievePartialThing(final ThingId thingId,
-            final JsonFieldSelector jsonFieldSelector,
+            @Nullable final JsonFieldSelector jsonFieldSelector,
             final DittoHeaders dittoHeaders,
             @Nullable final Signal<?> concernedSignal) {
 
@@ -123,7 +123,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
         // as second step only return what was originally requested as fields:
         final var cachingParameters = new CachingParameters(jsonFieldSelector, thingEvents, true, 0);
         return doRetrievePartialThing(thingId, dittoHeaders, cachingParameters)
-                .thenApply(jsonObject -> jsonObject.get(jsonFieldSelector));
+                .thenApply(jsonObject -> null != jsonFieldSelector ? jsonObject.get(jsonFieldSelector) : jsonObject);
     }
 
     /**
