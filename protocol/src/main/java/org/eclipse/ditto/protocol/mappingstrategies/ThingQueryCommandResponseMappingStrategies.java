@@ -25,6 +25,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProp
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeaturePropertyResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeaturesResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrievePolicyIdResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingDefinitionResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
@@ -97,6 +98,11 @@ final class ThingQueryCommandResponseMappingStrategies
                 adaptable -> RetrieveFeatureDesiredPropertyResponse.of(thingIdFrom(adaptable),
                         featureIdFrom(adaptable),
                         featurePropertyPointerFrom(adaptable), featurePropertyValueFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(RetrievePolicyIdResponse.TYPE,
+                adaptable -> RetrievePolicyIdResponse.of(thingIdFrom(adaptable),
+                        policyIdFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;

@@ -41,6 +41,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDesi
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperties;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatures;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrievePolicyId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingDefinition;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
@@ -279,6 +280,43 @@ public final class ThingQueryCommandAdapterTest extends LiveTwinTest implements 
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
+
+
+    @Test
+    public void retrievePolicyIdFromAdaptable() {
+        final RetrievePolicyId expected =
+                RetrievePolicyId.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
+        final JsonPointer path = JsonPointer.of("/policyId");
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingQueryCommand<?> actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void retrievePolicyIdToAdaptable() {
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
+        final JsonPointer path = JsonPointer.of("/policyId");
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path).build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final RetrievePolicyId retrievePolicyId =
+                RetrievePolicyId.of(TestConstants.THING_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+
+        final Adaptable actual = underTest.toAdaptable(retrievePolicyId, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
 
     @Test
     public void retrieveFeaturesFromAdaptable() {

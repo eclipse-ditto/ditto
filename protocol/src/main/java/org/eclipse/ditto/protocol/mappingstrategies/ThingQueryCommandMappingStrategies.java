@@ -25,6 +25,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDesi
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperties;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatures;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrievePolicyId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingDefinition;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
@@ -86,6 +87,9 @@ final class ThingQueryCommandMappingStrategies extends AbstractThingMappingStrat
         mappingStrategies.put(RetrieveFeatureDesiredProperty.TYPE, adaptable ->
                 RetrieveFeatureDesiredProperty.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
                         featurePropertyPointerFrom(adaptable), dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(RetrievePolicyId.TYPE, adaptable ->
+                RetrievePolicyId.of(thingIdFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
     }
