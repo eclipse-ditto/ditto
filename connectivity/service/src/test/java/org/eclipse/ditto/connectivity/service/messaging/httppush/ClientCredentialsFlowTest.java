@@ -39,6 +39,8 @@ import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.Query;
 import akka.http.javadsl.model.Uri;
+import akka.japi.Pair;
+import akka.stream.Attributes;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.MergeHub;
@@ -129,32 +131,6 @@ public final class ClientCredentialsFlowTest {
     }
 
     @Test
-    public void expiredTokensAreUsedExactlyOnce() {
-        final var tokens = 10L;
-        final var underTest = newClientCredentialsFlow(Duration.ofHours(1L));
-        final var resultFuture = underTest.getTokenSource(httpFlow)
-                .take(tokens)
-                .runWith(Sink.seq(), actorSystem);
-        requestProbe.ensureSubscription();
-        requestProbe.request(tokens * 2);
-        responseProbe.ensureSubscription();
-        long j = 0L;
-        for (long i = 0L; i < tokens; ++i) {
-            if (j <= i) {
-                j += responseProbe.expectRequest();
-            }
-            requestProbe.expectNext(FiniteDuration.apply(10, "s"));
-            final var ttl = Duration.ZERO;
-            final var token = getToken(ttl, i);
-            responseProbe.sendNext(Try.apply(() -> getTokenResponse(ttl, token)));
-        }
-        final var result = resultFuture.toCompletableFuture().join();
-        final var uniqueTokens = Set.copyOf(result);
-        assertThat(uniqueTokens.size()).isEqualTo(tokens);
-        assertThat(uniqueTokens).containsExactlyInAnyOrderElementsOf(result);
-    }
-
-    @Test
     public void failedRequest() {
         final var underTest = newClientCredentialsFlow(Duration.ZERO);
         final var result = underTest.getSingleTokenSource(httpFlow).runWith(Sink.ignore(), actorSystem);
@@ -211,6 +187,58 @@ public final class ClientCredentialsFlowTest {
         assertThatExceptionOfType(CompletionException.class)
                 .isThrownBy(result.toCompletableFuture()::join)
                 .withCauseInstanceOf(JwtInvalidException.class);
+    }
+
+    @Test
+    public void strictFlowRequestTokenRightAway() {
+        final var underTest = newClientCredentialsFlow(Duration.ZERO);
+        final var pair =
+                TestSource.<Pair<HttpRequest, HttpPushContext>>probe(actorSystem)
+                        .via(underTest.fromFlowWithToken(httpFlow, true))
+                        .toMat(TestSink.probe(actorSystem), Keep.both())
+                        .run(actorSystem);
+        final var sourceProbe = pair.first();
+        final var sinkProbe = pair.second();
+        sinkProbe.ensureSubscription();
+        sinkProbe.request(20L);
+        requestProbe.ensureSubscription();
+        requestProbe.request(20L);
+        sourceProbe.ensureSubscription();
+        sourceProbe.expectRequest();
+        responseProbe.ensureSubscription();
+        responseProbe.expectRequest();
+        requestProbe.expectNext();
+        sinkProbe.cancel();
+        sourceProbe.expectCancellation();
+        requestProbe.expectNoMessage();
+    }
+
+    @Test
+    public void lazyFlowDoesNotRequestTokenUntilFirstRequest() {
+        final var underTest = newClientCredentialsFlow(Duration.ZERO);
+        final var pair = TestSource.<Pair<HttpRequest, HttpPushContext>>probe(actorSystem)
+                .via(underTest.fromFlowWithToken(httpFlow, false))
+                .toMat(TestSink.probe(actorSystem), Keep.both())
+                .withAttributes(Attributes.inputBuffer(1, 1)) // TODO DELETE
+                .run(actorSystem);
+        final var sourceProbe = pair.first();
+        final var sinkProbe = pair.second();
+        sinkProbe.ensureSubscription();
+        sinkProbe.request(20L);
+        requestProbe.ensureSubscription();
+        requestProbe.request(20L);
+        sourceProbe.ensureSubscription();
+        sourceProbe.expectRequest();
+        responseProbe.ensureSubscription();
+        responseProbe.expectRequest();
+        sourceProbe.sendNext(Pair.<HttpRequest, HttpPushContext>create(HttpRequest.GET(URI), x -> {}));
+        requestProbe.expectNext();
+        final var tokenTtl = Duration.ofHours(1);
+        responseProbe.sendNext(Try.apply(() -> getTokenResponse(tokenTtl, getToken(tokenTtl))));
+        requestProbe.expectNoMessage();
+        sinkProbe.expectNext();
+        sinkProbe.cancel();
+        sourceProbe.expectCancellation();
     }
 
     private static ClientCredentialsFlow newClientCredentialsFlow(final Duration maxClockSkew) {

@@ -76,6 +76,7 @@ final class ClientCredentialsFlowVisitor implements
     @Override
     public Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> oauthClientCredentials(
             final OAuthClientCredentials credentials) {
-        return ClientCredentialsFlow.of(credentials, config).withToken(Http.get(actorSystem));
+        // TODO: use strict flow for tests
+        return ClientCredentialsFlow.of(credentials, config).withToken(actorSystem, false);
     }
 }

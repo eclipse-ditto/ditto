@@ -92,6 +92,7 @@ import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.model.headers.ContentType;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
+import akka.stream.Attributes;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
 import akka.stream.Materializer;

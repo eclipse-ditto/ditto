@@ -21,6 +21,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.service.UriEncoding;
 import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
+import org.eclipse.ditto.internal.utils.akka.controlflow.LazyZip;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -30,6 +31,7 @@ import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.jwt.model.JwtInvalidException;
 
 import akka.NotUsed;
+import akka.actor.ActorSystem;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpEntities;
@@ -41,8 +43,9 @@ import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.model.headers.Accept;
 import akka.http.javadsl.model.headers.HttpCredentials;
 import akka.japi.Pair;
-import akka.stream.Attributes;
+import akka.stream.FlowShape;
 import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Source;
 import akka.util.ByteString;
 import scala.util.Failure;
@@ -83,20 +86,46 @@ public final class ClientCredentialsFlow {
     /**
      * Augment HTTP requests with OAuth2 bearer tokens.
      *
-     * @param http HTTP object with which to send single requests.
+     * @param actorSystem the actor system.
+     * @param isStrict whether to request a token right away. Useful for connection test.
      * @return The request-augmenting flow.
      */
     public Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> withToken(
-            final Http http) {
+            final ActorSystem actorSystem,
+            final boolean isStrict) {
 
-        final Flow<HttpRequest, Try<HttpResponse>, NotUsed> httpFlow = Flow.<HttpRequest>create()
+        final var http = Http.get(actorSystem);
+        final var httpFlow = Flow.<HttpRequest>create()
                 .mapAsync(1, request -> http.singleRequest(request)
                         .<Try<HttpResponse>>thenApply(Success::new)
                         .exceptionally(Failure::new)
                 );
-        return Flow.<Pair<HttpRequest, HttpPushContext>>create()
-                .zip(getTokenSource(httpFlow))
-                .map(ClientCredentialsFlow::augmentRequestWithJwt);
+        return fromFlowWithToken(httpFlow, isStrict);
+    }
+
+    @SuppressWarnings("unchecked")
+    Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> fromFlowWithToken(
+            final Flow<HttpRequest, Try<HttpResponse>, ?> httpFlow,
+            final boolean isStrict) {
+
+        final var flow = Flow.<Pair<HttpRequest, HttpPushContext>>create();
+        if (isStrict) {
+            return flow.zip(getTokenSource(httpFlow))
+                    .map(ClientCredentialsFlow::augmentRequestWithJwt);
+        } else {
+            final var tokenSource = Source.lazySource(() -> getTokenSource(httpFlow));
+            final var lazyZip = LazyZip.<Pair<HttpRequest, HttpPushContext>, JsonWebToken>of();
+            return Flow.fromGraph(GraphDSL.create(builder ->
+                    {
+                        final var requests = builder.add(flow);
+                        final var tokens = builder.add(tokenSource);
+                        final var zip = builder.add(lazyZip);
+                        builder.from(requests.out()).toInlet(zip.in0());
+                        builder.from(tokens.out()).toInlet(zip.in1());
+                        return FlowShape.of(requests.in(), zip.out());
+                    }))
+                    .map(ClientCredentialsFlow::augmentRequestWithJwt);
+        }
     }
 
     /**
@@ -116,7 +145,7 @@ public final class ClientCredentialsFlow {
                                 .takeWhile(this::shouldNotRefresh)
                                 .concatLazy(Source.lazySource(() -> getTokenSource(httpFlow)))
                 )
-        ).withAttributes(Attributes.inputBuffer(1, 1));
+        );
     }
 
     /**
@@ -133,7 +162,7 @@ public final class ClientCredentialsFlow {
     }
 
     private boolean shouldNotRefresh(final JsonWebToken jwt) {
-        return maxClockSkew.minus(Duration.between(Instant.now(), jwt.getExpirationTime())).isNegative();
+        return jwt.getExpirationTime().minus(maxClockSkew).isAfter(Instant.now());
     }
 
     private Source<JsonWebToken, NotUsed> asJsonWebToken(final Try<HttpResponse> tryResponse) {
