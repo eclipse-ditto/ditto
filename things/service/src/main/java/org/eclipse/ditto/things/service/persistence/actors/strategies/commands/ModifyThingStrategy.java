@@ -120,7 +120,10 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
 
         final ThingBuilder.FromCopy builder = existingThing.toBuilder()
                 .setModified(eventTs)
-                .setRevision(nextRevision);
+                .setRevision(nextRevision)
+                .removeAllAttributes()
+                .removeAllFeatures()
+                .removeDefinition();
 
         thingWithModifications.getPolicyEntityId().ifPresent(builder::setPolicyId);
         thingWithModifications.getDefinition().ifPresent(builder::setDefinition);

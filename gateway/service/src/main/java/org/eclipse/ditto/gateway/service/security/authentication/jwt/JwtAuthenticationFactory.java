@@ -68,7 +68,7 @@ public final class JwtAuthenticationFactory {
 
     public JwtValidator getJwtValidator() {
         if (null == jwtValidator) {
-            jwtValidator = DefaultJwtValidator.of(getPublicKeyProvider(), oAuthConfig);
+            jwtValidator = DefaultJwtValidator.of(getPublicKeyProvider());
         }
         return jwtValidator;
     }
