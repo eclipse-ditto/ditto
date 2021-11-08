@@ -41,21 +41,23 @@ final class CredentialsValidationVisitor implements CredentialsVisitor<Void> {
     private final Connection connection;
     private final DittoHeaders dittoHeaders;
     private final Set<String> algorithms;
+    private final HostValidator hostValidator;
 
     private static final String ALLOWED_CHARACTERS = "\\x21\\x23-\\x5B\\x5D-\\x7E";
     private static final Pattern REQUESTED_SCOPES_REGEX =
             Pattern.compile("^[" + ALLOWED_CHARACTERS + "]+( [" + ALLOWED_CHARACTERS + "]+)*$");
 
     private CredentialsValidationVisitor(final Connection connection, final DittoHeaders dittoHeaders,
-            final ConnectivityConfig config) {
+            final ConnectivityConfig config, final HostValidator hostValidator) {
         this.connection = connection;
         this.dittoHeaders = dittoHeaders;
         algorithms = config.getConnectionConfig().getHttpPushConfig().getHmacAlgorithms().keySet();
+        this.hostValidator = hostValidator;
     }
 
     static CredentialsValidationVisitor of(final Connection connection, final DittoHeaders dittoHeaders,
-            final ConnectivityConfig connectivityConfig) {
-        return new CredentialsValidationVisitor(connection, dittoHeaders, connectivityConfig);
+            final ConnectivityConfig connectivityConfig, final HostValidator hostValidator) {
+        return new CredentialsValidationVisitor(connection, dittoHeaders, connectivityConfig, hostValidator);
     }
 
     @Override
@@ -113,15 +115,7 @@ final class CredentialsValidationVisitor implements CredentialsVisitor<Void> {
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
-        try {
-            new URL(credentials.getTokenEndpoint());
-        } catch (final Exception e) {
-            throw ConnectionConfigurationInvalidException.newBuilder(
-                            "Invalid token endpoint provided: " + e.getMessage())
-                    .description("Provide a valid URL as token endpoint.")
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
+        validateTokenEndpoint(credentials.getTokenEndpoint());
         if (!REQUESTED_SCOPES_REGEX.matcher(credentials.getRequestedScopes()).matches()) {
             throw ConnectionConfigurationInvalidException.newBuilder(
                             "Invalid format of requested scopes: " + credentials.getRequestedScopes())
@@ -131,5 +125,19 @@ final class CredentialsValidationVisitor implements CredentialsVisitor<Void> {
                     .build();
         }
         return null;
+    }
+
+    private void validateTokenEndpoint(final String tokenEndpoint) {
+        final URL url;
+        try {
+            url = new URL(tokenEndpoint);
+        } catch (final Exception e) {
+            throw ConnectionConfigurationInvalidException.newBuilder(
+                            String.format("Invalid token endpoint '%s' provided: %s", tokenEndpoint, e.getMessage()))
+                    .description("Provide a valid URL as token endpoint.")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        hostValidator.validateHostname(url.getHost(), dittoHeaders);
     }
 }

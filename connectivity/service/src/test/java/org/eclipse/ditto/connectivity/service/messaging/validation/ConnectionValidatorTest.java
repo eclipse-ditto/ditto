@@ -564,7 +564,7 @@ public class ConnectionValidatorTest {
                         .clientId("id")
                         .clientSecret("secret")
                         .scope("scope")
-                        .tokenEndpoint("https://localhost/token")
+                        .tokenEndpoint("https://8.8.4.4/token")
                         .build())
                 .build();
         final ConnectionValidator underTest = getConnectionValidator();
@@ -584,7 +584,23 @@ public class ConnectionValidatorTest {
         final ConnectionValidator underTest = getConnectionValidator();
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
-                .withMessageContaining("Invalid token endpoint provided");
+                .withMessageContaining("Invalid token endpoint");
+    }
+
+    @Test
+    public void rejectBlockedTokenEndpointForOauthClientCredentials() {
+        final Connection connection = createHttpConnection().toBuilder()
+                .credentials(OAuthClientCredentials.newBuilder()
+                        .clientId("id")
+                        .clientSecret("secret")
+                        .scope("scope")
+                        .tokenEndpoint("http://8.8.8.8/token")
+                        .build())
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("the host is blocked");
     }
 
     @Test
@@ -594,7 +610,7 @@ public class ConnectionValidatorTest {
                         .clientId("id")
                         .clientSecret("secret")
                         .scope("\"scope1\" scope2")
-                        .tokenEndpoint("http://localhost/token")
+                        .tokenEndpoint("http://8.8.4.4/token")
                         .build())
                 .build();
         final ConnectionValidator underTest = getConnectionValidator();
