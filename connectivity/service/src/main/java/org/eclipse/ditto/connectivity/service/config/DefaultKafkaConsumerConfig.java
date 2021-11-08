@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.supervision.DefaultExponentialBackOffConfig;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -45,6 +46,9 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
         alpakkaConfig = getConfigOrEmpty(kafkaConsumerScopedConfig, ALPAKKA_PATH);
         metricCollectingInterval =
                 kafkaConsumerScopedConfig.getDuration(ConfigValue.METRIC_COLLECTING_INTERVAL.getConfigPath());
+        if (metricCollectingInterval.isNegative() || metricCollectingInterval.isZero()) {
+            throw new DittoConfigError("The Kafka consumer metric collecting interval has to be positive.");
+        }
     }
 
     /**

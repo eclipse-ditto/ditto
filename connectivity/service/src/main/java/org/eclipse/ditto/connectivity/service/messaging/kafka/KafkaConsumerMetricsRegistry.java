@@ -12,18 +12,20 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.Set;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 
-import org.apache.kafka.common.Metric;
-import org.apache.kafka.common.MetricName;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
@@ -38,12 +40,14 @@ public final class KafkaConsumerMetricsRegistry {
 
     @Nullable private static KafkaConsumerMetricsRegistry instance;
 
-    private final Map<CacheKey, Consumer.DrainingControl<Done>> consumerControlMap;
+    private final Map<CacheKey, KafkaConsumerMetrics> metricsMap;
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(KafkaConsumerMetricsRegistry.class);
 
+    private final AtomicReference<Set<NewConsumer>> rememberForInit = new AtomicReference<>(new HashSet<>());
+
     private KafkaConsumerMetricsRegistry(final Duration metricCollectingInterval) {
-        consumerControlMap = new HashMap<>();
+        metricsMap = new HashMap<>();
         scheduleMetricReporting(metricCollectingInterval);
     }
 
@@ -52,8 +56,10 @@ public final class KafkaConsumerMetricsRegistry {
      *
      * @param metricCollectingInterval the interval in which to collect the metrics.
      * @return the instance.
+     * @throws NullPointerException if {@code metricCollectingInterval} is {@code null}.
      */
     public static KafkaConsumerMetricsRegistry getInstance(final Duration metricCollectingInterval) {
+        checkNotNull(metricCollectingInterval, "metricCollectingInterval");
         if (null == instance) {
             instance = new KafkaConsumerMetricsRegistry(metricCollectingInterval);
         }
@@ -70,7 +76,12 @@ public final class KafkaConsumerMetricsRegistry {
     void registerConsumer(final ConnectionId connectionId, final Consumer.DrainingControl<Done> consumerControl,
             final String streamName) {
 
-        consumerControlMap.put(new CacheKey(connectionId, streamName), consumerControl);
+        LOGGER.debug("Registering new consumer for metric reporting: <{}:{}>", connectionId, streamName);
+        // No way to check whether consumerControl is ready, thus waiting for interval till next metric reporting.
+        rememberForInit.getAndUpdate(set -> {
+            set.add(new NewConsumer(connectionId, streamName, consumerControl));
+            return set;
+        });
     }
 
     /**
@@ -80,24 +91,33 @@ public final class KafkaConsumerMetricsRegistry {
      * @param streamName the name of the stream to which the metrics apply.
      */
     void deregisterConsumer(final ConnectionId connectionId, final String streamName) {
-        consumerControlMap.remove(new CacheKey(connectionId, streamName));
+        LOGGER.debug("De-registering consumer for metric reporting: <{}:{}>", connectionId, streamName);
+        metricsMap.remove(new CacheKey(connectionId, streamName));
     }
 
     private void scheduleMetricReporting(final Duration metricCollectingInterval) {
-        new ScheduledThreadPoolExecutor(1).scheduleWithFixedDelay(this::reportMetrics,
+        LOGGER.info("Scheduling Kafka metric reporting in interval of: <{}>", metricCollectingInterval);
+        Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(this::reportMetrics,
                 metricCollectingInterval.getSeconds(), metricCollectingInterval.getSeconds(), TimeUnit.SECONDS);
     }
 
     private void reportMetrics() {
-        consumerControlMap.forEach((cacheKey, consumerControl) -> consumerControl.getMetrics()
-                .thenAccept(KafkaConsumerMetricsRegistry::metricsToString));
+        LOGGER.debug("Reporting metrics for Kafka consumer streams. <{}> consumer streams registered",
+                metricsMap.size());
+
+        createNewKafkaConsumerMetrics();
+        metricsMap.forEach((cacheKey, kafkaConsumerMetrics) -> kafkaConsumerMetrics.reportMetrics());
     }
 
-    private static void metricsToString(final Map<MetricName, Metric> metricMap) {
-        final AtomicReference<String> metrics = new AtomicReference<>("");
-        metricMap.forEach((metricName, metric) -> metrics.getAndSet(metrics.get()
-                .concat(metricName.name() + " : " + metric.metricValue() + "\n")));
-        LOGGER.info(metrics.get());
+    private void createNewKafkaConsumerMetrics() {
+        rememberForInit.getAndUpdate(
+                set -> {
+                    set.forEach(newConsumer -> metricsMap.put(
+                            new CacheKey(newConsumer.connectionId, newConsumer.streamName),
+                            KafkaConsumerMetrics.newInstance(newConsumer.consumerControl, newConsumer.connectionId,
+                                    newConsumer.streamName)));
+                    return new HashSet<>();
+                });
     }
 
     private static final class CacheKey {
@@ -130,5 +150,23 @@ public final class KafkaConsumerMetricsRegistry {
         public String toString() {
             return String.format("%s:%s", connectionId, streamName);
         }
+
     }
+
+    private static final class NewConsumer {
+
+        private final ConnectionId connectionId;
+        private final String streamName;
+        private final Consumer.Control consumerControl;
+
+        private NewConsumer(final ConnectionId connectionId, final String streamName,
+                final Consumer.Control consumerControl) {
+
+            this.connectionId = connectionId;
+            this.streamName = streamName;
+            this.consumerControl = consumerControl;
+        }
+
+    }
+
 }
