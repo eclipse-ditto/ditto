@@ -44,7 +44,8 @@ public final class KafkaConsumerMetricsRegistry {
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(KafkaConsumerMetricsRegistry.class);
 
-    private final AtomicReference<Set<NewConsumer>> rememberForInit = new AtomicReference<>(new HashSet<>());
+    private final AtomicReference<Set<NewConsumer>> rememberForRegister = new AtomicReference<>(new HashSet<>());
+    private final AtomicReference<Set<CacheKey>> rememberForDeregister = new AtomicReference<>(new HashSet<>());
 
     private KafkaConsumerMetricsRegistry(final Duration metricCollectingInterval) {
         metricsMap = new HashMap<>();
@@ -78,7 +79,7 @@ public final class KafkaConsumerMetricsRegistry {
 
         LOGGER.debug("Registering new consumer for metric reporting: <{}:{}>", connectionId, streamName);
         // No way to check whether consumerControl is ready, thus waiting for interval till next metric reporting.
-        rememberForInit.getAndUpdate(set -> {
+        rememberForRegister.getAndUpdate(set -> {
             set.add(new NewConsumer(connectionId, streamName, consumerControl));
             return set;
         });
@@ -92,7 +93,13 @@ public final class KafkaConsumerMetricsRegistry {
      */
     void deregisterConsumer(final ConnectionId connectionId, final String streamName) {
         LOGGER.debug("De-registering consumer for metric reporting: <{}:{}>", connectionId, streamName);
-        metricsMap.remove(new CacheKey(connectionId, streamName));
+        // Since new consumer are registered in interval, de-registering should also work this way.
+        // If i.e. a consumer would be de-registered before the registering interval is reached this would cause
+        // concurrency issues.
+        rememberForDeregister.getAndUpdate(set -> {
+            set.add(new CacheKey(connectionId, streamName));
+            return set;
+        });
     }
 
     private void scheduleMetricReporting(final Duration metricCollectingInterval) {
@@ -105,17 +112,27 @@ public final class KafkaConsumerMetricsRegistry {
         LOGGER.debug("Reporting metrics for Kafka consumer streams. <{}> consumer streams registered",
                 metricsMap.size());
 
-        createNewKafkaConsumerMetrics();
+        registerNewKafkaConsumerMetrics();
+        deregisterKafkaConsumerMetrics();
         metricsMap.forEach((cacheKey, kafkaConsumerMetrics) -> kafkaConsumerMetrics.reportMetrics());
     }
 
-    private void createNewKafkaConsumerMetrics() {
-        rememberForInit.getAndUpdate(
+    private void registerNewKafkaConsumerMetrics() {
+        rememberForRegister.getAndUpdate(
                 set -> {
                     set.forEach(newConsumer -> metricsMap.put(
                             new CacheKey(newConsumer.connectionId, newConsumer.streamName),
                             KafkaConsumerMetrics.newInstance(newConsumer.consumerControl, newConsumer.connectionId,
                                     newConsumer.streamName)));
+                    return new HashSet<>();
+                });
+    }
+
+    private void deregisterKafkaConsumerMetrics() {
+        rememberForDeregister.getAndUpdate(
+                set -> {
+                    set.forEach(newConsumer -> metricsMap.remove(
+                            new CacheKey(newConsumer.connectionId, newConsumer.streamName)));
                     return new HashSet<>();
                 });
     }
