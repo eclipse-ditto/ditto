@@ -12,15 +12,12 @@
  */
 package org.eclipse.ditto.internal.utils.akka.controlflow;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import org.junit.After;
 import org.junit.Test;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.japi.Pair;
-import akka.stream.Attributes;
 import akka.stream.FanInShape2;
 import akka.stream.Graph;
 import akka.stream.SourceShape;
@@ -73,6 +70,8 @@ public final class LazyZipTest {
         TestKit.shutdownActorSystem(actorSystem);
     }
 
+    // Not possible to test lazy request due to async boundaries with input buffers around test probes.
+
     @Test
     public void eagerCancel() {
         sink.cancel();
@@ -95,8 +94,10 @@ public final class LazyZipTest {
     }
 
     @Test
-    public void request() {
-        sink.request(2);
-        assertThat(source1.expectRequest()).isEqualTo(1L);
+    public void error1() {
+        final var error = new IllegalStateException("Expected");
+        source1.sendError(error);
+        source2.expectCancellation();
+        sink.expectError(error);
     }
 }
