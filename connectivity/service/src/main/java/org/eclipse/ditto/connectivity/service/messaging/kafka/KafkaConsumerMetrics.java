@@ -32,6 +32,8 @@ import akka.kafka.javadsl.Consumer;
  */
 public final class KafkaConsumerMetrics {
 
+    private static final String KAFKA_CONSUMER_METRIC_PREFIX = "kafka_consumer_";
+
     private final Consumer.Control consumerControl;
     private Map<MetricName, Gauge> gauges;
 
@@ -87,7 +89,8 @@ public final class KafkaConsumerMetrics {
                 .thenApply(metrics -> metrics.values()
                         .stream()
                         .collect(Collectors.toMap(Metric::metricName,
-                                metric -> DittoMetrics.gauge(metric.metricName().name())
+                                metric -> DittoMetrics.gauge(
+                                        KAFKA_CONSUMER_METRIC_PREFIX + metric.metricName().name().replace("-", "_"))
                                         .tag(ConnectionId.class.getSimpleName(), connectionId.toString())
                                         .tag("streamName", streamName))));
 
