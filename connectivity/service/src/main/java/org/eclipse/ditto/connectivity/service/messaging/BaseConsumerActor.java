@@ -100,11 +100,11 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
         acknowledgementConfig = connectivityConfig.getAcknowledgementConfig();
 
-        inboundMonitor = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig())
+        inboundMonitor = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig)
                 .forInboundConsumed(connection, sourceAddress);
 
         inboundAcknowledgedMonitor =
-                DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig())
+                DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig)
                         .forInboundAcknowledged(connection, sourceAddress);
     }
 
@@ -116,7 +116,6 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final Sink<AcknowledgeableMessage, NotUsed> getMessageMappingSink() {
         return Flow.fromFunction(this::withSender)
                 .map(Object.class::cast)
-                .recoverWithRetries(-1, Throwable.class, akka.stream.javadsl.Source::empty)
                 .to(inboundMappingSink);
     }
 
@@ -221,7 +220,6 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                     inboundMonitor.failure(value.getDittoHeaders(), value);
                     return value;
                 }))
-                .recoverWithRetries(-1, Throwable.class, akka.stream.javadsl.Source::empty)
                 .to(inboundMappingSink);
     }
 

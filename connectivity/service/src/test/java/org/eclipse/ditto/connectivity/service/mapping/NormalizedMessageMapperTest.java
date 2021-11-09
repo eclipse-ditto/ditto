@@ -21,6 +21,7 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
@@ -56,11 +57,14 @@ import org.eclipse.ditto.things.model.signals.events.ThingCreated;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingMerged;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+
+import akka.actor.ActorSystem;
 
 /**
  * Tests {@link NormalizedMessageMapper}.
@@ -70,17 +74,27 @@ public final class NormalizedMessageMapperTest {
     private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
 
     private MessageMapper underTest;
-    private ConnectionContext connectionContext;
+    private Connection connection;
+    private ConnectivityConfig connectivityConfig;
+    private ActorSystem actorSystem;
 
     @Before
     public void setUp() {
         final Config config = ConfigFactory.load("mapping-test")
                 .atKey("ditto.connectivity.mapping")
                 .withFallback(ConfigFactory.load("test"));
-        final ConnectivityConfig connectivityConfig =
+        connectivityConfig =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(config));
-        connectionContext = DittoConnectionContext.of(TestConstants.createConnection(), connectivityConfig);
+        connection = TestConstants.createConnection();
         underTest = new NormalizedMessageMapper();
+        actorSystem = ActorSystem.create("Test", config);
+    }
+
+    @After
+    public void tearDown() {
+        if (actorSystem != null) {
+            actorSystem.terminate();
+        }
     }
 
     @Test
@@ -310,8 +324,9 @@ public final class NormalizedMessageMapperTest {
 
         final Map<String, JsonValue> options = Map.of(NormalizedMessageMapper.FIELDS, JsonValue.of(
                 "_modified,_context/topic,_context/headers/content-type,nonexistent/json/pointer"));
-        underTest.configure(connectionContext,
-                DefaultMessageMapperConfiguration.of("normalizer", options, Map.of(), Map.of()));
+        underTest.configure(connection, connectivityConfig,
+                DefaultMessageMapperConfiguration.of("normalizer", options, Map.of(), Map.of()),
+                actorSystem);
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event);
 
@@ -342,8 +357,9 @@ public final class NormalizedMessageMapperTest {
         final Map<String, JsonValue> options = Map.of(NormalizedMessageMapper.FIELDS, JsonValue.of(
                 "thingId,policyId,attributes,features,_modified,_revision,_context(topic,path)," +
                         "_context/headers/correlation-id"));
-        underTest.configure(connectionContext,
-                DefaultMessageMapperConfiguration.of("normalizer", options, Map.of(), Map.of()));
+        underTest.configure(connection, connectivityConfig,
+                DefaultMessageMapperConfiguration.of("normalizer", options, Map.of(), Map.of()),
+                actorSystem);
 
         final Adaptable adaptable = ADAPTER.toAdaptable(event);
 
@@ -371,8 +387,9 @@ public final class NormalizedMessageMapperTest {
 
         final Map<String, JsonValue> options = Map.of(NormalizedMessageMapper.FIELDS, JsonValue.of(
                 "thingId,policyId,attributes/foo,features,_modified,_revision"));
-        underTest.configure(connectionContext,
-                DefaultMessageMapperConfiguration.of("normalizer", options, Map.of(), Map.of()));
+        underTest.configure(connection, connectivityConfig,
+                DefaultMessageMapperConfiguration.of("normalizer", options, Map.of(), Map.of()),
+                actorSystem);
 
         final Thing thing = ThingsModelFactory.newThingBuilder()
                 .setId(thingId)

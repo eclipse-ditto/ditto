@@ -13,13 +13,13 @@
 package org.eclipse.ditto.connectivity.service.mapping.javascript.benchmark;
 
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
-import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 /**
@@ -27,14 +27,14 @@ import com.typesafe.config.ConfigFactory;
  */
 public interface MapToDittoProtocolScenario {
 
-    ConnectionContext CONNECTION_CONTEXT =
-            DittoConnectionContext.of(TestConstants.createConnection(), DittoConnectivityConfig.of(
-                    DefaultScopedConfig.dittoScoped(ConfigFactory.parseString("javascript {\n" +
-                            "        maxScriptSizeBytes = 50000 # 50kB\n" +
-                            "        maxScriptExecutionTime = 500ms\n" +
-                            "        maxScriptStackDepth = 10\n" +
-                            "      }").atKey("ditto.connectivity.mapping")
-                            .withFallback(ConfigFactory.load("test")))));
+    Connection CONNECTION = TestConstants.createConnection();
+    Config CONFIG = ConfigFactory.parseString("javascript {\n" +
+                    "        maxScriptSizeBytes = 50000 # 50kB\n" +
+                    "        maxScriptExecutionTime = 500ms\n" +
+                    "        maxScriptStackDepth = 10\n" +
+                    "      }").atKey("ditto.connectivity.mapping")
+            .withFallback(ConfigFactory.load("test"));
+    ConnectivityConfig CONNECTIVITY_CONFIG = ConnectivityConfig.of(CONFIG);
 
     MessageMapper getMessageMapper();
 

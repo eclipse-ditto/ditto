@@ -17,6 +17,7 @@ import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -30,10 +31,13 @@ public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConf
 
     private final String provider;
     private final Config config;
+    private final Class<?> cachingSignalEnrichmentFacadeImplementation;
 
     private DefaultSignalEnrichmentConfig(final ConfigWithFallback configWithFallback) {
-        this.provider = configWithFallback.getString(SignalEnrichmentConfigValue.PROVIDER.getConfigPath());
-        this.config = configWithFallback.getConfig(SignalEnrichmentConfigValue.PROVIDER_CONFIG.getConfigPath());
+        provider = configWithFallback.getString(SignalEnrichmentConfigValue.PROVIDER.getConfigPath());
+        config = configWithFallback.getConfig(SignalEnrichmentConfigValue.PROVIDER_CONFIG.getConfigPath());
+        cachingSignalEnrichmentFacadeImplementation = getClassFromConfigString(configWithFallback.getString(
+                SignalEnrichmentConfigValue.CACHING_SIGNAL_ENRICHMENT_FACADE.getConfigPath()));
     }
 
     /**
@@ -48,6 +52,14 @@ public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConf
                 SignalEnrichmentConfigValue.values()));
     }
 
+    private static Class<?> getClassFromConfigString(final String configString) {
+        try {
+            return Class.forName(configString);
+        } catch (final ClassNotFoundException e) {
+            throw new DittoConfigError(e);
+        }
+    }
+
     @Override
     public String getProvider() {
         return provider;
@@ -59,10 +71,18 @@ public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConf
     }
 
     @Override
+    public Class<?> getCachingSignalEnrichmentFacadeImplementation() {
+        return cachingSignalEnrichmentFacadeImplementation;
+    }
+
+    @Override
     public Config render() {
         return ConfigFactory.empty()
-                .withValue(SignalEnrichmentConfigValue.PROVIDER.getConfigPath(), ConfigValueFactory.fromAnyRef(provider))
+                .withValue(SignalEnrichmentConfigValue.PROVIDER.getConfigPath(),
+                        ConfigValueFactory.fromAnyRef(provider))
                 .withValue(SignalEnrichmentConfigValue.PROVIDER_CONFIG.getConfigPath(), config.root())
+                .withValue(SignalEnrichmentConfigValue.CACHING_SIGNAL_ENRICHMENT_FACADE.getConfigPath(),
+                        ConfigValueFactory.fromAnyRef(cachingSignalEnrichmentFacadeImplementation.getName()))
                 .atKey(CONFIG_PATH);
     }
 
@@ -75,12 +95,15 @@ public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConf
             return false;
         }
         final DefaultSignalEnrichmentConfig that = (DefaultSignalEnrichmentConfig) o;
-        return Objects.equals(provider, that.provider) && Objects.equals(config, that.config);
+        return Objects.equals(provider, that.provider)
+                && Objects.equals(config, that.config)
+                && Objects.equals(cachingSignalEnrichmentFacadeImplementation,
+                that.cachingSignalEnrichmentFacadeImplementation);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(provider, config);
+        return Objects.hash(provider, config, cachingSignalEnrichmentFacadeImplementation);
     }
 
     @Override
@@ -88,6 +111,7 @@ public final class DefaultSignalEnrichmentConfig implements SignalEnrichmentConf
         return getClass().getSimpleName() + " [" +
                 "provider=" + provider +
                 ", config=" + config +
+                ", cachingSignalEnrichmentFacadeImplementation=" + cachingSignalEnrichmentFacadeImplementation +
                 "]";
     }
 

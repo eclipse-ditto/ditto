@@ -257,8 +257,8 @@ final class ThingsSearchCursor {
                 Stream.concat(
                         Stream.of(RqlOptionParser.unparse(Collections.singletonList(sortOption))),
                         queryThings.getOptions()
-                                .map(List::stream)
-                                .orElseGet(Stream::empty)
+                                .stream()
+                                .flatMap(Collection::stream)
                                 .filter(option -> !option.startsWith("sort")))
                         .collect(Collectors.toList());
         // leave correlation ID alone
@@ -546,7 +546,7 @@ final class ThingsSearchCursor {
      * @param json the JSON representation.
      * @return the cursor.
      */
-    private static ThingsSearchCursor fromJson(final JsonObject json) {
+    static ThingsSearchCursor fromJson(final JsonObject json) {
         return new ThingsSearchCursor(
                 json.getValue(NAMESPACES).map(ThingsSearchCursor::readNamespaces).orElse(null),
                 json.getValue(CORRELATION_ID).orElse(null),

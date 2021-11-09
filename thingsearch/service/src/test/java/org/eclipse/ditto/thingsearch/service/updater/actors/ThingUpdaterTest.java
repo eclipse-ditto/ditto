@@ -15,6 +15,10 @@ package org.eclipse.ditto.thingsearch.service.updater.actors;
 import java.time.Instant;
 
 import org.assertj.core.api.Assertions;
+import org.bson.BsonArray;
+import org.bson.BsonDocument;
+import org.bson.BsonInt64;
+import org.bson.BsonString;
 import org.eclipse.ditto.base.api.common.Shutdown;
 import org.eclipse.ditto.base.api.common.ShutdownReasonFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -29,8 +33,8 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
-import org.eclipse.ditto.thingsearch.service.common.config.DefaultUpdaterConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,8 +42,10 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -276,10 +282,37 @@ public final class ThingUpdaterTest {
 
     }
 
+    @Test
+    public void recoverLastWriteModel() {
+        new TestKit(actorSystem) {{
+            final Props props = Props.create(ThingUpdater.class,
+                    () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0, false, true));
+            final var underTest = childActorOf(props, THING_ID.toString());
+
+            final var document = new BsonDocument()
+                    .append("_revision", new BsonInt64(1234))
+                    .append("d", new BsonArray())
+                    .append("s", new BsonDocument().append("Lorem ipsum", new BsonString(
+                            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, " +
+                                    "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+                    )));
+            final var writeModel = ThingWriteModel.of(Metadata.of(THING_ID, -1, null, null, null), document);
+
+            // GIVEN: updater is recovered with a write model
+            underTest.tell(writeModel, ActorRef.noSender());
+
+            // WHEN: updater is requested to compute incremental update against the same write model
+            underTest.tell(writeModel, getRef());
+
+            // THEN: expect no update.
+            expectMsg(Done.done());
+        }};
+    }
+
     private ActorRef createThingUpdaterActor() {
-        return actorSystem.actorOf(ThingUpdater.props(pubSubTestProbe.ref(), changeQueueTestProbe.ref(),
-                        DefaultUpdaterConfig.of(ConfigFactory.empty())),
-                THING_ID.toString());
+        final Props props = Props.create(ThingUpdater.class,
+                () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0, false, false));
+        return actorSystem.actorOf(props, THING_ID.toString());
     }
 
 }

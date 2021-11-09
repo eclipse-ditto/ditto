@@ -258,7 +258,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void handleWhoami(final Whoami command) {
-        logger.withCorrelationId(command).debug("Got Whoami.", command);
+        logger.withCorrelationId(command).debug("Got Whoami: <{}>", command);
         final ActorContext context = getContext();
         final WhoamiResponse response = createWhoamiResponse(command);
         context.become(getResponseAwaitingBehavior(getTimeoutExceptionSupplier(command)));

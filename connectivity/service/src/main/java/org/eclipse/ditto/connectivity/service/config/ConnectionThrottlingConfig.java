@@ -39,6 +39,12 @@ public interface ConnectionThrottlingConfig extends ThrottlingConfig {
         return (int) (getLimit() * getMaxInFlightFactor());
     }
 
+    /**
+     * Returns the tolerance in percent of the actual throttling limit when a source is considered throttled.
+     *
+     * @return the throttling detection tolerance
+     */
+    double getThrottlingDetectionTolerance();
 
     /**
      * Returns an instance of {@code ConnectionThrottlingConfig} based on the settings of the specified Config.
@@ -62,7 +68,12 @@ public interface ConnectionThrottlingConfig extends ThrottlingConfig {
          * The factor of maximum number of messages waiting for an acknowledgement per consumer in relation to the
          * {@code limit}.
          */
-        MAX_IN_FLIGHT_FACTOR("max-in-flight-factor", 2.0);
+        MAX_IN_FLIGHT_FACTOR("max-in-flight-factor", 2.0),
+
+        /**
+         * The tolerance in percent of the actual throttling limit when a source is considered throttled.
+         */
+        THROTTLING_DETECTION_TOLERANCE("throttling-detection-tolerance", 0.05);
 
         private final String path;
         private final Object defaultValue;

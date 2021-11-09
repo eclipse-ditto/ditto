@@ -32,7 +32,6 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
-import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaConsumerConfig;
@@ -42,6 +41,9 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -66,11 +68,11 @@ public final class KafkaClientActor extends BaseClientActor {
             final ActorRef proxyActor,
             final ActorRef connectionActor,
             final KafkaPublisherActorFactory publisherActorFactory,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            final Config connectivityConfigOverwrites) {
 
-        super(connection, proxyActor, connectionActor, dittoHeaders);
-        final ConnectionConfig connectionConfig = connectionContext.getConnectivityConfig().getConnectionConfig();
-        kafkaConfig = connectionConfig.getKafkaConfig();
+        super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
+        kafkaConfig = connectivityConfig().getConnectionConfig().getKafkaConfig();
         kafkaConsumerActors = new ArrayList<>();
         propertiesFactory = PropertiesFactory.newInstance(connection, kafkaConfig, getClientId(connection.getId()));
         this.publisherActorFactory = publisherActorFactory;
@@ -81,9 +83,11 @@ public final class KafkaClientActor extends BaseClientActor {
     private KafkaClientActor(final Connection connection,
             final ActorRef proxyActor,
             final ActorRef connectionActor,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            final Config connectivityConfigOverwrites) {
 
-        this(connection, proxyActor, connectionActor, DefaultKafkaPublisherActorFactory.getInstance(), dittoHeaders);
+        this(connection, proxyActor, connectionActor, DefaultKafkaPublisherActorFactory.getInstance(), dittoHeaders,
+                connectivityConfigOverwrites);
     }
 
     /**
@@ -93,15 +97,17 @@ public final class KafkaClientActor extends BaseClientActor {
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param dittoHeaders headers of the command that caused this actor to be created.
+     * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection,
             final ActorRef proxyActor,
             final ActorRef connectionActor,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            final Config connectivityConfigOverwrites) {
 
         return Props.create(KafkaClientActor.class, validateConnection(connection), proxyActor, connectionActor,
-                dittoHeaders);
+                dittoHeaders, connectivityConfigOverwrites);
     }
 
     static Props propsForTests(final Connection connection,
@@ -111,7 +117,7 @@ public final class KafkaClientActor extends BaseClientActor {
             final DittoHeaders dittoHeaders) {
 
         return Props.create(KafkaClientActor.class, validateConnection(connection), proxyActor, connectionActor,
-                factory, dittoHeaders);
+                factory, dittoHeaders, ConfigFactory.empty());
     }
 
     private static Connection validateConnection(final Connection connection) {

@@ -17,6 +17,7 @@ import java.io.StringWriter;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -52,7 +53,7 @@ final class BulkWriteResultAckFlow {
 
     private BulkWriteResultAckFlow(final ActorRef updaterShard) {
         this.updaterShard = updaterShard;
-        this.errorsCounter = DittoMetrics.counter(ERRORS_COUNTER_NAME);
+        errorsCounter = DittoMetrics.counter(ERRORS_COUNTER_NAME);
     }
 
     static BulkWriteResultAckFlow of(final ActorRef updaterShard) {
@@ -76,8 +77,8 @@ final class BulkWriteResultAckFlow {
                 return Collections.singleton(consistencyError.get());
             } else {
                 final List<BulkWriteError> errors = writeResultAndErrors.getBulkWriteErrors();
-                final List<String> logEntries = new ArrayList<>(errors.size() + 1);
-                final List<Metadata> failedMetadata = new ArrayList<>(errors.size());
+                final Collection<String> logEntries = new ArrayList<>(errors.size() + 1);
+                final Collection<Metadata> failedMetadata = new ArrayList<>(errors.size());
                 logEntries.add(logResult("Acknowledged", writeResultAndErrors, errors.isEmpty()));
                 final BitSet failedIndices = new BitSet(writeResultAndErrors.getWriteModels().size());
                 for (final BulkWriteError error : errors) {
@@ -96,7 +97,7 @@ final class BulkWriteResultAckFlow {
         }
     }
 
-    private void acknowledgeSuccesses(final BitSet failedIndices, final List<AbstractWriteModel> writeModels) {
+    private static void acknowledgeSuccesses(final BitSet failedIndices, final List<AbstractWriteModel> writeModels) {
         for (int i = 0; i < writeModels.size(); ++i) {
             if (!failedIndices.get(i)) {
                 writeModels.get(i).getMetadata().sendAck();
@@ -104,7 +105,7 @@ final class BulkWriteResultAckFlow {
         }
     }
 
-    private void acknowledgeFailures(final List<Metadata> metadataList) {
+    private void acknowledgeFailures(final Collection<Metadata> metadataList) {
         errorsCounter.increment(metadataList.size());
         for (final Metadata metadata : metadataList) {
             metadata.sendNAck(); // also stops timer even if no acknowledgement is requested
@@ -160,13 +161,15 @@ final class BulkWriteResultAckFlow {
         final int requested = resultAndErrors.getWriteModels().size();
         if (!areAllIndexesWithinBounds(resultAndErrors.getBulkWriteErrors(), requested)) {
             // some indexes not within bounds
-            return Optional.of(String.format("ConsistencyError[indexOutOfBound]: %s", resultAndErrors.toString()));
+            return Optional.of(String.format("ConsistencyError[indexOutOfBound]: %s", resultAndErrors));
         } else {
             return Optional.empty();
         }
     }
 
-    private static boolean areAllIndexesWithinBounds(final List<BulkWriteError> bulkWriteErrors, final int requested) {
+    private static boolean areAllIndexesWithinBounds(final Collection<BulkWriteError> bulkWriteErrors,
+            final int requested) {
+
         return bulkWriteErrors.stream().mapToInt(BulkWriteError::getIndex).allMatch(i -> 0 <= i && i < requested);
     }
 

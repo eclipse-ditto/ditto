@@ -15,6 +15,8 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -35,6 +37,6 @@ public interface ClientActorPropsFactory {
      * @return the actor props
      */
     Props getActorPropsForType(Connection connection, ActorRef proxyActor, ActorRef connectionActor,
-            ActorSystem actorSystem, final DittoHeaders dittoHeaders);
+            ActorSystem actorSystem, final DittoHeaders dittoHeaders, final Config connectivityConfigOverwrites);
 
 }

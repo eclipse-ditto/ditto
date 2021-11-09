@@ -21,7 +21,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -30,6 +29,7 @@ import org.apache.kafka.common.record.TimestampType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.junit.After;
 import org.junit.Before;
@@ -38,6 +38,7 @@ import org.mockito.ArgumentMatchers;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
+import akka.japi.Pair;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.BoundedSourceQueue;
 import akka.stream.Materializer;
@@ -55,8 +56,7 @@ public final class AtMostOnceConsumerStreamTest {
     private Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink;
     private final AtomicReference<BoundedSourceQueue<ConsumerRecord<String, String>>> sourceQueue =
             new AtomicReference<>();
-    private final AtomicReference<TestSubscriber.Probe<AcknowledgeableMessage>> inboundSinkProbe =
-            new AtomicReference<>();
+    private TestSubscriber.Probe<AcknowledgeableMessage> inboundSinkProbe;
 
     @Before
     public void setUp() {
@@ -67,11 +67,12 @@ public final class AtMostOnceConsumerStreamTest {
                     sourceQueue.set(queue);
                     return control;
                 });
-        inboundMappingSink = TestSink.<AcknowledgeableMessage>create(actorSystem).mapMaterializedValue(probe -> {
-            // Will be set on each consumed message.
-            inboundSinkProbe.set(probe);
-            return NotUsed.getInstance();
-        });
+        final Sink<AcknowledgeableMessage, TestSubscriber.Probe<AcknowledgeableMessage>> sink =
+                TestSink.probe(actorSystem);
+        final Pair<TestSubscriber.Probe<AcknowledgeableMessage>, Sink<AcknowledgeableMessage, NotUsed>> sinkPair =
+                sink.preMaterialize(actorSystem);
+        inboundSinkProbe = sinkPair.first();
+        inboundMappingSink = sinkPair.second();
     }
 
     @After
@@ -88,7 +89,7 @@ public final class AtMostOnceConsumerStreamTest {
     }
 
     @Test
-    public void appliesBackPressureWhenMessagesAreNotAcknowledged() throws InterruptedException {
+    public void appliesBackPressureWhenMessagesAreNotAcknowledged() {
         new TestKit(actorSystem) {{
             /*
              * Given we have a kafka source which emits records that are all transformed to External messages.
@@ -104,45 +105,39 @@ public final class AtMostOnceConsumerStreamTest {
             when(messageTransformer.transform(ArgumentMatchers.<ConsumerRecord<String, String>>any())).thenReturn(
                     result);
             final ConnectionMonitor connectionMonitor = mock(ConnectionMonitor.class);
-            final int maxInflight = 3;
+            final int maxInflight = TestConstants.KAFKA_THROTTLING_CONFIG.getMaxInFlight();
             final Materializer materializer = Materializer.createMaterializer(actorSystem);
             final Sink<DittoRuntimeException, TestSubscriber.Probe<DittoRuntimeException>> dreSink =
                     TestSink.create(actorSystem);
 
             // When starting the stream
-            new AtMostOnceConsumerStream(sourceSupplier, maxInflight, messageTransformer, false, materializer,
+            new AtMostOnceConsumerStream(sourceSupplier, TestConstants.KAFKA_THROTTLING_CONFIG, messageTransformer,
+                    false, materializer,
                     connectionMonitor, inboundMappingSink, dreSink);
 
-            // Then we can offer those records and they are processed in parallel to the maximum of 'maxInflight' + 1
-            for (int i = 0; i < maxInflight + 1; i++) { // +1 because one message goes to the buffer
+            inboundSinkProbe.ensureSubscription();
+            // Then we can offer those records and they are processed in parallel to the maximum of 'maxInflight'
+            for (int i = 0; i < maxInflight + 1; i++) {
                 assertThat(sourceQueue.get().offer(consumerRecord)).isEqualTo(QueueOfferResult.enqueued());
-                final TestSubscriber.Probe<AcknowledgeableMessage> inboundMappingSinkProbe =
-                        getInboundMappingSinkPropeAfterSleep();
-                inboundMappingSinkProbe.ensureSubscription();
-                inboundMappingSinkProbe.requestNext();
-                inboundMappingSinkProbe.expectComplete();
+                inboundSinkProbe.request(1);
+                inboundSinkProbe.expectNext();
             }
 
-            // Further messages are going to the buffer but are not forwarded to the mapping sink.
-            final int bufferSize = 4; // SourceQueue creates a source with buffer size 4.
-            for (int i = 0; i < bufferSize - 1; i++) { // -1 because one message already went to the buffer before
+            /*
+             * Further messages are queued but not forwarded to the mapping sink. I can't fully explain why it is 3.
+             * This depends on the test setup of the SourceQueue.
+             */
+            final int bufferSize = 3;
+            for (int i = 0; i < bufferSize; i++) {
                 assertThat(sourceQueue.get().offer(consumerRecord)).isEqualTo(QueueOfferResult.enqueued());
-                final TestSubscriber.Probe<AcknowledgeableMessage> inboundMappingSinkProbe =
-                        getInboundMappingSinkPropeAfterSleep();
-                inboundMappingSinkProbe.ensureSubscription();
-                inboundMappingSinkProbe.request(1);
-                inboundMappingSinkProbe.expectNoMessage();
+                // This is done to verify that no matter that inboundSinkProbe is requesting new Elements. The mapAsync stage is blocking further elements to be processed.
+                inboundSinkProbe.request(1);
+                inboundSinkProbe.expectNoMessage();
             }
 
             // Buffer is full. No messages can be offered anymore. Backpressure applies.
             assertThat(sourceQueue.get().offer(consumerRecord)).isEqualTo(QueueOfferResult.dropped());
         }};
-    }
-
-    private TestSubscriber.Probe<AcknowledgeableMessage> getInboundMappingSinkPropeAfterSleep()
-            throws InterruptedException {
-        TimeUnit.SECONDS.sleep(1);
-        return inboundSinkProbe.get();
     }
 
 }

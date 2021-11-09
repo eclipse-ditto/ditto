@@ -17,7 +17,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.health.config.WithHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.WithMongoDbConfig;
@@ -25,7 +24,7 @@ import org.eclipse.ditto.internal.utils.persistence.operations.WithPersistenceOp
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.internal.utils.protocol.config.WithProtocolConfig;
 
-import akka.actor.ActorSystem;
+import com.typesafe.config.Config;
 
 /**
  * Provides the configuration settings of the Connectivity service.
@@ -77,13 +76,6 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
     MappingConfig getMappingConfig();
 
     /**
-     * Returns the configuration for signal enrichment.
-     *
-     * @return the config.
-     */
-    SignalEnrichmentConfig getSignalEnrichmentConfig();
-
-    /**
      * Returns the configuration for acknowledgement handling.
      *
      * @return the config.
@@ -100,11 +92,11 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
     /**
      * Read the static connectivity config from an actor system.
      *
-     * @param actorSystem the actor system.
+     * @param config the config to parse.
      * @return the connectivity config.
      */
-    static ConnectivityConfig forActorSystem(final ActorSystem actorSystem) {
-        return DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
+    static ConnectivityConfig of(final Config config) {
+        return DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(config));
     }
 
 }

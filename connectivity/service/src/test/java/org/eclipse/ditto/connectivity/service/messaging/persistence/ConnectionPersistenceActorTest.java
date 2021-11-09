@@ -90,6 +90,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.AbstractActor;
@@ -199,13 +200,13 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                                         "connection is open", INSTANT)))
                         .sourceStatus(
                                 List.of(ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN,
-                                        "source1", "consumer started"),
+                                                "source1", "consumer started"),
                                         ConnectivityModelFactory.newSourceStatus("client1", ConnectivityStatus.OPEN,
                                                 "source2", "consumer started")
                                 ))
                         .targetStatus(
                                 List.of(ConnectivityModelFactory.newTargetStatus("client1", ConnectivityStatus.OPEN,
-                                        "target1", "publisher started"),
+                                                "target1", "publisher started"),
                                         ConnectivityModelFactory.newTargetStatus("client1", ConnectivityStatus.OPEN,
                                                 "target2", "publisher started"),
                                         ConnectivityModelFactory.newTargetStatus("client1", ConnectivityStatus.OPEN,
@@ -342,7 +343,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
                             proxyActor,
-                            (a, b, c, d, dittoHeaders) -> MockClientActor.props(probe.ref(), gossipProbe.ref()));
+                            (a, b, c, d, dittoHeaders, overwrites) -> MockClientActor.props(probe.ref(),
+                                    gossipProbe.ref()));
             watch(underTest);
 
             // create closed connection
@@ -648,7 +650,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId,
                             actorSystem,
-                            proxyActor, (connection, proxyActor, connectionActor, actorSystem, dittoHeaders) -> {
+                            proxyActor,
+                            (connection, proxyActor, connectionActor, actorSystem, dittoHeaders, overwrites) -> {
                                 latestConnection.set(connection);
                                 return MockClientActor.props(mockClientProbe.ref());
                             },
@@ -827,10 +830,11 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final Props connectionActorProps =
                     ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
                             proxyActor, pubSubMediator,
-                            (connection, proxyActor, connectionActor, actorSystem, dittoHeaders) -> {
+                            (connection, proxyActor, connectionActor, actorSystem, dittoHeaders, overwrites) -> {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
-                            }, null, UsageBasedPriorityProvider::getInstance);
+                            }, null, UsageBasedPriorityProvider::getInstance,
+                            ConfigFactory.empty());
             // create another actor because this it is stopped and we want to test if the child is terminated
             final TestKit parent = new TestKit(actorSystem);
             final ActorRef connectionActorRef = watch(parent.childActorOf(connectionActorProps));
@@ -859,7 +863,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                                         .dittoHeaders(command.getDittoHeaders())
                                         .message("not valid")
                                         .build();
-                            }, UsageBasedPriorityProvider::getInstance);
+                            }, UsageBasedPriorityProvider::getInstance,
+                            ConfigFactory.empty());
 
             // create another actor because we want to test if the child is terminated
             final TestKit parent = new TestKit(actorSystem);
@@ -1126,7 +1131,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final TestProbe proxyActorProbe = TestProbe.apply("proxyActor", actorSystem);
             final TestProbe pubSubMediatorProbe = TestProbe.apply("pubSubMediator", actorSystem);
             // Mock the client actors so that they forward all signals to clientActorsProbe with their own reference
-            final ClientActorPropsFactory propsFactory = (a, b, connectionActor, aS, dittoHeaders) ->
+            final ClientActorPropsFactory propsFactory = (a, b, connectionActor, aS, dittoHeaders, overwrites) ->
                     Props.create(AbstractActor.class, () -> new AbstractActor() {
                         @Override
                         public Receive createReceive() {
@@ -1147,7 +1152,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                     new ConnectionPersistenceActor(myConnectionId, proxyActorProbe.ref(),
                             pubSubMediatorProbe.ref(), propsFactory, null,
                             UsageBasedPriorityProvider::getInstance,
-                            Trilean.TRUE
+                            Trilean.TRUE,
+                            ConfigFactory.empty()
                     ));
 
             // GIVEN: connection persistence actor created with 2 client actors that are allowed to start on same node
@@ -1193,7 +1199,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                     () -> new ConnectionPersistenceActor(connectionId, proxyActor, pubSubMediator,
                             failingClientActors, null,
                             UsageBasedPriorityProvider::getInstance,
-                            Trilean.FALSE
+                            Trilean.FALSE,
+                            ConfigFactory.empty()
                     )));
             watch(underTest);
 
@@ -1216,7 +1223,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                     () -> new ConnectionPersistenceActor(connectionId, proxyActor, pubSubMediator,
                             failingClientActors, null,
                             UsageBasedPriorityProvider::getInstance,
-                            Trilean.FALSE
+                            Trilean.FALSE,
+                            ConfigFactory.empty()
                     )));
             watch(underTest);
 
@@ -1274,7 +1282,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         @Override
         public Props getActorPropsForType(final Connection connection, final ActorRef proxyActor,
                 final ActorRef connectionActor, final ActorSystem system,
-                final DittoHeaders dittoHeaders) {
+                final DittoHeaders dittoHeaders, final Config overwrites) {
             return Props.create(FailingActor.class, FailingActor::new);
         }
 
@@ -1313,7 +1321,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     private ClientActorPropsFactory mockClientActorPropsFactory(final ActorRef actorRef) {
-        return (connection, concierge, connectionActor, actorSystem, dittoHeaders) -> MockClientActor.props(actorRef);
+        return (connection, concierge, connectionActor, actorSystem, dittoHeaders, overwrites) ->
+                MockClientActor.props(actorRef);
     }
 
     private void startSecondActorSystemAndJoinCluster() throws Exception {

@@ -14,10 +14,10 @@ package org.eclipse.ditto.connectivity.model;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Collection;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -71,7 +71,7 @@ final class ImmutableTarget implements Target {
         address = checkNotNull(builder.address, "address");
         originalAddress = checkNotNull(builder.originalAddress, "originalAddress");
         topics = Collections.unmodifiableSet(
-                new HashSet<>(builder.topics == null ? Collections.emptySet() : builder.topics));
+                new LinkedHashSet<>(builder.topics == null ? Collections.emptySet() : builder.topics));
         qos = builder.qos;
         authorizationContext = checkNotNull(builder.authorizationContext, "authorizationContext");
         issuedAcknowledgementLabel = builder.issuedAcknowledgementLabel;
@@ -174,8 +174,8 @@ final class ImmutableTarget implements Target {
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
                         .map(ConnectivityModelFactory::newFilteredTopic)
-                        .collect(Collectors.toSet()))
-                .orElse(Collections.emptySet());
+                        .collect(Collectors.toCollection(LinkedHashSet::new)))
+                .orElseGet(LinkedHashSet::new);
 
         final JsonArray authContext = jsonObject.getValue(JsonFields.AUTHORIZATION_CONTEXT)
                 .orElseGet(() -> JsonArray.newBuilder().build());
@@ -313,7 +313,7 @@ final class ImmutableTarget implements Target {
 
         @Override
         public TargetBuilder topics(final FilteredTopic requiredTopic, final FilteredTopic... additionalTopics) {
-            final Set<FilteredTopic> theTopics = new HashSet<>(1 + additionalTopics.length);
+            final Set<FilteredTopic> theTopics = new LinkedHashSet<>(1 + additionalTopics.length);
             theTopics.add(requiredTopic);
             Collections.addAll(theTopics, additionalTopics);
 
@@ -322,11 +322,14 @@ final class ImmutableTarget implements Target {
 
         @Override
         public TargetBuilder topics(final Topic requiredTopic, final Topic... additionalTopics) {
-            final Collection<Topic> theTopics = EnumSet.of(requiredTopic, additionalTopics);
+
+            final List<Topic> theTopics = new ArrayList<>();
+            theTopics.add(requiredTopic);
+            theTopics.addAll(Arrays.asList(additionalTopics));
             final Set<FilteredTopic> filteredTopics = theTopics.stream()
                     .map(ConnectivityModelFactory::newFilteredTopicBuilder)
                     .map(FilteredTopicBuilder::build)
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
 
             return topics(filteredTopics);
         }

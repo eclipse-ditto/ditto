@@ -25,13 +25,15 @@ sidebar: false
                 <div class="panel-heading">
                         <span class="fa-stack fa-5x">
                               <i class="fa fa-circle fa-stack-2x text-primary"></i>
-                              <i class="fa fa-globe fa-stack-1x fa-inverse"></i>
+                              <i class="fa fa-code fa-stack-1x fa-inverse"></i>
                         </span>
                 </div>
                 <div class="panel-body">
-                    <h4>Device-as-a-Service</h4>
-                    <p>Provide a higher abstraction level in form of an API used to work with individual devices.</p>
-                    <!--<a href="#" class="btn btn-primary">Learn More</a>-->
+                    <h4>Device as a Service</h4>
+                    <p>
+                      Abstract the device into a digital twin providing synchronous and asynchronous APIs and use the
+                      digital twin API to work with your physical device.
+                    </p>
                 </div>
             </div>
         </div>
@@ -45,8 +47,10 @@ sidebar: false
                 </div>
                 <div class="panel-body">
                     <h4>State management for digital twins</h4>
-                    <p>Differ between reported (last known), desired (target) and current state (live) of devices, including support for synchronization and publishing of state changes.</p>
-                    <!--<a href="#" class="btn btn-primary">Learn More</a>-->
+                    <p>
+                      Differ between reported, desired, and current state of devices,
+                      including support for synchronization and publishing of state changes.
+                    </p>
                 </div>
             </div>
         </div>
@@ -55,13 +59,15 @@ sidebar: false
                 <div class="panel-heading">
                         <span class="fa-stack fa-5x">
                               <i class="fa fa-circle fa-stack-2x text-primary"></i>
-                              <i class="fa fa-search fa-stack-1x fa-inverse"></i>
+                              <i class="fa fa-key fa-stack-1x fa-inverse"></i>
                         </span>
                 </div>
                 <div class="panel-body">
-                    <h4>Organize your set of digital twins</h4>
-                    <p>Support finding and selecting sets of digital twins by providing search functionality on metadata and state data.</p>
-                    <!--<a href="#" class="btn btn-primary">Learn More</a>-->
+                    <h4>Access control enforcement</h4>
+                    <p>
+                      Authorize each API call on a digital twin applying a fine-grained resource based access check
+                      ensuring to only see/modify e.g. parts of a twin.
+                    </p>
                 </div>
             </div>
         </div>
@@ -74,6 +80,72 @@ sidebar: false
     <div class="row user-logos-container">
     </div>
     <p>Add your logo as <a href="https://iot.eclipse.org/adopters/" target="_blank">adopter/user</a> of Eclipse Ditto to this list.</p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row ditto-intro">
+    <div class="col-lg12 text-center">
+      <h2>
+        Eclipse Ditto is an open source framework<br/>
+        helping you to build digital twins<br/>
+        of devices connected to the internet.
+      </h2>
+      <h3>
+        It is by design domain agnostic and thus may be used in<br/>
+        industrial, residential, agricultural and<br/>
+        many other IoT domains.
+      </h3>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-lg-12 text-center">
+      <img src="images/ditto-super-1.png" class="img-fluid ditto-supergraphic" alt="Eclipse Ditto Supergraphic">
+    </div>
+  </div>
+  <div class="row ditto-nutshell">
+    <div class="col-lg12">
+      <h2>In a nutshell</h2>
+      <p>
+        Ditto acts as IoT middleware, providing an abstraction layer for IoT solutions interacting with
+        physical devices via the digital twin pattern.<br/>
+        Devices are integrated via a device connectivity layers like <a href="https://www.eclipse.org/hono/">Eclipse Hono™</a>
+        or e.g. MQTT brokers like <a href="https://projects.eclipse.org/projects/iot.mosquitto">Eclipse Mosquitto™</a>.
+      </p>
+      <p>
+        Digital twins managed in Ditto can also be integrated into other existing backend systems by creating arbitrary
+        connections to such foreign systems utilizing the supported protocols:
+        <ul>
+          <li>AMQP 0.9.1</li>
+          <li>AMQP 1.0</li>
+          <li>Apache Kafka 2.x</li>
+          <li>HTTP (invoking external webhooks)</li>
+          <li>MQTT 3.1.1</li>
+          <li>MQTT 5</li>
+        </ul>
+        The twins may either forward their changes to such systems or access additional information from those.<br/>
+        Even payload mapping is possible as part of those Ditto managed connections in order to integrate arbitrary
+        payload formats.
+      </p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-lg-12 text-center">
+      <img src="images/ditto-overview-1.png" class="img-fluid ditto-overviewgraphic" alt="Eclipse Ditto Overview">
+    </div>
+  </div>
+</div>
+
+<div class="row highlight who">
+  <div class="container text-center">
+    <h2>Learn more</h2>
+    <p>
+      In order to learn more, please browse the <a href="./architecture-overview.html">architecture overview</a> and
+      the <a href="./intro-overview.html">documentation</a>,<br/>
+      get inspiration from some available <a href="./presentations.html">presentations</a> or
+      check out the <a href="./blog.html">blog</a> in order to find out about recent topics.
+    </p>
+    <p>To get in touch, please use the <a href="./feedback.html">feedback channels</a>.</p>
   </div>
 </div>
 

@@ -15,7 +15,11 @@ package org.eclipse.ditto.connectivity.service.mapping;
 import java.util.Collection;
 import java.util.Map;
 
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+
+import akka.actor.ActorSystem;
 
 /**
  * Abstract implementation of {@link MessageMapper} which adds an id field and also its initialization from mapping
@@ -49,13 +53,17 @@ public abstract class AbstractMessageMapper implements MessageMapper {
     }
 
     @Override
-    public final void configure(final ConnectionContext connectionContext,
-            final MessageMapperConfiguration configuration) {
+    public final void configure(final Connection connection,
+            final ConnectivityConfig connectivityConfig,
+            final MessageMapperConfiguration configuration,
+            final ActorSystem actorSystem) {
+
         this.id = configuration.getId();
         this.incomingConditions = configuration.getIncomingConditions();
         this.outgoingConditions = configuration.getOutgoingConditions();
         this.contentTypeBlocklist = configuration.getContentTypeBlocklist();
-        doConfigure(connectionContext.getConnectivityConfig().getMappingConfig(), configuration);
+        final MappingConfig mappingConfig = connectivityConfig.getMappingConfig();
+        doConfigure(mappingConfig, configuration);
     }
 
     /**

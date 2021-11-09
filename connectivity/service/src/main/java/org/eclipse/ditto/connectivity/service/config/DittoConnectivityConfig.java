@@ -24,8 +24,6 @@ import org.eclipse.ditto.connectivity.service.config.mapping.DefaultMappingConfi
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
-import org.eclipse.ditto.internal.models.signalenrichment.DefaultSignalEnrichmentConfig;
-import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig;
 import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.internal.utils.health.config.DefaultHealthCheckConfig;
@@ -60,7 +58,6 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     private final ProtocolConfig protocolConfig;
     private final MonitoringConfig monitoringConfig;
     private final MappingConfig mappingConfig;
-    private final SignalEnrichmentConfig signalEnrichmentConfig;
     private final AcknowledgementConfig acknowledgementConfig;
     private final TunnelConfig tunnelConfig;
 
@@ -76,7 +73,6 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
         clientConfig = DefaultClientConfig.of(serviceSpecificConfig);
         monitoringConfig = DefaultMonitoringConfig.of(serviceSpecificConfig);
         mappingConfig = DefaultMappingConfig.of(serviceSpecificConfig);
-        signalEnrichmentConfig = DefaultSignalEnrichmentConfig.of(serviceSpecificConfig);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(serviceSpecificConfig);
         tunnelConfig = DefaultTunnelConfig.of(serviceSpecificConfig);
     }
@@ -169,11 +165,6 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     }
 
     @Override
-    public SignalEnrichmentConfig getSignalEnrichmentConfig() {
-        return signalEnrichmentConfig;
-    }
-
-    @Override
     public AcknowledgementConfig getAcknowledgementConfig() {
         return acknowledgementConfig;
     }
@@ -204,7 +195,6 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
                 Objects.equals(protocolConfig, that.protocolConfig) &&
                 Objects.equals(monitoringConfig, that.monitoringConfig) &&
                 Objects.equals(mappingConfig, that.mappingConfig) &&
-                Objects.equals(signalEnrichmentConfig, that.signalEnrichmentConfig) &&
                 Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
                 Objects.equals(tunnelConfig, that.tunnelConfig);
     }
@@ -213,7 +203,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     public int hashCode() {
         return Objects.hash(serviceSpecificConfig, persistenceOperationsConfig, mongoDbConfig, healthCheckConfig,
                 connectionConfig, pingConfig, connectionIdsRetrievalConfig, clientConfig, protocolConfig,
-                monitoringConfig, mappingConfig, signalEnrichmentConfig, acknowledgementConfig, tunnelConfig);
+                monitoringConfig, mappingConfig, acknowledgementConfig, tunnelConfig);
     }
 
     @Override
@@ -230,7 +220,6 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
                 ", protocolConfig=" + protocolConfig +
                 ", monitoringConfig=" + monitoringConfig +
                 ", mappingConfig=" + mappingConfig +
-                ", signalEnrichmentConfig" + signalEnrichmentConfig +
                 ", acknowledgementConfig" + acknowledgementConfig +
                 ", tunnelConfig" + tunnelConfig +
                 "]";

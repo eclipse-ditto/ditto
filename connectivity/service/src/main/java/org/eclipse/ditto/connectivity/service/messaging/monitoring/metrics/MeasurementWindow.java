@@ -24,17 +24,27 @@ public enum MeasurementWindow {
     /**
      * Window of 1 minute with a resolution of 10 seconds.
      */
-    ONE_MINUTE(Duration.ofMinutes(1), Duration.ofSeconds(10)),
+    ONE_MINUTE_WITH_TEN_SECONDS_RESOLUTION(Duration.ofMinutes(1), Duration.ofSeconds(10)),
 
     /**
      * Window of 1 hour with a resolution of 1 minute.
      */
-    ONE_HOUR(Duration.ofHours(1), Duration.ofMinutes(1)),
+    ONE_HOUR_WITH_ONE_MINUTE_RESOLUTION(Duration.ofHours(1), Duration.ofMinutes(1)),
 
     /**
      * Window of 24 hours / 1 day with a resolution of 1 hour.
      */
-    ONE_DAY(Duration.ofHours(24), Duration.ofHours(1));
+    ONE_DAY_WITH_ONE_HOUR_RESOLUTION(Duration.ofHours(24), Duration.ofHours(1)),
+
+    /**
+     * Window of 1 minute with a resolution of 1 minute.
+     */
+    ONE_MINUTE_WITH_ONE_MINUTE_RESOLUTION(Duration.ofMinutes(1), Duration.ofMinutes(1)),
+
+    /**
+     * Window of 24 hours / 1 day with a resolution of 1 minute.
+     */
+    ONE_DAY_WITH_ONE_MINUTE_RESOLUTION(Duration.ofHours(24), Duration.ofMinutes(1));
 
     private final Duration window;
     private final Duration resolution;

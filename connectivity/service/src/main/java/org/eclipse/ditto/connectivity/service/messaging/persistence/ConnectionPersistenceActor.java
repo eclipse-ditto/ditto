@@ -39,7 +39,6 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -71,8 +70,6 @@ import org.eclipse.ditto.connectivity.model.signals.events.ConnectionModified;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectionOpened;
 import org.eclipse.ditto.connectivity.model.signals.events.ConnectivityEvent;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
-import org.eclipse.ditto.connectivity.service.config.ConnectionContextProvider;
-import org.eclipse.ditto.connectivity.service.config.ConnectionContextProviderFactory;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
@@ -93,8 +90,6 @@ import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.Conne
 import org.eclipse.ditto.connectivity.service.messaging.persistence.stages.StagedCommand;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.commands.ConnectionCreatedStrategies;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.commands.ConnectionDeletedStrategies;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.commands.ConnectionUninitializedStrategies;
-import org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.commands.ConnectivityCommandStrategies;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.strategies.events.ConnectionEventStrategies;
 import org.eclipse.ditto.connectivity.service.messaging.rabbitmq.RabbitMQValidator;
 import org.eclipse.ditto.connectivity.service.messaging.validation.CompoundConnectivityCommandInterceptor;
@@ -118,8 +113,10 @@ import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
@@ -174,18 +171,11 @@ public final class ConnectionPersistenceActor
     private final Duration clientActorAskTimeout;
     private final Duration checkLoggingActiveInterval;
     private final Duration loggingEnabledDuration;
-    private final ConnectionConfig config;
-    private final MonitoringConfig monitoringConfig;
+    private final ConnectivityConfig connectivityConfig;
+    private final Config connectivityConfigOverwrites;
     private final ClientActorRefs clientActorRefs = ClientActorRefs.empty();
     private final ConnectionPriorityProvider connectionPriorityProvider;
-    private final ConnectionContextProvider connectionContextProvider;
-
-    @Nullable private final ConnectivityCommandInterceptor customCommandValidator;
-    private ConnectivityCommandInterceptor commandValidator;
-    // Do nothing because nobody subscribes for connectivity events.
-
-    private ConnectivityCommandStrategies createdStrategies;
-    private ConnectivityCommandStrategies deletedStrategies;
+    private final ConnectivityCommandInterceptor commandValidator;
     private int subscriptionCounter = 0;
     private Instant connectionClosedAt = Instant.now();
     @Nullable private Instant loggingEnabledUntil;
@@ -197,10 +187,10 @@ public final class ConnectionPersistenceActor
             final ActorRef proxyActor,
             final ActorRef pubSubMediator,
             final ClientActorPropsFactory propsFactory,
-
             @Nullable final ConnectivityCommandInterceptor customCommandValidator,
             final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
-            final Trilean allClientActorsOnOneNode) {
+            final Trilean allClientActorsOnOneNode,
+            final Config connectivityConfigOverwrites) {
 
         super(connectionId, new ConnectionMongoSnapshotAdapter());
 
@@ -208,17 +198,14 @@ public final class ConnectionPersistenceActor
         this.proxyActor = proxyActor;
         this.propsFactory = propsFactory;
         this.pubSubMediator = pubSubMediator;
-        this.customCommandValidator = customCommandValidator;
-
-        final ActorSystem actorSystem = getContext().getSystem();
-
-        final ConnectivityConfig connectivityConfig = ConnectivityConfig.forActorSystem(actorSystem);
-        config = connectivityConfig.getConnectionConfig();
-        this.allClientActorsOnOneNode = allClientActorsOnOneNode.orElse(config.areAllClientActorsOnOneNode());
+        this.connectivityConfigOverwrites = connectivityConfigOverwrites;
+        connectivityConfig = getConnectivityConfigWithOverwrites(connectivityConfigOverwrites);
+        this.commandValidator = getCommandValidator(customCommandValidator);
+        final ConnectionConfig connectionConfig = this.connectivityConfig.getConnectionConfig();
+        this.allClientActorsOnOneNode = allClientActorsOnOneNode.orElse(connectionConfig.areAllClientActorsOnOneNode());
         connectionPriorityProvider = connectionPriorityProviderFactory.newProvider(self(), log);
-        connectionContextProvider = ConnectionContextProviderFactory.get(actorSystem).getInstance();
-        clientActorAskTimeout = config.getClientActorAskTimeout();
-        monitoringConfig = connectivityConfig.getMonitoringConfig();
+        clientActorAskTimeout = connectionConfig.getClientActorAskTimeout();
+        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         final ConnectionLoggerRegistry loggerRegistry =
                 ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
         connectionLogger = loggerRegistry.forConnection(connectionId);
@@ -229,9 +216,12 @@ public final class ConnectionPersistenceActor
         final Duration fuzzyPriorityUpdateInterval =
                 makeFuzzy(connectivityConfig.getConnectionConfig().getPriorityUpdateInterval());
         startUpdatePriorityPeriodically(fuzzyPriorityUpdateInterval);
+    }
 
-        createdStrategies = ConnectionUninitializedStrategies.of(command -> stash());
-        deletedStrategies = ConnectionUninitializedStrategies.of(this::stashAndInitialize);
+    private ConnectivityConfig getConnectivityConfigWithOverwrites(final Config connectivityConfigOverwrites) {
+        final Config defaultConfig = getContext().getSystem().settings().config();
+        final Config withOverwrites = connectivityConfigOverwrites.withFallback(defaultConfig);
+        return ConnectivityConfig.of(withOverwrites);
     }
 
     /**
@@ -262,6 +252,7 @@ public final class ConnectionPersistenceActor
      * @param propsFactory factory of props of client actors for various protocols.
      * @param commandValidator validator for commands that should throw an exception if a command is invalid.
      * @param connectionPriorityProviderFactory Creates a new connection priority provider.
+     * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ConnectionId connectionId,
@@ -269,10 +260,11 @@ public final class ConnectionPersistenceActor
             final ActorRef pubSubMediator,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator,
-            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory
+            final ConnectionPriorityProviderFactory connectionPriorityProviderFactory,
+            final Config connectivityConfigOverwrites
     ) {
         return Props.create(ConnectionPersistenceActor.class, connectionId, proxyActor, pubSubMediator, propsFactory,
-                commandValidator, connectionPriorityProviderFactory, Trilean.UNKNOWN);
+                commandValidator, connectionPriorityProviderFactory, Trilean.UNKNOWN, connectivityConfigOverwrites);
     }
 
     /**
@@ -311,13 +303,13 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
-    protected ConnectivityCommandStrategies getCreatedStrategy() {
-        return createdStrategies;
+    protected ConnectionCreatedStrategies getCreatedStrategy() {
+        return ConnectionCreatedStrategies.getInstance();
     }
 
     @Override
-    protected ConnectivityCommandStrategies getDeletedStrategy() {
-        return deletedStrategies;
+    protected ConnectionDeletedStrategies getDeletedStrategy() {
+        return ConnectionDeletedStrategies.getInstance();
     }
 
     @Override
@@ -327,12 +319,12 @@ public final class ConnectionPersistenceActor
 
     @Override
     protected ActivityCheckConfig getActivityCheckConfig() {
-        return config.getActivityCheckConfig();
+        return connectivityConfig.getConnectionConfig().getActivityCheckConfig();
     }
 
     @Override
     protected SnapshotConfig getSnapshotConfig() {
-        return config.getSnapshotConfig();
+        return connectivityConfig.getConnectionConfig().getSnapshotConfig();
     }
 
     @Override
@@ -386,21 +378,7 @@ public final class ConnectionPersistenceActor
             log.debug("Opening connection <{}> after recovery.", entityId);
             restoreOpenConnection();
         }
-        if (entityExistsAsActive()) {
-            // Initialize command validator by connectivity config.
-            // For deleted connections, only start initiation on first command because the connection ID is not attached
-            // to any solution.
-            startInitialization(connectionContextProvider, entityId, DittoHeaders.empty(), getSelf());
-        }
         super.recoveryCompleted(event);
-    }
-
-    @Override
-    protected void onEntityModified() {
-        // retrieve connectivity config again in case of missed events
-        if (entityExistsAsActive()) {
-            startInitialization(connectionContextProvider, entityId, DittoHeaders.empty(), getSelf());
-        }
     }
 
     @Override
@@ -470,9 +448,8 @@ public final class ConnectionPersistenceActor
     }
 
     private void askSelfForRetrieveConnectionStatus(@Nullable final CharSequence correlationId) {
-        final var retrieveConnectionStatus = RetrieveConnectionStatus.of(entityId, DittoHeaders.newBuilder()
-                .correlationId(correlationId)
-                .build());
+        final var retrieveConnectionStatus = RetrieveConnectionStatus.of(entityId,
+                DittoHeaders.newBuilder().correlationId(correlationId).build());
         Patterns.ask(getSelf(), retrieveConnectionStatus, SELF_RETRIEVE_CONNECTION_STATUS_TIMEOUT)
                 .whenComplete((response, throwable) -> {
                     if (response instanceof RetrieveConnectionStatusResponse) {
@@ -633,20 +610,7 @@ public final class ConnectionPersistenceActor
                 .match(ActorRef.class, this::addClientActor)
                 .match(Terminated.class, this::removeClientActor)
                 .build()
-                .orElse(createInitializationAndConfigUpdateBehavior())
                 .orElse(super.matchAnyAfterInitialization());
-    }
-
-    @Override
-    protected Receive matchAnyWhenDeleted() {
-        return createInitializationAndConfigUpdateBehavior()
-                .orElse(ReceiveBuilder.create()
-                        .match(Control.class, msg ->
-                                log.warning("Ignoring control message when deleted: <{}>", msg))
-                        .match(ActorRef.class, msg ->
-                                log.warning("Ignoring ActorRef message from client actor when deleted: <{}>", msg))
-                        .build())
-                .orElse(super.matchAnyWhenDeleted());
     }
 
     @Override
@@ -688,11 +652,6 @@ public final class ConnectionPersistenceActor
         // compute the next prefix according to subscriptionCounter and the currently configured client actor count
         // ignore any "prefix" field from the command
         augmentWithPrefixAndForward(command, entity.getClientCount(), clientActorRouter);
-    }
-
-    private boolean entityExistsAsActive() {
-        return entity != null &&
-                entity.getLifecycle().orElse(ConnectionLifecycle.ACTIVE) == ConnectionLifecycle.ACTIVE;
     }
 
     private void augmentWithPrefixAndForward(final CreateSubscription createSubscription, final int clientCount,
@@ -832,7 +791,7 @@ public final class ConnectionPersistenceActor
         broadcastCommandWithDifferentSender(command,
                 (existingConnection, timeout) -> RetrieveConnectionLogsAggregatorActor.props(
                         existingConnection, sender, command.getDittoHeaders(), timeout,
-                        monitoringConfig.logger().maxLogSizeInBytes()),
+                        connectivityConfig.getMonitoringConfig().logger().maxLogSizeInBytes()),
                 () -> respondWithEmptyLogs(command, sender));
     }
 
@@ -975,9 +934,10 @@ public final class ConnectionPersistenceActor
         checkNotNull(entity, "Connection");
         // timeout before sending the (partial) response
         final Duration timeout = extractTimeoutFromCommand(command.getDittoHeaders());
-        final long availableConnectivityInstances = StreamSupport.stream(cluster.state().getMembers().spliterator(), false)
-                .filter(member -> member.getRoles().contains(CLUSTER_ROLE))
-                .count();
+        final long availableConnectivityInstances =
+                StreamSupport.stream(cluster.state().getMembers().spliterator(), false)
+                        .filter(member -> member.getRoles().contains(CLUSTER_ROLE))
+                        .count();
         final Props props = RetrieveConnectionStatusAggregatorActor.props(entity, sender,
                 command.getDittoHeaders(), timeout, availableConnectivityInstances);
         forwardToClientActors(props, command, () -> respondWithEmptyStatus(command, sender));
@@ -1034,13 +994,14 @@ public final class ConnectionPersistenceActor
         if (entity != null && clientActorRouter == null && clientCount > 0) {
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", entityId, clientCount);
             final Props props = propsFactory.getActorPropsForType(entity, proxyActor, getSelf(),
-                    getContext().getSystem(), dittoHeaders);
+                    getContext().getSystem(), dittoHeaders, connectivityConfigOverwrites);
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
                     new ClusterRouterPoolSettings(clientCount, clientActorsPerNode(clientCount), true,
                             Set.of(CLUSTER_ROLE));
+            final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
             final Pool pool = new ConsistentHashingPool(clientCount)
-                    .withSupervisorStrategy(
-                            OneForOneEscalateStrategy.withRetries(config.getClientActorRestartsBeforeEscalation()));
+                    .withSupervisorStrategy(OneForOneEscalateStrategy.withRetries(
+                            connectionConfig.getClientActorRestartsBeforeEscalation()));
             final Props clusterRouterPoolProps =
                     new ClusterRouterPool(pool, clusterRouterPoolSettings).props(props);
 
@@ -1106,7 +1067,8 @@ public final class ConnectionPersistenceActor
         openConnection(stagedCommand, false);
     }
 
-    private ConnectivityCommandInterceptor updateValidator(final ConnectivityConfig connectivityConfig) {
+    private ConnectivityCommandInterceptor getCommandValidator(
+            @Nullable final ConnectivityCommandInterceptor customCommandValidator) {
         final var actorSystem = getContext().getSystem();
         final MqttConfig mqttConfig = connectivityConfig.getConnectionConfig().getMqttConfig();
         final ConnectionValidator connectionValidator =
@@ -1128,50 +1090,6 @@ public final class ConnectionPersistenceActor
         } else {
             return dittoCommandValidator;
         }
-    }
-
-    private void setConnectivityConfig(final ConnectivityConfig connectivityConfig) {
-        commandValidator = updateValidator(connectivityConfig);
-    }
-
-    private void updateConnectivityConfig(final Event<?> event) {
-        connectionContextProvider.handleEvent(event).ifPresent(this::setConnectivityConfig);
-    }
-
-    private void initializeByConnectivityConfig(final ConnectivityConfig connectivityConfig) {
-        setConnectivityConfig(connectivityConfig);
-        createdStrategies = ConnectionCreatedStrategies.getInstance();
-        deletedStrategies = ConnectionDeletedStrategies.getInstance();
-        unstashAll();
-    }
-
-    private void stashAndInitialize(final WithDittoHeaders command) {
-        startInitialization(connectionContextProvider, entityId, command.getDittoHeaders(), getSelf());
-        stash();
-    }
-
-    private Receive createInitializationAndConfigUpdateBehavior() {
-        return ReceiveBuilder.create()
-                .match(Event.class, connectionContextProvider::canHandle, this::updateConnectivityConfig)
-                .match(ConnectivityConfig.class, this::initializeByConnectivityConfig)
-                .match(InitializationFailure.class, failure -> {
-                    log.error(failure.cause, "Initialization failed");
-                    // terminate self to restart after backoff
-                    getContext().stop(getSelf());
-                })
-                .build();
-    }
-
-    private static void startInitialization(final ConnectionContextProvider provider,
-            final ConnectionId connectionId, final DittoHeaders dittoHeaders, final ActorRef self) {
-
-        provider.registerForConnectivityConfigChanges(connectionId, dittoHeaders, self);
-        provider.getConnectivityConfig(connectionId, dittoHeaders)
-                .thenAccept(config -> self.tell(config, ActorRef.noSender()))
-                .exceptionally(error -> {
-                    self.tell(new InitializationFailure(error), ActorRef.noSender());
-                    return null;
-                });
     }
 
     private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final ConnectionId id,

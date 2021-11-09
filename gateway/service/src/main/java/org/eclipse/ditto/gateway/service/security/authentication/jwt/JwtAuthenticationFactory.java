@@ -68,7 +68,7 @@ public final class JwtAuthenticationFactory {
 
     public JwtValidator getJwtValidator() {
         if (null == jwtValidator) {
-            jwtValidator = DefaultJwtValidator.of(getPublicKeyProvider(), oAuthConfig);
+            jwtValidator = DefaultJwtValidator.of(getPublicKeyProvider());
         }
         return jwtValidator;
     }
@@ -79,7 +79,8 @@ public final class JwtAuthenticationFactory {
                     getJwtSubjectIssuersConfig(),
                     httpClientFacade,
                     publicKeyCacheConfig,
-                    PUBLIC_KEY_CACHE_NAME);
+                    PUBLIC_KEY_CACHE_NAME,
+                    oAuthConfig);
         }
 
         return publicKeyProvider;
