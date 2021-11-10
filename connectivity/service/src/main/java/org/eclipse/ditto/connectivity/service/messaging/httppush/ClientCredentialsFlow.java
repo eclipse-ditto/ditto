@@ -87,12 +87,10 @@ public final class ClientCredentialsFlow {
      * Augment HTTP requests with OAuth2 bearer tokens.
      *
      * @param actorSystem the actor system.
-     * @param isStrict whether to request a token right away. Useful for connection test.
      * @return The request-augmenting flow.
      */
     public Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> withToken(
-            final ActorSystem actorSystem,
-            final boolean isStrict) {
+            final ActorSystem actorSystem) {
 
         final var http = Http.get(actorSystem);
         final var httpFlow = Flow.<HttpRequest>create()
@@ -100,32 +98,26 @@ public final class ClientCredentialsFlow {
                         .<Try<HttpResponse>>thenApply(Success::new)
                         .exceptionally(Failure::new)
                 );
-        return fromFlowWithToken(httpFlow, isStrict);
+        return fromFlowWithToken(httpFlow);
     }
 
     @SuppressWarnings("unchecked")
     Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> fromFlowWithToken(
-            final Flow<HttpRequest, Try<HttpResponse>, ?> httpFlow,
-            final boolean isStrict) {
+            final Flow<HttpRequest, Try<HttpResponse>, ?> httpFlow) {
 
         final var flow = Flow.<Pair<HttpRequest, HttpPushContext>>create();
-        if (isStrict) {
-            return flow.zip(getTokenSource(httpFlow))
-                    .map(ClientCredentialsFlow::augmentRequestWithJwt);
-        } else {
-            final var tokenSource = Source.lazySource(() -> getTokenSource(httpFlow));
-            final var lazyZip = LazyZip.<Pair<HttpRequest, HttpPushContext>, JsonWebToken>of();
-            return Flow.fromGraph(GraphDSL.create(builder ->
-                    {
-                        final var requests = builder.add(flow);
-                        final var tokens = builder.add(tokenSource);
-                        final var zip = builder.add(lazyZip);
-                        builder.from(requests.out()).toInlet(zip.in0());
-                        builder.from(tokens.out()).toInlet(zip.in1());
-                        return FlowShape.of(requests.in(), zip.out());
-                    }))
-                    .map(ClientCredentialsFlow::augmentRequestWithJwt);
-        }
+        final var tokenSource = Source.lazySource(() -> getTokenSource(httpFlow));
+        final var lazyZip = LazyZip.<Pair<HttpRequest, HttpPushContext>, JsonWebToken>of();
+        return Flow.fromGraph(GraphDSL.create(builder ->
+                {
+                    final var requests = builder.add(flow);
+                    final var tokens = builder.add(tokenSource);
+                    final var zip = builder.add(lazyZip);
+                    builder.from(requests.out()).toInlet(zip.in0());
+                    builder.from(tokens.out()).toInlet(zip.in1());
+                    return FlowShape.of(requests.in(), zip.out());
+                }))
+                .map(ClientCredentialsFlow::augmentRequestWithJwt);
     }
 
     /**

@@ -46,7 +46,11 @@ import com.typesafe.config.Config;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.Uri;
+import akka.japi.Pair;
+import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
 
 /**
  * Client actor for HTTP-push.
@@ -103,12 +107,16 @@ public final class HttpPushClientActor extends BaseClientActor {
     protected CompletionStage<Status.Status> doTestConnection(final TestConnection testConnectionCommand) {
         final Connection connectionToBeTested = testConnectionCommand.getConnection();
         final Uri uri = Uri.create(connectionToBeTested.getUri());
+        final var credentialsTest = testCredentials(connectionToBeTested);
         if (HttpPushValidator.isSecureScheme(uri.getScheme())) {
-            return testSSL(connectionToBeTested, uri.getHost().address(), uri.port());
+            return credentialsTest.thenCompose(unused ->
+                    testSSL(connectionToBeTested, uri.getHost().address(), uri.port()));
         } else {
             // non-secure HTTP without test request; succeed after TCP connection.
-            return statusSuccessFuture("TCP connection to '%s:%d' established successfully",
-                    uri.getHost().address(), uri.getPort());
+            return credentialsTest.thenCompose(unused ->
+                    statusSuccessFuture("TCP connection to '%s:%d' established successfully",
+                            uri.getHost().address(), uri.getPort())
+            );
         }
     }
 
@@ -149,6 +157,15 @@ public final class HttpPushClientActor extends BaseClientActor {
         httpPublisherActor = startChildActorConflictFree(HttpPublisherActor.ACTOR_NAME, props);
         future.complete(DONE);
         return future;
+    }
+
+    private CompletionStage<?> testCredentials(final Connection connection) {
+        final var actorSystem = getContext().getSystem();
+        final var config = connectivityConfig().getConnectionConfig().getHttpPushConfig();
+        return Source.single(Pair.<HttpRequest, HttpPushContext>create(HttpRequest.create(), response -> {}))
+                .concat(Source.never())
+                .via(ClientCredentialsFlowVisitor.eval(actorSystem, config, connection))
+                .runWith(Sink.head(), actorSystem);
     }
 
     private CompletionStage<Status.Status> testSSL(final Connection connection, final String hostWithoutLookup,

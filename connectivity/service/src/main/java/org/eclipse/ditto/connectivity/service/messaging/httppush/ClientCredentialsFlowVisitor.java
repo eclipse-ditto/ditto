@@ -23,7 +23,6 @@ import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
-import akka.http.javadsl.Http;
 import akka.http.javadsl.model.HttpRequest;
 import akka.japi.Pair;
 import akka.stream.javadsl.Flow;
@@ -76,7 +75,6 @@ final class ClientCredentialsFlowVisitor implements
     @Override
     public Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> oauthClientCredentials(
             final OAuthClientCredentials credentials) {
-        // TODO: use strict flow for tests
-        return ClientCredentialsFlow.of(credentials, config).withToken(actorSystem, false);
+        return ClientCredentialsFlow.of(credentials, config).withToken(actorSystem);
     }
 }

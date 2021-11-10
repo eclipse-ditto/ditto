@@ -20,7 +20,6 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
 
@@ -51,7 +50,6 @@ import akka.stream.testkit.TestSubscriber;
 import akka.stream.testkit.javadsl.TestSink;
 import akka.stream.testkit.javadsl.TestSource;
 import akka.testkit.javadsl.TestKit;
-import scala.concurrent.duration.FiniteDuration;
 import scala.util.Try;
 
 /**
@@ -190,34 +188,10 @@ public final class ClientCredentialsFlowTest {
     }
 
     @Test
-    public void strictFlowRequestTokenRightAway() {
-        final var underTest = newClientCredentialsFlow(Duration.ZERO);
-        final var pair =
-                TestSource.<Pair<HttpRequest, HttpPushContext>>probe(actorSystem)
-                        .via(underTest.fromFlowWithToken(httpFlow, true))
-                        .toMat(TestSink.probe(actorSystem), Keep.both())
-                        .run(actorSystem);
-        final var sourceProbe = pair.first();
-        final var sinkProbe = pair.second();
-        sinkProbe.ensureSubscription();
-        sinkProbe.request(20L);
-        requestProbe.ensureSubscription();
-        requestProbe.request(20L);
-        sourceProbe.ensureSubscription();
-        sourceProbe.expectRequest();
-        responseProbe.ensureSubscription();
-        responseProbe.expectRequest();
-        requestProbe.expectNext();
-        sinkProbe.cancel();
-        sourceProbe.expectCancellation();
-        requestProbe.expectNoMessage();
-    }
-
-    @Test
     public void lazyFlowDoesNotRequestTokenUntilFirstRequest() {
         final var underTest = newClientCredentialsFlow(Duration.ZERO);
         final var pair = TestSource.<Pair<HttpRequest, HttpPushContext>>probe(actorSystem)
-                .via(underTest.fromFlowWithToken(httpFlow, false))
+                .via(underTest.fromFlowWithToken(httpFlow))
                 .toMat(TestSink.probe(actorSystem), Keep.both())
                 .withAttributes(Attributes.inputBuffer(1, 1)) // TODO DELETE
                 .run(actorSystem);
