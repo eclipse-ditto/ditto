@@ -239,7 +239,7 @@ final class Sending implements SendingOrDropped {
             if (null != messageSendingFailedExceptionSupplier) {
                 ackMonitor.failure(sendingContext.getExternalMessage(), messageSendingFailedExceptionSupplier.get());
             } else {
-                ackMonitor.success(sendingContext.getExternalMessage());
+                ackMonitor.success(sendingContext.getExternalMessage(), "Acknowledged message");
             }
         });
     }

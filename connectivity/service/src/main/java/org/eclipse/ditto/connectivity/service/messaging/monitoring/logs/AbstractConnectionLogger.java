@@ -194,7 +194,7 @@ abstract class AbstractConnectionLogger<
     abstract static class AbstractConnectionLoggerBuilder
             <B extends AbstractConnectionLoggerBuilder<B, T>, T extends AbstractConnectionLogger<B, T>>  {
 
-        private static final String DEFAULT_SUCCESS_MESSAGE = "Processed message.";
+        private static final String DEFAULT_SUCCESS_MESSAGE = "Processed message";
         private static final String DEFAULT_FAILURE_MESSAGE = "Failure while processing message: {0}";
         private static final String DEFAULT_EXCEPTION_MESSAGE = "Unexpected failure while processing message: {0}";
 

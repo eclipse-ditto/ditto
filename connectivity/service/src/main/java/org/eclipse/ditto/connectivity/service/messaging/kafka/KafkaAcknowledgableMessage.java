@@ -44,15 +44,15 @@ final class KafkaAcknowledgableMessage {
         this.acknowledgementFuture = new CompletableFuture<>();
         this.acknowledgeableMessage = AcknowledgeableMessage.of(message,
                 () -> {
-                    ackMonitor.success(message);
+                    ackMonitor.success(message, "Acknowledged message");
                     acknowledgementFuture.complete(committableOffset);
                 },
                 shouldRedeliver -> {
                     if (shouldRedeliver) {
-                        ackMonitor.exception(message, "Message was rejected and redelivery is requested.");
+                        ackMonitor.exception(message, "Message was rejected and redelivery is requested");
                         acknowledgementFuture.completeExceptionally(MessageRejectedException.getInstance());
                     } else {
-                        ackMonitor.exception(message, "Message was rejected and no redelivery is requested.");
+                        ackMonitor.exception(message, "Message was rejected and no redelivery is requested");
                         acknowledgementFuture.complete(committableOffset);
                     }
                 });

@@ -549,7 +549,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             } else if (commandResponse instanceof MessageCommandResponse) {
                 return (MessageCommandResponse<?, ?>) commandResponse;
             } else {
-                connectionLogger.failure("Expected <{0}> to be of type <{1}> but was of type <{2}>.",
+                connectionLogger.failure("Expected <{0}> to be of type <{1}> but was of type <{2}>",
                         commandResponse, MessageCommandResponse.class.getSimpleName(),
                         commandResponse.getClass().getSimpleName());
                 return null;

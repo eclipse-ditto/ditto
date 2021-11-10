@@ -69,8 +69,6 @@ import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
 
-import com.typesafe.config.Config;
-
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
@@ -210,13 +208,13 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
     @Override
     public void stopMessageConsumerDueToRateLimit(final String reason) {
         inboundMonitor.getCounter().recordFailure();
-        inboundMonitor.getLogger().failure("Source <{0}> is rate-limited due to {1}.", sourceAddress, reason);
+        inboundMonitor.getLogger().failure("Source <{0}> is rate-limited due to {1}", sourceAddress, reason);
         stopMessageConsumer();
     }
 
     @Override
     public void startMessageConsumerDueToRateLimit() {
-        inboundMonitor.getLogger().success("Rate limit on source <{0}> is lifted.", sourceAddress);
+        inboundMonitor.getLogger().success("Rate limit on source <{0}> is lifted", sourceAddress);
         startMessageConsumer();
     }
 

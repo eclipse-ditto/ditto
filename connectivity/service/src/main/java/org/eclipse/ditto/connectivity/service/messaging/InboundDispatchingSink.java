@@ -294,7 +294,7 @@ public final class InboundDispatchingSink
                 .execute(() -> applySignalIdEnforcement(incomingMessage, signal));
         // the above throws an exception if signal id enforcement fails
 
-        mappedMonitor.success(infoProvider, "Successfully mapped incoming signal with mapper <{0}>.", mapperId);
+        mappedMonitor.success(infoProvider, "Successfully mapped incoming signal with mapper <{0}>", mapperId);
         return Optional.of(adjustedSignal);
     }
 
@@ -310,7 +310,7 @@ public final class InboundDispatchingSink
             final ConnectionMonitor.InfoProvider infoProvider = InfoProviderFactory.forExternalMessage(incomingMessage);
             final ConnectionMonitor droppedMonitor = connectionMonitorRegistry.forInboundDropped(connection, source);
             droppedMonitor.success(infoProvider,
-                    "Payload mapping of mapper <{0}> returned null, incoming message is dropped.", mapperId);
+                    "Payload mapping of mapper <{0}> returned null, incoming message is dropped", mapperId);
         }
         return Optional.empty();
     }
@@ -334,7 +334,7 @@ public final class InboundDispatchingSink
                         connectionMonitorRegistry.forInboundMapped(connection, source);
                 mappedMonitor.getLogger()
                         .failure(InfoProviderFactory.forExternalMessage(message),
-                                "Got exception {0} when processing external message with mapper <{1}>: {2}",
+                                "Got exception <{0}> when processing external message with mapper <{1}>: {2}",
                                 dittoRuntimeException.getErrorCode(),
                                 mapperId,
                                 e.getMessage());
@@ -489,7 +489,7 @@ public final class InboundDispatchingSink
                         " {}: <{}>", e.getClass().getSimpleName(), e.getMessage());
         responseMappedMonitor.getLogger()
                 .failure(InfoProviderFactory.forHeaders(dittoHeaders),
-                        "Got exception {0} when processing external message: {1}", e.getErrorCode(), e.getMessage());
+                        "Got exception <{0}> when processing external message: {1}", e.getErrorCode(), e.getMessage());
         final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(e, null);
         // tell sender the error response for consumer settlement
         if (sender != null) {

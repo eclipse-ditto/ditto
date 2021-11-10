@@ -197,7 +197,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
                 final SshdSocketAddress localAddress =
                         sshSession.startLocalPortForwarding(0, targetAddress);
 
-                connectionLogger.success("SSH tunnel established successfully.");
+                connectionLogger.success("SSH tunnel established successfully");
 
                 inStateSince = Instant.now();
                 final TunnelStarted tunnelStarted = new TunnelStarted(localAddress.getPort());
@@ -216,7 +216,7 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
         if (tunnelClosed.getError() != null) {
             connectionLogger.failure("SSH Tunnel failed: {0}", getMessage(tunnelClosed.getError()));
         } else {
-            connectionLogger.success("SSH Tunnel closed.");
+            connectionLogger.success("SSH Tunnel closed");
         }
         notifyParentAndCleanup(tunnelClosed);
     }

@@ -239,6 +239,7 @@ public final class OutboundMappingProcessorActor
     public Receive createReceive() {
         final PartialFunction<Object, Object> wrapAsOutboundSignal = new PFBuilder<>()
                 .match(Acknowledgement.class, this::handleNotExpectedAcknowledgement)
+                .match(ErrorResponse.class, errResponse -> handleCommandResponse(errResponse, errResponse.getDittoRuntimeException(), getSender()))
                 .match(CommandResponse.class, response -> handleCommandResponse(response, null, getSender()))
                 .match(Signal.class, signal -> handleSignal(signal, getSender()))
                 .match(DittoRuntimeException.class, this::mapDittoRuntimeException)
@@ -524,12 +525,12 @@ public final class OutboundMappingProcessorActor
                 MappingOutcome.<OutboundSignal.Mapped, Source<OutboundSignalWithSender, ?>>newVisitorBuilder()
                         .onMapped((mapperId, mapped) -> {
                             outboundMapped.forEach(monitor -> monitor.success(infoProvider,
-                                    "Mapped outgoing signal with mapper <{0}>.", mapperId));
+                                    "Mapped outgoing signal with mapper <{0}>", mapperId));
                             return Source.single(outbound.mapped(mapped));
                         })
                         .onDropped((mapperId, unused) -> {
                             outboundDropped.forEach(monitor -> monitor.success(infoProvider,
-                                    "Payload mapping of mapper <{0}> returned null, outgoing message is dropped.",
+                                    "Payload mapping of mapper <{0}> returned null, outgoing message is dropped",
                                     mapperId));
                             return Source.empty();
                         })

@@ -58,7 +58,6 @@ import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
-import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
@@ -207,7 +206,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         if (!isInBackOffMode) {
             final MessageProducer producer = report.getMessageProducer();
             final Throwable cause = report.getCause();
-            final String genericLogInfo = "Will try to re-establish the static targets after some cool-down period.";
+            final String genericLogInfo = "Will try to re-establish the static targets after some cool-down period";
             logger.info("Got closed AMQP 1.0 producer '{}'. {}", producer, genericLogInfo);
             connectionLogger.failure("Targets were closed due to an error in the target. {0}", genericLogInfo);
 
@@ -499,7 +498,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             return createProducer(destination);
         } catch (final JMSException e) {
             final String jmsExceptionString = jmsExceptionToString(e);
-            connectionLogger.failure("Failed to create producer for destination <{0}>: {1}.", destination,
+            connectionLogger.failure("Failed to create producer for destination <{0}>: {1}", destination,
                     jmsExceptionString);
             logger.warning("Failed to create producer for destination <{}>: {}.", destination, jmsExceptionString);
             return null;
