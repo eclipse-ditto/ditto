@@ -466,6 +466,12 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S liveChannelCondition(final String liveChannelCondition) {
+        putCharSequence(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION, liveChannelCondition);
+        return myself;
+    }
+
+    @Override
     public S putHeader(final CharSequence key, final CharSequence value) {
         validateKey(key);
         checkNotNull(value, "value");

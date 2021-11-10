@@ -378,6 +378,20 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @since 2.1.0
      */
     CONDITION("condition", String.class, true, false,
+            HeaderValueValidators.getNoOpValidator()),
+
+    /**
+     * Header definition to identify a request with a conditional channel.
+     * The condition is defined via a RQL expressions, which is evaluated in the things service. If the condition is
+     * evaluated to 'true', then the live-channel is used instead of the regular twin-channel.
+     *
+     * <p>
+     * Key {@code "live-channel-condition"}, Java type: {@link String}.
+     * </p>
+     *
+     * @since 2.2.0
+     */
+    LIVE_CHANNEL_CONDITION("live-channel-condition", String.class, true, false,
             HeaderValueValidators.getNoOpValidator());
 
     /**

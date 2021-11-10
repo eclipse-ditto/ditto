@@ -213,6 +213,14 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<String> getCondition();
 
     /**
+     * Returns the channel condition, if the live-channel shall be used for the request.
+     *
+     * @return the condition contained in the Condition header.
+     * @since 2.2.0
+     */
+    Optional<String> getLiveChannelCondition();
+
+    /**
      * Returns the id of the originating session (e.g. WebSocket, AMQP, ...)
      *
      * @return the "origin" value.

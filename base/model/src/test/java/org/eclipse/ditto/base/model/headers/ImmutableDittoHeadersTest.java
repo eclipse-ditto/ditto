@@ -109,6 +109,7 @@ public final class ImmutableDittoHeadersTest {
     private static final List<String> KNOWN_JOURNAL_TAGS = Lists.list("tag-a", "tag-b");
     private static final boolean KNOWN_IS_SUDO = true;
     private static final String KNOWN_CONDITION = "eq(attributes/value)";
+    private static final String KNOWN_LIVE_CHANNEL_CONDITION = "eq(attributes/value,\"livePolling\")";
     private static final String KNOWN_TRACEPARENT = "00-dfca0d990402884d22e909a87ac677ec-94fc4da95e842f96-01";
     private static final String KNOWN_TRACESTATE = "eclipse=ditto";
     private static final boolean KNOWN_DITTO_RETRIEVE_DELETED = true;
@@ -175,6 +176,7 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), KNOWN_TRACEPARENT)
                 .putHeader(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE)
                 .condition(KNOWN_CONDITION)
+                .liveChannelCondition(KNOWN_LIVE_CHANNEL_CONDITION)
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -332,6 +334,16 @@ public final class ImmutableDittoHeadersTest {
     }
 
     @Test
+    public void liveChannelConditionNotEmptyWhenSet() {
+        final String testValue = "some-condition";
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey(), testValue)
+                .build();
+
+        assertThat(underTest.getLiveChannelCondition()).hasValue(testValue);
+    }
+
+    @Test
     public void getRequestedAckLabelsReturnsExpected() {
         final DittoHeaders underTest = DittoHeaders.newBuilder()
                 .acknowledgementRequests(KNOWN_ACK_REQUESTS)
@@ -423,6 +435,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), KNOWN_TRACEPARENT)
                 .set(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE)
                 .set(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION)
+                .set(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey(), KNOWN_LIVE_CHANNEL_CONDITION)
                 .build();
 
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
@@ -652,6 +665,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), KNOWN_TRACEPARENT);
         result.put(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE);
         result.put(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION);
+        result.put(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey(), KNOWN_LIVE_CHANNEL_CONDITION);
 
         return result;
     }

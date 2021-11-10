@@ -313,6 +313,15 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
     B condition(String condition);
 
     /**
+     * Sets the channel condition which decides, if the live channel shall be used for the request.
+     *
+     * @param liveChannelCondition the channel condition to check before applying the request.
+     * @return this builder for method chaining.
+     * @since 2.2.0
+     */
+    B liveChannelCondition(String liveChannelCondition);
+
+    /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.
      *
      * @param key the header name to use.
