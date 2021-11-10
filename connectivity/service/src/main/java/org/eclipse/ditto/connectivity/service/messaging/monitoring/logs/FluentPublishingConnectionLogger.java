@@ -157,6 +157,8 @@ final class FluentPublishingConnectionLogger
 
     private void emitLogEntry(final LogEntry logEntry) {
         if (logLevels.contains(logEntry.getLogLevel())) {
+            final String correlationId = InfoProviderFactory.FALLBACK_CORRELATION_ID
+                    .equals(logEntry.getCorrelationId()) ? null : logEntry.getCorrelationId();
             try {
                 final Instant timestamp = logEntry.getTimestamp();
                 final EventTime eventTime = EventTime.fromEpoch(timestamp.getEpochSecond(), timestamp.getNano());
@@ -166,7 +168,9 @@ final class FluentPublishingConnectionLogger
                 logMap.put(TAG_LEVEL, logEntry.getLogLevel().toString());
                 logMap.put(TAG_CATEGORY, logEntry.getLogCategory().toString());
                 logMap.put(TAG_TYPE, logEntry.getLogType().toString());
-                logMap.put(TAG_CORRELATION_ID, logEntry.getCorrelationId());
+                if (null != correlationId) {
+                    logMap.put(TAG_CORRELATION_ID, correlationId);
+                }
                 logEntry.getAddress().ifPresent(address -> logMap.put(TAG_ADDRESS, address));
                 logEntry.getEntityId().ifPresent(entityId -> {
                     logMap.put(TAG_ENTITY_TYPE, entityId.getEntityType().toString());
@@ -180,11 +184,11 @@ final class FluentPublishingConnectionLogger
 
                 fluencyForwarder.emit(fluentTag, eventTime, logMap);
             } catch (final BufferFullException e) {
-                LOGGER.withCorrelationId(logEntry.getCorrelationId())
+                LOGGER.withCorrelationId(correlationId)
                         .error("Got BufferFullException when trying to emit further connection log entries to fluentd: {}",
                                 e.getMessage());
             } catch (final IOException e) {
-                LOGGER.withCorrelationId(logEntry.getCorrelationId())
+                LOGGER.withCorrelationId(correlationId)
                         .error("Got IOException when trying to emit further connection log entries to fluentd: <{}>: {}",
                                 e.getClass().getSimpleName(), e.getMessage());
             }
