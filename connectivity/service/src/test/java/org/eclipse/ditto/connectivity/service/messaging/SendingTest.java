@@ -167,7 +167,7 @@ public final class SendingTest {
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
-        Mockito.verify(acknowledgedMonitor).success(eq(externalMessage));
+        Mockito.verify(acknowledgedMonitor).success(eq(externalMessage), eq("Acknowledged message"));
         Mockito.verify(publishedMonitor).success(eq(externalMessage));
         assertThat(result)
                 .hasValueSatisfying(resultFuture -> assertThat(resultFuture).isCompletedWithValue(acknowledgement));
@@ -255,7 +255,7 @@ public final class SendingTest {
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
-        Mockito.verify(acknowledgedMonitor).success(eq(externalMessage));
+        Mockito.verify(acknowledgedMonitor).success(eq(externalMessage), eq("Acknowledged message"));
         Mockito.verify(publishedMonitor).success(eq(externalMessage));
         assertThat(result)
                 .hasValueSatisfying(resultFuture -> assertThat(resultFuture).isCompletedWithValue(commandResponse));
@@ -276,7 +276,7 @@ public final class SendingTest {
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
         Mockito.verify(publishedMonitor).success(externalMessage);
-        Mockito.verify(acknowledgedMonitor).success(externalMessage);
+        Mockito.verify(acknowledgedMonitor).success(externalMessage, "Acknowledged message");
         assertThat(result)
                 .hasValueSatisfying(resultFuture -> assertThat(resultFuture).isCompletedWithValue(commandResponse));
     }
