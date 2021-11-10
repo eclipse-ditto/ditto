@@ -135,7 +135,6 @@ public final class HttpPublisherErrorTest {
         }};
     }
 
-    @Ignore
     @Test
     @Ignore("TODO unignore! this test fails because the embedded test server somehow on longer reachable after it was manually recreated")
     public void closingConnectionFromServerSideShouldNotDisturbEventPublishing() throws Exception {

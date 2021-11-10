@@ -136,6 +136,7 @@ import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.dispatch.MessageDispatcher;
+import akka.http.javadsl.ConnectionContext;
 import akka.japi.Pair;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FSMStateFunctionBuilder;
@@ -191,9 +192,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ProtocolAdapter protocolAdapter;
     private final ConnectivityCounterRegistry connectionCounterRegistry;
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
-    private final Materializer materializer;
-    protected final ConnectionLogger connectionLogger;
-    protected final ConnectivityStatusResolver connectivityStatusResolver;
     private final boolean dryRun;
     private final ActorRef proxyActor;
 
