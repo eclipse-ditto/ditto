@@ -156,9 +156,9 @@ final class FluentPublishingConnectionLogger
     }
 
     private void emitLogEntry(final LogEntry logEntry) {
+        final String correlationId = InfoProviderFactory.FALLBACK_CORRELATION_ID
+                .equals(logEntry.getCorrelationId()) ? null : logEntry.getCorrelationId();
         if (logLevels.contains(logEntry.getLogLevel())) {
-            final String correlationId = InfoProviderFactory.FALLBACK_CORRELATION_ID
-                    .equals(logEntry.getCorrelationId()) ? null : logEntry.getCorrelationId();
             try {
                 final Instant timestamp = logEntry.getTimestamp();
                 final EventTime eventTime = EventTime.fromEpoch(timestamp.getEpochSecond(), timestamp.getNano());
@@ -193,7 +193,7 @@ final class FluentPublishingConnectionLogger
                                 e.getClass().getSimpleName(), e.getMessage());
             }
         } else {
-            LOGGER.withCorrelationId(logEntry.getCorrelationId())
+            LOGGER.withCorrelationId(correlationId)
                     .debug("Not emitting log entry with logLevel <{}> as the configured logLevels contained: <{}>",
                             logEntry.getLogLevel(), logLevels);
         }
