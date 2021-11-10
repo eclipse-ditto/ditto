@@ -860,12 +860,14 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Test
     public void testOmitRequestBody() throws Exception {
-        testOmitRequestBody(HttpMethods.GET, Collections.emptyMap(), true);
+        testOmitRequestBody(HttpMethods.GET, Map.of(), true);
         testOmitRequestBody(HttpMethods.GET, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, "GET"), true);
-        testOmitRequestBody(HttpMethods.GET, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, ""), true);
         testOmitRequestBody(HttpMethods.GET, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, "POST"), false);
+        testOmitRequestBody(HttpMethods.GET, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, ""), false);
+        testOmitRequestBody(HttpMethods.DELETE, Map.of(), true);
         testOmitRequestBody(HttpMethods.DELETE, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, "GET,DELETE"), true);
         testOmitRequestBody(HttpMethods.DELETE, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, "GET"), false);
+        testOmitRequestBody(HttpMethods.DELETE, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, ""), false);
     }
 
     private void testOmitRequestBody(final HttpMethod method, final Map<String, String> specificConfig,
@@ -896,7 +898,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             assertThat(received).isEmpty();
             assertThat(request.method()).isEqualTo(method);
             if (expectEmptyBody) {
-                request.entity().isKnownEmpty();
+                assertThat(request.entity().isKnownEmpty()).isTrue();
             } else {
                 final HttpEntity.Strict entity = request.entity()
                         .toStrict(60_000L, SystemMaterializer.get(actorSystem).materializer())
