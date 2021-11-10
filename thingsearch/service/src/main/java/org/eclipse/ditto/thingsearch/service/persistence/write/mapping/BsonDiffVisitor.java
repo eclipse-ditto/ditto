@@ -34,6 +34,11 @@ final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, Bson
     private static final String LITERAL = "$literal";
 
     private final BsonSizeVisitor bsonSizeVisitor = new BsonSizeVisitor();
+    private final boolean recurseIntoArrays;
+
+    BsonDiffVisitor(final boolean recurseIntoArrays) {
+        this.recurseIntoArrays = recurseIntoArrays;
+    }
 
     @Override
     public Function<BsonValue, BsonDiff> primitive(final JsonPointer key, final BsonValue value) {
@@ -52,7 +57,10 @@ final class BsonDiffVisitor implements BsonValueVisitor<Function<BsonValue, Bson
 
     @Override
     public Function<BsonValue, BsonDiff> array(final JsonPointer key, final BsonArray value) {
-        // no recursive diff for array elements: elements are only replaced
+        if (!recurseIntoArrays) {
+            // no recursive diff for array elements: elements are only replaced
+            return primitive(key, value);
+        }
         final int replacementSize = bsonSizeVisitor.eval(value);
         return oldValue -> {
             if (value.equals(oldValue)) {
