@@ -44,7 +44,7 @@ final class KafkaAcknowledgableMessage {
         this.acknowledgementFuture = new CompletableFuture<>();
         this.acknowledgeableMessage = AcknowledgeableMessage.of(message,
                 () -> {
-                    ackMonitor.success(message, "Acknowledged message");
+                    ackMonitor.success(message);
                     acknowledgementFuture.complete(committableOffset);
                 },
                 shouldRedeliver -> {

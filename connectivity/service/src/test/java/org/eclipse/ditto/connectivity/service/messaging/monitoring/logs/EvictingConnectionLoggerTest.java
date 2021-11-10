@@ -280,7 +280,7 @@ public final class EvictingConnectionLoggerTest {
     public void exceptionsUsesMessageOfExceptionOrElseDefault() {
         final String defaultSuccessMessage = "this is a success";
         final String defaultFailureMessage = "this is also success";
-        final String defaultExceptionMessage = "hey there: {0}";
+        final String defaultExceptionMessage = "hey there: {1}";
 
         final String test = "test";
         final String notSpecified = "not specified";
@@ -292,12 +292,12 @@ public final class EvictingConnectionLoggerTest {
 
         logger.exception(randomInfoProvider(), new Exception(test));
         LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger))
-                .hasMessage(formatString(defaultExceptionMessage, test));
+                .hasMessage(formatString("hey there: {0}", test));
 
         logger.clear();
         logger.exception(randomInfoProvider(), null);
         LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger))
-                .hasMessage(formatString(defaultExceptionMessage, notSpecified));
+                .hasMessage(formatString("hey there: {0}", notSpecified));
 
         final String withoutFormatting = "withoutAnyFormatting";
 

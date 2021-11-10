@@ -166,29 +166,29 @@ final class ConnectionLoggerFactory {
         switch (type) {
             case CONSUMED:
                 builder.withDefaultSuccessMessage("Received signal.")
-                        .withDefaultFailureMessage("Ran into a failure when parsing an input command: {0}")
+                        .withDefaultFailureMessage("Ran into a failure when parsing an input command: {1}")
                         .withDefaultExceptionMessage(
-                                "Ran into an unexpected failure when parsing an input command: {0}")
+                                "Ran into an unexpected failure when parsing an input command: {1}")
                         .logHeadersAndPayload();
                 break;
             case MAPPED:
                 builder.withDefaultSuccessMessage("Mapped incoming signal.")
-                        .withDefaultFailureMessage("Ran into a failure when mapping incoming signal: {0}")
-                        .withDefaultExceptionMessage("Unexpected failure when mapping incoming signal: {0}");
+                        .withDefaultFailureMessage("Ran into a failure when mapping incoming signal: {1}")
+                        .withDefaultExceptionMessage("Unexpected failure when mapping incoming signal: {1}");
                 break;
             case DROPPED:
                 builder.withDefaultSuccessMessage(EMPTY_PAYLOAD_MAPPING_MESSAGE);
                 break;
             case ENFORCED:
                 builder.withDefaultSuccessMessage("Successfully applied enforcement on incoming signal.")
-                        .withDefaultFailureMessage("Ran into a failure when enforcing incoming signal: {0}")
-                        .withDefaultExceptionMessage("Unexpected failure when enforcing incoming signal: {0}")
+                        .withDefaultFailureMessage("Ran into a failure when enforcing incoming signal: {1}")
+                        .withDefaultExceptionMessage("Unexpected failure when enforcing incoming signal: {1}")
                         .logHeadersAndPayload();
                 break;
             case ACKNOWLEDGED:
                 builder.withDefaultSuccessMessage("Successfully acknowledged incoming signal.")
-                        .withDefaultFailureMessage("Ran into a failure when acknowledging incoming signal: {0}")
-                        .withDefaultExceptionMessage("Unexpected failure when acknowledging incoming signal: {0}")
+                        .withDefaultFailureMessage("Ran into a failure when acknowledging incoming signal: {1}")
+                        .withDefaultExceptionMessage("Unexpected failure when acknowledging incoming signal: {1}")
                         .logHeadersAndPayload();
                 break;
             default:
@@ -216,8 +216,8 @@ final class ConnectionLoggerFactory {
                 break;
             case MAPPED:
                 builder.withDefaultSuccessMessage("Successfully mapped outgoing signal.")
-                        .withDefaultFailureMessage("Ran into a failure when mapping outgoing signal: {0}")
-                        .withDefaultExceptionMessage("Unexpected failure when mapping outgoing signal: {0}");
+                        .withDefaultFailureMessage("Ran into a failure when mapping outgoing signal: {1}")
+                        .withDefaultExceptionMessage("Unexpected failure when mapping outgoing signal: {1}");
                 break;
             case DROPPED:
                 builder.withDefaultSuccessMessage(EMPTY_PAYLOAD_MAPPING_MESSAGE)
@@ -225,16 +225,16 @@ final class ConnectionLoggerFactory {
                 break;
             case PUBLISHED:
                 builder.withDefaultSuccessMessage("Successfully published signal.")
-                        .withDefaultFailureMessage("Ran into a failure when publishing signal: {0}")
-                        .withDefaultExceptionMessage("Unexpected failure when publishing signal: {0}")
+                        .withDefaultFailureMessage("Ran into a failure when publishing signal: {1}")
+                        .withDefaultExceptionMessage("Unexpected failure when publishing signal: {1}")
                         .logHeadersAndPayload();
                 break;
             case ACKNOWLEDGED:
                 builder.withDefaultSuccessMessage("Received successful acknowledgement for published signal.")
                         .withDefaultFailureMessage("Ran into a failure for expected acknowledgement of published " +
-                                "signal: {0}")
+                                "signal: {1}")
                         .withDefaultExceptionMessage("Unexpected failure for expected acknowledgement of published " +
-                                "signal: {0}")
+                                "signal: {1}")
                         .logHeadersAndPayload();
                 break;
             default:
@@ -264,14 +264,14 @@ final class ConnectionLoggerFactory {
                 break;
             case FILTERED:
                 final String message = MessageFormat.format(
-                        "Dropped response since requester did not require response via Header {0}",
+                        "Dropped response since requester did not require response via Header {1}",
                         DittoHeaderDefinition.RESPONSE_REQUIRED);
                 builder.withDefaultSuccessMessage(message);
                 break;
             case MAPPED:
                 builder.withDefaultSuccessMessage("Successfully mapped outbound response.")
-                        .withDefaultFailureMessage("Ran into a failure when mapping outgoing signal: {0}")
-                        .withDefaultExceptionMessage("Unexpected failure when mapping outgoing signal: {0}");
+                        .withDefaultFailureMessage("Ran into a failure when mapping outgoing signal: {1}")
+                        .withDefaultExceptionMessage("Unexpected failure when mapping outgoing signal: {1}");
                 break;
             case DROPPED:
                 builder.withDefaultSuccessMessage(EMPTY_PAYLOAD_MAPPING_MESSAGE)
@@ -280,16 +280,16 @@ final class ConnectionLoggerFactory {
                 break;
             case PUBLISHED:
                 builder.withDefaultSuccessMessage("Successfully published response.")
-                        .withDefaultFailureMessage("Ran into a failure when publishing response: {0}")
-                        .withDefaultExceptionMessage("Unexpected failure when publishing response: {0}")
+                        .withDefaultFailureMessage("Ran into a failure when publishing response: {1}")
+                        .withDefaultExceptionMessage("Unexpected failure when publishing response: {1}")
                         .logHeadersAndPayload();
                 break;
             case ACKNOWLEDGED:
                 builder.withDefaultSuccessMessage("Received successful acknowledgement for published response.")
                         .withDefaultFailureMessage("Ran into a failure for expected acknowledgement of published " +
-                                "response: {0}")
+                                "response: {1}")
                         .withDefaultExceptionMessage("Unexpected failure for expected acknowledgement of published " +
-                                "response: {0}")
+                                "response: {1}")
                         .logHeadersAndPayload();
                 break;
             default:

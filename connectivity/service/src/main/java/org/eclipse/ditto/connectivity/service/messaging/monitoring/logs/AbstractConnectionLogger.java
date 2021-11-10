@@ -69,26 +69,26 @@ abstract class AbstractConnectionLogger<
 
     @Override
     public void success(final ConnectionMonitor.InfoProvider infoProvider) {
-        success(infoProvider, defaultSuccessMessage);
+        success(infoProvider, defaultSuccessMessage, type.getType());
     }
 
     @Override
     public void failure(final ConnectionMonitor.InfoProvider infoProvider,
             @Nullable final DittoRuntimeException dittoRuntimeException) {
         if (null != dittoRuntimeException) {
-            failure(infoProvider, defaultFailureMessage, dittoRuntimeException.getMessage() +
+            failure(infoProvider, defaultFailureMessage, type.getType(), dittoRuntimeException.getMessage() +
                     dittoRuntimeException.getDescription().map(" "::concat).orElse(""));
         } else {
-            failure(infoProvider, defaultFailureMessage, FALLBACK_EXCEPTION_TEXT);
+            failure(infoProvider, defaultFailureMessage, type.getType(), FALLBACK_EXCEPTION_TEXT);
         }
     }
 
     @Override
     public void exception(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final Exception exception) {
         if (null != exception) {
-            exception(infoProvider, defaultExceptionMessage, exception.getMessage());
+            exception(infoProvider, defaultExceptionMessage, type.getType(), exception.getMessage());
         } else {
-            exception(infoProvider, defaultExceptionMessage, FALLBACK_EXCEPTION_TEXT);
+            exception(infoProvider, defaultExceptionMessage, type.getType(), FALLBACK_EXCEPTION_TEXT);
         }
     }
 
@@ -194,9 +194,9 @@ abstract class AbstractConnectionLogger<
     abstract static class AbstractConnectionLoggerBuilder
             <B extends AbstractConnectionLoggerBuilder<B, T>, T extends AbstractConnectionLogger<B, T>>  {
 
-        private static final String DEFAULT_SUCCESS_MESSAGE = "Processed message";
-        private static final String DEFAULT_FAILURE_MESSAGE = "Failure while processing message: {0}";
-        private static final String DEFAULT_EXCEPTION_MESSAGE = "Unexpected failure while processing message: {0}";
+        private static final String DEFAULT_SUCCESS_MESSAGE = "Message was {0}";
+        private static final String DEFAULT_FAILURE_MESSAGE = "Failure while message was {0}: {1}";
+        private static final String DEFAULT_EXCEPTION_MESSAGE = "Unexpected failure while message was {0}: {1}";
 
         final LogCategory category;
         final LogType type;
