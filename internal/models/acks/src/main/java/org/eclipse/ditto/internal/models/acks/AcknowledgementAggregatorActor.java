@@ -17,18 +17,15 @@ import static org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel.TWIN_P
 
 import java.time.Duration;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
-import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
@@ -36,14 +33,13 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.WithThingId;
 import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
@@ -86,7 +82,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         timeout = getTimeout(requestCommandHeaders, maxTimeout);
         getContext().setReceiveTimeout(timeout);
 
-        final Set<AcknowledgementRequest> acknowledgementRequests = requestCommandHeaders.getAcknowledgementRequests();
+        final var acknowledgementRequests = requestCommandHeaders.getAcknowledgementRequests();
         ackregator = AcknowledgementAggregator.getInstance(entityId, correlationId, timeout, headerTranslator);
         ackregator.addAcknowledgementRequests(acknowledgementRequests);
         log.withCorrelationId(correlationId)
@@ -112,8 +108,13 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer) {
-        return Props.create(AcknowledgementAggregatorActor.class, entityId, dittoHeaders,
-                acknowledgementConfig.getForwarderFallbackTimeout(), headerTranslator, responseSignalConsumer);
+
+        return Props.create(AcknowledgementAggregatorActor.class,
+                entityId,
+                dittoHeaders,
+                acknowledgementConfig.getForwarderFallbackTimeout(),
+                headerTranslator,
+                responseSignalConsumer);
     }
 
     /**
@@ -134,8 +135,13 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
             final Duration maxTimeout,
             final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer) {
-        return Props.create(AcknowledgementAggregatorActor.class, entityId, dittoHeaders, maxTimeout,
-                headerTranslator, responseSignalConsumer);
+
+        return Props.create(AcknowledgementAggregatorActor.class,
+                entityId,
+                dittoHeaders,
+                maxTimeout,
+                headerTranslator,
+                responseSignalConsumer);
     }
 
     @Override
@@ -152,70 +158,62 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     }
 
     private void handleThingCommandResponse(final ThingCommandResponse<?> thingCommandResponse) {
-        final boolean isLiveResponse = thingCommandResponse.getDittoHeaders().getChannel().stream()
-                .anyMatch(TopicPath.Channel.LIVE.getName()::equals);
-        addCommandResponse(thingCommandResponse, thingCommandResponse, isLiveResponse);
+        log.withCorrelationId(correlationId).debug("Received thing command response <{}>.", thingCommandResponse);
+        final var acknowledgementLabel =
+                SignalInformationPoint.isChannelLive(thingCommandResponse) ? LIVE_RESPONSE : TWIN_PERSISTED;
+        addCommandResponse(thingCommandResponse, getAcknowledgement(thingCommandResponse, acknowledgementLabel));
     }
 
-    private void handleMessageCommandResponse(final MessageCommandResponse<?, ?> messageCommandResponse) {
-        addCommandResponse(messageCommandResponse, messageCommandResponse, true);
+    private static Acknowledgement getAcknowledgement(final ThingCommandResponse<?> thingCommandResponse,
+            final AcknowledgementLabel acknowledgementLabel) {
+
+        return ThingAcknowledgementFactory.newAcknowledgement(acknowledgementLabel,
+                thingCommandResponse.getEntityId(),
+                thingCommandResponse.getHttpStatus(),
+                thingCommandResponse.getDittoHeaders(),
+                getPayload(thingCommandResponse).orElse(null));
     }
 
-    private void addCommandResponse(final CommandResponse<?> commandResponse, final WithThingId withThingId,
-            final boolean isLiveResponse) {
-        log.withCorrelationId(correlationId).debug("Received command response <{}>.", commandResponse);
-        final Acknowledgement acknowledgement;
-        if (isLiveResponse) {
-            acknowledgement = toLiveResponseAcknowledgement(commandResponse, withThingId);
-        } else {
-            acknowledgement = toTwinPersistedAcknowledgement(commandResponse, withThingId);
-        }
-        ackregator.addReceivedAcknowledgment(acknowledgement);
-        potentiallyCompleteAcknowledgements(commandResponse);
-    }
-
-    private static Acknowledgement toLiveResponseAcknowledgement(final CommandResponse<?> commandResponse,
-            final WithThingId withThingId) {
-
-        final DittoHeaders liveResponseAckHeaders;
-        if (commandResponse instanceof MessageCommandResponse) {
-            liveResponseAckHeaders = commandResponse.getDittoHeaders().toBuilder()
-                    .putHeaders(((MessageCommandResponse<?, ?>) commandResponse).getMessage().getHeaders())
-                    .build();
-        } else {
-            liveResponseAckHeaders = commandResponse.getDittoHeaders();
-        }
-
-        return ThingAcknowledgementFactory.newAcknowledgement(
-                LIVE_RESPONSE,
-                withThingId.getEntityId(),
-                commandResponse.getHttpStatus(),
-                liveResponseAckHeaders,
-                getPayload(commandResponse).orElse(null));
-    }
-
-    private static Acknowledgement toTwinPersistedAcknowledgement(final CommandResponse<?> commandResponse,
-            final WithThingId withThingId) {
-        return ThingAcknowledgementFactory.newAcknowledgement(
-                TWIN_PERSISTED,
-                withThingId.getEntityId(),
-                commandResponse.getHttpStatus(),
-                commandResponse.getDittoHeaders(),
-                getPayload(commandResponse).orElse(null)
-        );
-    }
-
-    private static Optional<JsonValue> getPayload(final CommandResponse<?> response) {
+    private static Optional<JsonValue> getPayload(final ThingCommandResponse<?> thingCommandResponse) {
         final Optional<JsonValue> result;
-        if (response instanceof WithOptionalEntity) {
-            result = ((WithOptionalEntity) response).getEntity(response.getImplementedSchemaVersion());
-        } else if (response instanceof MessageCommandResponse) {
-            result = response.toJson().getValue(MessageCommandResponse.JsonFields.JSON_MESSAGE.getPointer()
-                    .append(MessageCommandResponse.JsonFields.JSON_MESSAGE_PAYLOAD.getPointer()));
+        if (thingCommandResponse instanceof WithOptionalEntity) {
+            final var withOptionalEntity = (WithOptionalEntity) thingCommandResponse;
+            result = withOptionalEntity.getEntity(thingCommandResponse.getImplementedSchemaVersion());
         } else {
             result = Optional.empty();
         }
         return result;
+    }
+
+    private void addCommandResponse(final CommandResponse<?> commandResponse, final Acknowledgement acknowledgement) {
+        ackregator.addReceivedAcknowledgment(acknowledgement);
+        potentiallyCompleteAcknowledgements(commandResponse);
+    }
+
+    private void handleMessageCommandResponse(final MessageCommandResponse<?, ?> messageCommandResponse) {
+        log.withCorrelationId(correlationId).debug("Received message command response <{}>.", messageCommandResponse);
+        addCommandResponse(messageCommandResponse, getAcknowledgement(messageCommandResponse));
+    }
+
+    private static Acknowledgement getAcknowledgement(final MessageCommandResponse<?, ?> messageCommandResponse) {
+        final var responseDittoHeaders = messageCommandResponse.getDittoHeaders();
+        final var message = messageCommandResponse.getMessage();
+        final var liveResponseAckHeaders = responseDittoHeaders.toBuilder()
+                .putHeaders(message.getHeaders())
+                .build();
+        return ThingAcknowledgementFactory.newAcknowledgement(LIVE_RESPONSE,
+                messageCommandResponse.getEntityId(),
+                messageCommandResponse.getHttpStatus(),
+                liveResponseAckHeaders,
+                getPayload(messageCommandResponse).orElse(null));
+    }
+
+    private static Optional<JsonValue> getPayload(final MessageCommandResponse<?, ?> messageCommandResponse) {
+        final var jsonMessagePointer = MessageCommandResponse.JsonFields.JSON_MESSAGE.getPointer();
+        final var jsonMessagePayloadPointer = MessageCommandResponse.JsonFields.JSON_MESSAGE_PAYLOAD.getPointer();
+        final var messagePayloadPointer = jsonMessagePointer.append(jsonMessagePayloadPointer);
+        final var messageCommandResponseJsonObject = messageCommandResponse.toJson();
+        return messageCommandResponseJsonObject.getValue(messagePayloadPointer);
     }
 
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {
@@ -246,16 +244,14 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     }
 
     private void potentiallyCompleteAcknowledgements(@Nullable final CommandResponse<?> response) {
-
         if (ackregator.receivedAllRequestedAcknowledgements()) {
             completeAcknowledgements(response);
         }
     }
 
     private void completeAcknowledgements(@Nullable final CommandResponse<?> response) {
-        final Acknowledgements aggregatedAcknowledgements =
-                ackregator.getAggregatedAcknowledgements(requestCommandHeaders);
-        final boolean builtInAcknowledgementOnly = containsOnlyTwinPersistedOrLiveResponse(aggregatedAcknowledgements);
+        final var aggregatedAcknowledgements = ackregator.getAggregatedAcknowledgements(requestCommandHeaders);
+        final var builtInAcknowledgementOnly = containsOnlyTwinPersistedOrLiveResponse(aggregatedAcknowledgements);
         if (null != response && builtInAcknowledgementOnly) {
             // in this case, only the implicit "twin-persisted" acknowledgement was asked for, respond with the signal:
             handleSignal(response);
@@ -272,8 +268,9 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
 
     public static DittoHeadersSettable<?> restoreCommandConnectivityHeaders(final DittoHeadersSettable<?> signal,
             final DittoHeaders requestCommandHeaders) {
-        final DittoHeadersBuilder<?, ?> enhancedHeadersBuilder = signal.getDittoHeaders()
-                .toBuilder()
+
+        final var signalDittoHeaders = signal.getDittoHeaders();
+        final var enhancedHeadersBuilder = signalDittoHeaders.toBuilder()
                 .removeHeader(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey())
                 .removeHeader(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey())
                 .removeHeader(DittoHeaderDefinition.REPLY_TARGET.getKey());
@@ -297,7 +294,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
      * @return the error response.
      */
     private ThingErrorResponse asThingErrorResponse(final Acknowledgements aggregatedAcknowledgements) {
-        final ThingId thingId = ThingId.of(aggregatedAcknowledgements.getEntityId());
+        final var thingId = ThingId.of(aggregatedAcknowledgements.getEntityId());
         final DittoRuntimeException dittoRuntimeException = GatewayCommandTimeoutException.newBuilder(timeout)
                 .dittoHeaders(aggregatedAcknowledgements.getDittoHeaders())
                 .build();
@@ -309,7 +306,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         return aggregatedAcknowledgements.getSize() == 1 &&
                 aggregatedAcknowledgements.stream()
                         .anyMatch(ack -> {
-                            final AcknowledgementLabel label = ack.getLabel();
+                            final var label = ack.getLabel();
                             return TWIN_PERSISTED.equals(label) ||
                                     LIVE_RESPONSE.equals(label);
                         });

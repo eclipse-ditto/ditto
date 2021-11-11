@@ -66,6 +66,18 @@
             <artifactId>logback-classic</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-internal-utils-akka</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-base-model</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>
