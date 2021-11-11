@@ -41,6 +41,7 @@ import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
+import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.AddConnectionLogEntry;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
@@ -632,9 +633,16 @@ public final class ConnectionPersistenceActor
                 // maintain client actor refs
                 .match(ActorRef.class, this::addClientActor)
                 .match(Terminated.class, this::removeClientActor)
+                .match(AddConnectionLogEntry.class, this::handleAddConnectionLogEntry)
                 .build()
                 .orElse(createInitializationAndConfigUpdateBehavior())
                 .orElse(super.matchAnyAfterInitialization());
+    }
+
+    private void handleAddConnectionLogEntry(final AddConnectionLogEntry addConnectionLogEntry) {
+        final var logEntry = addConnectionLogEntry.getLogEntry();
+        log.withCorrelationId(logEntry.getCorrelationId()).debug("Handling <{}>.", addConnectionLogEntry);
+        connectionLogger.logEntry(logEntry);
     }
 
     @Override

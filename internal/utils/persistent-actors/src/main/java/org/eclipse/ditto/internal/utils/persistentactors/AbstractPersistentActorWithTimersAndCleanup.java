@@ -101,16 +101,14 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
                 startCleanup(latestSnapshotSequenceNumber);
             } else {
                 log.debug("Snapshot revision did not change since last cleanup, nothing to delete.");
-                getSender().tell(
-                        CleanupPersistenceResponse.success(extractEntityIdFromPersistenceId(persistenceId()),
-                                DittoHeaders.empty()),
-                        getSelf());
+                final var sender = getSender();
+                sender.tell(CleanupPersistenceResponse.success(extractEntityIdFromPersistenceId(persistenceId()),
+                        cleanupPersistence.getDittoHeaders()), getSelf());
             }
         } else {
             log.info("Another cleanup is already running, rejecting the new cleanup request.");
             origin.tell(CleanupPersistenceResponse.failure(extractEntityIdFromPersistenceId(persistenceId()),
-                    DittoHeaders.empty()),
-                    getSelf());
+                    cleanupPersistence.getDittoHeaders()), getSelf());
         }
     }
 
