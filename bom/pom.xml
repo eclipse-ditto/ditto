@@ -415,11 +415,6 @@
             </dependency>
             <dependency>
                 <groupId>io.kamon</groupId>
-                <artifactId>kamon-kafka_${scala.version}</artifactId>
-                <version>${kamon.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kamon</groupId>
                 <artifactId>kamon-system-metrics_${scala.version}</artifactId>
                 <version>${kamon.version}</version>
                 <exclusions>

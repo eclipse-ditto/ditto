@@ -149,11 +149,6 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
             <artifactId>jackson-annotations</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.kamon</groupId>
-            <artifactId>kamon-kafka_${scala.version}</artifactId>
-        </dependency>
-
         <!-- ### Testing ### -->
         <dependency>
             <groupId>org.openjdk.jmh</groupId>
