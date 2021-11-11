@@ -44,6 +44,7 @@ final class KafkaConsumerStreamFactory {
     private final AtMostOnceKafkaConsumerSourceSupplier atMostOnceKafkaConsumerSourceSupplier;
     private final AtLeastOnceKafkaConsumerSourceSupplier atLeastOnceKafkaConsumerSourceSupplier;
     private final ConnectionThrottlingConfig throttlingConfig;
+    private final KafkaConsumerMetricsRegistry kafkaConsumerMetricsRegistry;
 
     KafkaConsumerStreamFactory(final ConnectionThrottlingConfig throttlingConfig,
             final PropertiesFactory propertiesFactory,
@@ -55,6 +56,7 @@ final class KafkaConsumerStreamFactory {
         this.consumerData = consumerData;
         this.dryRun = dryRun;
         this.propertiesFactory = propertiesFactory;
+        this.kafkaConsumerMetricsRegistry = kafkaConsumerMetricsRegistry;
         atMostOnceKafkaConsumerSourceSupplier =
                 new AtMostOnceKafkaConsumerSourceSupplier(propertiesFactory, consumerData.getAddress(), dryRun);
         atLeastOnceKafkaConsumerSourceSupplier =
@@ -72,7 +74,8 @@ final class KafkaConsumerStreamFactory {
     KafkaConsumerStreamFactory(final AtMostOnceKafkaConsumerSourceSupplier atMostOnceKafkaConsumerSourceSupplier,
             final AtLeastOnceKafkaConsumerSourceSupplier atLeastOnceKafkaConsumerSourceSupplier,
             final ConsumerData consumerData,
-            final boolean dryRun) {
+            final boolean dryRun,
+            final KafkaConsumerMetricsRegistry kafkaConsumerMetricsRegistry) {
 
         this.consumerData = consumerData;
         this.dryRun = dryRun;
@@ -80,6 +83,7 @@ final class KafkaConsumerStreamFactory {
         throttlingConfig = ConnectionThrottlingConfig.of(ConfigFactory.empty());
         this.atMostOnceKafkaConsumerSourceSupplier = atMostOnceKafkaConsumerSourceSupplier;
         this.atLeastOnceKafkaConsumerSourceSupplier = atLeastOnceKafkaConsumerSourceSupplier;
+        this.kafkaConsumerMetricsRegistry = kafkaConsumerMetricsRegistry;
     }
 
     KafkaConsumerStream newAtMostOnceConsumerStream(
@@ -87,8 +91,8 @@ final class KafkaConsumerStreamFactory {
             final ConnectionMonitor inboundMonitor,
             final Sink<AcknowledgeableMessage, NotUsed> messageMappingSink,
             final Sink<DittoRuntimeException, ?> dreSink,
-            final KafkaConsumerMetricsRegistry kafkaConsumerMetricsRegistry,
-            final ConnectionId connectionId) {
+            final ConnectionId connectionId,
+            final String consumerId) {
 
         final KafkaMessageTransformer kafkaMessageTransformer = buildKafkaMessageTransformer(inboundMonitor);
         return new AtMostOnceConsumerStream(atMostOnceKafkaConsumerSourceSupplier,
@@ -100,7 +104,8 @@ final class KafkaConsumerStreamFactory {
                 messageMappingSink,
                 dreSink,
                 kafkaConsumerMetricsRegistry,
-                connectionId);
+                connectionId,
+                consumerId);
     }
 
     KafkaConsumerStream newAtLeastOnceConsumerStream(
@@ -109,8 +114,8 @@ final class KafkaConsumerStreamFactory {
             final ConnectionMonitor ackMonitor,
             final Sink<AcknowledgeableMessage, NotUsed> messageMappingSink,
             final Sink<DittoRuntimeException, ?> dreSink,
-            final KafkaConsumerMetricsRegistry kafkaConsumerMetricsRegistry,
-            final ConnectionId connectionId) {
+            final ConnectionId connectionId,
+            final String consumerId) {
 
         final KafkaMessageTransformer kafkaMessageTransformer = buildKafkaMessageTransformer(inboundMonitor);
         return new AtLeastOnceConsumerStream(atLeastOnceKafkaConsumerSourceSupplier,
@@ -124,7 +129,8 @@ final class KafkaConsumerStreamFactory {
                 messageMappingSink,
                 dreSink,
                 kafkaConsumerMetricsRegistry,
-                connectionId);
+                connectionId,
+                consumerId);
     }
 
     private KafkaMessageTransformer buildKafkaMessageTransformer(final ConnectionMonitor inboundMonitor) {

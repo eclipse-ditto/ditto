@@ -242,8 +242,8 @@ public final class KafkaClientActor extends BaseClientActor {
                 new KafkaConsumerStreamFactory(throttlingConfig, propertiesFactory, consumerData, dryRun, kafkaConsumerMetricsRegistry);
         final Props consumerActorProps =
                 KafkaConsumerActor.props(connection(), streamFactory,
-                        consumerData.getAddress(), consumerData.getSource(), getInboundMappingSink(),
-                        connectivityStatusResolver, consumerRestartBackOffConfig, kafkaConsumerMetricsRegistry);
+                        consumerData, getInboundMappingSink(),
+                        connectivityStatusResolver, consumerRestartBackOffConfig);
         final ActorRef consumerActor =
                 startChildActorConflictFree(consumerData.getActorNamePrefix(), consumerActorProps);
         kafkaConsumerActors.add(consumerActor);

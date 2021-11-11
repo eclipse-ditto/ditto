@@ -14,16 +14,15 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Map;
-import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import org.apache.kafka.common.Metric;
 import org.apache.kafka.common.MetricName;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.kafka.javadsl.Consumer;
 
@@ -32,19 +31,19 @@ import akka.kafka.javadsl.Consumer;
  */
 public final class KafkaConsumerMetrics {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(KafkaConsumerMetrics.class);
     private static final String KAFKA_CONSUMER_METRIC_PREFIX = "kafka_consumer_";
 
     private final Consumer.Control consumerControl;
-    private Map<MetricName, Gauge> gauges;
+    private final ConnectionId connectionId;
+    private final String consumerId;
 
-    private KafkaConsumerMetrics(final Consumer.Control consumerControl, final CharSequence connectionId,
-            final String streamName) {
+    private KafkaConsumerMetrics(final Consumer.Control consumerControl, final ConnectionId connectionId,
+            final String consumerId) {
 
         this.consumerControl = consumerControl;
-        createGauges(consumerControl, connectionId, streamName).thenAccept(gaugeMap -> {
-            gauges = gaugeMap;
-            reportMetrics();
-        });
+        this.connectionId = connectionId;
+        this.consumerId = consumerId;
     }
 
     /**
@@ -52,48 +51,49 @@ public final class KafkaConsumerMetrics {
      *
      * @param consumerControl the consumer control from which to retrieve the metrics.
      * @param connectionId the {@code connectionId} for which the metrics are applicable.
-     * @param streamName the name of the stream for which the metrics are applicable.
+     * @param consumerId the unique identifier of the consumer stream.
      * @return the new instance.
      * @throws java.lang.NullPointerException if any argument is {@code null}.
      */
-    static KafkaConsumerMetrics newInstance(final Consumer.Control consumerControl, final CharSequence connectionId,
-            final String streamName) {
+    static KafkaConsumerMetrics newInstance(final Consumer.Control consumerControl, final ConnectionId connectionId,
+            final String consumerId) {
 
         checkNotNull(consumerControl, "consumerControl");
         checkNotNull(connectionId, "connectionId");
-        checkNotNull(streamName, "streamName");
+        checkNotNull(consumerId, "consumerId");
 
-        return new KafkaConsumerMetrics(consumerControl, connectionId, streamName);
-    }
-
-    /**
-     * Report metrics via Kamon gauges.
-     */
-    void reportMetrics() {
-        consumerControl.getMetrics()
-                .thenAccept(metrics -> metrics.values()
-                        .stream()
-                        .filter(metricContainsValue())
-                        .forEach(metric -> gauges.get(metric.metricName()).set((Double) metric.metricValue())));
+        return new KafkaConsumerMetrics(consumerControl, connectionId, consumerId);
     }
 
     private static Predicate<Metric> metricContainsValue() {
         return metric -> !(metric.metricValue() instanceof String);
     }
 
-    private static CompletionStage<Map<MetricName, Gauge>> createGauges(final Consumer.Control consumerControl,
-            final CharSequence connectionId,
-            final String streamName) {
+    /**
+     * Report metrics via Kamon gauges.
+     */
+    void reportMetrics() {
+        try {
+            consumerControl.getMetrics()
+                    .thenAccept(metrics -> metrics.values()
+                            .stream()
+                            .filter(metricContainsValue())
+                            .forEach(metric -> getGauge(metric.metricName()).set((Double) metric.metricValue())));
+        } catch (final NullPointerException ex) {
+            /*
+             * When getMetrics() is called directly after establishing the connection, it can happen that a
+             * NullPointerException is thrown. Seems to be a bug of kafka streaming.
+             */
 
-        return consumerControl.getMetrics()
-                .thenApply(metrics -> metrics.values()
-                        .stream()
-                        .collect(Collectors.toMap(Metric::metricName,
-                                metric -> DittoMetrics.gauge(
-                                        KAFKA_CONSUMER_METRIC_PREFIX + metric.metricName().name().replace("-", "_"))
-                                        .tag(ConnectionId.class.getSimpleName(), connectionId.toString())
-                                        .tag("streamName", streamName))));
+            LOGGER.info("Could not report consumer metrics for source <{}> of connection <{}>, because metrics were " +
+                    "not available, yet.", consumerId, connectionId);
+        }
+    }
 
+    private Gauge getGauge(final MetricName metricName) {
+        return DittoMetrics.gauge(KAFKA_CONSUMER_METRIC_PREFIX + metricName.name().replace("-", "_"))
+                .tag(ConnectionId.class.getSimpleName(), connectionId.toString())
+                .tag("consumerId", consumerId);
     }
 
 }

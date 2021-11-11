@@ -126,7 +126,7 @@ public final class AtLeastOnceConsumerStreamTest {
                     TestConstants.KAFKA_THROTTLING_CONFIG,
                     messageTransformer, false, materializer,
                     connectionMonitor, ackMonitor, inboundMappingSink, dreSink, KafkaConsumerMetricsRegistry.getInstance(
-                    Duration.ofSeconds(5L)), ConnectionId.generateRandom());
+                    Duration.ofSeconds(5L)), ConnectionId.generateRandom(), "someUniqueId");
 
             inboundSinkProbe.ensureSubscription();
             // Then we can offer those records and they are processed in parallel to the maximum of 'maxInflight'

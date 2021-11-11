@@ -59,6 +59,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
     private final Consumer.DrainingControl<Done> consumerControl;
     private final KafkaConsumerMetricsRegistry kafkaConsumerMetricsRegistry;
     private final ConnectionId connectionId;
+    private final String consumerId;
 
     AtLeastOnceConsumerStream(
             final Supplier<Source<ConsumerMessage.CommittableMessage<String, String>, Consumer.Control>> sourceSupplier,
@@ -72,9 +73,11 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
             final Graph<SinkShape<AcknowledgeableMessage>, NotUsed> inboundMappingSink,
             final Graph<SinkShape<DittoRuntimeException>, ?> exceptionSink,
             final KafkaConsumerMetricsRegistry kafkaConsumerMetricsRegistry,
-            final ConnectionId connectionId) {
+            final ConnectionId connectionId,
+            final String consumerId) {
 
         this.ackMonitor = ackMonitor;
+        this.consumerId = consumerId;
 
         // Pre materialize sinks with MergeHub to avoid multiple materialization per kafka record in processTransformationResult
         externalMessageSink = MergeHub.of(KafkaAcknowledgableMessage.class)
@@ -184,7 +187,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
     }
 
     private void registerForMetricCollection() {
-        kafkaConsumerMetricsRegistry.registerConsumer(connectionId, consumerControl, getClass().getSimpleName());
+        kafkaConsumerMetricsRegistry.registerConsumer(connectionId, consumerControl, consumerId);
     }
 
 }

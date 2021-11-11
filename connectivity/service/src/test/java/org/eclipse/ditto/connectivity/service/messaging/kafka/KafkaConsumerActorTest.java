@@ -128,16 +128,14 @@ public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRe
                 .build();
         final ConsumerData consumerData = new ConsumerData(connectionSource, address, "xy");
         final KafkaConsumerStreamFactory consumerStreamFactory =
-                new KafkaConsumerStreamFactory(sourceSupplier, null, consumerData, false);
+                new KafkaConsumerStreamFactory(sourceSupplier, null, consumerData, false, KafkaConsumerMetricsRegistry.getInstance(Duration.ofSeconds(10L)));
         final DefaultExponentialBackOffConfig backOffConfig = DefaultExponentialBackOffConfig.of(ConfigFactory.empty());
         return KafkaConsumerActor.props(CONNECTION,
                 consumerStreamFactory,
-                address,
-                connectionSource,
+                new ConsumerData(connectionSource, address, address + 0),
                 inboundMappingSink,
                 mock(ConnectivityStatusResolver.class),
-                backOffConfig,
-                KafkaConsumerMetricsRegistry.getInstance(Duration.ofSeconds(10L)));
+                backOffConfig);
     }
 
     @Override

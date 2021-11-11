@@ -118,7 +118,8 @@ public final class AtMostOnceConsumerStreamTest {
                     false, materializer,
                     connectionMonitor, inboundMappingSink, dreSink,
                     KafkaConsumerMetricsRegistry.getInstance(Duration.ofSeconds(5L)),
-                    ConnectionId.generateRandom());
+                    ConnectionId.generateRandom(),
+                    "someUniqueId");
 
             inboundSinkProbe.ensureSubscription();
             // Then we can offer those records and they are processed in parallel to the maximum of 'maxInflight'
