@@ -74,6 +74,8 @@ final class KafkaConsumerMetricsRegistry {
         LOGGER.debug("Registering new consumer for metric reporting: <{}:{}>", connectionId, consumerId);
         metricsMap.put(new CacheKey(connectionId, consumerId),
                 KafkaConsumerMetrics.newInstance(consumerControl, connectionId, consumerId));
+        consumerControl.streamCompletion()
+                .whenComplete((done, error) -> deregisterConsumer(connectionId, consumerId));
     }
 
     /**
@@ -82,7 +84,7 @@ final class KafkaConsumerMetricsRegistry {
      * @param connectionId the connectionId the consumer belongs to.
      * @param consumerId the unique identifier of the consumer stream.
      */
-    void deregisterConsumer(final ConnectionId connectionId, final String consumerId) {
+    private void deregisterConsumer(final ConnectionId connectionId, final String consumerId) {
         LOGGER.debug("De-registering consumer for metric reporting: <{}:{}>", connectionId, consumerId);
         metricsMap.remove(new CacheKey(connectionId, consumerId));
     }

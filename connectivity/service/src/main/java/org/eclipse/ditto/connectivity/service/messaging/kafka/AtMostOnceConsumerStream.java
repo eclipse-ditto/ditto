@@ -52,9 +52,6 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
     private final Sink<KafkaCompletableMessage, NotUsed> externalMessageSink;
     private final Sink<TransformationResult, NotUsed> dreSink;
     private final Sink<TransformationResult, NotUsed> unexpectedMessageSink;
-    private final KafkaConsumerMetricsRegistry kafkaConsumerMetricsRegistry;
-    private final ConnectionId connectionId;
-    private final String consumerId;
 
     AtMostOnceConsumerStream(
             final Supplier<Source<ConsumerRecord<String, String>, Consumer.Control>> sourceSupplier,
@@ -70,7 +67,6 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
             final String consumerId) {
 
         this.materializer = materializer;
-        this.consumerId = consumerId;
 
         // Pre materialize sinks with MergeHub to avoid multiple materialization per kafka record in processTransformationResult
         externalMessageSink = MergeHub.of(KafkaCompletableMessage.class)
@@ -99,9 +95,7 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
                 .toMat(Sink.ignore(), Consumer::createDrainingControl)
                 .run(materializer);
 
-        this.kafkaConsumerMetricsRegistry = kafkaConsumerMetricsRegistry;
-        this.connectionId = connectionId;
-        registerForMetricCollection();
+        kafkaConsumerMetricsRegistry.registerConsumer(connectionId, consumerControl, consumerId);
     }
 
     @Override
@@ -111,7 +105,6 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
     @Override
     public CompletionStage<Done> stop() {
-        kafkaConsumerMetricsRegistry.deregisterConsumer(connectionId, consumerId);
         return consumerControl.drainAndShutdown(materializer.executionContext());
     }
 
@@ -162,10 +155,6 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
     private static DittoRuntimeException extractDittoRuntimeException(final TransformationResult value) {
         return value.getDittoRuntimeException().orElseThrow(); // at this point, the DRE is present
-    }
-
-    private void registerForMetricCollection() {
-        kafkaConsumerMetricsRegistry.registerConsumer(connectionId, consumerControl, consumerId);
     }
 
 }
