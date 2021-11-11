@@ -37,7 +37,7 @@ public final class ExceptionalConnectionLogger implements ConnectionLogger {
     private final Exception exception;
 
     /**
-     * Create a new exceptional mutable connection logger.
+     * Constructs a {@code ExceptionalConnectionLogger}.
      *
      * @param connectionId the connection for which the logger is logging.
      * @param exception the exception which caused the initialization of this logger.
@@ -45,57 +45,66 @@ public final class ExceptionalConnectionLogger implements ConnectionLogger {
     ExceptionalConnectionLogger(final ConnectionId connectionId, final Exception exception) {
         this.exception = exception;
         this.connectionId = connectionId;
-        logger = DittoLoggerFactory.getThreadSafeLogger(ExceptionalConnectionLogger.class)
-                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
+        final var threadSafeLogger = DittoLoggerFactory.getThreadSafeLogger(ExceptionalConnectionLogger.class);
+        logger = threadSafeLogger.withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
     }
 
     @Override
     public void success(final ConnectionMonitor.InfoProvider infoProvider) {
-        logTraceWithCorrelationId("Not logging success since logger is exceptional.", infoProvider);
+        logTraceWithCorrelationId(infoProvider.getCorrelationId(), "Not logging success since logger is exceptional.");
+    }
+
+    private void logTraceWithCorrelationId(final CharSequence correlationId,
+            final String traceLogMessage,
+            final Object... messageArguments) {
+
+        if (logger.isTraceEnabled()) {
+            logger.withCorrelationId(correlationId).trace(traceLogMessage, messageArguments);
+        }
     }
 
     @Override
     public void success(final ConnectionMonitor.InfoProvider infoProvider, final String message,
             final Object... messageArguments) {
 
-        final var log = MessageFormat.format(
+        logTraceWithCorrelationId(infoProvider.getCorrelationId(),
                 "Not logging success with message <{}> and arguments <{}> since logger is exceptional.",
-                message, messageArguments);
-        logTraceWithCorrelationId(log, infoProvider);
+                message,
+                messageArguments);
     }
 
     @Override
     public void failure(final ConnectionMonitor.InfoProvider infoProvider,
             @Nullable final DittoRuntimeException exception) {
 
-        final var log = MessageFormat.format("Not logging failure: <{}> since logger is exceptional.", exception);
-        logTraceWithCorrelationId(log, infoProvider);
+        logTraceWithCorrelationId(infoProvider.getCorrelationId(),
+                "Not logging failure <{}> since logger is exceptional.",
+                exception);
     }
 
     @Override
     public void failure(final ConnectionMonitor.InfoProvider infoProvider, final String message,
             final Object... messageArguments) {
 
-        final var log =
-                MessageFormat.format("Not logging failure: <{}> with arguments: <{}> since logger is exceptional.",
-                        exception, messageArguments);
-        logTraceWithCorrelationId(log, infoProvider);
+        final var pattern = "Not logging failure <{0}> with arguments <{1}> since logger is exceptional.";
+        final var traceLogMessage = MessageFormat.format(pattern, exception, messageArguments);
+        logTraceWithCorrelationId(infoProvider.getCorrelationId(), traceLogMessage);
     }
 
     @Override
     public void exception(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final Exception exception) {
-        final var log = MessageFormat.format("Not logging exception: <{}> since logger is exceptional.", exception);
-        logTraceWithCorrelationId(log, infoProvider);
+        logTraceWithCorrelationId(infoProvider.getCorrelationId(),
+                "Not logging exception <{}> since logger is exceptional.",
+                exception);
     }
 
     @Override
     public void exception(final ConnectionMonitor.InfoProvider infoProvider, final String message,
             final Object... messageArguments) {
 
-        final var log =
-                MessageFormat.format("Not logging exception: <{}> with arguments: <{}> since logger is exceptional.",
-                        exception, messageArguments);
-        logTraceWithCorrelationId(log, infoProvider);
+        final var pattern = "Not logging exception <{0}> with arguments: <{1}> since logger is exceptional.";
+        final var traceLogMessage = MessageFormat.format(pattern, exception, messageArguments);
+        logTraceWithCorrelationId(infoProvider.getCorrelationId(), traceLogMessage);
     }
 
     @Override
@@ -104,18 +113,16 @@ public final class ExceptionalConnectionLogger implements ConnectionLogger {
     }
 
     @Override
+    public void logEntry(final LogEntry logEntry) {
+        logTraceWithCorrelationId(logEntry.getCorrelationId(),
+                "Not logging log entry <{}> since logger is exceptional.",
+                logEntry);
+    }
+
+    @Override
     public Collection<LogEntry> getLogs() {
         logger.trace("Returning empty logs since logger is exceptional.");
         return Collections.emptyList();
-    }
-
-    private void logTraceWithCorrelationId(final String message,
-            final ConnectionMonitor.InfoProvider infoProvider,
-            final Object... messageArguments) {
-
-        if (logger.isTraceEnabled()) {
-            logger.withCorrelationId(infoProvider.getCorrelationId()).trace(message, messageArguments);
-        }
     }
 
     @Override
@@ -126,7 +133,7 @@ public final class ExceptionalConnectionLogger implements ConnectionLogger {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final ExceptionalConnectionLogger that = (ExceptionalConnectionLogger) o;
+        final var that = (ExceptionalConnectionLogger) o;
         return Objects.equals(connectionId, that.connectionId) &&
                 Objects.equals(exception, that.exception);
     }
@@ -143,4 +150,5 @@ public final class ExceptionalConnectionLogger implements ConnectionLogger {
                 ", exception=" + exception +
                 "]";
     }
+
 }

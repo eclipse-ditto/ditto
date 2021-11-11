@@ -17,9 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.text.MessageFormat;
 import java.time.Instant;
-import java.util.Collection;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
@@ -28,11 +26,12 @@ import javax.annotation.Nullable;
 
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.LogCategory;
 import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.LogLevel;
@@ -41,6 +40,8 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -57,30 +58,48 @@ public final class EvictingConnectionLoggerTest {
     private static final LogType TYPE = LogType.MAPPED;
 
     private static final ThingId THING_ID = ThingId.of("any:thing");
-    private static final ConnectionMonitor.InfoProvider INFO_PROVIDER_WITH_THING = infoProviderWithThingId(THING_ID);
+
+    @Rule
+    public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
+
+    private EvictingConnectionLogger.Builder builder;
+
+    @Before
+    public void before() {
+        builder = EvictingConnectionLogger.newBuilder(SUCCESS_CAPACITY, FAILURE_CAPACITY, CATEGORY, TYPE);
+    }
+
+    @Test
+    public void testEqualsAndHashcode() {
+        EqualsVerifier.forClass(EvictingConnectionLogger.class)
+                .usingGetClass()
+                .verify();
+    }
 
     @Test
     public void logTypeAndCategoryAreUsedForLogEntries() {
-        final EvictingConnectionLogger logger = builder().build();
-        logger.success(INFO_PROVIDER_WITH_THING);
+        final var logger = builder.build();
+        final var infoProvider = InfoProviderFactory.forSignal(RetrieveThing.of(EvictingConnectionLoggerTest.THING_ID,
+                getDittoHeadersWithCorrelationId()));
+        logger.success(infoProvider);
 
-        final LogEntry entry = getFirstAndOnlyEntry(logger);
+        final var entry = getFirstAndOnlyEntry(logger);
 
         LogEntryAssertions.assertThat(entry)
                 .hasCategory(CATEGORY)
                 .hasType(TYPE)
-                .hasInfo(INFO_PROVIDER_WITH_THING);
+                .hasInfo(infoProvider);
     }
 
     @Test
     public void withoutDebugLogEnabled() {
-        final EvictingConnectionLogger logger = builder().build();
+        final var logger = builder.build();
 
-        final String textPayload = "{\"foo\":\"bar\"}";
-        final ConnectionMonitor.InfoProvider info = infoProviderWithHeaderAndPayloadDebugLogging(textPayload);
+        final var textPayload = "{\"foo\":\"bar\"}";
+        final var info = infoProviderWithHeaderAndPayloadDebugLogging(textPayload);
 
         logger.success(info);
-        final LogEntry entry = getFirstAndOnlyEntry(logger);
+        final var entry = getFirstAndOnlyEntry(logger);
 
         LogEntryAssertions.assertThat(entry)
                 .hasMessageNotContainingHeaderKeysOrValues(info.getHeaders())
@@ -89,13 +108,19 @@ public final class EvictingConnectionLoggerTest {
 
     @Test
     public void withDebugLogDisabled() {
-        final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
+        final var logger = builder.logHeadersAndPayload().build();
 
-        final String textPayload = "{\"foo\":\"bar\"}";
-        final ConnectionMonitor.InfoProvider info = infoProviderWithDebugLoggingDisabled(textPayload);
+        final var textPayload = "{\"foo\":\"bar\"}";
+        final var headers = DittoHeaders.newBuilder(getDittoHeadersWithCorrelationId())
+                .putHeader("foo", "bar")
+                .putHeader("connectivity-debug-log", "OFF")
+                .build();
+        final var externalMessage =
+                ExternalMessageFactory.newExternalMessageBuilder(headers).withText(textPayload).build();
+        final var info = InfoProviderFactory.forExternalMessage(externalMessage);
 
         logger.success(info);
-        final LogEntry entry = getFirstAndOnlyEntry(logger);
+        final var entry = getFirstAndOnlyEntry(logger);
 
         LogEntryAssertions.assertThat(entry)
                 .hasMessageNotContainingPayload(textPayload)
@@ -105,42 +130,48 @@ public final class EvictingConnectionLoggerTest {
 
     @Test
     public void withDebugLogEnabled() {
-        final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
+        final var logger = builder.logHeadersAndPayload().build();
 
-        final String textPayload = "{\"foo\":\"bar\"}";
-        final ConnectionMonitor.InfoProvider info = randomInfoProviderWithPayload(textPayload);
+        final var headers = getDittoHeadersWithCorrelationId();
+        final var textPayload = "{\"foo\":\"bar\"}";
+        final var externalMessage =
+                ExternalMessageFactory.newExternalMessageBuilder(headers).withText(textPayload).build();
+        final var infoProvider = InfoProviderFactory.forExternalMessage(externalMessage);
 
-        logger.success(info);
-        final LogEntry entry = getFirstAndOnlyEntry(logger);
+        logger.success(infoProvider);
+        final var entry = getFirstAndOnlyEntry(logger);
 
         LogEntryAssertions.assertThat(entry)
                 .hasMessageContainingPayload(textPayload)
-                .hasMessageContainingHeaderValues(info.getHeaders());
+                .hasMessageContainingHeaderValues(infoProvider.getHeaders());
     }
 
     @Test
     public void withDebugLogHeaders() {
-        final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
+        final var logger = builder.logHeadersAndPayload().build();
 
-        final ConnectionMonitor.InfoProvider info = infoProviderWithHeadersDebugLogging();
+        final var infoProvider =
+                InfoProviderFactory.forHeaders(DittoHeaders.newBuilder(getDittoHeadersWithCorrelationId())
+                        .putHeader("foo", "bar")
+                        .putHeader("connectivity-debug-log", "HEADER")
+                        .build());
 
-        logger.success(info);
-        final LogEntry entry = getFirstAndOnlyEntry(logger);
+        logger.success(infoProvider);
+        final var entry = getFirstAndOnlyEntry(logger);
 
         LogEntryAssertions.assertThat(entry)
-                .hasMessageContainingHeaderValues(info.getHeaders());
-
+                .hasMessageContainingHeaderValues(infoProvider.getHeaders());
     }
 
     @Test
     public void withDebugLogPayload() {
-        final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
+        final var logger = builder.logHeadersAndPayload().build();
 
-        final String textPayload = "{\"foo\":\"bar\"}";
-        final ConnectionMonitor.InfoProvider info = infoProviderWithPayloadDebugLogging(textPayload);
+        final var textPayload = "{\"foo\":\"bar\"}";
+        final var info = infoProviderWithPayloadDebugLogging(textPayload);
 
         logger.success(info);
-        final LogEntry entry = getFirstAndOnlyEntry(logger);
+        final var entry = getFirstAndOnlyEntry(logger);
 
         LogEntryAssertions.assertThat(entry)
                 .hasMessageContainingPayload(textPayload);
@@ -148,13 +179,13 @@ public final class EvictingConnectionLoggerTest {
 
     @Test
     public void withDebugLogHeadersAndPayload() {
-        final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
+        final var logger = builder.logHeadersAndPayload().build();
 
-        final String textPayload = "{\"foo\":\"bar\"}";
-        final ConnectionMonitor.InfoProvider info = infoProviderWithHeaderAndPayloadDebugLogging(textPayload);
+        final var textPayload = "{\"foo\":\"bar\"}";
+        final var info = infoProviderWithHeaderAndPayloadDebugLogging(textPayload);
 
         logger.success(info);
-        final LogEntry entry = getFirstAndOnlyEntry(logger);
+        final var entry = getFirstAndOnlyEntry(logger);
 
         LogEntryAssertions.assertThat(entry)
                 .hasMessageContainingPayload(textPayload)
@@ -163,36 +194,36 @@ public final class EvictingConnectionLoggerTest {
 
     @Test
     public void defaultMessagesAreUsedForEntries() {
-        final String defaultSuccessMessage = "this is a success";
-        final String defaultFailureMessage = "this is also success";
-        final String defaultExceptionMessage = "still good if shown :)";
+        final var defaultSuccessMessage = "this is a success";
+        final var defaultFailureMessage = "this is also success";
+        final var defaultExceptionMessage = "still good if shown :)";
 
-        final EvictingConnectionLogger logger = builder().withDefaultSuccessMessage(defaultSuccessMessage)
+        final var logger = builder.withDefaultSuccessMessage(defaultSuccessMessage)
                 .withDefaultFailureMessage(defaultFailureMessage)
                 .withDefaultExceptionMessage(defaultExceptionMessage)
                 .build();
 
-        logger.success(randomInfoProvider());
+        logger.success(getInfoProvider());
         LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger))
                 .hasMessage(defaultSuccessMessage);
 
         logger.clear();
-        logger.failure(randomInfoProvider());
+        logger.failure(getInfoProvider());
         LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger))
                 .hasMessage(defaultFailureMessage);
 
         logger.clear();
-        logger.exception(randomInfoProvider());
+        logger.exception(getInfoProvider());
         LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger))
                 .hasMessage(defaultExceptionMessage);
     }
 
     @Test
     public void addressIsUsedForEntries() {
-        final String address = "an://address:123";
-        final EvictingConnectionLogger logger = builder().withAddress(address).build();
+        final var address = "an://address:123";
+        final var logger = builder.withAddress(address).build();
 
-        logger.success(randomInfoProvider());
+        logger.success(getInfoProvider());
 
         LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger))
                 .hasAddress(address);
@@ -200,11 +231,11 @@ public final class EvictingConnectionLoggerTest {
 
     @Test
     public void evictingWorksForSuccess() {
-        final EvictingConnectionLogger logger = builder().build();
+        final var logger = builder.build();
 
         logNtimes(SUCCESS_CAPACITY + 1, logger::success);
 
-        final Collection<LogEntry> logs = logger.getLogs();
+        final var logs = logger.getLogs();
         assertThat(logs)
                 .hasSize(SUCCESS_CAPACITY)
                 .allMatch(entry -> LogLevel.SUCCESS.equals(entry.getLogLevel()));
@@ -212,25 +243,22 @@ public final class EvictingConnectionLoggerTest {
 
     @Test
     public void evictingWorksForFailure() {
-        final EvictingConnectionLogger logger = builder().build();
+        final var logger = builder.build();
 
         logNtimes(FAILURE_CAPACITY + 1, logger::failure);
 
-        final Collection<LogEntry> logs = logger.getLogs();
-        assertThat(logs)
+        assertThat(logger.getLogs())
                 .hasSize(FAILURE_CAPACITY)
                 .allMatch(entry -> LogLevel.FAILURE.equals(entry.getLogLevel()));
-
     }
 
     @Test
     public void evictingWorksForException() {
-        final EvictingConnectionLogger logger = builder().build();
+        final var logger = builder.build();
 
         logNtimes(FAILURE_CAPACITY + 1, logger::exception);
 
-        final Collection<LogEntry> logs = logger.getLogs();
-        assertThat(logs)
+        assertThat(logger.getLogs())
                 .hasSize(FAILURE_CAPACITY)
                 .allMatch(entry -> LogLevel.FAILURE.equals(entry.getLogLevel()));
     }
@@ -238,39 +266,36 @@ public final class EvictingConnectionLoggerTest {
     @Test
     public void getLogsReturnsAllLogTypes() {
 
-        final EvictingConnectionLogger logger = builder().build();
+        final var logger = builder.build();
 
         logNtimes(SUCCESS_CAPACITY, logger::success);
         logNtimes(FAILURE_CAPACITY, logger::failure);
 
-        final Collection<LogEntry> logs = logger.getLogs();
-        assertThat(logs)
+        assertThat(logger.getLogs())
                 .hasSize(SUCCESS_CAPACITY + FAILURE_CAPACITY);
     }
 
     @Test
     public void failureAndExceptionEndsInSameLog() {
+        final var logger = builder.build();
 
-        final EvictingConnectionLogger logger = builder().build();
+        logger.failure(getInfoProvider());
+        logger.exception(getInfoProvider());
 
-        logger.failure(randomInfoProvider());
-        logger.exception(randomInfoProvider());
-
-        final Collection<LogEntry> logs = logger.getLogs();
-        assertThat(logs)
+        assertThat(logger.getLogs())
                 .hasSize(2)
                 .allMatch(entry -> LogLevel.FAILURE.equals(entry.getLogLevel()));
     }
 
     @Test
     public void failureUsesMessageOfDittoRuntimeException() {
-        final EvictingConnectionLogger logger = builder().build();
-        final String errorMessage = "This is a special message of ditto runtime exception";
+        final var logger = builder.build();
+        final var errorMessage = "This is a special message of ditto runtime exception";
         final DittoRuntimeException exception = ThingIdInvalidException.newBuilder("invalid")
                 .message(errorMessage)
                 .build();
 
-        logger.failure(randomInfoProvider(), exception);
+        logger.failure(getInfoProvider(), exception);
 
         LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger))
                 .hasMessageContaining(errorMessage);
@@ -278,165 +303,192 @@ public final class EvictingConnectionLoggerTest {
 
     @Test
     public void exceptionsUsesMessageOfExceptionOrElseDefault() {
-        final String defaultSuccessMessage = "this is a success";
-        final String defaultFailureMessage = "this is also success";
-        final String defaultExceptionMessage = "hey there: {0}";
+        final var defaultSuccessMessage = "this is a success";
+        final var defaultFailureMessage = "this is also success";
+        final var defaultExceptionMessage = "hey there: {0}";
 
-        final String test = "test";
-        final String notSpecified = "not specified";
+        final var test = "test";
+        final var notSpecified = "not specified";
 
-        final EvictingConnectionLogger logger = builder()
-                .withDefaultSuccessMessage(defaultSuccessMessage)
+        final var logger = builder.withDefaultSuccessMessage(defaultSuccessMessage)
                 .withDefaultFailureMessage(defaultFailureMessage)
                 .withDefaultExceptionMessage(defaultExceptionMessage).build();
 
-        logger.exception(randomInfoProvider(), new Exception(test));
+        logger.exception(getInfoProvider(), new Exception(test));
         LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger))
                 .hasMessage(formatString(defaultExceptionMessage, test));
 
         logger.clear();
-        logger.exception(randomInfoProvider(), null);
+        logger.exception(getInfoProvider(), null);
         LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger))
                 .hasMessage(formatString(defaultExceptionMessage, notSpecified));
 
-        final String withoutFormatting = "withoutAnyFormatting";
+        final var withoutFormatting = "withoutAnyFormatting";
 
-        final EvictingConnectionLogger logger1 = builder()
-                .withDefaultSuccessMessage(defaultSuccessMessage)
+        final var logger1 = builder.withDefaultSuccessMessage(defaultSuccessMessage)
                 .withDefaultFailureMessage(defaultFailureMessage)
                 .withDefaultExceptionMessage(withoutFormatting).build();
 
-        logger1.exception(randomInfoProvider(), new Exception(test));
+        logger1.exception(getInfoProvider(), new Exception(test));
         LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger1))
                 .hasMessage(withoutFormatting);
 
         logger1.clear();
-        logger1.exception(randomInfoProvider(), null);
+        logger1.exception(getInfoProvider(), null);
         LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger1))
                 .hasMessage(withoutFormatting);
     }
 
     @Test
     public void failureDoesntFailOnNullException() {
-        final EvictingConnectionLogger logger = builder().build();
+        final var logger = builder.build();
 
-        logger.failure(randomInfoProvider(), null);
+        logger.failure(getInfoProvider(), null);
 
         LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger))
-            .isNotNull();
+                .isNotNull();
     }
 
     @Test
     public void exceptionDoesntFailOnNullException() {
-        final EvictingConnectionLogger logger = builder().build();
+        final var logger = builder.build();
 
-        logger.exception(randomInfoProvider(), null);
+        logger.exception(getInfoProvider(), null);
 
         LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger))
-            .isNotNull();
+                .isNotNull();
     }
 
     @Test
     public void ignoresForbiddenMessageFormatCharacters() {
 
-        final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
+        final var logger = builder.logHeadersAndPayload().build();
 
-        final String payloadWithBadCharacters = "{curly brackets and single quotes aren't allowed in MsgFmt}";
-        final ConnectionMonitor.InfoProvider info = infoProviderWithPayloadDebugLogging(payloadWithBadCharacters);
+        final var payloadWithBadCharacters = "{curly brackets and single quotes aren't allowed in MsgFmt}";
+        final var info = infoProviderWithPayloadDebugLogging(payloadWithBadCharacters);
 
         logger.success(info, "any message {0}", "that has at least one argument");
-        final LogEntry entry = getFirstAndOnlyEntry(logger);
+        final var entry = getFirstAndOnlyEntry(logger);
 
         LogEntryAssertions.assertThat(entry)
                 .hasMessageContainingPayload(payloadWithBadCharacters);
     }
 
     @Test
-    public void testEqualsAndHashcode() {
-        EqualsVerifier.forClass(EvictingConnectionLogger.class)
-                .verify();
-    }
-
-    @Test
     public void logWithInvalidPattern() {
-        final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
+        final var logger = builder.logHeadersAndPayload().build();
 
         // {} throws NumberFormatException
         logger.success("success {}", true);
 
-        final LogEntry entry = getFirstAndOnlyEntry(logger);
+        final var entry = getFirstAndOnlyEntry(logger);
         LogEntryAssertions.assertThat(entry)
                 .hasMessage("success {}");
     }
 
     @Test
     public void logWithMissingArgument() {
-        final EvictingConnectionLogger logger = builder().logHeadersAndPayload().build();
+        final var logger = builder.logHeadersAndPayload().build();
 
         logger.success("success {0}");
 
-        final LogEntry entry = getFirstAndOnlyEntry(logger);
+        final var entry = getFirstAndOnlyEntry(logger);
         LogEntryAssertions.assertThat(entry)
                 .hasMessage("success {0}");
+    }
+
+    @Test
+    public void logNullEntryThrowsException() {
+        final var underTest = builder.build();
+
+        Assertions.assertThatNullPointerException()
+                .isThrownBy(() -> underTest.logEntry(null))
+                .withMessage("The logEntry must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void logSuccessEntry() {
+        final var correlationId = testNameCorrelationId.getCorrelationId();
+        final var successLogEntry = ConnectivityModelFactory.newLogEntryBuilder(correlationId.toString(),
+                        Instant.now(),
+                        LogCategory.SOURCE,
+                        LogType.CONSUMED,
+                        LogLevel.SUCCESS,
+                        "This is a success message.")
+                .entityId(THING_ID)
+                .build();
+        final var underTest = builder.build();
+
+        underTest.logEntry(successLogEntry);
+
+        assertThat(underTest.getLogs()).containsOnly(successLogEntry);
+    }
+
+    @Test
+    public void logFailureEntry() {
+        final var correlationId = testNameCorrelationId.getCorrelationId();
+        final var failureLogEntry = ConnectivityModelFactory.newLogEntryBuilder(correlationId.toString(),
+                        Instant.now(),
+                        LogCategory.RESPONSE,
+                        LogType.DROPPED,
+                        LogLevel.FAILURE,
+                        "This is a failure message.")
+                .entityId(THING_ID)
+                .build();
+        final var underTest = builder.build();
+
+        underTest.logEntry(failureLogEntry);
+
+        assertThat(underTest.getLogs()).containsOnly(failureLogEntry);
     }
 
     private void logNtimes(final int n, final Consumer<ConnectionMonitor.InfoProvider> logger) {
         Stream.iterate(0, UnaryOperator.identity())
                 .limit(n)
-                .forEach(unused -> logger.accept(randomInfoProvider()));
+                .forEach(unused -> logger.accept(getInfoProvider()));
     }
 
-    private String formatString(final String format, final String value) {
+    private static String formatString(final String format, final String value) {
         return new MessageFormat(format).format(new Object[]{value});
     }
 
-    private LogEntry getFirstAndOnlyEntry(final ConnectionLogger logger) {
-        final Collection<LogEntry> logs = logger.getLogs();
-        assertThat(logs)
-                .hasSize(1);
+    private static LogEntry getFirstAndOnlyEntry(final ConnectionLogger logger) {
+        final var logs = logger.getLogs();
+        assertThat(logs).hasSize(1);
 
         return logs.stream().findFirst().orElseThrow(() -> new IllegalStateException("this should never happen"));
     }
-    private EvictingConnectionLogger.Builder builder() {
-        return EvictingConnectionLogger.newBuilder(SUCCESS_CAPACITY, FAILURE_CAPACITY, CATEGORY, TYPE);
+
+    private ConnectionMonitor.InfoProvider getInfoProvider() {
+        return InfoProviderFactory.forHeaders(getDittoHeadersWithCorrelationId());
     }
 
-    private ConnectionMonitor.InfoProvider randomInfoProvider() {
-        return InfoProviderFactory.forHeaders(DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build());
+    private DittoHeaders getDittoHeadersWithCorrelationId() {
+        return DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
     }
-    private ConnectionMonitor.InfoProvider randomInfoProviderWithPayload(final String payload) {
-        final DittoHeaders headers = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
-        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).withText(payload).build();
+
+    private ConnectionMonitor.InfoProvider infoProviderWithPayloadDebugLogging(final String textPayload) {
+        final var headers = DittoHeaders.newBuilder(getDittoHeadersWithCorrelationId())
+                .putHeader("foo", "bar")
+                .putHeader("connectivity-debug-log", "PAYLOAD")
+                .build();
+        final var externalMessage =
+                ExternalMessageFactory.newExternalMessageBuilder(headers).withText(textPayload).build();
         return InfoProviderFactory.forExternalMessage(externalMessage);
     }
 
-    private static ConnectionMonitor.InfoProvider infoProviderWithThingId(final ThingId thingId) {
-        return InfoProviderFactory.forSignal(RetrieveThing.of(thingId, DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build()));
-    }
-
-    private static ConnectionMonitor.InfoProvider infoProviderWithHeadersDebugLogging() {
-        return InfoProviderFactory.forHeaders(DittoHeaders.newBuilder().putHeader("foo", "bar").putHeader("connectivity-debug-log", "HEADER").build());
-    }
-
-    private static ConnectionMonitor.InfoProvider infoProviderWithDebugLoggingDisabled(final String payload) {
-        final DittoHeaders headers = DittoHeaders.newBuilder().putHeader("foo", "bar").putHeader("connectivity-debug-log", "OFF").build();
-        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).withText(payload).build();
+    private ConnectionMonitor.InfoProvider infoProviderWithHeaderAndPayloadDebugLogging(final String textPayload) {
+        final var headers = DittoHeaders.newBuilder(getDittoHeadersWithCorrelationId())
+                .putHeader("foo", "bar")
+                .putHeader("connectivity-debug-log", "ALL")
+                .build();
+        final var externalMessage =
+                ExternalMessageFactory.newExternalMessageBuilder(headers).withText(textPayload).build();
         return InfoProviderFactory.forExternalMessage(externalMessage);
     }
 
-    private static ConnectionMonitor.InfoProvider infoProviderWithPayloadDebugLogging(final String textPayload) {
-        final DittoHeaders headers = DittoHeaders.newBuilder().putHeader("foo", "bar").putHeader("connectivity-debug-log", "PAYLOAD").build();
-        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).withText(textPayload).build();
-        return InfoProviderFactory.forExternalMessage(externalMessage);
-    }
-
-    private static ConnectionMonitor.InfoProvider infoProviderWithHeaderAndPayloadDebugLogging(final String textPayload) {
-        final DittoHeaders headers = DittoHeaders.newBuilder().putHeader("foo", "bar").putHeader("connectivity-debug-log", "ALL").build();
-        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers).withText(textPayload).build();
-        return InfoProviderFactory.forExternalMessage(externalMessage);
-    }
-
-    private static class LogEntryAssert extends AbstractAssert<LogEntryAssert, LogEntry> {
+    private static final class LogEntryAssert extends AbstractAssert<LogEntryAssert, LogEntry> {
 
         private LogEntryAssert(final LogEntry logEntry) {
             super(logEntry, LogEntryAssert.class);
@@ -447,14 +499,16 @@ public final class EvictingConnectionLoggerTest {
             assertThat(actual.getLogCategory()).isEqualTo(category);
             return this;
         }
+
         private LogEntryAssert hasType(final LogType type) {
             isNotNull();
             assertThat(actual.getLogType()).isEqualTo(type);
             return this;
         }
+
         private LogEntryAssert hasAddress(@Nullable final String address) {
             if (null == address) {
-                return this.hasNoAddress();
+                return hasNoAddress();
             }
 
             isNotNull();
