@@ -118,7 +118,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
 
     @Override
     public CompletionStage<Done> stop() {
-        kafkaConsumerMetricsRegistry.deregisterConsumer(connectionId, getClass().getSimpleName());
+        kafkaConsumerMetricsRegistry.deregisterConsumer(connectionId, consumerId);
         return consumerControl.drainAndShutdown(materializer.executionContext());
     }
 
