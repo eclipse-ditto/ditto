@@ -20,6 +20,7 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.internal.models.signal.common.SignalInterfaceImplementations;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
@@ -292,6 +293,27 @@ public final class SignalInformationPointTest {
         final var signal = RetrieveThings.getBuilder(ThingId.generateRandom()).dittoHeaders(dittoHeaders).build();
 
         assertThat(SignalInformationPoint.getEntityId(signal)).isEmpty();
+    }
+
+    @Test
+    public void getCorrelationIdFromNullSignalReturnsEmptyOptional() {
+        assertThat(SignalInformationPoint.getCorrelationId(null)).isEmpty();
+    }
+
+    @Test
+    public void getCorrelationIdFromSignalWithHeadersWithoutCorrelationIdReturnsEmptyCorrelationId() {
+        final Signal<?> signal = Mockito.mock(Signal.class);
+        Mockito.when(signal.getDittoHeaders()).thenReturn(DittoHeaders.empty());
+
+        assertThat(SignalInformationPoint.getCorrelationId(null)).isEmpty();
+    }
+
+    @Test
+    public void getCorrelationIdFromSignalWithCorrelationIdInHeadersReturnsThoseCorrelationId() {
+        final Signal<?> signal = Mockito.mock(Signal.class);
+        Mockito.when(signal.getDittoHeaders()).thenReturn(dittoHeaders);
+
+        assertThat(SignalInformationPoint.getCorrelationId(signal)).isEqualTo(dittoHeaders.getCorrelationId());
     }
 
     private static String getSimpleClassName(final Object o) {

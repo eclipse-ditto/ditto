@@ -38,7 +38,7 @@ public final class SignalInformationPoint {
     private static final String CHANNEL_LIVE_VALUE = "live";
 
     private SignalInformationPoint() {
-        throw new AssertionError("nope");
+        throw new AssertionError();
     }
 
     /**
@@ -161,6 +161,23 @@ public final class SignalInformationPoint {
         final Optional<EntityId> result;
         if (isWithEntityId(signal)) {
             result = Optional.of(((WithEntityId) signal).getEntityId());
+        } else {
+            result = Optional.empty();
+        }
+        return result;
+    }
+
+    /**
+     * Returns the optional correlation ID of the specified {@code Signal} argument's headers.
+     *
+     * @param signal the signal to get the optional correlation ID from.
+     * @return the optional correlation ID. The optional is empty if {@code signal} is {@code null}.
+     */
+    public static Optional<String> getCorrelationId(@Nullable final Signal<?> signal) {
+        final Optional<String> result;
+        if (null != signal) {
+            final var signalDittoHeaders = signal.getDittoHeaders();
+            result = signalDittoHeaders.getCorrelationId();
         } else {
             result = Optional.empty();
         }
