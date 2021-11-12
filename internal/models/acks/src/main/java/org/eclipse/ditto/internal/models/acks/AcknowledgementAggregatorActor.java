@@ -64,6 +64,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
     private final Consumer<Object> responseSignalConsumer;
     private final Duration timeout;
 
+    @SuppressWarnings("java:S1144")
     private AcknowledgementAggregatorActor(final EntityId entityId,
             final DittoHeaders dittoHeaders,
             final Duration maxTimeout,

@@ -200,7 +200,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private Sink<Object, NotUsed> inboundMappingSink;
     private ActorRef outboundDispatchingActor;
-    private ActorRef outboundMappingProcessorActor;
     private ActorRef subscriptionManager;
     private ActorRef tunnelActor;
 
@@ -324,12 +323,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * Initialize child actors.
      */
     protected void init() {
-        final Pair<ActorRef, ActorRef> actorPair = startOutboundActors(protocolAdapter);
+        final var actorPair = startOutboundActors(protocolAdapter);
         outboundDispatchingActor = actorPair.first();
-        outboundMappingProcessorActor = actorPair.second();
 
-        final Sink<Object, NotUsed> inboundDispatchingSink =
-                getInboundDispatchingSink(connection, protocolAdapter, outboundMappingProcessorActor);
+        final var inboundDispatchingSink = getInboundDispatchingSink(connection, protocolAdapter, actorPair.second());
         inboundMappingSink = getInboundMappingSink(protocolAdapter, inboundDispatchingSink);
         subscriptionManager = startSubscriptionManager(proxyActorSelection, connectivityConfig().getClientConfig());
 
@@ -1748,9 +1745,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final ProtocolAdapter protocolAdapter,
             final ActorRef outboundMappingProcessorActor) {
 
-        return InboundDispatchingSink.createSink(connection, protocolAdapter.headerTranslator(), proxyActorSelection,
-                connectionActor, outboundMappingProcessorActor, getSelf(), getContext(),
-                getContext().system().settings().config());
+        final var actorContext = getContext();
+        return InboundDispatchingSink.createSink(connection,
+                protocolAdapter.headerTranslator(),
+                proxyActorSelection,
+                connectionActor,
+                outboundMappingProcessorActor,
+                getSelf(),
+                actorContext,
+                actorContext.system().settings().config());
     }
 
     /**
