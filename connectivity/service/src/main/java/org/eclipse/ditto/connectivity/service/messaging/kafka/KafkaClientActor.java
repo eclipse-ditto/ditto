@@ -196,7 +196,7 @@ public final class KafkaClientActor extends BaseClientActor {
         startKafkaConsumers(dryRun, connectionId, correlationId);
     }
 
-    private void startKafkaPublisher(final boolean dryRun, final CharSequence connectionId,
+    private void startKafkaPublisher(final boolean dryRun, final ConnectionId connectionId,
             @Nullable final CharSequence correlationId) {
 
         logger.withCorrelationId(correlationId).withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId)
@@ -213,7 +213,7 @@ public final class KafkaClientActor extends BaseClientActor {
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
     }
 
-    private void startKafkaConsumers(final boolean dryRun, final CharSequence connectionId,
+    private void startKafkaConsumers(final boolean dryRun, final ConnectionId connectionId,
             @Nullable final CharSequence correlationId) {
 
         logger.withCorrelationId(correlationId).withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId)
