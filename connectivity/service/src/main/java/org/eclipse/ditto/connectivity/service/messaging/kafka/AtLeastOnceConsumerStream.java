@@ -34,9 +34,7 @@ import akka.kafka.CommitterSettings;
 import akka.kafka.ConsumerMessage.CommittableOffset;
 import akka.kafka.javadsl.Committer;
 import akka.kafka.javadsl.Consumer;
-import akka.stream.Graph;
 import akka.stream.Materializer;
-import akka.stream.SinkShape;
 import akka.stream.javadsl.MergeHub;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -66,8 +64,8 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
             final Materializer materializer,
             final ConnectionMonitor inboundMonitor,
             final ConnectionMonitor ackMonitor,
-            final Graph<SinkShape<AcknowledgeableMessage>, NotUsed> inboundMappingSink,
-            final Graph<SinkShape<DittoRuntimeException>, ?> exceptionSink,
+            final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink,
+            final Sink<DittoRuntimeException, ?> exceptionSink,
             final ConnectionId connectionId,
             final String consumerId) {
 
