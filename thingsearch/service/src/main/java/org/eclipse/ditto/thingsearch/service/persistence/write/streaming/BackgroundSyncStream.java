@@ -33,7 +33,6 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.japi.Pair;
 import akka.pattern.Patterns;
-import akka.stream.Attributes;
 import akka.stream.javadsl.Source;
 
 /**
@@ -102,7 +101,7 @@ public final class BackgroundSyncStream {
                 .flatMapConcat(this::filterForInconsistency);
     }
 
-    private boolean isInsideToleranceWindow(final Metadata metadata, final Instant toleranceCutOff) {
+    private static boolean isInsideToleranceWindow(final Metadata metadata, final Instant toleranceCutOff) {
         return metadata.getModified()
                 .map(modified -> modified.isAfter(toleranceCutOff))
                 .orElse(false);
