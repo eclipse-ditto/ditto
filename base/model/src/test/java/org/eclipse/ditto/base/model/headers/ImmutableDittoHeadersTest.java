@@ -162,6 +162,7 @@ public final class ImmutableDittoHeadersTest {
                 .acknowledgementRequests(KNOWN_ACK_REQUESTS)
                 .putMetadata(KNOWN_METADATA_HEADER_KEY, KNOWN_METADATA_VALUE)
                 .timeout(KNOWN_TIMEOUT)
+                .putHeader(DittoHeaderDefinition.TWIN_FALLBACK_AFTER.getKey(), KNOWN_TIMEOUT.toMillis() + "ms")
                 .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID)
                 .expectedResponseTypes(KNOWN_EXPECTED_RESPONSE_TYPES)
                 .allowPolicyLockout(KNOWN_ALLOW_POLICY_LOCKOUT)
@@ -416,6 +417,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), ackRequestsToJsonArray(KNOWN_ACK_REQUESTS))
                 .set(DittoHeaderDefinition.DECLARED_ACKS.getKey(), charSequencesToJsonArray(KNOWN_ACK_LABELS))
                 .set(DittoHeaderDefinition.TIMEOUT.getKey(), JsonValue.of(KNOWN_TIMEOUT.toMillis() + "ms"))
+                .set(DittoHeaderDefinition.TWIN_FALLBACK_AFTER.getKey(), JsonValue.of(KNOWN_TIMEOUT.toMillis() + "ms"))
                 .set(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_ENTITY_ID)
                 .set(DittoHeaderDefinition.REPLY_TO.getKey(), KNOWN_REPLY_TO)
                 .set(DittoHeaderDefinition.WWW_AUTHENTICATE.getKey(), KNOWN_WWW_AUTHENTICATION)
@@ -646,6 +648,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.DECLARED_ACKS.getKey(),
                 charSequencesToJsonArray(KNOWN_ACK_LABELS).toString());
         result.put(DittoHeaderDefinition.TIMEOUT.getKey(), KNOWN_TIMEOUT.toMillis() + "ms");
+        result.put(DittoHeaderDefinition.TWIN_FALLBACK_AFTER.getKey(), KNOWN_TIMEOUT.toMillis() + "ms");
         result.put(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_ENTITY_ID);
         result.put(DittoHeaderDefinition.REPLY_TO.getKey(), KNOWN_REPLY_TO);
         result.put(DittoHeaderDefinition.WWW_AUTHENTICATE.getKey(), KNOWN_WWW_AUTHENTICATION);

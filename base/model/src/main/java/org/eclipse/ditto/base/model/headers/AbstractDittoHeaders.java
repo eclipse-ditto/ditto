@@ -340,6 +340,13 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     }
 
     @Override
+    public Optional<Duration> getTwinFallbackAfter() {
+        return getStringForDefinition(DittoHeaderDefinition.TWIN_FALLBACK_AFTER)
+                .map(DittoDuration::parseDuration)
+                .map(DittoDuration::getDuration);
+    }
+
+    @Override
     public MetadataHeaders getMetadataHeadersToPut() {
         final String metadataHeaderValue = getOrDefault(DittoHeaderDefinition.PUT_METADATA.getKey(), "");
         return MetadataHeaders.parseMetadataHeaders(metadataHeaderValue);

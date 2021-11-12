@@ -238,6 +238,18 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             HeaderValueValidators.getTimeoutValueValidator()),
 
     /**
+     * Header definition for when a thing query command with smart channel selection should wait for a live response
+     * before falling back to the twin response.
+     * <p>
+     * Key: {@code "twin-fallback-after"}, Java type: {@code String}.
+     * </p>
+     *
+     * @since 2.2.0
+     */
+    TWIN_FALLBACK_AFTER("twin-fallback-after", DittoDuration.class, String.class, true, false,
+            HeaderValueValidators.getTimeoutValueValidator()),
+
+    /**
      * Header definition for the entity ID related to the command/event/response/error.
      * <p>
      * Key: {@code "ditto-entity-id"}, Java type: {@link String}.
