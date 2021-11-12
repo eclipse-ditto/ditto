@@ -345,6 +345,18 @@ service:
 * `CONNECTIVITY_LOGGER_PUBLISHER_FLUENCY_HOST` - the hostname of the Fluentd or Fluent Bit endpoint, default: `"localhost"`
 * `CONNECTIVITY_LOGGER_PUBLISHER_FLUENCY_PORT` - the port of the Fluentd or Fluent Bit endpoint, default `24224`
 
+The contained fields in a single log entry are the following:
+* `connectionId`:  ID of the connection which produced the log entry
+* `level`:         one of: `"success"|"failure"`
+* `category`:      one of: `"connection"|"source"|"target"|"response"`
+* `type`:          one of: `"consumed"|"dispatched"|"filtered"|"mapped"|"dropped"|"enforced"|"published"|"acknowledged"`
+* `correlationId`: correlationId of the command/event, if available
+* `address`:       address of the Source/Target (e.g. MQTT topic, HTTP path), if available
+* `entityType` :   one of: `"thing"|"policy"`
+* `entityId`:      ID of the entity for which e.g. an event/message was processed (e.g. the Thing ID)
+* `instanceId`:    ID of the connectivity instance which processed the command/event, helpful if clientCount > 1 was configured
+* `message`:       the actual log message
+
 Please inspect the other available configuration options in 
 [connectivity.conf](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf) 
 at path `ditto.connectivity.monitoring.logger.publisher` to learn about other configuration possibilities.
