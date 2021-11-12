@@ -197,32 +197,41 @@ public final class AcknowledgementAggregatorActorTest {
         final var thingId = ThingId.of("thing:id");
         final var label1 = AcknowledgementLabel.of("ack1");
         final var label2 = AcknowledgementLabel.of("ack2");
-        final var command = DeleteThing.of(thingId, DittoHeaders.newBuilder()
-                .correlationId(correlationId)
-                .timeout(timeout)
-                .acknowledgementRequest(AcknowledgementRequest.of(label1), AcknowledgementRequest.of(label2))
-                .build());
-        final ActorRef underTest = testKit.childActorOf(getAcknowledgementAggregatorProps(command, this));
+        final var command = DeleteThing.of(
+                thingId,
+                DittoHeaders.newBuilder()
+                        .correlationId(correlationId)
+                        .timeout(timeout)
+                        .acknowledgementRequest(AcknowledgementRequest.of(label1), AcknowledgementRequest.of(label2))
+                        .build()
+        );
+        final var underTest = testKit.childActorOf(getAcknowledgementAggregatorProps(command, testKit));
 
         // WHEN
-        final var ack1 = Acknowledgement.of(label1, thingId, HttpStatus.UNAUTHORIZED,
+        final var ack1 = Acknowledgement.of(label1,
+                thingId,
+                HttpStatus.UNAUTHORIZED,
                 DittoHeaders.newBuilder().correlationId(correlationId).putHeader(tag, label1.toString()).build());
-        final var ack2 = Acknowledgement.of(label2, thingId, HttpStatus.PAYMENT_REQUIRED,
+        final var ack2 = Acknowledgement.of(label2,
+                thingId,
+                HttpStatus.PAYMENT_REQUIRED,
                 DittoHeaders.newBuilder().correlationId(correlationId).putHeader(tag, label2.toString()).build());
-        TimeUnit.SECONDS.sleep(
-                timeout.toSeconds() / 2 + 1); // Wait more than half the time before sending first ack
+
+        // Wait more than half the time before sending first ack
+        TimeUnit.SECONDS.sleep(timeout.toSeconds() / 2 + 1);
         underTest.tell(ack1, ActorRef.noSender());
-        TimeUnit.SECONDS.sleep(timeout.toSeconds() / 2 +
-                1); // Wait more than half the time before sending second ack. This should not be taken into account.
+
+        // Wait more than half the time before sending second ack. This should not be taken into account.
+        TimeUnit.SECONDS.sleep(timeout.toSeconds() / 2 + 1);
         underTest.tell(ack2, ActorRef.noSender());
 
         // THEN
         final var acks = testKit.expectMsgClass(Acknowledgements.class);
         assertThat(acks.getSize()).isEqualTo(2);
-        assertThat(acks.getAcknowledgement(label1).map(Acknowledgement::getHttpStatus)).contains(
-                HttpStatus.UNAUTHORIZED);
-        assertThat(acks.getAcknowledgement(label2).map(Acknowledgement::getHttpStatus)).contains(
-                HttpStatus.REQUEST_TIMEOUT);
+        assertThat(acks.getAcknowledgement(label1).map(Acknowledgement::getHttpStatus))
+                .contains(HttpStatus.UNAUTHORIZED);
+        assertThat(acks.getAcknowledgement(label2).map(Acknowledgement::getHttpStatus))
+                .contains(HttpStatus.REQUEST_TIMEOUT);
     }
 
     @Test
