@@ -77,10 +77,14 @@ public final class BsonDiff {
      *
      * @param minuend the target BSON document.
      * @param subtrahend the starting BSON document.
+     * @param recurseIntoArrays whether diff computation should descend into arrays.
      * @return the change to edit the starting BSON document into the target BSON document.
      */
-    public static BsonDiff minus(final BsonDocument minuend, final BsonDocument subtrahend) {
-        return new BsonDiffVisitor().eval(minuend).apply(subtrahend);
+    public static BsonDiff minus(final BsonDocument minuend,
+            final BsonDocument subtrahend,
+            final boolean recurseIntoArrays) {
+
+        return new BsonDiffVisitor(recurseIntoArrays).eval(minuend).apply(subtrahend);
     }
 
     /**
@@ -100,7 +104,7 @@ public final class BsonDiff {
         final var subtrahendWithoutInternal = subtrahend.clone();
         minuendWithoutInternal.remove(FIELD_INTERNAL);
         subtrahendWithoutInternal.remove(FIELD_INTERNAL);
-        final var diffWithoutInternal = minus(minuendWithoutInternal, subtrahendWithoutInternal);
+        final var diffWithoutInternal = minus(minuendWithoutInternal, subtrahendWithoutInternal, true);
         return diffWithoutInternal.concat(diffInternal);
     }
 

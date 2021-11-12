@@ -63,7 +63,7 @@ public final class ByRoundTripSignalEnrichmentFacade implements SignalEnrichment
 
     @Override
     public CompletionStage<JsonObject> retrievePartialThing(final ThingId thingId,
-            final JsonFieldSelector jsonFieldSelector,
+            @Nullable final JsonFieldSelector jsonFieldSelector,
             final DittoHeaders dittoHeaders,
             @Nullable final Signal<?> concernedSignal) {
 
