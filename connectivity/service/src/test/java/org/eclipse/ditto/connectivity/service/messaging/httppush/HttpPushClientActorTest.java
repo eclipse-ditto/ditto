@@ -50,6 +50,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.NotUsed;
@@ -122,7 +123,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
     @Override
     protected Props createClientActor(final ActorRef proxyActor, final Connection connection) {
-        return HttpPushClientActor.props(connection, proxyActor, proxyActor, dittoHeaders);
+        return HttpPushClientActor.props(connection, proxyActor, proxyActor, dittoHeaders, ConfigFactory.empty());
     }
 
     @Override

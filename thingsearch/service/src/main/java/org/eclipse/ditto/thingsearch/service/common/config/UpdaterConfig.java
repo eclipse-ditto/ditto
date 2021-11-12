@@ -100,7 +100,7 @@ public interface UpdaterConfig {
         /**
          * Probability to do a replacement update regardless whether incremental update is possible.
          */
-        FORCE_UPDATE_PROBABILITY("force-update-probability", 0.01);
+        FORCE_UPDATE_PROBABILITY("force-update-probability", 0.00);
 
         private final String path;
         private final Object defaultValue;

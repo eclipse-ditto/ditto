@@ -23,9 +23,9 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOff;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
-import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
@@ -46,16 +46,16 @@ import akka.japi.pf.ReceiveBuilder;
  *
  * @param <E> the type of the EntityId
  */
-public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends AbstractActorWithTimers {
+public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends AbstractActorWithStashWithTimers {
 
     protected final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     @Nullable private E entityId;
-    @Nullable private Props persistenceActorProps;
     @Nullable private ActorRef child;
 
     private final ExponentialBackOffConfig exponentialBackOffConfig;
     private ExponentialBackOff backOff;
+    private boolean waitingForStopBeforeRestart = false;
 
     protected AbstractPersistenceSupervisor() {
         exponentialBackOffConfig = getExponentialBackOffConfig();
@@ -94,6 +94,26 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     protected abstract ShutdownBehaviour getShutdownBehaviour(E entityId);
 
     /**
+     * Whether to start child actor immediately in {@link #preStart()} method or wait for {@link Control#INIT_DONE}
+     * message to start supervised child actor.
+     *
+     * @return {@code true} if child actor is started in {@link #preStart()} method or {@code false} if the
+     * implementation signals finished initialization with {@link Control#INIT_DONE} message. Default is {@code true}.
+     */
+    protected boolean isStartChildImmediately() {
+        return true;
+    }
+
+    protected Receive activeBehaviour() {
+        return ReceiveBuilder.create()
+                .match(Terminated.class, this::childTerminated)
+                .matchEquals(Control.START_CHILD, this::startChild)
+                .matchEquals(Control.PASSIVATE, this::passivate)
+                .matchAny(this::forwardToChildIfAvailable)
+                .build();
+    }
+
+    /**
      * Create a builder for an exception to report unavailability of the entity.
      *
      * @param entityId the entity ID, or null if the actor is corrupted.
@@ -116,12 +136,13 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     @Override
     public void preStart() throws Exception {
         super.preStart();
-        // initialize fields in preStart so that subclass constructors execute before this
         try {
             entityId = getEntityId();
-            persistenceActorProps = getPersistenceActorProps(entityId);
-            startChild(Control.START_CHILD);
-            becomeActive(getShutdownBehaviour(entityId));
+            if (isStartChildImmediately()) {
+                getSelf().tell(Control.INIT_DONE, getSelf());
+            } else {
+                log.debug("Not starting child actor, waiting for initialization to be finished.");
+            }
         } catch (final Exception e) {
             log.error(e, "Failed to determine entity ID; becoming corrupted.");
             becomeCorrupted();
@@ -131,6 +152,12 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
+                .matchEquals(Control.INIT_DONE, initDone -> {
+                    entityId = getEntityId();
+                    startChild(Control.START_CHILD);
+                    unstashAll();
+                    becomeActive(getShutdownBehaviour(entityId));
+                })
                 .matchAny(this::warnAboutMessagesDuringStartup)
                 .build();
     }
@@ -147,12 +174,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     }
 
     private void becomeActive(final ShutdownBehaviour shutdownBehaviour) {
-        getContext().become(shutdownBehaviour.createReceive()
-                .match(Terminated.class, this::childTerminated)
-                .matchEquals(Control.START_CHILD, this::startChild)
-                .matchEquals(Control.PASSIVATE, this::passivate)
-                .matchAny(this::forwardToChildIfAvailable)
-                .build());
+        getContext().become(shutdownBehaviour.createReceive().build()
+                .orElse(activeBehaviour()));
     }
 
     private void passivate(final Control passivationTrigger) {
@@ -162,24 +185,37 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     private void startChild(final Control startChild) {
         if (null == child) {
             log.debug("Starting persistence actor for entity with ID <{}>.", entityId);
-            final ActorRef childRef = getContext().actorOf(persistenceActorProps, "pa");
+            final ActorRef childRef = getContext().actorOf(getPersistenceActorProps(entityId), "pa");
             child = getContext().watch(childRef);
         } else {
             log.debug("Not starting child because child is started already.");
         }
     }
 
-    private void childTerminated(final Terminated message) {
-        if (message.getAddressTerminated()) {
-            log.error("Persistence actor for entity with ID <{}> terminated abnormally " +
-                    "because it crashed or because of network failure!", entityId);
-        } else {
-            log.warning("Persistence actor for entity with ID <{}> terminated abnormally.", entityId);
+    protected void restartChild() {
+        if (child != null) {
+            waitingForStopBeforeRestart = true;
+            getContext().stop(child); // start happens when "Terminated" message is received.
         }
-        child = null;
-        backOff = backOff.calculateNextBackOff();
-        final Duration restartDelay = backOff.getRestartDelay();
-        getTimers().startSingleTimer(Control.START_CHILD, Control.START_CHILD, restartDelay);
+    }
+
+    private void childTerminated(final Terminated message) {
+        if (waitingForStopBeforeRestart) {
+            log.info("Persistence actor for entity with ID <{}> was stopped and will now be started again.", entityId);
+            child = null;
+            self().tell(Control.START_CHILD, ActorRef.noSender());
+        } else {
+            if (message.getAddressTerminated()) {
+                log.error("Persistence actor for entity with ID <{}> terminated abnormally " +
+                        "because it crashed or because of network failure!", entityId);
+            } else {
+                log.warning("Persistence actor for entity with ID <{}> terminated abnormally.", entityId);
+            }
+            child = null;
+            backOff = backOff.calculateNextBackOff();
+            final Duration restartDelay = backOff.getRestartDelay();
+            getTimers().startSingleTimer(Control.START_CHILD, Control.START_CHILD, restartDelay);
+        }
     }
 
     private Duration getCorruptedReceiveTimeout() {
@@ -226,6 +262,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
     }
 
     private void warnAboutMessagesDuringStartup(final Object message) {
+        stash();
         log.warning("Received message during startup: <{}>", message);
     }
 
@@ -241,7 +278,12 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
         /**
          * Request to start child actor.
          */
-        START_CHILD
+        START_CHILD,
+
+        /**
+         * Signals initialization is done, child actor can be started.
+         */
+        INIT_DONE
     }
 
 }

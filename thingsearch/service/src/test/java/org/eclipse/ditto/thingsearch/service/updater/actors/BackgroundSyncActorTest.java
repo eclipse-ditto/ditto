@@ -32,24 +32,14 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.awaitility.Awaitility;
-import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.rql.query.Query;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.internal.models.streaming.StreamedSnapshot;
 import org.eclipse.ditto.internal.models.streaming.SudoStreamSnapshots;
-import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
-import org.eclipse.ditto.thingsearch.service.common.config.BackgroundSyncConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.DefaultBackgroundSyncConfig;
-import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
-import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.health.ResetHealthEvents;
 import org.eclipse.ditto.internal.utils.health.ResetHealthEventsResponse;
@@ -57,6 +47,18 @@ import org.eclipse.ditto.internal.utils.health.RetrieveHealth;
 import org.eclipse.ditto.internal.utils.health.RetrieveHealthResponse;
 import org.eclipse.ditto.internal.utils.health.StatusDetailMessage;
 import org.eclipse.ditto.internal.utils.health.StatusInfo;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.rql.query.Query;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
+import org.eclipse.ditto.thingsearch.service.common.config.BackgroundSyncConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.DefaultBackgroundSyncConfig;
+import org.eclipse.ditto.thingsearch.service.common.model.ResultList;
+import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -81,6 +83,7 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class BackgroundSyncActorTest {
 
+    private static final DittoHeaders HEADERS = BackgroundSyncActor.SEARCH_PERSISTED_HEADERS;
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(2);
     private static final ThingId THING_ID = ThingId.of("org.eclipse:ditto");
     private static final Instant TAGGED_TIMESTAMP = Instant.now().minus(5, ChronoUnit.MINUTES);
@@ -177,7 +180,8 @@ public final class BackgroundSyncActorTest {
             expectSyncActorToStartStreaming(pubSub);
             thenRespondWithPersistedThingsStream(pubSub,
                     List.of(createStreamedSnapshot(THING_ID, persistedRevision + 1)));
-            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater,
+                    List.of(UpdateThing.of(THING_ID, true, false, HEADERS)));
 
             expectSyncActorToBeUpWithWarning(underTest, this);
 
@@ -204,13 +208,15 @@ public final class BackgroundSyncActorTest {
             // first synchronization stream
             expectSyncActorToStartStreaming(pubSub);
             thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, persistedRevision)));
-            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater,
+                    List.of(UpdateThing.of(THING_ID, true, false, HEADERS)));
 
             // second synchronization stream
             whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
             expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
             thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, persistedRevision)));
-            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater,
+                    List.of(UpdateThing.of(THING_ID, true, false, HEADERS)));
 
             // expect health to have events for both runs
             syncActorShouldHaveHealth(underTest, this, StatusInfo.Status.UP, List.of(StatusDetailMessage.Level.WARN),
@@ -219,7 +225,7 @@ public final class BackgroundSyncActorTest {
                                 .map(StatusDetailMessage::getMessage)
                                 .map(JsonValue::toString)
                                 .collect(Collectors.joining());
-                        assertThat(events).contains(indexedThingMetadata.toString());
+                        assertThat(events).contains(indexedThingMetadata.invalidateCaches(true, false).toString());
                     });
         }};
     }
@@ -242,13 +248,15 @@ public final class BackgroundSyncActorTest {
             // first synchronization stream
             expectSyncActorToStartStreaming(pubSub);
             thenRespondWithPersistedThingsStream(pubSub, streamedSnapshots);
-            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater,
+                    List.of(UpdateThing.of(THING_ID, true, false, HEADERS)));
 
             // second synchronization stream
             whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
             expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
             thenRespondWithPersistedThingsStream(pubSub, streamedSnapshots);
-            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater,
+                    List.of(UpdateThing.of(THING_ID, true, false, HEADERS)));
 
             // third synchronization stream
             whenSearchPersistenceHasIndexedThings(List.of(persistedThingMetadata));
@@ -283,13 +291,15 @@ public final class BackgroundSyncActorTest {
             // first synchronization stream
             expectSyncActorToStartStreaming(pubSub);
             thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, persistedRevision)));
-            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(
+                    UpdateThing.of(THING_ID, true, false, HEADERS)));
 
             // second synchronization stream
             whenSearchPersistenceHasIndexedThings(List.of(nextThingMetadata));
             expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
             thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, nextRevision)));
-            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(THING_ID));
+            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(
+                    UpdateThing.of(THING_ID, true, false, HEADERS)));
 
             // expect health to have events for both runs
             syncActorShouldHaveHealth(underTest, this, StatusInfo.Status.UP, List.of(StatusDetailMessage.Level.INFO),
@@ -298,7 +308,8 @@ public final class BackgroundSyncActorTest {
                                 .map(StatusDetailMessage::getMessage)
                                 .map(JsonValue::toString)
                                 .collect(Collectors.joining());
-                        assertThat(events).contains(indexedThingMetadata.toString(), nextThingMetadata.toString());
+                        assertThat(events).contains(indexedThingMetadata.invalidateCaches(true, false).toString(),
+                                nextThingMetadata.invalidateCaches(true, false).toString());
                     });
         }};
     }
@@ -342,24 +353,31 @@ public final class BackgroundSyncActorTest {
     }
 
     private void expectSyncActorToRequestThingUpdatesInSearch(final TestKit thingsUpdater) {
-        expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, KNOWN_IDs);
+        expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(
+                UpdateThing.of(KNOWN_IDs.get(0), true, false, HEADERS),
+                UpdateThing.of(KNOWN_IDs.get(1), true, false, HEADERS),
+                UpdateThing.of(KNOWN_IDs.get(2), true, false, HEADERS),
+                UpdateThing.of(KNOWN_IDs.get(3), true, false, HEADERS)
+        ));
     }
 
     private void expectSyncActorToRequestThingUpdatesInSearch(final TestKit thingsUpdater,
-            final List<? extends EntityId> ids) {
-        ids.stream()
-                .map(id -> UpdateThing.of(ThingId.of(id), DittoHeaders.empty()))
-                .forEach(thingsUpdater::expectMsg);
+            final List<UpdateThing> commands) {
+        commands.forEach(command -> {
+            thingsUpdater.expectMsg(command);
+            thingsUpdater.reply(toAcknowledgement(command));
+        });
+    }
+
+    private Acknowledgement toAcknowledgement(final UpdateThing updateThing) {
+        return Acknowledgement.of(DittoAcknowledgementLabel.SEARCH_PERSISTED, updateThing.getEntityId(), HttpStatus.OK,
+                DittoHeaders.empty());
     }
 
     private void expectSyncActorToBeUpAndHealthy(final ActorRef syncActor, final TestKit sender) {
         syncActorShouldHaveHealth(syncActor, sender, StatusInfo.Status.UP, List.of(StatusDetailMessage.Level.INFO),
-                detailMessages -> {
-                    KNOWN_IDs.forEach(thingId -> assertThat(detailMessages.stream()
-                            .anyMatch(message -> message.getMessage().toString().contains(thingId))));
-                    assertThat(detailMessages).allMatch(
-                            message -> StatusDetailMessage.Level.INFO.equals(message.getLevel()));
-                });
+                detailMessages -> assertThat(detailMessages).allMatch(
+                        message -> StatusDetailMessage.Level.INFO.equals(message.getLevel())));
     }
 
     private void expectSyncActorToBeUpWithWarning(final ActorRef syncActor, final TestKit sender) {

@@ -32,6 +32,7 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -57,7 +58,7 @@ public final class KafkaValidatorTest {
         defaultSpecificConfig = new HashMap<>();
         defaultSpecificConfig.put("bootstrapServers", "localhost:1883");
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-        connectivityConfig = ConnectivityConfig.forActorSystem(actorSystem);
+        connectivityConfig = TestConstants.CONNECTIVITY_CONFIG;
     }
 
     @AfterClass
@@ -108,15 +109,16 @@ public final class KafkaValidatorTest {
 
     @Test
     public void testInvalidSourceQos() {
-        verifyConnectionConfigurationInvalidExceptionIsThrown(ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
-                        ConnectivityStatus.OPEN, "tcp://localhost:1883")
-                .sources(singletonList(ConnectivityModelFactory.newSourceBuilder()
-                        .address("events")
-                        .authorizationContext(AUTHORIZATION_CONTEXT)
-                        .qos(2)
-                        .build()))
-                .specificConfig(defaultSpecificConfig)
-                .build());
+        verifyConnectionConfigurationInvalidExceptionIsThrown(
+                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
+                                ConnectivityStatus.OPEN, "tcp://localhost:1883")
+                        .sources(singletonList(ConnectivityModelFactory.newSourceBuilder()
+                                .address("events")
+                                .authorizationContext(AUTHORIZATION_CONTEXT)
+                                .qos(2)
+                                .build()))
+                        .specificConfig(defaultSpecificConfig)
+                        .build());
     }
 
     @Test
@@ -165,7 +167,7 @@ public final class KafkaValidatorTest {
 
     private static Connection getConnectionWithTarget(final String target) {
         return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
-                ConnectivityStatus.OPEN, "tcp://localhost:1883")
+                        ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .targets(singletonList(ConnectivityModelFactory.newTargetBuilder()
                         .address(target)
                         .authorizationContext(AUTHORIZATION_CONTEXT)
@@ -178,7 +180,7 @@ public final class KafkaValidatorTest {
 
     private static Connection getConnectionWithSource(final String sourceAddress) {
         return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
-                ConnectivityStatus.OPEN, "tcp://localhost:1883")
+                        ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .sources(singletonList(ConnectivityModelFactory.newSourceBuilder()
                         .address(sourceAddress)
                         .authorizationContext(AUTHORIZATION_CONTEXT)
@@ -192,7 +194,7 @@ public final class KafkaValidatorTest {
         final Map<String, String> specificConfig = new HashMap<>();
         specificConfig.put("bootstrapServers", bootstrapServers);
         return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.KAFKA,
-                ConnectivityStatus.OPEN, "tcp://localhost:1883")
+                        ConnectivityStatus.OPEN, "tcp://localhost:1883")
                 .targets(singletonList(ConnectivityModelFactory.newTargetBuilder()
                         .address("events")
                         .authorizationContext(AUTHORIZATION_CONTEXT)

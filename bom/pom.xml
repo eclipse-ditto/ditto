@@ -37,9 +37,9 @@
         <jackson-bom.version>2.11.4</jackson-bom.version>
         <typesafe-config.version>1.4.0</typesafe-config.version>
         <ssl-config-core.version>0.4.2</ssl-config-core.version>
-        <akka-bom.version>2.6.16</akka-bom.version>
+        <akka-bom.version>2.6.17</akka-bom.version>
         <akka-persistence-mongo.version>3.0.6</akka-persistence-mongo.version>
-        <akka-http-bom.version>10.2.5</akka-http-bom.version>
+        <akka-http-bom.version>10.2.7</akka-http-bom.version>
         <akka-management.version>1.0.10</akka-management.version>
         <akka-stream-kafka.version>2.1.1</akka-stream-kafka.version>
         <kafka-client.version>2.8.1</kafka-client.version>

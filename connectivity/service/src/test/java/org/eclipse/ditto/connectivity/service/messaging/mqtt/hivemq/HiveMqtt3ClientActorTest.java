@@ -34,6 +34,7 @@ import org.junit.runners.MethodSorters;
 import com.hivemq.client.internal.checkpoint.Confirmable;
 import com.hivemq.client.internal.mqtt.message.publish.mqtt3.Mqtt3PublishView;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -67,7 +68,8 @@ public final class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<
                     .withTestProbe(getRef())
                     .withFailingSubscribe();
 
-            final Props props = HiveMqtt3ClientActor.props(connection, getRef(), getRef(), clientFactory, dittoHeaders);
+            final Props props = HiveMqtt3ClientActor.props(connection, getRef(), getRef(), clientFactory, dittoHeaders,
+                    ConfigFactory.empty());
             final ActorRef mqttClientActor = actorSystem.actorOf(props, "mqttClientActor-testSubscribeFails");
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
@@ -81,7 +83,7 @@ public final class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<
     @Override
     protected Props createClientActor(final ActorRef proxyActor, final Connection connection) {
         return HiveMqtt3ClientActor.props(connection, proxyActor, proxyActor,
-                mockHiveMqtt3ClientFactory.withTestProbe(proxyActor), dittoHeaders);
+                mockHiveMqtt3ClientFactory.withTestProbe(proxyActor), dittoHeaders, ConfigFactory.empty());
     }
 
     @Override
@@ -93,7 +95,7 @@ public final class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<
     protected Props createFailingClientActor(final ActorRef testProbe) {
         return HiveMqtt3ClientActor.props(connection, testProbe, testProbe,
                 mockHiveMqtt3ClientFactory
-                        .withException(new RuntimeException("failed to connect")), dittoHeaders);
+                        .withException(new RuntimeException("failed to connect")), dittoHeaders, ConfigFactory.empty());
     }
 
     @Override
@@ -103,7 +105,8 @@ public final class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<
         final MockHiveMqtt3ClientFactory clientFactory = mockHiveMqtt3ClientFactory
                 .withMessages(messages)
                 .withTestProbe(testProbe);
-        return HiveMqtt3ClientActor.props(connection, testProbe, testProbe, clientFactory, dittoHeaders);
+        return HiveMqtt3ClientActor.props(connection, testProbe, testProbe, clientFactory, dittoHeaders,
+                ConfigFactory.empty());
     }
 
     @Override

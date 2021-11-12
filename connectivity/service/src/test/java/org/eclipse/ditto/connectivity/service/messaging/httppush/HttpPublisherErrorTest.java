@@ -135,8 +135,8 @@ public final class HttpPublisherErrorTest {
         }};
     }
 
-    @Ignore
     @Test
+    @Ignore("TODO unignore! this test fails because the embedded test server somehow on longer reachable after it was manually recreated")
     public void closingConnectionFromServerSideShouldNotDisturbEventPublishing() throws Exception {
         createActorSystem(TestConstants.CONFIG);
         new TestKit(actorSystem) {{
@@ -162,6 +162,7 @@ public final class HttpPublisherErrorTest {
 
             // WHEN: Server is available again
             newBinding(port);
+            TimeUnit.SECONDS.sleep(2);
             // THEN: event publishing should succeed
             responseQueue.offer(CompletableFuture.completedFuture(HttpResponse.create().withStatus(200)));
             underTest.tell(multiMapped(ActorRef.noSender()), ActorRef.noSender());
@@ -221,9 +222,4 @@ public final class HttpPublisherErrorTest {
                 .build();
     }
 
-    @FunctionalInterface
-    private interface ThrowingConsumer<T> {
-
-        void accept(final TestKit testKit, T arg) throws Exception;
-    }
 }

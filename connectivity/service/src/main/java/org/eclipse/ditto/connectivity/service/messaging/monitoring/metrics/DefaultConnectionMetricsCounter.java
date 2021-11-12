@@ -60,6 +60,18 @@ public final class DefaultConnectionMetricsCounter implements ConnectionMetricsC
     }
 
     @Override
+    public void recordSuccess(final long ts) {
+        logAction("Increment success counter");
+        counter.increment(true, ts);
+    }
+
+    @Override
+    public void recordFailure(final long ts) {
+        logAction("Increment failure counter");
+        counter.increment(false, ts);
+    }
+
+    @Override
     public void reset() {
         logAction("Reset counter");
         counter.reset();

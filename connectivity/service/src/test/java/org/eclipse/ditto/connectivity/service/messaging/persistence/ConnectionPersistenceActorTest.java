@@ -85,6 +85,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.AbstractActor;
@@ -355,7 +357,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 actorSystemResource1.getActorSystem(),
                 pubSubMediator,
                 proxyActor,
-                (a, b, c, d, dittoHeaders) -> MockClientActor.props(clientActorProbe.ref(), gossipProbe.ref()));
+                (a, b, c, d, dittoHeaders, overwrites) -> MockClientActor.props(clientActorProbe.ref(),
+                        gossipProbe.ref()));
         final var testProbe = actorSystemResource1.newTestProbe();
         testProbe.watch(underTest);
 
@@ -679,7 +682,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var latestConnection = new AtomicReference<Connection>();
         final var underTest = TestConstants.createConnectionSupervisorActor(connectionId,
                 actorSystemResource1.getActorSystem(),
-                proxyActor, (connection, proxyActor, connectionActor, actorSystem, dittoHeaders) -> {
+                proxyActor,
+                (connection, proxyActor, connectionActor, actorSystem, dittoHeaders, overwrites) -> {
                     latestConnection.set(connection);
                     return MockClientActor.props(mockClientProbe.ref());
                 },
@@ -866,11 +870,12 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var connectionActorProps = ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
                 proxyActor,
                 pubSubMediator,
-                (connection, proxyActor, connectionActor, actorSystem, dittoHeaders) -> {
+                (connection, proxyActor, connectionActor, actorSystem, dittoHeaders, overwrites) -> {
                     throw ConnectionConfigurationInvalidException.newBuilder("validation failed...").build();
                 },
                 null,
-                UsageBasedPriorityProvider::getInstance);
+                UsageBasedPriorityProvider::getInstance,
+                ConfigFactory.empty());
 
         // create another actor because this it is stopped and we want to test if the child is terminated
         final var parent = actorSystemResource1.newTestKit();
@@ -899,7 +904,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                             .message("not valid")
                             .build();
                 },
-                UsageBasedPriorityProvider::getInstance);
+                UsageBasedPriorityProvider::getInstance,
+                ConfigFactory.empty());
 
         // create another actor because we want to test if the child is terminated
         final var parent = actorSystemResource1.newTestKit();
@@ -1152,7 +1158,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         final var testProbe = actorSystemResource1.newTestProbe();
 
         // Mock the client actors so that they forward all signals to clientActorsProbe with their own reference
-        final var propsFactory = (ClientActorPropsFactory) (a, b, connectionActor, aS, dittoHeaders) ->
+        final ClientActorPropsFactory propsFactory = (a, b, connectionActor, aS, dittoHeaders, overwrites) ->
                 Props.create(AbstractActor.class, () -> new AbstractActor() {
                     @Override
                     public Receive createReceive() {
@@ -1176,7 +1182,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                         propsFactory,
                         null,
                         UsageBasedPriorityProvider::getInstance,
-                        Trilean.TRUE));
+                        Trilean.TRUE,
+                        ConfigFactory.empty()));
 
         // GIVEN: connection persistence actor created with 2 client actors that are allowed to start on same node
         final var underTest = actorSystemResource1.newActor(connectionActorProps, myConnectionId.toString());
@@ -1238,7 +1245,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                                 failingClientActors,
                                 null,
                                 UsageBasedPriorityProvider::getInstance,
-                                Trilean.FALSE)
+                                Trilean.FALSE,
+                                ConfigFactory.empty())
                 )
         );
         final var testProbe = actorSystemResource1.newTestProbe();
@@ -1266,7 +1274,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                                 failingClientActors,
                                 null,
                                 UsageBasedPriorityProvider::getInstance,
-                                Trilean.FALSE)
+                                Trilean.FALSE,
+                                ConfigFactory.empty())
                 )
         );
         final var testProbe = actorSystemResource1.newTestProbe();
@@ -1325,7 +1334,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 final ActorRef proxyActor,
                 final ActorRef connectionActor,
                 final ActorSystem system,
-                final DittoHeaders dittoHeaders) {
+                final DittoHeaders dittoHeaders,
+                final Config overwrites) {
 
             return Props.create(FailingActor.class, FailingActor::new);
         }
@@ -1366,7 +1376,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     private static ClientActorPropsFactory mockClientActorPropsFactory(final ActorRef actorRef) {
-        return (connection, concierge, connectionActor, actorSystem, dittoHeaders) -> MockClientActor.props(actorRef);
+        return (connection, concierge, connectionActor, actorSystem, dittoHeaders, overwrites) ->
+                MockClientActor.props(actorRef);
     }
 
 }

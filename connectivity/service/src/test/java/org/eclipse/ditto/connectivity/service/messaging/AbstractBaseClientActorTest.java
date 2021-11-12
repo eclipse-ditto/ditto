@@ -48,6 +48,8 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.Connecti
 import org.junit.After;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -164,7 +166,7 @@ public abstract class AbstractBaseClientActorTest {
             final ActorRef underTest = watch(actorSystem.actorOf(
                     DefaultClientActorPropsFactory.getInstance()
                             .getActorPropsForType(insecureConnection, getRef(), getRef(), actorSystem,
-                                    DittoHeaders.empty())
+                                    DittoHeaders.empty(), ConfigFactory.empty())
             ));
             underTest.tell(TestConnection.of(insecureConnection, DittoHeaders.empty()), getRef());
 

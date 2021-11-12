@@ -21,6 +21,7 @@ import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -30,7 +31,7 @@ import akka.Done;
 import akka.NotUsed;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.Materializer;
-import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.MergeHub;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
@@ -42,32 +43,48 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
     private static final Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(AtMostOnceConsumerStream.class);
 
-    private final ConnectionMonitor inboundMonitor;
     private final Materializer materializer;
     private final Consumer.DrainingControl<Done> consumerControl;
-    private final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink;
-    private final Sink<DittoRuntimeException, ?> dreSink;
+    private final Sink<KafkaCompletableMessage, NotUsed> externalMessageSink;
+    private final Sink<TransformationResult, NotUsed> dreSink;
+    private final Sink<TransformationResult, NotUsed> unexpectedMessageSink;
 
     AtMostOnceConsumerStream(
             final AtMostOnceKafkaConsumerSourceSupplier sourceSupplier,
-            final int consumerMaxInflight,
+            final ConnectionThrottlingConfig throttlingConfig,
             final KafkaMessageTransformer kafkaMessageTransformer,
             final boolean dryRun,
             final Materializer materializer,
             final ConnectionMonitor inboundMonitor,
             final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink,
-            final Sink<DittoRuntimeException, ?> dreSink) {
+            final Sink<DittoRuntimeException, ?> exceptionSink) {
 
-        this.inboundMonitor = inboundMonitor;
         this.materializer = materializer;
-        this.inboundMappingSink = inboundMappingSink;
-        this.dreSink = dreSink;
+
+        // Pre materialize sinks with MergeHub to avoid multiple materialization per kafka record in processTransformationResult
+        this.externalMessageSink = MergeHub.of(KafkaCompletableMessage.class)
+                .map(KafkaCompletableMessage::getAcknowledgeableMessage)
+                .to(inboundMappingSink)
+                .run(materializer);
+
+        this.dreSink = MergeHub.of(TransformationResult.class)
+                .map(AtMostOnceConsumerStream::extractDittoRuntimeException)
+                .to(exceptionSink)
+                .run(materializer);
+
+        unexpectedMessageSink = MergeHub.of(TransformationResult.class)
+                .to(Sink.foreach(result -> inboundMonitor.exception(
+                        "Got unexpected transformation result <{0}>. This is an internal error. " +
+                                "Please contact the service team.", result
+                )))
+                .run(materializer);
         consumerControl = sourceSupplier.get()
                 .filter(consumerRecord -> isNotDryRun(consumerRecord, dryRun))
                 .map(kafkaMessageTransformer::transform)
                 .filter(result -> !result.isExpired())
+                .throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval())
                 .flatMapConcat(this::processTransformationResult)
-                .mapAsync(consumerMaxInflight, x -> x)
+                .mapAsync(throttlingConfig.getMaxInFlight(), x -> x)
                 .toMat(Sink.ignore(), Consumer::createDrainingControl)
                 .run(materializer);
     }
@@ -82,19 +99,13 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
         return consumerControl.drainAndShutdown(materializer.executionContext());
     }
 
-    private Sink<KafkaCompletableMessage, NotUsed> externalMessageSink() {
-        return Flow.of(KafkaCompletableMessage.class)
-                .map(KafkaCompletableMessage::getAcknowledgeableMessage)
-                .to(inboundMappingSink);
-    }
-
     private Source<CompletableFuture<Done>, NotUsed> processTransformationResult(
             final TransformationResult result) {
 
         if (isExternalMessage(result)) {
             return Source.single(result)
                     .map(this::toAcknowledgeableMessage)
-                    .alsoTo(this.externalMessageSink())
+                    .alsoTo(this.externalMessageSink)
                     .map(KafkaCompletableMessage::getAcknowledgementFuture);
         }
 
@@ -102,13 +113,12 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
         if (isDittoRuntimeException(result)) {
             return Source.single(result)
-                    .map(AtMostOnceConsumerStream::extractDittoRuntimeException)
                     .alsoTo(dreSink)
-                    .map(dre -> offsetFuture);
+                    .map(transformationResult -> offsetFuture);
         }
 
         return Source.single(result)
-                .alsoTo(unexpectedMessageSink())
+                .alsoTo(unexpectedMessageSink)
                 .map(unexpected -> offsetFuture);
     }
 
@@ -136,13 +146,6 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
     private static DittoRuntimeException extractDittoRuntimeException(final TransformationResult value) {
         return value.getDittoRuntimeException().orElseThrow(); // at this point, the DRE is present
-    }
-
-    private Sink<TransformationResult, CompletionStage<Done>> unexpectedMessageSink() {
-        return Sink.foreach(either -> inboundMonitor.exception(
-                "Got unexpected transformation result <{0}>. This is an internal error. " +
-                        "Please contact the service team.", either
-        ));
     }
 
 }

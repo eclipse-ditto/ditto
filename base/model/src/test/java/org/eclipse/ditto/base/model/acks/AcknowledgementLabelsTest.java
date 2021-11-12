@@ -77,10 +77,10 @@ public final class AcknowledgementLabelsTest {
                     RegexValidationParameter.invalid("A"),
                     RegexValidationParameter.invalid("AB"),
                     RegexValidationParameter.valid("ABC"),
-                    RegexValidationParameter.valid(IntStream.range(0, 145)
+                    RegexValidationParameter.valid(IntStream.range(0, 165)
                             .mapToObj(i -> "a")
                             .collect(Collectors.joining())),
-                    RegexValidationParameter.invalid(IntStream.range(0, 146)
+                    RegexValidationParameter.invalid(IntStream.range(0, 166)
                             .mapToObj(i -> "b")
                             .collect(Collectors.joining())),
                     RegexValidationParameter.invalid("ab?"),

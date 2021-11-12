@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.models.acks;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
@@ -173,13 +174,55 @@ public final class AcknowledgementAggregatorActorTest {
 
         // THEN
         final var acks = testKit.expectMsgClass(Acknowledgements.class);
-        assertThat(acks.getDittoHeaders()).isEqualTo(
-                command.getDittoHeaders().toBuilder()
+        assertThat(acks.getDittoHeaders())
+                .isEqualTo(command.getDittoHeaders().toBuilder()
                         .responseRequired(false)
                         .removeHeader(DittoHeaderDefinition.REQUESTED_ACKS.getKey())
-                        .build()
-        );
+                        .build());
         assertThat(acks.getSize()).isEqualTo(2);
+        assertThat(acks.getAcknowledgement(label1).map(Acknowledgement::getHttpStatus))
+                .contains(HttpStatus.UNAUTHORIZED);
+        assertThat(acks.getAcknowledgement(label2).map(Acknowledgement::getHttpStatus))
+                .contains(HttpStatus.PAYMENT_REQUIRED);
+    }
+
+    @Test
+    public void awaitsOnlyUntilTimeout() throws InterruptedException {
+
+        // GIVEN
+        final var testKit = actorSystemResource.newTestKit();
+        final var timeout = Duration.ofSeconds(5);
+        final var tag = "tag";
+        final var correlationId = "awaitsOnlyUntilTimeout";
+        final var thingId = ThingId.of("thing:id");
+        final var label1 = AcknowledgementLabel.of("ack1");
+        final var label2 = AcknowledgementLabel.of("ack2");
+        final var command = DeleteThing.of(thingId, DittoHeaders.newBuilder()
+                .correlationId(correlationId)
+                .timeout(timeout)
+                .acknowledgementRequest(AcknowledgementRequest.of(label1), AcknowledgementRequest.of(label2))
+                .build());
+        final ActorRef underTest = testKit.childActorOf(getAcknowledgementAggregatorProps(command, this));
+
+        // WHEN
+        final var ack1 = Acknowledgement.of(label1, thingId, HttpStatus.UNAUTHORIZED,
+                DittoHeaders.newBuilder().correlationId(correlationId).putHeader(tag, label1.toString()).build());
+        final var ack2 = Acknowledgement.of(label2, thingId, HttpStatus.PAYMENT_REQUIRED,
+                DittoHeaders.newBuilder().correlationId(correlationId).putHeader(tag, label2.toString()).build());
+        TimeUnit.SECONDS.sleep(
+                timeout.toSeconds() / 2 + 1); // Wait more than half the time before sending first ack
+        underTest.tell(ack1, ActorRef.noSender());
+        TimeUnit.SECONDS.sleep(timeout.toSeconds() / 2 +
+                1); // Wait more than half the time before sending second ack. This should not be taken into account.
+        underTest.tell(ack2, ActorRef.noSender());
+
+        // THEN
+        final var acks = testKit.expectMsgClass(Acknowledgements.class);
+        assertThat(acks.getSize()).isEqualTo(2);
+        assertThat(acks.getAcknowledgement(label1).map(Acknowledgement::getHttpStatus)).contains(
+                HttpStatus.UNAUTHORIZED);
+        assertThat(acks.getAcknowledgement(label2).map(Acknowledgement::getHttpStatus)).contains(
+                HttpStatus.REQUEST_TIMEOUT);
     }
 
     @Test

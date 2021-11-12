@@ -19,33 +19,43 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
 /**
- * Default implementation of {@link ConnectionContextProvider} which simply builds and returns a
- * {@link org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext}.
+ * Default implementation of {@link ConnectionConfigProvider} which simply builds and returns a
+ * {@link ConnectivityConfig}.
  */
-public class DittoConnectionContextProvider implements ConnectionContextProvider {
+public class DittoConnectionConfigProvider implements ConnectionConfigProvider {
 
-    private final DittoConnectivityConfig connectivityConfig;
+    private final ActorSystem actorSystem;
 
-    public DittoConnectionContextProvider(final ActorSystem actorSystem) {
-        this.connectivityConfig =
-                DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
+    public DittoConnectionConfigProvider(final ActorSystem actorSystem) {
+        this.actorSystem = actorSystem;
     }
 
     @Override
-    public CompletionStage<ConnectivityConfig> getConnectivityConfig(final ConnectionId connectionId,
-            final DittoHeaders dittoHeaders) {
-        return CompletableFuture.completedStage(connectivityConfig);
+    public CompletionStage<Config> getConnectivityConfigOverwrites(final ConnectionId connectionId) {
+        return CompletableFuture.completedFuture(ConfigFactory.empty());
+    }
+
+    @Override
+    public CompletionStage<ConnectivityConfig> getConnectivityConfig(final ConnectionId connectionId) {
+        return getConnectivityConfigOverwrites(connectionId)
+                .thenApply(overwrites -> {
+                    final Config defaultConfig = actorSystem.settings().config();
+                    final Config withOverwrites = overwrites.withFallback(defaultConfig);
+                    return ConnectivityConfig.of(withOverwrites);
+                });
     }
 
     @Override
     public CompletionStage<Void> registerForConnectivityConfigChanges(final ConnectionId connectionId,
-            final DittoHeaders dittoHeaders, final ActorRef subscriber) {
+            final ActorRef subscriber) {
         // nothing to do, config changes are not supported by the default implementation
         return CompletableFuture.completedStage(null);
     }
@@ -56,7 +66,8 @@ public class DittoConnectionContextProvider implements ConnectionContextProvider
     }
 
     @Override
-    public Optional<ConnectivityConfig> handleEvent(final Event<?> event) {
+    public Optional<Config> handleEvent(final Event<?> event) {
         return Optional.empty();
     }
+
 }

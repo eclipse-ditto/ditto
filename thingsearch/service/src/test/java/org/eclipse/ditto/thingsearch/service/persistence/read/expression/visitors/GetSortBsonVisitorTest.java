@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.read.expression.visitors;
 
-import java.util.Collections;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
 
 import org.bson.Document;
 import org.eclipse.ditto.rql.query.SortDirection;
@@ -31,6 +33,17 @@ public final class GetSortBsonVisitorTest {
         final SortFieldExpression expression = AttributeExpression.of("a/b/c/d/e/f/g");
         final SortOption sortOption = new SortOption(expression, SortDirection.ASC);
 
-        GetSortBsonVisitor.sortValuesAsArray(new Document(), Collections.singletonList(sortOption));
+        GetSortBsonVisitor.sortValuesAsArray(new Document(), List.of(sortOption));
+    }
+
+    @Test
+    public void documentSortValuesAsArray() {
+        final var document = new Document().append("s", new Document().append("attributes",
+                new Document().append("sortKey", new Document().append("key", "value"))));
+        final SortFieldExpression expression = AttributeExpression.of("sortKey");
+        final SortOption sortOption = new SortOption(expression, SortDirection.ASC);
+
+        final var result = GetSortBsonVisitor.sortValuesAsArray(document, List.of(sortOption));
+        assertThat(result.toString()).isEqualTo("[{\"key\":\"value\"}]");
     }
 }

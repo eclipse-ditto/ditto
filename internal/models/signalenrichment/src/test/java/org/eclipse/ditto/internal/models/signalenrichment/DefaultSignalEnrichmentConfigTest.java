@@ -39,7 +39,7 @@ public final class DefaultSignalEnrichmentConfigTest {
 
     @BeforeClass
     public static void initTestFixture() {
-        signalEnrichmentTestConf = ConfigFactory.load("signal-enrichment-test");
+        signalEnrichmentTestConf = ConfigFactory.load("signal-enrichment-test.conf").getConfig("ditto");
     }
 
     @Test
@@ -70,6 +70,10 @@ public final class DefaultSignalEnrichmentConfigTest {
                 .as(SignalEnrichmentConfig.SignalEnrichmentConfigValue.PROVIDER_CONFIG.getConfigPath())
                 .containsOnlyKeys("key")
                 .containsValue(ConfigValueFactory.fromAnyRef("value"));
+
+        softly.assertThat(underTest.getCachingSignalEnrichmentFacadeImplementation())
+                .as(SignalEnrichmentConfig.SignalEnrichmentConfigValue.CACHING_SIGNAL_ENRICHMENT_FACADE.getConfigPath())
+                .isEqualTo(DittoCachingSignalEnrichmentFacadeProvider.class);
     }
 
     @Test

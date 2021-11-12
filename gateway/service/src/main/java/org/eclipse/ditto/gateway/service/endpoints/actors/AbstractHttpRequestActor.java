@@ -271,7 +271,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void handleWhoami(final Whoami command) {
-        logger.withCorrelationId(command).debug("Got Whoami.", command);
+        logger.withCorrelationId(command).debug("Got <{}>.", command);
 
         final var context = getContext();
         context.become(getResponseAwaitingBehavior());

@@ -23,15 +23,24 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonValue;
+import org.bson.Document;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.thingsearch.model.SortOption;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidOptionException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
+import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
+import org.eclipse.ditto.thingsearch.service.persistence.read.criteria.visitors.CreateBsonVisitor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mongodb.scala.MongoClient;
+
+import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorSystem;
 import akka.japi.pf.PFBuilder;
@@ -107,7 +116,35 @@ public final class ThingsSearchCursorTest {
                         .toCompletableFuture()
                         .join())
                 .isInstanceOf(InvalidOptionException.class);
+    }
 
+    @Test
+    public void cursorForCompositeSortValue() {
+        final var config = ConfigFactory.load("actors-test");
+        final ActorSystem actorSystem = ActorSystem.create("cursorForComplexSortOptions", config);
+        try {
+            final var json = JsonObject.of("{\n" +
+                    "  \"S\": \"sort(+attributes/sortKey,+thingId)\",\n" +
+                    "  \"V\": [{\"key\": \"value\"},\"x:1\"]\n" +
+                    "}");
+
+            final var underTest = ThingsSearchCursor.fromJson(json);
+
+            final var command =
+                    ThingsSearchCursor.adjust(Optional.of(underTest), QueryThings.of(DittoHeaders.empty()));
+            final var limitsConfig =
+                    DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(config)).getLimitsConfig();
+            final var parser = SearchRootActor.getQueryParser(limitsConfig, actorSystem);
+            final Query query = parser.parse(command).toCompletableFuture().join();
+            final Query result = ThingsSearchCursor.adjust(Optional.of(underTest), query, parser.getCriteriaFactory());
+            final var bson = CreateBsonVisitor.sudoApply(result.getCriteria())
+                    .toBsonDocument(Document.class, MongoClient.DEFAULT_CODEC_REGISTRY());
+            assertThat(bson.toJson().replaceAll("\\s", ""))
+                    .contains("{\"$elemMatch\":{\"$and\":[{\"k\":\"/attributes/sortKey\"}," +
+                            "{\"v\":{\"$gt\":{\"key\":\"value\"}}}]}}");
+        } finally {
+            TestKit.shutdownActorSystem(actorSystem);
+        }
     }
 
     private static ThingsSearchCursor randomCursor() {

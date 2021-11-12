@@ -61,7 +61,6 @@ import org.eclipse.ditto.connectivity.model.MetricDirection;
 import org.eclipse.ditto.connectivity.model.MetricType;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectivitySignalEnrichmentProvider;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
@@ -102,7 +101,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
-import akka.japi.pf.ReceiveBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -141,9 +139,7 @@ public final class OutboundMappingProcessorActor
     private final SignalEnrichmentFacade signalEnrichmentFacade;
     private final int processorPoolSize;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
-
-    // not final because it may change when the underlying config changed
-    private OutboundMappingProcessor outboundMappingProcessor;
+    private final OutboundMappingProcessor outboundMappingProcessor;
 
     @SuppressWarnings("unused")
     private OutboundMappingProcessorActor(final ActorRef clientActor,
@@ -164,11 +160,10 @@ public final class OutboundMappingProcessorActor
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
 
         final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
-        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         mappingConfig = connectivityConfig.getMappingConfig();
         final LimitsConfig limitsConfig = DefaultLimitsConfig.of(dittoScoped);
 
-        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
+        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig);
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(this.connection);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(this.connection);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(this.connection);
@@ -267,15 +262,6 @@ public final class OutboundMappingProcessorActor
     @Override
     protected int getBufferSize() {
         return mappingConfig.getBufferSize();
-    }
-
-    @Override
-    protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder
-                .match(BaseClientActor.ReplaceOutboundMappingProcessor.class, replaceProcessor -> {
-                    dittoLoggingAdapter.info("Replacing the OutboundMappingProcessor with a modified one.");
-                    this.outboundMappingProcessor = replaceProcessor.getOutboundMappingProcessor();
-                });
     }
 
     private Object handleNotExpectedAcknowledgement(final Acknowledgement acknowledgement) {
@@ -629,7 +615,7 @@ public final class OutboundMappingProcessorActor
                                 .collect(Collectors.toList());
                         final Predicate<AcknowledgementLabel> willPublish =
                                 ConnectionValidator.getTargetIssuedAcknowledgementLabels(connection.getId(),
-                                        targetsToPublishAt)
+                                                targetsToPublishAt)
                                         .collect(Collectors.toSet())::contains;
                         issueWeakAcknowledgements(outbound.getSource(),
                                 willPublish.negate().and(outboundMappingProcessor::isTargetIssuedAck),

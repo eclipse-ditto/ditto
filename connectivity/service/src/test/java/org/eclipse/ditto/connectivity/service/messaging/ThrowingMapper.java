@@ -17,11 +17,14 @@ import java.util.List;
 import java.util.Map;
 
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.protocol.Adaptable;
+
+import akka.actor.ActorSystem;
 
 final class ThrowingMapper implements MessageMapper {
 
@@ -42,7 +45,8 @@ final class ThrowingMapper implements MessageMapper {
     }
 
     @Override
-    public void configure(final ConnectionContext connectionContext, final MessageMapperConfiguration configuration) {
+    public void configure(final Connection connection, final ConnectivityConfig connectivityConfig,
+            final MessageMapperConfiguration configuration, final ActorSystem actorSystem) {
         // nothing to configure
     }
 
