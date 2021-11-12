@@ -20,7 +20,6 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -90,7 +89,7 @@ public final class AtLeastOnceConsumerStreamTest {
         assertInstancesOf(AtLeastOnceConsumerStream.class,
                 areImmutable(),
                 provided(ConnectionMonitor.class, Sink.class, Materializer.class,
-                        Consumer.DrainingControl.class, KafkaConsumerMetricsRegistry.class).areAlsoImmutable());
+                        Consumer.DrainingControl.class, KafkaConsumerMetrics.class).areAlsoImmutable());
     }
 
     @Test
@@ -125,8 +124,8 @@ public final class AtLeastOnceConsumerStreamTest {
             new AtLeastOnceConsumerStream(sourceSupplier, CommitterSettings.apply(actorSystem),
                     TestConstants.KAFKA_THROTTLING_CONFIG,
                     messageTransformer, false, materializer,
-                    connectionMonitor, ackMonitor, inboundMappingSink, dreSink, KafkaConsumerMetricsRegistry.getInstance(
-                    Duration.ofSeconds(5L)), ConnectionId.generateRandom(), "someUniqueId");
+                    connectionMonitor, ackMonitor, inboundMappingSink, dreSink,
+                    ConnectionId.generateRandom(), "someUniqueId");
 
             inboundSinkProbe.ensureSubscription();
             // Then we can offer those records and they are processed in parallel to the maximum of 'maxInflight'

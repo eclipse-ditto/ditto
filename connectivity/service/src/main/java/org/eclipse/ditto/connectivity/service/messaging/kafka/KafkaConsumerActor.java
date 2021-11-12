@@ -58,7 +58,8 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             final ConsumerData consumerData,
             final Sink<Object, NotUsed> inboundMappingSink,
             final ConnectivityStatusResolver connectivityStatusResolver,
-            final ExponentialBackOffConfig exponentialBackOffConfig) {
+            final ExponentialBackOffConfig exponentialBackOffConfig,
+            final Duration metricsReportingInterval) {
 
         super(connection, consumerData.getAddress(), inboundMappingSink, consumerData.getSource(),
                 connectivityStatusResolver);
@@ -89,6 +90,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                         return kafkaConsumerStream;
                     }, exponentialBackOffConfig);
         }
+        timers().startTimerAtFixedRate(ReportMetrics.class, ReportMetrics.INSTANCE, metricsReportingInterval);
     }
 
     static Props props(final Connection connection,
@@ -96,10 +98,11 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             final ConsumerData consumerData,
             final Sink<Object, NotUsed> inboundMappingSink,
             final ConnectivityStatusResolver connectivityStatusResolver,
-            final ExponentialBackOffConfig exponentialBackOffConfig) {
+            final ExponentialBackOffConfig exponentialBackOffConfig,
+            final Duration metricsReportingInterval) {
 
         return Props.create(KafkaConsumerActor.class, connection, streamFactory, consumerData,
-                inboundMappingSink, connectivityStatusResolver, exponentialBackOffConfig);
+                inboundMappingSink, connectivityStatusResolver, exponentialBackOffConfig, metricsReportingInterval);
     }
 
     @Override
@@ -114,6 +117,7 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                 .match(ResourceStatus.class, this::handleAddressStatus)
                 .match(RetrieveAddressStatus.class, ram -> getSender().tell(getCurrentSourceStatus(), getSelf()))
                 .match(GracefulStop.class, stop -> shutdown())
+                .match(ReportMetrics.class, reportMetrics -> reportMetrics())
                 .match(MessageRejectedException.class, this::restartStream)
                 .match(RestartableKafkaConsumerStream.class, this::setStream)
                 .matchAny(unhandled -> {
@@ -126,6 +130,10 @@ final class KafkaConsumerActor extends BaseConsumerActor {
     @Override
     protected ThreadSafeDittoLoggingAdapter log() {
         return log;
+    }
+
+    private void reportMetrics() {
+        kafkaStream.reportMetrics();
     }
 
     private void shutdown() {
@@ -208,6 +216,15 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             // intentionally empty
         }
 
+    }
+
+    static final class ReportMetrics {
+
+        static final ReportMetrics INSTANCE = new ReportMetrics();
+
+        private ReportMetrics() {
+            // intentionally empty
+        }
     }
 
 }

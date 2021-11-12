@@ -59,6 +59,11 @@ final class RestartableKafkaConsumerStream implements KafkaConsumerStream {
         return kafkaConsumerStream.stop();
     }
 
+    @Override
+    public void reportMetrics() {
+        kafkaConsumerStream.reportMetrics();
+    }
+
     /**
      * Stops the current stream and starts a new one which will be returned by the CompletionStage.
      *

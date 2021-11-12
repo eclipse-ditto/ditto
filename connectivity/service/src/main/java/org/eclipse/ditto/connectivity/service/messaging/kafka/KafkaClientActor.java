@@ -63,7 +63,6 @@ public final class KafkaClientActor extends BaseClientActor {
     private ActorRef kafkaPublisherActor;
     private final List<ActorRef> kafkaConsumerActors;
     private final KafkaConfig kafkaConfig;
-    private final KafkaConsumerMetricsRegistry kafkaConsumerMetricsRegistry;
 
     private KafkaClientActor(final Connection connection,
             @Nullable final ActorRef proxyActor,
@@ -78,7 +77,6 @@ public final class KafkaClientActor extends BaseClientActor {
         propertiesFactory = PropertiesFactory.newInstance(connection, kafkaConfig, getClientId(connection.getId()));
         this.publisherActorFactory = publisherActorFactory;
         pendingStatusReportsFromStreams = new HashSet<>();
-        kafkaConsumerMetricsRegistry = KafkaConsumerMetricsRegistry.getInstance(kafkaConfig.getConsumerConfig().getMetricCollectingInterval());
     }
 
     @SuppressWarnings("unused") // used by `props` via reflection
@@ -240,11 +238,12 @@ public final class KafkaClientActor extends BaseClientActor {
         final ConnectionThrottlingConfig throttlingConfig = consumerConfig.getThrottlingConfig();
         final ExponentialBackOffConfig consumerRestartBackOffConfig = consumerConfig.getRestartBackOffConfig();
         final KafkaConsumerStreamFactory streamFactory =
-                new KafkaConsumerStreamFactory(throttlingConfig, propertiesFactory, consumerData, dryRun, kafkaConsumerMetricsRegistry);
+                new KafkaConsumerStreamFactory(throttlingConfig, propertiesFactory, consumerData, dryRun);
         final Props consumerActorProps =
                 KafkaConsumerActor.props(connection(), streamFactory,
                         consumerData, getInboundMappingSink(),
-                        connectivityStatusResolver, consumerRestartBackOffConfig);
+                        connectivityStatusResolver, consumerRestartBackOffConfig,
+                        consumerConfig.getMetricCollectingInterval());
         final ActorRef consumerActor =
                 startChildActorConflictFree(consumerData.getActorNamePrefix(), consumerActorProps);
         kafkaConsumerActors.add(consumerActor);

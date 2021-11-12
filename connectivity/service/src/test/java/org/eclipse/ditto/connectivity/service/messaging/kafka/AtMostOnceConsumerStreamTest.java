@@ -20,7 +20,6 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -87,7 +86,7 @@ public final class AtMostOnceConsumerStreamTest {
         assertInstancesOf(AtMostOnceConsumerStream.class,
                 areImmutable(),
                 provided(ConnectionMonitor.class, Sink.class, Materializer.class, Consumer.DrainingControl.class,
-                        KafkaConsumerMetricsRegistry.class)
+                        KafkaConsumerMetrics.class)
                         .areAlsoImmutable());
     }
 
@@ -117,7 +116,6 @@ public final class AtMostOnceConsumerStreamTest {
             new AtMostOnceConsumerStream(sourceSupplier, TestConstants.KAFKA_THROTTLING_CONFIG, messageTransformer,
                     false, materializer,
                     connectionMonitor, inboundMappingSink, dreSink,
-                    KafkaConsumerMetricsRegistry.getInstance(Duration.ofSeconds(5L)),
                     ConnectionId.generateRandom(),
                     "someUniqueId");
 
