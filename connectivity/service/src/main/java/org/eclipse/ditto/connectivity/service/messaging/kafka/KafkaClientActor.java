@@ -29,6 +29,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
@@ -186,7 +187,7 @@ public final class KafkaClientActor extends BaseClientActor {
      * @param connectionId the ID of the connection to connect the client for.
      * @param correlationId the correlation ID for logging or {@code null} if no correlation ID is known.
      */
-    private void connectClient(final boolean dryRun, final CharSequence connectionId,
+    private void connectClient(final boolean dryRun, final ConnectionId connectionId,
             @Nullable final CharSequence correlationId) {
 
         // start publisher

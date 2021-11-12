@@ -97,8 +97,8 @@ final class KafkaConsumerMetricsRegistry {
 
     private void reportMetrics() {
         LOGGER.debug("Reporting metrics for Kafka consumer streams. <{}> consumer streams registered",
-                this.metricsMap.size());
-        this.metricsMap.forEach((cacheKey, kafkaConsumerMetrics) -> kafkaConsumerMetrics.reportMetrics());
+                metricsMap.size());
+        metricsMap.forEach((cacheKey, kafkaConsumerMetrics) -> kafkaConsumerMetrics.reportMetrics());
     }
 
     private static final class CacheKey {

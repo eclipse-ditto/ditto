@@ -95,7 +95,7 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
                 .toMat(Sink.ignore(), Consumer::createDrainingControl)
                 .run(materializer);
 
-        kafkaConsumerMetricsRegistry.registerConsumer(connectionId, consumerControl, consumerId);
+        registerForMetricCollection(kafkaConsumerMetricsRegistry, connectionId, consumerId);
     }
 
     @Override
@@ -155,6 +155,12 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
 
     private static DittoRuntimeException extractDittoRuntimeException(final TransformationResult value) {
         return value.getDittoRuntimeException().orElseThrow(); // at this point, the DRE is present
+    }
+
+    private void registerForMetricCollection(final KafkaConsumerMetricsRegistry kafkaConsumerMetricsRegistry,
+            final ConnectionId connectionId, final String consumerId) {
+
+        kafkaConsumerMetricsRegistry.registerConsumer(connectionId, consumerControl, consumerId);
     }
 
 }
