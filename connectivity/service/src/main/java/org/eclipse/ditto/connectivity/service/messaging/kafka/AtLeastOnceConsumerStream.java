@@ -15,7 +15,6 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
-import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -32,7 +31,6 @@ import org.slf4j.Logger;
 import akka.Done;
 import akka.NotUsed;
 import akka.kafka.CommitterSettings;
-import akka.kafka.ConsumerMessage;
 import akka.kafka.ConsumerMessage.CommittableOffset;
 import akka.kafka.javadsl.Committer;
 import akka.kafka.javadsl.Consumer;
@@ -60,7 +58,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
     private final KafkaConsumerMetrics consumerMetrics;
 
     AtLeastOnceConsumerStream(
-            final Supplier<Source<ConsumerMessage.CommittableMessage<String, String>, Consumer.Control>> sourceSupplier,
+            final AtLeastOnceKafkaConsumerSourceSupplier sourceSupplier,
             final CommitterSettings committerSettings,
             final ConnectionThrottlingConfig throttlingConfig,
             final KafkaMessageTransformer kafkaMessageTransformer,

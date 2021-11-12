@@ -15,7 +15,6 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
-import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -55,7 +54,7 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
     private final KafkaConsumerMetrics consumerMetrics;
 
     AtMostOnceConsumerStream(
-            final Supplier<Source<ConsumerRecord<String, String>, Consumer.Control>> sourceSupplier,
+            final AtMostOnceKafkaConsumerSourceSupplier sourceSupplier,
             final ConnectionThrottlingConfig throttlingConfig,
             final KafkaMessageTransformer kafkaMessageTransformer,
             final boolean dryRun,
