@@ -19,9 +19,11 @@ import java.util.function.BiConsumer;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
+import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.LogEntryFactory;
+import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandResponseMatchingValidator;
 
@@ -37,10 +39,9 @@ import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandRes
  * </ul>
  * </p>
  * <p>
- * If any of the above evaluates to {@code false} a {@link MessageSendingFailedException} is thrown with a detail
+ * If any of the above evaluates to {@code false} a {@link UnsupportedSignalException} is thrown with a detail
  * message describing the cause.
- * Furthermore the exception gets logged for the command response via
- * {@link ConnectionLogger#failure(org.eclipse.ditto.base.model.signals.Signal, org.eclipse.ditto.base.model.exceptions.DittoRuntimeException)}.
+ * Furthermore the exception gets logged for the command response via {@link ConnectionLogger#logEntry(LogEntry)}.
  * </p>
  */
 @NotThreadSafe
@@ -62,14 +63,23 @@ final class HttpPushRoundTripSignalsValidator implements BiConsumer<Command<?>, 
     public void accept(final Command<?> command, final CommandResponse<?> commandResponse) {
         final var validationResult = validator.apply(command, commandResponse);
         if (!validationResult.isSuccess()) {
-            final var messageSendingFailedException = MessageSendingFailedException.newBuilder()
-                    .httpStatus(HttpStatus.BAD_REQUEST)
-                    .message(validationResult.getDetailMessageOrThrow())
-                    .dittoHeaders(command.getDittoHeaders())
-                    .build();
-            connectionLogger.failure(commandResponse, messageSendingFailedException);
-            throw messageSendingFailedException;
+            final var detailMessage = validationResult.getDetailMessageOrThrow();
+            connectionLogger.logEntry(LogEntryFactory.getLogEntryForFailedCommandResponseRoundTrip(command,
+                    commandResponse,
+                    detailMessage));
+            throw newUnsupportedSignalException(command, commandResponse, detailMessage);
         }
+    }
+
+    private static UnsupportedSignalException newUnsupportedSignalException(final Command<?> command,
+            final CommandResponse<?> commandResponse,
+            final String detailMessage) {
+
+        return UnsupportedSignalException.newBuilder(commandResponse.getType())
+                .httpStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+                .message(detailMessage)
+                .dittoHeaders(command.getDittoHeaders())
+                .build();
     }
 
 }
