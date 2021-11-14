@@ -464,7 +464,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         publisherActor.tell(signalToMultiMapped(command, target, testKit.getRef()), testKit.getRef());
 
         // Assert
-        final var responseSignal = proxyActorTestProbe.expectMsgClass(Signal.class);
+        final var responseSignal = testKit.expectMsgClass(Signal.class);
         assertThat(responseSignal).isInstanceOfSatisfying(RetrieveThingResponse.class, retrieveThingResponse -> {
             assertThat((CharSequence) retrieveThingResponse.getEntityId()).isEqualTo(thingId);
             assertThat(retrieveThingResponse.getHttpStatus()).isEqualTo(retrieveThingMockResponse.getHttpStatus());

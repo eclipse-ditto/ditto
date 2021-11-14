@@ -246,16 +246,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(multiMapped.getSource());
         if (!nonAcknowledgementsResponses.isEmpty() && sender != null) {
             nonAcknowledgementsResponses.forEach(response -> {
-                if (response instanceof ThingQueryCommandResponse && isLiveResponse(response)) {
-                    l.debug("LiveQueryCommandResponse created from HTTP response. " +
-                            "Sending response <{}> to concierge for filtering", response);
-
-                    proxyActor.tell(response, sender);
-                } else {
-                    l.debug("CommandResponse created from HTTP response. Replying to <{}>: <{}>", sender,
-                            response);
-                    sender.tell(response, getSelf());
-                }
+                l.debug("CommandResponse created from HTTP response. Replying to <{}>: <{}>", sender,
+                        response);
+                sender.tell(response, getSelf());
             });
         } else if (nonAcknowledgementsResponses.isEmpty()) {
             l.debug("No CommandResponse created from HTTP response.");
