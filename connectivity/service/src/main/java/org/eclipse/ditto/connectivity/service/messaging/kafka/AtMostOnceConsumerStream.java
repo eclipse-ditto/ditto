@@ -21,6 +21,7 @@ import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
@@ -48,6 +49,7 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
     private final Sink<KafkaCompletableMessage, NotUsed> externalMessageSink;
     private final Sink<TransformationResult, NotUsed> dreSink;
     private final Sink<TransformationResult, NotUsed> unexpectedMessageSink;
+    private final KafkaConsumerMetrics consumerMetrics;
 
     AtMostOnceConsumerStream(
             final AtMostOnceKafkaConsumerSourceSupplier sourceSupplier,
@@ -57,17 +59,19 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
             final Materializer materializer,
             final ConnectionMonitor inboundMonitor,
             final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink,
-            final Sink<DittoRuntimeException, ?> exceptionSink) {
+            final Sink<DittoRuntimeException, ?> exceptionSink,
+            final ConnectionId connectionId,
+            final String consumerId) {
 
         this.materializer = materializer;
 
         // Pre materialize sinks with MergeHub to avoid multiple materialization per kafka record in processTransformationResult
-        this.externalMessageSink = MergeHub.of(KafkaCompletableMessage.class)
+        externalMessageSink = MergeHub.of(KafkaCompletableMessage.class)
                 .map(KafkaCompletableMessage::getAcknowledgeableMessage)
                 .to(inboundMappingSink)
                 .run(materializer);
 
-        this.dreSink = MergeHub.of(TransformationResult.class)
+        dreSink = MergeHub.of(TransformationResult.class)
                 .map(AtMostOnceConsumerStream::extractDittoRuntimeException)
                 .to(exceptionSink)
                 .run(materializer);
@@ -87,6 +91,8 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
                 .mapAsync(throttlingConfig.getMaxInFlight(), x -> x)
                 .toMat(Sink.ignore(), Consumer::createDrainingControl)
                 .run(materializer);
+
+        consumerMetrics = KafkaConsumerMetrics.newInstance(consumerControl, connectionId, consumerId);
     }
 
     @Override
@@ -99,13 +105,18 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
         return consumerControl.drainAndShutdown(materializer.executionContext());
     }
 
+    @Override
+    public void reportMetrics() {
+        consumerMetrics.reportMetrics();
+    }
+
     private Source<CompletableFuture<Done>, NotUsed> processTransformationResult(
             final TransformationResult result) {
 
         if (isExternalMessage(result)) {
             return Source.single(result)
-                    .map(this::toAcknowledgeableMessage)
-                    .alsoTo(this.externalMessageSink)
+                    .map(AtMostOnceConsumerStream::toAcknowledgeableMessage)
+                    .alsoTo(externalMessageSink)
                     .map(KafkaCompletableMessage::getAcknowledgementFuture);
         }
 
@@ -122,7 +133,7 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
                 .map(unexpected -> offsetFuture);
     }
 
-    private KafkaCompletableMessage toAcknowledgeableMessage(final TransformationResult value) {
+    private static KafkaCompletableMessage toAcknowledgeableMessage(final TransformationResult value) {
         final ExternalMessage externalMessage =
                 value.getExternalMessage().orElseThrow(); // at this point, the ExternalMessage is present
         return new KafkaCompletableMessage(externalMessage);

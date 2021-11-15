@@ -29,7 +29,7 @@ import kamon.tag.TagSet;
  * Kamon based implementation of {@link Gauge}.
  */
 @Immutable
-public class KamonGauge implements Gauge {
+public final class KamonGauge implements Gauge {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KamonGauge.class);
 
@@ -59,6 +59,11 @@ public class KamonGauge implements Gauge {
 
     @Override
     public void set(final Long value) {
+        getKamonInternalGauge().update(value);
+    }
+
+    @Override
+    public void set(final Double value) {
         getKamonInternalGauge().update(value);
     }
 

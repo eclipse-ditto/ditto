@@ -19,6 +19,7 @@ import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.hea
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -133,8 +134,7 @@ public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRe
         final ConnectivityConfig connectivityConfig = ConnectivityConfig.of(actorSystem.settings().config());
         return KafkaConsumerActor.props(CONNECTION,
                 consumerStreamFactory,
-                address,
-                connectionSource,
+                new ConsumerData(connectionSource, address, address + 0),
                 inboundMappingSink,
                 mock(ConnectivityStatusResolver.class),
                 connectivityConfig);

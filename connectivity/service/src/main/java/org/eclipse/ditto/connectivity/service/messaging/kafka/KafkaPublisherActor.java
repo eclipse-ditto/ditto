@@ -92,7 +92,8 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             final boolean dryRun,
             final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver,
-            final ConnectivityConfig connectivityConfig) {
+
+final ConnectivityConfig connectivityConfig) {
         super(connection, clientId, connectivityStatusResolver, connectivityConfig);
         this.dryRun = dryRun;
         final Materializer materializer = Materializer.createMaterializer(this::getContext);
@@ -367,6 +368,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
         private CompletableFuture<RecordMetadata> publish(final KafkaPublishTarget publishTarget,
                 final ExternalMessage externalMessage) {
+
             final CompletableFuture<RecordMetadata> resultFuture = new CompletableFuture<>();
             final ProducerRecord<String, String> producerRecord = getProducerRecord(publishTarget, externalMessage);
             final ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>> envelope =

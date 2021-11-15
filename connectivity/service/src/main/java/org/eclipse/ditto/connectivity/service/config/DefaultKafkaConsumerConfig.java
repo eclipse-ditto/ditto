@@ -12,12 +12,14 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
+import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.supervision.DefaultExponentialBackOffConfig;
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -35,12 +37,18 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
     private final ConnectionThrottlingConfig throttlingConfig;
     private final ExponentialBackOffConfig restartBackOffConfig;
     private final Config alpakkaConfig;
+    private final Duration metricCollectingInterval;
 
     private DefaultKafkaConsumerConfig(final Config kafkaConsumerScopedConfig) {
         throttlingConfig = ConnectionThrottlingConfig.of(kafkaConsumerScopedConfig);
         restartBackOffConfig =
                 DefaultExponentialBackOffConfig.of(getConfigOrEmpty(kafkaConsumerScopedConfig, RESTART_PATH));
         alpakkaConfig = getConfigOrEmpty(kafkaConsumerScopedConfig, ALPAKKA_PATH);
+        metricCollectingInterval =
+                kafkaConsumerScopedConfig.getDuration(ConfigValue.METRIC_COLLECTING_INTERVAL.getConfigPath());
+        if (metricCollectingInterval.isNegative() || metricCollectingInterval.isZero()) {
+            throw new DittoConfigError("The Kafka consumer metric collecting interval has to be positive.");
+        }
     }
 
     /**
@@ -74,6 +82,11 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
     }
 
     @Override
+    public Duration getMetricCollectingInterval() {
+        return metricCollectingInterval;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -84,12 +97,13 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
         final DefaultKafkaConsumerConfig that = (DefaultKafkaConsumerConfig) o;
         return Objects.equals(throttlingConfig, that.throttlingConfig) &&
                 Objects.equals(restartBackOffConfig, that.restartBackOffConfig) &&
-                Objects.equals(alpakkaConfig, that.alpakkaConfig);
+                Objects.equals(alpakkaConfig, that.alpakkaConfig) &&
+                Objects.equals(metricCollectingInterval, that.metricCollectingInterval);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(throttlingConfig, restartBackOffConfig, alpakkaConfig);
+        return Objects.hash(throttlingConfig, restartBackOffConfig, alpakkaConfig, metricCollectingInterval);
     }
 
     @Override
@@ -98,6 +112,7 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
                 "throttlingConfig=" + throttlingConfig +
                 ", restartBackOffConfig=" + restartBackOffConfig +
                 ", alpakkaConfig=" + alpakkaConfig +
+                ", metricCollectingInterval=" + metricCollectingInterval +
                 "]";
     }
 

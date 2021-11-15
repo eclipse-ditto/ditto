@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.connectivity.service.config;
 
+import java.time.Duration;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
+import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 import com.typesafe.config.Config;
 
@@ -47,6 +50,13 @@ public interface KafkaConsumerConfig {
     Config getAlpakkaConfig();
 
     /**
+     * Returns the interval in which metrics from the Apache Kafka client should be collected.
+     *
+     * @return the interval.
+     */
+    Duration getMetricCollectingInterval();
+
+    /**
      * Returns an instance of {@code KafkaConsumerConfig} based on the settings of the specified Config.
      *
      * @param config is supposed to provide the settings.
@@ -55,6 +65,37 @@ public interface KafkaConsumerConfig {
      */
     static KafkaConsumerConfig of(final Config config) {
         return DefaultKafkaConsumerConfig.of(config);
+    }
+
+    /**
+     * An enumeration of the known config path expressions and their associated default values for
+     * {@code KafkaConsumerConfig}.
+     */
+    enum ConfigValue implements KnownConfigValue {
+
+        /**
+         * The interval in which Apache Kafka client metrics should be collected.
+         */
+        METRIC_COLLECTING_INTERVAL("metric-collecting-interval", Duration.ofSeconds(10L));
+
+        private final String path;
+        private final Object defaultValue;
+
+        ConfigValue(final String thePath, final Object theDefaultValue) {
+            path = thePath;
+            defaultValue = theDefaultValue;
+        }
+
+        @Override
+        public Object getDefaultValue() {
+            return defaultValue;
+        }
+
+        @Override
+        public String getConfigPath() {
+            return path;
+        }
+
     }
 
 }

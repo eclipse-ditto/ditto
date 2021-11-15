@@ -25,7 +25,6 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
-import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaConsumerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
@@ -58,14 +57,16 @@ final class KafkaConsumerActor extends BaseConsumerActor {
     @SuppressWarnings("unused")
     private KafkaConsumerActor(final Connection connection,
             final KafkaConsumerStreamFactory streamFactory,
-            final String sourceAddress,
-            final Source source,
+            final ConsumerData consumerData,
             final Sink<Object, NotUsed> inboundMappingSink,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
-        super(connection, sourceAddress, inboundMappingSink, source, connectivityStatusResolver, connectivityConfig);
+        super(connection, consumerData.getAddress(), inboundMappingSink, consumerData.getSource(),
+                connectivityStatusResolver, connectivityConfig);
 
-        final KafkaConsumerConfig consumerConfig = connectivityConfig.getConnectionConfig().getKafkaConfig()
+        final KafkaConsumerConfig consumerConfig = connectivityConfig
+                .getConnectionConfig()
+                .getKafkaConfig()
                 .getConsumerConfig();
         final ExponentialBackOffConfig exponentialBackOffConfig = consumerConfig.getRestartBackOffConfig();
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
@@ -77,7 +78,9 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                         final KafkaConsumerStream kafkaConsumerStream =
                                 streamFactory.newAtLeastOnceConsumerStream(materializer, inboundMonitor,
                                         inboundAcknowledgedMonitor, getMessageMappingSink(),
-                                        getDittoRuntimeExceptionSink());
+                                        getDittoRuntimeExceptionSink(),
+                                        connection.getId(),
+                                        consumerData.getActorNamePrefix());
                         kafkaConsumerStream.whenComplete(this::handleStreamCompletion);
                         return kafkaConsumerStream;
                     }, exponentialBackOffConfig);
@@ -86,21 +89,23 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                     () -> {
                         final KafkaConsumerStream kafkaConsumerStream =
                                 streamFactory.newAtMostOnceConsumerStream(materializer, inboundMonitor,
-                                        getMessageMappingSink(), getDittoRuntimeExceptionSink());
+                                        getMessageMappingSink(), getDittoRuntimeExceptionSink(), connection.getId(),
+                                        consumerData.getActorNamePrefix());
                         kafkaConsumerStream.whenComplete(this::handleStreamCompletion);
                         return kafkaConsumerStream;
                     }, exponentialBackOffConfig);
         }
+        timers().startTimerAtFixedRate(ReportMetrics.class, ReportMetrics.INSTANCE,
+                consumerConfig.getMetricCollectingInterval());
     }
 
     static Props props(final Connection connection,
             final KafkaConsumerStreamFactory streamFactory,
-            final String sourceAddress,
-            final Source source,
+            final ConsumerData consumerData,
             final Sink<Object, NotUsed> inboundMappingSink,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
-        return Props.create(KafkaConsumerActor.class, connection, streamFactory, sourceAddress, source,
+        return Props.create(KafkaConsumerActor.class, connection, streamFactory, consumerData,
                 inboundMappingSink, connectivityStatusResolver, connectivityConfig);
     }
 
@@ -115,7 +120,8 @@ final class KafkaConsumerActor extends BaseConsumerActor {
         return receiveBuilder()
                 .match(ResourceStatus.class, this::handleAddressStatus)
                 .match(RetrieveAddressStatus.class, ram -> getSender().tell(getCurrentSourceStatus(), getSelf()))
-                .match(GracefulStop.class, stop -> this.shutdown())
+                .match(GracefulStop.class, stop -> shutdown())
+                .match(ReportMetrics.class, reportMetrics -> reportMetrics())
                 .match(MessageRejectedException.class, this::restartStream)
                 .match(RestartableKafkaConsumerStream.class, this::setStream)
                 .matchAny(unhandled -> {
@@ -128,6 +134,10 @@ final class KafkaConsumerActor extends BaseConsumerActor {
     @Override
     protected ThreadSafeDittoLoggingAdapter log() {
         return log;
+    }
+
+    private void reportMetrics() {
+        kafkaStream.reportMetrics();
     }
 
     private void shutdown() {
@@ -210,6 +220,15 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             // intentionally empty
         }
 
+    }
+
+    static final class ReportMetrics {
+
+        static final ReportMetrics INSTANCE = new ReportMetrics();
+
+        private ReportMetrics() {
+            // intentionally empty
+        }
     }
 
 }

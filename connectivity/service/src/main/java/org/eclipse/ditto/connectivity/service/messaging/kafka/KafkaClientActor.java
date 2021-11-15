@@ -221,11 +221,11 @@ public final class KafkaClientActor extends BaseClientActor {
 
         // start consumer actors
         connection().getSources().stream()
-                .flatMap(this::consumerDataFromSource)
-                .forEach(consumerData -> this.startKafkaConsumer(consumerData, dryRun));
+                .flatMap(KafkaClientActor::consumerDataFromSource)
+                .forEach(consumerData -> startKafkaConsumer(consumerData, dryRun));
     }
 
-    private Stream<ConsumerData> consumerDataFromSource(final Source source) {
+    private static Stream<ConsumerData> consumerDataFromSource(final Source source) {
         return source.getAddresses().stream()
                 .flatMap(sourceAddress ->
                         IntStream.range(0, source.getConsumerCount())
@@ -239,8 +239,7 @@ public final class KafkaClientActor extends BaseClientActor {
         final KafkaConsumerStreamFactory streamFactory =
                 new KafkaConsumerStreamFactory(throttlingConfig, propertiesFactory, consumerData, dryRun);
         final Props consumerActorProps =
-                KafkaConsumerActor.props(connection(), streamFactory,
-                        consumerData.getAddress(), consumerData.getSource(), getInboundMappingSink(),
+                KafkaConsumerActor.props(connection(), streamFactory, consumerData, getInboundMappingSink(),
                         connectivityStatusResolver, connectivityConfig());
         final ActorRef consumerActor =
                 startChildActorConflictFree(consumerData.getActorNamePrefix(), consumerActorProps);
@@ -307,4 +306,5 @@ public final class KafkaClientActor extends BaseClientActor {
             getSelf().tell(new Status.Failure(exception), getSelf());
         }
     }
+
 }

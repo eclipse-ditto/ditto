@@ -36,9 +36,9 @@ final class RestartableKafkaConsumerStream implements KafkaConsumerStream {
     RestartableKafkaConsumerStream(final Supplier<KafkaConsumerStream> consumerStreamStarter,
             final ExponentialBackOffConfig backOffConfig) {
 
-        this.backOff = ExponentialBackOff.initial(backOffConfig);
+        backOff = ExponentialBackOff.initial(backOffConfig);
         this.consumerStreamStarter = consumerStreamStarter;
-        this.kafkaConsumerStream = consumerStreamStarter.get();
+        kafkaConsumerStream = consumerStreamStarter.get();
     }
 
     private RestartableKafkaConsumerStream(final Supplier<KafkaConsumerStream> consumerStreamStarter,
@@ -46,7 +46,7 @@ final class RestartableKafkaConsumerStream implements KafkaConsumerStream {
 
         this.backOff = backOff;
         this.consumerStreamStarter = consumerStreamStarter;
-        this.kafkaConsumerStream = consumerStreamStarter.get();
+        kafkaConsumerStream = consumerStreamStarter.get();
     }
 
     @Override
@@ -57,6 +57,11 @@ final class RestartableKafkaConsumerStream implements KafkaConsumerStream {
     @Override
     public CompletionStage<Done> stop() {
         return kafkaConsumerStream.stop();
+    }
+
+    @Override
+    public void reportMetrics() {
+        kafkaConsumerStream.reportMetrics();
     }
 
     /**

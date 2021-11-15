@@ -26,6 +26,7 @@ final class DefaultSendProducerFactory implements SendProducerFactory {
 
     private DefaultSendProducerFactory(final ProducerSettings<String, String> producerSettings,
             final ActorSystem actorSystem) {
+
         this.producerSettings = producerSettings;
         this.actorSystem = actorSystem;
     }
@@ -39,6 +40,7 @@ final class DefaultSendProducerFactory implements SendProducerFactory {
      */
     static DefaultSendProducerFactory getInstance(final ProducerSettings<String, String> producerSettings,
             final ActorSystem actorSystem) {
+
         return new DefaultSendProducerFactory(producerSettings, actorSystem);
     }
 
