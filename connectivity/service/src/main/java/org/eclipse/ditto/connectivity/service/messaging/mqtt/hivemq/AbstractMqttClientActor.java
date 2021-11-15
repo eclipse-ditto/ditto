@@ -383,9 +383,9 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
                 .handle((s, t) -> {
                     final Status.Status status;
                     if (t == null) {
-                        final var message = "Connection test for was successful.";
+                        final var message = "Connection test for was successful";
                         connectionLogger.success(message);
-                        l.info("Connection test for {} was successful.", connectionId());
+                        l.info("Connection test for {} was successful", connectionId());
                         status = new Status.Success(message);
                     } else {
                         l.info("Connection test to {} failed: {}", connectionToBeTested.getUri(), t.getMessage());

@@ -63,6 +63,13 @@ public interface MonitoringLoggerConfig {
     Duration loggingActiveCheckInterval();
 
     /**
+     * Returns the configuration for the connection log publisher to a fluentd/fluentbit endpoint.
+     *
+     * @return the configuration for the connection log publisher.
+     */
+    LoggerPublisherConfig getLoggerPublisherConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for {@code
      * ExponentialBackOffConfig}.
      */

@@ -232,7 +232,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", connectionLoggerRegistry=" + connectionLoggerRegistry +
+                "connectionLoggerRegistry=" + connectionLoggerRegistry +
                 ", connectionCounterRegistry=" + connectionCounterRegistry +
                 "]";
     }

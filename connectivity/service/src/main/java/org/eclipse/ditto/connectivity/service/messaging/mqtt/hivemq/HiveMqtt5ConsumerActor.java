@@ -30,6 +30,7 @@ import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilter;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.mqtt.MqttSpecificConfig;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
@@ -56,8 +57,9 @@ public final class HiveMqtt5ConsumerActor extends AbstractMqttConsumerActor<Mqtt
     @SuppressWarnings("unused")
     private HiveMqtt5ConsumerActor(final Connection connection, final Sink<Object, NotUsed> inboundMappingSink,
             final Source source, final boolean dryRun, final boolean reconnectForRedelivery,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
-        super(connection, inboundMappingSink, source, dryRun, reconnectForRedelivery, connectivityStatusResolver);
+            final ConnectivityStatusResolver connectivityStatusResolver, final ConnectivityConfig connectivityConfig) {
+        super(connection, inboundMappingSink, source, dryRun, reconnectForRedelivery, connectivityStatusResolver,
+                connectivityConfig);
         final Enforcement enforcement = source.getEnforcement().orElse(null);
         if (enforcement != null &&
                 enforcement.getInput().contains(ConnectivityModelFactory.SOURCE_ADDRESS_ENFORCEMENT)) {
@@ -79,6 +81,7 @@ public final class HiveMqtt5ConsumerActor extends AbstractMqttConsumerActor<Mqtt
      * @param specificConfig the MQTT specific config.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
+     * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection,
@@ -86,9 +89,10 @@ public final class HiveMqtt5ConsumerActor extends AbstractMqttConsumerActor<Mqtt
             final Source source,
             final boolean dryRun,
             final MqttSpecificConfig specificConfig,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
         return Props.create(HiveMqtt5ConsumerActor.class, connection, inboundMappingSink, source, dryRun,
-                specificConfig.reconnectForRedelivery(), connectivityStatusResolver);
+                specificConfig.reconnectForRedelivery(), connectivityStatusResolver, connectivityConfig);
     }
 
     @Override

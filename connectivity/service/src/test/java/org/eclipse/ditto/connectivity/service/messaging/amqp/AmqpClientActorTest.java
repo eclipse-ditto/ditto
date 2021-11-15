@@ -472,7 +472,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsgClass(Status.Failure.class);
 
-            final AtomicInteger count = new AtomicInteger(20);
+            final AtomicInteger count = new AtomicInteger(40);
             Awaitility.await()
                     .pollInterval(Duration.ofMillis(100))
                     .atMost(Duration.ofSeconds(5)).until(() -> {

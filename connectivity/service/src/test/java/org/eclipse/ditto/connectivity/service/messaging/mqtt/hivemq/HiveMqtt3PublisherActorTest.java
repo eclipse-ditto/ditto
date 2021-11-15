@@ -30,6 +30,7 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 
@@ -62,7 +63,7 @@ public class HiveMqtt3PublisherActorTest extends AbstractMqttPublisherActorTest 
     @Override
     protected Props getPublisherActorProps() {
         return HiveMqtt3PublisherActor.props(TestConstants.createConnection(), mqtt3Client, false, "clientId",
-                mock(ConnectivityStatusResolver.class));
+                mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
     }
 
     @Override

@@ -43,6 +43,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.GenericTarget;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaProducerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
@@ -87,38 +88,40 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     @SuppressWarnings("unused")
     private KafkaPublisherActor(final Connection connection,
-            final KafkaProducerConfig config,
             final SendProducerFactory producerFactory,
             final boolean dryRun,
             final String clientId,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
-        super(connection, clientId, connectivityStatusResolver);
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
+        super(connection, clientId, connectivityStatusResolver, connectivityConfig);
         this.dryRun = dryRun;
         final Materializer materializer = Materializer.createMaterializer(this::getContext);
-        producerStream = new KafkaProducerStream(config, materializer, producerFactory);
+        final KafkaProducerConfig producerConfig = connectivityConfig.getConnectionConfig().getKafkaConfig()
+                .getProducerConfig();
+        producerStream = new KafkaProducerStream(producerConfig, materializer, producerFactory);
     }
 
     /**
      * Creates Akka configuration object {@link akka.actor.Props} for this {@code BasePublisherActor}.
      *
      * @param connection the connection this publisher belongs to.
-     * @param config configuration for the kafka client.
      * @param producerFactory factory to create kafka SendProducer.
      * @param dryRun whether this publisher is only created for a test or not.
      * @param clientId identifier of the client actor.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
+     * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection,
-            final KafkaProducerConfig config,
             final SendProducerFactory producerFactory,
             final boolean dryRun,
             final String clientId,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
 
-        return Props.create(KafkaPublisherActor.class, connection, config, producerFactory, dryRun, clientId,
-                connectivityStatusResolver);
+        return Props.create(KafkaPublisherActor.class, connection, producerFactory, dryRun, clientId,
+                connectivityStatusResolver, connectivityConfig);
     }
 
     @Override

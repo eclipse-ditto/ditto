@@ -101,7 +101,7 @@ public final class DefaultConnectionMonitor implements ConnectionMonitor {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", counter=" + counter +
+                "counter=" + counter +
                 ", logger=" + logger +
                 "]";
     }

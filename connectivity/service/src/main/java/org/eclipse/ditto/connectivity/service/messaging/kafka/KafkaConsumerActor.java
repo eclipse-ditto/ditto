@@ -26,6 +26,8 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.KafkaConsumerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
@@ -60,9 +62,12 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             final Source source,
             final Sink<Object, NotUsed> inboundMappingSink,
             final ConnectivityStatusResolver connectivityStatusResolver,
-            final ExponentialBackOffConfig exponentialBackOffConfig) {
-        super(connection, sourceAddress, inboundMappingSink, source, connectivityStatusResolver);
+            final ConnectivityConfig connectivityConfig) {
+        super(connection, sourceAddress, inboundMappingSink, source, connectivityStatusResolver, connectivityConfig);
 
+        final KafkaConsumerConfig consumerConfig = connectivityConfig.getConnectionConfig().getKafkaConfig()
+                .getConsumerConfig();
+        final ExponentialBackOffConfig exponentialBackOffConfig = consumerConfig.getRestartBackOffConfig();
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
         final Materializer materializer = Materializer.createMaterializer(this::getContext);
         final Integer qos = source.getQos().orElse(DEFAULT_CONSUMPTION_QOS);
@@ -94,9 +99,9 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             final Source source,
             final Sink<Object, NotUsed> inboundMappingSink,
             final ConnectivityStatusResolver connectivityStatusResolver,
-            final ExponentialBackOffConfig exponentialBackOffConfig) {
+            final ConnectivityConfig connectivityConfig) {
         return Props.create(KafkaConsumerActor.class, connection, streamFactory, sourceAddress, source,
-                inboundMappingSink, connectivityStatusResolver, exponentialBackOffConfig);
+                inboundMappingSink, connectivityStatusResolver, connectivityConfig);
     }
 
     @Override

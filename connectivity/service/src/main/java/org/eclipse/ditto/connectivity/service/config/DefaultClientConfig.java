@@ -154,7 +154,7 @@ public final class DefaultClientConfig implements ClientConfig {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", initTimeout=" + initTimeout +
+                "initTimeout=" + initTimeout +
                 ", connectingMinTimeout=" + connectingMinTimeout +
                 ", connectingMaxTimeout=" + connectingMaxTimeout +
                 ", disconnectingMaxTimeout=" + disconnectingMaxTimeout +
