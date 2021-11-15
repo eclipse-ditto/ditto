@@ -521,7 +521,7 @@ public final class JavaScriptMessageMapperRhinoTest {
             "        return type;\n" +
             "    }\n" +
             "    \n" +
-            "    var protobuf = require(\"protobuf.min\");\n" +
+            "    var protobuf = require(\"protobuf\");\n" +
             "    var root = protobuf.parse(proto, { keepCase: true }).root;\n";
 
     private static final String MAPPING_INCOMING_PROTOBUF_JS =

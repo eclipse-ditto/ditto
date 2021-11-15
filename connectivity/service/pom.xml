@@ -219,18 +219,6 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
             <artifactId>akka-stream-kafka-testkit_${scala.version}</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.webjars.npm</groupId>
-            <artifactId>github-com-protobufjs-protobuf-js</artifactId>
-            <version>6.11.1</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.webjars.npm</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
     </dependencies>
 
     <build>
@@ -361,16 +349,16 @@ jmh-generator-annprocess). jmh-generator-annprocess overwrites the whole META-IN
                             <artifactItems>
                                 <artifactItem>
                                     <groupId>org.webjars.npm</groupId>
-                                    <artifactId>github-com-protobufjs-protobuf-js</artifactId>
-                                    <version>6.11.1</version>
+                                    <artifactId>protobufjs</artifactId>
+                                    <version>6.11.2</version>
                                     <type>jar</type>
-                                    <includes>META-INF/resources/webjars/github-com-protobufjs-protobuf-js/6.11.1/protobuf.min.js</includes>
+                                    <includes>META-INF/resources/webjars/protobufjs/6.11.2/dist/protobuf.js</includes>
                                     <fileMappers>
                                         <org.codehaus.plexus.components.io.filemappers.FlattenFileMapper/>
                                     </fileMappers>
                                 </artifactItem>
                             </artifactItems>
-                            <outputDirectory>${project.build.testOutputDirectory}/unpacked-test-webjars</outputDirectory>
+                            <outputDirectory>${project.build.testOutputDirectory}/unpacked-test-webjars/</outputDirectory>
                         </configuration>
                     </execution>
                 </executions>
