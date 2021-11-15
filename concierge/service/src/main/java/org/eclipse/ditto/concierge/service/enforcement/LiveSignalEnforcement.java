@@ -20,6 +20,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -29,6 +30,7 @@ import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
+import org.eclipse.ditto.concierge.service.actors.LiveResponseAndAcknowledgementForwarder;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
@@ -59,6 +61,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandRe
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.japi.Pair;
 
 /**
@@ -76,17 +79,20 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
 
     private final EnforcerRetriever<Enforcer> enforcerRetriever;
     private final LiveSignalPub liveSignalPub;
+    private final ActorSystem actorSystem;
 
     private LiveSignalEnforcement(final Contextual<SignalWithEntityId<?>> context,
             final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
             final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
-            final LiveSignalPub liveSignalPub) {
+            final LiveSignalPub liveSignalPub,
+            final ActorSystem actorSystem) {
 
         super(context, ThingQueryCommandResponse.class);
         requireNonNull(thingIdCache);
         requireNonNull(policyEnforcerCache);
         enforcerRetriever = PolicyEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache);
         this.liveSignalPub = liveSignalPub;
+        this.actorSystem = actorSystem;
     }
 
     @Override
@@ -116,6 +122,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
         private final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache;
         private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
         private final LiveSignalPub liveSignalPub;
+        private final ActorSystem actorSystem;
 
         /**
          * Constructor.
@@ -126,11 +133,13 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
          */
         public Provider(final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
                 final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
-                final LiveSignalPub liveSignalPub) {
+                final LiveSignalPub liveSignalPub,
+                final ActorSystem actorSystem) {
 
             this.thingIdCache = requireNonNull(thingIdCache);
             this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
             this.liveSignalPub = liveSignalPub;
+            this.actorSystem = actorSystem;
         }
 
         @Override
@@ -147,7 +156,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
         @Override
         public AbstractEnforcement<SignalWithEntityId<?>> createEnforcement(
                 final Contextual<SignalWithEntityId<?>> context) {
-            return new LiveSignalEnforcement(context, thingIdCache, policyEnforcerCache, liveSignalPub);
+            return new LiveSignalEnforcement(context, thingIdCache, policyEnforcerCache, liveSignalPub, actorSystem);
         }
 
     }
@@ -277,11 +286,18 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                 final ThingCommand<?> withReadSubjects =
                         addEffectedReadSubjectsToThingLiveSignal((ThingCommand<?>) liveSignal, enforcer);
                 log(withReadSubjects).info("Live Command was authorized: <{}>", withReadSubjects);
-                if (liveSignal instanceof ThingQueryCommand && liveSignal.getDittoHeaders().isResponseRequired()) {
+                final boolean isThingQueryCommandRequiringResponse =
+                        liveSignal instanceof ThingQueryCommand && liveSignal.getDittoHeaders().isResponseRequired();
+                final boolean hasCustomAckRequests = hasCustomAcknowledgementRequests(withReadSubjects);
+                if (isThingQueryCommandRequiringResponse && !hasCustomAckRequests) {
                     return addToResponseReceiver(withReadSubjects).thenApply(newSignal ->
                             askAndBuildJsonView((ThingCommand<?>) newSignal, THING_COMMAND_ACK_EXTRACTOR,
                                     liveSignalPub.command(), enforcer)
                     );
+                } else if (isThingQueryCommandRequiringResponse) {
+                    return addToResponseReceiver(withReadSubjects).thenApply(newSignal ->
+                            askAndBuildJsonViewWithAckForwarding((ThingCommand<?>) newSignal,
+                                    THING_COMMAND_ACK_EXTRACTOR, liveSignalPub.command(), enforcer));
                 } else {
                     return publishLiveSignal(withReadSubjects, THING_COMMAND_ACK_EXTRACTOR, liveSignalPub.command());
                 }
@@ -292,6 +308,13 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                         .dittoHeaders(liveSignal.getDittoHeaders())
                         .build();
         }
+    }
+
+    private static boolean hasCustomAcknowledgementRequests(final Signal<?> signal) {
+        return !signal.getDittoHeaders()
+                .getAcknowledgementRequests()
+                .stream()
+                .allMatch(request -> DittoAcknowledgementLabel.LIVE_RESPONSE.equals(request.getLabel()));
     }
 
     /**
@@ -394,6 +417,21 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                 withMessageToReceiver(newSignal, pub.getPublisher(),
                         obj -> pub.wrapForPublicationWithAcks((S) obj, ackExtractor))
         );
+    }
+
+    private <T extends Signal<?>> Contextual<WithDittoHeaders> askAndBuildJsonViewWithAckForwarding(
+            final T signal,
+            final AckExtractor<T> ackExtractor,
+            final DistributedPub<T> pub,
+            final Enforcer enforcer) {
+
+        final var publish = pub.wrapForPublicationWithAcks(signal, ackExtractor);
+        final var castSignal = (SignalWithEntityId<?>) signal;
+        final var props = LiveResponseAndAcknowledgementForwarder.props(signal, pub.getPublisher(), sender());
+        final var liveResponseForwarder = actorSystem.actorOf(props);
+        return withMessageToReceiverViaAskFuture(signal, sender(), () ->
+                askAndBuildJsonView(liveResponseForwarder, castSignal, publish, enforcer, context.getScheduler(),
+                        context.getExecutor()));
     }
 
     private <T extends Signal<?>> Contextual<WithDittoHeaders> askAndBuildJsonView(

@@ -120,7 +120,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
                 policiesShardRegionProxy, thingIdCache, projectedEnforcerCache, preEnforcer));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache));
         enforcementProviders.add(
-                new LiveSignalEnforcement.Provider(thingIdCache, projectedEnforcerCache, liveSignalPub));
+                new LiveSignalEnforcement.Provider(thingIdCache, projectedEnforcerCache, liveSignalPub, actorSystem));
 
         final ActorRef conciergeEnforcerRouter =
                 ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(context,
