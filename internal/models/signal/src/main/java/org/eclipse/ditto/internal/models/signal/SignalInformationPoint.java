@@ -22,6 +22,8 @@ import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithType;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
@@ -45,12 +47,21 @@ public final class SignalInformationPoint {
      * Indicates whether the specified signal argument is a live command.
      *
      * @param signal the signal to be checked.
-     * @return {@code true} if {@code signal} is a live command, i.e. either a message command or a thing command with
-     * channel {@value CHANNEL_LIVE_VALUE} in its headers.
-     * {@code false} if {@code signal} is not a live command.
+     * @return {@code true} if {@code signal} is an instance of {@link Command} with channel
+     * {@value CHANNEL_LIVE_VALUE} in its headers, {@code false} else.
      */
     public static boolean isLiveCommand(@Nullable final Signal<?> signal) {
-        return isMessageCommand(signal) || isThingCommand(signal) && isChannelLive(signal);
+        return isMessageCommand(signal) || isCommand(signal) && isChannelLive(signal);
+    }
+
+    /**
+     * Indicates whether the specified signal argument is an instance of {@code Command}.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is an instance of {@link Command}, {@code false} else.
+     */
+    public static boolean isCommand(@Nullable final Signal<?> signal) {
+        return signal instanceof Command;
     }
 
     /**
@@ -88,12 +99,22 @@ public final class SignalInformationPoint {
      * Indicates whether the specified signal is a live command response.
      *
      * @param signal the signal to be checked.
-     * @return {@code true} if {@code signal} is a live command response, i.e. either a message command response
-     * or a thing command response with channel {@value CHANNEL_LIVE_VALUE} in its headers.
+     * @return {@code true} if {@code signal} is a live command response, i.e. an instance of {@link CommandResponse}
+     * with channel {@value CHANNEL_LIVE_VALUE} in its headers.
      * {@code false} if {@code signal} is not a live command response.
      */
     public static boolean isLiveCommandResponse(@Nullable final Signal<?> signal) {
-        return isMessageCommandResponse(signal) || isThingCommandResponse(signal) && isChannelLive(signal);
+        return isMessageCommandResponse(signal) || isCommandResponse(signal) && isChannelLive(signal);
+    }
+
+    /**
+     * Indicates whether the specified signal argument is an instance of {@code CommandResponse}.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if {@code signal} is an instance of {@link CommandResponse}, {@code false} else.
+     */
+    public static boolean isCommandResponse(@Nullable final Signal<?> signal) {
+        return signal instanceof CommandResponse;
     }
 
     /**
