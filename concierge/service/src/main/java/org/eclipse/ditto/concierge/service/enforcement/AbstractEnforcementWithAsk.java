@@ -73,6 +73,7 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
                 .thenApply(response -> filterJsonView(response, enforcer));
     }
 
+    @SuppressWarnings("unchecked")
     protected CompletionStage<R> askAndBuildJsonView(
             final ActorRef actorToAsk,
             final C commandWithReadSubjects,
@@ -82,7 +83,12 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
             final Executor executor) {
 
         return ask(actorToAsk, commandWithReadSubjects, publish, "before building JsonView", scheduler, executor)
-                .thenApply(response -> filterJsonView(response, enforcer));
+                .thenApply(response -> filterJsonView((R) response.setDittoHeaders(
+                        response.getDittoHeaders()
+                                .toBuilder()
+                                .authorizationContext(commandWithReadSubjects.getDittoHeaders().getAuthorizationContext())
+                                .build()
+                ), enforcer));
     }
 
     /**
