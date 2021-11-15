@@ -24,4 +24,8 @@
          return OS.contains("win");
      }
 
+     static boolean isMac() {
+         return OS.contains("mac");
+     }
+
  }
