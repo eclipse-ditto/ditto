@@ -100,7 +100,7 @@ final class Secret {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", name=" + name +
+                "name=" + name +
                 ", value=" + value +
                 "]";
     }

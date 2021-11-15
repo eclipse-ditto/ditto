@@ -64,6 +64,7 @@
         <slf4j.version>1.7.31</slf4j.version>
         <logback.version>1.2.6</logback.version>
         <logstash-logback-encoder.version>6.6</logstash-logback-encoder.version>
+        <fluency.version>2.6.0</fluency.version>
         <janino.version>2.7.8</janino.version>
 
         <!-- ### Metrics and Tracing -->
@@ -406,6 +407,16 @@
                 <groupId>org.codehaus.janino</groupId>
                 <artifactId>janino</artifactId>
                 <version>${janino.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.komamitsu</groupId>
+                <artifactId>fluency-core</artifactId>
+                <version>${fluency.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.komamitsu</groupId>
+                <artifactId>fluency-fluentd</artifactId>
+                <version>${fluency.version}</version>
             </dependency>
 
             <dependency>

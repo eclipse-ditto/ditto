@@ -34,7 +34,7 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
  */
 public final class InfoProviderFactory {
 
-    private static final String FALLBACK_CORRELATION_ID = "<not-provided>";
+    public static final String FALLBACK_CORRELATION_ID = "<not-provided>";
 
     private InfoProviderFactory() {
         throw new AssertionError();

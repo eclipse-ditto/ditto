@@ -122,7 +122,7 @@ final class BsonArrayDiff {
                 final int k = mostSimilarIndex.apply(elementDoc, j);
                 if (isMostSimilarElementADocument(subtrahend, k)) {
                     final int replaceSize = bsonSizeVisitor.eval(elementDoc);
-                    final BsonDiff diff = BsonDiff.minus(element.asDocument(), subtrahend.get(k).asDocument());
+                    final BsonDiff diff = BsonDiff.minus(element.asDocument(), subtrahend.get(k).asDocument(), false);
                     final BsonDiffList diffList = diff.consumeAndExportToList();
                     final var diffInPipeline = diffList.toBsonInPipeline(getSubtrahendElement(subtrahendExpr, k));
                     final boolean diffSizeIsBetter = diffInPipeline.map(bsonSizeVisitor::eval)

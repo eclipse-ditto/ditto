@@ -25,6 +25,8 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.KafkaConsumerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
@@ -58,12 +60,15 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             final ConsumerData consumerData,
             final Sink<Object, NotUsed> inboundMappingSink,
             final ConnectivityStatusResolver connectivityStatusResolver,
-            final ExponentialBackOffConfig exponentialBackOffConfig,
-            final Duration metricsReportingInterval) {
-
+            final ConnectivityConfig connectivityConfig) {
         super(connection, consumerData.getAddress(), inboundMappingSink, consumerData.getSource(),
-                connectivityStatusResolver);
+                connectivityStatusResolver, connectivityConfig);
 
+        final KafkaConsumerConfig consumerConfig = connectivityConfig
+                .getConnectionConfig()
+                .getKafkaConfig()
+                .getConsumerConfig();
+        final ExponentialBackOffConfig exponentialBackOffConfig = consumerConfig.getRestartBackOffConfig();
         log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
         final Materializer materializer = Materializer.createMaterializer(this::getContext);
         final Integer qos = source.getQos().orElse(DEFAULT_CONSUMPTION_QOS);
@@ -90,7 +95,8 @@ final class KafkaConsumerActor extends BaseConsumerActor {
                         return kafkaConsumerStream;
                     }, exponentialBackOffConfig);
         }
-        timers().startTimerAtFixedRate(ReportMetrics.class, ReportMetrics.INSTANCE, metricsReportingInterval);
+        timers().startTimerAtFixedRate(ReportMetrics.class, ReportMetrics.INSTANCE,
+                consumerConfig.getMetricCollectingInterval());
     }
 
     static Props props(final Connection connection,
@@ -98,11 +104,9 @@ final class KafkaConsumerActor extends BaseConsumerActor {
             final ConsumerData consumerData,
             final Sink<Object, NotUsed> inboundMappingSink,
             final ConnectivityStatusResolver connectivityStatusResolver,
-            final ExponentialBackOffConfig exponentialBackOffConfig,
-            final Duration metricsReportingInterval) {
-
+            final ConnectivityConfig connectivityConfig) {
         return Props.create(KafkaConsumerActor.class, connection, streamFactory, consumerData,
-                inboundMappingSink, connectivityStatusResolver, exponentialBackOffConfig, metricsReportingInterval);
+                inboundMappingSink, connectivityStatusResolver, connectivityConfig);
     }
 
     @Override

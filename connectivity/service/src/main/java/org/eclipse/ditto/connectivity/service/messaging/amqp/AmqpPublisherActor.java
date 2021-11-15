@@ -58,7 +58,7 @@ import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
-import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
@@ -113,11 +113,11 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     @SuppressWarnings("unused")
     private AmqpPublisherActor(final Connection connection,
             final Session session,
-            final ConnectionConfig connectionConfig,
             final String clientId,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
 
-        super(connection, clientId, connectivityStatusResolver);
+        super(connection, clientId, connectivityStatusResolver, connectivityConfig);
         this.session = checkNotNull(session, "session");
 
         final Executor jmsDispatcher = JMSConnectionHandlingActor.getOwnDispatcher(getContext().system());
@@ -172,16 +172,17 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      *
      * @param connection the connection this publisher belongs to
      * @param session the jms session
-     * @param connectionConfig configuration for all connections.
      * @param clientId identifier of the client actor.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
+     * @param connectivityConfig the connectivity configuration including potential overwrites.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connection connection, final Session session, final ConnectionConfig connectionConfig,
-            final String clientId, final ConnectivityStatusResolver connectivityStatusResolver) {
-        return Props.create(AmqpPublisherActor.class, connection, session, connectionConfig, clientId,
-                connectivityStatusResolver);
+    static Props props(final Connection connection, final Session session, final String clientId,
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
+        return Props.create(AmqpPublisherActor.class, connection, session, clientId, connectivityStatusResolver,
+                connectivityConfig);
     }
 
     @Override
@@ -205,7 +206,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         if (!isInBackOffMode) {
             final MessageProducer producer = report.getMessageProducer();
             final Throwable cause = report.getCause();
-            final String genericLogInfo = "Will try to re-establish the static targets after some cool-down period.";
+            final String genericLogInfo = "Will try to re-establish the static targets after some cool-down period";
             logger.info("Got closed AMQP 1.0 producer '{}'. {}", producer, genericLogInfo);
             connectionLogger.failure("Targets were closed due to an error in the target. {0}", genericLogInfo);
 
@@ -497,7 +498,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             return createProducer(destination);
         } catch (final JMSException e) {
             final String jmsExceptionString = jmsExceptionToString(e);
-            connectionLogger.failure("Failed to create producer for destination <{0}>: {1}.", destination,
+            connectionLogger.failure("Failed to create producer for destination <{0}>: {1}", destination,
                     jmsExceptionString);
             logger.warning("Failed to create producer for destination <{}>: {}.", destination, jmsExceptionString);
             return null;

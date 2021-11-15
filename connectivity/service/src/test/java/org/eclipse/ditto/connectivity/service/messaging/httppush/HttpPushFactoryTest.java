@@ -28,6 +28,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.config.DittoServiceConfig;
 import org.eclipse.ditto.base.service.config.http.DefaultHttpProxyConfig;
 import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;
@@ -39,7 +40,9 @@ import org.eclipse.ditto.connectivity.service.config.DefaultConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.junit.After;
@@ -329,14 +332,26 @@ public final class HttpPushFactoryTest {
     }
 
     private Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> newSourceSinkQueues(
-            final Flow<Pair<HttpRequest, Object>, Pair<Try<HttpResponse>, Object>, ?> flow) {
+            final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?> flow) {
 
         return Source.<HttpRequest>queue(10, OverflowStrategy.dropNew())
-                .map(r -> Pair.create(r, null))
+                .<Pair<HttpRequest, HttpPushContext>>map(r -> Pair.create(r, new TestHttpPushContext()))
                 .viaMat(flow, Keep.left())
                 .map(Pair::first)
                 .toMat(Sink.queue(), Keep.both())
                 .run(actorSystem);
+    }
+
+    private static class TestHttpPushContext implements HttpPushContext {
+        @Override
+        public ConnectionMonitor.InfoProvider getInfoProvider() {
+            return InfoProviderFactory.empty();
+        }
+
+        @Override
+        public void onResponse(final Try<HttpResponse> response) {
+            // no-op
+        }
     }
 
     private Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> newSourceSinkQueues(

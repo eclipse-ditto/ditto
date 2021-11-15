@@ -327,6 +327,41 @@ Clears all currently stored connection logs.
 ```
 
 
+## Publishing connection logs
+
+In addition to [enable collecting in-memory connection logs](#enable-connection-logs), connection logs may also be 
+published to a [Fluentd](https://www.fluentd.org) or [Fluent Bit](https://fluentbit.io) endpoint from where they can be 
+forwarded into a logging backend of your choice.
+
+This publishing of connection logs is not configured dynamically via a [piggyback helper command](#helper-commands), 
+instead this must be enabled via [configuration](installation-operating.html#ditto-configuration) in the 
+`connectivity.conf` by setting environment variables or overwriting the configuration via system properties.
+
+For example, set the following environment variables in the [connectivity](architecture-services-connectivity.html) 
+service:
+* `CONNECTIVITY_LOGGER_PUBLISHER_ENABLED` - set to `true` in order to enable connection log publishing, default: `false`
+* `CONNECTIVITY_LOGGER_PUBLISHER_LOG_TAG` - to specify a log tag to use for the published log entries - 
+   if this is not set, the default `connection:<connection-id>` will be used and the specific connection-id will be injected
+* `CONNECTIVITY_LOGGER_PUBLISHER_FLUENCY_HOST` - the hostname of the Fluentd or Fluent Bit endpoint, default: `"localhost"`
+* `CONNECTIVITY_LOGGER_PUBLISHER_FLUENCY_PORT` - the port of the Fluentd or Fluent Bit endpoint, default `24224`
+
+The contained fields in a single log entry are the following:
+* `connectionId`:  ID of the connection which produced the log entry
+* `level`:         one of: `"success"|"failure"`
+* `category`:      one of: `"connection"|"source"|"target"|"response"`
+* `type`:          one of: `"consumed"|"dispatched"|"filtered"|"mapped"|"dropped"|"enforced"|"published"|"acknowledged"`
+* `correlationId`: correlationId of the command/event, if available
+* `address`:       address of the Source/Target (e.g. MQTT topic, HTTP path), if available
+* `entityType` :   one of: `"thing"|"policy"`
+* `entityId`:      ID of the entity for which e.g. an event/message was processed (e.g. the Thing ID)
+* `instanceId`:    ID of the connectivity instance which processed the command/event, helpful if clientCount > 1 was configured
+* `message`:       the actual log message
+
+Please inspect the other available configuration options in 
+[connectivity.conf](https://github.com/eclipse/ditto/blob/master/connectivity/service/src/main/resources/connectivity.conf) 
+at path `ditto.connectivity.monitoring.logger.publisher` to learn about other configuration possibilities.
+
+
 ## Payload mapping configuration
 
 To enable a custom [payload mapping](connectivity-mapping.html) for a specific source or target of a connection, you

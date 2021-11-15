@@ -363,7 +363,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
     private ActorRef startRmqPublisherActor() {
         stopChildActor(rmqPublisherActor);
         final Props publisherProps = RabbitMQPublisherActor.props(connection(), getDefaultClientId(),
-                connectivityStatusResolver);
+                connectivityStatusResolver, connectivityConfig());
         return startChildActorConflictFree(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
     }
 
@@ -393,7 +393,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         final ActorRef consumer = startChildActorConflictFree(
                                 CONSUMER_ACTOR_PREFIX + addressWithIndex,
                                 RabbitMQConsumerActor.props(sourceAddress, getInboundMappingSink(), source,
-                                        channel, connection(), connectivityStatusResolver));
+                                        channel, connection(), connectivityStatusResolver, connectivityConfig()));
                         consumerByAddressWithIndex.put(addressWithIndex, consumer);
                         try {
                             final String consumerTag = channel.basicConsume(sourceAddress, false,
@@ -543,7 +543,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
                 connectionLogger.success("Consume OK for consumer queue {0}", consumingQueueByTag);
-                logger.info("Consume OK for consumer queue <{}> on connection <{}>.", consumingQueueByTag,
+                logger.info("Consume OK for consumer queue <{}> on connection <{}>", consumingQueueByTag,
                         connectionId());
             }
 
@@ -557,9 +557,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
             final String consumingQueueByTag = consumedTagsToAddresses.get(consumerTag);
             if (null != consumingQueueByTag) {
                 connectionLogger.failure("Consumer with queue {0} was cancelled. This can happen for example " +
-                        "when the queue was deleted.", consumingQueueByTag);
+                        "when the queue was deleted", consumingQueueByTag);
                 logger.info("Consumer with queue <{}> was cancelled on connection <{}>. This can happen for " +
-                        "example when the queue was deleted.", consumingQueueByTag, connectionId());
+                        "example when the queue was deleted", consumingQueueByTag, connectionId());
             }
 
             updateSourceStatus(ConnectivityStatus.MISCONFIGURED, "Consumer for queue cancelled at " + Instant.now());
@@ -573,9 +573,9 @@ public final class RabbitMQClientActor extends BaseClientActor {
             if (null != consumingQueueByTag) {
                 connectionLogger.failure(
                         "Consumer with queue <{0}> shutdown as the channel or the underlying connection has " +
-                                "been shut down.", consumingQueueByTag);
+                                "been shut down", consumingQueueByTag);
                 logger.warning("Consumer with queue <{}> shutdown as the channel or the underlying connection has " +
-                        "been shut down on connection <{}>.", consumingQueueByTag, connectionId());
+                        "been shut down on connection <{}>", consumingQueueByTag, connectionId());
             }
 
             final ConnectivityStatus failureStatus = connectivityStatusResolver.resolve(sig);

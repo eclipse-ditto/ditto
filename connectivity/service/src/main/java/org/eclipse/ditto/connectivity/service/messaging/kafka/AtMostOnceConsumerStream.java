@@ -79,7 +79,7 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
         unexpectedMessageSink = MergeHub.of(TransformationResult.class)
                 .to(Sink.foreach(result -> inboundMonitor.exception(
                         "Got unexpected transformation result <{0}>. This is an internal error. " +
-                                "Please contact the service team.", result
+                                "Please contact the service team", result
                 )))
                 .run(materializer);
         consumerControl = sourceSupplier.get()

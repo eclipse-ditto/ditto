@@ -16,7 +16,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 
@@ -41,16 +40,6 @@ public class DittoConnectionConfigProvider implements ConnectionConfigProvider {
     @Override
     public CompletionStage<Config> getConnectivityConfigOverwrites(final ConnectionId connectionId) {
         return CompletableFuture.completedFuture(ConfigFactory.empty());
-    }
-
-    @Override
-    public CompletionStage<ConnectivityConfig> getConnectivityConfig(final ConnectionId connectionId) {
-        return getConnectivityConfigOverwrites(connectionId)
-                .thenApply(overwrites -> {
-                    final Config defaultConfig = actorSystem.settings().config();
-                    final Config withOverwrites = overwrites.withFallback(defaultConfig);
-                    return ConnectivityConfig.of(withOverwrites);
-                });
     }
 
     @Override

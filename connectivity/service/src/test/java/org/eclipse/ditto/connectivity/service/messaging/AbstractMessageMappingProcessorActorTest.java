@@ -53,6 +53,7 @@ import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
 import org.eclipse.ditto.connectivity.model.SourceBuilder;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectivityCachingSignalEnrichmentProvider;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
@@ -353,7 +354,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         final Sink<Object, NotUsed> inboundDispatchingSink =
                 InboundDispatchingSink.createSink(CONNECTION, protocolAdapter.headerTranslator(),
                         ActorSelection.apply(proxyActor, ""), connectionActorProbe.ref(), outboundMappingProcessorActor,
-                        testKit.getRef(), actorSystem, actorSystem.settings().config());
+                        testKit.getRef(), actorSystem, ConnectivityConfig.of(actorSystem.settings().config()));
 
         final Sink<Object, NotUsed> inboundMappingSink =
                 InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99,
@@ -380,7 +381,8 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 protocolAdapter,
                 logger);
 
-        final Props props = OutboundMappingProcessorActor.props(kit.getRef(), outboundMappingProcessor, CONNECTION, 99);
+        final Props props = OutboundMappingProcessorActor.props(kit.getRef(), outboundMappingProcessor, CONNECTION,
+                TestConstants.CONNECTIVITY_CONFIG, 99);
         return actorSystem.actorOf(props);
     }
 

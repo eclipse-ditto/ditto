@@ -205,8 +205,8 @@ public final class KafkaClientActor extends BaseClientActor {
                 DefaultSendProducerFactory.getInstance(propertiesFactory.getProducerSettings(),
                         getContext().getSystem());
         final Props publisherActorProps =
-                publisherActorFactory.props(connection(), kafkaConfig.getProducerConfig(), producerFactory, dryRun,
-                        getDefaultClientId(), connectivityStatusResolver);
+                publisherActorFactory.props(connection(), producerFactory, dryRun,
+                        getDefaultClientId(), connectivityStatusResolver, connectivityConfig());
         kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.getActorName(), publisherActorProps);
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
     }
@@ -236,14 +236,11 @@ public final class KafkaClientActor extends BaseClientActor {
     private void startKafkaConsumer(final ConsumerData consumerData, final boolean dryRun) {
         final KafkaConsumerConfig consumerConfig = kafkaConfig.getConsumerConfig();
         final ConnectionThrottlingConfig throttlingConfig = consumerConfig.getThrottlingConfig();
-        final ExponentialBackOffConfig consumerRestartBackOffConfig = consumerConfig.getRestartBackOffConfig();
         final KafkaConsumerStreamFactory streamFactory =
                 new KafkaConsumerStreamFactory(throttlingConfig, propertiesFactory, consumerData, dryRun);
         final Props consumerActorProps =
-                KafkaConsumerActor.props(connection(), streamFactory,
-                        consumerData, getInboundMappingSink(),
-                        connectivityStatusResolver, consumerRestartBackOffConfig,
-                        consumerConfig.getMetricCollectingInterval());
+                KafkaConsumerActor.props(connection(), streamFactory, consumerData, getInboundMappingSink(),
+                        connectivityStatusResolver, connectivityConfig());
         final ActorRef consumerActor =
                 startChildActorConflictFree(consumerData.getActorNamePrefix(), consumerActorProps);
         kafkaConsumerActors.add(consumerActor);

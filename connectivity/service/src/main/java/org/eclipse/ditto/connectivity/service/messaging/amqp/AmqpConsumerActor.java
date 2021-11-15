@@ -109,7 +109,8 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
                 checkNotNull(consumerData, "consumerData").getAddress(),
                 inboundMappingSink,
                 consumerData.getSource(),
-                connectivityStatusResolver);
+                connectivityStatusResolver,
+                connectivityConfig);
 
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
@@ -207,13 +208,13 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
     @Override
     public void stopMessageConsumerDueToRateLimit(final String reason) {
         inboundMonitor.getCounter().recordFailure();
-        inboundMonitor.getLogger().failure("Source <{0}> is rate-limited due to {1}.", sourceAddress, reason);
+        inboundMonitor.getLogger().failure("Source <{0}> is rate-limited due to {1}", sourceAddress, reason);
         stopMessageConsumer();
     }
 
     @Override
     public void startMessageConsumerDueToRateLimit() {
-        inboundMonitor.getLogger().success("Rate limit on source <{0}> is lifted.", sourceAddress);
+        inboundMonitor.getLogger().success("Rate limit on source <{0}> is lifted", sourceAddress);
         startMessageConsumer();
     }
 
@@ -444,7 +445,8 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
                 inboundAcknowledgedMonitor.success(InfoProviderFactory.forHeaders(externalMessageHeaders),
                         "Sending success acknowledgement: <{0}>", ackTypeName);
             } else {
-                inboundAcknowledgedMonitor.exception("Sending negative acknowledgement: <{0}>", ackTypeName);
+                inboundAcknowledgedMonitor.exception(externalMessageHeaders,
+                        "Sending negative acknowledgement: <{0}>", ackTypeName);
             }
         } catch (final Exception e) {
             logger.withCorrelationId(correlationId.orElse(null)).error(e, "Failed to ack an AMQP message");

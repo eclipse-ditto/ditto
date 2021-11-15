@@ -39,6 +39,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DefaultConnectionConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
@@ -112,7 +113,7 @@ public final class HttpPublisherErrorTest {
             final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
                     mock(ConnectionLogger.class), SshTunnelState::disabled);
             final Props props = HttpPublisherActor.props(connection, factory, "clientId",
-                    mock(ConnectivityStatusResolver.class));
+                    mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
             final ActorRef underTest = watch(childActorOf(props));
 
             // WHEN: it is asked to publish events with delay between them larger than connection pool timeout
@@ -145,7 +146,7 @@ public final class HttpPublisherErrorTest {
             final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
                     mock(ConnectionLogger.class), SshTunnelState::disabled);
             final Props props = HttpPublisherActor.props(connection, factory, "clientId",
-                    mock(ConnectivityStatusResolver.class));
+                    mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
             final ActorRef underTest = watch(childActorOf(props));
 
             // GIVEN: The connection is working.

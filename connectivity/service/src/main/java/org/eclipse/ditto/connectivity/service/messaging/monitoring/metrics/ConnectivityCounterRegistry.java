@@ -492,7 +492,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
         @Override
         public String toString() {
             return getClass().getSimpleName() + " [" +
-                    ", connectionId=" + connectionId +
+                    "connectionId=" + connectionId +
                     ", metric=" + metric +
                     ", direction=" + direction +
                     ", address=" + address +

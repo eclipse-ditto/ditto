@@ -66,7 +66,7 @@ public class JsonObjectMergerTest {
     }
 
     @Test
-    public void mergeFieldsInsideArrays() {
+    public void mergeFieldsWithArrays() {
         final JsonObject object1 = JsonFactory.newObjectBuilder()
                 .set("a", JsonFactory.newArrayBuilder()
                         .add(JsonFactory.newObjectBuilder().set("x", 5).build())
@@ -76,6 +76,10 @@ public class JsonObjectMergerTest {
 
         final JsonObject object2 = JsonFactory.newObjectBuilder()
                 .set("a", JsonFactory.newArrayBuilder()
+                        .add(JsonFactory.newObjectBuilder().set("z", 5).build())
+                        .add(42)
+                        .build())
+                .set("b", JsonFactory.newArrayBuilder()
                         .add(JsonFactory.newObjectBuilder().set("y", 6).build())
                         .add(JsonFactory.newObjectBuilder().set("z", 9).build())
                         .add(7)
@@ -84,8 +88,12 @@ public class JsonObjectMergerTest {
 
         final JsonObject mergedObject = JsonFactory.newObjectBuilder()
                 .set("a", JsonFactory.newArrayBuilder()
-                        .add(JsonFactory.newObjectBuilder().set("x", 5).set("y", 6).build())
+                        .add(JsonFactory.newObjectBuilder().set("x", 5).build())
                         .add(JsonFactory.newArray())
+                        .build())
+                .set("b", JsonFactory.newArrayBuilder()
+                        .add(JsonFactory.newObjectBuilder().set("y", 6).build())
+                        .add(JsonFactory.newObjectBuilder().set("z", 9).build())
                         .add(7)
                         .build())
                 .build();

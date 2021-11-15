@@ -39,7 +39,6 @@ import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 
 import com.typesafe.config.Config;
 
@@ -56,7 +55,6 @@ public final class HttpPushClientActor extends BaseClientActor {
     private static final int PROXY_CONNECT_TIMEOUT_SECONDS = 15;
 
     private final HttpPushFactory factory;
-    private final ConnectionLogger connectionLogger;
 
     @Nullable
     private ActorRef httpPublisherActor;
@@ -68,7 +66,6 @@ public final class HttpPushClientActor extends BaseClientActor {
         super(connection, ActorRef.noSender(), connectionActor, dittoHeaders, connectivityConfigOverwrites);
         httpPushConfig = connectivityConfig().getConnectionConfig().getHttpPushConfig();
         final MonitoringLoggerConfig loggerConfig = connectivityConfig().getMonitoringConfig().logger();
-        connectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
         factory = HttpPushFactory.of(connection, httpPushConfig, connectionLogger, this::getSshTunnelState);
     }
 
@@ -145,7 +142,7 @@ public final class HttpPushClientActor extends BaseClientActor {
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         stopChildActor(httpPublisherActor);
         final Props props = HttpPublisherActor.props(connection(), factory, getDefaultClientId(),
-                connectivityStatusResolver);
+                connectivityStatusResolver, connectivityConfig());
         httpPublisherActor = startChildActorConflictFree(HttpPublisherActor.ACTOR_NAME, props);
         future.complete(DONE);
         return future;

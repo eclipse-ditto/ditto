@@ -268,6 +268,20 @@ public interface ConnectionMonitor {
     /**
      * Record an exception event.
      *
+     * @param headers that were processed during the exception.
+     * @param message a custom message that is used for logging the event.
+     * @param messageArguments additional message arguments that are part of {@code message}.
+     * {@link java.text.MessageFormat#format(String, Object...)} is used for applying message arguments to {@code message}.
+     */
+    default void exception(final Map<String, String> headers, final String message,
+            final Object... messageArguments) {
+        getLogger().exception(InfoProviderFactory.forHeaders(headers), message, messageArguments);
+        getCounter().recordFailure();
+    }
+
+    /**
+     * Record an exception event.
+     *
      * @param externalMessage that was processed during the exception event.
      * @param message a custom message that is used for logging the event.
      * @param messageArguments additional message arguments that are part of {@code message}.

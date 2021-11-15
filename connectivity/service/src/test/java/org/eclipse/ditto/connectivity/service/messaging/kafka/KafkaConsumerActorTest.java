@@ -35,6 +35,8 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.DefaultConnectionConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
@@ -129,14 +131,13 @@ public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRe
         final ConsumerData consumerData = new ConsumerData(connectionSource, address, "xy");
         final KafkaConsumerStreamFactory consumerStreamFactory =
                 new KafkaConsumerStreamFactory(sourceSupplier, null, consumerData, false);
-        final DefaultExponentialBackOffConfig backOffConfig = DefaultExponentialBackOffConfig.of(ConfigFactory.empty());
+        final ConnectivityConfig connectivityConfig = ConnectivityConfig.of(actorSystem.settings().config());
         return KafkaConsumerActor.props(CONNECTION,
                 consumerStreamFactory,
                 new ConsumerData(connectionSource, address, address + 0),
                 inboundMappingSink,
                 mock(ConnectivityStatusResolver.class),
-                backOffConfig,
-                Duration.ofSeconds(10));
+                connectivityConfig);
     }
 
     @Override
