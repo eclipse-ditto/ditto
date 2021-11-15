@@ -17,17 +17,11 @@ import static org.eclipse.ditto.thingsearch.service.persistence.PersistenceConst
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.persistence.mongo.DittoMongoClient;
-import org.eclipse.ditto.internal.utils.persistence.mongo.MongoClientWrapper;
-import org.eclipse.ditto.internal.utils.persistence.mongo.config.MongoDbConfig;
-import org.eclipse.ditto.internal.utils.persistence.mongo.monitoring.KamonCommandListener;
-import org.eclipse.ditto.internal.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoTimestampPersistence;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonKey;
@@ -43,9 +37,6 @@ import org.eclipse.ditto.thingsearch.service.persistence.read.MongoThingsSearchP
 import org.eclipse.ditto.thingsearch.service.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdaterRootActor;
-
-import com.mongodb.event.CommandListener;
-import com.mongodb.event.ConnectionPoolListener;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -64,28 +55,23 @@ public final class SearchRootActor extends DittoRootActor {
      */
     public static final String ACTOR_NAME = "thingsSearchRoot";
 
-    private static final String KAMON_METRICS_PREFIX = "search";
-
     private final LoggingAdapter log;
 
     @SuppressWarnings("unused")
     private SearchRootActor(final SearchConfig searchConfig, final ActorRef pubSubMediator) {
 
-        log = Logging.getLogger(getContext().system(), this);
+        final var actorSystem = getContext().getSystem();
+        log = Logging.getLogger(actorSystem, this);
 
         final var mongoDbConfig = searchConfig.getMongoDbConfig();
         final var monitoringConfig = mongoDbConfig.getMonitoringConfig();
 
-        final DittoMongoClient mongoDbClient = MongoClientWrapper.getBuilder(mongoDbConfig)
-                .addCommandListener(getCommandListenerOrNull(monitoringConfig))
-                .addConnectionPoolListener(getConnectionPoolListenerOrNull(monitoringConfig))
-                .build();
+        final DittoMongoClient mongoDbClient = MongoClientExtension.get(actorSystem).getSearchClient();
 
         final var thingsSearchPersistence = getThingsSearchPersistence(searchConfig, mongoDbClient);
         final ActorRef searchActor = initializeSearchActor(searchConfig.getLimitsConfig(), thingsSearchPersistence);
         pubSubMediator.tell(DistPubSubAccess.put(searchActor), getSelf());
 
-        final var actorSystem = getContext().getSystem();
         final TimestampPersistence backgroundSyncPersistence =
                 MongoTimestampPersistence.initializedInstance(BACKGROUND_SYNC_COLLECTION_NAME, mongoDbClient,
                         SystemMaterializer.get(actorSystem).materializer());
@@ -98,21 +84,7 @@ public final class SearchRootActor extends DittoRootActor {
         bindHttpStatusRoute(searchConfig.getHttpConfig(), healthCheckingActor);
     }
 
-    @Nullable
-    private static CommandListener getCommandListenerOrNull(final MongoDbConfig.MonitoringConfig monitoringConfig) {
-        return monitoringConfig.isCommandsEnabled() ? new KamonCommandListener(KAMON_METRICS_PREFIX) : null;
-    }
-
-    @Nullable
-    private static ConnectionPoolListener getConnectionPoolListenerOrNull(
-            final MongoDbConfig.MonitoringConfig monitoringConfig) {
-
-        return monitoringConfig.isConnectionPoolEnabled()
-                ? new KamonConnectionPoolListener(KAMON_METRICS_PREFIX)
-                : null;
-    }
-
-    protected static QueryParser getQueryParser(final LimitsConfig limitsConfig, final ActorSystem actorSystem) {
+    static QueryParser getQueryParser(final LimitsConfig limitsConfig, final ActorSystem actorSystem) {
         final var fieldExpressionFactory = getThingsFieldExpressionFactory();
         final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(limitsConfig);
         final var queryCriteriaValidator = QueryCriteriaValidator.get(actorSystem);
@@ -173,8 +145,8 @@ public final class SearchRootActor extends DittoRootActor {
         final Map<String, String> mappings = new HashMap<>(6);
         mappings.put(FieldExpressionUtil.FIELD_NAME_THING_ID, FieldExpressionUtil.FIELD_ID);
         mappings.put(FieldExpressionUtil.FIELD_NAME_NAMESPACE, FieldExpressionUtil.FIELD_NAMESPACE);
-        addMapping(mappings, Thing.JsonFields.POLICY_ID);
-        addMapping(mappings, Thing.JsonFields.REVISION);
+        addMapping(mappings, Thing.JsonFields.POLICY_ID); // also present as top-level field in search collection, however not indexed
+        addMapping(mappings, Thing.JsonFields.REVISION); // also present as top-level field in search collection, however not indexed
         addMapping(mappings, Thing.JsonFields.MODIFIED);
         addMapping(mappings, Thing.JsonFields.CREATED);
         addMapping(mappings, Thing.JsonFields.DEFINITION);
@@ -185,7 +157,6 @@ public final class SearchRootActor extends DittoRootActor {
             final ThingsSearchPersistence thingsSearchPersistence) {
 
         final var queryParser = getQueryParser(limitsConfig, getContext().getSystem());
-
         return startChildActor(SearchActor.ACTOR_NAME, SearchActor.props(queryParser, thingsSearchPersistence));
     }
 

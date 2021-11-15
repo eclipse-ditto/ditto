@@ -31,6 +31,16 @@ public interface ConnectionMetricsCounter {
     void recordFailure();
 
     /**
+     * Record a successful operation at the given timestamp.
+     */
+    void recordSuccess(long ts);
+
+    /**
+     * Record a failed operation at the given timestamp.
+     */
+    void recordFailure(long ts);
+
+    /**
      * @return the metricType of this collector.
      */
     MetricType getMetricType();

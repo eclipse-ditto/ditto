@@ -119,6 +119,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
     @Override
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator,
             final ConnectionId id) {
+
         // essentially never restart
         final TestProbe proxyActorProbe = new TestProbe(system, "proxyActor");
         final ConnectivityCommandInterceptor dummyInterceptor = (command, connectionSupplier) -> {};

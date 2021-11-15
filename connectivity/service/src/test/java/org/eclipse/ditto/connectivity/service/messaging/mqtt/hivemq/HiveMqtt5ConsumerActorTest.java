@@ -35,6 +35,7 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorWithAcknowledgementsTest;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
@@ -44,6 +45,7 @@ import com.hivemq.client.internal.checkpoint.Confirmable;
 import com.hivemq.client.internal.mqtt.message.publish.MqttPublish;
 import com.hivemq.client.mqtt.mqtt5.datatypes.Mqtt5UserProperties;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
+import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
 import akka.actor.Props;
@@ -86,7 +88,8 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorWithA
                         .address("foo")
                         .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                         .build())
-                .build(), false, SPECIFIC_CONFIG, mock(ConnectivityStatusResolver.class));
+                .build(), false, SPECIFIC_CONFIG, mock(ConnectivityStatusResolver.class),
+                ConnectivityConfig.of(actorSystem.settings().config()));
     }
 
     @Override
@@ -118,7 +121,8 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorWithA
                         .address("foo")
                         .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                         .build())
-                .build(), false, SPECIFIC_CONFIG, mock(ConnectivityStatusResolver.class));
+                .build(), false, SPECIFIC_CONFIG, mock(ConnectivityStatusResolver.class),
+                ConnectivityConfig.of(actorSystem.settings().config()));
     }
 
     @Override

@@ -30,6 +30,25 @@ In [policy actions](basic-policy.html#actions), the following placeholders are a
 | `{%raw%}{{ jwt:<jwt-body-claim> }}{%endraw%}` | any standard or custom claims in the body of the authenticated JWT - e.g., `jwt:sub` for the JWT "subject" |
 | `{%raw%}{{ policy-entry:label }}{%endraw%}` | label of the policy entry in which the token integration subject is injected |
 
+### Scope: RQL expressions when filtering for Ditto Protocol messages
+
+When using [RQL expressions](basic-rql.html) in scope of either [change notifications](basic-changenotifications.html)
+or subscriptions for live messages, the following placeholders are available in general:
+
+| Placeholder                       | Description  |
+|-----------------------------------|--------------|
+| `topic:full` | full [Ditto Protocol topic path](protocol-specification-topic.html)<br/>in the form `{namespace}/{entityId}/{group}/`<br/>`{channel}/{criterion}/{action-subject}` |
+| `topic:namespace` | Ditto Protocol [topic namespace](protocol-specification-topic.html#namespace) |
+| `topic:entityName` | Ditto Protocol [topic entity name](protocol-specification-topic.html#entity-name) |
+| `topic:group` | Ditto Protocol [topic group](protocol-specification-topic.html#group) |
+| `topic:channel` | Ditto Protocol [topic channel](protocol-specification-topic.html#channel) |
+| `topic:criterion` | Ditto Protocol [topic criterion](protocol-specification-topic.html#criterion) |
+| `topic:action` | Ditto Protocol [topic action](protocol-specification-topic.html#action-optional) |
+| `topic:subject` | Ditto Protocol [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
+| `topic:action-subject` | either Ditto Protocol [topic action](protocol-specification-topic.html#action-optional) or [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
+| `resource:type` | the type of the Ditto Protocol [path](protocol-specification.html#path) , one of: `"thing" "policy" "message" "connection"` |
+| `resource:path` | the affected resource's path being the Ditto Protocol [path](protocol-specification.html#path) in JsonPointer notation, e.g. `/` when a complete thing was created/modified/deleted |
+
 ### Scope: Connections
 
 In [connections](basic-connections.html), the following placeholders are available in general:
@@ -46,15 +65,16 @@ In [connections](basic-connections.html), the following placeholders are availab
 | `{%raw%}{{ header:<header-name> }}{%endraw%}` | external header value for connection sources, or Ditto protocol header value for targets and reply-targets (both case-insensitive) |
 | `{%raw%}{{ request:subjectId }}{%endraw%}` | primary authorization subject of a command, or primary authorization subject that caused an event |
 | `{%raw%}{{ topic:full }}{%endraw%}` | full [Ditto Protocol topic path](protocol-specification-topic.html)<br/>in the form `{namespace}/{entityId}/{group}/`<br/>`{channel}/{criterion}/{action-subject}` |
-| `{%raw%}{{ topic:namespace }}{%endraw%}` | Ditto Protocol [Namespace](protocol-specification-topic.html#namespace) |
-| `{%raw%}{{ topic:entityId }}{%endraw%}` | Deprecated. Use `{%raw%}{{ topic:entityName }}{%endraw%}` instead. |
-| `{%raw%}{{ topic:entityName }}{%endraw%}` | Ditto Protocol [Entity Name](protocol-specification-topic.html#entity-name) |
-| `{%raw%}{{ topic:group }}{%endraw%}` | Ditto Protocol [Group](protocol-specification-topic.html#group) |
-| `{%raw%}{{ topic:channel }}{%endraw%}` | Ditto Protocol [Channel](protocol-specification-topic.html#channel) |
-| `{%raw%}{{ topic:criterion }}{%endraw%}` | Ditto Protocol [Criterion](protocol-specification-topic.html#criterion) |
-| `{%raw%}{{ topic:action }}{%endraw%}` | Ditto Protocol [Action](protocol-specification-topic.html#action-optional) |
-| `{%raw%}{{ topic:subject }}{%endraw%}` | Ditto Protocol [Subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
-| `{%raw%}{{ topic:action-subject }}{%endraw%}` | either Ditto Protocol [Action](protocol-specification-topic.html#action-optional) or [Subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
+| `{%raw%}{{ topic:namespace }}{%endraw%}` | Ditto Protocol [topic namespace](protocol-specification-topic.html#namespace) |
+| `{%raw%}{{ topic:entityName }}{%endraw%}` | Ditto Protocol [topic entity name](protocol-specification-topic.html#entity-name) |
+| `{%raw%}{{ topic:group }}{%endraw%}` | Ditto Protocol [topic group](protocol-specification-topic.html#group) |
+| `{%raw%}{{ topic:channel }}{%endraw%}` | Ditto Protocol [topic channel](protocol-specification-topic.html#channel) |
+| `{%raw%}{{ topic:criterion }}{%endraw%}` | Ditto Protocol [topic criterion](protocol-specification-topic.html#criterion) |
+| `{%raw%}{{ topic:action }}{%endraw%}` | Ditto Protocol [topic action](protocol-specification-topic.html#action-optional) |
+| `{%raw%}{{ topic:subject }}{%endraw%}` | Ditto Protocol [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
+| `{%raw%}{{ topic:action-subject }}{%endraw%}` | either Ditto Protocol [topic action](protocol-specification-topic.html#action-optional) or [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
+| `{%raw%}{{ resource:type }}{%endraw%}` | the type of the Ditto Protocol [path](protocol-specification.html#path) , one of: `thing`, `policy`, `message` or `connection` |
+| `{%raw%}{{ resource:path }}{%endraw%}` | the affected resource's path being the Ditto Protocol [path](protocol-specification.html#path) in JsonPointer notation, e.g. `/` when a complete thing was created/modified/deleted |
 
 
 #### Examples

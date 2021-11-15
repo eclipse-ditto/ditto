@@ -14,20 +14,13 @@ package org.eclipse.ditto.protocol.adapter.things;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Optional;
-
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.protocol.adapter.AbstractAdapter;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.EventAdapter;
-import org.eclipse.ditto.protocol.EventsTopicPathBuilder;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.Payload;
-import org.eclipse.ditto.protocol.PayloadBuilder;
-import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.AbstractAdapter;
+import org.eclipse.ditto.protocol.adapter.EventAdapter;
+import org.eclipse.ditto.protocol.mapper.SignalMapperFactory;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategiesFactory;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
@@ -37,7 +30,9 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 final class ThingEventAdapter extends AbstractThingAdapter<ThingEvent<?>> implements EventAdapter<ThingEvent<?>> {
 
     private ThingEventAdapter(final HeaderTranslator headerTranslator) {
-        super(MappingStrategiesFactory.getThingEventMappingStrategies(), headerTranslator);
+        super(MappingStrategiesFactory.getThingEventMappingStrategies(),
+                SignalMapperFactory.newThingEventSignalMapper(),
+                headerTranslator);
     }
 
     /**
@@ -63,30 +58,6 @@ final class ThingEventAdapter extends AbstractThingAdapter<ThingEvent<?>> implem
         final JsonPointer path = adaptable.getPayload().getPath();
         final String eventName = payloadPathMatcher.match(path) + getActionNameWithFirstLetterUpperCase(topicPath);
         return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + eventName;
-    }
-
-    @Override
-    public Adaptable mapSignalToAdaptable(final ThingEvent<?> event, final TopicPath.Channel channel) {
-        final EventsTopicPathBuilder eventsTopicPathBuilder = getEventTopicPathBuilderFor(event, channel);
-        final PayloadBuilder payloadBuilder = Payload.newBuilder(event.getResourcePath())
-                .withRevision(event.getRevision());
-        event.getTimestamp().ifPresent(payloadBuilder::withTimestamp);
-
-        final Optional<JsonValue> value =
-                event.getEntity(event.getDittoHeaders().getSchemaVersion().orElse(event.getLatestSchemaVersion()));
-        value.ifPresent(payloadBuilder::withValue);
-
-        final DittoHeaders headers;
-        if (value.isPresent()) {
-            headers = ProtocolFactory.newHeadersWithJsonContentType(event.getDittoHeaders());
-        } else {
-            headers = event.getDittoHeaders();
-        }
-
-        return Adaptable.newBuilder(eventsTopicPathBuilder.build())
-                .withPayload(payloadBuilder.build())
-                .withHeaders(headers)
-                .build();
     }
 
 }

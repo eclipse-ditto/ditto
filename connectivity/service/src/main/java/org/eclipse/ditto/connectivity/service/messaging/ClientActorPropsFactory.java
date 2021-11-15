@@ -17,6 +17,8 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 
+import com.typesafe.config.Config;
+
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
@@ -37,6 +39,6 @@ public interface ClientActorPropsFactory {
      * @return the actor props
      */
     Props getActorPropsForType(Connection connection, @Nullable ActorRef proxyActor, ActorRef connectionActor,
-            ActorSystem actorSystem, final DittoHeaders dittoHeaders);
+            ActorSystem actorSystem, DittoHeaders dittoHeaders, Config connectivityConfigOverwrites);
 
 }

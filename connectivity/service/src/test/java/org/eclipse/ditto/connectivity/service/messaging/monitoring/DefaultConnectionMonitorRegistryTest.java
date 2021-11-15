@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.junit.Test;
+import org.komamitsu.fluency.Fluency;
+import org.komamitsu.fluency.fluentd.FluencyBuilderForFluentd;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -27,13 +29,17 @@ public class DefaultConnectionMonitorRegistryTest {
 
     @Test
     public void fromConfig() {
-        assertThat(DefaultConnectionMonitorRegistry.fromConfig(TestConstants.MONITORING_CONFIG))
+        assertThat(DefaultConnectionMonitorRegistry.fromConfig(TestConstants.CONNECTIVITY_CONFIG))
                 .isNotNull();
     }
 
     @Test
     public void testEqualsAndHashcode() {
-        EqualsVerifier.forClass(DefaultConnectionMonitorRegistry.class).verify();
+        final Fluency red = new FluencyBuilderForFluentd().build();
+        final Fluency black = new FluencyBuilderForFluentd().build("localhost", 9999);
+
+        EqualsVerifier.forClass(DefaultConnectionMonitorRegistry.class).withPrefabValues(Fluency.class, red, black)
+                .verify();
     }
 
 }

@@ -40,7 +40,6 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
-import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocol.TopicPath;
@@ -97,7 +96,8 @@ public final class OutboundMappingProcessorActorTest {
     public void sendWeakAckForAllSourcesAndTargetsWhenDroppedByAllTargets() {
         new TestKit(actorSystem) {{
             final Props props =
-                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION, 3);
+                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION,
+                            TestConstants.CONNECTIVITY_CONFIG, 3);
             final ActorRef underTest = actorSystem.actorOf(props);
 
             // WHEN: mapping processor actor receives outbound signal whose every authorized target is filtered out
@@ -125,7 +125,8 @@ public final class OutboundMappingProcessorActorTest {
     public void sendWeakAckWhenDroppedBySomeTarget() {
         new TestKit(actorSystem) {{
             final Props props =
-                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION, 3);
+                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION,
+                            TestConstants.CONNECTIVITY_CONFIG, 3);
             final ActorRef underTest = actorSystem.actorOf(props);
 
             // WHEN: mapping processor actor receives outbound signal with 2 authorized targets,
@@ -154,7 +155,8 @@ public final class OutboundMappingProcessorActorTest {
     public void sendWeakAckWhenDroppedByMapper() {
         new TestKit(actorSystem) {{
             final Props props =
-                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION, 3);
+                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION,
+                            TestConstants.CONNECTIVITY_CONFIG, 3);
             final ActorRef underTest = actorSystem.actorOf(props);
 
             // WHEN: mapping processor actor receives outbound signal with 2 authorized targets,
@@ -181,7 +183,8 @@ public final class OutboundMappingProcessorActorTest {
     public void doNotSendWeakAckForLiveResponse() {
         new TestKit(actorSystem) {{
             final Props props =
-                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION, 3);
+                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION,
+                            TestConstants.CONNECTIVITY_CONFIG, 3);
             final ActorRef underTest = actorSystem.actorOf(props);
 
             // WHEN: mapping processor actor receives outbound signal with 3 authorized targets,
@@ -207,7 +210,8 @@ public final class OutboundMappingProcessorActorTest {
     public void expectNoTargetIssuedAckRequestInPublishedSignals() {
         new TestKit(actorSystem) {{
             final Props props =
-                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION, 3);
+                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION,
+                            TestConstants.CONNECTIVITY_CONFIG, 3);
             final ActorRef underTest = actorSystem.actorOf(props);
 
             // WHEN: mapping processor actor receives outbound signal
@@ -230,8 +234,7 @@ public final class OutboundMappingProcessorActorTest {
     }
 
     private OutboundMappingProcessor getProcessor() {
-        final var connectionContext = DittoConnectionContext.of(CONNECTION, TestConstants.CONNECTIVITY_CONFIG);
-        return OutboundMappingProcessor.of(connectionContext, actorSystem,
+        return OutboundMappingProcessor.of(CONNECTION, TestConstants.CONNECTIVITY_CONFIG, actorSystem,
                 protocolAdapterProvider.getProtocolAdapter("test"),
                 AbstractMessageMappingProcessorActorTest.mockLoggingAdapter());
     }

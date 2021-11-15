@@ -18,8 +18,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
+import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonFactory;
@@ -79,7 +81,7 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
                 .map(SortOption::getSortExpression)
                 .map(GetSortBsonVisitor::path)
                 .map(seekToPath(document))
-                .forEach(value -> builder.add(JsonValue.of(value)));
+                .forEach(value -> builder.add(toJsonValue(value)));
         return builder.build();
     }
 
@@ -102,13 +104,15 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
     @Override
     public String visitFeatureIdProperty(final String featureId, final String property) {
         return MongoSortKeyMappingFunction.mapSortKey(
-                PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_FEATURES, featureId, PersistenceConstants.FIELD_PROPERTIES, property);
+                PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_FEATURES, featureId,
+                PersistenceConstants.FIELD_PROPERTIES, property);
     }
 
     @Override
     public String visitFeatureIdDesiredProperty(final CharSequence featureId, final CharSequence desiredProperty) {
         return MongoSortKeyMappingFunction.mapSortKey(
-                PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_FEATURES, featureId.toString(), PersistenceConstants.FIELD_DESIRED_PROPERTIES,
+                PersistenceConstants.FIELD_SORTING, PersistenceConstants.FIELD_FEATURES, featureId.toString(),
+                PersistenceConstants.FIELD_DESIRED_PROPERTIES,
                 desiredProperty.toString());
     }
 
@@ -156,6 +160,16 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
             return document.get(segments[i]);
         } else {
             return seekToPathImpl(document.get(segments[i], Document.class), segments, i + 1);
+        }
+    }
+
+    private static JsonValue toJsonValue(final Object object) {
+        if (object instanceof Document) {
+            return JsonFactory.readFrom(((Document) object).toJson());
+        } else if (object instanceof BsonValue) {
+            return DittoBsonJson.getInstance().serialize((BsonValue) object);
+        } else {
+            return JsonValue.of(object);
         }
     }
 

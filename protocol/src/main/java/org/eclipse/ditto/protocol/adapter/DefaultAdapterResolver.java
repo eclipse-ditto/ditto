@@ -24,13 +24,13 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.connectivity.ConnectivityCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.AcknowledgementAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.PolicyCommandAdapterProvider;
 import org.eclipse.ditto.protocol.adapter.provider.ThingCommandAdapterProvider;
-import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Implements the logic to select the correct {@link org.eclipse.ditto.protocol.adapter.Adapter} from a given {@link org.eclipse.ditto.protocol.Adaptable}.
@@ -38,6 +38,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 final class DefaultAdapterResolver implements AdapterResolver {
 
     private final Function<Adaptable, Adapter<?>> resolver;
+    private final AdapterResolverBySignal resolverBySignal;
 
     DefaultAdapterResolver(final ThingCommandAdapterProvider thingsAdapters,
             final PolicyCommandAdapterProvider policiesAdapters,
@@ -49,12 +50,19 @@ final class DefaultAdapterResolver implements AdapterResolver {
         adapters.addAll(connectivityAdapters.getAdapters());
         adapters.addAll(acknowledgementAdapters.getAdapters());
         resolver = computeResolver(adapters);
+        resolverBySignal = new AdapterResolverBySignal(thingsAdapters, policiesAdapters, connectivityAdapters,
+                acknowledgementAdapters);
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public Adapter<? extends Signal<?>> getAdapter(final Adaptable adaptable) {
         return (Adapter<? extends Signal<?>>) resolver.apply(adaptable);
+    }
+
+    @Override
+    public Adapter<Signal<?>> getAdapter(final Signal<?> signal, final TopicPath.Channel channel) {
+        return resolverBySignal.resolve(signal, channel);
     }
 
     private static boolean isResponse(final Adaptable adaptable) {
@@ -268,7 +276,8 @@ final class DefaultAdapterResolver implements AdapterResolver {
         private final Function<Adapter<?>, Set<T>> getSupportedEnums;
         private final Function<Adaptable, Optional<T>> extractEnum;
 
-        private ForEnumOptional(final Class<T> enumClass, final T[] enumValues,
+        private ForEnumOptional(final Class<T> enumClass,
+                final T[] enumValues,
                 final Function<Adapter<?>, Set<T>> getSupportedEnums,
                 final Function<Adaptable, Optional<T>> extractEnum) {
             this.enumClass = enumClass;
@@ -430,4 +439,5 @@ final class DefaultAdapterResolver implements AdapterResolver {
             return t -> EnumSet.of(Bool.of(predicate.test(t)));
         }
     }
+
 }

@@ -43,11 +43,11 @@ import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.WithResource;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
-import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignal.Mapped;
@@ -59,7 +59,7 @@ import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.connectivity.model.MetricDirection;
 import org.eclipse.ditto.connectivity.model.MetricType;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.connectivity.service.mapping.ConnectivitySignalEnrichmentProvider;
@@ -74,12 +74,17 @@ import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentFacade
 import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.PlaceholderResolver;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
+import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
@@ -95,7 +100,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
-import akka.japi.pf.ReceiveBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -118,6 +122,10 @@ public final class OutboundMappingProcessorActor
      */
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
 
+    private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
+    private static final TopicPathPlaceholder TOPIC_PATH_PLACEHOLDER = TopicPathPlaceholder.getInstance();
+    private static final ResourcePlaceholder RESOURCE_PLACEHOLDER = ResourcePlaceholder.getInstance();
+
     private final ThreadSafeDittoLoggingAdapter dittoLoggingAdapter;
 
     private final ActorRef clientActor;
@@ -130,14 +138,13 @@ public final class OutboundMappingProcessorActor
     private final SignalEnrichmentFacade signalEnrichmentFacade;
     private final int processorPoolSize;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
-
-    // not final because it may change when the underlying config changed
-    private OutboundMappingProcessor outboundMappingProcessor;
+    private final OutboundMappingProcessor outboundMappingProcessor;
 
     @SuppressWarnings("unused")
     private OutboundMappingProcessorActor(final ActorRef clientActor,
             final OutboundMappingProcessor outboundMappingProcessor,
             final Connection connection,
+            final ConnectivityConfig connectivityConfig,
             final int processorPoolSize) {
 
         super(OutboundSignal.class);
@@ -149,15 +156,11 @@ public final class OutboundMappingProcessorActor
         dittoLoggingAdapter = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, this.connection.getId());
 
-        final DefaultScopedConfig dittoScoped =
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
-
-        final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         mappingConfig = connectivityConfig.getMappingConfig();
-        final LimitsConfig limitsConfig = DefaultLimitsConfig.of(dittoScoped);
+        final LimitsConfig limitsConfig = connectivityConfig.getLimitsConfig();
 
-        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
+        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig);
         responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(this.connection);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(this.connection);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(this.connection);
@@ -181,9 +184,7 @@ public final class OutboundMappingProcessorActor
         final boolean customAckRequested = requestedAcks.stream()
                 .anyMatch(request -> !DittoAcknowledgementLabel.contains(request.getLabel()));
 
-        final Optional<EntityId> entityIdWithType = extractEntityId(signal)
-                .filter(EntityId.class::isInstance)
-                .map(EntityId.class::cast);
+        final Optional<EntityId> entityIdWithType = extractEntityId(signal);
         if (customAckRequested && entityIdWithType.isPresent()) {
             final List<AcknowledgementLabel> weakAckLabels = requestedAcks.stream()
                     .map(AcknowledgementRequest::getLabel)
@@ -215,18 +216,21 @@ public final class OutboundMappingProcessorActor
      * @param clientActor the client actor that created this mapping actor.
      * @param outboundMappingProcessor the MessageMappingProcessor to use for outbound messages.
      * @param connection the connection.
+     * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @param processorPoolSize how many message processing may happen in parallel per direction (incoming or outgoing).
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef clientActor,
             final OutboundMappingProcessor outboundMappingProcessor,
             final Connection connection,
+            final ConnectivityConfig connectivityConfig,
             final int processorPoolSize) {
 
         return Props.create(OutboundMappingProcessorActor.class,
                 clientActor,
                 outboundMappingProcessor,
                 connection,
+                connectivityConfig,
                 processorPoolSize
         ).withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
     }
@@ -235,6 +239,7 @@ public final class OutboundMappingProcessorActor
     public Receive createReceive() {
         final PartialFunction<Object, Object> wrapAsOutboundSignal = new PFBuilder<>()
                 .match(Acknowledgement.class, this::handleNotExpectedAcknowledgement)
+                .match(ErrorResponse.class, errResponse -> handleCommandResponse(errResponse, errResponse.getDittoRuntimeException(), getSender()))
                 .match(CommandResponse.class, response -> handleCommandResponse(response, null, getSender()))
                 .match(Signal.class, signal -> handleSignal(signal, getSender()))
                 .match(DittoRuntimeException.class, this::mapDittoRuntimeException)
@@ -258,15 +263,6 @@ public final class OutboundMappingProcessorActor
     @Override
     protected int getBufferSize() {
         return mappingConfig.getBufferSize();
-    }
-
-    @Override
-    protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder
-                .match(BaseClientActor.ReplaceOutboundMappingProcessor.class, replaceProcessor -> {
-                    dittoLoggingAdapter.info("Replacing the OutboundMappingProcessor with a modified one.");
-                    this.outboundMappingProcessor = replaceProcessor.getOutboundMappingProcessor();
-                });
     }
 
     private Object handleNotExpectedAcknowledgement(final Acknowledgement acknowledgement) {
@@ -529,12 +525,12 @@ public final class OutboundMappingProcessorActor
                 MappingOutcome.<OutboundSignal.Mapped, Source<OutboundSignalWithSender, ?>>newVisitorBuilder()
                         .onMapped((mapperId, mapped) -> {
                             outboundMapped.forEach(monitor -> monitor.success(infoProvider,
-                                    "Mapped outgoing signal with mapper <{0}>.", mapperId));
+                                    "Mapped outgoing signal with mapper <{0}>", mapperId));
                             return Source.single(outbound.mapped(mapped));
                         })
                         .onDropped((mapperId, unused) -> {
                             outboundDropped.forEach(monitor -> monitor.success(infoProvider,
-                                    "Payload mapping of mapper <{0}> returned null, outgoing message is dropped.",
+                                    "Payload mapping of mapper <{0}> returned null, outgoing message is dropped",
                                     mapperId));
                             return Source.empty();
                         })
@@ -620,7 +616,7 @@ public final class OutboundMappingProcessorActor
                                 .collect(Collectors.toList());
                         final Predicate<AcknowledgementLabel> willPublish =
                                 ConnectionValidator.getTargetIssuedAcknowledgementLabels(connection.getId(),
-                                        targetsToPublishAt)
+                                                targetsToPublishAt)
                                         .collect(Collectors.toSet())::contains;
                         issueWeakAcknowledgements(outbound.getSource(),
                                 willPublish.negate().and(outboundMappingProcessor::isTargetIssuedAck),
@@ -638,13 +634,20 @@ public final class OutboundMappingProcessorActor
         if (filter.isPresent() && extraFields.isPresent()) {
             // evaluate filter criteria again if signal enrichment is involved.
             final Signal<?> signal = outboundSignalWithExtra.getSource();
+            final TopicPath topicPath = DITTO_PROTOCOL_ADAPTER.toTopicPath(signal);
+            final PlaceholderResolver<TopicPath> topicPathPlaceholderResolver = PlaceholderFactory
+                    .newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER, topicPath);
+            final PlaceholderResolver<WithResource> resourcePlaceholderResolver = PlaceholderFactory
+                    .newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal);
             final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-            final Criteria criteria = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance())
-                    .filterCriteria(filter.get(), dittoHeaders);
+            final Criteria criteria = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
+                            topicPathPlaceholderResolver, resourcePlaceholderResolver
+                    ).filterCriteria(filter.get(), dittoHeaders);
             return outboundSignalWithExtra.getExtra()
                     .flatMap(extra -> ThingEventToThingConverter
                             .mergeThingWithExtraFields(signal, extraFields.get(), extra)
-                            .filter(ThingPredicateVisitor.apply(criteria))
+                            .filter(ThingPredicateVisitor.apply(criteria, topicPathPlaceholderResolver,
+                                    resourcePlaceholderResolver))
                             .map(thing -> outboundSignalWithExtra))
                     .map(Collections::singletonList)
                     .orElse(List.of());

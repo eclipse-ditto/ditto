@@ -39,6 +39,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.GenericTarget;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
@@ -77,9 +78,10 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
             final Function<P, CompletableFuture<R>> client,
             final boolean dryRun,
             final String clientId,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
 
-        super(connection, clientId, connectivityStatusResolver);
+        super(connection, clientId, connectivityStatusResolver, connectivityConfig);
         this.client = client;
         this.dryRun = dryRun;
         final Materializer materializer = Materializer.createMaterializer(this::getContext);

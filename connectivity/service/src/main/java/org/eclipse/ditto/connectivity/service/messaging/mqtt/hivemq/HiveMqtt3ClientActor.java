@@ -30,6 +30,7 @@ import com.hivemq.client.mqtt.mqtt3.message.connect.connack.Mqtt3ConnAck;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3Subscribe;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.suback.Mqtt3SubAck;
+import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -49,15 +50,17 @@ public final class HiveMqtt3ClientActor
             @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor,
             final HiveMqtt3ClientFactory clientFactory,
-            final DittoHeaders dittoHeaders) {
-        super(connection, proxyActor, connectionActor, dittoHeaders);
+            final DittoHeaders dittoHeaders,
+            final Config connectivityConfigOverwrites) {
+        super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         this.clientFactory = clientFactory;
     }
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private HiveMqtt3ClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
-        super(connection, proxyActor, connectionActor, dittoHeaders);
+            final ActorRef connectionActor, final DittoHeaders dittoHeaders,
+            final Config connectivityConfigOverwrites) {
+        super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         clientFactory = DefaultHiveMqtt3ClientFactory.getInstance(this::getSshTunnelState);
     }
 
@@ -74,13 +77,14 @@ public final class HiveMqtt3ClientActor
      * @param connectionActor the connectionPersistenceActor which created this client.
      * @param clientFactory factory used to create required mqtt clients
      * @param dittoHeaders headers of the command that caused this actor to be created.
+     * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor, final HiveMqtt3ClientFactory clientFactory,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders, final Config connectivityConfigOverwrites) {
         return Props.create(HiveMqtt3ClientActor.class, connection, proxyActor, connectionActor, clientFactory,
-                dittoHeaders);
+                dittoHeaders, connectivityConfigOverwrites);
     }
 
     /**
@@ -93,8 +97,10 @@ public final class HiveMqtt3ClientActor
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
-        return Props.create(HiveMqtt3ClientActor.class, connection, proxyActor, connectionActor, dittoHeaders);
+            final ActorRef connectionActor, final DittoHeaders dittoHeaders,
+            final Config connectivityConfigOverwrites) {
+        return Props.create(HiveMqtt3ClientActor.class, connection, proxyActor, connectionActor, dittoHeaders,
+                connectivityConfigOverwrites);
     }
 
     @Override
@@ -123,7 +129,7 @@ public final class HiveMqtt3ClientActor
     ActorRef startPublisherActor(final Connection connection, final Mqtt3AsyncClient client) {
         final Props publisherActorProps =
                 HiveMqtt3PublisherActor.props(connection, client, isDryRun(), getDefaultClientId(),
-                        connectivityStatusResolver);
+                        connectivityStatusResolver, connectivityConfig());
         return startChildActorConflictFree(HiveMqtt3PublisherActor.NAME, publisherActorProps);
     }
 
@@ -135,7 +141,7 @@ public final class HiveMqtt3ClientActor
 
         return startChildActorConflictFree(HiveMqtt3ConsumerActor.NAME,
                 HiveMqtt3ConsumerActor.props(connection(), inboundMappingSink, source, dryRun, specificConfig,
-                        connectivityStatusResolver));
+                        connectivityStatusResolver, connectivityConfig()));
     }
 
 }

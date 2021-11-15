@@ -43,6 +43,11 @@ final class MappedOutcome<T> implements MappingOutcome<T> {
     }
 
     @Override
+    public boolean wasSuccessfullyMapped() {
+        return true;
+    }
+
+    @Override
     public String toString() {
         return getClass().getSimpleName() +
                 "[mapperId=" + mapperId +

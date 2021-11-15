@@ -53,7 +53,7 @@ final class SudoSignalEnrichmentFacade implements SignalEnrichmentFacade {
 
     @Override
     public CompletionStage<JsonObject> retrievePartialThing(final ThingId thingId,
-            final JsonFieldSelector jsonFieldSelector,
+            @Nullable final JsonFieldSelector jsonFieldSelector,
             final DittoHeaders dittoHeaders,
             @Nullable final Signal<?> concernedSignal) {
 
@@ -63,7 +63,12 @@ final class SudoSignalEnrichmentFacade implements SignalEnrichmentFacade {
         } else {
             headersWithCorrelationId = dittoHeaders;
         }
-        final SudoRetrieveThing command = SudoRetrieveThing.of(thingId, headersWithCorrelationId);
+        final SudoRetrieveThing command;
+        if (jsonFieldSelector == null) {
+            command = SudoRetrieveThing.of(thingId, headersWithCorrelationId);
+        } else {
+            command = SudoRetrieveThing.of(thingId, jsonFieldSelector, headersWithCorrelationId);
+        }
         return Patterns.ask(commandHandler, command, askTimeout).thenCompose(SudoSignalEnrichmentFacade::extractThing);
     }
 

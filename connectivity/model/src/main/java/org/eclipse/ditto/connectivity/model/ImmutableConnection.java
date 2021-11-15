@@ -25,7 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -92,7 +92,7 @@ final class ImmutableConnection implements Connection {
         processorPoolSize = builder.processorPoolSize;
         specificConfig = Collections.unmodifiableMap(new HashMap<>(builder.specificConfig));
         payloadMappingDefinition = builder.payloadMappingDefinition;
-        tags = Collections.unmodifiableSet(new HashSet<>(builder.tags));
+        tags = Collections.unmodifiableSet(new LinkedHashSet<>(builder.tags));
         lifecycle = builder.lifecycle;
         sshTunnel = builder.sshTunnel;
     }
@@ -251,8 +251,8 @@ final class ImmutableConnection implements Connection {
                 .map(array -> array.stream()
                         .filter(JsonValue::isString)
                         .map(JsonValue::asString)
-                        .collect(Collectors.toSet()))
-                .orElse(Collections.emptySet());
+                        .collect(Collectors.toCollection(LinkedHashSet::new)))
+                .orElseGet(LinkedHashSet::new);
     }
 
     @Override
@@ -509,7 +509,7 @@ final class ImmutableConnection implements Connection {
         @Nullable private SshTunnel sshTunnel = null;
 
         // optional with default:
-        private Set<String> tags = new HashSet<>();
+        private Set<String> tags = new LinkedHashSet<>();
         private boolean failOverEnabled = true;
         private boolean validateCertificate = true;
         private final List<Source> sources = new ArrayList<>();
@@ -632,7 +632,7 @@ final class ImmutableConnection implements Connection {
 
         @Override
         public ConnectionBuilder tags(final Collection<String> tags) {
-            this.tags = new HashSet<>(checkNotNull(tags, "tags to set"));
+            this.tags = new LinkedHashSet<>(checkNotNull(tags, "tags to set"));
             return this;
         }
 
@@ -747,11 +747,11 @@ final class ImmutableConnection implements Connection {
             final Set<String> sourcesWithoutAuthContext = sources.stream()
                     .filter(source -> source.getAuthorizationContext().isEmpty())
                     .flatMap(source -> source.getAddresses().stream())
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
             final Set<String> targetsWithoutAuthContext = targets.stream()
                     .filter(target -> target.getAuthorizationContext().isEmpty())
                     .map(Target::getAddress)
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
 
             if (!sourcesWithoutAuthContext.isEmpty() || !targetsWithoutAuthContext.isEmpty()) {
                 final StringBuilder message = new StringBuilder("The ");

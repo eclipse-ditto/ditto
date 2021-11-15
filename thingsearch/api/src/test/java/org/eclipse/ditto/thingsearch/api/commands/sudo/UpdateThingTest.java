@@ -14,8 +14,8 @@ package org.eclipse.ditto.thingsearch.api.commands.sudo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
@@ -46,7 +46,7 @@ public final class UpdateThingTest {
     @Test
     public void testSerialization() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
-        final UpdateThing command = UpdateThing.of(ThingId.of("namespace", "name"), dittoHeaders);
+        final UpdateThing command = UpdateThing.of(ThingId.of("namespace", "name"), true, false, dittoHeaders);
         final String jsonString = command.toJsonString();
         final UpdateThing deserializedCommand = UpdateThing.fromJson(JsonObject.of(jsonString), dittoHeaders);
         assertThat(deserializedCommand).isEqualTo(command);

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 
-import java.security.Key;
 import java.text.MessageFormat;
 import java.util.concurrent.CompletableFuture;
 
@@ -20,13 +19,11 @@ import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.base.model.common.BinaryValidationResult;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationFailedException;
-import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
-import org.eclipse.ditto.internal.utils.jwt.JjwtDeserializer;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.JwtParser;
 
 /**
  * Default implementation of {@link JwtValidator}.
@@ -37,22 +34,19 @@ public final class DefaultJwtValidator implements JwtValidator {
     private static final Logger LOGGER = LoggerFactory.getLogger(DefaultJwtValidator.class);
 
     private final PublicKeyProvider publicKeyProvider;
-    private final OAuthConfig oAuthConfig;
 
-    private DefaultJwtValidator(final PublicKeyProvider publicKeyProvider, final OAuthConfig oAuthConfig) {
+    private DefaultJwtValidator(final PublicKeyProvider publicKeyProvider) {
         this.publicKeyProvider = publicKeyProvider;
-        this.oAuthConfig = oAuthConfig;
     }
 
     /**
      * Creates a new {@code JwtValidator} instance.
      *
      * @param publicKeyProvider provider for public keys of jwt issuers.
-     * @param oAuthConfig the OAuth config.
      * @return the instance.
      */
-    public static JwtValidator of(final PublicKeyProvider publicKeyProvider, final OAuthConfig oAuthConfig) {
-        return new DefaultJwtValidator(publicKeyProvider, oAuthConfig);
+    public static JwtValidator of(final PublicKeyProvider publicKeyProvider) {
+        return new DefaultJwtValidator(publicKeyProvider);
     }
 
     @Override
@@ -60,9 +54,10 @@ public final class DefaultJwtValidator implements JwtValidator {
         final var issuer = jsonWebToken.getIssuer();
         final var keyId = jsonWebToken.getKeyId();
 
-        return publicKeyProvider.getPublicKey(issuer, keyId)
-                .thenApply(publicKeyOpt -> publicKeyOpt
-                        .map(publicKey -> tryToValidateWithPublicKey(jsonWebToken, publicKey))
+        return publicKeyProvider.getPublicKeyWithParser(issuer, keyId)
+                .thenApply(publicKeyWithParserOpt -> publicKeyWithParserOpt
+                        .map(publicKeyWithParser -> tryToValidateWithJwtParser(jsonWebToken,
+                                publicKeyWithParser.getJwtParser()))
                         .orElseGet(() -> {
                             final var msgPattern = "Public Key of issuer <{0}> with key ID <{1}> not found!";
                             final var msg = MessageFormat.format(msgPattern, issuer, keyId);
@@ -72,9 +67,10 @@ public final class DefaultJwtValidator implements JwtValidator {
                         }));
     }
 
-    private BinaryValidationResult tryToValidateWithPublicKey(final JsonWebToken jsonWebToken, final Key publicKey) {
+    private BinaryValidationResult tryToValidateWithJwtParser(final JsonWebToken jsonWebToken,
+            final JwtParser jwtParser) {
         try {
-            return validateWithPublicKey(jsonWebToken, publicKey);
+            return validateWithJwtParser(jsonWebToken, jwtParser);
         } catch (final Exception e) {
             LOGGER.info("Failed to parse/validate JWT due to <{}> with message: <{}>", e.getClass().getSimpleName(),
                     e.getMessage());
@@ -83,13 +79,8 @@ public final class DefaultJwtValidator implements JwtValidator {
         }
     }
 
-    private BinaryValidationResult validateWithPublicKey(final JsonWebToken jsonWebToken, final Key publicKey) {
-        final var jwtParserBuilder = Jwts.parserBuilder();
-        jwtParserBuilder.deserializeJsonWith(JjwtDeserializer.getInstance())
-                .setSigningKey(publicKey)
-                .setAllowedClockSkewSeconds(oAuthConfig.getAllowedClockSkew().getSeconds())
-                .build()
-                .parseClaimsJws(jsonWebToken.getToken());
+    private BinaryValidationResult validateWithJwtParser(final JsonWebToken jsonWebToken, final JwtParser jwtParser) {
+        jwtParser.parseClaimsJws(jsonWebToken.getToken());
 
         return BinaryValidationResult.valid();
     }

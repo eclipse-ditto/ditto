@@ -35,15 +35,16 @@ import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
-import org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.PreparedTrace;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.Traces;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
 
 import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -72,8 +73,8 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
     @SuppressWarnings("unused")
     private RabbitMQConsumerActor(final Connection connection, final String sourceAddress,
             final Sink<Object, NotUsed> inboundMappingSink, final Source source, final Channel channel,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
-        super(connection, sourceAddress, inboundMappingSink, source, connectivityStatusResolver);
+            final ConnectivityStatusResolver connectivityStatusResolver, final ConnectivityConfig connectivityConfig) {
+        super(connection, sourceAddress, inboundMappingSink, source, connectivityStatusResolver, connectivityConfig);
 
         headerEnforcementFilterFactory =
                 source.getEnforcement()
@@ -100,6 +101,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
      * @param connection the connection.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
+     * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @return the Akka configuration Props object.
      */
     static Props props(final String sourceAddress,
@@ -107,10 +109,11 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
             final Source source,
             final Channel channel,
             final Connection connection,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
 
         return Props.create(RabbitMQConsumerActor.class, connection, sourceAddress, inboundMappingSink, source,
-                channel, connectivityStatusResolver);
+                channel, connectivityStatusResolver, connectivityConfig);
     }
 
     @Override
@@ -184,7 +187,7 @@ public final class RabbitMQConsumerActor extends LegacyBaseConsumerActor {
                     requeue -> {
                         try {
                             channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, requeue);
-                            inboundAcknowledgedMonitor.exception("Sending negative acknowledgement: " +
+                            inboundAcknowledgedMonitor.exception(externalMessage, "Sending negative acknowledgement: " +
                                             "basic.nack for deliveryTag={0}, requeue={0}",
                                     delivery.getEnvelope().getDeliveryTag(), requeue);
                         } catch (final IOException e) {

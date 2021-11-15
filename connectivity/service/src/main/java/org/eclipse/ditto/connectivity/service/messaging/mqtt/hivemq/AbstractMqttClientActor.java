@@ -24,6 +24,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -50,6 +51,7 @@ import com.hivemq.client.mqtt.exceptions.MqttClientStateException;
 import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttDisconnectSource;
+import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -86,10 +88,11 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
     private final MqttConfig mqttConfig;
 
     AbstractMqttClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor, final DittoHeaders dittoHeaders) {
-        super(connection, proxyActor, connectionActor, dittoHeaders);
+            final ActorRef connectionActor, final DittoHeaders dittoHeaders,
+            final Config connectivityConfigOverwrites) {
+        super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         this.connection = connection;
-        mqttConfig = connectionContext.getConnectivityConfig().getConnectionConfig().getMqttConfig();
+        mqttConfig = connectivityConfig().getConnectionConfig().getMqttConfig();
         mqttSpecificConfig = MqttSpecificConfig.fromConnection(connection, mqttConfig);
     }
 
@@ -380,9 +383,9 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
                 .handle((s, t) -> {
                     final Status.Status status;
                     if (t == null) {
-                        final var message = "Connection test for was successful.";
+                        final var message = "Connection test for was successful";
                         connectionLogger.success(message);
-                        l.info("Connection test for {} was successful.", connectionId());
+                        l.info("Connection test for {} was successful", connectionId());
                         status = new Status.Success(message);
                     } else {
                         l.info("Connection test to {} failed: {}", connectionToBeTested.getUri(), t.getMessage());
@@ -591,6 +594,26 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
         }
     }
 
+    /*
+     *  For MQTT connections only one Consumer Actor for all addresses is started.
+     */
+    @Override
+    protected int determineNumberOfConsumers() {
+        return connection.getSources()
+                .stream()
+                .mapToInt(Source::getConsumerCount)
+                .sum();
+    }
+
+    /*
+     *  For MQTT connections only one Consumer Actor for all addresses is started.
+     */
+    @Override
+    protected Stream<String> getSourceAddresses() {
+        return connection.getSources().stream()
+                .map(Source::getAddresses)
+                .map(sourceAddresses -> String.join(";", sourceAddresses));
+    }
 
     static class MqttClientConnected extends AbstractWithOrigin implements ClientConnected {
 

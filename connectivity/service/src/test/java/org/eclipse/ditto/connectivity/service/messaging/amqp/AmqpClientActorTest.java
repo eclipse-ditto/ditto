@@ -43,6 +43,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -53,6 +54,7 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.jms.CompletionListener;
 import javax.jms.Destination;
+import javax.jms.IllegalStateException;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
@@ -70,6 +72,7 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.JmsTextMessage;
 import org.apache.qpid.jms.provider.amqp.AmqpConnection;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
+import org.apache.qpid.jms.provider.exceptions.ProviderSecurityException;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.assertj.core.api.ThrowableAssert;
 import org.awaitility.Awaitility;
@@ -139,8 +142,6 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     private static final JMSException JMS_EXCEPTION = new JMSException("FAIL");
     private static final URI DUMMY = URI.create("amqp://test:1234");
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
-    private static final ConnectionFailedException SESSION_EXCEPTION =
-            ConnectionFailedException.newBuilder(CONNECTION_ID).build();
 
     private ActorSystem actorSystem;
     private Connection connection;
@@ -217,7 +218,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         specificOptions.put("failover.unknown.option", "100");
         specificOptions.put("failover.nested.amqp.vhost", "ditto");
         final Connection connection = ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(),
-                ConnectionType.AMQP_10, ConnectivityStatus.OPEN, TestConstants.getUriOfNewMockServer())
+                        ConnectionType.AMQP_10, ConnectivityStatus.OPEN, TestConstants.getUriOfNewMockServer())
                 .specificConfig(specificOptions)
                 .sources(singletonList(
                         ConnectivityModelFactory.newSourceBuilder()
@@ -455,6 +456,43 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     }
 
     @Test
+    public void testSetMessageListenerOnConsumerFails() throws JMSException {
+        new TestKit(actorSystem) {{
+
+            // ProviderSecurityException resolves to MISCONFIGURED state
+            final IllegalStateException jmsEx = new IllegalStateException("not allowed");
+            jmsEx.initCause(new ProviderSecurityException("disallowed by local policy"));
+
+            doThrow(jmsEx).when(mockConsumer).setMessageListener(any());
+            final Props props =
+                    AmqpClientActor.propsForTest(connection, getRef(), getRef(), (c, e, l, i) -> mockConnection,
+                            actorSystem);
+            final ActorRef amqpClientActor = actorSystem.actorOf(props);
+
+            amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
+            expectMsgClass(Status.Failure.class);
+
+            final AtomicInteger count = new AtomicInteger(40);
+            Awaitility.await()
+                    .pollInterval(Duration.ofMillis(100))
+                    .atMost(Duration.ofSeconds(5)).until(() -> {
+                        amqpClientActor.tell(RetrieveConnectionStatus.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
+                        fishForMessage(Duration.ofSeconds(1), "client status", o -> {
+                            if (o instanceof ResourceStatus) {
+                                final ResourceStatus resourceStatus = (ResourceStatus) o;
+                                if (resourceStatus.getResourceType() == ResourceStatus.ResourceType.CLIENT) {
+                                    assertThat((Object) resourceStatus.getStatus()).isEqualTo(ConnectivityStatus.MISCONFIGURED);
+                                    return true;
+                                }
+                            }
+                            return false;
+                        });
+                        return count.decrementAndGet() == 0;
+                    });
+        }};
+    }
+
+    @Test
     public void testCloseConnectionFails() throws JMSException {
         new TestKit(actorSystem) {{
             doThrow(JMS_EXCEPTION).when(mockConnection).close();
@@ -593,7 +631,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             for (int i = 0; i < consumers; i++) {
                 final Command<?> command = expectMsgClass(Command.class);
                 assertThat(command).isInstanceOf(SignalWithEntityId.class);
-                assertThat((CharSequence) ((SignalWithEntityId<?>) command).getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+                assertThat((CharSequence) ((SignalWithEntityId<?>) command).getEntityId()).isEqualTo(
+                        TestConstants.Things.THING_ID);
                 assertThat(command.getDittoHeaders().getCorrelationId()).contains(TestConstants.CORRELATION_ID);
                 commandConsumer.accept(command);
             }

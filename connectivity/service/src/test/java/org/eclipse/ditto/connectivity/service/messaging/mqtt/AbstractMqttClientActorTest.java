@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -58,7 +59,6 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.ClassRule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -339,7 +339,7 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             final String[] subscriptions = {"A1", "A1", "A1", "B1", "B1", "B2", "B2", "C1", "C2", "C3"};
             final List<M> mockMessages =
                     Stream.concat(irrelevantTopics.stream(), Arrays.stream(subscriptions))
-                            .map(topic -> mqttMessage(topic, TestConstants.modifyThing()))
+                            .map(topic -> mqttMessage(topic, TestConstants.modifyThing(UUID.randomUUID().toString())))
                             .collect(Collectors.toList());
 
             final Connection multipleSources =

@@ -13,10 +13,10 @@
 package org.eclipse.ditto.connectivity.api.placeholders;
 
 import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.internal.models.placeholders.Placeholder;
+import org.eclipse.ditto.placeholders.Placeholder;
 
 /**
- * A {@link org.eclipse.ditto.internal.models.placeholders.Placeholder} that requires a {@code String}
+ * A {@link org.eclipse.ditto.placeholders.Placeholder} that requires a {@code String}
  * (a valid Connection ID) to resolve its placeholders.
  *
  * @since 1.4.0

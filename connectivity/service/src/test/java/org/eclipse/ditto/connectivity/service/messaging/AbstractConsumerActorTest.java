@@ -33,11 +33,10 @@ import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.DittoMessageMapper;
-import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.junit.After;
@@ -62,7 +61,7 @@ import scala.concurrent.duration.FiniteDuration;
 
 public abstract class AbstractConsumerActorTest<M> {
 
-    private static final Config CONFIG = ConfigFactory.load("test");
+    protected static final Config CONFIG = ConfigFactory.load("test");
     private static final Connection CONNECTION = TestConstants.createConnection();
     private static final ConnectionId CONNECTION_ID = CONNECTION.getId();
     private static final FiniteDuration ONE_SECOND = FiniteDuration.apply(1, TimeUnit.SECONDS);
@@ -249,19 +248,20 @@ public abstract class AbstractConsumerActorTest<M> {
                 .thenReturn(logger);
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         final var connection = CONNECTION.toBuilder().payloadMappingDefinition(payloadMappingDefinition).build();
-        final var connectionContext = DittoConnectionContext.of(connection, connectivityConfig);
-        final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(connectionContext,
-                actorSystem, protocolAdapter, logger);
-        final OutboundMappingProcessor outboundMappingProcessor = OutboundMappingProcessor.of(connectionContext,
-                actorSystem, protocolAdapter, logger);
-        final Props props = OutboundMappingProcessorActor.props(clientActor, outboundMappingProcessor, CONNECTION, 43);
+        final InboundMappingProcessor inboundMappingProcessor =
+                InboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
+        final OutboundMappingProcessor outboundMappingProcessor =
+                OutboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
+        final Props props = OutboundMappingProcessorActor.props(clientActor, outboundMappingProcessor, CONNECTION,
+                connectivityConfig, 43);
         final ActorRef outboundProcessorActor = actorSystem.actorOf(props,
                 OutboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
 
         final Sink<Object, NotUsed> inboundDispatchingSink =
                 InboundDispatchingSink.createSink(CONNECTION, protocolAdapter.headerTranslator(),
                         ActorSelection.apply(proxyActor, ""), connectionActorProbe.ref(), outboundProcessorActor,
-                        TestProbe.apply(actorSystem).ref(), actorSystem, actorSystem.settings().config());
+                        TestProbe.apply(actorSystem).ref(), actorSystem,
+                        ConnectivityConfig.of(actorSystem.settings().config()));
 
         return InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99,
                 inboundDispatchingSink, connectivityConfig.getMappingConfig(), null,

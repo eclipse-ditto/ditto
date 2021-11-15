@@ -17,7 +17,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.util.stream.IntStream;
 
@@ -46,7 +45,9 @@ public class DefaultConnectionMetricsCounterTest {
     public void setUp() {
         when(metricsCounter.tag(eq("success"), any(Boolean.class))).thenReturn(metricsCounter);
         underTest = new DefaultConnectionMetricsCounter(MetricDirection.INBOUND, "source", MetricType.CONSUMED,
-                new SlidingWindowCounter(metricsCounter, Clock.systemUTC(), MeasurementWindow.ONE_MINUTE));
+                SlidingWindowCounter.newBuilder(metricsCounter)
+                        .measurementWindows(MeasurementWindow.ONE_MINUTE_WITH_TEN_SECONDS_RESOLUTION)
+                        .build());
     }
 
     @Test

@@ -333,7 +333,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
         @Override
         public String toString() {
             return getClass().getSimpleName() + " [" +
-                    ", id=" + id +
+                    "id=" + id +
                     ", json=" + json +
                     "]";
         }

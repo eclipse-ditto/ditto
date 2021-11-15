@@ -66,8 +66,6 @@ import org.eclipse.ditto.connectivity.model.ReplyTarget;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.mapping.ConnectionContext;
-import org.eclipse.ditto.connectivity.service.mapping.DittoConnectionContext;
 import org.eclipse.ditto.connectivity.service.mapping.javascript.JavaScriptMessageMapperFactory;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorWithAcknowledgementsTest;
@@ -80,6 +78,7 @@ import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConsumerClos
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
@@ -107,6 +106,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
 
     private static final Connection CONNECTION = TestConstants.createConnectionWithAcknowledgements();
     private static final ConnectionId CONNECTION_ID = CONNECTION.getId();
+    private static final ConnectivityConfig CONNECTIVITY_CONFIG = ConnectivityConfig.of(CONFIG);
 
     private final ConcurrentMap<JmsAcknowledgeCallback, Integer> ackStates = new ConcurrentHashMap<>();
     private final BlockingQueue<Integer> jmsAcks = new LinkedBlockingQueue<>();
@@ -137,7 +137,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                                 .build())
                         .build());
         return AmqpConsumerActor.props(CONNECTION, mockConsumerData, inboundMappingSink,
-                jmsActor, statusResolver);
+                jmsActor, statusResolver, CONNECTIVITY_CONFIG);
     }
 
     @Override
@@ -157,7 +157,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                                 .build())
                         .build());
         return AmqpConsumerActor.props(CONNECTION, mockConsumerData, inboundMappingSink,
-                TestProbe.apply(actorSystem).testActor(), mock(ConnectivityStatusResolver.class));
+                TestProbe.apply(actorSystem).testActor(), mock(ConnectivityStatusResolver.class),
+                CONNECTIVITY_CONFIG);
     }
 
     @Override
@@ -216,7 +217,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
             when(source.getPayloadMapping()).thenReturn(ConnectivityModelFactory.newPayloadMapping("test"));
             final ActorRef underTest = actorSystem.actorOf(AmqpConsumerActor.props(CONNECTION,
                     consumerData("foo", mock(MessageConsumer.class), source), mappingSink, getRef(),
-                    mock(ConnectivityStatusResolver.class)));
+                    mock(ConnectivityStatusResolver.class),
+                    CONNECTIVITY_CONFIG));
 
             final String plainPayload = "hello world!";
             final String correlationId = "cor-";
@@ -255,7 +257,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
             when(source.getPayloadMapping()).thenReturn(ConnectivityModelFactory.newPayloadMapping("test"));
             final ActorRef underTest = actorSystem.actorOf(AmqpConsumerActor.props(CONNECTION,
                     consumerData("foo", mock(MessageConsumer.class), source), mappingSink, getRef(),
-                    mock(ConnectivityStatusResolver.class)));
+                    mock(ConnectivityStatusResolver.class),
+                    CONNECTIVITY_CONFIG));
 
             final String plainPayload = "hello world!";
             final String correlationId = "cor-";
@@ -310,13 +313,11 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
         when(logger.withMdcEntry(any(CharSequence.class), Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
-        final ConnectionContext connectionContext =
-                DittoConnectionContext.of(CONNECTION.toBuilder()
-                                .payloadMappingDefinition(ConnectivityModelFactory.newPayloadMappingDefinition(mappings))
-                                .build(),
-                        TestConstants.CONNECTIVITY_CONFIG);
         final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(
-                connectionContext,
+                CONNECTION.toBuilder()
+                        .payloadMappingDefinition(ConnectivityModelFactory.newPayloadMappingDefinition(mappings))
+                        .build(),
+                TestConstants.CONNECTIVITY_CONFIG,
                 AbstractConsumerActorTest.actorSystem,
                 protocolAdapter,
                 logger);
@@ -324,7 +325,9 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                 InboundDispatchingSink.createSink(CONNECTION, protocolAdapter.headerTranslator(),
                         ActorSelection.apply(testRef, ""), connectionActorProbe.ref(),
                         testRef,
-                        TestProbe.apply(actorSystem).ref(), actorSystem, actorSystem.settings().config());
+                        TestProbe.apply(actorSystem).ref(),
+                        actorSystem,
+                        ConnectivityConfig.of(actorSystem.settings().config()));
 
         final MessageDispatcher messageDispatcher = actorSystem.dispatchers().defaultGlobalDispatcher();
         return InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99, inboundDispatchingSink,
@@ -348,7 +351,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
             final ActorRef underTest = actorSystem.actorOf(
                     AmqpConsumerActor.props(CONNECTION,
                             consumerData("foo123", mock(MessageConsumer.class), source), mappingSink,
-                            getRef(), mock(ConnectivityStatusResolver.class)));
+                            getRef(), mock(ConnectivityStatusResolver.class), CONNECTIVITY_CONFIG));
 
             final String correlationId = "cor-";
             final String plainPayload =
@@ -392,7 +395,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                             consumerData("foo123", messageConsumer, source),
                             mappingSink,
                             getRef(),
-                            connectivityStatusResolver)));
+                            connectivityStatusResolver,
+                            CONNECTIVITY_CONFIG)));
 
             final var failure = expectMsgClass(ConnectionFailure.class);
             assertThat(failure.getFailure().cause()).isEqualTo(error);
@@ -495,9 +499,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
 
     private ConsumerData consumerData(final String address, final MessageConsumer messageConsumer,
             final Source source) {
-        final var connectionContext =
-                DittoConnectionContext.of(CONNECTION, ConnectivityConfig.forActorSystem(actorSystem));
-        return ConsumerData.of(source, address, address + "_with_index", messageConsumer, connectionContext);
+        return ConsumerData.of(source, address, address + "_with_index", messageConsumer);
     }
 
     // JMS acknowledgement methods are package-private and impossible to mock.

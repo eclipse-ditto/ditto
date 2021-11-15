@@ -47,6 +47,13 @@ public interface Gauge extends ResettableMetricInstrument, TaggedMetricInstrumen
     void set(Long value);
 
     /**
+     * Sets the value of the gauge to the given value.
+     *
+     * @param value The value the gauge should be set to.
+     */
+    void set(Double value);
+
+    /**
      * Gets the current value of the gauge.
      *
      * @return The current value of the gauge.

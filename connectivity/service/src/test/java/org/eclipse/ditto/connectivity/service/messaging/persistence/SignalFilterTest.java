@@ -32,13 +32,10 @@ import java.util.Set;
 
 import org.assertj.core.api.Assertions;
 import org.assertj.core.util.Lists;
-import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectionOpenedAnnouncement;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
@@ -47,19 +44,22 @@ import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.connectivity.model.signals.announcements.ConnectionOpenedAnnouncement;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageHeaders;
+import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.policies.model.signals.announcements.SubjectDeletionAnnouncement;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.junit.Test;
@@ -157,6 +157,43 @@ public final class SignalFilterTest {
                         .build())
                 .build();
 
+        final Target filteredEventTopicPath1 = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withFilter("and(in(topic:action,'created','modified'),eq(resource:path,'/'))")
+                        .build())
+                .build();
+        final Target filteredEventTopicPath2 = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withFilter("and(eq(attributes/x,5),eq(topic:action,'modified'))")
+                        .build())
+                .build();
+        final Target notFilteredEventTopicPath1 = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withFilter("eq(topic:action,'deleted')")
+                        .build())
+                .build();
+        final Target notFilteredEventTopicPath2 = ConnectivityModelFactory.newTargetBuilder(twinAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(TWIN_EVENTS)
+                        .withFilter("ne(resource:path,'/')")
+                        .build())
+                .build();
+
+        final Target filteredLiveMessageTopicPath1 = ConnectivityModelFactory.newTargetBuilder(liveAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(LIVE_MESSAGES)
+                        .withFilter("in(topic:action-subject,'ditto','my-subject')")
+                        .build())
+                .build();
+        final Target filteredLiveMessageTopicPath2 = ConnectivityModelFactory.newTargetBuilder(liveAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(LIVE_MESSAGES)
+                        .withFilter("eq(topic:subject,'ditto')")
+                        .build())
+                .build();
+        final Target notFilteredLiveMessageTopicPath = ConnectivityModelFactory.newTargetBuilder(liveAuthd)
+                .topics(ConnectivityModelFactory.newFilteredTopicBuilder(LIVE_MESSAGES)
+                        .withFilter("ne(topic:subject,'ditto')")
+                        .build())
+                .build();
+
         final Collection<Object[]> params = new ArrayList<>();
 
         params.add(new Object[]{TWIN_EVENTS, readSubjects, Lists.list(twinAuthd), Lists.list(twinAuthd)});
@@ -168,6 +205,9 @@ public final class SignalFilterTest {
         params.add(new Object[]{TWIN_EVENTS, readSubjects,
                 Lists.list(enrichedFiltered, enrichedNotFiltered1, enrichedNotFiltered2),
                 Lists.list(enrichedFiltered)});
+        params.add(new Object[]{TWIN_EVENTS, readSubjects,
+                Lists.list(filteredEventTopicPath1, filteredEventTopicPath2, notFilteredEventTopicPath1, notFilteredEventTopicPath2),
+                Lists.list(filteredEventTopicPath1, filteredEventTopicPath2)});
 
         params.add(new Object[]{LIVE_EVENTS, readSubjects, Lists.list(twinAuthd), emptyList()});
         params.add(new Object[]{LIVE_EVENTS, readSubjects, Lists.list(twinAuthd, twinUnauthd), emptyList()});
@@ -179,6 +219,9 @@ public final class SignalFilterTest {
         params.add(new Object[]{LIVE_MESSAGES, readSubjects,
                 Lists.list(twinAuthd, twinUnauthd, liveAuthd, liveUnauthd),
                 Lists.list(twinAuthd, liveAuthd)});
+        params.add(new Object[]{LIVE_MESSAGES, readSubjects,
+                Lists.list(filteredLiveMessageTopicPath1, filteredLiveMessageTopicPath2, notFilteredLiveMessageTopicPath),
+                Lists.list(filteredLiveMessageTopicPath1, filteredLiveMessageTopicPath2)});
 
         params.add(new Object[]{POLICY_ANNOUNCEMENTS, readSubjects,
                 Lists.list(policyAuthd, policyUnauthd),

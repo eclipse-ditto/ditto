@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 
-import java.security.PublicKey;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -29,6 +28,6 @@ public interface PublicKeyProvider {
      * @return the PublicKey.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    CompletableFuture<Optional<PublicKey>> getPublicKey(String issuer, String keyId);
+    CompletableFuture<Optional<PublicKeyWithParser>> getPublicKeyWithParser(String issuer, String keyId);
 
 }

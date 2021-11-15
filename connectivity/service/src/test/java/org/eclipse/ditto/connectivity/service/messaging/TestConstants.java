@@ -17,6 +17,7 @@ import static java.util.Collections.singletonList;
 import static org.eclipse.ditto.connectivity.service.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -93,6 +94,7 @@ import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.connectivity.service.config.ClientConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
@@ -159,6 +161,7 @@ public final class TestConstants {
     public static final PingConfig PING_CONFIG;
     public static final ProtocolConfig PROTOCOL_CONFIG;
     public static final MonitoringConfig MONITORING_CONFIG;
+    public static final ConnectionThrottlingConfig KAFKA_THROTTLING_CONFIG;
 
     static {
         final DefaultScopedConfig dittoScopedConfig = DefaultScopedConfig.dittoScoped(CONFIG);
@@ -170,6 +173,7 @@ public final class TestConstants {
         PING_CONFIG = CONNECTIVITY_CONFIG.getPingConfig();
         PROTOCOL_CONFIG = CONNECTIVITY_CONFIG.getProtocolConfig();
         MONITORING_CONFIG = CONNECTIVITY_CONFIG.getMonitoringConfig();
+        KAFKA_THROTTLING_CONFIG = CONNECTION_CONFIG.getKafkaConfig().getConsumerConfig().getThrottlingConfig();
     }
 
     private static final ConnectionType TYPE = ConnectionType.AMQP_10;
@@ -510,9 +514,9 @@ public final class TestConstants {
     public static final class Monitoring {
 
         public static final ConnectionMonitorRegistry MONITOR_REGISTRY_MOCK =
-                Mockito.mock(ConnectionMonitorRegistry.class, Mockito.withSettings().stubOnly());
+                mock(ConnectionMonitorRegistry.class, Mockito.withSettings().stubOnly());
         private static final ConnectionMonitor CONNECTION_MONITOR_MOCK =
-                Mockito.mock(ConnectionMonitor.class, Mockito.withSettings().stubOnly());
+                mock(ConnectionMonitor.class, Mockito.withSettings().stubOnly());
         public static final LogEntry LOG_ENTRY = ConnectivityModelFactory.newLogEntryBuilder("foo",
                 Instant.now().minus(Duration.ofSeconds(1)),
                 LogCategory.TARGET,
@@ -560,7 +564,7 @@ public final class TestConstants {
         private static final Instant LAST_MESSAGE_AT = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 
         private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
-                ConnectivityCounterRegistry.newInstance();
+                ConnectivityCounterRegistry.newInstance(CONNECTIVITY_CONFIG);
 
         public static final ConnectionId ID = ConnectionId.of("myConnectionId");
 
@@ -811,7 +815,7 @@ public final class TestConstants {
 
     public static Connection createConnection(final String uri, final ConnectionType connectionType) {
         return ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(), connectionType,
-                ConnectivityStatus.OPEN, uri)
+                        ConnectivityStatus.OPEN, uri)
                 .sources(Sources.SOURCES_WITH_AUTH_CONTEXT)
                 .targets(Targets.TARGETS)
                 .lifecycle(ConnectionLifecycle.ACTIVE)
@@ -820,7 +824,7 @@ public final class TestConstants {
 
     public static Connection createConnectionWithDebugEnabled() {
         return ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(), TYPE, ConnectivityStatus.OPEN,
-                getUriOfNewMockServer())
+                        getUriOfNewMockServer())
                 .targets(Targets.TARGETS)
                 .lifecycle(ConnectionLifecycle.ACTIVE)
                 .specificConfig(Map.of("debugEnabled", String.valueOf(true)))
@@ -868,7 +872,7 @@ public final class TestConstants {
             final List<Source> sources) {
 
         return ConnectivityModelFactory.newConnectionBuilder(connectionId, connectionType, status,
-                getUriOfNewMockServer())
+                        getUriOfNewMockServer())
                 .sources(sources)
                 .targets(Targets.TARGETS)
                 .lifecycle(ConnectionLifecycle.ACTIVE)
@@ -997,9 +1001,14 @@ public final class TestConstants {
         return jsonifiable.toJsonString();
     }
 
+
     public static String modifyThing() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(CORRELATION_ID).putHeader(
-                ExternalMessage.REPLY_TO_HEADER, "replies").build();
+        return modifyThing(CORRELATION_ID);
+    }
+
+    public static String modifyThing(final String correlationId) {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(correlationId)
+                .putHeader(ExternalMessage.REPLY_TO_HEADER, "replies").build();
         final ModifyThing modifyThing = ModifyThing.of(Things.THING_ID, Things.THING, null, dittoHeaders);
         final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(modifyThing);
         final JsonifiableAdaptable jsonifiable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);

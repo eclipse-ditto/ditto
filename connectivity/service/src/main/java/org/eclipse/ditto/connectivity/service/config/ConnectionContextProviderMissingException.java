@@ -40,7 +40,7 @@ public final class ConnectionContextProviderMissingException extends DittoRuntim
         super(ERROR_CODE, HttpStatus.INTERNAL_SERVER_ERROR, dittoHeaders, message, description, cause, href);
     }
 
-    public static Builder newBuilder(final List<Class<? extends ConnectionContextProvider>> candidates) {
+    public static Builder newBuilder(final List<Class<? extends ConnectionConfigProvider>> candidates) {
         return new Builder(MessageFormat.format(MESSAGE_TEMPLATE, candidates));
     }
 

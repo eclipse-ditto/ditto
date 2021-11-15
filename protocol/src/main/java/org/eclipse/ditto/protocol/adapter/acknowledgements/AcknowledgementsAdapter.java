@@ -118,6 +118,11 @@ final class AcknowledgementsAdapter implements Adapter<Acknowledgements> {
     }
 
     @Override
+    public TopicPath toTopicPath(final Acknowledgements acknowledgements, final TopicPath.Channel channel) {
+        return getTopicPath(acknowledgements, channel);
+    }
+
+    @Override
     public Set<TopicPath.Group> getGroups() {
         return EnumSet.of(TopicPath.Group.THINGS);
     }

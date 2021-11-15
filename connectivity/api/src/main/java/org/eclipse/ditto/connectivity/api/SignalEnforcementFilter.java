@@ -24,13 +24,13 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilter;
-import org.eclipse.ditto.internal.models.placeholders.Placeholder;
-import org.eclipse.ditto.internal.models.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.internal.models.placeholders.UnresolvedPlaceholderException;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.placeholders.Placeholder;
+import org.eclipse.ditto.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 
 /**
  * Implementation of an {@link EnforcementFilter} which is applicable to signals.

@@ -20,7 +20,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 
 import akka.kafka.ConsumerMessage;
 
@@ -50,10 +49,10 @@ final class KafkaAcknowledgableMessage {
                 },
                 shouldRedeliver -> {
                     if (shouldRedeliver) {
-                        ackMonitor.exception(message, "Message was rejected and redelivery is requested.");
+                        ackMonitor.exception(message, "Message was rejected and redelivery is requested");
                         acknowledgementFuture.completeExceptionally(MessageRejectedException.getInstance());
                     } else {
-                        ackMonitor.exception(message, "Message was rejected and no redelivery is requested.");
+                        ackMonitor.exception(message, "Message was rejected and no redelivery is requested");
                         acknowledgementFuture.complete(committableOffset);
                     }
                 });

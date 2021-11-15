@@ -13,12 +13,13 @@
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import static org.eclipse.ditto.connectivity.api.EnforcementFactoryFactory.newEnforcementFilterFactory;
-import static org.eclipse.ditto.internal.models.placeholders.PlaceholderFactory.newHeadersPlaceholder;
+import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 import java.util.Map;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.Source;
@@ -48,6 +49,7 @@ final class KafkaConsumerStreamFactory {
             final PropertiesFactory propertiesFactory,
             final ConsumerData consumerData,
             final boolean dryRun) {
+
         this.throttlingConfig = throttlingConfig;
         this.consumerData = consumerData;
         this.dryRun = dryRun;
@@ -70,10 +72,11 @@ final class KafkaConsumerStreamFactory {
             final AtLeastOnceKafkaConsumerSourceSupplier atLeastOnceKafkaConsumerSourceSupplier,
             final ConsumerData consumerData,
             final boolean dryRun) {
+
         this.consumerData = consumerData;
         this.dryRun = dryRun;
-        this.propertiesFactory = null;
-        this.throttlingConfig = ConnectionThrottlingConfig.of(ConfigFactory.empty());
+        propertiesFactory = null;
+        throttlingConfig = ConnectionThrottlingConfig.of(ConfigFactory.empty());
         this.atMostOnceKafkaConsumerSourceSupplier = atMostOnceKafkaConsumerSourceSupplier;
         this.atLeastOnceKafkaConsumerSourceSupplier = atLeastOnceKafkaConsumerSourceSupplier;
     }
@@ -82,17 +85,21 @@ final class KafkaConsumerStreamFactory {
             final Materializer materializer,
             final ConnectionMonitor inboundMonitor,
             final Sink<AcknowledgeableMessage, NotUsed> messageMappingSink,
-            final Sink<DittoRuntimeException, ?> dreSink) {
+            final Sink<DittoRuntimeException, ?> dreSink,
+            final ConnectionId connectionId,
+            final String consumerId) {
 
         final KafkaMessageTransformer kafkaMessageTransformer = buildKafkaMessageTransformer(inboundMonitor);
         return new AtMostOnceConsumerStream(atMostOnceKafkaConsumerSourceSupplier,
-                throttlingConfig.getMaxInFlight(),
+                throttlingConfig,
                 kafkaMessageTransformer,
                 dryRun,
                 materializer,
                 inboundMonitor,
                 messageMappingSink,
-                dreSink);
+                dreSink,
+                connectionId,
+                consumerId);
     }
 
     KafkaConsumerStream newAtLeastOnceConsumerStream(
@@ -100,19 +107,23 @@ final class KafkaConsumerStreamFactory {
             final ConnectionMonitor inboundMonitor,
             final ConnectionMonitor ackMonitor,
             final Sink<AcknowledgeableMessage, NotUsed> messageMappingSink,
-            final Sink<DittoRuntimeException, ?> dreSink) {
+            final Sink<DittoRuntimeException, ?> dreSink,
+            final ConnectionId connectionId,
+            final String consumerId) {
 
         final KafkaMessageTransformer kafkaMessageTransformer = buildKafkaMessageTransformer(inboundMonitor);
         return new AtLeastOnceConsumerStream(atLeastOnceKafkaConsumerSourceSupplier,
                 propertiesFactory.getCommitterSettings(),
-                throttlingConfig.getMaxInFlight(),
+                throttlingConfig,
                 kafkaMessageTransformer,
                 dryRun,
                 materializer,
                 inboundMonitor,
                 ackMonitor,
                 messageMappingSink,
-                dreSink);
+                dreSink,
+                connectionId,
+                consumerId);
     }
 
     private KafkaMessageTransformer buildKafkaMessageTransformer(final ConnectionMonitor inboundMonitor) {

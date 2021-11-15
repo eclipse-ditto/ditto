@@ -21,6 +21,8 @@ import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -33,7 +35,7 @@ import akka.kafka.ConsumerMessage.CommittableOffset;
 import akka.kafka.javadsl.Committer;
 import akka.kafka.javadsl.Consumer;
 import akka.stream.Materializer;
-import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.MergeHub;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
@@ -45,37 +47,58 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
 
     private static final Logger LOGGER = DittoLoggerFactory.getThreadSafeLogger(AtLeastOnceConsumerStream.class);
 
-    private final ConnectionMonitor inboundMonitor;
     private final ConnectionMonitor ackMonitor;
     private final Materializer materializer;
-    private final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink;
-    private final Sink<DittoRuntimeException, ?> dreSink;
+    private final Sink<KafkaAcknowledgableMessage, NotUsed> externalMessageSink;
+    private final Sink<CommittableTransformationResult, NotUsed> dreSink;
+    private final Sink<CommittableTransformationResult, NotUsed> unexpectedMessageSink;
     private final Consumer.DrainingControl<Done> consumerControl;
+    private final KafkaConsumerMetrics consumerMetrics;
 
     AtLeastOnceConsumerStream(
             final AtLeastOnceKafkaConsumerSourceSupplier sourceSupplier,
             final CommitterSettings committerSettings,
-            final int consumerMaxInflight,
+            final ConnectionThrottlingConfig throttlingConfig,
             final KafkaMessageTransformer kafkaMessageTransformer,
             final boolean dryRun,
             final Materializer materializer,
             final ConnectionMonitor inboundMonitor,
             final ConnectionMonitor ackMonitor,
             final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink,
-            final Sink<DittoRuntimeException, ?> dreSink) {
+            final Sink<DittoRuntimeException, ?> exceptionSink,
+            final ConnectionId connectionId,
+            final String consumerId) {
 
-        this.inboundMonitor = inboundMonitor;
         this.ackMonitor = ackMonitor;
-        this.inboundMappingSink = inboundMappingSink;
-        this.dreSink = dreSink;
+
+        // Pre materialize sinks with MergeHub to avoid multiple materialization per kafka record in processTransformationResult
+        externalMessageSink = MergeHub.of(KafkaAcknowledgableMessage.class)
+                .map(KafkaAcknowledgableMessage::getAcknowledgeableMessage)
+                .to(inboundMappingSink)
+                .run(materializer);
+
+        dreSink = MergeHub.of(CommittableTransformationResult.class)
+                .map(AtLeastOnceConsumerStream::extractDittoRuntimeException)
+                .to(exceptionSink)
+                .run(materializer);
+
+        unexpectedMessageSink = MergeHub.of(CommittableTransformationResult.class)
+                .to(Sink.foreach(transformationResult -> inboundMonitor.exception(
+                        "Got unexpected transformation result <{0}>. This is an internal error. " +
+                                "Please contact the service team", transformationResult)))
+                .run(materializer);
+
         this.materializer = materializer;
         consumerControl = sourceSupplier.get()
                 .filter(committableMessage -> isNotDryRun(committableMessage.record(), dryRun))
                 .map(kafkaMessageTransformer::transform)
+                .throttle(throttlingConfig.getLimit(), throttlingConfig.getInterval())
                 .flatMapConcat(this::processTransformationResult)
-                .mapAsync(consumerMaxInflight, x -> x)
+                .mapAsync(throttlingConfig.getMaxInFlight(), x -> x)
                 .toMat(Committer.sink(committerSettings), Consumer::createDrainingControl)
                 .run(materializer);
+
+        consumerMetrics = KafkaConsumerMetrics.newInstance(consumerControl, connectionId, consumerId);
     }
 
     @Override
@@ -88,42 +111,39 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         return consumerControl.drainAndShutdown(materializer.executionContext());
     }
 
+    @Override
+    public void reportMetrics() {
+        consumerMetrics.reportMetrics();
+    }
+
     private Source<CompletableFuture<CommittableOffset>, NotUsed> processTransformationResult(
             final CommittableTransformationResult result) {
 
+        final CompletableFuture<CommittableOffset> offsetFuture =
+                CompletableFuture.completedFuture(result.getCommittableOffset());
+
         if (isExpired(result)) {
-            return Source.single(result)
-                    .map(CommittableTransformationResult::getCommittableOffset)
-                    .map(CompletableFuture::completedFuture);
+            return Source.single(offsetFuture);
         }
 
         if (isExternalMessage(result)) {
             return Source.single(result)
                     .map(this::toAcknowledgeableMessage)
-                    .alsoTo(this.externalMessageSink())
+                    .alsoTo(externalMessageSink)
                     .map(KafkaAcknowledgableMessage::getAcknowledgementFuture);
         }
         /*
          * For all other cases a retry for consuming this message makes no sense, so we want to commit these offsets.
          * Therefore, we return an already completed future holding the offset to commit. No reject needed.
          */
-        final CompletableFuture<CommittableOffset> offsetFuture =
-                CompletableFuture.completedFuture(result.getCommittableOffset());
         if (isDittoRuntimeException(result)) {
             return Source.single(result)
-                    .map(AtLeastOnceConsumerStream::extractDittoRuntimeException)
                     .alsoTo(dreSink)
-                    .map(dre -> offsetFuture);
+                    .map(transformationResult -> offsetFuture);
         }
         return Source.single(result)
-                .alsoTo(unexpectedMessageSink())
+                .alsoTo(unexpectedMessageSink)
                 .map(unexpected -> offsetFuture);
-    }
-
-    private Sink<KafkaAcknowledgableMessage, NotUsed> externalMessageSink() {
-        return Flow.of(KafkaAcknowledgableMessage.class)
-                .map(KafkaAcknowledgableMessage::getAcknowledgeableMessage)
-                .to(inboundMappingSink);
     }
 
     private static boolean isExpired(final CommittableTransformationResult transformationResult) {
@@ -158,13 +178,6 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         return value.getTransformationResult()
                 .getDittoRuntimeException()
                 .orElseThrow(); // at this point, the DRE is present
-    }
-
-    private Sink<CommittableTransformationResult, CompletionStage<Done>> unexpectedMessageSink() {
-        return Sink.foreach(transformationResult -> inboundMonitor.exception(
-                "Got unexpected transformation result <{0}>. This is an internal error. " +
-                        "Please contact the service team.", transformationResult
-        ));
     }
 
 }

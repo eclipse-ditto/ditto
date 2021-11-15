@@ -16,14 +16,13 @@ import static java.util.Objects.requireNonNull;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.adapter.AbstractErrorResponseAdapter;
+import org.eclipse.ditto.base.model.signals.ErrorRegistry;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.protocol.TopicPathBuilder;
-import org.eclipse.ditto.base.model.signals.ErrorRegistry;
+import org.eclipse.ditto.protocol.adapter.AbstractErrorResponseAdapter;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 
 /**
@@ -50,13 +49,15 @@ final class ThingErrorResponseAdapter extends AbstractErrorResponseAdapter<Thing
     }
 
     @Override
-    public TopicPathBuilder getTopicPathBuilder(final ThingErrorResponse errorResponse) {
-        return ProtocolFactory.newTopicPathBuilder(errorResponse.getEntityId());
+    public TopicPath getTopicPath(final ThingErrorResponse errorResponse, final TopicPath.Channel channel) {
+        return addChannelToTopicPathBuilder(ProtocolFactory.newTopicPathBuilder(errorResponse.getEntityId()), channel)
+                .build();
     }
 
     @Override
     public ThingErrorResponse buildErrorResponse(final TopicPath topicPath, final DittoRuntimeException exception,
             final DittoHeaders dittoHeaders) {
-        return ThingErrorResponse.of(ThingId.of(topicPath.getNamespace(), topicPath.getEntityName()), exception, dittoHeaders);
+        return ThingErrorResponse.of(ThingId.of(topicPath.getNamespace(), topicPath.getEntityName()), exception,
+                dittoHeaders);
     }
 }

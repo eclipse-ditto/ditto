@@ -19,21 +19,20 @@ import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.internal.models.streaming.LowerBound;
+import org.eclipse.ditto.internal.utils.akka.controlflow.MergeSortedAsPair;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevision;
+import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevisionResponse;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevision;
-import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicyRevisionResponse;
-import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
-import org.eclipse.ditto.internal.utils.akka.controlflow.MergeSortedAsPair;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.japi.Pair;
 import akka.pattern.Patterns;
-import akka.stream.Attributes;
 import akka.stream.javadsl.Source;
 
 /**
@@ -99,12 +98,7 @@ public final class BackgroundSyncStream {
         final Comparator<Metadata> comparator = BackgroundSyncStream::compareMetadata;
         return MergeSortedAsPair.merge(emptyMetadata(), comparator, metadataFromSnapshots, metadataFromSearchIndex)
                 .throttle(throttleThroughput, throttlePeriod)
-                .flatMapConcat(this::filterForInconsistency)
-                // log elements at warning level because out-of-date metadata are detected
-                .withAttributes(Attributes.logLevels(
-                        Attributes.logLevelWarning(),
-                        Attributes.logLevelDebug(),
-                        Attributes.logLevelError()));
+                .flatMapConcat(this::filterForInconsistency);
     }
 
     private boolean isInsideToleranceWindow(final Metadata metadata, final Instant toleranceCutOff) {
@@ -162,14 +156,14 @@ public final class BackgroundSyncStream {
      */
     private Source<Metadata, NotUsed> emitUnlessConsistent(final Metadata persisted, final Metadata indexed) {
         if (persisted.getThingRevision() > indexed.getThingRevision()) {
-            return Source.single(indexed).log("RevisionMismatch");
+            return Source.single(indexed.invalidateCaches(true, false)).log("RevisionMismatch");
         } else {
             final Optional<PolicyId> persistedPolicyId = persisted.getPolicyId();
             final Optional<PolicyId> indexedPolicyId = indexed.getPolicyId();
             // policy IDs are equal and nonempty; retrieve and compare policy revision
             // policy IDs are empty - the entries are consistent.
             if (!persistedPolicyId.equals(indexedPolicyId)) {
-                return Source.single(indexed).log("PolicyIdMismatch");
+                return Source.single(indexed.invalidateCaches(false, true)).log("PolicyIdMismatch");
             } else {
                 return persistedPolicyId.map(policyId -> retrievePolicyRevisionAndEmitMismatch(policyId, indexed))
                         .orElseGet(Source::empty);
@@ -213,17 +207,18 @@ public final class BackgroundSyncStream {
                             if (error != null) {
                                 return Source.single(error)
                                         .log("ErrorRetrievingPolicyRevision " + policyId)
-                                        .map(e -> indexed);
+                                        .map(e -> indexed.invalidateCaches(true, true));
                             } else if (response instanceof SudoRetrievePolicyRevisionResponse) {
                                 final long revision = ((SudoRetrievePolicyRevisionResponse) response).getRevision();
                                 return indexed.getPolicyRevision()
                                         .filter(indexedPolicyRevision -> indexedPolicyRevision.equals(revision))
                                         .map(indexedPolicyRevision -> Source.<Metadata>empty())
-                                        .orElseGet(() -> Source.single(indexed).log("PolicyRevisionMismatch"));
+                                        .orElseGet(() -> Source.single(indexed.invalidateCaches(false, true))
+                                                .log("PolicyRevisionMismatch"));
                             } else {
                                 return Source.single(response)
                                         .log("UnexpectedPolicyResponse")
-                                        .map(r -> indexed);
+                                        .map(r -> indexed.invalidateCaches(true, true));
                             }
                         });
         return Source.completionStageSource(sourceCompletionStage)
@@ -243,7 +238,8 @@ public final class BackgroundSyncStream {
      * thing ID is bigger, and 0 if both are equal.
      */
     public static int compareThingIds(final ThingId thingId1, final ThingId thingId2) {
-        final int emptyThingComparison = Boolean.compare(thingId1.equals(EMPTY_THING_ID), thingId2.equals(EMPTY_THING_ID));
+        final int emptyThingComparison =
+                Boolean.compare(thingId1.equals(EMPTY_THING_ID), thingId2.equals(EMPTY_THING_ID));
         return emptyThingComparison != 0 ? emptyThingComparison : thingId1.compareTo(thingId2);
     }
 

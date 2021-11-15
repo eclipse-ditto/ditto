@@ -45,10 +45,9 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.SourceMetrics;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.TargetMetrics;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
-import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 
 /**
  * This registry holds counters for the connectivity service. The counters are identified by the connection id, a {@link
@@ -57,20 +56,26 @@ import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConne
 public final class ConnectivityCounterRegistry implements ConnectionMonitorRegistry<ConnectionMetricsCounter> {
 
     private static final ConcurrentMap<MapKey, DefaultConnectionMetricsCounter> counters = new ConcurrentHashMap<>();
-
-    private static final MeasurementWindow[] DEFAULT_WINDOWS = {MeasurementWindow.ONE_MINUTE, MeasurementWindow.ONE_HOUR, MeasurementWindow.ONE_DAY};
+    private static final MetricAlertRegistry alertRegistry = new MetricAlertRegistry();
 
     // artificial internal address for responses
     private static final String RESPONSES_ADDRESS = "_responses";
 
     private static final Clock CLOCK_UTC = Clock.systemUTC();
 
-    private ConnectivityCounterRegistry() {
+    private final ConnectivityConfig connectivityConfig;
+
+    private ConnectivityCounterRegistry(final ConnectivityConfig connectivityConfig) {
         // intentionally empty
+        this.connectivityConfig = connectivityConfig;
     }
 
-    public static ConnectivityCounterRegistry newInstance() {
-        return new ConnectivityCounterRegistry();
+    public static ConnectivityCounterRegistry newInstance(final ConnectivityConfig connectivityConfig) {
+        return new ConnectivityCounterRegistry(connectivityConfig);
+    }
+
+    static ConnectionMetricsCounter lookup(final MapKey mapKey) {
+        return counters.get(mapKey);
     }
 
     /**
@@ -80,7 +85,6 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      */
     @Override
     public void initForConnection(final Connection connection) {
-
         connection.getSources().stream()
                 .map(Source::getAddresses)
                 .flatMap(Collection::stream)
@@ -91,6 +95,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
                 .forEach(address ->
                         initCounter(connection, MetricDirection.OUTBOUND, address));
         initCounter(connection, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
+        updateAlertsForConnection(connection);
     }
 
     /**
@@ -100,28 +105,41 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      */
     @Override
     public void resetForConnection(final Connection connection) {
-
         final ConnectionId connectionId = connection.getId();
         counters.entrySet().stream()
                 .filter(entry -> entry.getKey().connectionId.equals(connectionId))
                 .forEach(entry -> entry.getValue().reset());
+        updateAlertsForConnection(connection);
     }
 
-    private static void initCounter(final Connection connection, final MetricDirection metricDirection,
+    /**
+     * Ensures that all alerts for this connection use the current {@link #connectivityConfig}.
+     *
+     * @param connection the connection for which the alerts should get updated.
+     */
+    private void updateAlertsForConnection(final Connection connection) {
+        connection.getSources().stream()
+                .map(Source::getAddresses)
+                .flatMap(Collection::stream)
+                .forEach(address -> alertRegistry.updateAlert(MetricsAlert.Key.CONSUMED_INBOUND,
+                        connection.getId(), connection.getConnectionType(), address,
+                        connectivityConfig));
+    }
+
+    private void initCounter(final Connection connection, final MetricDirection metricDirection,
             final String address) {
         Arrays.stream(MetricType.values())
                 .filter(metricType -> metricType.supportsDirection(metricDirection))
                 .forEach(metricType -> {
                     final ConnectionId connectionId = connection.getId();
+                    final ConnectionType connectionType = connection.getConnectionType();
                     final MapKey key = new MapKey(connectionId, metricType, metricDirection, address);
-                    counters.computeIfAbsent(key, m -> {
-                        final ConnectionType connectionType = connection.getConnectionType();
-                        final Counter metricsCounter =
-                                metricsCounter(connectionId, connectionType, metricType, metricDirection);
-                        final SlidingWindowCounter counter =
-                                new SlidingWindowCounter(metricsCounter, CLOCK_UTC, DEFAULT_WINDOWS);
-                        return new DefaultConnectionMetricsCounter(metricDirection, address, metricType, counter);
-                    });
+                    final MetricsAlert alert =
+                            new DelegatingAlert(() -> alertRegistry.getAlert(metricDirection, metricType, connectionId,
+                                    connectionType, address, connectivityConfig));
+                    counters.computeIfAbsent(key,
+                            m -> ConnectionMetricsCounterFactory.create(metricType, metricDirection, connectionId,
+                                    connectionType, address, CLOCK_UTC, alert));
                 });
     }
 
@@ -161,25 +179,13 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
             final MetricType metricType,
             final MetricDirection metricDirection,
             final String address) {
-
         final MapKey key = new MapKey(connectionId, metricType, metricDirection, address);
-        return counters.computeIfAbsent(key, m -> {
-            final Counter metricsCounter = metricsCounter(connectionId, connectionType, metricType, metricDirection);
-            final SlidingWindowCounter counter = new SlidingWindowCounter(metricsCounter, clock, DEFAULT_WINDOWS);
-            return new DefaultConnectionMetricsCounter(metricDirection, address, metricType, counter);
-        });
-    }
-
-    private static Counter metricsCounter(final ConnectionId connectionId,
-            final ConnectionType connectionType,
-            final MetricType metricType,
-            final MetricDirection metricDirection) {
-
-        return DittoMetrics.counter("connection_messages")
-                .tag("id", connectionId.toString())
-                .tag("type", connectionType.getName())
-                .tag("category", metricType.getName())
-                .tag("direction", metricDirection.getName());
+        final MetricsAlert alert = new DelegatingAlert(
+                () -> alertRegistry.getAlert(metricDirection, metricType, connectionId, connectionType, address,
+                        connectivityConfig));
+        return counters.computeIfAbsent(key,
+                m -> ConnectionMetricsCounterFactory.create(metricType, metricDirection, connectionId, connectionType,
+                        address, clock, alert));
     }
 
     @Override
@@ -438,7 +444,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
      * Helper class to build the map key of the registry.
      */
     @Immutable
-    private static class MapKey {
+    static class MapKey {
 
         private final ConnectionId connectionId;
         private final String metric;
@@ -486,7 +492,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
         @Override
         public String toString() {
             return getClass().getSimpleName() + " [" +
-                    ", connectionId=" + connectionId +
+                    "connectionId=" + connectionId +
                     ", metric=" + metric +
                     ", direction=" + direction +
                     ", address=" + address +
