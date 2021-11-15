@@ -92,7 +92,7 @@ public final class KafkaConsumerMetrics {
 
     private Gauge getGauge(final MetricName metricName) {
         return DittoMetrics.gauge(KAFKA_CONSUMER_METRIC_PREFIX + metricName.name().replace("-", "_"))
-                .tag(ConnectionId.class.getSimpleName(), connectionId.toString())
+                .tag("connectionId", connectionId.toString())
                 .tag("consumerId", consumerId);
     }
 
