@@ -12,17 +12,16 @@
  */
 package org.eclipse.ditto.internal.utils.test.mongo;
 
-import java.util.Arrays;
-import java.util.Optional;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.ContainerNetwork;
 import com.github.dockerjava.api.model.ContainerNetworkSettings;
 import com.github.dockerjava.api.model.ContainerPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.Optional;
 
 /**
  * Provides an easy way to start, stop and remove the once created docker container.
@@ -90,7 +89,15 @@ final class DockerContainer {
                 .map(ContainerNetworkSettings::getNetworks)
                 .map(networks -> networks.get(DOCKER_BRIDGE_NETWORK))
                 .map(ContainerNetwork::getGateway)
-                .map(hostname -> OsDetector.isWindows() && DEFAULT_DOCKER_HOST.equals(hostname) ? LOCALHOST : hostname)
+                .map(hostname -> {
+                    if (OsDetector.isMac()) {
+                        return LOCALHOST;
+                    } else if (OsDetector.isWindows() && DEFAULT_DOCKER_HOST.equals(hostname)) {
+                        return LOCALHOST;
+                    } else {
+                        return hostname;
+                    }
+                })
                 .orElseThrow(
                         () -> new IllegalArgumentException("Could not find a gateway defined for network 'bridge'.")
                 );
