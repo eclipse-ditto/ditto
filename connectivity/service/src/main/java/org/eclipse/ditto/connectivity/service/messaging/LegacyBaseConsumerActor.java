@@ -19,11 +19,9 @@ import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 
 import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
@@ -49,14 +47,12 @@ public abstract class LegacyBaseConsumerActor extends BaseConsumerActor {
             final String sourceAddress,
             final Sink<Object, ?> inboundMappingSink,
             final Source source,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
-        super(connection, sourceAddress, inboundMappingSink, source, connectivityStatusResolver);
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
+        super(connection, sourceAddress, inboundMappingSink, source, connectivityStatusResolver, connectivityConfig);
 
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
-
-        final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
 
         final var materializer = Materializer.createMaterializer(this::getContext);
 

@@ -13,21 +13,22 @@
 
 package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 
+import java.io.Closeable;
 import java.util.Collection;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Logger for connections that provides log messages for end users.
  */
-public interface ConnectionLogger {
+public interface ConnectionLogger extends Closeable {
 
     /**
      * Gets the connection logger for the given connection ID.

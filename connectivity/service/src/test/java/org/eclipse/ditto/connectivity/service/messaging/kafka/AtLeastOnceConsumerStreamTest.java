@@ -28,6 +28,7 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
@@ -88,7 +89,7 @@ public final class AtLeastOnceConsumerStreamTest {
         assertInstancesOf(AtLeastOnceConsumerStream.class,
                 areImmutable(),
                 provided(ConnectionMonitor.class, Sink.class, Materializer.class,
-                        Consumer.DrainingControl.class).areAlsoImmutable());
+                        Consumer.DrainingControl.class, KafkaConsumerMetrics.class).areAlsoImmutable());
     }
 
     @Test
@@ -123,7 +124,8 @@ public final class AtLeastOnceConsumerStreamTest {
             new AtLeastOnceConsumerStream(sourceSupplier, CommitterSettings.apply(actorSystem),
                     TestConstants.KAFKA_THROTTLING_CONFIG,
                     messageTransformer, false, materializer,
-                    connectionMonitor, ackMonitor, inboundMappingSink, dreSink);
+                    connectionMonitor, ackMonitor, inboundMappingSink, dreSink,
+                    ConnectionId.generateRandom(), "someUniqueId");
 
             inboundSinkProbe.ensureSubscription();
             // Then we can offer those records and they are processed in parallel to the maximum of 'maxInflight'

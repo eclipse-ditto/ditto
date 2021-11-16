@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.connectivity.service.config.javascript;
 
+import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -57,6 +59,14 @@ public interface JavaScriptConfig {
     boolean isAllowUnsafeStandardObjects();
 
     /**
+     * Returns an optional file Path where to load additional Javascript libraries via {@code require()} from, utilizing
+     * the Rhino engine feature for CommonJS
+     *
+     * @return the optional path to resolve JS modules via commonJS from.
+     */
+    Optional<Path> getCommonJsModulesPath();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code JavaScriptConfig}.
      */
@@ -75,17 +85,23 @@ public interface JavaScriptConfig {
         /**
          * The maximum call stack depth in the mapping script.
          */
-        MAX_SCRIPT_STACK_DEPTH("maxScriptStackDepth", 10),
+        MAX_SCRIPT_STACK_DEPTH("maxScriptStackDepth", 25),
 
         /**
          * Whether to allow using 'print', 'exit', 'quit' in JavaScript executions, only intended for debugging purposes.
          */
-        ALLOW_UNSAFE_STANDARD_OBJECTS("allowUnsafeStandardObjects", false);
+        ALLOW_UNSAFE_STANDARD_OBJECTS("allowUnsafeStandardObjects", false),
+
+        /**
+         * The filesystem path where to load CommonJS modules from, by default empty indicating to not load any CommonJS
+         * modules.
+         */
+        COMMON_JS_MODULE_PATH("commonJsModulePath", "");
 
         private final String path;
         private final Object defaultValue;
 
-        private JavaScriptConfigValue(final String thePath, final Object theDefaultValue) {
+        JavaScriptConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

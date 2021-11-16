@@ -30,15 +30,13 @@ import akka.actor.ActorRef;
 @IndexSubclasses
 public interface ConnectionConfigProvider {
 
-    CompletionStage<Config> getConnectivityConfigOverwrites(ConnectionId connectionId);
-
     /**
-     * Loads a {@link ConnectivityConfig} by a connection ID.
+     * Loads specific overwrites of connectivity for a given connection ID.
      *
-     * @param connectionId the connection id for which to load the {@link ConnectivityConfig}
-     * @return the future connectivity config
+     * @param connectionId the connection id for which to load config overwrites
+     * @return the future config overwrites
      */
-    CompletionStage<ConnectivityConfig> getConnectivityConfig(ConnectionId connectionId);
+    CompletionStage<Config> getConnectivityConfigOverwrites(ConnectionId connectionId);
 
     /**
      * Register the given {@code subscriber} for changes to the {@link ConnectivityConfig} of the given {@code

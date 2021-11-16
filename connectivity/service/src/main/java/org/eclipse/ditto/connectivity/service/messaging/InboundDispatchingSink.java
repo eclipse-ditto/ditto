@@ -46,7 +46,6 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
-import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
@@ -57,7 +56,6 @@ import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnectionMonitorRegistry;
@@ -69,7 +67,6 @@ import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStar
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
@@ -87,8 +84,6 @@ import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckR
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
 import org.eclipse.ditto.thingsearch.model.signals.commands.WithSubscriptionId;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
-
-import com.typesafe.config.Config;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -184,7 +179,7 @@ public final class InboundDispatchingSink
      * @param outboundMessageMappingProcessorActor used to publish errors.
      * @param clientActor the client actor ref to forward commands to.
      * @param actorRefFactory the ActorRefFactory to use in order to create new actors in.
-     * @param config the configuration of the Akka system.
+     * @param connectivityConfig the connectivity configuration including potential overwrites.
      * @throws java.lang.NullPointerException if any of the passed arguments was {@code null}.
      * @return the Sink.
      */
@@ -195,11 +190,9 @@ public final class InboundDispatchingSink
             final ActorRef outboundMessageMappingProcessorActor,
             final ActorRef clientActor,
             final ActorRefFactory actorRefFactory,
-            final Config config) {
+            final ConnectivityConfig connectivityConfig) {
 
-        final var dittoScoped = DefaultScopedConfig.dittoScoped(checkNotNull(config, "config"));
-        final var connectivityConfig = DittoConnectivityConfig.of(dittoScoped);
-        final var limitsConfig = DefaultLimitsConfig.of(dittoScoped);
+        final var limitsConfig = connectivityConfig.getLimitsConfig();
         final var inboundDispatchingSink = new InboundDispatchingSink(
                 connection,
                 headerTranslator,
@@ -301,7 +294,7 @@ public final class InboundDispatchingSink
                 .execute(() -> applySignalIdEnforcement(incomingMessage, signal));
         // the above throws an exception if signal id enforcement fails
 
-        mappedMonitor.success(infoProvider, "Successfully mapped incoming signal with mapper <{0}>.", mapperId);
+        mappedMonitor.success(infoProvider, "Successfully mapped incoming signal with mapper <{0}>", mapperId);
         return Optional.of(adjustedSignal);
     }
 
@@ -317,7 +310,7 @@ public final class InboundDispatchingSink
             final ConnectionMonitor.InfoProvider infoProvider = InfoProviderFactory.forExternalMessage(incomingMessage);
             final ConnectionMonitor droppedMonitor = connectionMonitorRegistry.forInboundDropped(connection, source);
             droppedMonitor.success(infoProvider,
-                    "Payload mapping of mapper <{0}> returned null, incoming message is dropped.", mapperId);
+                    "Payload mapping of mapper <{0}> returned null, incoming message is dropped", mapperId);
         }
         return Optional.empty();
     }
@@ -340,7 +333,8 @@ public final class InboundDispatchingSink
                 final ConnectionMonitor mappedMonitor =
                         connectionMonitorRegistry.forInboundMapped(connection, source);
                 mappedMonitor.getLogger()
-                        .failure("Got exception {0} when processing external message with mapper <{1}>: {2}",
+                        .failure(InfoProviderFactory.forExternalMessage(message),
+                                "Got exception <{0}> when processing external message with mapper <{1}>: {2}",
                                 dittoRuntimeException.getErrorCode(),
                                 mapperId,
                                 e.getMessage());
@@ -360,7 +354,8 @@ public final class InboundDispatchingSink
                     ActorRef.noSender());
         } else if (e != null) {
             responseMappedMonitor.getLogger()
-                    .failure("Got unknown exception when processing external message: {0}", e.getMessage());
+                    .failure(InfoProviderFactory.forExternalMessage(message),
+                            "Got unknown exception when processing external message: {0}", e.getMessage());
             logger.withCorrelationId(Optional.ofNullable(message)
                     .map(ExternalMessage::getInternalHeaders)
                     .orElseGet(DittoHeaders::empty)
@@ -493,8 +488,8 @@ public final class InboundDispatchingSink
                 .info("Got 'DittoRuntimeException' during 'startAcknowledgementAggregator':" +
                         " {}: <{}>", e.getClass().getSimpleName(), e.getMessage());
         responseMappedMonitor.getLogger()
-                .failure("Got exception {0} when processing external message: {1}",
-                        e.getErrorCode(), e.getMessage());
+                .failure(InfoProviderFactory.forHeaders(dittoHeaders),
+                        "Got exception <{0}> when processing external message: {1}", e.getErrorCode(), e.getMessage());
         final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(e, null);
         // tell sender the error response for consumer settlement
         if (sender != null) {

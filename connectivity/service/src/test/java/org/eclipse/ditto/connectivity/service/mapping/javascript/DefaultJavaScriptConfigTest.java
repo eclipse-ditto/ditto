@@ -16,6 +16,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.nio.file.Path;
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
@@ -49,7 +50,7 @@ public final class DefaultJavaScriptConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultJavaScriptConfig.class,
                 areImmutable(),
-                provided(JavaScriptConfig.class).isAlsoImmutable());
+                provided(JavaScriptConfig.class, Path.class).isAlsoImmutable());
     }
 
     @Test

@@ -325,7 +325,9 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                 InboundDispatchingSink.createSink(CONNECTION, protocolAdapter.headerTranslator(),
                         ActorSelection.apply(testRef, ""), connectionActorProbe.ref(),
                         testRef,
-                        TestProbe.apply(actorSystem).ref(), actorSystem, actorSystem.settings().config());
+                        TestProbe.apply(actorSystem).ref(),
+                        actorSystem,
+                        ConnectivityConfig.of(actorSystem.settings().config()));
 
         final MessageDispatcher messageDispatcher = actorSystem.dispatchers().defaultGlobalDispatcher();
         return InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99, inboundDispatchingSink,

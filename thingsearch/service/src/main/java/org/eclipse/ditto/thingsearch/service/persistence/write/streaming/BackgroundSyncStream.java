@@ -33,7 +33,6 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.japi.Pair;
 import akka.pattern.Patterns;
-import akka.stream.Attributes;
 import akka.stream.javadsl.Source;
 
 /**

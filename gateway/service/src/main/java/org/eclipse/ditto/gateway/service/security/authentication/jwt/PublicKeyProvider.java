@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 
-import java.security.PublicKey;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 

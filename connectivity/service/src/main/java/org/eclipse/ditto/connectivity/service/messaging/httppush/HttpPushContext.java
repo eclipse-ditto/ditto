@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 
 import akka.http.javadsl.model.HttpResponse;
 import scala.util.Try;
@@ -21,8 +22,15 @@ import scala.util.Try;
  * Context which passes through the {@link ExternalMessage} to publish to an HTTP endpoint and the {@code requestUri}.
  * Contains the logic to handle 1 response from the HTTP endpoint.
  */
-@FunctionalInterface
 interface HttpPushContext {
 
-    void onResponse(final Try<HttpResponse> response);
+    /**
+     * @param response the tried {@code HttpResponse} to get status, headers from.
+     */
+    void onResponse(Try<HttpResponse> response);
+
+    /**
+     * @return the {@code InfoProvider} to e.g. extract a {@code correlation-id} from during connection logging.
+     */
+    ConnectionMonitor.InfoProvider getInfoProvider();
 }

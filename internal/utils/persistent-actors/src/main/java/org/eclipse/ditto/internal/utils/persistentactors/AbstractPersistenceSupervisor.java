@@ -158,7 +158,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
                     unstashAll();
                     becomeActive(getShutdownBehaviour(entityId));
                 })
-                .matchAny(this::warnAboutMessagesDuringStartup)
+                .matchAny(this::handleMessagesDuringStartup)
                 .build();
     }
 
@@ -261,9 +261,10 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
         getSender().tell(builder.build(), getSelf());
     }
 
-    private void warnAboutMessagesDuringStartup(final Object message) {
+    private void handleMessagesDuringStartup(final Object message) {
         stash();
-        log.warning("Received message during startup: <{}>", message);
+        log.info("Stashed received message during startup of supervised PersistenceActor: <{}>",
+                message.getClass().getSimpleName());
     }
 
     /**

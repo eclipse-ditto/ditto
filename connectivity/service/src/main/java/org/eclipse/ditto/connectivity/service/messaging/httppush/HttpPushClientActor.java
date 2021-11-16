@@ -39,7 +39,8 @@ import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 
 import com.typesafe.config.Config;
 
@@ -47,10 +48,12 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.http.javadsl.model.HttpRequest;
+import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.Uri;
 import akka.japi.Pair;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
+import scala.util.Try;
 
 /**
  * Client actor for HTTP-push.
@@ -60,7 +63,6 @@ public final class HttpPushClientActor extends BaseClientActor {
     private static final int PROXY_CONNECT_TIMEOUT_SECONDS = 15;
 
     private final HttpPushFactory factory;
-    private final ConnectionLogger connectionLogger;
 
     @Nullable
     private ActorRef httpPublisherActor;
@@ -72,7 +74,6 @@ public final class HttpPushClientActor extends BaseClientActor {
         super(connection, ActorRef.noSender(), connectionActor, dittoHeaders, connectivityConfigOverwrites);
         httpPushConfig = connectivityConfig().getConnectionConfig().getHttpPushConfig();
         final MonitoringLoggerConfig loggerConfig = connectivityConfig().getMonitoringConfig().logger();
-        connectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
         factory = HttpPushFactory.of(connection, httpPushConfig, connectionLogger, this::getSshTunnelState);
     }
 
@@ -153,7 +154,7 @@ public final class HttpPushClientActor extends BaseClientActor {
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         stopChildActor(httpPublisherActor);
         final Props props = HttpPublisherActor.props(connection(), factory, getDefaultClientId(),
-                connectivityStatusResolver);
+                connectivityStatusResolver, connectivityConfig());
         httpPublisherActor = startChildActorConflictFree(HttpPublisherActor.ACTOR_NAME, props);
         future.complete(DONE);
         return future;
@@ -162,7 +163,7 @@ public final class HttpPushClientActor extends BaseClientActor {
     private CompletionStage<?> testCredentials(final Connection connection) {
         final var actorSystem = getContext().getSystem();
         final var config = connectivityConfig().getConnectionConfig().getHttpPushConfig();
-        return Source.single(Pair.<HttpRequest, HttpPushContext>create(HttpRequest.create(), response -> {}))
+        return Source.single(Pair.<HttpRequest, HttpPushContext>create(HttpRequest.create(), new TestHttpPushContext()))
                 .concat(Source.never())
                 .via(ClientCredentialsFlowVisitor.eval(actorSystem, config, connection))
                 .runWith(Sink.head(), actorSystem);
@@ -252,6 +253,19 @@ public final class HttpPushClientActor extends BaseClientActor {
 
     private static CompletionStage<Status.Status> statusFailureFuture(final Throwable error) {
         return CompletableFuture.completedFuture(new Status.Failure(error));
+    }
+
+    private static class TestHttpPushContext implements HttpPushContext {
+
+        @Override
+        public ConnectionMonitor.InfoProvider getInfoProvider() {
+            return InfoProviderFactory.empty();
+        }
+
+        @Override
+        public void onResponse(final Try<HttpResponse> response) {
+            // no-op
+        }
     }
 
 }

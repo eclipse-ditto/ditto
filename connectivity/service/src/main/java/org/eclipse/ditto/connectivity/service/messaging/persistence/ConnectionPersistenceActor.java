@@ -80,6 +80,7 @@ import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushValidat
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLoggerRegistry;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.RetrieveConnectionLogsAggregatorActor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.RetrieveConnectionMetricsAggregatorActor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.RetrieveConnectionStatusAggregatorActor;
@@ -114,7 +115,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -923,7 +923,8 @@ public final class ConnectionPersistenceActor
         if (sendExceptionResponse && origin != null) {
             origin.tell(dre, getSelf());
         }
-        connectionLogger.failure("Operation {0} failed due to {1}", action, dre.getMessage());
+        connectionLogger.failure(InfoProviderFactory.forHeaders(dre.getDittoHeaders()),
+                "Operation {0} failed due to {1}", action, dre.getMessage());
         log.warning("Operation <{}> on connection <{}> failed due to {}: {}.", action, entityId,
                 dre.getClass().getSimpleName(), dre.getMessage());
         return null;

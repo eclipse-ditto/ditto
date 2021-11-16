@@ -78,7 +78,7 @@ final class DefaultMonitoringConfig implements MonitoringConfig {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", loggerConfig=" + loggerConfig +
+                "loggerConfig=" + loggerConfig +
                 "]";
     }
 

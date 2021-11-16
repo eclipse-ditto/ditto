@@ -205,7 +205,7 @@ public final class ClientCredentialsFlowTest {
         sourceProbe.expectRequest();
         responseProbe.ensureSubscription();
         responseProbe.expectRequest();
-        sourceProbe.sendNext(Pair.<HttpRequest, HttpPushContext>create(HttpRequest.GET(URI), x -> {}));
+        sourceProbe.sendNext(Pair.create(HttpRequest.GET(URI), new HttpPushFactoryTest.TestHttpPushContext()));
         requestProbe.expectNext();
         final var tokenTtl = Duration.ofHours(1);
         responseProbe.sendNext(Try.apply(() -> getTokenResponse(tokenTtl, getToken(tokenTtl))));
