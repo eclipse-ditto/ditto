@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.common.HttpStatus;
@@ -28,7 +29,9 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
+import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.things.model.ThingId;
@@ -39,6 +42,11 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -49,6 +57,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests {@link AcknowledgementAggregatorActor}.
  */
+@RunWith(MockitoJUnitRunner.class)
 public final class AcknowledgementAggregatorActorTest {
 
     private static final ThingId THING_ID = ThingId.of("thing:id");
@@ -60,6 +69,8 @@ public final class AcknowledgementAggregatorActorTest {
 
     @Rule
     public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
+
+    @Mock private Consumer<MatchingValidationResult.Failure> responseValidationFailureConsumer;
 
     @BeforeClass
     public static void beforeClass() {
@@ -308,12 +319,124 @@ public final class AcknowledgementAggregatorActorTest {
         assertThat(processedResponse.isOfExpectedResponseType()).isFalse();
     }
 
-    private static Props getAcknowledgementAggregatorProps(final ThingModifyCommand<?> command, final TestKit testKit) {
+    @Test
+    public void returnInvalidThingCommandResponseAndThenValidCommandResponseWithoutConnectionIdForLive() {
+
+        // GIVEN
+        final var testKit = actorSystemResource.newTestKit();
+        final var command = DeleteThing.of(THING_ID, DittoHeaders.newBuilder()
+                .correlationId(testNameCorrelationId.getCorrelationId())
+                .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("live-response")))
+                .channel("live")
+                .timeout(Duration.ofSeconds(3L))
+                .build());
+        final var underTest = testKit.childActorOf(getAcknowledgementAggregatorProps(command, testKit));
+
+        // WHEN
+        final var randomThingId = ThingId.generateRandom();
+        final var invalidResponse = DeleteThingResponse.of(randomThingId, command.getDittoHeaders());
+        underTest.tell(invalidResponse, ActorRef.noSender());
+
+        final var validResponse = DeleteThingResponse.of(THING_ID, command.getDittoHeaders());
+        underTest.tell(validResponse, ActorRef.noSender());
+
+        // THEN
+        testKit.expectMsg(validResponse);
+    }
+
+    @Test
+    public void returnSingleInvalidThingCommandResponseWithoutConnectionIdForLive() {
+
+        // GIVEN
+        final var testKit = actorSystemResource.newTestKit();
+        final var command = DeleteThing.of(THING_ID, DittoHeaders.newBuilder()
+                .correlationId(testNameCorrelationId.getCorrelationId())
+                .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("live-response")))
+                .channel("live")
+                .timeout(Duration.ofSeconds(3L))
+                .build());
+        final var underTest = testKit.childActorOf(getAcknowledgementAggregatorProps(command, testKit));
+
+        // WHEN
+        final var randomThingId = ThingId.generateRandom();
+        final var response = DeleteThingResponse.of(randomThingId, command.getDittoHeaders());
+        underTest.tell(response, ActorRef.noSender());
+
+        // THEN
+        final var thingErrorResponse = testKit.expectMsgClass(Duration.ofSeconds(5L), ThingErrorResponse.class);
+        assertThat((CharSequence) thingErrorResponse.getEntityId()).isEqualTo(THING_ID);
+        assertThat(thingErrorResponse.getDittoRuntimeException())
+                .isInstanceOfSatisfying(GatewayCommandTimeoutException.class,
+                        timeoutException -> assertThat(timeoutException.getDescription())
+                                .hasValueSatisfying(description -> assertThat(description)
+                                        .contains(String.format(
+                                                "Entity ID of live response <%s> differs from entity ID of command <%s>.",
+                                                randomThingId,
+                                                THING_ID
+                                        ))));
+    }
+
+    @Test
+    public void returnSingleInvalidThingCommandResponseWithConnectionIdForLive() {
+
+        // GIVEN
+        final var testKit = actorSystemResource.newTestKit();
+        final var connectionId = ConnectionId.generateRandom();
+        final var command = DeleteThing.of(THING_ID, DittoHeaders.newBuilder()
+                .correlationId(testNameCorrelationId.getCorrelationId())
+                .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("live-response")))
+                .channel("live")
+                .timeout(Duration.ofSeconds(3L))
+                .build());
+        final var underTest = testKit.childActorOf(getAcknowledgementAggregatorProps(command, testKit));
+
+        // WHEN
+        final var randomThingId = ThingId.generateRandom();
+        final var response = DeleteThingResponse.of(randomThingId, DittoHeaders.newBuilder(command.getDittoHeaders())
+                .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId)
+                .build());
+        underTest.tell(response, ActorRef.noSender());
+
+        // THEN
+        final var thingErrorResponse = testKit.expectMsgClass(Duration.ofSeconds(5L), ThingErrorResponse.class);
+        assertThat((CharSequence) thingErrorResponse.getEntityId()).isEqualTo(THING_ID);
+        assertThat(thingErrorResponse.getDittoRuntimeException())
+                .isInstanceOfSatisfying(GatewayCommandTimeoutException.class,
+                        timeoutException -> assertThat(timeoutException.getDescription())
+                                .hasValueSatisfying(description -> assertThat(description)
+                                        .contains(String.format(
+                                                "Entity ID of live response <%s> differs from entity ID of command <%s>.",
+                                                randomThingId,
+                                                THING_ID
+                                        ))));
+        final var responseValidationFailureArgumentCaptor =
+                ArgumentCaptor.forClass(MatchingValidationResult.Failure.class);
+        Mockito.verify(responseValidationFailureConsumer).accept(responseValidationFailureArgumentCaptor.capture());
+        final var responseValidationFailure = responseValidationFailureArgumentCaptor.getValue();
+
+        final var softly = new JUnitSoftAssertions();
+        softly.assertThat(responseValidationFailure.getConnectionId())
+                .as("connection ID")
+                .contains(connectionId);
+        softly.assertThat(responseValidationFailure.getCommand()).as("command").isEqualTo(command);
+        softly.assertThat(responseValidationFailure.getCommandResponse())
+                .as("command response")
+                .isEqualTo(response);
+        softly.assertThat(responseValidationFailure.getDetailMessage())
+                .as("failure detail message")
+                .isEqualTo("Entity ID of live response <%s> differs from entity ID of command <%s>.",
+                        randomThingId,
+                        THING_ID);
+        softly.assertAll();
+    }
+
+    private Props getAcknowledgementAggregatorProps(final ThingModifyCommand<?> command, final TestKit testKit) {
         return AcknowledgementAggregatorActor.props(command.getEntityId(),
-                command.getDittoHeaders(),
+                command,
                 DefaultAcknowledgementConfig.of(ConfigFactory.empty()),
                 headerTranslator,
-                tellThis(testKit.getRef()));
+                tellThis(testKit.getRef()),
+                responseValidationFailureConsumer);
     }
 
     private static Consumer<Object> tellThis(final ActorRef testKit) {

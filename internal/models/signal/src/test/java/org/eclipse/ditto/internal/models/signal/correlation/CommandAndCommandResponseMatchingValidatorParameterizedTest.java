@@ -42,10 +42,13 @@ public final class CommandAndCommandResponseMatchingValidatorParameterizedTest {
 
     private static final SignalInterfaceImplementations MESSAGE_COMMANDS =
             SignalInterfaceImplementations.newInstance(MessageCommand.class);
+
     private static final SignalInterfaceImplementations MESSAGE_COMMAND_RESPONSES =
             SignalInterfaceImplementations.newInstance(MessageCommandResponse.class);
+
     private static final SignalInterfaceImplementations THING_COMMANDS =
             SignalInterfaceImplementations.newInstance(ThingCommand.class);
+
     private static final SignalInterfaceImplementations THING_COMMAND_RESPONSES =
             SignalInterfaceImplementations.newInstance(ThingCommandResponse.class);
 

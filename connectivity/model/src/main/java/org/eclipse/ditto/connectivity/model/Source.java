@@ -17,18 +17,18 @@ import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * A {@link Connection} source contains several addresses to consume external messages from.
@@ -119,9 +119,9 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     Set<AcknowledgementLabel> getDeclaredAcknowledgementLabels();
 
     /**
-     * Returns all non hidden marked fields of this {@code Source}.
+     * Returns all non-hidden marked fields of this {@code Source}.
      *
-     * @return a JSON object representation of this Source including only non hidden marked fields.
+     * @return a JSON object representation of this Source including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {

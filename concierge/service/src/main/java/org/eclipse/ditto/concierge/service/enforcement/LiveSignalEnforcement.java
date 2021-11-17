@@ -216,6 +216,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
         if (responseReceiversOptional.isPresent()) {
             final Cache<String, Pair<ActorRef, AuthorizationContext>> responseReceivers =
                     responseReceiversOptional.get();
+
             return returnCommandResponseContextual(responseReceivers, liveResponse, correlationId, enforcer);
         } else {
             log().info("Got live response when global dispatching is inactive: <{}> with correlation ID <{}>",
@@ -238,10 +239,9 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                 final Pair<ActorRef, AuthorizationContext> responseReceiver = responseReceiverEntry.get();
                 final CommandResponse<?> response;
                 if (liveResponse instanceof ThingQueryCommandResponse) {
-
-                    final var liveResponseWithRequesterAuthCtx = injectRequestersAuthContext(
-                            (ThingQueryCommandResponse<?>) liveResponse,
-                            responseReceiver.second());
+                    final var liveResponseWithRequesterAuthCtx =
+                            injectRequestersAuthContext((ThingQueryCommandResponse<?>) liveResponse,
+                                    responseReceiver.second());
 
                     response = ThingCommandEnforcement.buildJsonViewForThingQueryCommandResponse(
                             liveResponseWithRequesterAuthCtx,
@@ -349,6 +349,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
             log(liveSignal).info("Live Event was authorized: <{}>", liveSignal);
             final ThingEvent<?> withReadSubjects =
                     addEffectedReadSubjectsToThingSignal((ThingEvent<?>) liveSignal, enforcer);
+
             return publishLiveSignal(withReadSubjects, THING_EVENT_ACK_EXTRACTOR, liveSignalPub.event());
         } else {
             log(liveSignal).info("Live Event was NOT authorized: <{}>", liveSignal);
@@ -387,8 +388,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                 .readGrantedSubjects(effectedSubjects.getGranted())
                 .readRevokedSubjects(effectedSubjects.getRevoked())
                 .build();
-
         final MessageCommand<?, ?> withReadSubjects = command.setDittoHeaders(headersWithReadSubjects);
+
         return publishLiveSignal(withReadSubjects, MESSAGE_COMMAND_ACK_EXTRACTOR, liveSignalPub.message());
     }
 
@@ -402,6 +403,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                 "The command <{}> was not forwarded due to insufficient rights {}: {} - AuthorizationContext: {}",
                 command.getType(), error.getClass().getSimpleName(), error.getMessage(),
                 command.getDittoHeaders().getAuthorizationContext());
+
         return error;
     }
 
@@ -413,6 +415,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
 
         // using pub/sub to publish the command to any interested parties (e.g. a Websocket):
         log(signal).debug("Publish message to pub-sub: <{}>", signal);
+
         return addToResponseReceiver(signal).thenApply(newSignal ->
                 withMessageToReceiver(newSignal, pub.getPublisher(),
                         obj -> pub.wrapForPublicationWithAcks((S) obj, ackExtractor))
@@ -465,6 +468,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
     private static ResourceKey extractMessageResourceKey(final MessageCommand<?, ?> command) {
         try {
             final JsonPointer resourcePath = command.getResourcePath();
+
             return PoliciesResourceType.messageResource(resourcePath);
         } catch (final IllegalArgumentException e) {
             throw MessageFormatInvalidException.newBuilder(JsonFactory.nullArray())

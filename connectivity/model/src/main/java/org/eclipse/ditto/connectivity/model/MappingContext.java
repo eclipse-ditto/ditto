@@ -16,14 +16,14 @@ import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Defines all information necessary to instantiate a mapper.
@@ -69,9 +69,9 @@ public interface MappingContext extends Jsonifiable.WithFieldSelectorAndPredicat
     Map<String, String> getOutgoingConditions();
 
     /**
-     * Returns all non hidden marked fields of this {@code MappingContext}.
+     * Returns all non-hidden marked fields of this {@code MappingContext}.
      *
-     * @return a JSON object representation of this MappingContext including only non hidden marked fields.
+     * @return a JSON object representation of this MappingContext including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {

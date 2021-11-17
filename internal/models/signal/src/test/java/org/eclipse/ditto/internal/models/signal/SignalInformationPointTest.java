@@ -16,6 +16,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.stream.Stream;
+
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -314,6 +316,48 @@ public final class SignalInformationPointTest {
         Mockito.when(signal.getDittoHeaders()).thenReturn(dittoHeaders);
 
         assertThat(SignalInformationPoint.getCorrelationId(signal)).isEqualTo(dittoHeaders.getCorrelationId());
+    }
+
+    @Test
+    public void isCommandForCommandReturnsFalse() {
+        Stream.concat(thingCommands.stream(), messageCommands.stream())
+                .forEach(command -> softly.assertThat(SignalInformationPoint.isCommand(command))
+                        .as(command.getType())
+                        .isTrue());
+    }
+
+    @Test
+    public void isCommandForNullReturnsFalse() {
+        assertThat(SignalInformationPoint.isCommand(null)).isFalse();
+    }
+
+    @Test
+    public void isCommandForCommandResponseReturnsFalse() {
+        Stream.concat(thingCommandResponses.stream(), messageCommandResponses.stream())
+                .forEach(commandResponse -> softly.assertThat(SignalInformationPoint.isCommand(commandResponse))
+                        .as(commandResponse.getType())
+                        .isFalse());
+    }
+
+    @Test
+    public void isCommandResponseForCommandResponseReturnsFalse() {
+        Stream.concat(thingCommandResponses.stream(), messageCommandResponses.stream())
+                .forEach(commandResponse -> softly.assertThat(SignalInformationPoint.isCommandResponse(commandResponse))
+                        .as(commandResponse.getType())
+                        .isTrue());
+    }
+
+    @Test
+    public void isCommandResponseForNullReturnsFalse() {
+        assertThat(SignalInformationPoint.isCommandResponse(null)).isFalse();
+    }
+
+    @Test
+    public void isCommandForCommandResponseResponseReturnsFalse() {
+        Stream.concat(thingCommands.stream(), messageCommands.stream())
+                .forEach(command -> softly.assertThat(SignalInformationPoint.isCommandResponse(command))
+                        .as(command.getType())
+                        .isFalse());
     }
 
     private static String getSimpleClassName(final Object o) {

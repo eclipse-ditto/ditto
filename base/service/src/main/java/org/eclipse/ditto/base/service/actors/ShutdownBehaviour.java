@@ -14,14 +14,10 @@ package org.eclipse.ditto.base.service.actors;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import javax.annotation.Nonnull;
-
 import org.eclipse.ditto.base.api.common.Shutdown;
-import org.eclipse.ditto.base.api.common.ShutdownReason;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.things.model.ThingId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,17 +32,16 @@ import akka.japi.pf.ReceiveBuilder;
  */
 public final class ShutdownBehaviour {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ShutdownBehaviour.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ShutdownBehaviour.class);
 
     private final String namespace;
     private final EntityId entityId;
-
     private final ActorRef self;
 
     private ShutdownBehaviour(final String namespace, final EntityId entityId, final ActorRef self) {
-        this.namespace = namespace;
-        this.entityId = entityId;
-        this.self = self;
+        this.namespace = checkNotNull(namespace, "namespace");
+        this.entityId = checkNotNull(entityId, "entityId");
+        this.self = checkNotNull(self, "self");
     }
 
     /**
@@ -57,7 +52,8 @@ public final class ShutdownBehaviour {
      * @param self reference of the actor itself.
      * @return the actor behavior.
      */
-    public static ShutdownBehaviour fromId(final NamespacedEntityId entityId, final ActorRef pubSubMediator,
+    public static ShutdownBehaviour fromId(final NamespacedEntityId entityId,
+            final ActorRef pubSubMediator,
             final ActorRef self) {
 
         checkNotNull(entityId, "entityId");
@@ -72,10 +68,11 @@ public final class ShutdownBehaviour {
      * @param self reference of the actor itself.
      * @return the actor behavior.
      */
-    public static ShutdownBehaviour fromIdWithoutNamespace(final EntityId entityId, final ActorRef pubSubMediator,
+    public static ShutdownBehaviour fromIdWithoutNamespace(final EntityId entityId,
+            final ActorRef pubSubMediator,
             final ActorRef self) {
 
-        return fromIdWithNamespace(checkNotNull(entityId, "entityId"), pubSubMediator, self, "");
+        return fromIdWithNamespace(entityId, pubSubMediator, self, "");
     }
 
     /**
@@ -87,13 +84,13 @@ public final class ShutdownBehaviour {
      * @param namespace the namespace of the actor.
      * @return the actor behavior.
      */
-    public static ShutdownBehaviour fromIdWithNamespace(@Nonnull final EntityId entityId,
-            final ActorRef pubSubMediator, final ActorRef self, final String namespace) {
-        checkNotNull(pubSubMediator, "pubSubMediator");
-        checkNotNull(self, "self");
-        checkNotNull(namespace, "namespace");
-        final ShutdownBehaviour shutdownBehaviour = new ShutdownBehaviour(namespace, entityId, self);
-        shutdownBehaviour.subscribePubSub(pubSubMediator);
+    public static ShutdownBehaviour fromIdWithNamespace(final EntityId entityId,
+            final ActorRef pubSubMediator,
+            final ActorRef self,
+            final String namespace) {
+
+        final var shutdownBehaviour = new ShutdownBehaviour(namespace, entityId, self);
+        shutdownBehaviour.subscribePubSub(checkNotNull(pubSubMediator, "pubSubMediator"));
         return shutdownBehaviour;
     }
 
@@ -102,7 +99,7 @@ public final class ShutdownBehaviour {
     }
 
     /**
-     * Create a new receive builder matching on messages handled by this actor.
+     * Create a new {@code ReceiveBuilder} matching on messages handled by this actor.
      *
      * @return new receive builder.
      */
@@ -113,10 +110,10 @@ public final class ShutdownBehaviour {
     }
 
     private void shutdown(final Shutdown shutdown) {
-        final ShutdownReason shutdownReason = shutdown.getReason();
+        final var shutdownReason = shutdown.getReason();
 
         if (shutdownReason.isRelevantFor(namespace) || shutdownReason.isRelevantFor(entityId)) {
-            LOG.info("Shutting down <{}> due to <{}>.", self, shutdown);
+            LOGGER.info("Shutting down <{}> due to <{}>.", self, shutdown);
             self.tell(PoisonPill.getInstance(), ActorRef.noSender());
         }
     }
@@ -124,4 +121,5 @@ public final class ShutdownBehaviour {
     private void subscribeAck(final DistributedPubSubMediator.SubscribeAck ack) {
         // do nothing
     }
+
 }

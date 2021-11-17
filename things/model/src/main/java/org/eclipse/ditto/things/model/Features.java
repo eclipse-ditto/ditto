@@ -17,14 +17,14 @@ import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 
 /**
@@ -220,9 +220,9 @@ public interface Features extends Iterable<Feature>, Jsonifiable.WithFieldSelect
     Stream<Feature> stream();
 
     /**
-     * Returns all non hidden marked fields of this Features.
+     * Returns all non-hidden marked fields of this Features.
      *
-     * @return a JSON object representation of this Features including only non hidden marked fields.
+     * @return a JSON object representation of this Features including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {

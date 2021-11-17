@@ -66,8 +66,6 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
      */
     private static final Duration ANNOUNCEMENT_WINDOW = Duration.ofMillis(500);
 
-    private static final Duration MAX_BACKOFF = Duration.ofMinutes(30);
-
     private static final NotUsed NULL = NotUsed.getInstance();
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
@@ -91,9 +89,14 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     private boolean acknowledged;
 
     @SuppressWarnings("unused")
-    private SubjectExpiryActor(final PolicyId policyId, final Subject subject, final Duration gracePeriod,
+    private SubjectExpiryActor(final PolicyId policyId,
+            final Subject subject,
+            final Duration gracePeriod,
             final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
-            final Duration maxTimeout, final ActorRef commandForwarder, final PolicyAnnouncementConfig config) {
+            final Duration maxTimeout,
+            final ActorRef commandForwarder,
+            final PolicyAnnouncementConfig config) {
+
         this.policyId = policyId;
         this.subject = subject;
         this.gracePeriod = gracePeriod;
@@ -101,7 +104,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         enableAnnouncementsWhenDeleted = config.isEnableAnnouncementsWhenDeleted();
 
         ackregatorStarter =
-                AcknowledgementAggregatorActorStarter.of(getContext(), maxTimeout, HeaderTranslator.empty());
+                AcknowledgementAggregatorActorStarter.of(getContext(), maxTimeout, HeaderTranslator.empty(), null);
         this.commandForwarder = commandForwarder;
         deleteExpiredSubject =
                 DeleteExpiredSubject.of(policyId, subject, DittoHeaders.newBuilder().responseRequired(false).build());
@@ -129,12 +132,22 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
      * @param config the policy announcement config.
      * @return The Props object.
      */
-    public static Props props(final PolicyId policyId, final Subject subject, final Duration gracePeriod,
-            final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub, final Duration maxTimeout,
-            final ActorRef forwarder, final PolicyAnnouncementConfig config) {
+    public static Props props(final PolicyId policyId,
+            final Subject subject,
+            final Duration gracePeriod,
+            final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub,
+            final Duration maxTimeout,
+            final ActorRef forwarder,
+            final PolicyAnnouncementConfig config) {
 
-        return Props.create(SubjectExpiryActor.class, policyId, subject, gracePeriod, policyAnnouncementPub,
-                maxTimeout, forwarder, config);
+        return Props.create(SubjectExpiryActor.class,
+                policyId,
+                subject,
+                gracePeriod,
+                policyAnnouncementPub,
+                maxTimeout,
+                forwarder,
+                config);
     }
 
     @Override
@@ -233,7 +246,8 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     }
 
     private State<SubjectExpiryState, NotUsed> processSubjectDeletedAndCheckForAnnouncement(
-            final State<SubjectExpiryState, NotUsed> stateForNoAnnouncement) {
+            final State<SubjectExpiryState, NotUsed> stateForNoAnnouncement
+    ) {
         setDeleteAt();
         if (!acknowledged && shouldAnnounceWhenDeleted()) {
             // announce immediately
@@ -254,12 +268,14 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
 
     private State<SubjectExpiryState, NotUsed> subjectDeletedInToAnnounce(final Message subjectDeleted,
             final NotUsed notUsed) {
+
         log.debug("Got SUBJECT_DELETED in TO_ANNOUNCE");
         return processSubjectDeletedAndCheckForAnnouncement(stay());
     }
 
     private State<SubjectExpiryState, NotUsed> subjectDeletedInToAcknowledge(final Message subjectDeleted,
             final NotUsed notUsed) {
+
         log.debug("Got SUBJECT_DELETED in TO_ACKNOWLEDGE");
         setDeleteAt();
         return stay(); // no need to schedule whenDeleted announcements because announcement and backoff already active
@@ -267,19 +283,19 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
 
     private State<SubjectExpiryState, NotUsed> subjectDeletedInToDelete(final Message subjectDeleted,
             final NotUsed notUsed) {
+
         log.debug("Got SUBJECT_DELETED in TO_DELETE");
         return processSubjectDeletedAndCheckForAnnouncement(stop());
     }
 
     private State<SubjectExpiryState, NotUsed> subjectDeletedInDeleted(final Message subjectDeleted,
             final NotUsed notUsed) {
+
         log.debug("Got SUBJECT_DELETED in DELETED");
         return processSubjectDeletedAndCheckForAnnouncement(stop());
     }
 
-    private State<SubjectExpiryState, NotUsed> timeoutInDeleted(final StateTimeout$ timeout,
-            final NotUsed notUsed) {
-
+    private State<SubjectExpiryState, NotUsed> timeoutInDeleted(final StateTimeout$ timeout, final NotUsed notUsed) {
         if (deleted) {
             log.error("Timeout in DELETED with subject already deleted. This should not happen.");
             return stop();
@@ -306,6 +322,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
 
     private State<SubjectExpiryState, NotUsed> onAcknowledgements(final Acknowledgements acknowledgements,
             final NotUsed notUsed) {
+
         final var l = log.withCorrelationId(acknowledgements);
         l.debug("onAcknowledgements <{}>", acknowledgements);
         if (shouldRetry(acknowledgements)) {
@@ -383,7 +400,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
                 subject.getAnnouncement().filter(SubjectAnnouncement::isWhenDeleted).isPresent();
     }
 
-    private boolean shouldRetry(final Acknowledgements acks) {
+    private static boolean shouldRetry(final Acknowledgements acks) {
         return acks.stream()
                 .map(Acknowledgement::getHttpStatus)
                 .anyMatch(SubjectExpiryActor::requiresRedelivery);
@@ -430,7 +447,9 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         if (announcement.getDittoHeaders().getAcknowledgementRequests().isEmpty()) {
             return null;
         } else {
-            return ackregatorStarter.doStart(policyId, announcement.getDittoHeaders(), this::receiveAcknowledgements,
+            return ackregatorStarter.doStart(policyId,
+                    announcement,
+                    this::receiveAcknowledgements,
                     Function.identity());
         }
     }
@@ -459,7 +478,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
                         .map(expiry -> expiry.getTimestamp().minus(beforeExpiry.getDuration())));
     }
 
-    private Duration truncateToOneDay(final Duration duration) {
+    private static Duration truncateToOneDay(final Duration duration) {
         final Duration oneDay = Duration.ofDays(1);
         return duration.compareTo(oneDay) < 0 ? duration : oneDay;
     }
@@ -509,4 +528,5 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
          */
         DELETE
     }
+
 }
