@@ -334,9 +334,9 @@ public final class Acknowledgement implements CommandResponse<Acknowledgement>, 
     }
 
     /**
-     * Returns all non hidden marked fields of this Acknowledgement.
+     * Returns all non-hidden marked fields of this Acknowledgement.
      *
-     * @return a JSON object representation of this Acknowledgement including only non hidden marked fields.
+     * @return a JSON object representation of this Acknowledgement including only non-hidden marked fields.
      */
     @Override
     public JsonObject toJson() {

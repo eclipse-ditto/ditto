@@ -18,17 +18,18 @@ import java.text.MessageFormat;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
 
 /**
  * This class helps to deserialize JSON to a sub-class of {@link CommandResponse}. Hereby this class extracts the
  * values which are common for all command responses. All remaining required values have to be extracted in
- * {@link CommandResponseJsonDeserializer.FactoryMethodFunction#create(org.eclipse.ditto.base.model.common.HttpStatus)}. There the actual command response object is created, too.
+ * {@link CommandResponseJsonDeserializer.FactoryMethodFunction#create(org.eclipse.ditto.base.model.common.HttpStatus)}.
+ * There the actual command response object is created, too.
  */
 @Immutable
 public final class CommandResponseJsonDeserializer<T extends CommandResponse> {
@@ -65,13 +66,14 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse> {
 
     /**
      * Partly deserializes the JSON which was given to this object's constructor. The factory method function which is
-     * given to this method is responsible for creating the actual {@code CommandResponseType}. This method receives the
-     * partly deserialized values which can be completed by implementors if further values are required.
+     * given to this method is responsible for creating the actual {@code CommandResponseType}. This method receives
+     * the partly deserialized values which can be completed by implementors if further values are required.
      *
      * @param factoryMethodFunction creates the actual {@code CommandResponseType} object.
      * @return the command response.
      * @throws NullPointerException if {@code factoryMethodFunction} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if the JSON is invalid or if the command response type differs from the expected one.
+     * @throws org.eclipse.ditto.json.JsonParseException if the JSON is invalid or if the command response type
+     * differs from the expected one.
      */
     public T deserialize(final FactoryMethodFunction<T> factoryMethodFunction) {
         checkNotNull(factoryMethodFunction, "method for creating a command response object");

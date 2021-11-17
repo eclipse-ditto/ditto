@@ -14,11 +14,11 @@ package org.eclipse.ditto.base.model.signals.commands;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonMissingFieldException;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.json.JsonParsableCommand;
 import org.eclipse.ditto.base.model.signals.AbstractAnnotationBasedJsonParsableFactory;
 import org.eclipse.ditto.base.model.signals.AbstractGlobalJsonParsableRegistry;
+import org.eclipse.ditto.json.JsonMissingFieldException;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Contains all strategies to deserialize subclasses of {@link Command} from a combination of
@@ -55,8 +55,10 @@ public final class GlobalCommandRegistry
     }
 
     /**
-     * Contains all strategies to deserialize {@link Command} annotated with {@link org.eclipse.ditto.base.model.json.JsonParsableCommand}
-     * from a combination of {@link org.eclipse.ditto.json.JsonObject} and {@link org.eclipse.ditto.base.model.headers.DittoHeaders}.
+     * Contains all strategies to deserialize {@link Command} annotated with
+     * {@link org.eclipse.ditto.base.model.json.JsonParsableCommand}
+     * from a combination of {@link org.eclipse.ditto.json.JsonObject} and
+     * {@link org.eclipse.ditto.base.model.headers.DittoHeaders}.
      */
     private static final class CommandParsingStrategyFactory
             extends AbstractAnnotationBasedJsonParsableFactory<Command<?>, JsonParsableCommand> {

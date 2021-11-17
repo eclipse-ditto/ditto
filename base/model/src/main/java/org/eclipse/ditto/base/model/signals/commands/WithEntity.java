@@ -14,11 +14,12 @@ package org.eclipse.ditto.base.model.signals.commands;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
- * Implementations of this interface are associated to an entity returned from {@link #getEntity(org.eclipse.ditto.base.model.json.JsonSchemaVersion)}.
+ * Implementations of this interface are associated to an entity returned from
+ * {@link #getEntity(org.eclipse.ditto.base.model.json.JsonSchemaVersion)}.
  *
  * @param <T> the type of the implementing class.
  */

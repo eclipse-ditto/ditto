@@ -21,13 +21,13 @@ import java.util.function.Predicate;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 
 /**
@@ -47,7 +47,8 @@ public abstract class AbstractCommand<T extends AbstractCommand<T>> implements C
      * @param dittoHeaders the headers of the command.
      * @param category used for validation of response required header.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws CommandHeaderInvalidException if category is {@link org.eclipse.ditto.base.model.signals.commands.Command.Category#QUERY} and response is not required.
+     * @throws CommandHeaderInvalidException if category is
+     * {@link org.eclipse.ditto.base.model.signals.commands.Command.Category#QUERY} and response is not required.
      */
     protected AbstractCommand(final String type, final DittoHeaders dittoHeaders, final Category category) {
         this.type = checkNotNull(type, "type");
@@ -61,8 +62,8 @@ public abstract class AbstractCommand<T extends AbstractCommand<T>> implements C
      * @param type the name of this command.
      * @param dittoHeaders the headers of the command.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws CommandHeaderInvalidException if {@link #getCategory()} is {@link org.eclipse.ditto.base.model.signals.commands.Command.Category#QUERY} and response is
-     * not required.
+     * @throws CommandHeaderInvalidException if {@link #getCategory()} is
+     * {@link org.eclipse.ditto.base.model.signals.commands.Command.Category#QUERY} and response is not required.
      */
     protected AbstractCommand(final String type, final DittoHeaders dittoHeaders) {
         this.type = checkNotNull(type, "type");
@@ -71,6 +72,7 @@ public abstract class AbstractCommand<T extends AbstractCommand<T>> implements C
     }
 
     private void validateHeaders(final Category category) {
+        checkNotNull(category, "category");
         if (Category.QUERY == category && !dittoHeaders.isResponseRequired()) {
             final String headerKey = DittoHeaderDefinition.RESPONSE_REQUIRED.getKey();
             throw CommandHeaderInvalidException.newBuilder(headerKey)
@@ -136,6 +138,7 @@ public abstract class AbstractCommand<T extends AbstractCommand<T>> implements C
             return false;
         }
         final AbstractCommand<?> other = (AbstractCommand<?>) obj;
+
         return other.canEqual(this) && Objects.equals(dittoHeaders, other.dittoHeaders)
                 && Objects.equals(type, other.type);
     }

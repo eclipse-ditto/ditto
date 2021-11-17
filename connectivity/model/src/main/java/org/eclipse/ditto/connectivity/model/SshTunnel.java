@@ -16,15 +16,15 @@ import java.util.List;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * A {@link SshTunnel} contains the information to open and persists a ssh tunnel to a remote endpoint.
@@ -59,9 +59,9 @@ public interface SshTunnel extends Jsonifiable.WithFieldSelectorAndPredicate<Jso
     String getUri();
 
     /**
-     * Returns all non hidden marked fields of this {@code SshTunnel}.
+     * Returns all non-hidden marked fields of this {@code SshTunnel}.
      *
-     * @return a JSON object representation of this SshTunnel including only non hidden marked fields
+     * @return a JSON object representation of this SshTunnel including only non-hidden marked fields
      */
     default JsonObject toJson() {
         return toJson(FieldType.notHidden());

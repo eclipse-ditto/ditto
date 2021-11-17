@@ -16,14 +16,14 @@ import java.time.Instant;
 import java.util.Optional;
 
 import org.atteo.classindex.IndexSubclasses;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Base interface for all events emitted by Ditto.
@@ -72,9 +72,9 @@ public interface Event<T extends Event<T>> extends Signal<T>, WithOptionalEntity
     Optional<Metadata> getMetadata();
 
     /**
-     * Returns all non hidden marked fields of this event.
+     * Returns all non-hidden marked fields of this event.
      *
-     * @return a JSON object representation of this event including only non hidden marked fields.
+     * @return a JSON object representation of this event including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {

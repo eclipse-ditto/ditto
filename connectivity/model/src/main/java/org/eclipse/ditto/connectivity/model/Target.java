@@ -17,17 +17,17 @@ import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * A {@link Connection} target contains one address to publish to and several topics of Ditto signals for which to
@@ -94,9 +94,9 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     PayloadMapping getPayloadMapping();
 
     /**
-     * Returns all non hidden marked fields of this {@code Connection}.
+     * Returns all non-hidden marked fields of this {@code Connection}.
      *
-     * @return a JSON object representation of this Target including only non hidden marked fields
+     * @return a JSON object representation of this Target including only non-hidden marked fields
      */
     @Override
     default JsonObject toJson() {

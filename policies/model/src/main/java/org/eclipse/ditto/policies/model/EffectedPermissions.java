@@ -15,15 +15,15 @@ package org.eclipse.ditto.policies.model;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Holds {@link Permissions} for {@link PermissionEffect}s (grant/revoke).
@@ -83,9 +83,9 @@ public interface EffectedPermissions extends Jsonifiable.WithFieldSelectorAndPre
     }
 
     /**
-     * Returns all non hidden marked fields of this EffectedPermissions.
+     * Returns all non-hidden marked fields of this EffectedPermissions.
      *
-     * @return a JSON object representation of this EffectedPermissions including only non hidden marked fields.
+     * @return a JSON object representation of this EffectedPermissions including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {
