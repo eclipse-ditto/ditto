@@ -72,7 +72,6 @@ public abstract class AbstractCommand<T extends AbstractCommand<T>> implements C
     }
 
     private void validateHeaders(final Category category) {
-        checkNotNull(category, "category");
         if (Category.QUERY == category && !dittoHeaders.isResponseRequired()) {
             final String headerKey = DittoHeaderDefinition.RESPONSE_REQUIRED.getKey();
             throw CommandHeaderInvalidException.newBuilder(headerKey)
