@@ -352,7 +352,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         final var requestWithoutEntity = newRequestWithoutEntity(publishTarget, headersPair.first(), message);
         final ContentType contentTypeHeader = headersPair.second();
         if (contentTypeHeader != null) {
-            final var httpEntity = HttpEntities.create(contentTypeHeader.contentType(), getPayloadAsBytes(message));
+            final var httpEntity =
+                    HttpEntities.create(contentTypeHeader.contentType(), getPayloadAsBytes(message));
             result = requestWithoutEntity.withEntity(httpEntity);
         } else if (message.isTextMessage()) {
             result = requestWithoutEntity.withEntity(getTextPayload(message));
@@ -497,7 +498,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
                         .isPresent();
                 if (isDittoProtocolMessage && body.isObject()) {
-                    final CommandResponse<?> parsedResponse = toCommandResponse(body.asObject(), targetAuthorizationContext);
+                    final CommandResponse<?> parsedResponse =
+                            toCommandResponse(body.asObject(), targetAuthorizationContext);
                     if (parsedResponse instanceof Acknowledgement) {
                         result = parsedResponse;
                     } else if (SignalInformationPoint.isLiveCommandResponse(parsedResponse)) {
@@ -564,7 +566,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
                 .isPresent();
         if (isDittoProtocolMessage && jsonValue.isObject()) {
-            final CommandResponse<?> commandResponse = toCommandResponse(jsonValue.asObject(), targetAuthorizationContext);
+            final CommandResponse<?> commandResponse =
+                    toCommandResponse(jsonValue.asObject(), targetAuthorizationContext);
             if (commandResponse == null) {
                 return null;
             } else if (commandResponse instanceof MessageCommandResponse) {
@@ -613,7 +616,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 .filter(org.eclipse.ditto.base.model.headers.contenttype.ContentType::isDittoProtocol)
                 .isPresent();
         if (isDittoProtocolMessage && jsonValue.isObject()) {
-            final var commandResponse = toCommandResponse(jsonValue.asObject(), targetAuthorizationContext);
+            final var commandResponse =
+                    toCommandResponse(jsonValue.asObject(), targetAuthorizationContext);
             if (commandResponse == null) {
                 return null;
             } else if (commandResponse instanceof ThingCommandResponse &&
