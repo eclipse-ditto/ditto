@@ -226,7 +226,6 @@ public abstract class AbstractConsumerActorTest<M> {
         // implement in subclasses if required
     }
 
-
     protected Sink<Object, NotUsed> setupInboundMappingSink(final ActorRef clientActor, final ActorRef proxyActor) {
         final Map<String, MappingContext> mappings = new HashMap<>();
         mappings.put("ditto", DittoMessageMapper.CONTEXT);
@@ -256,13 +255,22 @@ public abstract class AbstractConsumerActorTest<M> {
         final ActorRef outboundProcessorActor = actorSystem.actorOf(props,
                 OutboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
 
-        final Sink<Object, NotUsed> inboundDispatchingSink =
-                InboundDispatchingSink.createSink(CONNECTION, protocolAdapter.headerTranslator(),
-                        ActorSelection.apply(proxyActor, ""), connectionActorProbe.ref(), outboundProcessorActor,
-                        TestProbe.apply(actorSystem).ref(), actorSystem, actorSystem.settings().config());
+        final Sink<Object, NotUsed> inboundDispatchingSink = InboundDispatchingSink.createSink(CONNECTION,
+                protocolAdapter.headerTranslator(),
+                ActorSelection.apply(proxyActor, ""),
+                connectionActorProbe.ref(),
+                outboundProcessorActor,
+                TestProbe.apply(actorSystem).ref(),
+                actorSystem,
+                actorSystem.settings().config(),
+                null);
 
-        return InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99,
-                inboundDispatchingSink, connectivityConfig.getMappingConfig(), null,
+        return InboundMappingSink.createSink(inboundMappingProcessor,
+                CONNECTION_ID,
+                99,
+                inboundDispatchingSink,
+                connectivityConfig.getMappingConfig(),
+                null,
                 actorSystem.dispatchers().defaultGlobalDispatcher());
     }
 

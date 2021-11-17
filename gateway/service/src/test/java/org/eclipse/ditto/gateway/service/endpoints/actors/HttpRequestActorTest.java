@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -446,6 +447,8 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 DittoHeaders.newBuilder(createAuthorizedHeaders())
                         .correlationId(correlationId)
                         .channel("live")
+                        .responseRequired(true)
+                        .timeout(Duration.ofSeconds(5L))
                         .build());
         final var proxyActorTestProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
         final var httpResponseFuture = new CompletableFuture<HttpResponse>();
@@ -462,12 +465,13 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         underTest.tell(modifyAttribute, commandHandler.ref());
 
         final var proxiedCommand = proxyActorTestProbe.expectMsgClass(modifyAttribute.getClass());
+        final var acknowledgementAggregator = proxyActorTestProbe.sender();
 
         // Send invalid response.
         final var responseDittoHeaders = DittoHeaders.newBuilder(proxiedCommand.getDittoHeaders())
                 .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId.toString())
                 .build();
-        underTest.tell(
+        acknowledgementAggregator.tell(
                 RetrieveThingResponse.of(modifyAttribute.getEntityId(), JsonObject.empty(), responseDittoHeaders),
                 commandHandler.ref()
         );
@@ -508,6 +512,8 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 DittoHeaders.newBuilder(createAuthorizedHeaders())
                         .correlationId(correlationId)
                         .channel("live")
+                        .responseRequired(true)
+                        .timeout(Duration.ofSeconds(5L))
                         .build());
         final var proxyActorTestProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
         final var httpResponseFuture = new CompletableFuture<HttpResponse>();
@@ -524,9 +530,10 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         underTest.tell(modifyAttribute, commandHandler.ref());
 
         final var proxiedCommand = proxyActorTestProbe.expectMsgClass(modifyAttribute.getClass());
+        final var acknowledgementAggregator = proxyActorTestProbe.sender();
 
-        // Send invalid response.
-        underTest.tell(
+        // Send response with different ThingId (hence invalid) without connection ID.
+        acknowledgementAggregator.tell(
                 ModifyAttributeResponse.modified(ThingId.generateRandom(),
                         modifyAttribute.getAttributePointer(),
                         proxiedCommand.getDittoHeaders()),
@@ -556,6 +563,8 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 DittoHeaders.newBuilder(createAuthorizedHeaders())
                         .channel("live")
                         .correlationId(correlationId)
+                        .responseRequired(true)
+                        .timeout(Duration.ofSeconds(5L))
                         .build());
         final var proxyActorTestProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
         final var httpResponseFuture = new CompletableFuture<HttpResponse>();
@@ -572,12 +581,13 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         underTest.tell(modifyAttribute, commandHandler.ref());
 
         final var proxiedCommand = proxyActorTestProbe.expectMsgClass(modifyAttribute.getClass());
+        final var acknowledgementAggregator = proxyActorTestProbe.sender();
 
         // Send invalid response.
         final var responseDittoHeaders = DittoHeaders.newBuilder(proxiedCommand.getDittoHeaders())
                 .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId.toString())
                 .build();
-        underTest.tell(
+        acknowledgementAggregator.tell(
                 RetrieveThingResponse.of(modifyAttribute.getEntityId(), JsonObject.empty(), responseDittoHeaders),
                 commandHandler.ref()
         );
@@ -600,7 +610,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 });
 
         // Eventually send valid response.
-        underTest.tell(
+        acknowledgementAggregator.tell(
                 ModifyAttributeResponse.modified(proxiedCommand.getEntityId(),
                         proxiedCommand.getAttributePointer(),
                         proxiedCommand.getDittoHeaders()),

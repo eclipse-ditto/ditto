@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -61,6 +62,7 @@ import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
+import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.LogEntryFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
@@ -106,6 +108,7 @@ import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelActor;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
@@ -326,7 +329,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final var actorPair = startOutboundActors(protocolAdapter);
         outboundDispatchingActor = actorPair.first();
 
-        final var inboundDispatchingSink = getInboundDispatchingSink(connection, protocolAdapter, actorPair.second());
+        final var inboundDispatchingSink = getInboundDispatchingSink(actorPair.second());
         inboundMappingSink = getInboundMappingSink(protocolAdapter, inboundDispatchingSink);
         subscriptionManager = startSubscriptionManager(proxyActorSelection, connectivityConfig().getClientConfig());
 
@@ -1703,8 +1706,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
 
-    private Pair<ActorRef, ActorRef> startOutboundActors(
-            final ProtocolAdapter protocolAdapter) {
+    private Pair<ActorRef, ActorRef> startOutboundActors(final ProtocolAdapter protocolAdapter) {
         final OutboundMappingSettings settings;
         final OutboundMappingProcessor outboundMappingProcessor;
         try {
@@ -1741,11 +1743,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @return the ref to the started {@link InboundDispatchingSink}
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
-    private Sink<Object, NotUsed> getInboundDispatchingSink(final Connection connection,
-            final ProtocolAdapter protocolAdapter,
-            final ActorRef outboundMappingProcessorActor) {
-
+    private Sink<Object, NotUsed> getInboundDispatchingSink(final ActorRef outboundMappingProcessorActor) {
         final var actorContext = getContext();
+        final var actorSystem = actorContext.getSystem();
+
         return InboundDispatchingSink.createSink(connection,
                 protocolAdapter.headerTranslator(),
                 proxyActorSelection,
@@ -1753,7 +1754,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 outboundMappingProcessorActor,
                 getSelf(),
                 actorContext,
-                actorContext.system().settings().config());
+                actorSystem.settings().config(),
+                getResponseValidationFailureConsumer());
+    }
+
+    private Consumer<MatchingValidationResult.Failure> getResponseValidationFailureConsumer() {
+        return failure -> connectionLogger.logEntry(
+                LogEntryFactory.getLogEntryForFailedCommandResponseRoundTrip(failure.getCommand(),
+                        failure.getCommandResponse(),
+                        failure.getDetailMessage())
+        );
     }
 
     /**

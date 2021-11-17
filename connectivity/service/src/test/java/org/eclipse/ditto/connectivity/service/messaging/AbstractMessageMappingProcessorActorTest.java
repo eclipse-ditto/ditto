@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -34,9 +33,11 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.common.ResponseType;
+import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
@@ -70,11 +71,11 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeResponse;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigValueFactory;
 
-import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
@@ -82,7 +83,6 @@ import akka.actor.Props;
 import akka.pattern.Patterns;
 import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
-import akka.stream.javadsl.Sink;
 import akka.stream.scaladsl.Source;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -117,6 +117,9 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                     .set("source", "{{ request:subjectId }}")
                     .set("qos", "{{ header:qos }}")
                     .build());
+
+    @Rule
+    public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
 
     ActorSystem actorSystem;
     ProtocolAdapterProvider protocolAdapterProvider;
@@ -328,13 +331,13 @@ public abstract class AbstractMessageMappingProcessorActorTest {
     ActorRef createInboundMappingProcessorActor(final ActorRef proxyActor,
             final ActorRef outboundMappingProcessorActor,
             final TestKit testKit) {
+
         final Map<String, MappingContext> mappingDefinitions = new HashMap<>();
         mappingDefinitions.put(FAULTY_MAPPER, FaultyMessageMapper.CONTEXT);
         mappingDefinitions.put(ADD_HEADER_MAPPER, AddHeaderMessageMapper.CONTEXT);
         mappingDefinitions.put(DUPLICATING_MAPPER, DuplicatingMessageMapper.CONTEXT);
-        final PayloadMappingDefinition payloadMappingDefinition =
-                ConnectivityModelFactory.newPayloadMappingDefinition(mappingDefinitions);
-        final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
+        final var payloadMappingDefinition = ConnectivityModelFactory.newPayloadMappingDefinition(mappingDefinitions);
+        final var logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
         Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
                 .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
@@ -343,22 +346,31 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 .thenReturn(logger);
         Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
                 .thenReturn(logger);
-        final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
-        final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(
+        final var protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
+        final var inboundMappingProcessor = InboundMappingProcessor.of(
                 CONNECTION.toBuilder().payloadMappingDefinition(payloadMappingDefinition).build(),
                 TestConstants.CONNECTIVITY_CONFIG,
                 actorSystem,
                 protocolAdapter,
-                logger);
-        final Sink<Object, NotUsed> inboundDispatchingSink =
-                InboundDispatchingSink.createSink(CONNECTION, protocolAdapter.headerTranslator(),
-                        ActorSelection.apply(proxyActor, ""), connectionActorProbe.ref(), outboundMappingProcessorActor,
-                        testKit.getRef(), actorSystem, actorSystem.settings().config());
+                logger
+        );
+        final var inboundDispatchingSink = InboundDispatchingSink.createSink(CONNECTION,
+                protocolAdapter.headerTranslator(),
+                ActorSelection.apply(proxyActor, ""),
+                connectionActorProbe.ref(),
+                outboundMappingProcessorActor,
+                testKit.getRef(),
+                actorSystem,
+                actorSystem.settings().config(),
+                null);
 
-        final Sink<Object, NotUsed> inboundMappingSink =
-                InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99,
-                        inboundDispatchingSink, TestConstants.CONNECTIVITY_CONFIG.getMappingConfig(), null,
-                        actorSystem.dispatchers().defaultGlobalDispatcher());
+        final var inboundMappingSink = InboundMappingSink.createSink(inboundMappingProcessor,
+                CONNECTION_ID,
+                99,
+                inboundDispatchingSink,
+                TestConstants.CONNECTIVITY_CONFIG.getMappingConfig(),
+                null,
+                actorSystem.dispatchers().defaultGlobalDispatcher());
 
         return Source.actorRef(99, OverflowStrategy.dropNew())
                 .to(inboundMappingSink)
@@ -389,10 +401,8 @@ public abstract class AbstractMessageMappingProcessorActorTest {
     }
 
     ExternalMessage toExternalMessage(final Signal<?> signal, Consumer<SourceBuilder<?>> sourceModifier) {
-        final AuthorizationContext context =
-                AuthorizationModelFactory.newAuthContext(
-                        DittoAuthorizationContextType.UNSPECIFIED,
-                        AuthorizationModelFactory.newAuthSubject("ditto:ditto"));
+        final var context = AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
+                AuthorizationModelFactory.newAuthSubject("ditto:ditto"));
         final JsonifiableAdaptable adaptable = ProtocolFactory
                 .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(signal));
         final SourceBuilder<?> sourceBuilder = ConnectivityModelFactory.newSourceBuilder()
@@ -421,12 +431,14 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         });
     }
 
-    static ModifyAttribute createModifyAttributeCommand() {
-        final Map<String, String> headers = new HashMap<>();
-        final String correlationId = UUID.randomUUID().toString();
-        headers.put("correlation-id", correlationId);
-        headers.put("content-type", "application/json");
-        return ModifyAttribute.of(KNOWN_THING_ID, JsonPointer.of("foo"), JsonValue.of(42), DittoHeaders.of(headers));
+    private ModifyAttribute createModifyAttributeCommand() {
+        return ModifyAttribute.of(KNOWN_THING_ID,
+                JsonPointer.of("foo"),
+                JsonValue.of(42),
+                DittoHeaders.newBuilder()
+                        .correlationId(testNameCorrelationId.getCorrelationId())
+                        .contentType(ContentType.APPLICATION_JSON)
+                        .build());
     }
 
     static ThreadSafeDittoLoggingAdapter mockLoggingAdapter() {
@@ -465,4 +477,5 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         }
 
     }
+
 }
