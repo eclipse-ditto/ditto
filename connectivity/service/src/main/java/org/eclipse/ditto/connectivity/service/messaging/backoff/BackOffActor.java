@@ -29,11 +29,12 @@ import akka.japi.pf.ReceiveBuilder;
  * Actor that can be used to provide back-off behaviour for a message. You can use it the following way:
  * <ol>
  *     <li>Create the actor</li>
- *     <li>Create a back-off-message containing the message you need to back-off. Use {@link BackOffActor#createBackOffWithAnswerMessage(Object)}
- *     for this.</li>
+ *     <li>Create a back-off-message containing the message you need to back-off.
+ *     Use {@link BackOffActor#createBackOffWithAnswerMessage(Object)} for this.</li>
  *     <li>Send the back-off-message to the actor</li>
- *     <li><i>Optionally</i>: Send a message created via {@link BackOffActor#createIsInBackOffMessage()} to the actor, which
- *     would respond with an {@link BackOffActor.IsInBackOffResponse} telling you the actor is currently in back-off mode.</li>
+ *     <li><i>Optionally</i>: Send a message created via {@link BackOffActor#createIsInBackOffMessage()} to the actor,
+ *     which would respond with an {@link BackOffActor.IsInBackOffResponse} telling you the actor is currently in
+ *     back-off mode.</li>
  *     <li>Receive the initially backed off message after the backoff duration</li>
  * </ol>
  *
@@ -122,7 +123,7 @@ public final class BackOffActor extends AbstractActorWithTimers {
     }
 
     private void handleIsInBackOff(final Object o) {
-        final boolean isInBackOff = this.isInBackOff();
+        final var isInBackOff = this.isInBackOff();
         log.debug("Received IsInBackOff request, responding with: <{}>", isInBackOff);
         getSender().tell(new IsInBackOffResponse(isInBackOff), getSelf());
     }

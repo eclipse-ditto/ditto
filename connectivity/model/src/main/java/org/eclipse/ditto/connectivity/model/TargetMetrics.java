@@ -16,14 +16,14 @@ import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Contains metrics about a single {@link Target}.
@@ -36,9 +36,9 @@ public interface TargetMetrics extends Jsonifiable.WithFieldSelectorAndPredicate
     Map<String, AddressMetric> getAddressMetrics();
 
     /**
-     * Returns all non hidden marked fields of this {@code TargetMetrics}.
+     * Returns all non-hidden marked fields of this {@code TargetMetrics}.
      *
-     * @return a JSON object representation of this TargetMetrics including only non hidden marked fields.
+     * @return a JSON object representation of this TargetMetrics including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {

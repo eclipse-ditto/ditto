@@ -34,7 +34,7 @@ public abstract class AbstractIdValidator implements BiConsumer<CharSequence, Di
      * @param idRegex the regular expression to match IDs to.
      */
     protected AbstractIdValidator(final String idRegex) {
-        this.idRegex = idRegex;
+        this.idRegex = checkNotNull(idRegex, "idRegex");
     }
 
     /**

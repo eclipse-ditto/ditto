@@ -20,14 +20,14 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Represents the status of a resource e.g. a client connection, a source or a target, defined in {@link ResourceStatus.ResourceType}.
@@ -65,9 +65,9 @@ public interface ResourceStatus extends Jsonifiable.WithFieldSelectorAndPredicat
     Optional<Instant> getInStateSince();
 
     /**
-     * Returns all non hidden marked fields of this {@code AddressMetric}.
+     * Returns all non-hidden marked fields of this {@code AddressMetric}.
      *
-     * @return a JSON object representation of this Source including only non hidden marked fields.
+     * @return a JSON object representation of this Source including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {

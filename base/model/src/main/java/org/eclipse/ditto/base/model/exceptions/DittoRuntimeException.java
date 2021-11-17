@@ -27,11 +27,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.atteo.classindex.IndexSubclasses;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
@@ -39,6 +34,11 @@ import org.eclipse.ditto.base.model.headers.WithManifest;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
  * Parent RuntimeException for all RuntimeExceptions of Ditto.
@@ -192,9 +192,9 @@ public abstract class DittoRuntimeException extends RuntimeException
     }
 
     /**
-     * Returns all non hidden marked fields of this exception.
+     * Returns all non-hidden marked fields of this exception.
      *
-     * @return a JSON object representation of this exception including only non hidden marked fields.
+     * @return a JSON object representation of this exception including only non-hidden marked fields.
      */
     @Override
     public JsonObject toJson() {

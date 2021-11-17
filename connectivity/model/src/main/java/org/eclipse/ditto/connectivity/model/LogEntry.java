@@ -85,9 +85,9 @@ public interface LogEntry extends Jsonifiable.WithFieldSelectorAndPredicate<Json
 
 
     /**
-     * Returns all non hidden marked fields of this {@code LogEntry}.
+     * Returns all non-hidden marked fields of this {@code LogEntry}.
      *
-     * @return a JSON object representation of this LogEntry including only non hidden marked fields.
+     * @return a JSON object representation of this LogEntry including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {

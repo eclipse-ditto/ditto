@@ -23,4 +23,5 @@ public interface WithNamespace {
      * @return the associated namespace.
      */
     Optional<String> getNamespace();
+
 }

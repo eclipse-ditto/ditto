@@ -17,16 +17,16 @@ import java.util.function.Predicate;
 import javax.annotation.concurrent.Immutable;
 
 import org.atteo.classindex.IndexSubclasses;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Aggregates all possible responses relating to a given {@link Command}.
@@ -69,7 +69,7 @@ public interface CommandResponse<T extends CommandResponse<T>> extends Signal<T>
     }
 
     /**
-     * Returns all non hidden marked fields of this command response.
+     * Returns all non-hidden marked fields of this command response.
      *
      * @return a JSON object representation of this command response including only regular, non-hidden marked fields.
      */

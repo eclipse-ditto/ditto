@@ -107,4 +107,5 @@ final class HttpPublishTarget implements PublishTarget {
                 ", pathWithQuery=" + pathWithQuery +
                 "]";
     }
+
 }

@@ -56,7 +56,7 @@ public final class HttpPushClientActor extends BaseClientActor {
     private static final int PROXY_CONNECT_TIMEOUT_SECONDS = 15;
 
     private final HttpPushFactory factory;
-    private final ConnectionLogger connectionLogger;
+    private final ConnectionLogger clientConnectionLogger;
     private final HttpPushConfig httpPushConfig;
 
     @Nullable private ActorRef httpPublisherActor;
@@ -67,8 +67,8 @@ public final class HttpPushClientActor extends BaseClientActor {
         super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         httpPushConfig = connectivityConfig().getConnectionConfig().getHttpPushConfig();
         final MonitoringLoggerConfig loggerConfig = connectivityConfig().getMonitoringConfig().logger();
-        connectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
-        factory = HttpPushFactory.of(connection, httpPushConfig, connectionLogger, this::getSshTunnelState);
+        clientConnectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
+        factory = HttpPushFactory.of(connection, httpPushConfig, clientConnectionLogger, this::getSshTunnelState);
     }
 
     /**
@@ -148,6 +148,7 @@ public final class HttpPushClientActor extends BaseClientActor {
                 connectivityStatusResolver);
         httpPublisherActor = startChildActorConflictFree(HttpPublisherActor.ACTOR_NAME, props);
         future.complete(DONE);
+
         return future;
     }
 
@@ -160,7 +161,7 @@ public final class HttpPushClientActor extends BaseClientActor {
         } else {
             // check without HTTP proxy
             final SSLContextCreator sslContextCreator =
-                    SSLContextCreator.fromConnection(connection, DittoHeaders.empty(), connectionLogger);
+                    SSLContextCreator.fromConnection(connection, DittoHeaders.empty(), clientConnectionLogger);
             final SSLSocketFactory socketFactory = connection.getCredentials()
                     .map(credentials -> credentials.accept(sslContextCreator))
                     .orElse(sslContextCreator.withoutClientCertificate()).getSocketFactory();

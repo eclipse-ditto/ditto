@@ -31,18 +31,15 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.gateway.service.proxy.config.StatisticsConfig;
-import org.eclipse.ditto.gateway.service.proxy.config.StatisticsShardConfig;
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonKey;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatistics;
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetailsResponse;
+import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsResponse;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.gateway.service.proxy.config.StatisticsConfig;
+import org.eclipse.ditto.gateway.service.proxy.config.StatisticsShardConfig;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.ClusterStatusSupplier;
@@ -53,10 +50,13 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.health.cluster.ClusterRoleStatus;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.gauge.Gauge;
-import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatistics;
-import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
-import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetailsResponse;
-import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsResponse;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -532,9 +532,9 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
         }
 
         /**
-         * Returns all non hidden marked fields of this statistics.
+         * Returns all non-hidden marked fields of this statistics.
          *
-         * @return a JSON object representation of this statistics including only non hidden marked fields.
+         * @return a JSON object representation of this statistics including only non-hidden marked fields.
          */
         @Override
         public JsonObject toJson() {
@@ -629,9 +629,9 @@ public final class StatisticsActor extends AbstractActorWithStashWithTimers {
         }
 
         /**
-         * Returns all non hidden marked fields of this StatisticsDetails.
+         * Returns all non-hidden marked fields of this StatisticsDetails.
          *
-         * @return a JSON object representation of this StatisticsDetails including only non hidden marked fields.
+         * @return a JSON object representation of this StatisticsDetails including only non-hidden marked fields.
          */
         @Override
         public JsonObject toJson() {

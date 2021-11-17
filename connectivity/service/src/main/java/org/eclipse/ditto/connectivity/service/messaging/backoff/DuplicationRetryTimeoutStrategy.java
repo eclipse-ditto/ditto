@@ -59,6 +59,7 @@ final class DuplicationRetryTimeoutStrategy implements RetryTimeoutStrategy {
         if (timeout.isZero()) {
             this.currentTimeout = ZERO_MIN_DURATION_FIRST_INCREMENT;
         }
+
         return timeout;
     }
 
@@ -83,6 +84,7 @@ final class DuplicationRetryTimeoutStrategy implements RetryTimeoutStrategy {
     private static Predicate<Duration> isLowerThanOrEqual(final Duration otherDuration) {
         return arg -> {
             final Duration minus = arg.minus(otherDuration);
+
             return minus.isNegative() || minus.isZero();
         };
     }
