@@ -61,18 +61,27 @@ public final class RegexPatterns {
     public static final String ALLOWED_CHARACTERS_IN_NAME = NO_CONTROL_CHARS_NO_SLASHES;
 
     /**
-     * Adds the dot to allowed characters. Its defined as separate constant because namespaces are not allowed to start
-     * with dots.
+     * Adds additional characters that are allowed inside a namespace segment. It's defined as separate constant because
+     * namespaces are not allowed to start with those characters.
+     *
+     * @since 2.2.0
      */
-    public static final String ALLOWED_NAMESPACE_CHARACTERS_INCLUDING_DOT =
-            "\\." + ALLOWED_NAMESPACE_CHARACTERS_REGEX;
+    public static final String ALLOWED_NAMESPACE_CHARACTERS_REGEX_INNER =
+            "([.\\-])" + ALLOWED_NAMESPACE_CHARACTERS_REGEX;
+
+    /**
+     * @deprecated Use {@link #ALLOWED_NAMESPACE_CHARACTERS_REGEX_INNER}. The name of the variable actually described
+     * the content, which has now changed. The name new describes the purpose.
+     */
+    @Deprecated
+    public static final String ALLOWED_NAMESPACE_CHARACTERS_INCLUDING_DOT = ALLOWED_NAMESPACE_CHARACTERS_REGEX_INNER;
 
     /**
      * The regex pattern for namespaces which validates that the namespace conforms the java package notation.
      */
     public static final String NAMESPACE_REGEX = "(?<" + NAMESPACE_GROUP_NAME + ">|(?:" +
             "(?:" + ALLOWED_NAMESPACE_CHARACTERS_REGEX + ")" +
-            "(?:" + ALLOWED_NAMESPACE_CHARACTERS_INCLUDING_DOT + ")*+))";
+            "(?:" + ALLOWED_NAMESPACE_CHARACTERS_REGEX_INNER + ")*+))";
 
     /**
      * Regex pattern that matches URL escapes. E.G. %3A for a colon (':').
