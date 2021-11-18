@@ -20,6 +20,7 @@ import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
@@ -97,10 +98,7 @@ final class SshTunnelValidator {
 
         @Override
         public Void clientCertificate(final ClientCertificateCredentials credentials) {
-            throw ConnectionConfigurationInvalidException.newBuilder(
-                    "Credentials type " + ClientCertificateCredentials.TYPE + " cannot be used for an ssh tunnel.")
-                    .dittoHeaders(dittoHeaders)
-                    .build();
+            throw notSupportedException(ClientCertificateCredentials.TYPE);
         }
 
         @Override
@@ -122,8 +120,17 @@ final class SshTunnelValidator {
 
         @Override
         public Void hmac(final HmacCredentials credentials) {
-            throw ConnectionConfigurationInvalidException.newBuilder(
-                    "Credentials type " + HmacCredentials.TYPE + " cannot be used for an ssh tunnel.")
+            throw notSupportedException(HmacCredentials.TYPE);
+        }
+
+        @Override
+        public Void oauthClientCredentials(final OAuthClientCredentials credentials) {
+            throw notSupportedException(OAuthClientCredentials.TYPE);
+        }
+
+        private DittoRuntimeException notSupportedException(final String type) {
+            return ConnectionConfigurationInvalidException.newBuilder(
+                            "Credentials type " + type + " cannot be used for an ssh tunnel.")
                     .dittoHeaders(dittoHeaders)
                     .build();
         }

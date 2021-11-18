@@ -25,23 +25,25 @@ import javax.net.ssl.SSLContext;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
-import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
-import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
-import org.eclipse.ditto.connectivity.api.BaseClientState;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.CloseConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.OpenConnection;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
+import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
+import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
 import org.junit.After;
 import org.junit.Before;
@@ -71,6 +73,7 @@ import akka.http.javadsl.model.StatusCodes;
 import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Flow;
 import akka.testkit.javadsl.TestKit;
+import akka.util.ByteString;
 
 /**
  * Tests {@link HttpPushClientActor}.
@@ -236,6 +239,74 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
             // THEN: the connection is connected successfully
             expectMsg(new Status.Success("successfully connected + initialized mapper"));
             expectTerminated(underTest);
+        }};
+    }
+
+    @Test
+    public void testInvalidTokenResponse() {
+        new TestKit(actorSystem) {{
+            // GIVEN: connection has oauth2 credentials
+            final var originalConnection = getConnection(false);
+            final var connection = originalConnection.toBuilder()
+                    .connectionStatus(ConnectivityStatus.CLOSED)
+                    .credentials(OAuthClientCredentials.newBuilder()
+                            .tokenEndpoint(originalConnection.getUri())
+                            .clientId("clientId")
+                            .clientSecret("clientSecret")
+                            .scope("scope")
+                            .build())
+                    .build();
+            final ActorRef underTest = actorSystem.actorOf(createClientActor(getRef(), connection));
+
+            // GIVEN: token endpoint delivers invalid token response
+            responseQueue.add(HttpResponse.create().withStatus(404));
+
+            // WHEN: a connection test is requested
+            underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+
+            // THEN: test fails.
+            final var failure = expectMsgClass(Status.Failure.class);
+            assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class);
+        }};
+    }
+
+    @Test
+    public void testValidTokenResponse() {
+        new TestKit(actorSystem) {{
+            // GIVEN: connection has oauth2 credentials
+            final var originalConnection = getConnection(false);
+            final var connection = originalConnection.toBuilder()
+                    .connectionStatus(ConnectivityStatus.CLOSED)
+                    .credentials(OAuthClientCredentials.newBuilder()
+                            .tokenEndpoint(originalConnection.getUri())
+                            .clientId("clientId")
+                            .clientSecret("clientSecret")
+                            .scope("scope")
+                            .build())
+                    .build();
+            final ActorRef underTest = actorSystem.actorOf(createClientActor(getRef(), connection));
+
+            // GIVEN: token endpoint delivers valid token response
+            final String accessToken = "ewogICJhbGciOiAiUlMyNTYiLAogICJ0eXAiOiAiSldUIgp9.ewogICJhdWQiOiBbXSwKICAiY2x" +
+                    "pZW50X2lkIjogIm15LWNsaWVudC1pZCIsCiAgImV4cCI6IDMyNTAzNjgwMDAwLAogICJleHQiOiB7fSwKICAiaWF0IjogMC" +
+                    "wKICAiaXNzIjogImh0dHBzOi8vbG9jYWxob3N0LyIsCiAgImp0aSI6ICI3ODVlODBjZC1lNmU2LTQ1MmEtYmU5Ny1hNTljN" +
+                    "TNlZGI0ZDkiLAogICJuYmYiOiAwLAogICJzY3AiOiBbCiAgICAibXktc2NvcGUiCiAgXSwKICAic3ViIjogIm15LXN1Ympl" +
+                    "Y3QiCn0.QUJD";
+            responseQueue.add(HttpResponse.create()
+                    .withStatus(200)
+                    .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString("{\n" +
+                            "  \"access_token\": \"" + accessToken + "\",\n" +
+                            "  \"expires_in\": 1048576,\n" +
+                            "  \"scope\": \"my-scope\",\n" +
+                            "  \"token_type\": \"bearer\"\n" +
+                            "}"))
+            );
+
+            // WHEN: a connection test is requested
+            underTest.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
+
+            // THEN: test succeeds
+            expectMsgClass(Status.Success.class);
         }};
     }
 

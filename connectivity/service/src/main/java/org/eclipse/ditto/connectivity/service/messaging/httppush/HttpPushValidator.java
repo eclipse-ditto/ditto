@@ -26,14 +26,17 @@ import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
+import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpMethod;
 import akka.http.javadsl.model.HttpMethods;
+import akka.http.javadsl.model.Uri;
 
 /**
  * Validation of http-push connections.
@@ -46,19 +49,26 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
     private static final Collection<String> SECURE_SCHEMES = List.of(HTTPS);
 
     private static final Collection<HttpMethod> SUPPORTED_METHODS =
-            List.of(HttpMethods.PUT, HttpMethods.PATCH, HttpMethods.POST, HttpMethods.GET);
+            List.of(HttpMethods.PUT, HttpMethods.PATCH, HttpMethods.POST, HttpMethods.GET, HttpMethods.DELETE);
 
     private static final String SUPPORTED_METHOD_NAMES = SUPPORTED_METHODS.stream()
             .map(HttpMethod::name)
             .collect(Collectors.joining(", "));
 
+    private final boolean oauth2EnforceHttps;
+
     /**
      * Create a new validator for http-push connections.
      *
+     * @param config the HTTP Push config.
      * @return the validator.
      */
-    public static HttpPushValidator newInstance() {
-        return new HttpPushValidator();
+    public static HttpPushValidator newInstance(final HttpPushConfig config) {
+        return new HttpPushValidator(config);
+    }
+
+    private HttpPushValidator(final HttpPushConfig config) {
+        oauth2EnforceHttps = config.getOAuth2Config().shouldEnforceHttps();
     }
 
     @Override
@@ -74,6 +84,8 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         validateTargetConfigs(connection, dittoHeaders);
         validatePayloadMappings(connection, actorSystem, connectivityConfig, dittoHeaders);
         validateParallelism(connection.getSpecificConfig(), dittoHeaders);
+        validateOmitBodyMethods(connection.getSpecificConfig(), dittoHeaders);
+        validateCredentials(connection, dittoHeaders);
     }
 
     @Override
@@ -143,6 +155,39 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
                 throw parallelismValidationFailed(parallelismString, dittoHeaders);
             }
         }
+    }
+
+    private void validateOmitBodyMethods(final Map<String, String> specificConfig, final DittoHeaders dittoHeaders) {
+        final String omitBody = specificConfig.get(HttpPublisherActor.OMIT_REQUEST_BODY_CONFIG_KEY);
+        if (omitBody != null && !omitBody.isEmpty()) {
+            final String[] methodsArray = omitBody.split(",");
+            for (final String method : methodsArray) {
+                if (HttpMethods.lookup(method).isEmpty()) {
+                    final String errorMessage = String.format("The configured value '%s' of '%s' is invalid. " +
+                                    "It contains an invalid HTTP method: %s",
+                            omitBody, HttpPublisherActor.OMIT_REQUEST_BODY_CONFIG_KEY, method);
+                    throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
+                            .dittoHeaders(dittoHeaders)
+                            .build();
+                }
+            }
+        }
+    }
+
+    private void validateCredentials(final Connection connection, final DittoHeaders dittoHeaders) {
+        connection.getCredentials().ifPresent(credentials -> {
+            if (credentials instanceof OAuthClientCredentials) {
+                final var oauthClientCredentials = (OAuthClientCredentials) credentials;
+                final var uri = Uri.create(oauthClientCredentials.getTokenEndpoint());
+                if (oauth2EnforceHttps && !"https".equals(uri.getScheme())) {
+                    final var errorMessage = "The OAuth2 token endpoint must be accessed via HTTPS " +
+                            "in order not to transmit the client secret in plain text.";
+                    throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
+                            .dittoHeaders(dittoHeaders)
+                            .build();
+                }
+            }
+        });
     }
 
     private static ConnectionConfigurationInvalidException parallelismValidationFailed(final String parallelismString,
