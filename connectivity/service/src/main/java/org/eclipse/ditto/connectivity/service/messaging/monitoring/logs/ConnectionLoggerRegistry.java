@@ -423,6 +423,11 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     }
 
     @Override
+    public ConnectionLogger forInboundThrottled(final Connection connection, final String source) {
+        return getLogger(connection.getId(), LogCategory.SOURCE, LogType.THROTTLED, source);
+    }
+
+    @Override
     public ConnectionLogger forResponseDispatched(final Connection connection) {
         return getLogger(connection.getId(), LogCategory.RESPONSE, LogType.DISPATCHED, RESPONSES_ADDRESS);
     }

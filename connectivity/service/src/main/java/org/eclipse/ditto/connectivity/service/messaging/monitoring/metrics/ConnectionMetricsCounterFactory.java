@@ -64,6 +64,7 @@ final class ConnectionMetricsCounterFactory {
                             MeasurementWindow.ONE_DAY_WITH_ONE_MINUTE_RESOLUTION)
                     .maximumPerSlot(1L)
                     .useLastTimestampForWindow(MeasurementWindow.ONE_MINUTE_WITH_ONE_MINUTE_RESOLUTION, 1L)
+                    .metricsAlert(metricsAlert)
                     .build();
         } else {
             counter = SlidingWindowCounter.newBuilder(metricsCounter)

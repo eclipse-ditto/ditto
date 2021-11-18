@@ -45,7 +45,7 @@ final class ThrottledMetricsAlert implements MetricsAlert {
     }
 
     @Override
-    public boolean evaluateCondition(final MeasurementWindow window, final long timestamp, final long value) {
+    public boolean evaluateCondition(final MeasurementWindow window, final long slot, final long value) {
         return targetMeasurementWindow == window && value > threshold;
     }
 

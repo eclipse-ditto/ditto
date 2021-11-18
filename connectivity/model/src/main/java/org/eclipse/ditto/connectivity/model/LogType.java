@@ -66,6 +66,11 @@ public enum LogType {
     ACKNOWLEDGED("acknowledged", LogCategory.SOURCE, LogCategory.TARGET, LogCategory.RESPONSE),
 
     /**
+     * Log related to a 'throttled' metric event.
+     */
+    THROTTLED("throttled", LogCategory.SOURCE),
+
+    /**
      * Log that is not related to any metric event.
      */
     OTHER("other", LogCategory.SOURCE, LogCategory.TARGET, LogCategory.RESPONSE, LogCategory.CONNECTION);

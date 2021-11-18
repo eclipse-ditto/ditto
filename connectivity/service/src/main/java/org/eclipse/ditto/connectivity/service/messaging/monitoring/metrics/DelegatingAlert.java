@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.function.Supplier;
 
 /**
@@ -28,14 +30,14 @@ final class DelegatingAlert implements MetricsAlert {
      * @param lookup the supplier used to resole the delegate
      */
     DelegatingAlert(final Supplier<MetricsAlert> lookup) {
-        this.lookup = lookup;
+        this.lookup = checkNotNull(lookup, "lookup");
     }
 
     @Override
-    public boolean evaluateCondition(final MeasurementWindow window, final long timestamp, final long value) {
+    public boolean evaluateCondition(final MeasurementWindow window, final long slot, final long value) {
         final MetricsAlert metricsAlert = lookup.get();
         if (metricsAlert != null) {
-            return metricsAlert.evaluateCondition(window, timestamp, value);
+            return metricsAlert.evaluateCondition(window, slot, value);
         } else {
             return false;
         }
