@@ -29,10 +29,12 @@ import org.eclipse.ditto.connectivity.service.mapping.MessageMapper;
 import org.eclipse.ditto.connectivity.service.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.connectivity.service.mapping.PayloadMapper;
 import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 
 import akka.actor.ActorSystem;
 
 @PayloadMapper(alias = "test")
+@AllParametersAndReturnValuesAreNonnullByDefault
 public final class MockMapper implements MessageMapper {
 
     public static final String OPT_IS_VALID = "Mock";
@@ -52,9 +54,9 @@ public final class MockMapper implements MessageMapper {
     }
 
     @Override
-    public void configure(@Nonnull final Connection connection,
+    public void configure(final Connection connection,
             final ConnectivityConfig connectivityConfig,
-            @Nonnull final MessageMapperConfiguration configuration,
+            final MessageMapperConfiguration configuration,
             final ActorSystem actorSystem) {
 
         configuration.findProperty(OPT_IS_VALID).map(Boolean::valueOf).filter(Boolean.TRUE::equals).orElseThrow
@@ -63,13 +65,13 @@ public final class MockMapper implements MessageMapper {
 
     @Override
     @Nonnull
-    public List<Adaptable> map(@Nonnull final ExternalMessage message) {
+    public List<Adaptable> map(final ExternalMessage message) {
         return emptyList();
     }
 
     @Override
     @Nonnull
-    public List<ExternalMessage> map(@Nonnull final Adaptable adaptable) {
+    public List<ExternalMessage> map(final Adaptable adaptable) {
         return emptyList();
     }
 

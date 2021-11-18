@@ -12,8 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.api.placeholders;
 
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.placeholders.Placeholder;
+import org.eclipse.ditto.protocol.placeholders.MiscPlaceholder;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 
@@ -54,7 +53,7 @@ public final class ConnectivityPlaceholders {
     /**
      * @return the singleton instance of the placeholder with prefix {@code request}.
      */
-    public static Placeholder<AuthorizationContext> newRequestPlaceholder() {
+    public static RequestPlaceholder newRequestPlaceholder() {
         return ImmutableRequestPlaceholder.INSTANCE;
     }
 
@@ -70,6 +69,13 @@ public final class ConnectivityPlaceholders {
      */
     public static ResourcePlaceholder newResourcePlaceholder() {
         return ResourcePlaceholder.getInstance();
+    }
+
+    /**
+     * @return the singleton instance of {@link MiscPlaceholder}
+     */
+    public static MiscPlaceholder newMiscPlaceholder() {
+        return MiscPlaceholder.getInstance();
     }
 
     /**

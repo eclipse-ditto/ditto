@@ -65,8 +65,8 @@ public interface MessageMapper {
      * @throws org.eclipse.ditto.connectivity.model.MessageMapperConfigurationFailedException if the configuration
      * failed for a mapper specific reason.
      */
-    void configure(Connection connection, final ConnectivityConfig connectivityConfig,
-            MessageMapperConfiguration configuration, final ActorSystem actorSystem);
+    void configure(Connection connection, ConnectivityConfig connectivityConfig,
+            MessageMapperConfiguration configuration, ActorSystem actorSystem);
 
     /**
      * Maps an {@link ExternalMessage} to an {@link Adaptable}

@@ -54,8 +54,7 @@ public final class DefaultMessageMapperConfiguration implements MessageMapperCon
      */
     public static DefaultMessageMapperConfiguration of(final String id, final Map<String, JsonValue> configuration,
             final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
-        return of(id, MergedJsonObjectMap.of(configuration),
-                incomingConditions, outgoingConditions);
+        return of(id, MergedJsonObjectMap.of(configuration), incomingConditions, outgoingConditions);
     }
 
     /**

@@ -84,6 +84,7 @@ import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.placeholders.MiscPlaceholder;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
@@ -126,6 +127,7 @@ public final class OutboundMappingProcessorActor
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final TopicPathPlaceholder TOPIC_PATH_PLACEHOLDER = TopicPathPlaceholder.getInstance();
     private static final ResourcePlaceholder RESOURCE_PLACEHOLDER = ResourcePlaceholder.getInstance();
+    private static final MiscPlaceholder MISC_PLACEHOLDER = MiscPlaceholder.getInstance();
 
     private final ThreadSafeDittoLoggingAdapter dittoLoggingAdapter;
 
@@ -638,15 +640,17 @@ public final class OutboundMappingProcessorActor
                     .newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER, topicPath);
             final PlaceholderResolver<WithResource> resourcePlaceholderResolver = PlaceholderFactory
                     .newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal);
+            final PlaceholderResolver<Object> miscPlaceholderResolver = PlaceholderFactory
+                    .newPlaceholderResolver(MISC_PLACEHOLDER, new Object());
             final DittoHeaders dittoHeaders = signal.getDittoHeaders();
             final Criteria criteria = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
-                            topicPathPlaceholderResolver, resourcePlaceholderResolver
+                            topicPathPlaceholderResolver, resourcePlaceholderResolver, miscPlaceholderResolver
                     ).filterCriteria(filter.get(), dittoHeaders);
             return outboundSignalWithExtra.getExtra()
                     .flatMap(extra -> ThingEventToThingConverter
                             .mergeThingWithExtraFields(signal, extraFields.get(), extra)
                             .filter(ThingPredicateVisitor.apply(criteria, topicPathPlaceholderResolver,
-                                    resourcePlaceholderResolver))
+                                    resourcePlaceholderResolver, miscPlaceholderResolver))
                             .map(thing -> outboundSignalWithExtra))
                     .map(Collections::singletonList)
                     .orElse(List.of());

@@ -18,7 +18,9 @@ may be used:
 
 | Placeholder    | Description  |
 |----------------|--------------|
-| `{%raw%}{{ request:subjectId }}{%endraw%}` | the first authenticated subjectId which sent the command / did the request | 
+| `{%raw%}{{ request:subjectId }}{%endraw%}` | the first authenticated subjectId which sent the command / did the request |
+| `{%raw%}{{ misc:current-timestamp-iso8601 }}{%endraw%}` | the current timestamp in ISO-8601 format as string | 
+| `{%raw%}{{ misc:current-timestamp-epoch-millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string |
 
 ### Scope: Policy actions
 
@@ -29,6 +31,8 @@ In [policy actions](basic-policy.html#actions), the following placeholders are a
 | `{%raw%}{{ header:<header-name> }}{%endraw%}` | HTTP header values passed along the HTTP action request |
 | `{%raw%}{{ jwt:<jwt-body-claim> }}{%endraw%}` | any standard or custom claims in the body of the authenticated JWT - e.g., `jwt:sub` for the JWT "subject" |
 | `{%raw%}{{ policy-entry:label }}{%endraw%}` | label of the policy entry in which the token integration subject is injected |
+| `{%raw%}{{ misc:current-timestamp-iso8601 }}{%endraw%}` | the current timestamp in ISO-8601 format as string | 
+| `{%raw%}{{ misc:current-timestamp-epoch-millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string | 
 
 ### Scope: RQL expressions when filtering for Ditto Protocol messages
 
@@ -48,6 +52,8 @@ or subscriptions for live messages, the following placeholders are available in 
 | `topic:action-subject` | either Ditto Protocol [topic action](protocol-specification-topic.html#action-optional) or [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
 | `resource:type` | the type of the Ditto Protocol [path](protocol-specification.html#path) , one of: `"thing" "policy" "message" "connection"` |
 | `resource:path` | the affected resource's path being the Ditto Protocol [path](protocol-specification.html#path) in JsonPointer notation, e.g. `/` when a complete thing was created/modified/deleted |
+| `misc:current-timestamp-iso8601` | the current timestamp in ISO-8601 format as string | 
+| `misc:current-timestamp-epoch-millis` | the current timestamp in "milliseconds since epoch" formatted as string | 
 
 ### Scope: Connections
 
@@ -75,6 +81,8 @@ In [connections](basic-connections.html), the following placeholders are availab
 | `{%raw%}{{ topic:action-subject }}{%endraw%}` | either Ditto Protocol [topic action](protocol-specification-topic.html#action-optional) or [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
 | `{%raw%}{{ resource:type }}{%endraw%}` | the type of the Ditto Protocol [path](protocol-specification.html#path) , one of: `thing`, `policy`, `message` or `connection` |
 | `{%raw%}{{ resource:path }}{%endraw%}` | the affected resource's path being the Ditto Protocol [path](protocol-specification.html#path) in JsonPointer notation, e.g. `/` when a complete thing was created/modified/deleted |
+| `{%raw%}{{ misc:current-timestamp-iso8601 }}{%endraw%}` | the current timestamp in ISO-8601 format as string | 
+| `{%raw%}{{ misc:current-timestamp-epoch-millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string | 
 
 
 #### Examples
@@ -120,7 +128,7 @@ The syntax of such function expressions are specified similar to a UNIX `pipe`, 
 {%raw%}{{ thing:name | fn:substring-before('-') | fn:default('fallback') | fn:upper() }}{%endraw%}
 ```
 
-The first expression in such a pipeline **must always** be a placeholder to start with, in the example above `thing:name`.<br/>
+The first expression in such a pipeline **must always** be a placeholder to start with, in the example above `thing:name`.  
 Followed are functions separated by the pipe (`|`) symbol - each function in the pipeline receives the value of the
 previous expression (which may also be `empty`). 
 

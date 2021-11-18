@@ -66,8 +66,6 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
      */
     private static final Duration ANNOUNCEMENT_WINDOW = Duration.ofMillis(500);
 
-    private static final Duration MAX_BACKOFF = Duration.ofMinutes(30);
-
     private static final NotUsed NULL = NotUsed.getInstance();
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);

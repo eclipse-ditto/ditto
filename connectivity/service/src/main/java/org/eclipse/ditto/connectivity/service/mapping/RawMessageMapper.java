@@ -29,8 +29,6 @@ import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageBuilder;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -116,14 +114,6 @@ public final class RawMessageMapper extends AbstractMessageMapper {
     private Map<String, String> incomingMessageHeaders = DEFAULT_INCOMING_HEADERS;
 
     private final DittoMessageMapper dittoMessageMapper = new DittoMessageMapper();
-
-    /**
-     * The context representing this mapper.
-     */
-    public static final MappingContext CONTEXT = ConnectivityModelFactory.newMappingContextBuilder(
-            RawMessageMapper.class.getCanonicalName(),
-            DEFAULT_CONFIG
-    ).build();
 
     @Override
     public List<Adaptable> map(final ExternalMessage externalMessage) {

@@ -12,12 +12,21 @@
  */
 package org.eclipse.ditto.connectivity.service.mapping;
 
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 
+import org.eclipse.ditto.base.model.common.CharsetDeterminer;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.mapping.MappingConfig;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.TopicPath;
 
 import akka.actor.ActorSystem;
 
@@ -75,4 +84,50 @@ public abstract class AbstractMessageMapper implements MessageMapper {
     protected void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         // noop default
     }
+
+    /**
+     * Extracts the payload of the passed in {@code message} as string.
+     *
+     * @param message the external message to extract the payload from.
+     * @return the payload of the passed in {@code message} as string
+     * @throws MessageMappingFailedException if no payload was present or if it was empty.
+     */
+    protected static String extractPayloadAsString(final ExternalMessage message) {
+        final Optional<String> payload;
+        if (message.isTextMessage()) {
+            payload = message.getTextPayload();
+        } else if (message.isBytesMessage()) {
+            final Charset charset = determineCharset(message.getHeaders());
+            payload = message.getBytePayload().map(charset::decode).map(CharBuffer::toString);
+        } else {
+            payload = Optional.empty();
+        }
+
+        return payload.filter(s -> !s.isEmpty()).orElseThrow(() ->
+                MessageMappingFailedException.newBuilder(message.findContentType().orElse(""))
+                        .description(
+                                "As payload was absent or empty, please make sure to send payload in your messages.")
+                        .dittoHeaders(DittoHeaders.of(message.getHeaders()))
+                        .build());
+    }
+
+    protected static Charset determineCharset(final Map<String, String> messageHeaders) {
+        return CharsetDeterminer.getInstance().apply(messageHeaders.get(ExternalMessage.CONTENT_TYPE_HEADER));
+    }
+
+    protected static boolean isResponse(final Adaptable adaptable) {
+        final var payload = adaptable.getPayload();
+        final var httpStatus = payload.getHttpStatus();
+        return httpStatus.isPresent();
+    }
+
+    protected static boolean isError(final Adaptable adaptable) {
+        final var topicPath = adaptable.getTopicPath();
+        return topicPath.isCriterion(TopicPath.Criterion.ERRORS);
+    }
+
+    protected static boolean isLiveSignal(final Adaptable adaptable) {
+        return adaptable.getTopicPath().isChannel(TopicPath.Channel.LIVE);
+    }
+
 }

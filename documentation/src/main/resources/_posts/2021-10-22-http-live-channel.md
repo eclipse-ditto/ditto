@@ -4,7 +4,7 @@ published: true
 permalink: 2021-10-22-http-live-channel.html
 layout: post
 author: stefan_maute
-tags: [blog, http, live]
+tags: [blog, http]
 hide_sidebar: true
 sidebar: false
 toc: true
@@ -14,7 +14,7 @@ The upcoming release of Eclipse Ditto **version 2.2.0** will support sending com
 the newly introduced `live` channel.
 
 ## HTTP Live channel
-Ditto supports sending all kind of [Thing commands](protocol-specification-things.md#commands) via
+Ditto supports sending all kind of [Thing commands](protocol-specification-things.html#commands) via
 the `live` channel directly to devices.
 When sending a `live` command to  a device, the device is responsible for sending a response.
 

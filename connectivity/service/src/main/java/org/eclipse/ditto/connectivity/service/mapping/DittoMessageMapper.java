@@ -14,27 +14,20 @@ package org.eclipse.ditto.connectivity.service.mapping;
 
 import static java.util.Collections.singletonList;
 
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.common.DittoConstants;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MappingContext;
-import org.eclipse.ditto.connectivity.model.MessageMappingFailedException;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
-import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.connectivity.api.ExternalMessage;
-import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 
 /**
  * A message mapper implementation for the Ditto Protocol.
@@ -96,43 +89,9 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
         return jsonifiableAdaptable.toJsonString();
     }
 
-    private static boolean isResponse(final Adaptable adaptable) {
-        final var payload = adaptable.getPayload();
-        final var httpStatus = payload.getHttpStatus();
-        return httpStatus.isPresent();
-    }
-
-    private static boolean isError(final Adaptable adaptable) {
-        final var topicPath = adaptable.getTopicPath();
-        return topicPath.isCriterion(TopicPath.Criterion.ERRORS);
-    }
-
     @Override
     public JsonObject getDefaultOptions() {
         return DEFAULT_OPTIONS;
-    }
-
-    private static String extractPayloadAsString(final ExternalMessage message) {
-        final Optional<String> payload;
-        if (message.isTextMessage()) {
-            payload = message.getTextPayload();
-        } else if (message.isBytesMessage()) {
-            final Charset charset = determineCharset(message.getHeaders());
-            payload = message.getBytePayload().map(charset::decode).map(CharBuffer::toString);
-        } else {
-            payload = Optional.empty();
-        }
-
-        return payload.filter(s -> !s.isEmpty()).orElseThrow(() ->
-                MessageMappingFailedException.newBuilder(message.findContentType().orElse(""))
-                        .description(
-                                "As payload was absent or empty, please make sure to send payload in your messages.")
-                        .dittoHeaders(DittoHeaders.of(message.getHeaders()))
-                        .build());
-    }
-
-    private static Charset determineCharset(final Map<String, String> messageHeaders) {
-        return CharsetDeterminer.getInstance().apply(messageHeaders.get(ExternalMessage.CONTENT_TYPE_HEADER));
     }
 
 }
