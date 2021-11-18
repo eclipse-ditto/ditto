@@ -83,6 +83,7 @@ public final class CommandAndCommandResponseMatchingValidator
         if (result.isSuccess()) {
             result = validateEntityIdsMatch(sentCommand, commandResponse);
         }
+
         return result;
     }
 
@@ -181,7 +182,6 @@ public final class CommandAndCommandResponseMatchingValidator
 
     private static boolean isSameSignalDomain(final SemanticSignalType semanticCommandType,
             final SemanticSignalType semanticCommandResponseType) {
-
         return Objects.equals(semanticCommandResponseType.getSignalDomain(), semanticCommandType.getSignalDomain());
     }
 

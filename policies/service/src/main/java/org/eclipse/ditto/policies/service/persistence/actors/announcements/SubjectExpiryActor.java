@@ -159,6 +159,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
 
         whenUnhandled(matchAnyEvent((event, notUsed) -> {
             log.warning("Received unexpected message <{}> in state <{}>", event, stateName());
+
             return stay();
         }));
 
@@ -205,6 +206,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
 
     private State<SubjectExpiryState, NotUsed> delete(final Message delete, final NotUsed notUsed) {
         log.debug("Got DELETE in TO_DELETE");
+
         return scheduleDeleteExpiredSubjectIfNeeded();
     }
 
@@ -228,6 +230,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
             // if no acks requested, do not wait for acknowledgements.
             getSelf().tell(Message.ACKNOWLEDGED, ActorRef.noSender());
         }
+
         return goTo(TO_ACKNOWLEDGE);
     }
 
@@ -241,6 +244,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         } else {
             l.warning("Exception unrecoverable, giving up: <{}: {}>", exception.getClass().getSimpleName(),
                     exception.getMessage());
+
             return scheduleDeleteExpiredSubjectIfNeeded();
         }
     }
@@ -253,6 +257,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
             // announce immediately
             cancelTimer(Message.ANNOUNCE.name());
             getSelf().tell(Message.ANNOUNCE, ActorRef.noSender());
+
             return goTo(TO_ANNOUNCE);
         } else {
             return stateForNoAnnouncement;
@@ -268,16 +273,15 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
 
     private State<SubjectExpiryState, NotUsed> subjectDeletedInToAnnounce(final Message subjectDeleted,
             final NotUsed notUsed) {
-
         log.debug("Got SUBJECT_DELETED in TO_ANNOUNCE");
         return processSubjectDeletedAndCheckForAnnouncement(stay());
     }
 
     private State<SubjectExpiryState, NotUsed> subjectDeletedInToAcknowledge(final Message subjectDeleted,
             final NotUsed notUsed) {
-
         log.debug("Got SUBJECT_DELETED in TO_ACKNOWLEDGE");
         setDeleteAt();
+
         return stay(); // no need to schedule whenDeleted announcements because announcement and backoff already active
     }
 
@@ -306,10 +310,12 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         if (acknowledged || !shouldAnnounce || !inGracePeriod) {
             log.error("Timeout waiting for persistence, giving up. acknowledged=<{}> shouldAnnounce=<{}> " +
                     "inGracePeriod=<{}>", acknowledged, shouldAnnounce, inGracePeriod);
+
             return stop();
         } else {
             // retry deletion
             commandForwarder.tell(deleteExpiredSubject, ActorRef.noSender());
+
             return goTo(DELETED);
         }
     }
@@ -317,12 +323,12 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
     private State<SubjectExpiryState, NotUsed> acknowledged(final Message acknowledged, final NotUsed notUsed) {
         log.debug("Got ACKNOWLEDGED in TO_ACKNOWLEDGE");
         this.acknowledged = true;
+
         return scheduleDeleteExpiredSubjectIfNeeded();
     }
 
     private State<SubjectExpiryState, NotUsed> onAcknowledgements(final Acknowledgements acknowledgements,
             final NotUsed notUsed) {
-
         final var l = log.withCorrelationId(acknowledgements);
         l.debug("onAcknowledgements <{}>", acknowledgements);
         if (shouldRetry(acknowledgements)) {
@@ -330,6 +336,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         } else {
             // acknowledgements are successful
             acknowledged = true;
+
             return scheduleDeleteExpiredSubjectIfNeeded();
         }
     }
@@ -342,16 +349,19 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         if (isInGracePeriod(announcementInstant)) {
             l.debug("Retrying in grace period <{}>", announcementInstant);
             scheduleAnnouncement(now, announcementInstant);
+
             return goTo(TO_ANNOUNCE);
         } else if (deleted) {
             // subject already deleted; give up
             // log as error as this must not happen without a downtime of the service < gracePeriod
             l.error("Grace period past for deleted subject <{}>. Giving up.", subject);
+
             return stop();
         } else {
             // outside of grace period; delete
             l.info("Grace period past for subject <{}>. Deleting.", subject);
             commandForwarder.tell(deleteExpiredSubject, ActorRef.noSender());
+
             return goTo(DELETED);
         }
     }
@@ -370,6 +380,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         } else {
             // not acknowledged but deleted
             getSelf().tell(Message.SUBJECT_DELETED, ActorRef.noSender());
+
             return goTo(DELETED);
         }
     }
@@ -380,12 +391,14 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         if (duration.isNegative() || duration.isZero()) {
             log.debug("subject expired, deleting: <{}>", subject);
             doDelete();
+
             return DELETED;
         } else {
             final Duration scheduleDuration = truncateToOneDay(duration.plus(ANNOUNCEMENT_WINDOW));
             log.debug("Scheduling deletion in: <{}> - cutOff=<{}>", scheduleDuration, expiryTimestamp);
             final var delete = Message.DELETE;
             startSingleTimer(delete.name(), delete, scheduleDuration);
+
             return TO_DELETE;
         }
     }
@@ -434,6 +447,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
             final ActorRef ackregator = startAckregator(announcement);
             log.withCorrelationId(announcement).debug("Publishing <{}>", announcement);
             policyAnnouncementPub.publishWithAcks(announcement, ACK_EXTRACTOR, ackregator);
+
             return ackregator;
         } else {
             // already acknowledged
@@ -464,6 +478,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
             builder.acknowledgementRequests(subjectAnnouncement.getRequestedAcksLabels());
             subjectAnnouncement.getRequestedAcksTimeout().ifPresent(builder::timeout);
         });
+
         return builder.build();
     }
 
@@ -480,6 +495,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
 
     private static Duration truncateToOneDay(final Duration duration) {
         final Duration oneDay = Duration.ofDays(1);
+
         return duration.compareTo(oneDay) < 0 ? duration : oneDay;
     }
 
@@ -487,6 +503,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         if (HttpStatus.REQUEST_TIMEOUT.equals(status) || HttpStatus.FAILED_DEPENDENCY.equals(status)) {
             return true;
         }
+
         return status.isServerError();
     }
 

@@ -31,14 +31,4 @@ public final class SignalTypeFormatException extends Exception {
         super(message);
     }
 
-    /**
-     * Constructs a {@code SignalTypeFormatException} with the specified detail message and cause.
-     *
-     * @param message the detail message.
-     * @param cause the cause of this exception.
-     */
-    public SignalTypeFormatException(final String message, final Throwable cause) {
-        super(message, cause);
-    }
-
 }

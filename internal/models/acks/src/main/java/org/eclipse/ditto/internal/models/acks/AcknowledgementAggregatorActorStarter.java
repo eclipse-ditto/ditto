@@ -202,6 +202,7 @@ public final class AcknowledgementAggregatorActorStarter {
                 headerTranslator,
                 responseSignalConsumer,
                 matchingValidationFailureConsumer);
+
         return actorRefFactory.actorOf(props, getNextActorName(signal.getDittoHeaders()));
     }
 
@@ -209,6 +210,7 @@ public final class AcknowledgementAggregatorActorStarter {
         final var correlationId = dittoHeaders.getCorrelationId()
                 .map(cid -> URLEncoder.encode(cid, StandardCharsets.UTF_8))
                 .orElse("_");
+
         return String.format("ackr%x-%s", childCounter++, correlationId);
     }
 
@@ -223,6 +225,7 @@ public final class AcknowledgementAggregatorActorStarter {
                     ackRequestSetter::isApplicable,
                     s -> (Signal<?>) ackRequestSetter.apply(s));
         }
+
         return pfBuilder.matchAny(x -> x).build();
     }
 
