@@ -1,7 +1,7 @@
 ---
 title: "HTTP Live channel"
 published: true
-permalink: 2021-10-22-http-live-channel.html
+permalink: 2021-11-26-http-live-channel.html
 layout: post
 author: stefan_maute
 tags: [blog, http, live]
@@ -10,8 +10,8 @@ sidebar: false
 toc: true
 ---
 
-The upcoming release of Eclipse Ditto **version 2.2.0** will support sending commands directly to devices via
-the newly introduced `live` channel.
+The upcoming release of Eclipse Ditto **version 2.2.0** will support sending commands directly to devices at the
+HTTP API via the `live` channel parameter.
 
 ## HTTP Live channel
 Ditto supports sending all kind of [Thing commands](protocol-specification-things.md#commands) via
@@ -30,6 +30,11 @@ If the `live` channel is used, the command is directly routed to the device. In 
 responsible for answering the command and sending back a response. In case no response is send back, Ditto 
 is responding with `408 Request Timeout`. The default timeout for live commands is `10s` but it can be
 changed by setting the `timeout` parameter to the desired value.
+
+Ditto ensures that the `correlation ID`, `entity ID`, `path` and `command response type` of the command response 
+is the same as in the sending command. If this is not the case Ditto is dropping the response and the caller of the 
+HTTP request will get `408 Request Timeout` with a message that the timeout was caused by an incompatible
+command response from the device.
 
 ### Permissions for live commands
 
@@ -116,7 +121,6 @@ The response should look like this:
 ```json
 {
     "thingId": "org.eclipse.ditto:outdoor-sensor",
-    "__schemaVersion": 2,
     "_namespace": "org.eclipse.ditto",
     "attributes": {
         "location": "outdoor in the woods"
