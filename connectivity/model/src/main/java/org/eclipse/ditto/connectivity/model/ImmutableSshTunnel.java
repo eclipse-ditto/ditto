@@ -25,13 +25,11 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Immutable implementation of {@link SshTunnel}.
@@ -125,9 +123,12 @@ final class ImmutableSshTunnel implements SshTunnel {
      */
     public static SshTunnel fromJson(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "jsonObject");
-        return new Builder(extractEnabled(jsonObject), extractCredentials(jsonObject), extractValidateHost(jsonObject),
+        return new Builder(extractEnabled(jsonObject),
+                extractCredentials(jsonObject),
+                extractValidateHost(jsonObject),
                 extractKnownHosts(jsonObject),
-                extractUri(jsonObject)).build();
+                extractUri(jsonObject))
+                .build();
     }
 
     private static boolean extractEnabled(final JsonObject jsonObject) {
@@ -156,19 +157,16 @@ final class ImmutableSshTunnel implements SshTunnel {
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
-        jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
-
-        jsonObjectBuilder.set(JsonFields.ENABLED, enabled);
-        jsonObjectBuilder.set(JsonFields.CREDENTIALS, credentials.toJson());
-        jsonObjectBuilder.set(JsonFields.VALIDATE_HOST, validateHost);
-        jsonObjectBuilder.set(JsonFields.KNOWN_HOSTS, JsonArray.of(knownHosts));
-        jsonObjectBuilder.set(JsonFields.URI, uri);
-        return jsonObjectBuilder.build();
+        return JsonObject.newBuilder()
+                .set(JsonFields.ENABLED, enabled, predicate)
+                .set(JsonFields.CREDENTIALS, credentials.toJson(), predicate)
+                .set(JsonFields.VALIDATE_HOST, validateHost, predicate)
+                .set(JsonFields.KNOWN_HOSTS, JsonArray.of(knownHosts), predicate)
+                .set(JsonFields.URI, uri, predicate)
+                .build();
     }
 
-    @SuppressWarnings("OverlyComplexMethod")
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
@@ -232,11 +230,11 @@ final class ImmutableSshTunnel implements SshTunnel {
         }
 
         Builder(final SshTunnel sshTunnel) {
-            this.enabled = sshTunnel.isEnabled();
-            this.credentials = sshTunnel.getCredentials();
-            this.uri = sshTunnel.getUri();
-            this.validateHost = sshTunnel.isValidateHost();
-            this.knownHosts = sshTunnel.getKnownHosts();
+            enabled = sshTunnel.isEnabled();
+            credentials = sshTunnel.getCredentials();
+            uri = sshTunnel.getUri();
+            validateHost = sshTunnel.isValidateHost();
+            knownHosts = sshTunnel.getKnownHosts();
         }
 
         @Override
@@ -273,5 +271,7 @@ final class ImmutableSshTunnel implements SshTunnel {
         public SshTunnel build() {
             return new ImmutableSshTunnel(this);
         }
+
     }
+
 }

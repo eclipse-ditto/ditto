@@ -1119,8 +1119,6 @@ public final class ImmutableThingTest {
     public void ensureThingToJsonWithSpecialContainsAllFieldsV2() {
         final JsonObject jsonObject =
                 TestConstants.Thing.THING_V2.toJson(JsonSchemaVersion.V_2, FieldType.regularOrSpecial());
-        DittoJsonAssertions.assertThat(jsonObject)
-                .contains(Thing.JsonFields.SCHEMA_VERSION, JsonValue.of(JsonSchemaVersion.V_2.toInt()));
         DittoJsonAssertions.assertThat(jsonObject).contains(Thing.JsonFields.ID, THING_ID.toString());
         DittoJsonAssertions.assertThat(jsonObject)
                 .contains(Thing.JsonFields.POLICY_ID, TestConstants.Thing.POLICY_ID.toString());

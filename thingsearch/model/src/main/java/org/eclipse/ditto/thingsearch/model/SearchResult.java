@@ -133,31 +133,34 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
 
         /**
          * JSON field containing the {@link JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.2.0 this field definition is not used anymore.
          */
-        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
+        @Deprecated
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION = JsonFactory.newIntFieldDefinition(
+                JsonSchemaVersion.getJsonKey(),
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2
+        );
 
         /**
          * JSON field containing the items.
          */
         public static final JsonFieldDefinition<JsonArray> ITEMS =
-                JsonFactory.newJsonArrayFieldDefinition("items", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("items", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the nextPageOffset.
          */
         public static final JsonFieldDefinition<Long> NEXT_PAGE_OFFSET =
-                JsonFactory.newLongFieldDefinition("nextPageOffset", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newLongFieldDefinition("nextPageOffset", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the cursor.
          */
         public static final JsonFieldDefinition<String> CURSOR =
-                JsonFactory.newStringFieldDefinition("cursor", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("cursor", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

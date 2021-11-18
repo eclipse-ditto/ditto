@@ -44,10 +44,6 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableFeatures implements Features {
 
-    private static final JsonFieldDefinition<Integer> JSON_SCHEMA_VERSION =
-            JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                    JsonSchemaVersion.V_2);
-
     private final Map<String, Feature> features;
 
     private ImmutableFeatures(final Map<String, Feature> features) {
@@ -293,8 +289,6 @@ final class ImmutableFeatures implements Features {
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-
-        jsonObjectBuilder.set(JSON_SCHEMA_VERSION, schemaVersion.toInt(), predicate);
 
         features.values()
                 .forEach(feature -> {

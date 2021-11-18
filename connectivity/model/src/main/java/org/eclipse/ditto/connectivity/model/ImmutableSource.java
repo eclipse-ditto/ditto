@@ -97,19 +97,19 @@ final class ImmutableSource implements Source {
     private final Set<AcknowledgementLabel> declaredAcknowledgementLabels;
 
     private ImmutableSource(final Builder builder) {
-        this.addresses = Collections.unmodifiableSet(
+        addresses = Collections.unmodifiableSet(
                 new LinkedHashSet<>(ConditionChecker.checkNotNull(builder.addresses, "addresses")));
-        this.consumerCount = builder.consumerCount;
-        this.qos = builder.qos;
-        this.authorizationContext = ConditionChecker.checkNotNull(builder.authorizationContext, "authorizationContext");
-        this.index = builder.index;
-        this.enforcement = builder.enforcement;
-        this.acknowledgementRequests = builder.acknowledgementRequests;
-        this.headerMapping = builder.headerMapping;
-        this.payloadMapping = builder.payloadMapping;
-        this.replyTargetEnabled = builder.replyTargetEnabled;
-        this.replyTarget = builder.replyTarget;
-        this.declaredAcknowledgementLabels = builder.declaredAcknowledgementLabels;
+        consumerCount = builder.consumerCount;
+        qos = builder.qos;
+        authorizationContext = ConditionChecker.checkNotNull(builder.authorizationContext, "authorizationContext");
+        index = builder.index;
+        enforcement = builder.enforcement;
+        acknowledgementRequests = builder.acknowledgementRequests;
+        headerMapping = builder.headerMapping;
+        payloadMapping = builder.payloadMapping;
+        replyTargetEnabled = builder.replyTargetEnabled;
+        replyTarget = builder.replyTarget;
+        declaredAcknowledgementLabels = builder.declaredAcknowledgementLabels;
     }
 
     @Override
@@ -177,7 +177,6 @@ final class ImmutableSource implements Source {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
-        jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
         jsonObjectBuilder.set(JsonFields.ADDRESSES, addresses.stream()
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray()), predicate.and(Objects::nonNull));
@@ -202,8 +201,7 @@ final class ImmutableSource implements Source {
                     acknowledgementRequests.toJson(schemaVersion, thePredicate), predicate);
         }
 
-        jsonObjectBuilder.set(JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, thePredicate),
-                    predicate);
+        jsonObjectBuilder.set(JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, thePredicate), predicate);
 
         if (!payloadMapping.isEmpty()) {
             jsonObjectBuilder.set(JsonFields.PAYLOAD_MAPPING, payloadMapping.toJson(), predicate);
@@ -436,10 +434,10 @@ final class ImmutableSource implements Source {
 
         @Override
         public Builder address(final String address) {
-            if (this.addresses == null) {
-                this.addresses = new LinkedHashSet<>();
+            if (addresses == null) {
+                addresses = new LinkedHashSet<>();
             }
-            this.addresses.add(address);
+            addresses.add(address);
             return this;
         }
 
@@ -505,7 +503,7 @@ final class ImmutableSource implements Source {
 
         @Override
         public Builder declaredAcknowledgementLabels(final Set<AcknowledgementLabel> declaredAcknowledgmentLabels) {
-            this.declaredAcknowledgementLabels = declaredAcknowledgmentLabels;
+            declaredAcknowledgementLabels = declaredAcknowledgmentLabels;
             return this;
         }
 
@@ -513,5 +511,7 @@ final class ImmutableSource implements Source {
         public Source build() {
             return new ImmutableSource(this);
         }
+
     }
+
 }

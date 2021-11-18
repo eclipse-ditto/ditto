@@ -431,24 +431,28 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
 
         /**
          * JSON field definition for the Feature's {@link JsonSchemaVersion} as {@code int}.
+         *
+         * @deprecated as of 2.2.0 this field definition is not used anymore.
          */
-        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL,
-                        FieldType.HIDDEN, JsonSchemaVersion.V_2);
+        @Deprecated
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION = JsonFactory.newIntFieldDefinition(
+                JsonSchemaVersion.getJsonKey(),
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2
+        );
 
         /**
          * JSON field definition for the Feature's Definition as {@link org.eclipse.ditto.json.JsonArray}.
          */
         public static final JsonFieldDefinition<JsonArray> DEFINITION =
-                JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field definition for the Feature's properties as {@link org.eclipse.ditto.json.JsonObject}.
          */
         public static final JsonFieldDefinition<JsonObject> PROPERTIES =
-                JsonFactory.newJsonObjectFieldDefinition("properties", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("properties", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field definition for the Feature's desired properties as {@link org.eclipse.ditto.json.JsonObject}.
@@ -456,8 +460,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
          * @since 1.5.0
          */
         public static final JsonFieldDefinition<JsonObject> DESIRED_PROPERTIES =
-                JsonFactory.newJsonObjectFieldDefinition("desiredProperties", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("desiredProperties", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

@@ -17,13 +17,12 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -89,10 +88,7 @@ public final class ImmutableResourceTest {
 
     @Test(expected = DittoJsonException.class)
     public void createResourceWithJsonValueMissingFields() {
-        ImmutableResource.of(TestConstants.Policy.RESOURCE_KEY,
-                JsonFactory.newObjectBuilder()
-                        .set(Resource.JsonFields.SCHEMA_VERSION, JsonSchemaVersion.V_2.toInt())
-                        .build());
+        ImmutableResource.of(TestConstants.Policy.RESOURCE_KEY, JsonObject.empty());
     }
 
     @Test

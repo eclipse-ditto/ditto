@@ -253,17 +253,24 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
 
         /**
          * JSON field containing the {@code JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.2.0 this field definition is not used anymore.
          */
-        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
+        @Deprecated
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION = JsonFactory.newIntFieldDefinition(
+                JsonSchemaVersion.getJsonKey(),
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2
+        );
 
         /**
          * JSON field containing the Connection's lifecycle.
          */
-        public static final JsonFieldDefinition<String> LIFECYCLE =
-                JsonFactory.newStringFieldDefinition("__lifecycle", FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> LIFECYCLE = JsonFactory.newStringFieldDefinition("__lifecycle",
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Connection} identifier.
@@ -354,7 +361,7 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          * @deprecated MAPPING_CONTEXT is deprecated, use MAPPING_DEFINITIONS instead
          */
         @Deprecated(/*forRemoval = false*/) // This MUST NOT be deleted from the model as there are still connections
-                                            // with that field which have to be deserialized.
+        // with that field which have to be deserialized.
         public static final JsonFieldDefinition<JsonObject> MAPPING_CONTEXT =
                 JsonFactory.newJsonObjectFieldDefinition("mappingContext", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
@@ -362,7 +369,8 @@ public interface Connection extends Jsonifiable.WithFieldSelectorAndPredicate<Js
          * JSON field containing the definitions of {@code Connection} mappings.
          */
         public static final JsonFieldDefinition<JsonObject> MAPPING_DEFINITIONS =
-                JsonFactory.newJsonObjectFieldDefinition("mappingDefinitions", FieldType.REGULAR,
+                JsonFactory.newJsonObjectFieldDefinition("mappingDefinitions",
+                        FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
