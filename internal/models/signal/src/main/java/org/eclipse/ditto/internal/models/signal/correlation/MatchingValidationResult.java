@@ -151,6 +151,7 @@ public abstract class MatchingValidationResult {
             } else {
                 result = Optional.empty();
             }
+
             return result;
         }
 

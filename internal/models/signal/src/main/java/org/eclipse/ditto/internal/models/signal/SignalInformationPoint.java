@@ -74,17 +74,6 @@ public final class SignalInformationPoint {
         return hasTypePrefix(signal, MessageCommand.TYPE_PREFIX);
     }
 
-    private static boolean hasTypePrefix(@Nullable final WithType signal, final String typePrefix) {
-        final boolean result;
-        if (null != signal) {
-            final var signalType = signal.getType();
-            result = signalType.startsWith(typePrefix);
-        } else {
-            result = false;
-        }
-        return result;
-    }
-
     /**
      * Indicates whether the specified signal argument is a {@link ThingCommand}.
      *
@@ -151,6 +140,7 @@ public final class SignalInformationPoint {
         } else {
             result = false;
         }
+
         return result;
     }
 
@@ -168,6 +158,7 @@ public final class SignalInformationPoint {
         } else {
             result = false;
         }
+
         return result;
     }
 
@@ -185,6 +176,7 @@ public final class SignalInformationPoint {
         } else {
             result = Optional.empty();
         }
+
         return result;
     }
 
@@ -202,6 +194,19 @@ public final class SignalInformationPoint {
         } else {
             result = Optional.empty();
         }
+
+        return result;
+    }
+
+    private static boolean hasTypePrefix(@Nullable final WithType signal, final String typePrefix) {
+        final boolean result;
+        if (null != signal) {
+            final var signalType = signal.getType();
+            result = signalType.startsWith(typePrefix);
+        } else {
+            result = false;
+        }
+
         return result;
     }
 
