@@ -30,6 +30,11 @@ wait for response of the device.
 When routing live commands to devices, Ditto is doing an [authorization check](basic-auth.html) based on the policy
 of the thing. Ditto also filters responses based on that policy. 
 
+Ditto ensures that the response from the device contains the same `correlation ID`, `entity ID` and `path`.
+For the device it is necessary to send back the correlating command response type for the send command. In case there is
+a mismatch of the command and command response type Ditto will drop the response from the device and the request will 
+result in a timeout.  
+
 The default channel for all HTTP requests is the `twin` channel. The channel can either be set via HTTP header or via
 query parameter.
 
