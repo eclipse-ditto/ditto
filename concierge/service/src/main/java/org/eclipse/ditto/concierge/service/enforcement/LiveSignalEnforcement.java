@@ -203,7 +203,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<SignalWithE
         return responseReceivers.get(correlationId).thenApply(responseReceiverEntry -> {
             final Contextual<WithDittoHeaders> commandResponseContextual;
             if (responseReceiverEntry.isPresent()) {
-                responseReceivers.invalidate(correlationId);
+//                responseReceivers.invalidate(correlationId);
                 final Pair<ActorRef, AuthorizationContext> responseReceiver = responseReceiverEntry.get();
                 final CommandResponse<?> response;
                 if (liveResponse instanceof ThingQueryCommandResponse) {
