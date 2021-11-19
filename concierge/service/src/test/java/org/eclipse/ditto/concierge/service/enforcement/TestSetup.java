@@ -162,7 +162,7 @@ public final class TestSetup {
                     CaffeineCache.of(Caffeine.newBuilder(), thingEnforcementIdCacheLoader);
 
             final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
-            enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
+            enforcementProviders.add(new ThingCommandEnforcement.Provider(system, thingsShardRegion,
                     policiesShardRegion, thingIdCache, projectedEnforcerCache, preEnforcer));
             enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
             enforcementProviders.add(
