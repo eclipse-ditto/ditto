@@ -30,7 +30,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 /**
  * Represents the result of validating whether two particular signals are correlated to each other.
  *
- * @since 2.2.0
+ * TODO change @since 2.x.x
  */
 @Immutable
 @SuppressWarnings("java:S1610")

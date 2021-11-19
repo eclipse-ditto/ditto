@@ -32,7 +32,7 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 /**
  * Provides dedicated information about specified {@code Signal} arguments.
  *
- * @since 2.2.0
+ * TODO change @since 2.x.x
  */
 @Immutable
 public final class SignalInformationPoint {

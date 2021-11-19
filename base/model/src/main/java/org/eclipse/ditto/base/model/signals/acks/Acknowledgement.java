@@ -61,7 +61,7 @@ public final class Acknowledgement implements CommandResponse<Acknowledgement>, 
 
     /**
      * The type of {@code Acknowledgement} signals.
-     * @since 2.2.0
+     * TODO change @since 2.x.x
      */
     public static final String TYPE = "acknowledgement";
 
