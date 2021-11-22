@@ -189,15 +189,6 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
-                            <!-- the following public toAdaptable() methods were not supposed to be public: -->
-                            <exclude>org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter#toAdaptable(org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings,org.eclipse.ditto.protocol.TopicPath$Channel)</exclude>
-                            <exclude>org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter#toAdaptable(org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingsResponse,org.eclipse.ditto.protocol.TopicPath$Channel)</exclude>
-                            <exclude>org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter#toAdaptable(org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand,org.eclipse.ditto.protocol.TopicPath$Channel)</exclude>
-                            <exclude>org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter#toAdaptable(org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent,org.eclipse.ditto.protocol.TopicPath$Channel)</exclude>
-                            <!-- by accident this class was public but must not be: -->
-                            <exclude>org.eclipse.ditto.protocol.adapter.things.ThingSearchCommandAdapter</exclude>
-                            <!-- replaced <T> with <T extends Signal<?>> which japicmp sees as incompatible: -->
-                            <exclude>org.eclipse.ditto.protocol.mapper.SignalMapper</exclude>
                         </excludes>
                     </parameter>
                 </configuration>
