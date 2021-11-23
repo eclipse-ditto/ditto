@@ -416,22 +416,6 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
         responseSignalConsumer.accept(restoreCommandConnectivityHeaders(signal, originatingSignal.getDittoHeaders()));
     }
 
-    /**
-     * Convert aggregated acknowledgements to a single error response in case only built-in acknowledgements
-     * are requested.
-     *
-     * @param aggregatedAcknowledgements the aggregated acknowledgements.
-     * @return the error response.
-     */
-    private ThingErrorResponse asThingErrorResponse(final Acknowledgements aggregatedAcknowledgements) {
-        final var thingId = ThingId.of(aggregatedAcknowledgements.getEntityId());
-        final DittoRuntimeException dittoRuntimeException = GatewayCommandTimeoutException.newBuilder(timeout)
-                .dittoHeaders(aggregatedAcknowledgements.getDittoHeaders())
-                .build();
-
-        return ThingErrorResponse.of(thingId, dittoRuntimeException);
-    }
-
     private static boolean containsOnlyTwinPersistedOrLiveResponse(final Acknowledgements aggregatedAcknowledgements) {
         return aggregatedAcknowledgements.getSize() == 1 &&
                 aggregatedAcknowledgements.stream()

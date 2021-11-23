@@ -17,6 +17,7 @@ import static org.eclipse.ditto.policies.api.Permission.MIN_REQUIRED_POLICY_PERM
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -42,6 +43,7 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalE
 import org.eclipse.ditto.concierge.api.ConciergeMessagingConstants;
 import org.eclipse.ditto.concierge.service.enforcement.placeholders.references.PolicyIdReferencePlaceholderResolver;
 import org.eclipse.ditto.concierge.service.enforcement.placeholders.references.ReferencePlaceholder;
+import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.Cache;
@@ -1154,7 +1156,7 @@ public final class ThingCommandEnforcement
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
             this.thingIdCache = requireNonNull(thingIdCache);
             this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
-            this.preEnforcer = Optional.ofNullable(preEnforcer).orElse(CompletableFuture::completedFuture);
+            this.preEnforcer = Objects.requireNonNullElseGet(preEnforcer, () -> CompletableFuture::completedFuture);
         }
 
         @Override
@@ -1165,9 +1167,10 @@ public final class ThingCommandEnforcement
 
         @Override
         public boolean isApplicable(final ThingCommand<?> command) {
+
             // live commands are not applicable for thing command enforcement
             // because they should never be forwarded to things shard region
-            return !LiveSignalEnforcement.isLiveSignal(command);
+            return !SignalInformationPoint.isChannelLive(command);
         }
 
         @Override
@@ -1177,8 +1180,12 @@ public final class ThingCommandEnforcement
 
         @Override
         public AbstractEnforcement<ThingCommand<?>> createEnforcement(final Contextual<ThingCommand<?>> context) {
-            return new ThingCommandEnforcement(context, thingsShardRegion, policiesShardRegion, thingIdCache,
-                    policyEnforcerCache, preEnforcer);
+            return new ThingCommandEnforcement(context,
+                    thingsShardRegion,
+                    policiesShardRegion,
+                    thingIdCache,
+                    policyEnforcerCache,
+                    preEnforcer);
         }
 
     }

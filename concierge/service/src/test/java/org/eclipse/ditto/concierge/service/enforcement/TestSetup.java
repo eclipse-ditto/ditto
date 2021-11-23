@@ -26,6 +26,8 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.concierge.service.common.CachesConfig;
 import org.eclipse.ditto.concierge.service.common.DefaultCachesConfig;
+import org.eclipse.ditto.concierge.service.common.DefaultEnforcementConfig;
+import org.eclipse.ditto.concierge.service.common.EnforcementConfig;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
@@ -91,13 +93,14 @@ public final class TestSetup {
 
     private static final Config RAW_CONFIG = ConfigFactory.load("test");
     private static final CachesConfig CACHES_CONFIG;
+    private static final EnforcementConfig ENFORCEMENT_CONFIG;
 
     static {
-        final DefaultScopedConfig dittoScopedConfig = DefaultScopedConfig.dittoScoped(RAW_CONFIG);
-        final DefaultScopedConfig conciergeScopedConfig =
-                DefaultScopedConfig.newInstance(dittoScopedConfig, "concierge");
+        final var dittoScopedConfig = DefaultScopedConfig.dittoScoped(RAW_CONFIG);
+        final var conciergeScopedConfig = DefaultScopedConfig.newInstance(dittoScopedConfig, "concierge");
 
         CACHES_CONFIG = DefaultCachesConfig.of(conciergeScopedConfig);
+        ENFORCEMENT_CONFIG = DefaultEnforcementConfig.of(conciergeScopedConfig);
     }
 
     public static ActorRef newEnforcerActor(final ActorSystem system, final ActorRef testActorRef,
@@ -177,11 +180,12 @@ public final class TestSetup {
             enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
                     policiesShardRegion, thingIdCache, projectedEnforcerCache, preEnforcer));
             enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
-            enforcementProviders.add(
-                    new LiveSignalEnforcement.Provider(thingIdCache, projectedEnforcerCache,
-                            new DummyLiveSignalPub(puSubMediatorRef)));
+            enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache,
+                    projectedEnforcerCache,
+                    new DummyLiveSignalPub(puSubMediatorRef),
+                    ENFORCEMENT_CONFIG));
             final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, preEnforcer,
-                            null, null);
+                    null, null);
 
             return system.actorOf(props, EnforcerActor.ACTOR_NAME);
         }
