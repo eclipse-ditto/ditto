@@ -19,6 +19,7 @@ import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.hea
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -57,7 +58,7 @@ import akka.stream.javadsl.Source;
 /**
  * Tests {@code KafkaConsumerActor}.
  */
-public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRecord<String, String>> {
+public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRecord<String, byte[]>> {
 
     private static final Connection CONNECTION = TestConstants.createConnection();
     private static final String TOPIC = "kafka.topic";
@@ -67,14 +68,14 @@ public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRe
     private static final String CUSTOM_KEY = "the.key";
     private static final String CUSTOM_TIMESTAMP = "the.timestamp";
 
-    private BoundedSourceQueue<ConsumerRecord<String, String>> sourceQueue;
-    private Source<ConsumerRecord<String, String>, Consumer.Control> source;
+    private BoundedSourceQueue<ConsumerRecord<String, byte[]>> sourceQueue;
+    private Source<ConsumerRecord<String, byte[]>, Consumer.Control> source;
 
     @Before
     public void initKafka() {
         final Consumer.Control control = mock(Consumer.Control.class);
-        final Pair<BoundedSourceQueue<ConsumerRecord<String, String>>, Source<ConsumerRecord<String, String>, NotUsed>>
-                sourcePair = Source.<ConsumerRecord<String, String>>queue(20)
+        final Pair<BoundedSourceQueue<ConsumerRecord<String, byte[]>>, Source<ConsumerRecord<String, byte[]>, NotUsed>>
+                sourcePair = Source.<ConsumerRecord<String, byte[]>>queue(20)
                 .preMaterialize(Materializer.createMaterializer(actorSystem));
         sourceQueue = sourcePair.first();
         source = sourcePair.second().mapMaterializedValue(notused -> control);
@@ -141,19 +142,19 @@ public class KafkaConsumerActorTest extends AbstractConsumerActorTest<ConsumerRe
     }
 
     @Override
-    protected void consumeMessage(final ActorRef consumerActor, final ConsumerRecord<String, String> inboundMessage,
+    protected void consumeMessage(final ActorRef consumerActor, final ConsumerRecord<String, byte[]> inboundMessage,
             final ActorRef sender) {
         sourceQueue.offer(inboundMessage);
     }
 
     @Override
-    protected ConsumerRecord<String, String> getInboundMessage(final String payload,
+    protected ConsumerRecord<String, byte[]> getInboundMessage(final String payload,
             final Map.Entry<String, Object> header) {
         final Headers headers = new RecordHeaders()
                 .add(toRecordHeader(header))
                 .add(toRecordHeader(REPLY_TO_HEADER));
         return new ConsumerRecord<>(TOPIC, 1, 1, TIMESTAMP, TimestampType.LOG_APPEND_TIME,
-                -1L, NULL_SIZE, NULL_SIZE, KEY, payload, headers);
+                -1L, NULL_SIZE, NULL_SIZE, KEY, payload.getBytes(StandardCharsets.UTF_8), headers);
     }
 
     private RecordHeader toRecordHeader(final Map.Entry<String, ?> header) {

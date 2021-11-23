@@ -28,7 +28,7 @@ import akka.stream.javadsl.Source;
  * {@link akka.kafka.javadsl.Consumer.Control} in order to be able to shutdown/terminate Kafka consumption.
  */
 class AtLeastOnceKafkaConsumerSourceSupplier
-        implements Supplier<Source<ConsumerMessage.CommittableMessage<String, String>, Consumer.Control>> {
+        implements Supplier<Source<ConsumerMessage.CommittableMessage<String, byte[]>, Consumer.Control>> {
 
     private final PropertiesFactory propertiesFactory;
     private final String sourceAddress;
@@ -42,8 +42,8 @@ class AtLeastOnceKafkaConsumerSourceSupplier
     }
 
     @Override
-    public Source<ConsumerMessage.CommittableMessage<String, String>, Consumer.Control> get() {
-        final ConsumerSettings<String, String> consumerSettings = propertiesFactory.getConsumerSettings(dryRun)
+    public Source<ConsumerMessage.CommittableMessage<String, byte[]>, Consumer.Control> get() {
+        final ConsumerSettings<String, byte[]> consumerSettings = propertiesFactory.getConsumerSettings(dryRun)
                 .withProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
         final AutoSubscription subscription = Subscriptions.topics(sourceAddress);
         return Consumer.committableSource(consumerSettings, subscription);

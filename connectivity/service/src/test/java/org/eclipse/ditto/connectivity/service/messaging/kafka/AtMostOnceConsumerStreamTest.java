@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -53,9 +54,9 @@ import akka.testkit.javadsl.TestKit;
 public final class AtMostOnceConsumerStreamTest {
 
     private ActorSystem actorSystem;
-    private Source<ConsumerRecord<String, String>, Consumer.Control> source;
+    private Source<ConsumerRecord<String, byte[]>, Consumer.Control> source;
     private Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink;
-    private final AtomicReference<BoundedSourceQueue<ConsumerRecord<String, String>>> sourceQueue =
+    private final AtomicReference<BoundedSourceQueue<ConsumerRecord<String, byte[]>>> sourceQueue =
             new AtomicReference<>();
     private TestSubscriber.Probe<AcknowledgeableMessage> inboundSinkProbe;
 
@@ -63,7 +64,7 @@ public final class AtMostOnceConsumerStreamTest {
     public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem");
         final Consumer.Control control = mock(Consumer.Control.class);
-        source = Source.<ConsumerRecord<String, String>>queue(1)
+        source = Source.<ConsumerRecord<String, byte[]>>queue(1)
                 .mapMaterializedValue(queue -> {
                     sourceQueue.set(queue);
                     return control;
@@ -96,16 +97,17 @@ public final class AtMostOnceConsumerStreamTest {
             /*
              * Given we have a kafka source which emits records that are all transformed to External messages.
              */
-            final ConsumerRecord<String, String> consumerRecord =
+            final ConsumerRecord<String, byte[]> consumerRecord =
                     new ConsumerRecord<>("topic", 1, 1, Instant.now().toEpochMilli(), TimestampType.LOG_APPEND_TIME,
-                            -1L, NULL_SIZE, NULL_SIZE, "Key", "Value", new RecordHeaders());
+                            -1L, NULL_SIZE, NULL_SIZE, "Key", "Value".getBytes(StandardCharsets.UTF_8),
+                            new RecordHeaders());
             final AtMostOnceKafkaConsumerSourceSupplier sourceSupplier =
                     mock(AtMostOnceKafkaConsumerSourceSupplier.class);
             when(sourceSupplier.get()).thenReturn(source);
             final KafkaMessageTransformer messageTransformer = mock(KafkaMessageTransformer.class);
             final TransformationResult result = TransformationResult.successful(mock(ExternalMessage.class));
-            when(messageTransformer.transform(ArgumentMatchers.<ConsumerRecord<String, String>>any())).thenReturn(
-                    result);
+            when(messageTransformer.transform(ArgumentMatchers.<ConsumerRecord<String, byte[]>>any()))
+                    .thenReturn(result);
             final ConnectionMonitor connectionMonitor = mock(ConnectionMonitor.class);
             final int maxInflight = TestConstants.KAFKA_THROTTLING_CONFIG.getMaxInFlight();
             final Materializer materializer = Materializer.createMaterializer(actorSystem);

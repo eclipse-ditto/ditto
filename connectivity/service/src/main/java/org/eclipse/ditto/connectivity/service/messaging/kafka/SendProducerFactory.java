@@ -25,6 +25,6 @@ interface SendProducerFactory {
      *
      * @return the producer.
      */
-    SendProducer<String, String> newSendProducer();
+    SendProducer<String, byte[]> newSendProducer();
 
 }

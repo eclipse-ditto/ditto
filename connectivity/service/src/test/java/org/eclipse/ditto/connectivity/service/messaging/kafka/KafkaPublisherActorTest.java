@@ -80,7 +80,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     private static final String TARGET_TOPIC = "anyTopic";
     private static final String OUTBOUND_ADDRESS = TARGET_TOPIC + "/keyA";
 
-    private final Queue<ProducerRecord<String, String>> published = new ConcurrentLinkedQueue<>();
+    private final Queue<ProducerRecord<String, byte[]>> published = new ConcurrentLinkedQueue<>();
 
     private final DittoConnectivityConfig connectivityConfig =
             DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG));
@@ -117,12 +117,12 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected void verifyPublishedMessage() {
         Awaitility.await("wait for published messages").until(() -> !published.isEmpty());
-        final ProducerRecord<String, String> record = checkNotNull(published.poll());
+        final ProducerRecord<String, byte[]> record = checkNotNull(published.poll());
         assertThat(published).isEmpty();
         assertThat(record).isNotNull();
         assertThat(record.topic()).isEqualTo(TARGET_TOPIC);
         assertThat(record.key()).isEqualTo("keyA");
-        assertThat(record.value()).isEqualTo("payload");
+        assertThat(record.value()).isEqualTo("payload".getBytes(StandardCharsets.UTF_8));
         final List<Header> headers = Arrays.asList(record.headers().toArray());
         shouldContainHeader(headers, "thing_id", TestConstants.Things.THING_ID.toString());
         shouldContainHeader(headers, "suffixed_thing_id", TestConstants.Things.THING_ID + ".some.suffix");
@@ -141,7 +141,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected void verifyPublishedMessageToReplyTarget() {
         Awaitility.await().until(() -> !published.isEmpty());
-        final ProducerRecord<String, String> record = checkNotNull(published.poll());
+        final ProducerRecord<String, byte[]> record = checkNotNull(published.poll());
         assertThat(published).isEmpty();
         assertThat(record.topic()).isEqualTo("replyTarget");
         assertThat(record.key()).isEqualTo("thing:id");

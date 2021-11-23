@@ -21,10 +21,10 @@ import akka.kafka.javadsl.SendProducer;
  */
 final class DefaultSendProducerFactory implements SendProducerFactory {
 
-    private final ProducerSettings<String, String> producerSettings;
+    private final ProducerSettings<String, byte[]> producerSettings;
     private final ActorSystem actorSystem;
 
-    private DefaultSendProducerFactory(final ProducerSettings<String, String> producerSettings,
+    private DefaultSendProducerFactory(final ProducerSettings<String, byte[]> producerSettings,
             final ActorSystem actorSystem) {
 
         this.producerSettings = producerSettings;
@@ -38,14 +38,14 @@ final class DefaultSendProducerFactory implements SendProducerFactory {
      * @param actorSystem the actor system
      * @return a Kafka SendProducerFactory.
      */
-    static DefaultSendProducerFactory getInstance(final ProducerSettings<String, String> producerSettings,
+    static DefaultSendProducerFactory getInstance(final ProducerSettings<String, byte[]> producerSettings,
             final ActorSystem actorSystem) {
 
         return new DefaultSendProducerFactory(producerSettings, actorSystem);
     }
 
     @Override
-    public SendProducer<String, String> newSendProducer() {
+    public SendProducer<String, byte[]> newSendProducer() {
         return new SendProducer<>(producerSettings, actorSystem);
     }
 

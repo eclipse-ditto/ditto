@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -72,7 +74,7 @@ final class KafkaMessageTransformer {
      */
     @Nullable
     public CommittableTransformationResult transform(
-            final ConsumerMessage.CommittableMessage<String, String> committableMessage) {
+            final ConsumerMessage.CommittableMessage<String, byte[]> committableMessage) {
 
         final TransformationResult result = transform(committableMessage.record());
         if (result == null) {
@@ -92,7 +94,7 @@ final class KafkaMessageTransformer {
      * automated recovery is expected.
      */
     @Nullable
-    public TransformationResult transform(final ConsumerRecord<String, String> consumerRecord) {
+    public TransformationResult transform(final ConsumerRecord<String, byte[]> consumerRecord) {
 
         LOGGER.trace("Received record from kafka: {}", consumerRecord);
 
@@ -105,7 +107,7 @@ final class KafkaMessageTransformer {
 
         try {
             final String key = consumerRecord.key();
-            final String value = consumerRecord.value();
+            final byte[] value = consumerRecord.value();
             final DittoLogger correlationIdScopedLogger = LOGGER.withCorrelationId(correlationId);
             correlationIdScopedLogger.debug(
                     "Transforming incoming kafka message <{}> with headers <{}> and key <{}>.",
@@ -113,7 +115,7 @@ final class KafkaMessageTransformer {
             );
 
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(messageHeaders)
-                    .withTextAndBytes(value, value == null ? null : value.getBytes())
+                    .withTextAndBytes(value == null ? null : new String(value, StandardCharsets.UTF_8), value)
                     .withAuthorizationContext(source.getAuthorizationContext())
                     .withEnforcement(headerEnforcementFilterFactory.getFilter(messageHeaders))
                     .withHeaderMapping(source.getHeaderMapping())
@@ -144,7 +146,7 @@ final class KafkaMessageTransformer {
 
     }
 
-    private Map<String, String> extractMessageHeaders(final ConsumerRecord<String, String> consumerRecord) {
+    private Map<String, String> extractMessageHeaders(final ConsumerRecord<String, byte[]> consumerRecord) {
         final Map<String, String> messageHeaders = new HashMap<>();
         for (final Header header : consumerRecord.headers()) {
             if (messageHeaders.put(header.key(), new String(header.value())) != null) {

@@ -81,10 +81,10 @@ public final class KafkaMessageTransformerTest {
         final String deviceId = "ditto:test-device";
         final RecordHeaders headers =
                 new RecordHeaders(List.of(new RecordHeader("device_id", deviceId.getBytes(StandardCharsets.UTF_8))));
-        final ConsumerRecord<String, String> consumerRecord = mock(ConsumerRecord.class);
+        final ConsumerRecord<String, byte[]> consumerRecord = mock(ConsumerRecord.class);
         when(consumerRecord.headers()).thenReturn(headers);
         when(consumerRecord.key()).thenReturn("someKey");
-        when(consumerRecord.value()).thenReturn("someValue");
+        when(consumerRecord.value()).thenReturn("someValue".getBytes(StandardCharsets.UTF_8));
         when(consumerRecord.topic()).thenReturn("someTopic");
         when(consumerRecord.timestamp()).thenReturn(TIMESTAMP);
         final TransformationResult transformResult = underTest.transform(consumerRecord);
@@ -103,12 +103,38 @@ public final class KafkaMessageTransformerTest {
     }
 
     @Test
-    public void transformWithoutDeviceIdHeaderCausesDittoRuntimeException() {
-        final RecordHeaders headers = new RecordHeaders(List.of());
-        final ConsumerRecord<String, String> consumerRecord = mock(ConsumerRecord.class);
+    public void messageWithBytepayloadIsTransformedToExternalMessage() {
+        final String deviceId = "ditto:test-device";
+        final RecordHeaders headers =
+                new RecordHeaders(List.of(new RecordHeader("device_id", deviceId.getBytes(StandardCharsets.UTF_8))));
+        final byte[] bytePayload = new byte[]{0, 1, 2, 7, 5, 4};
+        final ConsumerRecord<String, byte[]> consumerRecord = mock(ConsumerRecord.class);
         when(consumerRecord.headers()).thenReturn(headers);
         when(consumerRecord.key()).thenReturn("someKey");
-        when(consumerRecord.value()).thenReturn("someValue");
+        when(consumerRecord.value()).thenReturn(bytePayload);
+        when(consumerRecord.topic()).thenReturn("someTopic");
+        when(consumerRecord.timestamp()).thenReturn(TIMESTAMP);
+        final TransformationResult transformResult = underTest.transform(consumerRecord);
+
+        assertThat(transformResult).isNotNull();
+        assertThat(transformResult.getExternalMessage()).isPresent();
+        final ExternalMessage externalMessage = transformResult.getExternalMessage().get();
+        assertThat(externalMessage.isTextMessage()).isTrue();
+        assertThat(externalMessage.isBytesMessage()).isTrue();
+        assertThat(externalMessage.getTextPayload()).contains(new String(bytePayload, StandardCharsets.UTF_8));
+        assertThat(externalMessage.getBytePayload()).contains(ByteBuffer.wrap(bytePayload));
+        assertThat(externalMessage.getHeaders().get(KAFKA_TOPIC.getName())).isEqualTo("someTopic");
+        assertThat(externalMessage.getHeaders().get(KAFKA_KEY.getName())).isEqualTo("someKey");
+        assertThat(externalMessage.getHeaders().get(KAFKA_TIMESTAMP.getName())).isEqualTo(Long.toString(TIMESTAMP));
+    }
+
+    @Test
+    public void transformWithoutDeviceIdHeaderCausesDittoRuntimeException() {
+        final RecordHeaders headers = new RecordHeaders(List.of());
+        final ConsumerRecord<String, byte[]> consumerRecord = mock(ConsumerRecord.class);
+        when(consumerRecord.headers()).thenReturn(headers);
+        when(consumerRecord.key()).thenReturn("someKey");
+        when(consumerRecord.value()).thenReturn("someValue".getBytes(StandardCharsets.UTF_8));
         final TransformationResult transformResult = underTest.transform(consumerRecord);
 
         assertThat(transformResult).isNotNull();
@@ -124,10 +150,10 @@ public final class KafkaMessageTransformerTest {
         final String deviceId = "ditto:test-device";
         final RecordHeaders headers =
                 new RecordHeaders(List.of(new RecordHeader("device_id", deviceId.getBytes(StandardCharsets.UTF_8))));
-        final ConsumerRecord<String, String> consumerRecord = mock(ConsumerRecord.class);
+        final ConsumerRecord<String, byte[]> consumerRecord = mock(ConsumerRecord.class);
         when(consumerRecord.headers()).thenReturn(headers);
         when(consumerRecord.key()).thenReturn("someKey");
-        when(consumerRecord.value()).thenReturn("someValue");
+        when(consumerRecord.value()).thenReturn("someValue".getBytes(StandardCharsets.UTF_8));
         doThrow(new IllegalStateException("Expected")).when(inboundMonitor).success(any(ExternalMessage.class));
 
         final TransformationResult transformResult = underTest.transform(consumerRecord);

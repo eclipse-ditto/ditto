@@ -143,7 +143,7 @@ final class AtMostOnceConsumerStream implements KafkaConsumerStream {
         return value.getExternalMessage().isPresent();
     }
 
-    private static boolean isNotDryRun(final ConsumerRecord<String, String> cRecord, final boolean dryRun) {
+    private static boolean isNotDryRun(final ConsumerRecord<String, byte[]> cRecord, final boolean dryRun) {
         if (dryRun && LOGGER.isDebugEnabled()) {
             LOGGER.debug("Dropping record (key: {}, topic: {}, partition: {}, offset: {}) in dry run mode.",
                     cRecord.key(), cRecord.topic(), cRecord.partition(), cRecord.offset());
