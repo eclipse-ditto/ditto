@@ -55,7 +55,7 @@ import org.eclipse.ditto.internal.models.signal.type.SignalTypeFormatException;
  * If the type of the command or command response is invalid an {@link UnsupportedSignalException} is thrown.
  * </p>
  *
- * @since 2.2.0
+ * TODO change @since 2.x.x
  */
 @Immutable
 public final class CommandAndCommandResponseMatchingValidator

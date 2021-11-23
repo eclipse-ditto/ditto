@@ -32,7 +32,7 @@ import org.eclipse.ditto.connectivity.model.LogType;
 /**
  * Factory for creating instances of {@link LogEntry}.
  *
- * @since 2.2.0
+ * TODO change @since 2.x.x
  */
 @Immutable
 public final class LogEntryFactory {
