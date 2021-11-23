@@ -22,6 +22,8 @@ import java.util.Map;
 
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -83,12 +85,12 @@ final class PropertiesFactory {
      *
      * @return the settings.
      */
-    ConsumerSettings<String, String> getConsumerSettings(final boolean dryRun) {
+    ConsumerSettings<String, byte[]> getConsumerSettings(final boolean dryRun) {
         final Config alpakkaConfig = this.config.getConsumerConfig().getAlpakkaConfig();
         final ConnectionCheckerSettings connectionCheckerSettings =
                 ConnectionCheckerSettings.apply(alpakkaConfig.getConfig("connection-checker"));
-        final ConsumerSettings<String, String> consumerSettings =
-                ConsumerSettings.apply(alpakkaConfig, new StringDeserializer(), new StringDeserializer())
+        final ConsumerSettings<String, byte[]> consumerSettings =
+                ConsumerSettings.apply(alpakkaConfig, new StringDeserializer(), new ByteArrayDeserializer())
                         .withBootstrapServers(bootstrapServers)
                         .withGroupId(connection.getId().toString())
                         .withClientId(clientId + "-consumer")
@@ -106,9 +108,9 @@ final class PropertiesFactory {
         return CommitterSettings.apply(committerConfig);
     }
 
-    ProducerSettings<String, String> getProducerSettings() {
+    ProducerSettings<String, byte[]> getProducerSettings() {
         final Config alpakkaConfig = this.config.getProducerConfig().getAlpakkaConfig();
-        return ProducerSettings.apply(alpakkaConfig, new StringSerializer(), new StringSerializer())
+        return ProducerSettings.apply(alpakkaConfig, new StringSerializer(), new ByteArraySerializer())
                 .withBootstrapServers(bootstrapServers)
                 .withProperties(getClientIdProperties())
                 .withProperties(getProducerSpecificConfigProperties())

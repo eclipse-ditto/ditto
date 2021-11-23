@@ -23,7 +23,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
  * Defines headers that are extracted from a consumed {@code ConsumerRecord} and made available to payload and/or
  * header mappings.
  */
-enum KafkaHeader implements Function<ConsumerRecord<String, String>, Optional<String>> {
+enum KafkaHeader implements Function<ConsumerRecord<String, byte[]>, Optional<String>> {
 
     /**
      * The topic the record is received from.
@@ -39,13 +39,13 @@ enum KafkaHeader implements Function<ConsumerRecord<String, String>, Optional<St
     KAFKA_KEY("kafka.key", ConsumerRecord::key);
 
     private final String name;
-    private final Function<ConsumerRecord<String, String>, String> extractor;
+    private final Function<ConsumerRecord<String, byte[]>, String> extractor;
 
     /**
      * @param name the header name to be used in source header mappings
      */
     KafkaHeader(final String name,
-            final Function<ConsumerRecord<String, String>, String> extractor) {
+            final Function<ConsumerRecord<String, byte[]>, String> extractor) {
         this.name = name;
         this.extractor = extractor;
     }
@@ -58,7 +58,7 @@ enum KafkaHeader implements Function<ConsumerRecord<String, String>, Optional<St
     }
 
     @Override
-    public Optional<String> apply(final ConsumerRecord<String, String> consumerRecord) {
+    public Optional<String> apply(final ConsumerRecord<String, byte[]> consumerRecord) {
         return ofNullable(extractor.apply(consumerRecord));
     }
 }
