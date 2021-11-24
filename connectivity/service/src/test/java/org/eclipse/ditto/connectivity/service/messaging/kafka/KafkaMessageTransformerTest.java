@@ -130,16 +130,6 @@ public final class KafkaMessageTransformerTest {
     }
 
     @Test
-    public void temp() {
-        final String original = "Test";
-        final byte[] utf8Bytes = original.getBytes(StandardCharsets.UTF_8);
-        final byte[] originalBytes = original.getBytes(StandardCharsets.UTF_16);
-        System.out.println(new String(utf8Bytes, StandardCharsets.UTF_8));
-        System.out.println(new String(originalBytes, StandardCharsets.UTF_8));
-        System.out.println(new String(originalBytes, StandardCharsets.UTF_16));
-    }
-
-    @Test
     public void messageWithUTF16CharsetTransformedToExternalMessage() {
         final String deviceId = "ditto:test-device";
         final RecordHeaders headers =
