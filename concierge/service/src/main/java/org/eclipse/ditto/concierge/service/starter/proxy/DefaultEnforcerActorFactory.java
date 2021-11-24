@@ -41,7 +41,6 @@ import org.eclipse.ditto.concierge.service.starter.actors.CachedNamespaceInvalid
 import org.eclipse.ditto.concierge.service.starter.actors.DispatcherActor;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheFactory;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
@@ -117,7 +116,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
         final LiveSignalPub liveSignalPub = LiveSignalPub.of(context, distributedAcks);
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
-        enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,
+        enforcementProviders.add(new ThingCommandEnforcement.Provider(actorSystem, thingsShardRegionProxy,
                 policiesShardRegionProxy, thingIdCache, projectedEnforcerCache, preEnforcer));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache));
         enforcementProviders.add(

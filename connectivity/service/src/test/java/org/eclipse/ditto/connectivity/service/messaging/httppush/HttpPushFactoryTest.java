@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -38,6 +40,7 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.service.config.DefaultConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
+import org.eclipse.ditto.connectivity.service.config.OAuth2Config;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
@@ -174,6 +177,16 @@ public final class HttpPushFactoryTest {
             @Override
             public Map<String, String> getHmacAlgorithms() {
                 return Map.of();
+            }
+
+            @Override
+            public OAuth2Config getOAuth2Config() {
+                return OAuth2Config.of(ConfigFactory.empty());
+            }
+
+            @Override
+            public List<String> getOmitRequestBodyMethods() {
+                return Collections.emptyList();
             }
         }, mock(ConnectionLogger.class), SshTunnelState::disabled);
         final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
@@ -342,7 +355,7 @@ public final class HttpPushFactoryTest {
                 .run(actorSystem);
     }
 
-    private static class TestHttpPushContext implements HttpPushContext {
+    static class TestHttpPushContext implements HttpPushContext {
         @Override
         public ConnectionMonitor.InfoProvider getInfoProvider() {
             return InfoProviderFactory.empty();

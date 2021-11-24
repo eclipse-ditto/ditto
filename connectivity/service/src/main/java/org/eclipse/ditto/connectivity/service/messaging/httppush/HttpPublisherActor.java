@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -28,6 +29,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -84,6 +87,8 @@ import akka.http.javadsl.model.HttpCharset;
 import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpHeader;
+import akka.http.javadsl.model.HttpMethod;
+import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.Uri;
@@ -123,12 +128,15 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             "a) The HTTP endpoint does not consume the messages fast enough.\n" +
             "b) The client count and/or the parallelism of this connection is not configured high enough.";
 
+    static final String OMIT_REQUEST_BODY_CONFIG_KEY = "omitRequestBody";
+
     private final HttpPushFactory factory;
 
     private final Materializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
     private final KillSwitch killSwitch;
     private final HttpRequestSigning httpRequestSigning;
+    private final List<HttpMethod> omitBodyForMethods;
 
     @SuppressWarnings("unused")
     private HttpPublisherActor(final Connection connection,
@@ -158,6 +166,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         httpRequestSigning = connection.getCredentials()
                 .map(credentials -> credentials.accept(HttpRequestSigningExtension.get(getContext().getSystem())))
                 .orElse(NoOpSigning.INSTANCE);
+
+        omitBodyForMethods = parseOmitBodyMethods(connection, config);
     }
 
     /**
@@ -192,6 +202,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         "HTTP request took <{0}> ms.", duration.toMillis());
 
 
+        final Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> oauthFlow =
+                ClientCredentialsFlowVisitor.eval(getContext().getSystem(), config, connection);
+
         final Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> requestSigningFlow =
                 Flow.<Pair<HttpRequest, HttpPushContext>>create()
                         .flatMapConcat(pair -> httpRequestSigning.sign(pair.first())
@@ -203,7 +216,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         final var httpPushFlow =
                 factory.createFlow(getContext().getSystem(), logger, requestTimeout, timer, logRequestTimes);
 
-        return requestSigningFlow.via(httpPushFlow);
+        return oauthFlow.via(requestSigningFlow).via(httpPushFlow);
     }
 
     @Override
@@ -248,15 +261,21 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         final Pair<Iterable<HttpHeader>, ContentType> headersPair = getHttpHeadersPair(message);
         final HttpRequest requestWithoutEntity = newRequestWithoutEntity(publishTarget, headersPair.first(), message);
         final ContentType contentTypeHeader = headersPair.second();
-        if (contentTypeHeader != null) {
-            final HttpEntity.Strict httpEntity =
-                    HttpEntities.create(contentTypeHeader.contentType(), getPayloadAsBytes(message));
-            return requestWithoutEntity.withEntity(httpEntity);
-        } else if (message.isTextMessage()) {
-            return requestWithoutEntity.withEntity(getTextPayload(message));
+
+        if (omitBodyForMethods.contains(publishTarget.getMethod())) {
+            return requestWithoutEntity;
         } else {
-            return requestWithoutEntity.withEntity(getBytePayload(message));
+            if (contentTypeHeader != null) {
+                final HttpEntity.Strict httpEntity =
+                        HttpEntities.create(contentTypeHeader.contentType(), getPayloadAsBytes(message));
+                return requestWithoutEntity.withEntity(httpEntity);
+            } else if (message.isTextMessage()) {
+                return requestWithoutEntity.withEntity(getTextPayload(message));
+            } else {
+                return requestWithoutEntity.withEntity(getBytePayload(message));
+            }
         }
+
     }
 
     private HttpRequest newRequestWithoutEntity(final HttpPublishTarget publishTarget,
@@ -349,9 +368,11 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 } else {
                     final HttpResponse response = tryResponse.toEither().right().get();
                     l.info("Got response status <{}>", response.status());
-                    l.debug("Sent message <{}>. Got response <{} {}>", message, response.status(), response.getHeaders());
+                    l.debug("Sent message <{}>. Got response <{} {}>", message, response.status(),
+                            response.getHeaders());
 
-                    toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize, ackSizeQuota)
+                    toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize,
+                            ackSizeQuota)
                             .thenAccept(resultFuture::complete)
                             .exceptionally(e -> {
                                 resultFuture.completeExceptionally(e);
@@ -610,6 +631,22 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         response.getHeaders().forEach(header -> dittoHeadersBuilder.putHeader(header.name(), header.value()));
 
         return dittoHeadersBuilder.build();
+    }
+
+    private List<HttpMethod> parseOmitBodyMethods(final Connection connection,
+            final HttpPushConfig httpPushConfig) {
+        return Optional.of(connection.getSpecificConfig())
+                .map(specificConfig -> specificConfig.get(OMIT_REQUEST_BODY_CONFIG_KEY))
+                .map(methods -> {
+                    if (methods.isEmpty()) {
+                        return Stream.<String>empty();
+                    } else {
+                        return Arrays.stream(methods.split(","));
+                    }
+                })
+                .map(s -> s.flatMap(m -> HttpMethods.lookup(m).stream()).collect(Collectors.toList()))
+                .orElse(httpPushConfig.getOmitRequestBodyMethods()
+                        .stream().flatMap(m -> HttpMethods.lookup(m).stream()).collect(Collectors.toList()));
     }
 
     private static byte[] getPayloadAsBytes(final ExternalMessage message) {

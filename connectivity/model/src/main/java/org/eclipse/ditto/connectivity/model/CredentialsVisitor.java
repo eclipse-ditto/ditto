@@ -53,4 +53,13 @@ public interface CredentialsVisitor<T> {
      * @since 2.1.0
      */
     T hmac(HmacCredentials credentials);
+
+    /**
+     * Evaluate OAuth Client Credentials.
+     *
+     * @param credentials The OAuth Client Credentials.
+     * @return evaluation result.
+     * @since 2.2.0
+     */
+    T oauthClientCredentials(OAuthClientCredentials credentials);
 }

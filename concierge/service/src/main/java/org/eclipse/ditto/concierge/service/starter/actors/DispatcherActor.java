@@ -16,8 +16,11 @@ import static org.eclipse.ditto.concierge.api.ConciergeMessagingConstants.DISPAT
 import static org.eclipse.ditto.thingsearch.api.ThingsSearchConstants.SEARCH_ACTOR_PATH;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -28,15 +31,18 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.concierge.service.common.DittoConciergeConfig;
 import org.eclipse.ditto.concierge.service.common.EnforcementConfig;
 import org.eclipse.ditto.concierge.service.enforcement.PreEnforcer;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.internal.utils.akka.controlflow.WithSender;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.ThingSearchSudoCommand;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand;
 
 import akka.Done;
 import akka.NotUsed;
@@ -61,6 +67,8 @@ public final class DispatcherActor
      */
     public static final String ACTOR_NAME = "dispatcherActor";
 
+    private static final Map<String, ThreadSafeDittoLogger> NAMESPACE_INSPECTION_LOGGERS = new HashMap<>();
+
     private final Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> handler;
     private final ActorRef thingsAggregatorActor;
     private final EnforcementConfig enforcementConfig;
@@ -75,6 +83,12 @@ public final class DispatcherActor
         enforcementConfig = DittoConciergeConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         ).getEnforcementConfig();
+
+        enforcementConfig.getSpecialLoggingInspectedNamespaces()
+                .forEach(loggedNamespace -> NAMESPACE_INSPECTION_LOGGERS.put(
+                        loggedNamespace,
+                        DittoLoggerFactory.getThreadSafeLogger(DispatcherActor.class.getName() +
+                                ".namespace." + loggedNamespace)));
 
         this.handler = handler;
         final Props props = ThingsAggregatorActor.props(enforcerActor);
@@ -173,11 +187,32 @@ public final class DispatcherActor
     private static Sink<ImmutableDispatch, ?> searchActorSink(final ActorRef pubSubMediator,
             final PreEnforcer preEnforcer) {
         return Sink.foreach(dispatchToPreEnforce ->
-                preEnforce(dispatchToPreEnforce, preEnforcer, dispatch ->
-                        pubSubMediator.tell(
-                                DistPubSubAccess.send(SEARCH_ACTOR_PATH, dispatch.getMessage()),
-                                dispatch.getSender())
-                )
+                preEnforce(dispatchToPreEnforce, preEnforcer, dispatch -> {
+                    final DittoHeadersSettable<?> command = dispatch.message;
+                    if (command instanceof ThingSearchCommand) {
+                        final ThingSearchCommand<?> searchCommand = (ThingSearchCommand<?>) command;
+                        final Set<String> namespaces = searchCommand.getNamespaces().orElseGet(Set::of);
+
+                        NAMESPACE_INSPECTION_LOGGERS.entrySet().stream()
+                                .filter(entry -> namespaces.contains(entry.getKey()))
+                                .map(Map.Entry::getValue)
+                                .forEach(l -> {
+                                    if (searchCommand instanceof ThingSearchQueryCommand) {
+                                        final String filter = ((ThingSearchQueryCommand<?>) searchCommand)
+                                                .getFilter().orElse(null);
+                                        l.withCorrelationId(command).info(
+                                                "Forwarding search query command type <{}> with filter <{}> and " +
+                                                        "fields <{}>",
+                                                searchCommand.getType(),
+                                                filter,
+                                                searchCommand.getSelectedFields().orElse(null));
+                                    }
+                                });
+                    }
+                    pubSubMediator.tell(
+                            DistPubSubAccess.send(SEARCH_ACTOR_PATH, dispatch.getMessage()),
+                            dispatch.getSender());
+                })
         );
     }
 

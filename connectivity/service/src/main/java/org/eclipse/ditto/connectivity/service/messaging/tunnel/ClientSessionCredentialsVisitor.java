@@ -19,6 +19,7 @@ import org.apache.sshd.client.session.ClientSession;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.PublicKeyAuthenticationFactory;
@@ -66,6 +67,12 @@ class ClientSessionCredentialsVisitor implements CredentialsVisitor<Void> {
 
     @Override
     public Void hmac(final HmacCredentials credentials) {
+        // not supported
+        return null;
+    }
+
+    @Override
+    public Void oauthClientCredentials(final OAuthClientCredentials credentials) {
         // not supported
         return null;
     }

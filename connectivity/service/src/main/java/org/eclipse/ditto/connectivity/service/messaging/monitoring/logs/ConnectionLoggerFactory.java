@@ -174,7 +174,8 @@ final class ConnectionLoggerFactory {
             case MAPPED:
                 builder.withDefaultSuccessMessage("Mapped incoming signal.")
                         .withDefaultFailureMessage("Ran into a failure when mapping incoming signal: {1}")
-                        .withDefaultExceptionMessage("Unexpected failure when mapping incoming signal: {1}");
+                        .withDefaultExceptionMessage("Unexpected failure when mapping incoming signal: {1}")
+                        .logHeadersAndPayload();
                 break;
             case DROPPED:
                 builder.withDefaultSuccessMessage(EMPTY_PAYLOAD_MAPPING_MESSAGE);

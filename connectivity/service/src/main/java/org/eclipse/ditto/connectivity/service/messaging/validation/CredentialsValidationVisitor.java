@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.validation;
 
+import java.net.URL;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -20,8 +22,10 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
@@ -37,17 +41,23 @@ final class CredentialsValidationVisitor implements CredentialsVisitor<Void> {
     private final Connection connection;
     private final DittoHeaders dittoHeaders;
     private final Set<String> algorithms;
+    private final HostValidator hostValidator;
+
+    private static final String ALLOWED_CHARACTERS = "\\x21\\x23-\\x5B\\x5D-\\x7E";
+    private static final Pattern REQUESTED_SCOPES_REGEX =
+            Pattern.compile("^[" + ALLOWED_CHARACTERS + "]+( [" + ALLOWED_CHARACTERS + "]+)*$");
 
     private CredentialsValidationVisitor(final Connection connection, final DittoHeaders dittoHeaders,
-            final ConnectivityConfig config) {
+            final ConnectivityConfig config, final HostValidator hostValidator) {
         this.connection = connection;
         this.dittoHeaders = dittoHeaders;
         algorithms = config.getConnectionConfig().getHttpPushConfig().getHmacAlgorithms().keySet();
+        this.hostValidator = hostValidator;
     }
 
     static CredentialsValidationVisitor of(final Connection connection, final DittoHeaders dittoHeaders,
-            final ConnectivityConfig connectivityConfig) {
-        return new CredentialsValidationVisitor(connection, dittoHeaders, connectivityConfig);
+            final ConnectivityConfig connectivityConfig, final HostValidator hostValidator) {
+        return new CredentialsValidationVisitor(connection, dittoHeaders, connectivityConfig, hostValidator);
     }
 
     @Override
@@ -88,11 +98,46 @@ final class CredentialsValidationVisitor implements CredentialsVisitor<Void> {
         }
         if (!algorithms.contains(credentials.getAlgorithm())) {
             throw ConnectionConfigurationInvalidException.newBuilder(
-                    "Unsupported HMAC algorithm: " + credentials.getAlgorithm())
+                            "Unsupported HMAC algorithm: " + credentials.getAlgorithm())
                     .description("Supported algorithms: " + String.join(", ", algorithms))
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
         return null;
+    }
+
+    @Override
+    public Void oauthClientCredentials(final OAuthClientCredentials credentials) {
+        if (ConnectionType.HTTP_PUSH != connection.getConnectionType()) {
+            throw ConnectionConfigurationInvalidException.newBuilder(
+                            "OAuth client credentials are only supported for HTTP connection type.")
+                    .description("Only HTTP connections support OAuth client credentials.")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        validateTokenEndpoint(credentials.getTokenEndpoint());
+        if (!REQUESTED_SCOPES_REGEX.matcher(credentials.getRequestedScopes()).matches()) {
+            throw ConnectionConfigurationInvalidException.newBuilder(
+                            "Invalid format of requested scopes: " + credentials.getRequestedScopes())
+                    .description("Provide scopes as space separated list (RFC6749 section 3.3).")
+                    .href("https://datatracker.ietf.org/doc/html/rfc6749#section-3.3")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        return null;
+    }
+
+    private void validateTokenEndpoint(final String tokenEndpoint) {
+        final URL url;
+        try {
+            url = new URL(tokenEndpoint);
+        } catch (final Exception e) {
+            throw ConnectionConfigurationInvalidException.newBuilder(
+                            String.format("Invalid token endpoint '%s' provided: %s", tokenEndpoint, e.getMessage()))
+                    .description("Provide a valid URL as token endpoint.")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        hostValidator.validateHostname(url.getHost(), dittoHeaders);
     }
 }

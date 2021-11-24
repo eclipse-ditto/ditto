@@ -12,7 +12,10 @@
  */
 package org.eclipse.ditto.concierge.service.common;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -34,12 +37,15 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
     private final AskWithRetryConfig askWithRetryConfig;
     private final int bufferSize;
     private final boolean globalLiveResponseDispatching;
+    private final Set<String> specialLoggingInspectedNamespaces;
 
     private DefaultEnforcementConfig(final ConfigWithFallback configWithFallback) {
         askWithRetryConfig = DefaultAskWithRetryConfig.of(configWithFallback, ASK_WITH_RETRY_CONFIG_PATH);
         bufferSize = configWithFallback.getPositiveIntOrThrow(EnforcementConfigValue.BUFFER_SIZE);
         globalLiveResponseDispatching =
                 configWithFallback.getBoolean(EnforcementConfigValue.GLOBAL_LIVE_RESPONSE_DISPATCHING.getConfigPath());
+        specialLoggingInspectedNamespaces = Collections.unmodifiableSet(new HashSet<>(configWithFallback.getStringList(
+                        EnforcementConfigValue.SPECIAL_LOGGING_INSPECTED_NAMESPACES.getConfigPath())));
     }
 
     /**
@@ -70,6 +76,11 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
     }
 
     @Override
+    public Set<String> getSpecialLoggingInspectedNamespaces() {
+        return specialLoggingInspectedNamespaces;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -80,12 +91,14 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
         final DefaultEnforcementConfig that = (DefaultEnforcementConfig) o;
         return bufferSize == that.bufferSize &&
                 globalLiveResponseDispatching == that.globalLiveResponseDispatching &&
-                askWithRetryConfig.equals(that.askWithRetryConfig);
+                askWithRetryConfig.equals(that.askWithRetryConfig) &&
+                specialLoggingInspectedNamespaces.equals(that.specialLoggingInspectedNamespaces);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(askWithRetryConfig, bufferSize, globalLiveResponseDispatching);
+        return Objects.hash(askWithRetryConfig, bufferSize, globalLiveResponseDispatching,
+                specialLoggingInspectedNamespaces);
     }
 
     @Override
@@ -94,6 +107,7 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
                 "askWithRetryConfig=" + askWithRetryConfig +
                 ", bufferSize=" + bufferSize +
                 ", globalLiveResponseDispatching=" + globalLiveResponseDispatching +
+                ", specialLoggingInspectedNamespaces=" + specialLoggingInspectedNamespaces +
                 "]";
     }
 }

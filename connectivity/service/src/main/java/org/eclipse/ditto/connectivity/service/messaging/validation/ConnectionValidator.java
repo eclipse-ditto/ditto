@@ -41,6 +41,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.Credentials;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
@@ -217,8 +218,9 @@ public final class ConnectionValidator {
                 .ifPresent(tunnel -> SshTunnelValidator.getInstance(dittoHeaders, hostValidator).validate(tunnel));
 
         // validate credentials
-        connection.getCredentials().ifPresent(credentials ->
-                credentials.accept(CredentialsValidationVisitor.of(connection, dittoHeaders, connectivityConfig)));
+        connection.getCredentials()
+                .ifPresent(credentials -> credentials.accept(
+                        CredentialsValidationVisitor.of(connection, dittoHeaders, connectivityConfig, hostValidator)));
 
         // protocol specific validations
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
@@ -400,6 +402,11 @@ public final class ConnectionValidator {
 
         @Override
         public Boolean hmac(final HmacCredentials credentials) {
+            return false;
+        }
+
+        @Override
+        public Boolean oauthClientCredentials(final OAuthClientCredentials credentials) {
             return false;
         }
     }

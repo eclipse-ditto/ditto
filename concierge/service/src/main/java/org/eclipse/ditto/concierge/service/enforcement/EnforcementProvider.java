@@ -81,8 +81,7 @@ public interface EnforcementProvider<T extends Signal<?>> {
      * @return the stream.
      */
     default Flow<Contextual<WithDittoHeaders>, EnforcementTask, NotUsed> createEnforcementTask(
-            final PreEnforcer preEnforcer
-    ) {
+            final PreEnforcer preEnforcer) {
         return Flow.<Contextual<WithDittoHeaders>, Optional<Contextual<T>>>fromFunction(
                         contextual -> contextual.tryToMapMessage(this::mapToHandledClass))
                 .filter(Optional::isPresent)

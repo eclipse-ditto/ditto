@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.concierge.service.common;
 
+import java.util.List;
+import java.util.Set;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
@@ -46,6 +49,13 @@ public interface EnforcementConfig {
     boolean shouldDispatchLiveResponsesGlobally();
 
     /**
+     * Returns a list of namespaces for which a special usage logging should be enabled in enforcement.
+     *
+     * @return list of namespaces which should be inspected.
+     */
+    Set<String> getSpecialLoggingInspectedNamespaces();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code EnforcementConfig}.
      */
@@ -59,7 +69,12 @@ public interface EnforcementConfig {
         /**
          * Whether to enable dispatching live responses from channels other than the subscribers.
          */
-        GLOBAL_LIVE_RESPONSE_DISPATCHING("global-live-response-dispatching", false);
+        GLOBAL_LIVE_RESPONSE_DISPATCHING("global-live-response-dispatching", false),
+
+        /**
+         * List of namespaces for which a special usage logging should be enabled in enforcement.
+         */
+        SPECIAL_LOGGING_INSPECTED_NAMESPACES("special-logging-inspected-namespaces", List.of());
 
         private final String path;
         private final Object defaultValue;
