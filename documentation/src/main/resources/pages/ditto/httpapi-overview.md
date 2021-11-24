@@ -21,12 +21,13 @@ If you have any feedback on how to improve at that point, Ditto's developer team
 
 Ditto supports two types of communication channels: `twin` and `live`. 
 
-The `twin` channel is used to communicate with the **digital twin** representation of a device.
-The `live` channel can be used to communicate directly with an actual device. 
+The `twin` channel is used to communicate with the persisted **digital twin** representation of a device.  
+The `live` channel can be used to communicate directly with an actual device.
+
 In case the `live` channel is used, the device itself is responsible for answering the command/message.   
 If no response is returned, the request will result in a timeout, and Ditto will respond with `408 Request Timeout`.
 This timeout can be set with the `timeout` parameter. If no `timeout` parameter is set, the default of `10s` is used to
-wait for response of the device.
+wait for response of the device.  
 When routing live commands to devices, Ditto is doing an [authorization check](basic-auth.html) based on the policy
 of the thing. Ditto also filters responses based on that policy. 
 
