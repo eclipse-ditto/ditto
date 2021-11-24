@@ -32,6 +32,7 @@ import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
@@ -300,6 +301,26 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
                         .isEqualTo("Entity ID of live response <%s> differs from entity ID of command <%s>.",
                                 null,
                                 command.getEntityId()));
+    }
+
+    @Test
+    public void applyThingCommandResponseWithDifferentResourcePath() {
+        final var command = ModifyAttribute.of(THING_ID,
+                JsonPointer.of("manufacturer"),
+                JsonValue.of("ACME"),
+                getDittoHeadersWithCorrelationId());
+        final var commandResponse =
+                ModifyAttributeResponse.modified(THING_ID, JsonPointer.of("serialNo"), command.getDittoHeaders());
+        final var underTest = CommandAndCommandResponseMatchingValidator.getInstance();
+
+        final var validationResult = underTest.apply(command, commandResponse);
+
+        softly.assertThat(validationResult.asFailureOrThrow())
+                .satisfies(failure -> softly.assertThat(failure.getDetailMessage())
+                        .as("detail message")
+                        .isEqualTo("Resource path of live response <%s> differs from resource path of command <%s>.",
+                                commandResponse.getResourcePath(),
+                                command.getResourcePath()));
     }
 
     private DittoHeaders getDittoHeadersWithCorrelationId() {

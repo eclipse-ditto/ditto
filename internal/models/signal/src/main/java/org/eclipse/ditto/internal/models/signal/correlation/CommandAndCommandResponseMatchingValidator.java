@@ -39,8 +39,9 @@ import org.eclipse.ditto.internal.models.signal.type.SignalTypeFormatException;
  * Both signals correlate if
  * <ul>
  *     <li>their correlation IDs match,</li>
- *     <li>their signal types match and</li>
- *     <li>their entity IDs match.</li>
+ *     <li>their signal types match,</li>
+ *     <li>their entity IDs match and</li>
+ *     <li>their resource paths match &ndash; in case of a {@code ThingCommand}.</li>
  * </ul>
  * <p>
  * If any of the above evaluates to {@code false} the yielded {@link MatchingValidationResult} is a failure, else it is
@@ -54,7 +55,7 @@ import org.eclipse.ditto.internal.models.signal.type.SignalTypeFormatException;
  * <p>
  * If the type of the command or command response is invalid an {@link UnsupportedSignalException} is thrown.
  * </p>
- *
+ * <p>
  * TODO change @since 2.x.x
  */
 @Immutable
@@ -82,6 +83,9 @@ public final class CommandAndCommandResponseMatchingValidator
         }
         if (result.isSuccess()) {
             result = validateEntityIdsMatch(sentCommand, commandResponse);
+        }
+        if (result.isSuccess()) {
+            result = validateResourcePathsMatch(sentCommand, commandResponse);
         }
 
         return result;
@@ -164,9 +168,7 @@ public final class CommandAndCommandResponseMatchingValidator
         }
     }
 
-    private static String getMessageForMismatchingTypes(final WithType commandResponse,
-            final WithType command) {
-
+    private static String getMessageForMismatchingTypes(final WithType commandResponse, final WithType command) {
         return MessageFormat.format("Type of live response <{0}> is not related to type of command <{1}>.",
                 commandResponse.getType(),
                 command.getType());
@@ -182,6 +184,7 @@ public final class CommandAndCommandResponseMatchingValidator
 
     private static boolean isSameSignalDomain(final SemanticSignalType semanticCommandType,
             final SemanticSignalType semanticCommandResponseType) {
+
         return Objects.equals(semanticCommandResponseType.getSignalDomain(), semanticCommandType.getSignalDomain());
     }
 
@@ -221,6 +224,27 @@ public final class CommandAndCommandResponseMatchingValidator
 
     private static Optional<EntityId> getEntityId(final Signal<?> signal) {
         return SignalInformationPoint.getEntityId(signal);
+    }
+
+    private static MatchingValidationResult validateResourcePathsMatch(final Command<?> command,
+            final CommandResponse<?> commandResponse) {
+
+        final MatchingValidationResult result;
+        if (SignalInformationPoint.isThingCommand(command)) {
+            final var commandResourcePath = command.getResourcePath();
+            final var commandResponseResourcePath = commandResponse.getResourcePath();
+            if (isAcknowledgement(commandResponse) || commandResourcePath.equals(commandResponseResourcePath)) {
+                result = MatchingValidationResult.success();
+            } else {
+                final var pattern = "Resource path of live response <{0}> differs from resource path of command <{1}>.";
+                result = MatchingValidationResult.failure(command,
+                        commandResponse,
+                        MessageFormat.format(pattern, commandResponseResourcePath, commandResourcePath));
+            }
+        } else {
+            result = MatchingValidationResult.success();
+        }
+        return result;
     }
 
 }

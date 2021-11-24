@@ -36,6 +36,8 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 @SuppressWarnings("java:S1610")
 public abstract class MatchingValidationResult {
 
+    private static MatchingValidationResult success = null;
+
     private MatchingValidationResult() {
         super();
     }
@@ -46,7 +48,12 @@ public abstract class MatchingValidationResult {
      * @return the instance.
      */
     public static MatchingValidationResult success() {
-        return new Success();
+        var result = success;
+        if (null == result) {
+            result = new Success();
+            success = result;
+        }
+        return result;
     }
 
     /**

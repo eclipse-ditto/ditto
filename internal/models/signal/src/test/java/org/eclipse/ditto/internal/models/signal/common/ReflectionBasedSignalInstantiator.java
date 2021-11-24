@@ -17,6 +17,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.text.MessageFormat;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -68,9 +69,9 @@ final class ReflectionBasedSignalInstantiator {
     private static final Logger LOGGER = LoggerFactory.getLogger(ReflectionBasedSignalInstantiator.class);
 
     static {
-        final var feature = Feature.newBuilder().withId("myFeature").build();
-        final var thingId = ThingId.generateRandom();
         final var stringValue = "myAttributeOrFeature";
+        final var feature = Feature.newBuilder().withId(stringValue).build();
+        final var thingId = ThingId.generateRandom();
         final var messageHeaders = MessageHeaders.newBuilder(MessageDirection.TO, thingId, "mySubject")
                 .featureId(stringValue)
                 .randomCorrelationId()
@@ -138,6 +139,7 @@ final class ReflectionBasedSignalInstantiator {
     private static Method getStaticFactoryMethodOrThrow(final Class<?> clazz) {
         final var acceptedStaticFactoryMethodNames = List.of("of", "newInstance", "getInstance", "created", "modified");
         return Stream.of(clazz.getDeclaredMethods())
+                .sorted(Comparator.comparing(Method::getName)) // to match the order of the accepted static factory method names
                 .filter(method -> acceptedStaticFactoryMethodNames.contains(method.getName()))
                 .filter(method -> {
                     final var modifiers = method.getModifiers();
