@@ -16,6 +16,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -90,7 +91,7 @@ public final class PropertiesFactoryTest {
 
     @Test
     public void addsBootstrapServersAndFlattensPropertiesFromProducerSettings() {
-        final ProducerSettings<String, byte[]> producerSettings = underTest.getProducerSettings();
+        final ProducerSettings<String, ByteBuffer> producerSettings = underTest.getProducerSettings();
         final Map<String, Object> properties = producerSettings.getProperties();
 
         final List<String> servers =
@@ -108,7 +109,7 @@ public final class PropertiesFactoryTest {
     @Test
     public void addsBootstrapServersAndFlattensPropertiesFromConsumerSettings() {
 
-        final ConsumerSettings<String, byte[]> consumerSettings = underTest.getConsumerSettings(false);
+        final ConsumerSettings<String, ByteBuffer> consumerSettings = underTest.getConsumerSettings(false);
         final Map<String, Object> properties = consumerSettings.getProperties();
 
         final List<String> servers =

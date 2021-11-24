@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.nio.ByteBuffer;
+
 import akka.kafka.javadsl.SendProducer;
 
 /**
@@ -25,6 +27,6 @@ interface SendProducerFactory {
      *
      * @return the producer.
      */
-    SendProducer<String, byte[]> newSendProducer();
+    SendProducer<String, ByteBuffer> newSendProducer();
 
 }

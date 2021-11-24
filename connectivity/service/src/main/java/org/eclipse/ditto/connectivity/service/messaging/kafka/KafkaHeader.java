@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import static java.util.Optional.ofNullable;
 
+import java.nio.ByteBuffer;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -23,7 +24,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
  * Defines headers that are extracted from a consumed {@code ConsumerRecord} and made available to payload and/or
  * header mappings.
  */
-enum KafkaHeader implements Function<ConsumerRecord<String, byte[]>, Optional<String>> {
+enum KafkaHeader implements Function<ConsumerRecord<String, ByteBuffer>, Optional<String>> {
 
     /**
      * The topic the record is received from.
@@ -39,13 +40,13 @@ enum KafkaHeader implements Function<ConsumerRecord<String, byte[]>, Optional<St
     KAFKA_KEY("kafka.key", ConsumerRecord::key);
 
     private final String name;
-    private final Function<ConsumerRecord<String, byte[]>, String> extractor;
+    private final Function<ConsumerRecord<String, ByteBuffer>, String> extractor;
 
     /**
      * @param name the header name to be used in source header mappings
      */
     KafkaHeader(final String name,
-            final Function<ConsumerRecord<String, byte[]>, String> extractor) {
+            final Function<ConsumerRecord<String, ByteBuffer>, String> extractor) {
         this.name = name;
         this.extractor = extractor;
     }
@@ -58,7 +59,7 @@ enum KafkaHeader implements Function<ConsumerRecord<String, byte[]>, Optional<St
     }
 
     @Override
-    public Optional<String> apply(final ConsumerRecord<String, byte[]> consumerRecord) {
+    public Optional<String> apply(final ConsumerRecord<String, ByteBuffer> consumerRecord) {
         return ofNullable(extractor.apply(consumerRecord));
     }
 }

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.nio.ByteBuffer;
 import java.util.function.Supplier;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -27,7 +28,7 @@ import akka.stream.javadsl.Source;
  * {@link akka.kafka.javadsl.Consumer.Control} in order to be able to shutdown/terminate Kafka consumption.
  */
 class AtMostOnceKafkaConsumerSourceSupplier
-        implements Supplier<Source<ConsumerRecord<String, byte[]>, Consumer.Control>> {
+        implements Supplier<Source<ConsumerRecord<String, ByteBuffer>, Consumer.Control>> {
 
     private final PropertiesFactory propertiesFactory;
     private final String sourceAddress;
@@ -41,8 +42,8 @@ class AtMostOnceKafkaConsumerSourceSupplier
     }
 
     @Override
-    public Source<ConsumerRecord<String, byte[]>, Consumer.Control> get() {
-        final ConsumerSettings<String, byte[]> consumerSettings = propertiesFactory.getConsumerSettings(dryRun);
+    public Source<ConsumerRecord<String, ByteBuffer>, Consumer.Control> get() {
+        final ConsumerSettings<String, ByteBuffer> consumerSettings = propertiesFactory.getConsumerSettings(dryRun);
         final AutoSubscription subscription = Subscriptions.topics(sourceAddress);
         return Consumer.plainSource(consumerSettings, subscription);
     }

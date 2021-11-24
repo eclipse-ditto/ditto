@@ -54,6 +54,7 @@ public final class ByteBufferUtils {
 
     /**
      * Creates an empty ByteBuffer of size 0.
+     *
      * @return an empty ByteBuffer.
      */
     public static ByteBuffer empty() {
@@ -62,6 +63,7 @@ public final class ByteBufferUtils {
 
     /**
      * Creates a string from the ByteBuffer.
+     *
      * @param byteBuffer the ByteBuffer to decode.
      * @return the ByteBuffer in UTF-8 representation or {@code null} if it was null.
      */
@@ -71,6 +73,13 @@ public final class ByteBufferUtils {
             return null;
         }
         return StandardCharsets.UTF_8.decode(byteBuffer.asReadOnlyBuffer()).toString();
+    }
+
+    public static ByteBuffer fromUtf8String(@Nullable final String string) {
+        if (null == string) {
+            return null;
+        }
+        return ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8));
     }
 
 }
