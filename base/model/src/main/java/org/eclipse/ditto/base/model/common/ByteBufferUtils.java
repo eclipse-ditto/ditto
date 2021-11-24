@@ -94,7 +94,8 @@ public final class ByteBufferUtils {
      * Creates a string from the ByteBuffer using the given charset.
      *
      * @param value the ByteBuffer to decode.
-     * @return the ByteBuffer or {@code null} if it was null.
+     * @param charset the charset to use for decoding.
+     * @return the string or {@code null} if {@code value} was null.
      */
     @Nullable
     public static String toString(final ByteBuffer value, final Charset charset) {
