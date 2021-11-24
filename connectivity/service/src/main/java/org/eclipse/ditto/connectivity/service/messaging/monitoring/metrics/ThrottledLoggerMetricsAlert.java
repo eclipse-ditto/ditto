@@ -32,6 +32,8 @@ public final class ThrottledLoggerMetricsAlert implements MetricsAlert {
     private final CounterKey counterKey;
 
     /**
+     * Returns an instance of {@code MetricsAlertFactory}.
+     *
      * @param loggerSupplier the supplier to retrieve the logger to write the throttled log entry
      * @return the {@code MetricsAlertFactory} that creates new ThrottledLoggerMetricsAlert instances
      */

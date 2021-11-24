@@ -50,4 +50,5 @@ final class DelegatingAlert implements MetricsAlert {
             metricsAlert.triggerAction(timestamp, value);
         }
     }
+
 }

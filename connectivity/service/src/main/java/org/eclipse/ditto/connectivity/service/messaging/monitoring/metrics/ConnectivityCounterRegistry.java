@@ -46,8 +46,8 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 
 /**
- * This registry holds counters for the connectivity service. The counters are identified by the connection id, a {@link
- * MetricType}, a {@link MetricDirection} and an address.
+ * This registry holds counters for the connectivity service. The counters are identified by the connection id,
+ * a {@link MetricType}, a {@link MetricDirection} and an address.
  */
 public final class ConnectivityCounterRegistry implements ConnectionMonitorRegistry<ConnectionMetricsCounter> {
 
@@ -146,6 +146,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
             final String address) {
         final ConnectionId connectionId = connection.getId();
         final ConnectionType connectionType = connection.getConnectionType();
+
         return getCounter(CLOCK_UTC, connectionId, connectionType, metricType, metricDirection, address);
     }
 
@@ -168,6 +169,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
             final String address) {
         final CounterKey key = CounterKey.of(connectionId, metricType, metricDirection, address);
         final MetricsAlert alert = alertRegistry.getAlert(key, connectionType, connectivityConfig);
+
         return counters.computeIfAbsent(key,
                 m -> ConnectionMetricsCounterFactory.create(metricType, metricDirection, connectionId, connectionType,
                         address, clock, alert));
@@ -255,7 +257,6 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
 
     private static Stream<DefaultConnectionMetricsCounter> streamFor(final ConnectionId connectionId,
             final MetricDirection metricDirection) {
-
         return counters.entrySet()
                 .stream()
                 .filter(e -> e.getKey().getConnectionId().equals(connectionId))
@@ -276,6 +277,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
                                     ? ConnectivityModelFactory.newAddressMetric(metric, measurements)
                                     : ConnectivityModelFactory.newAddressMetric(measurements);
                         }));
+
         return addressMetrics;
     }
 
@@ -353,6 +355,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
             final SourceMetrics sourceMetrics, final TargetMetrics targetMetrics) {
         final AddressMetric fromSources = mergeAllMetrics(sourceMetrics.getAddressMetrics().values());
         final AddressMetric fromTargets = mergeAllMetrics(targetMetrics.getAddressMetrics().values());
+
         return ConnectivityModelFactory.newConnectionMetrics(fromSources, fromTargets);
     }
 
@@ -361,6 +364,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
         for (AddressMetric metric : metrics) {
             result = mergeAddressMetric(result, metric);
         }
+
         return result;
     }
 
@@ -386,6 +390,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
                                     measurementB.getLastMessageAt().orElse(null)
                             ));
                 }));
+
         return ConnectivityModelFactory.newAddressMetric(new HashSet<>(result.values()));
     }
 
@@ -401,6 +406,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
             final Map<String, AddressMetric> second) {
         final Map<String, AddressMetric> result = new HashMap<>(first);
         second.forEach((k, v) -> result.merge(k, v, ConnectivityCounterRegistry::mergeAddressMetric));
+
         return result;
     }
 
@@ -414,6 +420,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
             final Map<Duration, Long> measurementB) {
         final Map<Duration, Long> result = new HashMap<>(measurementA);
         measurementB.forEach((k, v) -> result.merge(k, v, Long::sum));
+
         return result;
     }
 

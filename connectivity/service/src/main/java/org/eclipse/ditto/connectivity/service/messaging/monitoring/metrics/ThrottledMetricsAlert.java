@@ -65,4 +65,5 @@ final class ThrottledMetricsAlert implements MetricsAlert {
                 ", targetMeasurementWindow=" + targetMeasurementWindow +
                 "]";
     }
+
 }

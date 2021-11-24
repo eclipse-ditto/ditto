@@ -41,8 +41,8 @@ final class MetricAlertRegistry {
             MeasurementWindow.ONE_MINUTE_WITH_TEN_SECONDS_RESOLUTION;
 
     /**
-     * An alert can be registered for a combination of MetricType and MetricDirection e.g. CONSUMED + INBOUND. These
-     * alerts will be instantiated using the registered Creator and passed to created SlidingWindowCounters.
+     * An alert can be registered for a combination of MetricType and MetricDirection e.g. CONSUMED + INBOUND.
+     * These alerts will be instantiated using the registered Creator and passed to created SlidingWindowCounters.
      */
     private static final Map<MetricsAlert.Key, MetricsAlertFactory> alertDefinitions = Map.of(
             MetricsAlert.Key.CONSUMED_INBOUND,
@@ -50,11 +50,13 @@ final class MetricAlertRegistry {
                 // target counter is INBOUND + THROTTLED
                 final CounterKey target = CounterKey.of(source.getConnectionId(), MetricType.THROTTLED,
                         MetricDirection.INBOUND, source.getAddress());
+
                 return new ThrottledMetricsAlert(THROTTLING_DETECTION_WINDOW,
                         calculateThrottlingLimitFromConfig(connectionType, config),
                         () -> ConnectivityCounterRegistry.lookup(target));
             }
     );
+
     private static final ConcurrentMap<CounterKey, MetricsAlert> alerts = new ConcurrentHashMap<>();
 
     private final Map<MetricsAlert.Key, MetricsAlertFactory> customAlerts = new EnumMap<>(MetricsAlert.Key.class);
@@ -91,9 +93,9 @@ final class MetricAlertRegistry {
                 final ConnectionThrottlingConfig kafkaThrottlingConfig =
                         config.getConnectionConfig().getKafkaConfig().getConsumerConfig().getThrottlingConfig();
                 return perInterval(kafkaThrottlingConfig, THROTTLING_DETECTION_WINDOW.getResolution());
-            case MQTT:
             case AMQP_091:
             case HTTP_PUSH:
+            case MQTT:
             case MQTT_5:
             default:
                 // effectively no limit
@@ -108,6 +110,7 @@ final class MetricAlertRegistry {
         final double factor = (double) resolution.toMillis() / interval.toMillis();
         final int limit = throttlingConfig.getLimit();
         final double limitAdjustedToResolution = limit * factor;
+
         // apply the configured tolerance to the resulting limit
         return (long) (limitAdjustedToResolution * (1 - tolerance));
     }

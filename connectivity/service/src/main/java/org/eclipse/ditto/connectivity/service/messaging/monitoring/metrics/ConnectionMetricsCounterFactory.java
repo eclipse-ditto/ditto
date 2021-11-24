@@ -14,6 +14,8 @@ package org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics;
 
 import java.time.Clock;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.MetricDirection;
@@ -27,10 +29,11 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
  */
 final class ConnectionMetricsCounterFactory {
 
-    private static final MeasurementWindow[] DEFAULT_WINDOWS =
-            {MeasurementWindow.ONE_MINUTE_WITH_TEN_SECONDS_RESOLUTION,
-                    MeasurementWindow.ONE_HOUR_WITH_ONE_MINUTE_RESOLUTION,
-                    MeasurementWindow.ONE_DAY_WITH_ONE_HOUR_RESOLUTION};
+    private static final MeasurementWindow[] DEFAULT_WINDOWS = {
+            MeasurementWindow.ONE_MINUTE_WITH_TEN_SECONDS_RESOLUTION,
+            MeasurementWindow.ONE_HOUR_WITH_ONE_MINUTE_RESOLUTION,
+            MeasurementWindow.ONE_DAY_WITH_ONE_HOUR_RESOLUTION
+    };
 
     /**
      * Create a new instance of a DefaultConnectionMetricsCounter from the given arguments.
@@ -41,7 +44,7 @@ final class ConnectionMetricsCounterFactory {
      * @param connectionType the connection type required to build a metrics counter
      * @param address the monitored address
      * @param clock the clock to be used
-     * @param connectivityConfig the connectivity config required to read throttling limits from the config
+     * @param metricsAlert the metricsAlert
      */
     static DefaultConnectionMetricsCounter create(
             final MetricType metricType,
@@ -50,7 +53,7 @@ final class ConnectionMetricsCounterFactory {
             final ConnectionType connectionType,
             final String address,
             final Clock clock,
-            final MetricsAlert metricsAlert) {
+            @Nullable final MetricsAlert metricsAlert) {
         final Counter metricsCounter = metricsCounter(connectionId, connectionType, metricType, metricDirection);
         final SlidingWindowCounter counter;
         if (MetricType.THROTTLED == metricType) {
@@ -73,6 +76,7 @@ final class ConnectionMetricsCounterFactory {
                     .measurementWindows(DEFAULT_WINDOWS)
                     .build();
         }
+
         return new DefaultConnectionMetricsCounter(metricDirection, address, metricType, counter);
     }
 
