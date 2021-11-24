@@ -130,6 +130,46 @@ public final class KafkaMessageTransformerTest {
     }
 
     @Test
+    public void temp() {
+        final String original = "Test";
+        final byte[] utf8Bytes = original.getBytes(StandardCharsets.UTF_8);
+        final byte[] originalBytes = original.getBytes(StandardCharsets.UTF_16);
+        System.out.println(new String(utf8Bytes, StandardCharsets.UTF_8));
+        System.out.println(new String(originalBytes, StandardCharsets.UTF_8));
+        System.out.println(new String(originalBytes, StandardCharsets.UTF_16));
+    }
+
+    @Test
+    public void messageWithUTF16CharsetTransformedToExternalMessage() {
+        final String deviceId = "ditto:test-device";
+        final RecordHeaders headers =
+                new RecordHeaders(List.of(new RecordHeader("device_id", deviceId.getBytes(StandardCharsets.UTF_8)),
+                        new RecordHeader("content-type",
+                                "text/plain; charset=utf-16".getBytes(StandardCharsets.UTF_8))));
+        final String original = "Test";
+        final byte[] utf16Bytes = original.getBytes(StandardCharsets.UTF_16);
+        final ByteBuffer bytePayload = ByteBuffer.wrap(utf16Bytes);
+        final ConsumerRecord<String, ByteBuffer> consumerRecord = mock(ConsumerRecord.class);
+        when(consumerRecord.headers()).thenReturn(headers);
+        when(consumerRecord.key()).thenReturn("someKey");
+        when(consumerRecord.value()).thenReturn(bytePayload);
+        when(consumerRecord.topic()).thenReturn("someTopic");
+        when(consumerRecord.timestamp()).thenReturn(TIMESTAMP);
+        final TransformationResult transformResult = underTest.transform(consumerRecord);
+
+        assertThat(transformResult).isNotNull();
+        assertThat(transformResult.getExternalMessage()).isPresent();
+        final ExternalMessage externalMessage = transformResult.getExternalMessage().get();
+        assertThat(externalMessage.isTextMessage()).isTrue();
+        assertThat(externalMessage.isBytesMessage()).isTrue();
+        assertThat(externalMessage.getTextPayload()).contains("Test");
+        assertThat(externalMessage.getBytePayload()).contains(bytePayload);
+        assertThat(externalMessage.getHeaders().get(KAFKA_TOPIC.getName())).isEqualTo("someTopic");
+        assertThat(externalMessage.getHeaders().get(KAFKA_KEY.getName())).isEqualTo("someKey");
+        assertThat(externalMessage.getHeaders().get(KAFKA_TIMESTAMP.getName())).isEqualTo(Long.toString(TIMESTAMP));
+    }
+
+    @Test
     public void transformWithoutDeviceIdHeaderCausesDittoRuntimeException() {
         final RecordHeaders headers = new RecordHeaders(List.of());
         final ConsumerRecord<String, ByteBuffer> consumerRecord = mock(ConsumerRecord.class);
