@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
@@ -31,6 +33,7 @@ import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
@@ -73,7 +76,6 @@ import akka.stream.javadsl.RestartFlow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SourceQueueWithComplete;
-import akka.util.ByteString;
 
 /**
  * Responsible for publishing {@link org.eclipse.ditto.connectivity.api.ExternalMessage}s into an Kafka
@@ -93,7 +95,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             final String clientId,
             final ConnectivityStatusResolver connectivityStatusResolver,
 
-final ConnectivityConfig connectivityConfig) {
+            final ConnectivityConfig connectivityConfig) {
         super(connection, clientId, connectivityStatusResolver, connectivityConfig);
         this.dryRun = dryRun;
         final Materializer materializer = Materializer.createMaterializer(this::getContext);
@@ -311,20 +313,20 @@ final ConnectivityConfig connectivityConfig) {
                 "b) The client count of this connection is not configured high enough.";
 
         private final KillSwitch killSwitch;
-        private final SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>
+        private final SourceQueueWithComplete<ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>>>
                 sourceQueue;
-        private final AtomicReference<SendProducer<String, String>> sendProducer = new AtomicReference<>();
+        private final AtomicReference<SendProducer<String, ByteBuffer>> sendProducer = new AtomicReference<>();
 
         private KafkaProducerStream(final KafkaProducerConfig config, final Materializer materializer,
                 final SendProducerFactory producerFactory) {
 
             final RestartSettings restartSettings =
-                    RestartSettings.create(config.getMinBackoff(),config.getMaxBackoff(), config.getRandomFactor())
+                    RestartSettings.create(config.getMinBackoff(), config.getMaxBackoff(), config.getRandomFactor())
                             .withMaxRestarts(config.getMaxRestartsCount(), config.getMaxRestartsWithin());
 
-            final Pair<SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>, Source<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>, NotUsed>>
+            final Pair<SourceQueueWithComplete<ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>>>, Source<ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>>, NotUsed>>
                     sourcePair =
-                    Source.<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>
+                    Source.<ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>>>
                             queue(config.getQueueSize(), OverflowStrategy.dropNew()).preMaterialize(materializer);
 
             sourceQueue = sourcePair.first();
@@ -345,12 +347,12 @@ final ConnectivityConfig connectivityConfig) {
         }
 
         private void handleSendResult(
-                @Nullable final ProducerMessage.Results<String, String, CompletableFuture<RecordMetadata>> results,
+                @Nullable final ProducerMessage.Results<String, ByteBuffer, CompletableFuture<RecordMetadata>> results,
                 @Nullable final Throwable exception, final CompletableFuture<RecordMetadata> resultFuture) {
             if (exception == null) {
                 if (results instanceof ProducerMessage.Result) {
-                    final ProducerMessage.Result<String, String, CompletableFuture<RecordMetadata>> result =
-                            (ProducerMessage.Result<String, String, CompletableFuture<RecordMetadata>>) results;
+                    final ProducerMessage.Result<String, ByteBuffer, CompletableFuture<RecordMetadata>> result =
+                            (ProducerMessage.Result<String, ByteBuffer, CompletableFuture<RecordMetadata>>) results;
                     resultFuture.complete(result.metadata());
                 } else {
                     // should never happen, we provide only ProducerMessage.single to the source
@@ -370,8 +372,8 @@ final ConnectivityConfig connectivityConfig) {
                 final ExternalMessage externalMessage) {
 
             final CompletableFuture<RecordMetadata> resultFuture = new CompletableFuture<>();
-            final ProducerRecord<String, String> producerRecord = getProducerRecord(publishTarget, externalMessage);
-            final ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>> envelope =
+            final ProducerRecord<String, ByteBuffer> producerRecord = getProducerRecord(publishTarget, externalMessage);
+            final ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>> envelope =
                     ProducerMessage.single(producerRecord, resultFuture);
             if (null != sourceQueue) {
                 sourceQueue.offer(envelope).whenComplete(handleQueueOfferResult(externalMessage, resultFuture));
@@ -383,10 +385,10 @@ final ConnectivityConfig connectivityConfig) {
             return resultFuture;
         }
 
-        private ProducerRecord<String, String> getProducerRecord(final KafkaPublishTarget publishTarget,
+        private ProducerRecord<String, ByteBuffer> getProducerRecord(final KafkaPublishTarget publishTarget,
                 final ExternalMessage externalMessage) {
 
-            final String payload = mapExternalMessagePayload(externalMessage);
+            final ByteBuffer payload = mapExternalMessagePayload(externalMessage);
             final Iterable<Header> headers = mapExternalMessageHeaders(externalMessage);
 
             return new ProducerRecord<>(publishTarget.getTopic(),
@@ -404,16 +406,18 @@ final ConnectivityConfig connectivityConfig) {
                     .collect(Collectors.toList());
         }
 
-        private String mapExternalMessagePayload(final ExternalMessage externalMessage) {
-            if (externalMessage.isTextMessage()) {
-                return externalMessage.getTextPayload().orElse("");
-            } else if (externalMessage.isBytesMessage()) {
+        private ByteBuffer mapExternalMessagePayload(final ExternalMessage externalMessage) {
+            if (externalMessage.isBytesMessage()) {
                 return externalMessage.getBytePayload()
-                        .map(ByteString::fromByteBuffer)
-                        .map(ByteString::utf8String)
-                        .orElse("");
+                        .orElseGet(ByteBufferUtils::empty);
+            } else if (externalMessage.isTextMessage()) {
+                final Charset charset = getCharsetFromMessage(externalMessage);
+                return externalMessage.getTextPayload()
+                        .map(text -> text.getBytes(charset))
+                        .map(ByteBuffer::wrap)
+                        .orElseGet(ByteBufferUtils::empty);
             } else {
-                return "";
+                return ByteBufferUtils.empty();
             }
         }
 
