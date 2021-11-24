@@ -233,7 +233,10 @@ public final class CommandAndCommandResponseMatchingValidator
         if (SignalInformationPoint.isThingCommand(command)) {
             final var commandResourcePath = command.getResourcePath();
             final var commandResponseResourcePath = commandResponse.getResourcePath();
-            if (isAcknowledgement(commandResponse) || commandResourcePath.equals(commandResponseResourcePath)) {
+            if (commandResourcePath.equals(commandResponseResourcePath) ||
+                    isAcknowledgement(commandResponse) ||
+                    isErrorResponseType(commandResponse)) {
+
                 result = MatchingValidationResult.success();
             } else {
                 final var pattern = "Resource path of live response <{0}> differs from resource path of command <{1}>.";

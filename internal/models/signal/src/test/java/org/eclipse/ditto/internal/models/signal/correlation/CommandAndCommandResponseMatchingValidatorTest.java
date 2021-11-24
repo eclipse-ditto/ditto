@@ -20,6 +20,7 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.TooManyRequestsException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
@@ -321,6 +322,33 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
                         .isEqualTo("Resource path of live response <%s> differs from resource path of command <%s>.",
                                 commandResponse.getResourcePath(),
                                 command.getResourcePath()));
+    }
+
+    @Test
+    public void applyTooManyRequestsExceptionAsThingErrorResponse() {
+
+        // GIVEN
+        final var command = ModifyAttribute.of(THING_ID,
+                JsonPointer.of("manufacturer"),
+                JsonValue.of("ACME"),
+                getDittoHeadersWithCorrelationId());
+
+        final var tooManyRequestsException = TooManyRequestsException.fromMessage("I'm just a random error mate!",
+                command.getDittoHeaders());
+        final var thingErrorResponse = ThingErrorResponse.of(THING_ID, tooManyRequestsException);
+
+        final var underTest = CommandAndCommandResponseMatchingValidator.getInstance();
+
+        // WHEN
+        final var validationResult = underTest.apply(command, thingErrorResponse);
+
+        // THEN
+        softly.assertThat(validationResult.isSuccess())
+                .withFailMessage(() -> {
+                    final var failure = validationResult.asFailureOrThrow();
+                    return failure.getDetailMessage();
+                })
+                .isTrue();
     }
 
     private DittoHeaders getDittoHeadersWithCorrelationId() {
