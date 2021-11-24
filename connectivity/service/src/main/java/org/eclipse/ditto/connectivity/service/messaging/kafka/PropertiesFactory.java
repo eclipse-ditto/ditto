@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -22,8 +23,8 @@ import java.util.Map;
 
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.ByteArrayDeserializer;
-import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.kafka.common.serialization.ByteBufferDeserializer;
+import org.apache.kafka.common.serialization.ByteBufferSerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -85,12 +86,12 @@ final class PropertiesFactory {
      *
      * @return the settings.
      */
-    ConsumerSettings<String, byte[]> getConsumerSettings(final boolean dryRun) {
+    ConsumerSettings<String, ByteBuffer> getConsumerSettings(final boolean dryRun) {
         final Config alpakkaConfig = this.config.getConsumerConfig().getAlpakkaConfig();
         final ConnectionCheckerSettings connectionCheckerSettings =
                 ConnectionCheckerSettings.apply(alpakkaConfig.getConfig("connection-checker"));
-        final ConsumerSettings<String, byte[]> consumerSettings =
-                ConsumerSettings.apply(alpakkaConfig, new StringDeserializer(), new ByteArrayDeserializer())
+        final ConsumerSettings<String, ByteBuffer> consumerSettings =
+                ConsumerSettings.apply(alpakkaConfig, new StringDeserializer(), new ByteBufferDeserializer())
                         .withBootstrapServers(bootstrapServers)
                         .withGroupId(connection.getId().toString())
                         .withClientId(clientId + "-consumer")
@@ -108,9 +109,9 @@ final class PropertiesFactory {
         return CommitterSettings.apply(committerConfig);
     }
 
-    ProducerSettings<String, byte[]> getProducerSettings() {
+    ProducerSettings<String, ByteBuffer> getProducerSettings() {
         final Config alpakkaConfig = this.config.getProducerConfig().getAlpakkaConfig();
-        return ProducerSettings.apply(alpakkaConfig, new StringSerializer(), new ByteArraySerializer())
+        return ProducerSettings.apply(alpakkaConfig, new StringSerializer(), new ByteBufferSerializer())
                 .withBootstrapServers(bootstrapServers)
                 .withProperties(getClientIdProperties())
                 .withProperties(getProducerSpecificConfigProperties())

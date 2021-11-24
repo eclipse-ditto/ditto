@@ -33,6 +33,7 @@ import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
@@ -312,9 +313,9 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 "b) The client count of this connection is not configured high enough.";
 
         private final KillSwitch killSwitch;
-        private final SourceQueueWithComplete<ProducerMessage.Envelope<String, byte[], CompletableFuture<RecordMetadata>>>
+        private final SourceQueueWithComplete<ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>>>
                 sourceQueue;
-        private final AtomicReference<SendProducer<String, byte[]>> sendProducer = new AtomicReference<>();
+        private final AtomicReference<SendProducer<String, ByteBuffer>> sendProducer = new AtomicReference<>();
 
         private KafkaProducerStream(final KafkaProducerConfig config, final Materializer materializer,
                 final SendProducerFactory producerFactory) {
@@ -323,9 +324,9 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                     RestartSettings.create(config.getMinBackoff(), config.getMaxBackoff(), config.getRandomFactor())
                             .withMaxRestarts(config.getMaxRestartsCount(), config.getMaxRestartsWithin());
 
-            final Pair<SourceQueueWithComplete<ProducerMessage.Envelope<String, byte[], CompletableFuture<RecordMetadata>>>, Source<ProducerMessage.Envelope<String, byte[], CompletableFuture<RecordMetadata>>, NotUsed>>
+            final Pair<SourceQueueWithComplete<ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>>>, Source<ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>>, NotUsed>>
                     sourcePair =
-                    Source.<ProducerMessage.Envelope<String, byte[], CompletableFuture<RecordMetadata>>>
+                    Source.<ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>>>
                             queue(config.getQueueSize(), OverflowStrategy.dropNew()).preMaterialize(materializer);
 
             sourceQueue = sourcePair.first();
@@ -346,12 +347,12 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         }
 
         private void handleSendResult(
-                @Nullable final ProducerMessage.Results<String, byte[], CompletableFuture<RecordMetadata>> results,
+                @Nullable final ProducerMessage.Results<String, ByteBuffer, CompletableFuture<RecordMetadata>> results,
                 @Nullable final Throwable exception, final CompletableFuture<RecordMetadata> resultFuture) {
             if (exception == null) {
                 if (results instanceof ProducerMessage.Result) {
-                    final ProducerMessage.Result<String, byte[], CompletableFuture<RecordMetadata>> result =
-                            (ProducerMessage.Result<String, byte[], CompletableFuture<RecordMetadata>>) results;
+                    final ProducerMessage.Result<String, ByteBuffer, CompletableFuture<RecordMetadata>> result =
+                            (ProducerMessage.Result<String, ByteBuffer, CompletableFuture<RecordMetadata>>) results;
                     resultFuture.complete(result.metadata());
                 } else {
                     // should never happen, we provide only ProducerMessage.single to the source
@@ -371,8 +372,8 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 final ExternalMessage externalMessage) {
 
             final CompletableFuture<RecordMetadata> resultFuture = new CompletableFuture<>();
-            final ProducerRecord<String, byte[]> producerRecord = getProducerRecord(publishTarget, externalMessage);
-            final ProducerMessage.Envelope<String, byte[], CompletableFuture<RecordMetadata>> envelope =
+            final ProducerRecord<String, ByteBuffer> producerRecord = getProducerRecord(publishTarget, externalMessage);
+            final ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>> envelope =
                     ProducerMessage.single(producerRecord, resultFuture);
             if (null != sourceQueue) {
                 sourceQueue.offer(envelope).whenComplete(handleQueueOfferResult(externalMessage, resultFuture));
@@ -384,10 +385,10 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             return resultFuture;
         }
 
-        private ProducerRecord<String, byte[]> getProducerRecord(final KafkaPublishTarget publishTarget,
+        private ProducerRecord<String, ByteBuffer> getProducerRecord(final KafkaPublishTarget publishTarget,
                 final ExternalMessage externalMessage) {
 
-            final byte[] payload = mapExternalMessagePayload(externalMessage);
+            final ByteBuffer payload = mapExternalMessagePayload(externalMessage);
             final Iterable<Header> headers = mapExternalMessageHeaders(externalMessage);
 
             return new ProducerRecord<>(publishTarget.getTopic(),
@@ -405,18 +406,18 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                     .collect(Collectors.toList());
         }
 
-        private byte[] mapExternalMessagePayload(final ExternalMessage externalMessage) {
+        private ByteBuffer mapExternalMessagePayload(final ExternalMessage externalMessage) {
             if (externalMessage.isBytesMessage()) {
                 return externalMessage.getBytePayload()
-                        .map(ByteBuffer::array)
-                        .orElseGet(() -> new byte[0]);
+                        .orElseGet(ByteBufferUtils::empty);
             } else if (externalMessage.isTextMessage()) {
                 final Charset charset = getCharsetFromMessage(externalMessage);
                 return externalMessage.getTextPayload()
                         .map(text -> text.getBytes(charset))
-                        .orElseGet(() -> new byte[0]);
+                        .map(ByteBuffer::wrap)
+                        .orElseGet(ByteBufferUtils::empty);
             } else {
-                return new byte[0];
+                return ByteBufferUtils.empty();
             }
         }
 

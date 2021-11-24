@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
@@ -162,7 +163,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         return new KafkaAcknowledgableMessage(externalMessage, committableOffset, ackMonitor);
     }
 
-    private static boolean isNotDryRun(final ConsumerRecord<String, byte[]> cRecord, final boolean dryRun) {
+    private static boolean isNotDryRun(final ConsumerRecord<String, ByteBuffer> cRecord, final boolean dryRun) {
         if (dryRun && LOGGER.isDebugEnabled()) {
             LOGGER.debug("Dropping record (key: {}, topic: {}, partition: {}, offset: {}) in dry run mode.",
                     cRecord.key(), cRecord.topic(), cRecord.partition(), cRecord.offset());

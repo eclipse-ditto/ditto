@@ -20,13 +20,14 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.nio.charset.StandardCharsets;
+import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
+import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -56,17 +57,17 @@ import akka.testkit.javadsl.TestKit;
 public final class AtLeastOnceConsumerStreamTest {
 
     private ActorSystem actorSystem;
-    private Source<ConsumerMessage.CommittableMessage<String, byte[]>, Consumer.Control> source;
+    private Source<ConsumerMessage.CommittableMessage<String, ByteBuffer>, Consumer.Control> source;
     private Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink;
-    private final AtomicReference<BoundedSourceQueue<ConsumerMessage.CommittableMessage<String, byte[]>>> sourceQueue =
-            new AtomicReference<>();
+    private final AtomicReference<BoundedSourceQueue<ConsumerMessage.CommittableMessage<String, ByteBuffer>>>
+            sourceQueue = new AtomicReference<>();
     private TestSubscriber.Probe<AcknowledgeableMessage> inboundSinkProbe;
 
     @Before
     public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem");
         final Consumer.Control control = mock(Consumer.Control.class);
-        source = Source.<ConsumerMessage.CommittableMessage<String, byte[]>>queue(1)
+        source = Source.<ConsumerMessage.CommittableMessage<String, ByteBuffer>>queue(1)
                 .mapMaterializedValue(queue -> {
                     sourceQueue.set(queue);
                     return control;
@@ -99,11 +100,11 @@ public final class AtLeastOnceConsumerStreamTest {
             /*
              * Given we have a kafka source which emits records that are all transformed to External messages.
              */
-            final ConsumerRecord<String, byte[]> consumerRecord =
+            final ConsumerRecord<String, ByteBuffer> consumerRecord =
                     new ConsumerRecord<>("topic", 1, 1, Instant.now().toEpochMilli(), TimestampType.LOG_APPEND_TIME,
-                            -1L, NULL_SIZE, NULL_SIZE, "Key", "Value".getBytes(StandardCharsets.UTF_8),
+                            -1L, NULL_SIZE, NULL_SIZE, "Key", ByteBufferUtils.fromUtf8String("Value"),
                             new RecordHeaders());
-            final ConsumerMessage.CommittableMessage<String, byte[]> committableMessage =
+            final ConsumerMessage.CommittableMessage<String, ByteBuffer> committableMessage =
                     new ConsumerMessage.CommittableMessage<>(consumerRecord, mock(
                             ConsumerMessage.CommittableOffset.class));
             final AtLeastOnceKafkaConsumerSourceSupplier sourceSupplier =
@@ -113,7 +114,7 @@ public final class AtLeastOnceConsumerStreamTest {
             final TransformationResult result = TransformationResult.successful(mock(ExternalMessage.class));
 
             when(messageTransformer.transform(
-                    ArgumentMatchers.<ConsumerMessage.CommittableMessage<String, byte[]>>any()))
+                    ArgumentMatchers.<ConsumerMessage.CommittableMessage<String, ByteBuffer>>any()))
                     .thenReturn(CommittableTransformationResult.of(result, committableMessage.committableOffset()));
             final ConnectionMonitor connectionMonitor = mock(ConnectionMonitor.class);
             final ConnectionMonitor ackMonitor = mock(ConnectionMonitor.class);
