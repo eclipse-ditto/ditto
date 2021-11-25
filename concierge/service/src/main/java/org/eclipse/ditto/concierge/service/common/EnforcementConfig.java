@@ -43,7 +43,7 @@ public interface EnforcementConfig {
      *
      * @return whether global live response dispatching is enabled.
      */
-    boolean shouldDispatchLiveResponsesGlobally();
+    boolean isDispatchLiveResponsesGlobally();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for

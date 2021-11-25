@@ -107,7 +107,7 @@ public final class ThingNotCreatableException extends DittoRuntimeException impl
      *
      * @param dittoHeaders the headers of the command which resulted in the returned exception.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
-     * @since 2.2.0
+     * TODO change @since 2.x.x
      */
     public static ThingNotCreatableException forLiveChannel(final DittoHeaders dittoHeaders) {
         return new Builder()

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.things.model;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -19,17 +21,15 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.Validator;
+import org.eclipse.ditto.base.model.entity.validation.NoControlCharactersNoSlashesValidator;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.ConditionChecker;
-import org.eclipse.ditto.base.model.common.Validator;
-import org.eclipse.ditto.base.model.entity.validation.NoControlCharactersNoSlashesValidator;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Representation of one Feature within Ditto.
@@ -42,10 +42,12 @@ final class ImmutableFeature implements Feature {
     @Nullable private final FeatureProperties properties;
     @Nullable private final FeatureProperties desiredProperties;
 
-    private ImmutableFeature(final String featureId, @Nullable final FeatureDefinition definition,
-            @Nullable final FeatureProperties properties, @Nullable final FeatureProperties desiredProperties) {
+    private ImmutableFeature(final String featureId,
+            @Nullable final FeatureDefinition definition,
+            @Nullable final FeatureProperties properties,
+            @Nullable final FeatureProperties desiredProperties) {
 
-        this.featureId = ConditionChecker.checkNotNull(featureId, "ID of the Feature");
+        this.featureId = checkNotNull(featureId, "ID of the Feature");
         this.definition = definition;
         this.properties = properties;
         this.desiredProperties = desiredProperties;
@@ -89,8 +91,10 @@ final class ImmutableFeature implements Feature {
      * @throws JsonKeyInvalidException if {@code featureId} was not valid according to pattern
      * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
-    public static ImmutableFeature of(final String featureId, @Nullable final FeatureDefinition definition,
+    public static ImmutableFeature of(final String featureId,
+            @Nullable final FeatureDefinition definition,
             @Nullable final FeatureProperties properties) {
+
         return of(featureId, definition, properties, null);
     }
 
@@ -112,7 +116,7 @@ final class ImmutableFeature implements Feature {
             @Nullable final FeatureProperties properties,
             @Nullable final FeatureProperties desiredProperties) {
 
-        ConditionChecker.checkNotNull(featureId, "ID of the Feature");
+        checkNotNull(featureId, "ID of the Feature");
 
         final Validator validator = NoControlCharactersNoSlashesValidator.getInstance(featureId);
         if (!validator.isValid()) {
@@ -130,7 +134,7 @@ final class ImmutableFeature implements Feature {
 
     @Override
     public Feature setDefinition(final FeatureDefinition featureDefinition) {
-        ConditionChecker.checkNotNull(featureDefinition, "definition to be set");
+        checkNotNull(featureDefinition, "definition to be set");
         if (Objects.equals(definition, featureDefinition)) {
             return this;
         }
@@ -152,7 +156,7 @@ final class ImmutableFeature implements Feature {
 
     @Override
     public Feature setProperties(final FeatureProperties properties) {
-        ConditionChecker.checkNotNull(properties, "properties to be set");
+        checkNotNull(properties, "properties to be set");
 
         if (Objects.equals(this.properties, properties)) {
             return this;
@@ -172,14 +176,14 @@ final class ImmutableFeature implements Feature {
 
     @Override
     public Optional<JsonValue> getProperty(final JsonPointer propertyPath) {
-        ConditionChecker.checkNotNull(propertyPath, "JSON path to the property to be retrieved");
+        checkNotNull(propertyPath, "JSON path to the property to be retrieved");
         return getProperties().flatMap(props -> props.getValue(propertyPath));
     }
 
     @Override
     public Feature setProperty(final JsonPointer propertyPath, final JsonValue propertyValue) {
-        ConditionChecker.checkNotNull(propertyPath, "JSON path to the property to be set");
-        ConditionChecker.checkNotNull(propertyValue, "property value to be set");
+        checkNotNull(propertyPath, "JSON path to the property to be set");
+        checkNotNull(propertyValue, "property value to be set");
 
         final FeatureProperties newFeatureProperties;
         if (null == properties || properties.isEmpty()) {
@@ -195,7 +199,7 @@ final class ImmutableFeature implements Feature {
 
     @Override
     public Feature removeProperty(final JsonPointer propertyPath) {
-        ConditionChecker.checkNotNull(propertyPath, "JSON path to the property to be removed");
+        checkNotNull(propertyPath, "JSON path to the property to be removed");
 
         if (null == properties || properties.isEmpty()) {
             return this;
@@ -211,7 +215,7 @@ final class ImmutableFeature implements Feature {
 
     @Override
     public Feature setDesiredProperties(final FeatureProperties desiredProperties) {
-        ConditionChecker.checkNotNull(desiredProperties, "desired properties to be set");
+        checkNotNull(desiredProperties, "desired properties to be set");
 
         if (Objects.equals(this.desiredProperties, desiredProperties)) {
             return this;
@@ -231,16 +235,15 @@ final class ImmutableFeature implements Feature {
 
     @Override
     public Optional<JsonValue> getDesiredProperty(final JsonPointer desiredPropertyPath) {
-        ConditionChecker.checkNotNull(desiredPropertyPath,
-                "JSON path to the desired property to be retrieved");
+        checkNotNull(desiredPropertyPath, "JSON path to the desired property to be retrieved");
 
         return getDesiredProperties().flatMap(props -> props.getValue(desiredPropertyPath));
     }
 
     @Override
     public Feature setDesiredProperty(final JsonPointer desiredPropertyPath, final JsonValue desiredPropertyValue) {
-        ConditionChecker.checkNotNull(desiredPropertyPath, "JSON path to the desired property to be set");
-        ConditionChecker.checkNotNull(desiredPropertyValue, "desired property value to be set");
+        checkNotNull(desiredPropertyPath, "JSON path to the desired property to be set");
+        checkNotNull(desiredPropertyValue, "desired property value to be set");
 
         final FeatureProperties newDesiredFeatureProperties;
         if (null == desiredProperties || desiredProperties.isEmpty()) {
@@ -256,10 +259,9 @@ final class ImmutableFeature implements Feature {
 
     @Override
     public Feature removeDesiredProperty(final JsonPointer desiredPropertyPath) {
-        ConditionChecker.checkNotNull(desiredPropertyPath,
-                "JSON path to the desired property to be removed");
+        checkNotNull(desiredPropertyPath, "JSON path to the desired property to be removed");
 
-        if (null == desiredProperties|| desiredProperties.isEmpty()) {
+        if (null == desiredProperties || desiredProperties.isEmpty()) {
             return this;
         }
 
@@ -274,8 +276,8 @@ final class ImmutableFeature implements Feature {
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
-                .set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
+
+        final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
 
         if (null != definition) {
             jsonObjectBuilder.set(JsonFields.DEFINITION, definition.toJson(), predicate);
@@ -307,7 +309,8 @@ final class ImmutableFeature implements Feature {
             return false;
         }
         final ImmutableFeature other = (ImmutableFeature) o;
-        return Objects.equals(featureId, other.featureId) && Objects.equals(definition, other.definition) &&
+        return Objects.equals(featureId, other.featureId) &&
+                Objects.equals(definition, other.definition) &&
                 Objects.equals(properties, other.properties) &&
                 Objects.equals(desiredProperties, other.desiredProperties);
     }

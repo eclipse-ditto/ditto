@@ -30,11 +30,13 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 /**
  * Represents the result of validating whether two particular signals are correlated to each other.
  *
- * @since 2.2.0
+ * TODO change @since 2.x.x
  */
 @Immutable
 @SuppressWarnings("java:S1610")
 public abstract class MatchingValidationResult {
+
+    private static MatchingValidationResult success = null;
 
     private MatchingValidationResult() {
         super();
@@ -46,7 +48,12 @@ public abstract class MatchingValidationResult {
      * @return the instance.
      */
     public static MatchingValidationResult success() {
-        return new Success();
+        var result = success;
+        if (null == result) {
+            result = new Success();
+            success = result;
+        }
+        return result;
     }
 
     /**
@@ -151,6 +158,7 @@ public abstract class MatchingValidationResult {
             } else {
                 result = Optional.empty();
             }
+
             return result;
         }
 

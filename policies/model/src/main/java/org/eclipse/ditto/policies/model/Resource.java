@@ -142,10 +142,16 @@ public interface Resource extends Jsonifiable.WithFieldSelectorAndPredicate<Json
 
         /**
          * JSON field containing the {@link JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.2.0 this field definition is not used anymore.
          */
-        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
+        @Deprecated
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION = JsonFactory.newIntFieldDefinition(
+                JsonSchemaVersion.getJsonKey(),
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2
+        );
 
         private JsonFields() {
             throw new AssertionError();

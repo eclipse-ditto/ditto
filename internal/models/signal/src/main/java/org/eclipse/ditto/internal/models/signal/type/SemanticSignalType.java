@@ -28,7 +28,7 @@ import javax.annotation.concurrent.Immutable;
  * <em>Note:</em> This class cannot be used for {@code Acknowledgement} signals.
  * </p>
  *
- * @since 2.2.0
+ * TODO change @since 2.x.x
  */
 @Immutable
 public final class SemanticSignalType {
@@ -77,6 +77,7 @@ public final class SemanticSignalType {
             final var pattern = "Signal type <{0}> has wrong index of domain delimiter <{1}>: {2,number}";
             throw new SignalTypeFormatException(MessageFormat.format(pattern, s, SIGNAL_DOMAIN_DELIMITER, result));
         }
+
         return result;
     }
 
@@ -90,6 +91,7 @@ public final class SemanticSignalType {
             final var pattern = "Signal type <{0}> has wrong index of name delimiter <{1}>: {2,number}";
             throw new SignalTypeFormatException(MessageFormat.format(pattern, s, SIGNAL_NAME_DELIMITER, result));
         }
+
         return result;
     }
 

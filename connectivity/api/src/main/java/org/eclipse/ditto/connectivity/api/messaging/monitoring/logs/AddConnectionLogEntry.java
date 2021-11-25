@@ -36,7 +36,7 @@ import org.eclipse.ditto.json.JsonRuntimeException;
 /**
  * Transports a {@link LogEntry} that should be added to the log of a connection with a particular {@code ConnectionId}.
  *
- * @since 2.2.0
+ * TODO change @since 2.x.x
  */
 @Immutable
 public final class AddConnectionLogEntry implements Jsonifiable<JsonObject>, WithConnectionId {

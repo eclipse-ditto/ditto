@@ -58,21 +58,27 @@ public interface SourceMetrics extends Jsonifiable.WithFieldSelectorAndPredicate
 
         /**
          * JSON field containing the {@code JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.2.0 this field definition is not used anymore.
          */
-        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
+        @Deprecated
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION = JsonFactory.newIntFieldDefinition(
+                JsonSchemaVersion.getJsonKey(),
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2
+        );
 
         /**
          * JSON field containing the {@code AddressMetrics} value.
          */
         public static final JsonFieldDefinition<JsonObject> ADDRESS_METRICS =
-                JsonFactory.newJsonObjectFieldDefinition("addressMetrics", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("addressMetrics", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
 
     }
+
 }

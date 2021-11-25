@@ -116,62 +116,66 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
 
         /**
          * JSON field containing the {@code JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.2.0 this field definition is not used anymore.
          */
+        @Deprecated
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
+                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(),
+                        FieldType.SPECIAL,
+                        FieldType.HIDDEN,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Target} address.
          */
         public static final JsonFieldDefinition<String> ADDRESS =
-                JsonFactory.newStringFieldDefinition("address", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("address", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Target} topics.
          */
         public static final JsonFieldDefinition<JsonArray> TOPICS =
-                JsonFactory.newJsonArrayFieldDefinition("topics", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("topics", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Target} qos.
          */
         public static final JsonFieldDefinition<Integer> QOS =
-                JsonFactory.newIntFieldDefinition("qos", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newIntFieldDefinition("qos", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Target} authorization context (list of authorization subjects).
          */
         public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
-                JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
+                JsonFactory.newJsonArrayFieldDefinition("authorizationContext",
+                        FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Target} acknowledgement label of an automatically issued acknowledgement.
          */
         public static final JsonFieldDefinition<String> ISSUED_ACKNOWLEDGEMENT_LABEL =
-                JsonFactory.newStringFieldDefinition("issuedAcknowledgementLabel", FieldType.REGULAR,
+                JsonFactory.newStringFieldDefinition("issuedAcknowledgementLabel",
+                        FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Target} header mapping.
          */
         public static final JsonFieldDefinition<JsonObject> HEADER_MAPPING =
-                JsonFactory.newJsonObjectFieldDefinition("headerMapping", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("headerMapping", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Target} payload mapping.
          */
         public static final JsonFieldDefinition<JsonArray> PAYLOAD_MAPPING =
-                JsonFactory.newJsonArrayFieldDefinition("payloadMapping", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("payloadMapping", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-        JsonFields() {
+        private JsonFields() {
             throw new AssertionError();
         }
+
     }
+
 }

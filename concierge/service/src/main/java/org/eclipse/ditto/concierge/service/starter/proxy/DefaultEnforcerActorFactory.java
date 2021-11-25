@@ -80,8 +80,10 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
     private static final String ID_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_id_cache_";
 
     @Override
-    public ActorRef startEnforcerActor(final ActorContext context, final ConciergeConfig conciergeConfig,
-            final ActorRef pubSubMediator, final ShardRegions shardRegions) {
+    public ActorRef startEnforcerActor(final ActorContext context,
+            final ConciergeConfig conciergeConfig,
+            final ActorRef pubSubMediator,
+            final ShardRegions shardRegions) {
 
         final var cachesConfig = conciergeConfig.getCachesConfig();
         final var askWithRetryConfig = cachesConfig.getAskWithRetryConfig();
@@ -119,8 +121,11 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,
                 policiesShardRegionProxy, thingIdCache, projectedEnforcerCache, preEnforcer));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache));
-        enforcementProviders.add(
-                new LiveSignalEnforcement.Provider(thingIdCache, projectedEnforcerCache, liveSignalPub, actorSystem));
+        enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache,
+                projectedEnforcerCache,
+                actorSystem,
+                liveSignalPub,
+                conciergeConfig.getEnforcementConfig()));
 
         final ActorRef conciergeEnforcerRouter =
                 ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(context,

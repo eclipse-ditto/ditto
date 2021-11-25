@@ -28,7 +28,7 @@ get:
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/conditionParam.yml'
-    - $ref: '../../parameters/channelParam.yml'
+    - $ref: '../../parameters/channelParamPutDescription.yml'
   responses:
     '200':
       description: The request successfully returned the specific thing.

@@ -23,13 +23,13 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Immutable implementation of {@link SearchResult}.
@@ -111,7 +111,7 @@ final class ImmutableSearchResult implements SearchResult {
 
     @Override
     public boolean hasNextPage() {
-        return cursor != null || (nextPageOffset != null && nextPageOffset != NO_NEXT_PAGE);
+        return cursor != null || nextPageOffset != null && nextPageOffset != NO_NEXT_PAGE;
     }
 
     @Override
@@ -137,10 +137,9 @@ final class ImmutableSearchResult implements SearchResult {
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder()
-                .set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate)
-                .set(JsonFields.ITEMS, items, predicate);
 
+        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
+        builder.set(JsonFields.ITEMS, items, predicate);
         getNextPageOffset().ifPresent(offset -> builder.set(JsonFields.NEXT_PAGE_OFFSET, offset, predicate));
         getCursor().ifPresent(cur -> builder.set(JsonFields.CURSOR, cur, predicate));
         return builder.build();

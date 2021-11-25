@@ -32,7 +32,7 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 /**
  * Provides dedicated information about specified {@code Signal} arguments.
  *
- * @since 2.2.0
+ * TODO change @since 2.x.x
  */
 @Immutable
 public final class SignalInformationPoint {
@@ -72,17 +72,6 @@ public final class SignalInformationPoint {
      */
     public static boolean isMessageCommand(@Nullable final Signal<?> signal) {
         return hasTypePrefix(signal, MessageCommand.TYPE_PREFIX);
-    }
-
-    private static boolean hasTypePrefix(@Nullable final WithType signal, final String typePrefix) {
-        final boolean result;
-        if (null != signal) {
-            final var signalType = signal.getType();
-            result = signalType.startsWith(typePrefix);
-        } else {
-            result = false;
-        }
-        return result;
     }
 
     /**
@@ -151,6 +140,7 @@ public final class SignalInformationPoint {
         } else {
             result = false;
         }
+
         return result;
     }
 
@@ -168,6 +158,7 @@ public final class SignalInformationPoint {
         } else {
             result = false;
         }
+
         return result;
     }
 
@@ -185,6 +176,7 @@ public final class SignalInformationPoint {
         } else {
             result = Optional.empty();
         }
+
         return result;
     }
 
@@ -202,6 +194,19 @@ public final class SignalInformationPoint {
         } else {
             result = Optional.empty();
         }
+
+        return result;
+    }
+
+    private static boolean hasTypePrefix(@Nullable final WithType signal, final String typePrefix) {
+        final boolean result;
+        if (null != signal) {
+            final var signalType = signal.getType();
+            result = signalType.startsWith(typePrefix);
+        } else {
+            result = false;
+        }
+
         return result;
     }
 

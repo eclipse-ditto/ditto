@@ -123,7 +123,12 @@ public final class CommandAndCommandResponseMatchingValidatorParameterizedTest {
         public void commandAndItsResponseMatch() {
             final var validationResult = underTest.apply(command, commandResponse);
 
-            assertThat(validationResult.isSuccess()).isTrue();
+            assertThat(validationResult.isSuccess())
+                    .withFailMessage(() -> {
+                        final var failure = validationResult.asFailureOrThrow();
+                        return failure.getDetailMessage();
+                    })
+                    .isTrue();
         }
 
     }

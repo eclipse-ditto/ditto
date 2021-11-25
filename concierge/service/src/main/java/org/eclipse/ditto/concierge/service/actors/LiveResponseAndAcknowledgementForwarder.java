@@ -47,6 +47,7 @@ public final class LiveResponseAndAcknowledgementForwarder extends AbstractActor
     private boolean responseReceived = false;
     private ActorRef messageSender;
 
+    @SuppressWarnings("unused")
     private LiveResponseAndAcknowledgementForwarder(final Signal<?> liveSignal,
             final ActorRef messageReceiver,
             final ActorRef acknowledgementReceiver) {

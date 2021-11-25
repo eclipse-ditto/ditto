@@ -255,7 +255,8 @@ public final class InboundDispatchingSink
 
     private void dispatchMapped(final InboundMappingOutcomes outcomes) {
         final var sender = outcomes.getSender();
-        final var dispatchResponsesAndSearchCommands = dispatchResponsesAndSearchCommands(sender, outcomes);
+        final var dispatchResponsesAndSearchCommands =
+                dispatchResponsesAndSearchCommands(sender, outcomes);
         final var actualOutcomes = outcomes.getOutcomes();
         final var ackRequestingSignalCount = actualOutcomes.stream()
                 .map(this::eval)
@@ -433,6 +434,7 @@ public final class InboundDispatchingSink
             } catch (final DittoRuntimeException e) {
                 handleErrorDuringStartingOfAckregator(e, signal.getDittoHeaders(), sender);
             }
+
             return 1;
         } else {
             if (sender != null && isLive(signal)) {
@@ -454,6 +456,7 @@ public final class InboundDispatchingSink
                                         ConnectivityInternalErrorException.newBuilder()
                                                 .cause(new ClassCastException(errorMessage))
                                                 .build();
+
                                 return ConnectivityErrorResponse.of(dre, originalHeaders);
                             }
                         })
@@ -461,6 +464,7 @@ public final class InboundDispatchingSink
             } else {
                 proxyActor.tell(signal, sender);
             }
+
             return 0;
         }
     }
@@ -491,6 +495,7 @@ public final class InboundDispatchingSink
                 },
                 ackregator -> {
                     proxyActor.tell(signal, ackregator);
+
                     return null;
                 });
     }
@@ -532,11 +537,13 @@ public final class InboundDispatchingSink
     private <T> Stream<T> forwardToClientActor(final Signal<?> signal, @Nullable final ActorRef sender) {
         // wrap response or search command for dispatching by entity ID
         clientActor.tell(InboundSignal.of(signal), sender);
+
         return Stream.empty();
     }
 
     private <T> Stream<T> forwardToConnectionActor(final CreateSubscription command, @Nullable final ActorRef sender) {
         connectionActor.tell(command, sender);
+
         return Stream.empty();
     }
 
@@ -554,6 +561,7 @@ public final class InboundDispatchingSink
                     outcomes.getExternalMessage());
             result = Stream.empty();
         }
+
         return result;
     }
 
@@ -576,6 +584,7 @@ public final class InboundDispatchingSink
         } else {
             result = forwardToClientActor(acks, outboundMessageMappingProcessorActor);
         }
+
         return result;
     }
 
@@ -596,6 +605,7 @@ public final class InboundDispatchingSink
         } else {
             builder.twin();
         }
+
         return builder;
     }
 
@@ -615,6 +625,7 @@ public final class InboundDispatchingSink
                 result = ActorRef.noSender();
             }
         }
+
         return result;
     }
 
@@ -645,6 +656,7 @@ public final class InboundDispatchingSink
                     .toBuilder()
                     .acknowledgementRequests(combinedRequestedAcks)
                     .build());
+
             return RequestedAcksFilter.filterAcknowledgements(signalWithCombinedAckRequests,
                     message,
                     filter,
@@ -734,6 +746,7 @@ public final class InboundDispatchingSink
         if (appendRandomCorrelationId && extraInternalHeaders.getCorrelationId().isEmpty()) {
             builder.randomCorrelationId();
         }
+
         return builder;
     }
 
@@ -749,6 +762,7 @@ public final class InboundDispatchingSink
                 .toBuilder()
                 .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connection.getId().toString())
                 .build();
+
         return commandResponse.setDittoHeaders(newHeaders);
     }
 
@@ -756,6 +770,7 @@ public final class InboundDispatchingSink
         final List<Acknowledgement> acksList = acknowledgements.stream()
                 .map(this::appendConnectionIdToAcknowledgementOrResponse)
                 .collect(Collectors.toList());
+
         // Uses EntityId and StatusCode from input acknowledges expecting these were set when Acknowledgements was created
         return Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getHttpStatus(),
                 acknowledgements.getDittoHeaders());

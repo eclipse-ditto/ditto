@@ -165,6 +165,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         final var logEntry = LogEntryFactory.getLogEntryForFailedCommandResponseRoundTrip(failure.getCommand(),
                 failure.getCommandResponse(),
                 failure.getDetailMessage());
+
         return AddConnectionLogEntry.newInstance(connectionId, logEntry);
     }
 
@@ -235,6 +236,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private void setDefaultTimeoutExceptionSupplier(final WithDittoHeaders command) {
         timeoutExceptionSupplier = () -> {
             final var actorContext = getContext();
+
             return GatewayCommandTimeoutException.newBuilder(actorContext.getReceiveTimeout())
                     .dittoHeaders(command.getDittoHeaders())
                     .build();
@@ -243,12 +245,14 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     private Void onAggregatedResponseOrError(final Object responseOrError) {
         getSelf().tell(responseOrError, ActorRef.noSender());
+
         return null;
     }
 
     private Void handleCommandWithAckregator(final Signal<?> command, final ActorRef aggregator) {
         logger.debug("Got <{}>. Telling the target actor about it.", command);
         proxyActor.tell(command, aggregator);
+
         return null;
     }
 
@@ -259,6 +263,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         } else {
             handleCommandAndAcceptImmediately(command);
         }
+
         return null;
     }
 
@@ -510,6 +515,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             result = responseWithoutHeaders.withEntity(CONTENT_TYPE_JSON,
                     ByteString.fromString(exception.toJsonString()));
         }
+
         return result;
     }
 
@@ -593,7 +599,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 response -> enhanceResponseWithExternalDittoHeaders(response, dittoHeaders);
         final UnaryOperator<HttpResponse> modifyResponseOperator = this::modifyResponse;
         final var addHeaders = addExternalDittoHeaders.andThen(modifyResponseOperator);
-        final var addBodyIfEntityExists = createBodyAddingResponseMapper(dittoHeaders, withOptionalEntity);
+        final var addBodyIfEntityExists =
+                createBodyAddingResponseMapper(dittoHeaders, withOptionalEntity);
+
         return addBodyIfEntityExists.apply(addHeaders.apply(createHttpResponse(httpStatus)));
     }
 
@@ -606,6 +614,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             }
             final var schemaVersion = dittoHeaders.getSchemaVersion()
                     .orElse(dittoHeaders.getImplementedSchemaVersion());
+
             return withOptionalEntity.getEntity(schemaVersion)
                     .map(entity -> addEntityAccordingToContentType(response, entity.toString(),
                             getContentType(dittoHeaders)))
@@ -632,8 +641,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     protected Uri getUriForLocationHeader(final HttpRequest request,
             final EntityId entityId,
             final JsonPointer resourcePath) {
-
         final var supplier = new UriForLocationHeaderSupplier(request, entityId, resourcePath);
+
         return supplier.get();
     }
 
@@ -660,6 +669,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     acks.getDittoHeaders()
             );
         }
+
         return result;
     }
 
@@ -671,6 +681,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         } else {
             result = true;
         }
+
         return result;
     }
 
@@ -685,11 +696,13 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                         .build());
             }
         }
+
         return acknowledgement;
     }
 
     private static boolean shallAcceptImmediately(final WithDittoHeaders withDittoHeaders) {
         final DittoHeaders dittoHeaders = withDittoHeaders.getDittoHeaders();
+
         return !dittoHeaders.isResponseRequired() && dittoHeaders.getAcknowledgementRequests().isEmpty();
     }
 

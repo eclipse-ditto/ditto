@@ -23,16 +23,16 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonArrayBuilder;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Create a List with all namespaces and their numbers of things.
@@ -40,8 +40,6 @@ import org.eclipse.ditto.base.model.json.Jsonifiable;
 @Immutable
 public final class SearchNamespaceReportResult implements Jsonifiable.WithPredicate<JsonObject, JsonField> {
 
-    private static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-            JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonArray> NAMESPACES =
             JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
@@ -107,13 +105,15 @@ public final class SearchNamespaceReportResult implements Jsonifiable.WithPredic
 
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
-        final JsonArrayBuilder jsonArrayBuilder = JsonFactory.newArrayBuilder();
-        searchNamespaceResultEntries.forEach((id, entry) -> jsonArrayBuilder.add(entry.toJson()));
-        final JsonArray jsonArray = jsonArrayBuilder.build();
+        final var eventualPredicate = schemaVersion.and(predicate);
+
+        final var resultEntries = searchNamespaceResultEntries.values();
+        final var jsonArray = resultEntries.stream()
+                .map(searchNamespaceResultEntry -> searchNamespaceResultEntry.toJson(eventualPredicate))
+                .collect(JsonCollectors.valuesToArray());
 
         return JsonFactory.newObjectBuilder()
-                .set(SCHEMA_VERSION, schemaVersion.toInt(), predicate)
-                .set(NAMESPACES, jsonArray, predicate)
+                .set(NAMESPACES, jsonArray, eventualPredicate)
                 .build();
     }
 

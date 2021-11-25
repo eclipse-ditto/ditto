@@ -58,28 +58,32 @@ public interface TargetMetrics extends Jsonifiable.WithFieldSelectorAndPredicate
 
         /**
          * JSON field containing the {@code JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.2.0 this field definition is not used anymore.
          */
+        @Deprecated
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
+                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(),
+                        FieldType.SPECIAL,
+                        FieldType.HIDDEN,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code AddressMetrics} value.
          */
         public static final JsonFieldDefinition<JsonObject> ADDRESS_METRICS =
-                JsonFactory.newJsonObjectFieldDefinition("addressMetrics", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("addressMetrics", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the amount of published messages.
          */
         public static final JsonFieldDefinition<Long> PUBLISHED_MESSAGES =
-                JsonFactory.newLongFieldDefinition("publishedMessages", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newLongFieldDefinition("publishedMessages", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
 
     }
+
 }

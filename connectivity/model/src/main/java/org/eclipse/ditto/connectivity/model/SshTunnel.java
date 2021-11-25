@@ -63,10 +63,12 @@ public interface SshTunnel extends Jsonifiable.WithFieldSelectorAndPredicate<Jso
      *
      * @return a JSON object representation of this SshTunnel including only non-hidden marked fields
      */
+    @Override
     default JsonObject toJson() {
         return toJson(FieldType.notHidden());
     }
 
+    @Override
     default JsonObject toJson(final JsonSchemaVersion schemaVersion, final JsonFieldSelector fieldSelector) {
         return toJson(schemaVersion, FieldType.notHidden()).get(fieldSelector);
     }
@@ -79,9 +81,14 @@ public interface SshTunnel extends Jsonifiable.WithFieldSelectorAndPredicate<Jso
 
         /**
          * JSON field containing the {@code JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.2.0 this field definition is not used anymore.
          */
+        @Deprecated
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
+                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(),
+                        FieldType.SPECIAL,
+                        FieldType.HIDDEN,
                         JsonSchemaVersion.V_2);
 
         /**
@@ -114,8 +121,10 @@ public interface SshTunnel extends Jsonifiable.WithFieldSelectorAndPredicate<Jso
         public static final JsonFieldDefinition<String> URI =
                 JsonFactory.newStringFieldDefinition("uri", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-        JsonFields() {
+        private JsonFields() {
             throw new AssertionError();
         }
+
     }
+
 }

@@ -93,9 +93,14 @@ public final class MatchingValidationResultTest {
 
     @Test
     public void testHashCodeAndEqualsForFailure() {
-        EqualsVerifier.forClass(MatchingValidationResult.Failure.class)
+        final var failureClass = MatchingValidationResult.Failure.class;
+        final var red = MatchingValidationResult.failure(command, commandResponse, DETAIL_MESSAGE);
+        final var black = MatchingValidationResult.failure(command, commandResponse, "Ut ea dolor placeat.");
+
+        EqualsVerifier.forClass(failureClass)
                 .usingGetClass()
                 .withIgnoredFields("connectionId")
+                .withPrefabValues(failureClass, red, black)
                 .verify();
     }
 
