@@ -168,6 +168,7 @@ public final class UpdateTwinWithLiveResponseMessageMapperTest {
                 .build());
         assertThat(mergeThing.getDittoHeaders().getCorrelationId())
                 .contains(correlationId + UpdateTwinWithLiveResponseMessageMapper.CORRELATION_ID_SUFFIX);
+        assertThat(mergeThing.getDittoHeaders().getChannel()).isEmpty();
     }
 
     @Test

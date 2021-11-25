@@ -86,11 +86,10 @@ public class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapp
 
     static final String CORRELATION_ID_SUFFIX = "-merge-into-twin";
 
-    private DittoHeaders dittoHeadersForMerge;
+    private DittoHeaders dittoHeadersForMerge = DEFAULT_DITTO_HEADERS_FOR_MERGE;
 
     @Override
     public void doConfigure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
-        dittoHeadersForMerge = DEFAULT_DITTO_HEADERS_FOR_MERGE;
         configuration.findProperty(DITTO_HEADERS_FOR_MERGE, JsonValue::isObject, JsonValue::asObject)
                 .ifPresent(
                         configuredHeaders -> dittoHeadersForMerge = DittoHeaders.newBuilder(configuredHeaders).build());
