@@ -55,8 +55,12 @@ import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.ArgumentMatcher;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 
 /**
  * Tests {@link ConnectivityCounterRegistry}.
@@ -222,25 +226,27 @@ public class ConnectivityCounterRegistryTest {
     }
 
     @Test
-    public void testThrottlingMetricsAlertUpdatedOnConnectivityConfigModified() {
+    public void verifyConnectionLogIsAddedWhenSourceIsThrottled() {
+        final Connection connection = TestConstants.createConnection();
+        final ConnectionLogger logger = mock(ConnectionLogger.class);
 
         final ConnectivityCounterRegistry counterRegistry =
-                ConnectivityCounterRegistry.newInstance(mockConnectivityConfig(100, Duration.ofSeconds(1)));
-
-        final Connection connection = TestConstants.createConnection();
+                ConnectivityCounterRegistry.newInstance(mockConnectivityConfig(1, Duration.ofSeconds(10)));
+        counterRegistry.registerAlertFactory(THROTTLED, INBOUND,
+                ThrottledLoggerMetricsAlert.getFactory(address -> logger));
         counterRegistry.initForConnection(connection);
+
         final ConnectionMetricsCounter consumedInbound =
                 counterRegistry.getCounter(connection, CONSUMED, INBOUND, TestConstants.Sources.AMQP_SOURCE_ADDRESS);
 
-        recordInboundMessageAndCheckThrottled(counterRegistry, connection, consumedInbound, false);
+        recordInboundMessageAndCheckThrottled(counterRegistry, connection, consumedInbound, true);
 
-        // modify config with lower limit
-        final ConnectivityCounterRegistry newCounterRegistry =
-                ConnectivityCounterRegistry.newInstance(mockConnectivityConfig(1, Duration.ofSeconds(10)));
-        newCounterRegistry.initForConnection(connection);
-
-        // and expect throttled metrics is updated accordingly
-        recordInboundMessageAndCheckThrottled(newCounterRegistry, connection, consumedInbound, true);
+        Mockito.verify(logger)
+                .failure(ArgumentMatchers.argThat((ArgumentMatcher<String>) argument -> {
+                    assertThat(argument).contains("Throttling event occurred", "throttled", "inbound",
+                            TestConstants.Sources.AMQP_SOURCE_ADDRESS);
+                    return true;
+                }));
     }
 
     private void recordInboundMessageAndCheckThrottled(final ConnectivityCounterRegistry counterRegistry,
@@ -275,6 +281,7 @@ public class ConnectivityCounterRegistryTest {
         when(consumerConfig.getThrottlingConfig()).thenReturn(throttlingConfig);
         when(throttlingConfig.getLimit()).thenReturn(limit);
         when(throttlingConfig.getInterval()).thenReturn(interval);
+
         return connectivityConfig;
     }
 
