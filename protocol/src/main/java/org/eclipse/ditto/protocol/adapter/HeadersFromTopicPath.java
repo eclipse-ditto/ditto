@@ -25,9 +25,11 @@ import org.eclipse.ditto.protocol.TopicPath;
 
 /**
  * A function to extract information from the topic path and enrich the ditto headers with them.
- *
+ * <p>
  * A set of available extractors, e.g. for live-channel and entityId, which can be used for
  * {@link #injectHeaders(DittoHeaders, TopicPath, Extractor[])} is provided by inner class {@link Extractor}.
+ *
+ * @since 2.3.0
  */
 public final class HeadersFromTopicPath {
 
@@ -35,7 +37,7 @@ public final class HeadersFromTopicPath {
     }
 
     /**
-     *  Injects new headers
+     * Injects new headers
      *
      * @param dittoHeaders the headers where the additional headers shall be injected into.
      * @param topicPath where the headers will be extracted from.
@@ -70,7 +72,7 @@ public final class HeadersFromTopicPath {
          * @param topicPath the topic path to extract information from.
          * @return header KV containing the extra information from topic path.
          */
-        public static Optional<Map.Entry<String, String>> liveChannelExtractor(final TopicPath topicPath) {
+        static Optional<Map.Entry<String, String>> liveChannelExtractor(final TopicPath topicPath) {
             if (topicPath.isChannel(TopicPath.Channel.LIVE)) {
                 final String key = DittoHeaderDefinition.CHANNEL.getKey();
                 final String value = TopicPath.Channel.LIVE.getName();
@@ -84,7 +86,7 @@ public final class HeadersFromTopicPath {
         /**
          * Extracts the entityId from the Topic-Path if none of the pieces is a placeholder ('_').
          *
-         * @param topicPath  the topic path to extract information from.
+         * @param topicPath the topic path to extract information from.
          * @return header KV containing the extra information from topic path.
          */
         static Optional<Map.Entry<String, String>> entityIdExtractor(final TopicPath topicPath) {
