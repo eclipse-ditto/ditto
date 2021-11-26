@@ -143,7 +143,7 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
         /**
          * JSON field containing the {@code JsonSchemaVersion}.
          *
-         * @deprecated as of 2.2.0 this field definition is not used anymore.
+         * @deprecated as of 2.3.0 this field definition is not used anymore.
          */
         @Deprecated
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
