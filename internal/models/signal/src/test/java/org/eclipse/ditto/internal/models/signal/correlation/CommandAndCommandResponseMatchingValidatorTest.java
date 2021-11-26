@@ -14,11 +14,13 @@ package org.eclipse.ditto.internal.models.signal.correlation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.exceptions.TooManyRequestsException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
@@ -31,6 +33,7 @@ import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
+import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
@@ -51,6 +54,9 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
 
     @Rule
     public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
+
+    @Rule
+    public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @Test
     public void getInstanceReturnsNotNull() {
@@ -100,10 +106,12 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
 
         final var validationResult = underTest.apply(command, commandResponse);
 
-        assertThat(validationResult.getDetailMessageOrThrow())
-                .isEqualTo("Correlation ID of live response <%s> differs from correlation ID of command <%s>.",
-                        correlationIdCommandResponse,
-                        correlationIdCommand);
+        softly.assertThat(validationResult.asFailureOrThrow())
+                .satisfies(failure -> softly.assertThat(failure.getDetailMessage())
+                        .as("detail message")
+                        .isEqualTo("Correlation ID of live response <%s> differs from correlation ID of command <%s>.",
+                                correlationIdCommandResponse,
+                                correlationIdCommand));
     }
 
     @Test
@@ -116,10 +124,12 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
 
         final var validationResult = underTest.apply(command, commandResponse);
 
-        assertThat(validationResult.getDetailMessageOrThrow())
-                .isEqualTo("Correlation ID of live response <%s> differs from correlation ID of command <%s>.",
-                        null,
-                        correlationIdCommand);
+        softly.assertThat(validationResult.asFailureOrThrow())
+                .satisfies(failure -> softly.assertThat(failure.getDetailMessage())
+                        .as("detail message")
+                        .isEqualTo("Correlation ID of live response <%s> differs from correlation ID of command <%s>.",
+                                null,
+                                correlationIdCommand));
     }
 
     @Test
@@ -132,10 +142,12 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
 
         final var validationResult = underTest.apply(command, commandResponse);
 
-        assertThat(validationResult.getDetailMessageOrThrow())
-                .isEqualTo("Correlation ID of live response <%s> differs from correlation ID of command <%s>.",
-                        correlationIdCommandResponse,
-                        null);
+        softly.assertThat(validationResult.asFailureOrThrow())
+                .satisfies(failure -> softly.assertThat(failure.getDetailMessage())
+                        .as("detail message")
+                        .isEqualTo("Correlation ID of live response <%s> differs from correlation ID of command <%s>.",
+                                correlationIdCommandResponse,
+                                null));
     }
 
     @Test
@@ -165,10 +177,12 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
 
         final var validationResult = underTest.apply(command, commandResponse);
 
-        assertThat(validationResult.getDetailMessageOrThrow())
-                .isEqualTo("Type of live response <%s> is not related to type of command <%s>.",
-                        commandResponse.getType(),
-                        command.getType());
+        softly.assertThat(validationResult.asFailureOrThrow())
+                .satisfies(failure -> softly.assertThat(failure.getDetailMessage())
+                        .as("detail message")
+                        .isEqualTo("Type of live response <%s> is not related to type of command <%s>.",
+                                commandResponse.getType(),
+                                command.getType()));
     }
 
     @Test
@@ -196,10 +210,12 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
 
         final var validationResult = underTest.apply(command, mismatchingCommandResponse);
 
-        assertThat(validationResult.getDetailMessageOrThrow())
-                .isEqualTo("Type of live response <%s> is not related to type of command <%s>.",
-                        mismatchingCommandResponse.getType(),
-                        command.getType());
+        softly.assertThat(validationResult.asFailureOrThrow())
+                .satisfies(failure -> softly.assertThat(failure.getDetailMessage())
+                        .as("detail message")
+                        .isEqualTo("Type of live response <%s> is not related to type of command <%s>.",
+                                mismatchingCommandResponse.getType(),
+                                command.getType()));
     }
 
     @Test
@@ -228,10 +244,12 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
 
         final var validationResult = underTest.apply(sendThingMessage, sendClaimMessageResponse);
 
-        assertThat(validationResult.getDetailMessageOrThrow())
-                .isEqualTo("Type of live response <%s> is not related to type of command <%s>.",
-                        sendClaimMessageResponse.getType(),
-                        sendThingMessage.getType());
+        softly.assertThat(validationResult.asFailureOrThrow())
+                .satisfies(failure -> softly.assertThat(failure.getDetailMessage())
+                        .as("detail message")
+                        .isEqualTo("Type of live response <%s> is not related to type of command <%s>.",
+                                sendClaimMessageResponse.getType(),
+                                sendThingMessage.getType()));
     }
 
     @Test
@@ -256,10 +274,12 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
 
         final var validationResult = underTest.apply(command, commandResponse);
 
-        assertThat(validationResult.getDetailMessageOrThrow())
-                .isEqualTo("Entity ID of live response <%s> differs from entity ID of command <%s>.",
-                        commandResponse.getEntityId(),
-                        command.getEntityId());
+        softly.assertThat(validationResult.asFailureOrThrow())
+                .satisfies(failure -> softly.assertThat(failure.getDetailMessage())
+                        .as("detail message")
+                        .isEqualTo("Entity ID of live response <%s> differs from entity ID of command <%s>.",
+                                commandResponse.getEntityId(),
+                                command.getEntityId()));
     }
 
     @Test
@@ -276,10 +296,59 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
 
         final var validationResult = underTest.apply(command, commandResponseWithoutEntityId);
 
-        assertThat(validationResult.getDetailMessageOrThrow())
-                .isEqualTo("Entity ID of live response <%s> differs from entity ID of command <%s>.",
-                        null,
-                        command.getEntityId());
+        softly.assertThat(validationResult.asFailureOrThrow())
+                .satisfies(failure -> softly.assertThat(failure.getDetailMessage())
+                        .as("detail message")
+                        .isEqualTo("Entity ID of live response <%s> differs from entity ID of command <%s>.",
+                                null,
+                                command.getEntityId()));
+    }
+
+    @Test
+    public void applyThingCommandResponseWithDifferentResourcePath() {
+        final var command = ModifyAttribute.of(THING_ID,
+                JsonPointer.of("manufacturer"),
+                JsonValue.of("ACME"),
+                getDittoHeadersWithCorrelationId());
+        final var commandResponse =
+                ModifyAttributeResponse.modified(THING_ID, JsonPointer.of("serialNo"), command.getDittoHeaders());
+        final var underTest = CommandAndCommandResponseMatchingValidator.getInstance();
+
+        final var validationResult = underTest.apply(command, commandResponse);
+
+        softly.assertThat(validationResult.asFailureOrThrow())
+                .satisfies(failure -> softly.assertThat(failure.getDetailMessage())
+                        .as("detail message")
+                        .isEqualTo("Resource path of live response <%s> differs from resource path of command <%s>.",
+                                commandResponse.getResourcePath(),
+                                command.getResourcePath()));
+    }
+
+    @Test
+    public void applyTooManyRequestsExceptionAsThingErrorResponse() {
+
+        // GIVEN
+        final var command = ModifyAttribute.of(THING_ID,
+                JsonPointer.of("manufacturer"),
+                JsonValue.of("ACME"),
+                getDittoHeadersWithCorrelationId());
+
+        final var tooManyRequestsException = TooManyRequestsException.fromMessage("I'm just a random error mate!",
+                command.getDittoHeaders());
+        final var thingErrorResponse = ThingErrorResponse.of(THING_ID, tooManyRequestsException);
+
+        final var underTest = CommandAndCommandResponseMatchingValidator.getInstance();
+
+        // WHEN
+        final var validationResult = underTest.apply(command, thingErrorResponse);
+
+        // THEN
+        softly.assertThat(validationResult.isSuccess())
+                .withFailMessage(() -> {
+                    final var failure = validationResult.asFailureOrThrow();
+                    return failure.getDetailMessage();
+                })
+                .isTrue();
     }
 
     private DittoHeaders getDittoHeadersWithCorrelationId() {

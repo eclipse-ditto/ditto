@@ -125,7 +125,6 @@ final class ImmutableEffectedPermissions implements EffectedPermissions {
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         return JsonFactory.newObjectBuilder()
-                .set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate)
                 .set(JsonFields.GRANT, grantedPermissions.toJson(), predicate)
                 .set(JsonFields.REVOKE, revokedPermissions.toJson(), predicate)
                 .build();

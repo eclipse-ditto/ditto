@@ -94,9 +94,7 @@ public final class ImmutableSearchResultTest {
 
         final String jsonStr = searchResult.toJsonString(FieldType.regularOrSpecial());
 
-        assertThat(jsonStr).isEqualTo(
-                "{\"__schemaVersion\":" + 2 + ",\"items\":" + itemsArray + ",\"nextPageOffset\":" + nextPageOffset +
-                        "}");
+        assertThat(jsonStr).isEqualTo("{\"items\":" + itemsArray + ",\"nextPageOffset\":" + nextPageOffset + "}");
     }
 
     @Test
@@ -117,7 +115,7 @@ public final class ImmutableSearchResultTest {
 
         final String jsonStr = searchResult.toJsonString(FieldType.regularOrSpecial());
 
-        assertThat(jsonStr).isEqualTo("{\"__schemaVersion\":" + 2 + ",\"items\":[],\"nextPageOffset\":-1}");
+        assertThat(jsonStr).isEqualTo("{\"items\":[],\"nextPageOffset\":-1}");
     }
 
     @Test

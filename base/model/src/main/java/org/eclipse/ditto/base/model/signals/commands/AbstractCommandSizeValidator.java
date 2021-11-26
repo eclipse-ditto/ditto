@@ -75,7 +75,8 @@ public abstract class AbstractCommandSizeValidator<T extends DittoRuntimeExcepti
      * @throws T if size limit is set and exceeded
      * @since 1.1.0
      */
-    public void ensureValidSize(final LongSupplier upperBoundSupplier, final LongSupplier sizeSupplier, final Supplier<DittoHeaders> headersSupplier) {
+    public void ensureValidSize(final LongSupplier upperBoundSupplier, final LongSupplier sizeSupplier,
+            final Supplier<DittoHeaders> headersSupplier) {
         if (null != maxSize && upperBoundSupplier.getAsLong() >= maxSize) {
             ensureValidSize(sizeSupplier, headersSupplier);
         }
@@ -90,4 +91,5 @@ public abstract class AbstractCommandSizeValidator<T extends DittoRuntimeExcepti
      * @return the exception of type T
      */
     protected abstract T newInvalidSizeException(long maxSize, long actualSize, DittoHeaders headers);
+
 }

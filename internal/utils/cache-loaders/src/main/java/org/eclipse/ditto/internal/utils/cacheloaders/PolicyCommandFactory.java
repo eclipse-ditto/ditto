@@ -14,8 +14,6 @@ package org.eclipse.ditto.internal.utils.cacheloaders;
 
 import java.util.UUID;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.api.commands.sudo.SudoRetrievePolicy;
@@ -35,25 +33,21 @@ final class PolicyCommandFactory {
      * Creates a sudo command for retrieving a policy.
      *
      * @param policyId the policyId.
-     * @param context the context to apply when doing the cache lookup.
      * @return the created command.
      */
-    static SudoRetrievePolicy sudoRetrievePolicy(final EntityId policyId, @Nullable final EnforcementContext context) {
-        return sudoRetrievePolicy(PolicyId.of(policyId), context);
+    static SudoRetrievePolicy sudoRetrievePolicy(final EntityId policyId) {
+        return sudoRetrievePolicy(PolicyId.of(policyId));
     }
 
     /**
      * Creates a sudo command for retrieving a policy.
      *
      * @param policyId the policyId.
-     * @param context the context to apply when doing the cache lookup.
      * @return the created command.
      */
-    static SudoRetrievePolicy sudoRetrievePolicy(final PolicyId policyId, @Nullable final EnforcementContext context) {
+    static SudoRetrievePolicy sudoRetrievePolicy(final PolicyId policyId) {
         return SudoRetrievePolicy.of(policyId,
-                DittoHeaders.newBuilder()
-                        .correlationId("sudoRetrievePolicy-" + UUID.randomUUID())
-                        .build());
+                DittoHeaders.newBuilder().correlationId("sudoRetrievePolicy-" + UUID.randomUUID()).build());
     }
 
 }

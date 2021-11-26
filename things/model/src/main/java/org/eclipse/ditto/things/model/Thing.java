@@ -18,15 +18,15 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.Entity;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.entity.Entity;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
@@ -652,54 +652,64 @@ public interface Thing extends Entity<ThingRevision> {
 
         /**
          * JSON field containing the {@link JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.3.0 this field definition is not used anymore.
          */
-        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
+        @Deprecated
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION = JsonFactory.newIntFieldDefinition(
+                JsonSchemaVersion.getJsonKey(),
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2
+        );
 
         /**
          * JSON field containing the Thing's lifecycle.
          */
-        public static final JsonFieldDefinition<String> LIFECYCLE =
-                JsonFactory.newStringFieldDefinition("__lifecycle", FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> LIFECYCLE = JsonFactory.newStringFieldDefinition("__lifecycle",
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's namespace.
          */
-        public static final JsonFieldDefinition<String> NAMESPACE =
-                JsonFactory.newStringFieldDefinition("_namespace", FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> NAMESPACE = JsonFactory.newStringFieldDefinition("_namespace",
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's revision.
          */
-        public static final JsonFieldDefinition<Long> REVISION =
-                JsonFactory.newLongFieldDefinition("_revision", FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<Long> REVISION = JsonFactory.newLongFieldDefinition("_revision",
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's modified timestamp in ISO-8601 format.
          */
-        public static final JsonFieldDefinition<String> MODIFIED =
-                JsonFactory.newStringFieldDefinition("_modified", FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> MODIFIED = JsonFactory.newStringFieldDefinition("_modified",
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's created timestamp in ISO-8601 format.
          *
          * @since 1.2.0
          */
-        public static final JsonFieldDefinition<String> CREATED =
-                JsonFactory.newStringFieldDefinition("_created", FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<String> CREATED = JsonFactory.newStringFieldDefinition("_created",
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's ID.
          */
         public static final JsonFieldDefinition<String> ID =
-                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's Policy ID.
@@ -711,31 +721,31 @@ public interface Thing extends Entity<ThingRevision> {
          * JSON field containing the Thing's definition.
          */
         public static final JsonFieldDefinition<JsonValue> DEFINITION =
-                JsonFactory.newJsonValueFieldDefinition("definition", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonValueFieldDefinition("definition", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's attributes.
          */
         public static final JsonFieldDefinition<JsonObject> ATTRIBUTES =
-                JsonFactory.newJsonObjectFieldDefinition("attributes", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("attributes", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's features.
          */
         public static final JsonFieldDefinition<JsonObject> FEATURES =
-                JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's metadata.
          *
          * @since 1.2.0
          */
-        public static final JsonFieldDefinition<JsonObject> METADATA =
-                JsonFactory.newJsonObjectFieldDefinition("_metadata", FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonObject> METADATA = JsonFactory.newJsonObjectFieldDefinition(
+                "_metadata",
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2
+        );
 
         private JsonFields() {
             throw new AssertionError();

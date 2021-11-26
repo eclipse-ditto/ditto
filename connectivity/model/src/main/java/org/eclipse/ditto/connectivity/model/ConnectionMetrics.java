@@ -14,14 +14,14 @@ package org.eclipse.ditto.connectivity.model;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Connection Metrics represent the aggregated metrics for all sources/targets.
@@ -40,9 +40,9 @@ public interface ConnectionMetrics extends Jsonifiable.WithFieldSelectorAndPredi
     AddressMetric getOutboundMetrics();
 
     /**
-     * Returns all non hidden marked fields of this {@code Connection}.
+     * Returns all non-hidden marked fields of this {@code Connection}.
      *
-     * @return a JSON object representation of this Connection including only non hidden marked fields.
+     * @return a JSON object representation of this Connection including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {

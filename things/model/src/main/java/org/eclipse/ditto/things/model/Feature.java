@@ -16,6 +16,9 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -24,9 +27,6 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * <p>
@@ -409,9 +409,9 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
     Feature removeDesiredProperty(JsonPointer pointer);
 
     /**
-     * Returns all non hidden marked fields of this Feature.
+     * Returns all non-hidden marked fields of this Feature.
      *
-     * @return a JSON object representation of this Feature including only non hidden marked fields.
+     * @return a JSON object representation of this Feature including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {
@@ -431,24 +431,28 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
 
         /**
          * JSON field definition for the Feature's {@link JsonSchemaVersion} as {@code int}.
+         *
+         * @deprecated as of 2.3.0 this field definition is not used anymore.
          */
-        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL,
-                        FieldType.HIDDEN, JsonSchemaVersion.V_2);
+        @Deprecated
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION = JsonFactory.newIntFieldDefinition(
+                JsonSchemaVersion.getJsonKey(),
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2
+        );
 
         /**
          * JSON field definition for the Feature's Definition as {@link org.eclipse.ditto.json.JsonArray}.
          */
         public static final JsonFieldDefinition<JsonArray> DEFINITION =
-                JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field definition for the Feature's properties as {@link org.eclipse.ditto.json.JsonObject}.
          */
         public static final JsonFieldDefinition<JsonObject> PROPERTIES =
-                JsonFactory.newJsonObjectFieldDefinition("properties", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("properties", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field definition for the Feature's desired properties as {@link org.eclipse.ditto.json.JsonObject}.
@@ -456,8 +460,7 @@ public interface Feature extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
          * @since 1.5.0
          */
         public static final JsonFieldDefinition<JsonObject> DESIRED_PROPERTIES =
-                JsonFactory.newJsonObjectFieldDefinition("desiredProperties", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("desiredProperties", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

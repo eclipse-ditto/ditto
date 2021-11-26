@@ -35,6 +35,7 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuildable;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
+import org.eclipse.ditto.protocol.adapter.HeadersFromTopicPath.Extractor;
 import org.eclipse.ditto.things.model.ThingConstants;
 
 /**
@@ -71,9 +72,13 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
 
     @Override
     public T fromAdaptable(final Adaptable adaptable) {
-        final DittoHeaders dittoHeaders = DittoHeaders.of(
-                headerTranslator.fromExternalHeaders(adaptable.getDittoHeaders()));
         final TopicPath topicPath = adaptable.getTopicPath();
+
+        final DittoHeaders dittoHeadersFromExternal =
+                DittoHeaders.of(headerTranslator.fromExternalHeaders(adaptable.getDittoHeaders()));
+
+        final DittoHeaders dittoHeaders = HeadersFromTopicPath.injectHeaders(dittoHeadersFromExternal, topicPath,
+                Extractor::liveChannelExtractor);
 
         final DittoRuntimeException dittoRuntimeException = adaptable.getPayload()
                 .getValue()

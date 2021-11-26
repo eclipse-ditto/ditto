@@ -26,150 +26,129 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.DefaultAskWithRetryConfig;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyPolicyId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
-import org.mockito.InOrder;
 import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
-import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.FiniteDuration;
 
 public final class EnforcementSchedulerTest {
 
-    private static ActorSystem actorSystem;
+    @ClassRule
+    public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE =
+            ActorSystemResource.newInstance(ConfigFactory.load("test"));
 
     private ActorRef underTest;
 
-    @BeforeClass
-    public static void beforeClass() {
-        actorSystem = ActorSystem.create("test", ConfigFactory.load("test"));
-    }
-
-    @AfterClass
-    public static void afterClass() {
-        if (actorSystem != null) {
-            actorSystem.terminate();
-            actorSystem = null;
-        }
-    }
-
     @Before
     public void setup() {
-        underTest = actorSystem.actorOf(EnforcementScheduler.props());
+        underTest = ACTOR_SYSTEM_RESOURCE.newActor(EnforcementScheduler.props());
     }
 
     @Test
     public void testOrdering() {
-        new TestKit(actorSystem) {{
-            final TestProbe pubSubProbe = TestProbe.apply(actorSystem);
-            final TestProbe conciergeForwarderProbe = TestProbe.apply(actorSystem);
-            final TestProbe receiverProbe = TestProbe.apply(actorSystem);
-            final ThreadSafeDittoLoggingAdapter mockLogger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
-            doAnswer(invocation -> mockLogger).when(mockLogger).withCorrelationId(any(DittoHeaders.class));
-            doAnswer(invocation -> mockLogger).when(mockLogger).withCorrelationId(any(WithDittoHeaders.class));
-            doAnswer(invocation -> mockLogger).when(mockLogger).withCorrelationId(any(CharSequence.class));
-            final Contextual<WithDittoHeaders> baseContextual = Contextual.forActor(getRef(), actorSystem,
-                    pubSubProbe.ref(), conciergeForwarderProbe.ref(),
-                    DefaultAskWithRetryConfig.of(ConfigFactory.empty(), "test"),
-                    mockLogger,
-                    null
-            );
-            final ThingId thingId = ThingId.of("busy", "thing");
-            final PolicyId policyId = PolicyId.of("some", "policy");
-            final PolicyId policyId2 = PolicyId.of("other", "policy");
+        final var testKit = ACTOR_SYSTEM_RESOURCE.newTestKit();
+        final var pubSubProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
+        final var conciergeForwarderProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
+        final var receiver = ACTOR_SYSTEM_RESOURCE.newTestKit();
+        final var mockLogger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
+        doAnswer(invocation -> mockLogger).when(mockLogger).withCorrelationId(any(DittoHeaders.class));
+        doAnswer(invocation -> mockLogger).when(mockLogger).withCorrelationId(any(WithDittoHeaders.class));
+        doAnswer(invocation -> mockLogger).when(mockLogger).withCorrelationId(any(CharSequence.class));
+        final Contextual<WithDittoHeaders> baseContextual = Contextual.forActor(testKit.getRef(),
+                ACTOR_SYSTEM_RESOURCE.getActorSystem(),
+                pubSubProbe.ref(),
+                conciergeForwarderProbe.ref(),
+                DefaultAskWithRetryConfig.of(ConfigFactory.empty(), "test"),
+                mockLogger);
+        final var thingId = ThingId.of("busy", "thing");
+        final var policyId = PolicyId.of("some", "policy");
+        final var policyId2 = PolicyId.of("other", "policy");
 
-            // First command
-            final RetrieveThing retrieveThing1 = RetrieveThing.of(thingId, DittoHeaders.empty());
+        // First command
+        final var retrieveThing1 = RetrieveThing.of(thingId, DittoHeaders.empty());
 
-            // Second command
-            final ModifyPolicyId modifyPolicyId1 =
-                    ModifyPolicyId.of(thingId, policyId, DittoHeaders.empty());
-            // Third command
-            final RetrieveThing retrieveThing2 = RetrieveThing.of(thingId, DittoHeaders.empty());
+        // Second command
+        final var modifyPolicyId1 = ModifyPolicyId.of(thingId, policyId, DittoHeaders.empty());
+        // Third command
+        final var retrieveThing2 = RetrieveThing.of(thingId, DittoHeaders.empty());
 
-            // Fourth command
-            final ModifyPolicyId modifyPolicyId2 =
-                    ModifyPolicyId.of(thingId, policyId2, DittoHeaders.empty());
+        // Fourth command
+        final var modifyPolicyId2 = ModifyPolicyId.of(thingId, policyId2, DittoHeaders.empty());
 
-            final Supplier<CompletionStage<Contextual<RetrieveThing>>> delayedRetrieveThing =
-                    () -> CompletableFuture.supplyAsync(() -> {
-                        try {
-                            TimeUnit.SECONDS.sleep(3);
+        final Supplier<CompletionStage<Contextual<RetrieveThing>>> delayedRetrieveThing =
+                () -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        TimeUnit.SECONDS.sleep(3);
 
-                            return baseContextual.setMessage(retrieveThing1).withReceiver(receiverProbe.ref());
-                        } catch (final InterruptedException e) {
-                            throw new IllegalStateException("Sleep should not be interrupted.");
-                        }
-                    });
+                        return baseContextual.setMessage(retrieveThing1).withReceiver(receiver.getRef());
+                    } catch (final InterruptedException e) {
+                        throw new IllegalStateException("Sleep should not be interrupted.");
+                    }
+                });
 
-            final Supplier<CompletionStage<Contextual<ModifyPolicyId>>> delayedModifyPolicyId =
-                    () -> CompletableFuture.supplyAsync(() -> {
-                        try {
-                            TimeUnit.SECONDS.sleep(3);
+        final Supplier<CompletionStage<Contextual<ModifyPolicyId>>> delayedModifyPolicyId =
+                () -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        TimeUnit.SECONDS.sleep(3);
 
-                            return baseContextual.setMessage(modifyPolicyId1).withReceiver(receiverProbe.ref());
-                        } catch (final InterruptedException e) {
-                            throw new IllegalStateException("Sleep should not be interrupted.");
-                        }
-                    });
+                        return baseContextual.setMessage(modifyPolicyId1).withReceiver(receiver.getRef());
+                    } catch (final InterruptedException e) {
+                        throw new IllegalStateException("Sleep should not be interrupted.");
+                    }
+                });
 
-            final Supplier<CompletionStage<Contextual<RetrieveThing>>> immediateRetrieveThing =
-                    () -> CompletableFuture.completedFuture(
-                            baseContextual.setMessage(retrieveThing2).withReceiver(receiverProbe.ref())
-                    );
+        final Supplier<CompletionStage<Contextual<RetrieveThing>>> immediateRetrieveThing =
+                () -> CompletableFuture.completedFuture(baseContextual.setMessage(retrieveThing2)
+                        .withReceiver(receiver.getRef()));
 
-            final Supplier<CompletionStage<Contextual<ModifyPolicyId>>> immediateModifyPolicyId =
-                    () -> CompletableFuture.completedFuture(
-                            baseContextual.setMessage(modifyPolicyId2).withReceiver(receiverProbe.ref())
-                    );
+        final Supplier<CompletionStage<Contextual<ModifyPolicyId>>> immediateModifyPolicyId =
+                () -> CompletableFuture.completedFuture(baseContextual.setMessage(modifyPolicyId2)
+                        .withReceiver(receiver.getRef()));
 
-            final EnforcementTask retrieveThing1Task = EnforcementTask.of(thingId, false, delayedRetrieveThing);
-            final EnforcementTask retrieveThing1TaskSpy = Mockito.spy(retrieveThing1Task);
+        final var retrieveThing1Task = EnforcementTask.of(thingId, false, delayedRetrieveThing);
+        final var retrieveThing1TaskSpy = Mockito.spy(retrieveThing1Task);
 
-            final EnforcementTask modifyPolicyId1Task = EnforcementTask.of(thingId, true, delayedModifyPolicyId);
-            final EnforcementTask modifyPolicyId1TaskSpy = Mockito.spy(modifyPolicyId1Task);
+        final var modifyPolicyId1Task = EnforcementTask.of(thingId, true, delayedModifyPolicyId);
+        final var modifyPolicyId1TaskSpy = Mockito.spy(modifyPolicyId1Task);
 
-            final EnforcementTask retrieveThing2Task = EnforcementTask.of(thingId, false, immediateRetrieveThing);
-            final EnforcementTask retrieveThing2TaskSpy = Mockito.spy(retrieveThing2Task);
+        final var retrieveThing2Task = EnforcementTask.of(thingId, false, immediateRetrieveThing);
+        final var retrieveThing2TaskSpy = Mockito.spy(retrieveThing2Task);
 
-            final EnforcementTask modifyPolicyId2Task = EnforcementTask.of(thingId, true, immediateModifyPolicyId);
-            final EnforcementTask modifyPolicyId2TaskSpy = Mockito.spy(modifyPolicyId2Task);
+        final var modifyPolicyId2Task = EnforcementTask.of(thingId, true, immediateModifyPolicyId);
+        final var modifyPolicyId2TaskSpy = Mockito.spy(modifyPolicyId2Task);
 
-            final InOrder inOrder =
-                    inOrder(retrieveThing1TaskSpy, modifyPolicyId1TaskSpy, retrieveThing2TaskSpy,
-                            modifyPolicyId2TaskSpy);
+        final var inOrder =
+                inOrder(retrieveThing1TaskSpy, modifyPolicyId1TaskSpy, retrieveThing2TaskSpy, modifyPolicyId2TaskSpy);
 
-            underTest.tell(retrieveThing1TaskSpy, getRef());
-            underTest.tell(modifyPolicyId1TaskSpy, getRef());
-            underTest.tell(retrieveThing2TaskSpy, getRef());
-            underTest.tell(modifyPolicyId2TaskSpy, getRef());
+        underTest.tell(retrieveThing1TaskSpy, testKit.getRef());
+        underTest.tell(modifyPolicyId1TaskSpy, testKit.getRef());
+        underTest.tell(retrieveThing2TaskSpy, testKit.getRef());
+        underTest.tell(modifyPolicyId2TaskSpy, testKit.getRef());
 
-            inOrder.verify(retrieveThing1TaskSpy, timeout(2000)).start();
-            // Ensures that modifyPolicyId1 is scheduled without waiting for retrieveThing1 being finished.
-            inOrder.verify(modifyPolicyId1TaskSpy, timeout(2000)).start();
-            // Ensures that retrieveThing2 is blocked by modifyPolicyID1 which changes authorization and has a 3 second duration
-            verify(retrieveThing2TaskSpy, after(2000).never()).start();
-            receiverProbe.expectMsg(FiniteDuration.create(5, TimeUnit.SECONDS), retrieveThing1);
-            receiverProbe.expectMsg(modifyPolicyId1);
+        inOrder.verify(retrieveThing1TaskSpy, timeout(2000)).start();
+        // Ensures that modifyPolicyId1 is scheduled without waiting for retrieveThing1 being finished.
+        inOrder.verify(modifyPolicyId1TaskSpy, timeout(2000)).start();
+        // Ensures that retrieveThing2 is blocked by modifyPolicyID1 which changes authorization and has a 3-second duration
+        verify(retrieveThing2TaskSpy, after(2000).never()).start();
+        receiver.expectMsg(FiniteDuration.create(5, TimeUnit.SECONDS), retrieveThing1);
+        receiver.expectMsg(modifyPolicyId1);
 
-            inOrder.verify(retrieveThing2TaskSpy, timeout(2000)).start();
-            inOrder.verify(modifyPolicyId2TaskSpy, timeout(2000)).start();
-            receiverProbe.expectMsg(retrieveThing2);
-            receiverProbe.expectMsg(modifyPolicyId2);
-        }};
+        inOrder.verify(retrieveThing2TaskSpy, timeout(2000)).start();
+        inOrder.verify(modifyPolicyId2TaskSpy, timeout(2000)).start();
+        receiver.expectMsg(retrieveThing2);
+        receiver.expectMsg(modifyPolicyId2);
     }
 
 }

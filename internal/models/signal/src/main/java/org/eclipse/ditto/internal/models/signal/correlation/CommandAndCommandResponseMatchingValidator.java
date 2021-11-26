@@ -22,14 +22,13 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.id.WithEntityId;
-import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.UnsupportedSignalException;
 import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.models.signal.type.SemanticSignalType;
 import org.eclipse.ditto.internal.models.signal.type.SignalTypeFormatException;
 
@@ -40,18 +39,24 @@ import org.eclipse.ditto.internal.models.signal.type.SignalTypeFormatException;
  * Both signals correlate if
  * <ul>
  *     <li>their correlation IDs match,</li>
- *     <li>their signal types match and</li>
- *     <li>their entity IDs match.</li>
+ *     <li>their signal types match,</li>
+ *     <li>their entity IDs match and</li>
+ *     <li>their resource paths match &ndash; in case of a {@code ThingCommand}.</li>
  * </ul>
  * <p>
  * If any of the above evaluates to {@code false} the yielded {@link MatchingValidationResult} is a failure, else it is
  * a success.
  * </p>
  * <p>
+ * If validation failed a {@link org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException} might be thrown if
+ * the headers of the {@code CommandResponse} contain an invalid value for
+ * {@link org.eclipse.ditto.base.model.headers.DittoHeaderDefinition#CONNECTION_ID}.
+ * </p>
+ * <p>
  * If the type of the command or command response is invalid an {@link UnsupportedSignalException} is thrown.
  * </p>
- *
- * @since 2.2.0
+ * <p>
+ * @since 2.3.0
  */
 @Immutable
 public final class CommandAndCommandResponseMatchingValidator
@@ -71,8 +76,7 @@ public final class CommandAndCommandResponseMatchingValidator
     }
 
     @Override
-    public MatchingValidationResult apply(final Command<?> sentCommand,
-            final CommandResponse<?> commandResponse) {
+    public MatchingValidationResult apply(final Command<?> sentCommand, final CommandResponse<?> commandResponse) {
         var result = validateCorrelationIdsMatch(sentCommand, commandResponse);
         if (result.isSuccess()) {
             result = validateTypesMatch(sentCommand, commandResponse);
@@ -80,35 +84,40 @@ public final class CommandAndCommandResponseMatchingValidator
         if (result.isSuccess()) {
             result = validateEntityIdsMatch(sentCommand, commandResponse);
         }
-        return result;
-    }
-
-    private static MatchingValidationResult validateCorrelationIdsMatch(final WithDittoHeaders command,
-            final WithDittoHeaders commandResponse) {
-
-        final MatchingValidationResult result;
-
-        final var commandCorrelationId = getCorrelationIdOptional(command);
-        final var commandResponseCorrelationId = getCorrelationIdOptional(commandResponse);
-        if (commandCorrelationId.equals(commandResponseCorrelationId)) {
-            result = MatchingValidationResult.success();
-        } else {
-            final var pattern = "Correlation ID of live response <{0}> differs from" +
-                    " correlation ID of command <{1}>.";
-            result = MatchingValidationResult.failure(MessageFormat.format(pattern,
-                    commandResponseCorrelationId.orElse(null),
-                    commandCorrelationId.orElse(null)));
+        if (result.isSuccess()) {
+            result = validateResourcePathsMatch(sentCommand, commandResponse);
         }
 
         return result;
     }
 
-    private static Optional<String> getCorrelationIdOptional(final WithDittoHeaders signal) {
-        final var signalDittoHeaders = signal.getDittoHeaders();
-        return signalDittoHeaders.getCorrelationId();
+    private static MatchingValidationResult validateCorrelationIdsMatch(final Command<?> command,
+            final CommandResponse<?> commandResponse) {
+
+        final MatchingValidationResult result;
+
+        final var commandCorrelationId = getCorrelationId(command);
+        final var commandResponseCorrelationId = getCorrelationId(commandResponse);
+        if (commandCorrelationId.equals(commandResponseCorrelationId)) {
+            result = MatchingValidationResult.success();
+        } else {
+            final var pattern = "Correlation ID of live response <{0}> differs from" +
+                    " correlation ID of command <{1}>.";
+            result = MatchingValidationResult.failure(command,
+                    commandResponse,
+                    MessageFormat.format(pattern,
+                            commandResponseCorrelationId.orElse(null),
+                            commandCorrelationId.orElse(null)));
+        }
+
+        return result;
     }
 
-    private static MatchingValidationResult validateTypesMatch(final Signal<? extends Command<?>> command,
+    private static Optional<String> getCorrelationId(final Signal<?> signal) {
+        return SignalInformationPoint.getCorrelationId(signal);
+    }
+
+    private static MatchingValidationResult validateTypesMatch(final Command<?> command,
             final CommandResponse<?> commandResponse) {
 
         final MatchingValidationResult result;
@@ -120,15 +129,21 @@ public final class CommandAndCommandResponseMatchingValidator
             final var semanticCommandType = tryToParseSemanticSignalType(command);
 
             if (!isSameSignalDomain(semanticCommandType, semanticCommandResponseType)) {
-                result = MatchingValidationResult.failure(getMessageForMismatchingTypes(commandResponse, command));
-            } else if (isMessagesSignalDomain(semanticCommandResponseType)) {
+                result = MatchingValidationResult.failure(command,
+                        commandResponse,
+                        getMessageForMismatchingTypes(commandResponse, command));
+            } else if (SignalInformationPoint.isMessageCommandResponse(commandResponse)) {
                 if (!areCorrespondingMessageSignals(semanticCommandType, semanticCommandResponseType)) {
-                    result = MatchingValidationResult.failure(getMessageForMismatchingTypes(commandResponse, command));
+                    result = MatchingValidationResult.failure(command,
+                            commandResponse,
+                            getMessageForMismatchingTypes(commandResponse, command));
                 } else {
                     result = MatchingValidationResult.success();
                 }
             } else if (!isEqualNames(semanticCommandType, semanticCommandResponseType)) {
-                result = MatchingValidationResult.failure(getMessageForMismatchingTypes(commandResponse, command));
+                result = MatchingValidationResult.failure(command,
+                        commandResponse,
+                        getMessageForMismatchingTypes(commandResponse, command));
             } else {
                 result = MatchingValidationResult.success();
             }
@@ -153,9 +168,7 @@ public final class CommandAndCommandResponseMatchingValidator
         }
     }
 
-    private static String getMessageForMismatchingTypes(final WithType commandResponse,
-            final WithType command) {
-
+    private static String getMessageForMismatchingTypes(final WithType commandResponse, final WithType command) {
         return MessageFormat.format("Type of live response <{0}> is not related to type of command <{1}>.",
                 commandResponse.getType(),
                 command.getType());
@@ -175,10 +188,6 @@ public final class CommandAndCommandResponseMatchingValidator
         return Objects.equals(semanticCommandResponseType.getSignalDomain(), semanticCommandType.getSignalDomain());
     }
 
-    private static boolean isMessagesSignalDomain(final SemanticSignalType semanticCommandResponseType) {
-        return "messages".equals(semanticCommandResponseType.getSignalDomain());
-    }
-
     private static boolean areCorrespondingMessageSignals(final SemanticSignalType commandType,
             final SemanticSignalType commandResponseType) {
 
@@ -193,32 +202,50 @@ public final class CommandAndCommandResponseMatchingValidator
         return Objects.equals(command.getSignalName(), commandResponse.getSignalName());
     }
 
-    private static MatchingValidationResult validateEntityIdsMatch(final Signal<? extends Command<?>> command,
-            final Signal<? extends CommandResponse<?>> commandResponse) {
+    private static MatchingValidationResult validateEntityIdsMatch(final Command<?> command,
+            final CommandResponse<?> commandResponse) {
 
         final MatchingValidationResult result;
 
-        final var commandEntityId = getEntityIdOptional(command);
-        final var commandResponseEntityId = getEntityIdOptional(commandResponse);
-
+        final var commandEntityId = getEntityId(command);
+        final var commandResponseEntityId = getEntityId(commandResponse);
         if (commandEntityId.equals(commandResponseEntityId)) {
             result = MatchingValidationResult.success();
         } else {
-            final var pattern = "Entity ID of live response <{0}> differs from entity ID of command <{1}>.";
-            result = MatchingValidationResult.failure(MessageFormat.format(pattern,
-                    commandResponseEntityId.orElse(null),
-                    commandEntityId.orElse(null)));
+            result = MatchingValidationResult.failure(command,
+                    commandResponse,
+                    MessageFormat.format("Entity ID of live response <{0}> differs from entity ID of command <{1}>.",
+                            commandResponseEntityId.orElse(null),
+                            commandEntityId.orElse(null)));
         }
 
         return result;
     }
 
-    private static Optional<EntityId> getEntityIdOptional(final Signal<?> signal) {
-        final Optional<EntityId> result;
-        if (signal instanceof WithEntityId) {
-            result = Optional.of(((WithEntityId) signal).getEntityId());
+    private static Optional<EntityId> getEntityId(final Signal<?> signal) {
+        return SignalInformationPoint.getEntityId(signal);
+    }
+
+    private static MatchingValidationResult validateResourcePathsMatch(final Command<?> command,
+            final CommandResponse<?> commandResponse) {
+
+        final MatchingValidationResult result;
+        if (SignalInformationPoint.isThingCommand(command)) {
+            final var commandResourcePath = command.getResourcePath();
+            final var commandResponseResourcePath = commandResponse.getResourcePath();
+            if (commandResourcePath.equals(commandResponseResourcePath) ||
+                    isAcknowledgement(commandResponse) ||
+                    isErrorResponseType(commandResponse)) {
+
+                result = MatchingValidationResult.success();
+            } else {
+                final var pattern = "Resource path of live response <{0}> differs from resource path of command <{1}>.";
+                result = MatchingValidationResult.failure(command,
+                        commandResponse,
+                        MessageFormat.format(pattern, commandResponseResourcePath, commandResourcePath));
+            }
         } else {
-            result = Optional.empty();
+            result = MatchingValidationResult.success();
         }
         return result;
     }

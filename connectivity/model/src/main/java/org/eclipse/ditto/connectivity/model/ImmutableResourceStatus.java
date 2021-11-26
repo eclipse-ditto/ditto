@@ -46,6 +46,7 @@ final class ImmutableResourceStatus implements ResourceStatus {
             @Nullable final String address,
             @Nullable final String statusDetails,
             @Nullable final Instant inStateSince) {
+
         this.type = checkNotNull(type, "type");
         this.client = checkNotNull(client, "client");
         this.status = checkNotNull(status, "status");
@@ -72,6 +73,7 @@ final class ImmutableResourceStatus implements ResourceStatus {
             @Nullable final String address,
             @Nullable final String statusDetails,
             @Nullable final Instant inStateSince) {
+
         return new ImmutableResourceStatus(type, client, status, address, statusDetails, inStateSince);
     }
 
@@ -91,9 +93,9 @@ final class ImmutableResourceStatus implements ResourceStatus {
             final ConnectivityStatus status,
             @Nullable final String address,
             @Nullable final String statusDetails) {
+
         return new ImmutableResourceStatus(type, client, status, address, statusDetails, null);
     }
-
 
     @Override
     public ResourceType getResourceType() {
@@ -134,7 +136,6 @@ final class ImmutableResourceStatus implements ResourceStatus {
         if (address != null) {
             jsonObjectBuilder.set(JsonFields.ADDRESS, address, predicate);
         }
-        jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
         jsonObjectBuilder.set(JsonFields.STATUS, status.getName(), predicate);
         if (statusDetails != null) {
             jsonObjectBuilder.set(JsonFields.STATUS_DETAILS, statusDetails, predicate);
@@ -154,17 +155,14 @@ final class ImmutableResourceStatus implements ResourceStatus {
      * @throws JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static ResourceStatus fromJson(final JsonObject jsonObject) {
-        final ResourceType readType = ResourceType.forName(
-                jsonObject.getValueOrThrow(JsonFields.TYPE)).orElse(ResourceType.UNKNOWN);
-        final String readClient = jsonObject.getValueOrThrow(JsonFields.CLIENT);
-        final ConnectivityStatus readConnectionStatus = ConnectivityStatus.forName(
-                jsonObject.getValueOrThrow(JsonFields.STATUS)).orElse(ConnectivityStatus.UNKNOWN);
-        final String readAddress = jsonObject.getValue(JsonFields.ADDRESS).orElse(null);
-        final String readConnectionStatusDetails = jsonObject.getValue(JsonFields.STATUS_DETAILS).orElse(null);
-        final Instant readInStateSince =
-                jsonObject.getValue(JsonFields.IN_STATE_SINCE).map(Instant::parse).orElse(null);
-        return ImmutableResourceStatus.of(readType, readClient, readConnectionStatus, readAddress,
-                readConnectionStatusDetails, readInStateSince);
+        return ImmutableResourceStatus.of(
+                ResourceType.forName(jsonObject.getValueOrThrow(JsonFields.TYPE)).orElse(ResourceType.UNKNOWN),
+                jsonObject.getValueOrThrow(JsonFields.CLIENT),
+                ConnectivityStatus.forName(jsonObject.getValueOrThrow(JsonFields.STATUS)).orElse(ConnectivityStatus.UNKNOWN),
+                jsonObject.getValue(JsonFields.ADDRESS).orElse(null),
+                jsonObject.getValue(JsonFields.STATUS_DETAILS).orElse(null),
+                jsonObject.getValue(JsonFields.IN_STATE_SINCE).map(Instant::parse).orElse(null)
+        );
     }
 
     @Override

@@ -20,14 +20,14 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Represents the status of a resource e.g. a client connection, a source or a target, defined in {@link ResourceStatus.ResourceType}.
@@ -65,9 +65,9 @@ public interface ResourceStatus extends Jsonifiable.WithFieldSelectorAndPredicat
     Optional<Instant> getInStateSince();
 
     /**
-     * Returns all non hidden marked fields of this {@code AddressMetric}.
+     * Returns all non-hidden marked fields of this {@code AddressMetric}.
      *
-     * @return a JSON object representation of this Source including only non hidden marked fields.
+     * @return a JSON object representation of this Source including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {
@@ -165,56 +165,56 @@ public interface ResourceStatus extends Jsonifiable.WithFieldSelectorAndPredicat
 
         /**
          * JSON field containing the {@code JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.3.0 this field definition is not used anymore.
          */
+        @Deprecated
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
+                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(),
+                        FieldType.SPECIAL,
+                        FieldType.HIDDEN,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code ResourceType} value.
          */
         public static final JsonFieldDefinition<String> TYPE =
-                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code ConnectivityStatus} value.
          */
         public static final JsonFieldDefinition<String> STATUS =
-                JsonFactory.newStringFieldDefinition("status", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("status", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code client} value.
          */
         public static final JsonFieldDefinition<String> CLIENT =
-                JsonFactory.newStringFieldDefinition("client", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("client", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code address} value.
          */
         public static final JsonFieldDefinition<String> ADDRESS =
-                JsonFactory.newStringFieldDefinition("address", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("address", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code ConnectivityStatus} details.
          */
         public static final JsonFieldDefinition<String> STATUS_DETAILS =
-                JsonFactory.newStringFieldDefinition("statusDetails", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("statusDetails", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the instant since the resource is in the state.
          */
         public static final JsonFieldDefinition<String> IN_STATE_SINCE =
-                JsonFactory.newStringFieldDefinition("inStateSince", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("inStateSince", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
 
     }
+
 }

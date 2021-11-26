@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithResource;
+import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.Cache;
@@ -137,6 +138,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
      * @param minAcceptableSeqNr minimum sequence number of the concerned signals to not invalidate the cache.
      * @return future that completes with the parts of a thing or fails with an error.
      */
+    @SuppressWarnings("java:S1612")
     public CompletionStage<JsonObject> retrievePartialThing(final EntityId thingId,
             final JsonFieldSelector jsonFieldSelector,
             final DittoHeaders dittoHeaders,
@@ -144,8 +146,8 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
             final long minAcceptableSeqNr) {
 
         final List<ThingEvent<?>> thingEvents = concernedSignals.stream()
-                .filter(signal -> (signal instanceof ThingEvent) && !(ProtocolAdapter.isLiveSignal(signal)))
-                .map(event -> (ThingEvent<?>) event)
+                .filter(signal -> signal instanceof ThingEvent && !SignalInformationPoint.isChannelLive(signal))
+                .map(signal -> (ThingEvent<?>) signal)
                 .collect(Collectors.toList());
 
         // as second step only return what was originally requested as fields:

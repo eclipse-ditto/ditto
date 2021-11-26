@@ -464,7 +464,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         publisherActor.tell(signalToMultiMapped(command, target, testKit.getRef()), testKit.getRef());
 
         // Assert
-        final var responseSignal = proxyActorTestProbe.expectMsgClass(Signal.class);
+        final var responseSignal = testKit.expectMsgClass(Signal.class);
         assertThat(responseSignal).isInstanceOfSatisfying(RetrieveThingResponse.class, retrieveThingResponse -> {
             assertThat((CharSequence) retrieveThingResponse.getEntityId()).isEqualTo(thingId);
             assertThat(retrieveThingResponse.getHttpStatus()).isEqualTo(retrieveThingMockResponse.getHttpStatus());
@@ -537,7 +537,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
             final var acknowledgements = expectMsgClass(Duration.ofSeconds(5), Acknowledgements.class);
             assertThat((CharSequence) acknowledgements.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
-            assertThat(acknowledgements.getHttpStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(acknowledgements.getHttpStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
             assertThat(acknowledgements.getDittoHeaders().getCorrelationId())
                     .contains(TestConstants.CORRELATION_ID);
             assertThat(acknowledgements.getSize()).isOne();
@@ -614,7 +614,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
             final var acknowledgements = expectMsgClass(Acknowledgements.class);
             assertThat((CharSequence) acknowledgements.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
-            assertThat(acknowledgements.getHttpStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(acknowledgements.getHttpStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
             assertThat(acknowledgements.getDittoHeaders().getCorrelationId())
                     .contains(TestConstants.CORRELATION_ID);
             assertThat(acknowledgements.getSize()).isOne();
@@ -622,7 +622,6 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .hasValueSatisfying(ack -> assertThat(ack.toJsonString())
                             .contains("Entity ID of live response <namespace:wrongthing> differs from entity ID of" +
                                     " command <ditto:thing>."));
-
         }};
     }
 
@@ -695,7 +694,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
             final var acknowledgements = expectMsgClass(Acknowledgements.class);
             assertThat((CharSequence) acknowledgements.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
-            assertThat(acknowledgements.getHttpStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(acknowledgements.getHttpStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
             assertThat(acknowledgements.getDittoHeaders().getCorrelationId())
                     .contains(TestConstants.CORRELATION_ID);
             assertThat(acknowledgements.getSize()).isOne();

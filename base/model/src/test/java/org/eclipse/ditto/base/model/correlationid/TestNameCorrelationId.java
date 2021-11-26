@@ -48,7 +48,7 @@ public final class TestNameCorrelationId extends TestWatcher {
     protected void starting(final Description description) {
         final Class<?> testClass = description.getTestClass();
         correlationId = CorrelationId.of(MessageFormat.format(CORRELATION_ID_PATTERN,
-                testClass.getName(),
+                testClass.getSimpleName(),
                 description.getMethodName(),
                 getRandomPart()));
     }

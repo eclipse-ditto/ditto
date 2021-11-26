@@ -29,8 +29,6 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotDeclaredExceptio
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.base.model.acks.FatalPubSubException;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -39,7 +37,6 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.namespaces.NamespaceReader;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayWebsocketSessionClosedException;
@@ -57,13 +54,13 @@ import org.eclipse.ditto.gateway.service.streaming.StopStreaming;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
-import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.protocol.HeaderTranslator;
@@ -133,7 +130,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         connectionCorrelationId = connect.getConnectionCorrelationId();
         type = connect.getType();
         this.dittoProtocolSub = dittoProtocolSub;
-        this.eventAndResponsePublisher = connect.getEventAndResponsePublisher();
+        eventAndResponsePublisher = connect.getEventAndResponsePublisher();
         this.commandRouter = commandRouter;
         this.acknowledgementConfig = acknowledgementConfig;
         this.jwtValidator = jwtValidator;
@@ -144,13 +141,14 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
                 acknowledgementConfig,
                 headerTranslator,
+                null,
                 ThingModifyCommandAckRequestSetter.getInstance(),
                 ThingLiveCommandAckRequestSetter.getInstance(),
                 MessageCommandAckRequestSetter.getInstance());
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withCorrelationId(connectionCorrelationId);
         connect.getSessionExpirationTime().ifPresent(this::startSessionTimeout);
-        this.subscriptionManager = getContext().actorOf(subscriptionManagerProps, SubscriptionManager.ACTOR_NAME);
+        subscriptionManager = getContext().actorOf(subscriptionManagerProps, SubscriptionManager.ACTOR_NAME);
         declaredAcks = connect.getDeclaredAcknowledgementLabels();
     }
 
@@ -176,8 +174,14 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             final JwtValidator jwtValidator,
             final JwtAuthenticationResultProvider jwtAuthenticationResultProvider) {
 
-        return Props.create(StreamingSessionActor.class, connect, dittoProtocolSub,
-                commandRouter, acknowledgementConfig, headerTranslator, subscriptionManagerProps, jwtValidator,
+        return Props.create(StreamingSessionActor.class,
+                connect,
+                dittoProtocolSub,
+                commandRouter,
+                acknowledgementConfig,
+                headerTranslator,
+                subscriptionManagerProps,
+                jwtValidator,
                 jwtAuthenticationResultProvider);
     }
 
@@ -333,12 +337,12 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     switch (stopStreaming.getStreamingType()) {
                         case EVENTS:
                             dittoProtocolSub.removeTwinSubscriber(getSelf(),
-                                    authorizationContext.getAuthorizationSubjectIds())
+                                            authorizationContext.getAuthorizationSubjectIds())
                                     .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
                             break;
                         case POLICY_ANNOUNCEMENTS:
                             dittoProtocolSub.removePolicyAnnouncementSubscriber(getSelf(),
-                                    authorizationContext.getAuthorizationSubjectIds())
+                                            authorizationContext.getAuthorizationSubjectIds())
                                     .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
                             break;
                         case LIVE_COMMANDS:
@@ -346,7 +350,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                         case MESSAGES:
                         default:
                             dittoProtocolSub.updateLiveSubscriptions(currentStreamingTypes,
-                                    authorizationContext.getAuthorizationSubjectIds(), getSelf())
+                                            authorizationContext.getAuthorizationSubjectIds(), getSelf())
                                     .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
                     }
                 })
@@ -385,7 +389,9 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .build();
     }
 
-    private Receive addPreprocessors(final List<PartialFunction<Object, Object>> preprocessors, final Receive receive) {
+    private static Receive addPreprocessors(final List<PartialFunction<Object, Object>> preprocessors,
+            final Receive receive) {
+
         return preprocessors.stream()
                 .reduce(PartialFunction::andThen)
                 .map(preprocessor -> new Receive(preprocessor.andThen(receive.onMessage())))
@@ -401,7 +407,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     private ActorRef getReturnAddress(final Signal<?> signal) {
-        final boolean publishResponse = signal instanceof Command<?> && signal.getDittoHeaders().isResponseRequired();
+        final var publishResponse =
+                SignalInformationPoint.isCommand(signal) && signal.getDittoHeaders().isResponseRequired();
         return publishResponse ? getSelf() : ActorRef.noSender();
     }
 
@@ -423,15 +430,15 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     // precondition: signal has ack requests
     private Object startAckregatorAndForward(final Signal<?> signal) {
-
         return ackregatorStarter.preprocess(signal,
                 (s, shouldStart) -> {
-                    final Optional<EntityId> entityIdOptional = WithEntityId.getEntityIdOfType(EntityId.class, s);
+                    final var entityIdOptional = SignalInformationPoint.getEntityId(s);
                     if (shouldStart && entityIdOptional.isPresent()) {
                         // websocket-specific header check: acks requested with response-required=false are forbidden
                         final Optional<DittoHeaderInvalidException> headerInvalid = checkForAcksWithoutResponse(s);
                         return headerInvalid.map(this::publishResponseOrError)
-                                .orElseGet(() -> ackregatorStarter.doStart(entityIdOptional.get(), s.getDittoHeaders(),
+                                .orElseGet(() -> ackregatorStarter.doStart(entityIdOptional.get(),
+                                        s,
                                         this::publishResponseOrError,
                                         ackregator -> forwardToCommandRouterAndReturnDone(s, ackregator)));
                     } else {
@@ -447,18 +454,20 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         return Done.getInstance();
     }
 
-    private <T> Object doNothing(final T result) {
+    private static <T> Object doNothing(final T result) {
         return result;
     }
 
     // no precondition; forwarder starter does not start for signals without ack requests, in contrast to ackregator
     private Signal<?> startAckForwarder(final Signal<?> signal) {
-        final Optional<EntityId> entityIdOptional =
-                WithEntityId.getEntityIdOfType(EntityId.class, signal);
+        final var entityIdOptional = SignalInformationPoint.getEntityId(signal);
         if (entityIdOptional.isPresent()) {
             final var entityIdWithType = entityIdOptional.get();
             return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
-                    entityIdWithType, signal, acknowledgementConfig, declaredAcks::contains);
+                    entityIdWithType,
+                    signal,
+                    acknowledgementConfig,
+                    declaredAcks::contains);
         } else {
             return signal;
         }
@@ -489,7 +498,9 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
             getContext().findChild(AcknowledgementForwarderActor.determineActorName(response.getDittoHeaders()))
                     .ifPresentOrElse(
                             forwarder -> {
-                                if (response instanceof ThingQueryCommandResponse && isLiveResponse(response)) {
+                                if (response instanceof ThingQueryCommandResponse &&
+                                        SignalInformationPoint.isChannelLive(response)) {
+
                                     // forward live command responses to concierge to filter response
                                     commandRouter.tell(response, sender);
                                 } else {
@@ -514,16 +525,14 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         }
     }
 
-    private boolean isLiveResponse(final CommandResponse<?> response) {
-        return response.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
-    }
-
     private void forwardSearchCommand(final ThingSearchCommand<?> searchCommand) {
         subscriptionManager.tell(searchCommand, getSelf());
     }
 
-    private boolean isSessionAllowedToReceiveSignal(final Signal<?> signal, final StreamingSession session,
+    private boolean isSessionAllowedToReceiveSignal(final Signal<?> signal,
+            final StreamingSession session,
             final StreamingType streamingType) {
+
         if (streamingType == StreamingType.POLICY_ANNOUNCEMENTS) {
             // recipients of policy announcements are authorized because the affected subjects are the pubsub topics
             return true;
@@ -647,13 +656,12 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     private static StreamingType determineStreamingType(final Signal<?> signal) {
-        final String channel = signal.getDittoHeaders().getChannel().orElse(TopicPath.Channel.TWIN.getName());
         final StreamingType streamingType;
         if (signal instanceof Event) {
-            streamingType = channel.equals(TopicPath.Channel.TWIN.getName())
-                    ? StreamingType.EVENTS
-                    : StreamingType.LIVE_EVENTS;
-        } else if (signal instanceof MessageCommand) {
+            streamingType = SignalInformationPoint.isChannelLive(signal)
+                    ? StreamingType.LIVE_EVENTS
+                    : StreamingType.EVENTS;
+        } else if (SignalInformationPoint.isMessageCommand(signal)) {
             streamingType = StreamingType.MESSAGES;
         } else if (signal instanceof PolicyAnnouncement) {
             streamingType = StreamingType.POLICY_ANNOUNCEMENTS;
@@ -665,18 +673,18 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
 
     @Nullable
     private static String namespaceFromId(final Signal<?> signal) {
-        return Optional.of(signal)
-                .map(WithEntityId.class::cast)
-                .map(WithEntityId::getEntityId)
+        return SignalInformationPoint.getEntityId(signal)
                 .flatMap(NamespaceReader::fromEntityId)
                 .orElse(null);
     }
 
     private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {
-        final var queryFilterCriteriaFactory =
-                QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
-                        TopicPathPlaceholder.getInstance(), ResourcePlaceholder.getInstance(),
-                        MiscPlaceholder.getInstance());
+        final var queryFilterCriteriaFactory = QueryFilterCriteriaFactory.modelBased(
+                RqlPredicateParser.getInstance(),
+                TopicPathPlaceholder.getInstance(),
+                ResourcePlaceholder.getInstance(),
+                MiscPlaceholder.getInstance()
+        );
 
         return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
     }

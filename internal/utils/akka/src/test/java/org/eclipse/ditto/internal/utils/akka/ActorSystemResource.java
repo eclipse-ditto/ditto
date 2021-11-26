@@ -146,6 +146,11 @@ public final class ActorSystemResource extends ExternalResource {
         return actorSystem.actorOf(props, actorName.toString());
     }
 
+    public void stopActor(final ActorRef actorRef) {
+        final var actorSystem = getActorSystem();
+        actorSystem.stop(ConditionChecker.checkNotNull(actorRef, "actorRef"));
+    }
+
     @Override
     protected void after() {
         TestKit.shutdownActorSystem(actorSystem, Duration.apply(5, TimeUnit.SECONDS), false);

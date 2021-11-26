@@ -39,7 +39,6 @@ import org.eclipse.ditto.thingsearch.service.persistence.read.query.MongoQueryBu
 import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdaterRootActor;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.Logging;

@@ -13,7 +13,8 @@ in: query
 description: |-
   Defines to which channel to route the command: `twin` (digital twin) or `live` (the device).
   * If setting the channel parameter is omitted, the `twin` channel is set by default and the command is routed to the digital representation of a thing in Bosch IoT Things backend.
-  * When using the `live` channel, the command/message is send towards the device.
+  * When using the `live` channel, the command/message is sent towards the device.
 required: false
 schema:
   type: string
+  enum: [twin, live]

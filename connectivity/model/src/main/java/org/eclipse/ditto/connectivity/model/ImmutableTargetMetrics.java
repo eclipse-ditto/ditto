@@ -21,12 +21,11 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * Immutable implementation of {@link TargetMetrics}.
@@ -58,16 +57,17 @@ final class ImmutableTargetMetrics implements TargetMetrics {
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
-        jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
-        jsonObjectBuilder.set(JsonFields.ADDRESS_METRICS, addressMetrics.isEmpty() ? JsonFactory.nullObject() :
-                addressMetricsToJson(), predicate);
-        return jsonObjectBuilder.build();
+        return JsonObject.newBuilder()
+                .set(JsonFields.ADDRESS_METRICS,
+                        addressMetrics.isEmpty() ? JsonFactory.nullObject() : addressMetricsToJson(),
+                        predicate)
+                .build();
     }
 
     private JsonObject addressMetricsToJson() {
-        return addressMetrics.entrySet().stream()
+        return addressMetrics.entrySet()
+                .stream()
                 .map(e -> ImmutableAddressMetric.toJsonField(e.getKey(), e.getValue()))
                 .collect(JsonCollectors.fieldsToObject());
     }
@@ -114,4 +114,5 @@ final class ImmutableTargetMetrics implements TargetMetrics {
                 "addressMetrics=" + addressMetrics +
                 "]";
     }
+
 }

@@ -12,16 +12,12 @@
  */
 package org.eclipse.ditto.internal.utils.cacheloaders;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
@@ -52,17 +48,15 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<Enforce
      * @param policiesShardRegionProxy the shard-region-proxy.
      */
     public PolicyEnforcerCacheLoader(final AskWithRetryConfig askWithRetryConfig,
-            final Scheduler scheduler, final ActorRef policiesShardRegionProxy) {
-        requireNonNull(askWithRetryConfig);
-        requireNonNull(policiesShardRegionProxy);
+            final Scheduler scheduler,
+            final ActorRef policiesShardRegionProxy) {
 
-        final BiFunction<EntityId, EnforcementContext, Command<?>> commandCreator =
-                PolicyCommandFactory::sudoRetrievePolicy;
-        final BiFunction<Object, EnforcementContext, Entry<PolicyEnforcer>> responseTransformer =
-                PolicyEnforcerCacheLoader::handleSudoRetrievePolicyResponse;
-
-        delegate = ActorAskCacheLoader.forShard(askWithRetryConfig, scheduler, PolicyConstants.ENTITY_TYPE,
-                policiesShardRegionProxy, commandCreator, responseTransformer);
+        delegate = ActorAskCacheLoader.forShard(askWithRetryConfig,
+                scheduler,
+                PolicyConstants.ENTITY_TYPE,
+                policiesShardRegionProxy,
+                (entityId, enforcementContext) -> PolicyCommandFactory.sudoRetrievePolicy(entityId),
+                PolicyEnforcerCacheLoader::handleSudoRetrievePolicyResponse);
     }
 
     @Override

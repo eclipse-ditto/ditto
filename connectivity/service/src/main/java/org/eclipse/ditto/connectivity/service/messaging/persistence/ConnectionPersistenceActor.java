@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants.CLUSTER_ROLE;
 
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
@@ -40,6 +41,7 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
+import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.AddConnectionLogEntry;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
@@ -114,7 +116,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.thingsearch.model.signals.commands.subscription.CreateSubscription;
 
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -609,8 +610,15 @@ public final class ConnectionPersistenceActor
                 // maintain client actor refs
                 .match(ActorRef.class, this::addClientActor)
                 .match(Terminated.class, this::removeClientActor)
+                .match(AddConnectionLogEntry.class, this::handleAddConnectionLogEntry)
                 .build()
                 .orElse(super.matchAnyAfterInitialization());
+    }
+
+    private void handleAddConnectionLogEntry(final AddConnectionLogEntry addConnectionLogEntry) {
+        final var logEntry = addConnectionLogEntry.getLogEntry();
+        log.withCorrelationId(logEntry.getCorrelationId()).debug("Handling <{}>.", addConnectionLogEntry);
+        connectionLogger.logEntry(logEntry);
     }
 
     @Override
@@ -654,13 +662,14 @@ public final class ConnectionPersistenceActor
         augmentWithPrefixAndForward(command, entity.getClientCount(), clientActorRouter);
     }
 
-    private void augmentWithPrefixAndForward(final CreateSubscription createSubscription, final int clientCount,
+    private void augmentWithPrefixAndForward(final CreateSubscription createSubscription,
+            final int clientCount,
             final ActorRef clientActorRouter) {
+
         subscriptionCounter = (subscriptionCounter + 1) % Math.max(1, clientCount);
-        final int prefixLength = getSubscriptionPrefixLength(clientCount);
-        final String prefix = String.format("%0" + prefixLength + "X", subscriptionCounter);
-        final Optional<ActorRef> receiver = clientActorRefs.get(subscriptionCounter);
-        final CreateSubscription commandWithPrefix = createSubscription.setPrefix(prefix);
+        final var prefix = getPrefix(getSubscriptionPrefixLength(clientCount), subscriptionCounter);
+        final var receiver = clientActorRefs.get(subscriptionCounter);
+        final var commandWithPrefix = createSubscription.setPrefix(prefix);
         if (clientCount == 1) {
             clientActorRouter.tell(consistentHashableEnvelope(commandWithPrefix, prefix), ActorRef.noSender());
         } else if (receiver.isPresent()) {
@@ -668,6 +677,11 @@ public final class ConnectionPersistenceActor
         } else {
             logDroppedSignal(createSubscription, createSubscription.getType(), "Client actor not ready.");
         }
+    }
+
+    private static String getPrefix(final int prefixLength, final int subscriptionCounter) {
+        final var prefixPattern = MessageFormat.format("%0{0,number}X", prefixLength);
+        return String.format(prefixPattern, subscriptionCounter);
     }
 
     private void checkLoggingEnabled(final Control message) {
@@ -1129,15 +1143,6 @@ public final class ConnectionPersistenceActor
          * Indicates the the priority of the connection should get updated
          */
         TRIGGER_UPDATE_PRIORITY
-    }
-
-    private static final class InitializationFailure {
-
-        private final Throwable cause;
-
-        private InitializationFailure(final Throwable cause) {
-            this.cause = cause;
-        }
     }
 
     /**

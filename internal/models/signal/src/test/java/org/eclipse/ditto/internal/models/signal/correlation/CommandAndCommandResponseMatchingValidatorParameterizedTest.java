@@ -42,10 +42,13 @@ public final class CommandAndCommandResponseMatchingValidatorParameterizedTest {
 
     private static final SignalInterfaceImplementations MESSAGE_COMMANDS =
             SignalInterfaceImplementations.newInstance(MessageCommand.class);
+
     private static final SignalInterfaceImplementations MESSAGE_COMMAND_RESPONSES =
             SignalInterfaceImplementations.newInstance(MessageCommandResponse.class);
+
     private static final SignalInterfaceImplementations THING_COMMANDS =
             SignalInterfaceImplementations.newInstance(ThingCommand.class);
+
     private static final SignalInterfaceImplementations THING_COMMAND_RESPONSES =
             SignalInterfaceImplementations.newInstance(ThingCommandResponse.class);
 
@@ -120,7 +123,12 @@ public final class CommandAndCommandResponseMatchingValidatorParameterizedTest {
         public void commandAndItsResponseMatch() {
             final var validationResult = underTest.apply(command, commandResponse);
 
-            assertThat(validationResult.isSuccess()).isTrue();
+            assertThat(validationResult.isSuccess())
+                    .withFailMessage(() -> {
+                        final var failure = validationResult.asFailureOrThrow();
+                        return failure.getDetailMessage();
+                    })
+                    .isTrue();
         }
 
     }

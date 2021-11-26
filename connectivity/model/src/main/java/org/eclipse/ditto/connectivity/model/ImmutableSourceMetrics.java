@@ -60,9 +60,9 @@ final class ImmutableSourceMetrics implements SourceMetrics {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
-        jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
-        jsonObjectBuilder.set(JsonFields.ADDRESS_METRICS, addressMetrics.isEmpty() ? JsonFactory.nullObject() :
-                addressMetricsToJson(), predicate);
+        jsonObjectBuilder.set(JsonFields.ADDRESS_METRICS, addressMetrics.isEmpty()
+                ? JsonFactory.nullObject()
+                : addressMetricsToJson(), predicate);
         return jsonObjectBuilder.build();
     }
 
@@ -113,4 +113,5 @@ final class ImmutableSourceMetrics implements SourceMetrics {
                 "addressMetrics=" + addressMetrics +
                 "]";
     }
+
 }

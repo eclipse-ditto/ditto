@@ -29,6 +29,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
@@ -141,15 +142,16 @@ final class OutboundDispatchingActor extends AbstractActor {
 
     private Signal<?> adjustSignalAndStartAckForwarder(final Signal<?> signal, final EntityId entityId) {
         final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
-        if (ackRequests.isEmpty()) {
-            return signal;
-        }
         final Predicate<AcknowledgementLabel> isSourceDeclaredAck = settings.getSourceDeclaredAcks()::contains;
-        final Set<AcknowledgementLabel> targetIssuedAcks = settings.getTargetIssuedAcks();
         final boolean hasSourceDeclaredAcks = ackRequests.stream()
                 .map(AcknowledgementRequest::getLabel)
                 .anyMatch(isSourceDeclaredAck);
-        if (hasSourceDeclaredAcks) {
+        final boolean liveCommandExpectingResponse = isLiveCommandExpectingResponse(signal);
+        if (!liveCommandExpectingResponse && ackRequests.isEmpty()) {
+            return signal;
+        }
+        final Set<AcknowledgementLabel> targetIssuedAcks = settings.getTargetIssuedAcks();
+        if (hasSourceDeclaredAcks || liveCommandExpectingResponse) {
             // start ackregator for source declared acks
             return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
                     entityId,
@@ -165,6 +167,13 @@ final class OutboundDispatchingActor extends AbstractActor {
                             .collect(Collectors.toList()))
                     .build());
         }
+    }
+
+    private boolean isLiveCommandExpectingResponse(final Signal<?> signal) {
+        final var headers = signal.getDittoHeaders();
+        return signal instanceof Command &&
+                headers.isResponseRequired() &&
+                (TopicPath.Channel.LIVE.getName().equals(headers.getChannel().orElse("")));
     }
 
     private void handleInboundResponseOrAcknowledgement(final Signal<?> responseOrAck) {

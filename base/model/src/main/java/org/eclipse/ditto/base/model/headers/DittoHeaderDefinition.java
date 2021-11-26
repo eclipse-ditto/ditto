@@ -124,6 +124,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "channel"}, Java type: {@link String}.
      * </p>
+     * @since 2.3.0
      */
     CHANNEL("channel", String.class, true, true,
             HeaderValueValidators.getDittoChannelValidator()),

@@ -14,11 +14,9 @@ package org.eclipse.ditto.protocol.adapter;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
-import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
@@ -33,6 +31,7 @@ import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.PayloadPathMatcher;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.HeadersFromTopicPath.Extractor;
 import org.eclipse.ditto.protocol.mappingstrategies.MappingStrategies;
 
 /**
@@ -141,31 +140,13 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
 
     // filter headers by header translator, then inject any missing information from topic path
     private DittoHeaders filterHeadersAndAddExtraHeadersFromTopicPath(final Adaptable externalAdaptable) {
-        return DittoHeaders.newBuilder(headerTranslator.fromExternalHeaders(externalAdaptable.getDittoHeaders()))
-                .putHeaders(getExtraHeadersFromTopicPath(externalAdaptable.getTopicPath()))
-                .build();
-    }
+        final DittoHeaders dittoHeadersFromExternal =
+                DittoHeaders.of(headerTranslator.fromExternalHeaders(externalAdaptable.getDittoHeaders()));
 
-    /**
-     * Add any extra information in topic path as Ditto headers.
-     *
-     * @param topicPath the topic path to extract information from.
-     * @return headers containing extra information from topic path.
-     */
-    private static Map<String, String> getExtraHeadersFromTopicPath(final TopicPath topicPath) {
-        final Map<String, String> result = new HashMap<>();
-
-        // add entity ID for known topic-paths for error reporting.
-        result.put(DittoHeaderDefinition.ENTITY_ID.getKey(), getEntityId(topicPath));
-        if (topicPath.isChannel(TopicPath.Channel.LIVE)) {
-            result.put(DittoHeaderDefinition.CHANNEL.getKey(), TopicPath.Channel.LIVE.getName());
-        }
-        return result;
-    }
-
-    private static String getEntityId(final TopicPath topicPath) {
-        final TopicPath.Group group = topicPath.getGroup();
-        return String.join(":", group.getEntityType(), topicPath.getNamespace(), topicPath.getEntityName());
+        return HeadersFromTopicPath.injectHeaders(dittoHeadersFromExternal,
+                externalAdaptable.getTopicPath(),
+                Extractor::liveChannelExtractor,
+                Extractor::entityIdExtractor);
     }
 
     /*

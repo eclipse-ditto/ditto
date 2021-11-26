@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -28,9 +29,11 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.connectivity.model.AddConnectionLogEntry;
+import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.AddConnectionLogEntry;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.LogLevel;
 import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
@@ -435,6 +438,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
     public void liveCommandWithoutAckRequestWithInvalidResponseTimesOut()
             throws ExecutionException, InterruptedException, TimeoutException {
 
+        final var connectionId = ConnectionId.generateRandom();
         final var thingId = ThingId.generateRandom();
         final var correlationId = testNameCorrelationId.getCorrelationId();
         final var modifyAttribute = ModifyAttribute.of(thingId,
@@ -443,6 +447,8 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 DittoHeaders.newBuilder(createAuthorizedHeaders())
                         .correlationId(correlationId)
                         .channel("live")
+                        .responseRequired(true)
+                        .timeout(Duration.ofSeconds(5L))
                         .build());
         final var proxyActorTestProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
         final var httpResponseFuture = new CompletableFuture<HttpResponse>();
@@ -459,12 +465,14 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         underTest.tell(modifyAttribute, commandHandler.ref());
 
         final var proxiedCommand = proxyActorTestProbe.expectMsgClass(modifyAttribute.getClass());
+        final var acknowledgementAggregator = proxyActorTestProbe.sender();
 
         // Send invalid response.
-        underTest.tell(
-                RetrieveThingResponse.of(modifyAttribute.getEntityId(),
-                        JsonObject.empty(),
-                        proxiedCommand.getDittoHeaders()),
+        final var responseDittoHeaders = DittoHeaders.newBuilder(proxiedCommand.getDittoHeaders())
+                .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId.toString())
+                .build();
+        acknowledgementAggregator.tell(
+                RetrieveThingResponse.of(modifyAttribute.getEntityId(), JsonObject.empty(), responseDittoHeaders),
                 commandHandler.ref()
         );
 
@@ -472,6 +480,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
 
         // Assert expected log entry for invalid response.
         final var addConnectionLogEntry = connectivityShardRegionProxy.expectMsgClass(AddConnectionLogEntry.class);
+        softly.assertThat((Object) addConnectionLogEntry.getEntityId()).as("connection ID").isEqualTo(connectionId);
         softly.assertThat(addConnectionLogEntry.getLogEntry())
                 .as("log entry")
                 .satisfies(logEntry -> {
@@ -492,7 +501,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
     }
 
     @Test
-    public void liveCommandWithoutAckRequestWithEventualValidResponseSucceeds()
+    public void liveCommandWithInvalidResponseWithoutConnectionIdIsLoggedOnly()
             throws ExecutionException, InterruptedException, TimeoutException {
 
         final var thingId = ThingId.generateRandom();
@@ -501,8 +510,10 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 JsonPointer.of("manufacturer"),
                 JsonValue.of("ACME"),
                 DittoHeaders.newBuilder(createAuthorizedHeaders())
-                        .channel("live")
                         .correlationId(correlationId)
+                        .channel("live")
+                        .responseRequired(true)
+                        .timeout(Duration.ofSeconds(5L))
                         .build());
         final var proxyActorTestProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
         final var httpResponseFuture = new CompletableFuture<HttpResponse>();
@@ -519,12 +530,65 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
         underTest.tell(modifyAttribute, commandHandler.ref());
 
         final var proxiedCommand = proxyActorTestProbe.expectMsgClass(modifyAttribute.getClass());
+        final var acknowledgementAggregator = proxyActorTestProbe.sender();
+
+        // Send response with different ThingId (hence invalid) without connection ID.
+        acknowledgementAggregator.tell(
+                ModifyAttributeResponse.modified(ThingId.generateRandom(),
+                        modifyAttribute.getAttributePointer(),
+                        proxiedCommand.getDittoHeaders()),
+                commandHandler.ref()
+        );
+
+        commandHandler.expectNoMessage();
+        connectivityShardRegionProxy.expectNoMessage();
+
+        final var futureCompletionTimeout = httpConfig.getRequestTimeout().plusSeconds(1L);
+        final var httpResponse = httpResponseFuture.get(futureCompletionTimeout.toMillis(), TimeUnit.MILLISECONDS);
+        softly.assertThat(httpResponse.status())
+                .as("request eventually times out")
+                .isEqualTo(StatusCodes.REQUEST_TIMEOUT);
+    }
+
+    @Test
+    public void liveCommandWithoutAckRequestWithEventualValidResponseSucceeds()
+            throws ExecutionException, InterruptedException, TimeoutException {
+
+        final var connectionId = ConnectionId.generateRandom();
+        final var thingId = ThingId.generateRandom();
+        final var correlationId = testNameCorrelationId.getCorrelationId();
+        final var modifyAttribute = ModifyAttribute.of(thingId,
+                JsonPointer.of("manufacturer"),
+                JsonValue.of("ACME"),
+                DittoHeaders.newBuilder(createAuthorizedHeaders())
+                        .channel("live")
+                        .correlationId(correlationId)
+                        .responseRequired(true)
+                        .timeout(Duration.ofSeconds(5L))
+                        .build());
+        final var proxyActorTestProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
+        final var httpResponseFuture = new CompletableFuture<HttpResponse>();
+        final var httpConfig = gatewayConfig.getHttpConfig();
+        final var underTest = ACTOR_SYSTEM_RESOURCE.newActor(HttpRequestActor.props(proxyActorTestProbe.ref(),
+                HEADER_TRANSLATOR,
+                getHttpRequest(modifyAttribute),
+                httpResponseFuture,
+                httpConfig,
+                gatewayConfig.getCommandConfig(),
+                connectivityShardRegionProxy.ref()));
+        final var commandHandler = ACTOR_SYSTEM_RESOURCE.newTestProbe();
+
+        underTest.tell(modifyAttribute, commandHandler.ref());
+
+        final var proxiedCommand = proxyActorTestProbe.expectMsgClass(modifyAttribute.getClass());
+        final var acknowledgementAggregator = proxyActorTestProbe.sender();
 
         // Send invalid response.
-        underTest.tell(
-                RetrieveThingResponse.of(modifyAttribute.getEntityId(),
-                        JsonObject.empty(),
-                        proxiedCommand.getDittoHeaders()),
+        final var responseDittoHeaders = DittoHeaders.newBuilder(proxiedCommand.getDittoHeaders())
+                .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId.toString())
+                .build();
+        acknowledgementAggregator.tell(
+                RetrieveThingResponse.of(modifyAttribute.getEntityId(), JsonObject.empty(), responseDittoHeaders),
                 commandHandler.ref()
         );
 
@@ -532,6 +596,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
 
         // Assert expected log entry for invalid response.
         final var addConnectionLogEntry = connectivityShardRegionProxy.expectMsgClass(AddConnectionLogEntry.class);
+        softly.assertThat((Object) addConnectionLogEntry.getEntityId()).as("connection ID").isEqualTo(connectionId);
         softly.assertThat(addConnectionLogEntry.getLogEntry())
                 .as("log entry")
                 .satisfies(logEntry -> {
@@ -545,7 +610,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                 });
 
         // Eventually send valid response.
-        underTest.tell(
+        acknowledgementAggregator.tell(
                 ModifyAttributeResponse.modified(proxiedCommand.getEntityId(),
                         proxiedCommand.getAttributePointer(),
                         proxiedCommand.getDittoHeaders()),

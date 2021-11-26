@@ -21,13 +21,13 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * An immutable implementation of {@link Subject}.
@@ -44,6 +44,7 @@ final class ImmutableSubject implements Subject {
             final SubjectType subjectType,
             @Nullable final SubjectExpiry subjectExpiry,
             @Nullable final SubjectAnnouncement subjectAnnouncement) {
+
         this.subjectId = checkNotNull(subjectId, "subjectId");
         this.subjectType = checkNotNull(subjectType, "subjectType");
         this.subjectExpiry = subjectExpiry;
@@ -85,8 +86,10 @@ final class ImmutableSubject implements Subject {
      * @throws NullPointerException if the {@code subjectId} or {@code subjectType} argument is {@code null}.
      * @since 2.0.0
      */
-    public static Subject of(final SubjectId subjectId, final SubjectType subjectType,
+    public static Subject of(final SubjectId subjectId,
+            final SubjectType subjectType,
             @Nullable final SubjectExpiry subjectExpiry) {
+
         return new ImmutableSubject(subjectId, subjectType, subjectExpiry, null);
     }
 
@@ -102,8 +105,11 @@ final class ImmutableSubject implements Subject {
      * @throws NullPointerException if the {@code subjectId} or {@code subjectType} argument is {@code null}.
      * @since 2.0.0
      */
-    public static Subject of(final SubjectId subjectId, final SubjectType subjectType,
-            @Nullable final SubjectExpiry subjectExpiry, @Nullable final SubjectAnnouncement subjectAnnouncement) {
+    public static Subject of(final SubjectId subjectId,
+            final SubjectType subjectType,
+            @Nullable final SubjectExpiry subjectExpiry,
+            @Nullable final SubjectAnnouncement subjectAnnouncement) {
+
         return new ImmutableSubject(subjectId, subjectType, subjectExpiry, subjectAnnouncement);
     }
 
@@ -166,9 +172,8 @@ final class ImmutableSubject implements Subject {
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
-                .set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate)
-                .set(JsonFields.TYPE, subjectType.toString(), predicate);
+        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
+        jsonObjectBuilder.set(JsonFields.TYPE, subjectType.toString(), predicate);
         if (null != subjectExpiry) {
             jsonObjectBuilder.set(JsonFields.EXPIRY, subjectExpiry.toString());
         }

@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 
 import java.util.Collection;
@@ -18,11 +17,11 @@ import java.util.Collection;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.base.model.signals.Signal;
 
 /**
  * Logger for connections that provides log messages for end users.
@@ -163,5 +162,14 @@ public interface ConnectionLogger {
     default void exception(final ConnectionMonitor.InfoProvider infoProvider) {
         exception(infoProvider, null);
     }
+
+    /**
+     * Logs the specified {@code LogEntry} argument.
+     *
+     * @param logEntry the entry to be logged.
+     * @throws NullPointerException if {@code logEntry} is {@code null}.
+     * @since 2.3.0
+     */
+    void logEntry(LogEntry logEntry);
 
 }
