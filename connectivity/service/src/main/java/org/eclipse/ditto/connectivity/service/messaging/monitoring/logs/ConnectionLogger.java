@@ -168,7 +168,7 @@ public interface ConnectionLogger {
      *
      * @param logEntry the entry to be logged.
      * @throws NullPointerException if {@code logEntry} is {@code null}.
-     * TODO change @since 2.x.x
+     * @since 2.3.0
      */
     void logEntry(LogEntry logEntry);
 
