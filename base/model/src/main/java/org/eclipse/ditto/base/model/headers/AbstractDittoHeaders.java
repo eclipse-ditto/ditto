@@ -340,10 +340,9 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     }
 
     @Override
-    public Optional<Duration> getTwinFallbackAfter() {
-        return getStringForDefinition(DittoHeaderDefinition.TWIN_FALLBACK_AFTER)
-                .map(DittoDuration::parseDuration)
-                .map(DittoDuration::getDuration);
+    public Optional<LiveChannelTimeoutStrategy> getLiveChannelTimeoutStrategy() {
+        return getStringForDefinition(DittoHeaderDefinition.ON_LIVE_CHANNEL_TIMEOUT)
+                .flatMap(LiveChannelTimeoutStrategy::forHeaderValue);
     }
 
     @Override

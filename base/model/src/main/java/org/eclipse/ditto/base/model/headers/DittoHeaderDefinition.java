@@ -124,6 +124,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "channel"}, Java type: {@link String}.
      * </p>
+     *
      * @since 2.3.0
      */
     CHANNEL("channel", String.class, true, true,
@@ -162,7 +163,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "If-None-Match"}, Java type: {@link String}.
      * </p>
      */
-    IF_NONE_MATCH("if-none-match", EntityTagMatchers.class, String.class,true,
+    IF_NONE_MATCH("if-none-match", EntityTagMatchers.class, String.class, true,
             false, HeaderValueValidators.getEntityTagMatchersValidator()),
 
     /**
@@ -245,10 +246,10 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Key: {@code "twin-fallback-after"}, Java type: {@code String}.
      * </p>
      *
-     * @since 2.2.0
+     * @since 2.3.0
      */
-    TWIN_FALLBACK_AFTER("twin-fallback-after", DittoDuration.class, String.class, true, false,
-            HeaderValueValidators.getTimeoutValueValidator()),
+    ON_LIVE_CHANNEL_TIMEOUT("on-live-channel-timeout", LiveChannelTimeoutStrategy.class, String.class, true, false,
+            HeaderValueValidators.getEnumValidator(LiveChannelTimeoutStrategy.values())),
 
     /**
      * Header definition for the entity ID related to the command/event/response/error.

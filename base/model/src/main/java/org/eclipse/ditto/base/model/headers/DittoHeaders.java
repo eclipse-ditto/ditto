@@ -312,13 +312,13 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<Duration> getTimeout();
 
     /**
-     * Returns when a thing query command with smart channel selection should wait for a live response
-     * before falling back to the twin response.
+     * Returns what to do when a thing query command with smart channel selection does not receive a valid live
+     * response within the given timeout period.
      *
-     * @return Time allocated to the live response in a thing query command with smart channel selection.
-     * @since 2.2.0
+     * @return the live channel timeout strategy if the headers define any.
+     * @since 2.3.0
      */
-    Optional<Duration> getTwinFallbackAfter();
+    Optional<LiveChannelTimeoutStrategy> getLiveChannelTimeoutStrategy();
 
     /**
      * Returns the metadata headers to put/set for the (modifying) command they were added to.
