@@ -110,6 +110,7 @@ public final class ImmutableDittoHeadersTest {
     private static final boolean KNOWN_IS_SUDO = true;
     private static final String KNOWN_CONDITION = "eq(attributes/value)";
     private static final String KNOWN_LIVE_CHANNEL_CONDITION = "eq(attributes/value,\"livePolling\")";
+    private static final boolean KNOWN_LIVE_CHANNEL_CONDITION_MATCHED = true;
     private static final String KNOWN_TRACEPARENT = "00-dfca0d990402884d22e909a87ac677ec-94fc4da95e842f96-01";
     private static final String KNOWN_TRACESTATE = "eclipse=ditto";
     private static final boolean KNOWN_DITTO_RETRIEVE_DELETED = true;
@@ -178,6 +179,8 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE)
                 .condition(KNOWN_CONDITION)
                 .liveChannelCondition(KNOWN_LIVE_CHANNEL_CONDITION)
+                .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
+                        String.valueOf(KNOWN_LIVE_CHANNEL_CONDITION_MATCHED))
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -335,6 +338,31 @@ public final class ImmutableDittoHeadersTest {
     }
 
     @Test
+    public void didLiveChannelConditionMatchIsFalseOnMissingHeader() {
+        final DittoHeaders underTest = DittoHeaders.empty();
+
+        assertThat(underTest.didLiveChannelConditionMatch()).isFalse();
+    }
+
+    @Test
+    public void didLiveChannelConditionMatchIsFalseWhenFalse() {
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), "false")
+                .build();
+
+        assertThat(underTest.didLiveChannelConditionMatch()).isFalse();
+    }
+
+    @Test
+    public void didLiveChannelConditionMatchIsTrueWhenTrue() {
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), "true")
+                .build();
+
+        assertThat(underTest.didLiveChannelConditionMatch()).isTrue();
+    }
+
+    @Test
     public void liveChannelConditionNotEmptyWhenSet() {
         final String testValue = "some-condition";
         final DittoHeaders underTest = DittoHeaders.newBuilder()
@@ -453,6 +481,8 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE)
                 .set(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION)
                 .set(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey(), KNOWN_LIVE_CHANNEL_CONDITION)
+                .set(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
+                        KNOWN_LIVE_CHANNEL_CONDITION_MATCHED)
                 .build();
 
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
@@ -684,6 +714,8 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE);
         result.put(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION);
         result.put(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey(), KNOWN_LIVE_CHANNEL_CONDITION);
+        result.put(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
+                String.valueOf(KNOWN_LIVE_CHANNEL_CONDITION_MATCHED));
 
         return result;
     }

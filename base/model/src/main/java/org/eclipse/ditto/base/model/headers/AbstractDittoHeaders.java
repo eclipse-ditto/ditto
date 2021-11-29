@@ -279,6 +279,11 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     }
 
     @Override
+    public boolean didLiveChannelConditionMatch() {
+        return isExpectedBoolean(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED, Boolean.TRUE);
+    }
+
+    @Override
     public Optional<String> getOrigin() {
         return getStringForDefinition(DittoHeaderDefinition.ORIGIN);
     }

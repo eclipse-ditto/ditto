@@ -395,18 +395,36 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             HeaderValueValidators.getNoOpValidator()),
 
     /**
-     * Header definition to identify a request with a conditional channel.
-     * The condition is defined via a RQL expressions, which is evaluated in the things service. If the condition is
+     * Header definition containing a condition which, when evaluating to {@code true}, shall switch the
+     * {@link #CHANNEL} to use to the {@code "live"} channel.
+     * The condition is defined via a RQL expressions, which is evaluated in the things persistence. If the condition is
      * evaluated to 'true', then the live-channel is used instead of the regular twin-channel.
      *
      * <p>
      * Key {@code "live-channel-condition"}, Java type: {@link String}.
      * </p>
      *
-     * @since 2.2.0
+     * @since 2.3.0
      */
     LIVE_CHANNEL_CONDITION("live-channel-condition", String.class, true, false,
-            HeaderValueValidators.getNoOpValidator());
+            HeaderValueValidators.getNoOpValidator()),
+
+    /**
+     * Header containing the result of the {@link #LIVE_CHANNEL_CONDITION} evaluated in the things persistence.
+     * If this contains {@code true}, the {@code "live"} channel shall be used in order to handle a processed command.
+     * If this header is missing or contains value {@code false}, the live channel shall not be used and the twin
+     * response this header is transported with shall be returned instead.
+     *
+     * <p>
+     * Key {@code "live-channel-condition-matched"}, Java type: {@link Boolean}.
+     * </p>
+     *
+     * @since 2.3.0
+     */
+    LIVE_CHANNEL_CONDITION_MATCHED("live-channel-condition-matched", Boolean.class,
+            false, true, HeaderValueValidators.getBooleanValidator())
+
+    ;
 
     /**
      * Map to speed up lookup of header definition by key.
