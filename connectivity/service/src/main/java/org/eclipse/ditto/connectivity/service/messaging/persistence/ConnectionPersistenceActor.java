@@ -103,6 +103,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
@@ -455,11 +456,17 @@ public final class ConnectionPersistenceActor
                     if (response instanceof RetrieveConnectionStatusResponse) {
                         final RetrieveConnectionStatusResponse rcsResp = (RetrieveConnectionStatusResponse) response;
                         final ConnectivityStatus liveStatus = rcsResp.getLiveStatus();
+                        final String connectionType = Optional.ofNullable(entity)
+                                .map(Connection::getConnectionType).map(Object::toString).orElse("?");
+                        DittoMetrics.counter("connection_live_status_reported")
+                                .tag("connectionId", String.valueOf(entityId))
+                                .tag("connectionType", connectionType)
+                                .tag("status", liveStatus.getName())
+                                .increment();
                         final DittoDiagnosticLoggingAdapter l = log
                                 .withMdcEntries(
                                         ConnectivityMdcEntryKey.CONNECTION_ID, entityId,
-                                        ConnectivityMdcEntryKey.CONNECTION_TYPE, Optional.ofNullable(entity)
-                                                .map(Connection::getConnectionType).map(Object::toString).orElse("?"),
+                                        ConnectivityMdcEntryKey.CONNECTION_TYPE, connectionType,
                                         CommonMdcEntryKey.DITTO_LOG_TAG,
                                         "connection-live-status-" + liveStatus.getName()
                                 )
