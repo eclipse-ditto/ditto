@@ -75,8 +75,7 @@ final class EnumValueValidator extends AbstractHeaderValueValidator {
 
     private static String formatErrorDescription(final Collection<String> normalizedNames) {
         final String valuesString = normalizedNames.stream()
-                .map(name -> "<" + name + ">")
-                .collect(Collectors.joining(", "));
+                .collect(Collectors.joining(">, <", "<", ">"));
         return MessageFormat.format("The value must either be one of: {0}.", valuesString);
     }
 }

@@ -816,6 +816,10 @@ public final class ThingCommandEnforcement
         if (!(command instanceof CreateThing) && condition.isPresent()) {
             enforceReadPermissionOnCondition(condition.get(), policyEnforcer, dittoHeaders);
         }
+        final var liveChannelCondition = dittoHeaders.getLiveChannelCondition();
+        if ((command instanceof ThingQueryCommand) && liveChannelCondition.isPresent()) {
+            enforceReadPermissionOnCondition(liveChannelCondition.get(), policyEnforcer, dittoHeaders);
+        }
 
         if (commandAuthorized) {
             return AbstractEnforcement.addEffectedReadSubjectsToThingSignal(command, policyEnforcer);
