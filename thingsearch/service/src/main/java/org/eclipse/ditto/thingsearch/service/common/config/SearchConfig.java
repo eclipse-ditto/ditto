@@ -49,11 +49,11 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
     String getSearchUpdateMapperImplementation();
 
     /**
-     * Returns the {@code ThingEventObserver} to be used for additional processing of thing events.
+     * Returns the {@code SearchUpdateObserver} to be used for additional processing of search updates.
      *
      * @return the name of the implementing class.
      */
-    String getThingEventObserverImplementation();
+    String getSearchUpdateObserverImplementation();
 
     /**
      * Returns the configuration settings for the search updating functionality.
@@ -90,12 +90,12 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
                 "org.eclipse.ditto.thingsearch.service.persistence.write.streaming.DefaultSearchUpdateMapper"),
 
         /**
-         * The {@code ThingEventObserver} used for additional custom processing of thing events.
+         * The {@code SearchUpdateObserver} used for additional custom processing of thing events.
          *
          * @since 2.3.0
          */
-        THING_EVENT_OBSERVER("thing-event-observer.implementation",
-                "org.eclipse.ditto.thingsearch.service.updater.actors.DefaultThingEventObserver");
+        SEARCH_UPDATE_OBSERVER("search-update-observer.implementation",
+                "org.eclipse.ditto.thingsearch.service.updater.actors.DefaultSearchUpdateObserver");
 
         private final String path;
         private final Object defaultValue;

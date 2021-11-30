@@ -51,6 +51,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWri
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.UpdateReason;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ConsistencyLag;
 import org.eclipse.ditto.thingsearch.service.starter.actors.MongoClientExtension;
 
@@ -81,7 +82,6 @@ final class ThingUpdater extends AbstractActorWithStash {
     private final ThingId thingId;
     private final ShutdownBehaviour shutdownBehaviour;
     private final ActorRef changeQueueActor;
-    private final ThingEventObserver thingEventObserver;
     private final double forceUpdateProbability;
 
     // state of Thing and Policy
@@ -95,14 +95,12 @@ final class ThingUpdater extends AbstractActorWithStash {
     @SuppressWarnings("unused") //It is used via reflection. See props method.
     private ThingUpdater(final ActorRef pubSubMediator,
             final ActorRef changeQueueActor,
-            final ThingEventObserver thingEventObserver,
             final double forceUpdateProbability) {
-        this(pubSubMediator, changeQueueActor, thingEventObserver, forceUpdateProbability, true, true);
+        this(pubSubMediator, changeQueueActor, forceUpdateProbability, true, true);
     }
 
     ThingUpdater(final ActorRef pubSubMediator,
             final ActorRef changeQueueActor,
-            final ThingEventObserver thingEventObserver,
             final double forceUpdateProbability,
             final boolean loadPreviousState,
             final boolean awaitRecovery) {
@@ -114,7 +112,6 @@ final class ThingUpdater extends AbstractActorWithStash {
         thingId = tryToGetThingId();
         shutdownBehaviour = ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
         this.changeQueueActor = changeQueueActor;
-        this.thingEventObserver = thingEventObserver;
         this.forceUpdateProbability = forceUpdateProbability;
 
         getContext().setReceiveTimeout(dittoSearchConfig.getUpdaterConfig().getMaxIdleTime());
@@ -133,14 +130,13 @@ final class ThingUpdater extends AbstractActorWithStash {
      *
      * @param pubSubMediator Akka pub-sub mediator.
      * @param changeQueueActor reference of the change queue actor.
-     * @param thingEventObserver the thing event observer
      * @param updaterConfig the updater config.
      * @return the Akka configuration Props object
      */
     static Props props(final ActorRef pubSubMediator, final ActorRef changeQueueActor,
-            final ThingEventObserver thingEventObserver, final UpdaterConfig updaterConfig) {
+            final UpdaterConfig updaterConfig) {
 
-        return Props.create(ThingUpdater.class, pubSubMediator, changeQueueActor, thingEventObserver,
+        return Props.create(ThingUpdater.class, pubSubMediator, changeQueueActor,
                 updaterConfig.getForceUpdateProbability());
     }
 
@@ -254,9 +250,11 @@ final class ThingUpdater extends AbstractActorWithStash {
 
     /**
      * Push metadata of this updater to the queue of thing-changes to be streamed into the persistence.
+     *
+     * @param updateReason TODO
      */
-    private void enqueueMetadata() {
-        enqueueMetadata(exportMetadata(null, null));
+    private void enqueueMetadata(final UpdateReason updateReason) {
+        enqueueMetadata(exportMetadata(null, null).withUpdateReason(updateReason));
     }
 
     private void enqueueMetadata(final Metadata metadata) {
@@ -271,7 +269,8 @@ final class ThingUpdater extends AbstractActorWithStash {
             log.debug("The Thing Tag for the thing <{}> has the revision {} which is greater than the current actor's"
                     + " sequence number <{}>.", thingId, thingTag.getRevision(), thingRevision);
             thingRevision = thingTag.getRevision();
-            enqueueMetadata();
+            // TODO what triggers a ThingTag?
+            enqueueMetadata(UpdateReason.UNKNOWN);
         } else {
             log.debug("Dropping <{}> because my thingRevision=<{}>", thingTag, thingRevision);
         }
@@ -285,7 +284,9 @@ final class ThingUpdater extends AbstractActorWithStash {
             lastWriteModel = null;
         }
         final Metadata metadata = exportMetadata(null, null)
-                .invalidateCaches(updateThing.shouldInvalidateThing(), updateThing.shouldInvalidatePolicy());
+                .invalidateCaches(updateThing.shouldInvalidateThing(), updateThing.shouldInvalidatePolicy())
+                // TODO background sync or namespace indexing?
+                .withUpdateReason(UpdateReason.MANUAL_REINDEXING);
         if (updateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)) {
             enqueueMetadata(metadata.withSender(getSender()));
         } else {
@@ -317,7 +318,7 @@ final class ThingUpdater extends AbstractActorWithStash {
         if (!Objects.equals(policyId, policyIdOfTag) || policyRevision < policyTag.getRevision()) {
             this.policyId = policyIdOfTag;
             policyRevision = policyTag.getRevision();
-            enqueueMetadata();
+            enqueueMetadata(UpdateReason.POLICY_UPDATE);
         } else {
             log.debug("Dropping <{}> because my policyId=<{}> and policyRevision=<{}>",
                     policyReferenceTag, policyId, policyRevision);
@@ -346,8 +347,9 @@ final class ThingUpdater extends AbstractActorWithStash {
                     .start();
             DittoTracing.wrapTimer(DittoTracing.extractTraceContext(thingEvent), timer);
             ConsistencyLag.startS0InUpdater(timer);
-            enqueueMetadata(exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), timer));
-            thingEventObserver.processThingEvent(thingEvent);
+            enqueueMetadata(
+                    exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), timer).withUpdateReason(
+                            UpdateReason.THING_UPDATE));
         }
     }
 

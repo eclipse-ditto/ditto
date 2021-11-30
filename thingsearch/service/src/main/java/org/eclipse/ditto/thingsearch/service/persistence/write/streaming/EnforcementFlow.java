@@ -45,6 +45,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.EnforcedT
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
+import org.eclipse.ditto.thingsearch.service.updater.actors.SearchUpdateObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,6 +73,7 @@ final class EnforcementFlow {
     private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
     private final Duration cacheRetryDelay;
     private final int maxArraySize;
+    private final SearchUpdateObserver searchUpdateObserver;
 
     private EnforcementFlow(final ActorSystem actorSystem,
             final ActorRef thingsShardRegion,
@@ -84,6 +86,7 @@ final class EnforcementFlow {
         thingsFacade = createThingsFacade(actorSystem, thingsShardRegion, askWithRetryConfig.getAskTimeout(),
                 streamCacheConfig, cacheDispatcher);
         this.policyEnforcerCache = policyEnforcerCache;
+        searchUpdateObserver = SearchUpdateObserver.get(actorSystem);
         cacheRetryDelay = streamCacheConfig.getRetryDelay();
         this.maxArraySize = maxArraySize;
     }
@@ -158,9 +161,12 @@ final class EnforcementFlow {
                     log.info("Updating search index of <{}> things", changeMap.size());
                     return sudoRetrieveThingJsons(parallelism, changeMap).flatMapConcat(responseMap ->
                             Source.fromIterator(changeMap.values()::iterator)
-                                    .flatMapMerge(parallelism, metadataRef ->
-                                            computeWriteModel(metadataRef, responseMap.get(metadataRef.getThingId()))
-                                                    .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism)
+                                    .flatMapMerge(parallelism, metadataRef -> {
+                                                final JsonObject thing = responseMap.get(metadataRef.getThingId());
+                                                searchUpdateObserver.process(metadataRef, thing);
+                                                return computeWriteModel(metadataRef, thing)
+                                                        .async(MongoSearchUpdaterFlow.DISPATCHER_NAME, parallelism);
+                                            }
                                     )
                     );
                 });

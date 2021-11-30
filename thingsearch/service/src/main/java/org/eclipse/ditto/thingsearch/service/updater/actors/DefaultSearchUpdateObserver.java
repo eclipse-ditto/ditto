@@ -12,21 +12,22 @@
  */
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
-import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 
 import akka.actor.ActorSystem;
 
 /**
- * Default ThingEventObserver implementation.
+ * Default SearchUpdateObserver implementation.
  */
-public class DefaultThingEventObserver extends ThingEventObserver {
+public class DefaultSearchUpdateObserver extends SearchUpdateObserver {
 
-    public DefaultThingEventObserver(final ActorSystem system) {
+    public DefaultSearchUpdateObserver(final ActorSystem system) {
         // nothing to do
     }
 
     @Override
-    public void processThingEvent(final ThingEvent<?> event) {
+    public void process(final Metadata metadata, final JsonObject thingJson) {
         // noop
     }
 }
