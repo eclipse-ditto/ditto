@@ -22,8 +22,15 @@ import java.util.Optional;
  */
 public enum LiveChannelTimeoutStrategy {
 
+    /**
+     * Strategy which lets the request fail with the timeout error.
+     */
     FAIL("fail"),
 
+    /**
+     * Strategy which - instead of letting the timed out live request fail - will fall back to the value delivered by
+     * the twin instead.
+     */
     USE_TWIN("use-twin");
 
     private final String headerValue;

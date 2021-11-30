@@ -131,6 +131,18 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             HeaderValueValidators.getDittoChannelValidator()),
 
     /**
+     * Header definition for "live" {@link #CHANNEL} commands defining the {@link LiveChannelTimeoutStrategy} to apply
+     * when a live command timed out.
+     * <p>
+     * Key: {@code "on-live-channel-timeout"}, Java type: {@code String}.
+     * </p>
+     *
+     * @since 2.3.0
+     */
+    ON_LIVE_CHANNEL_TIMEOUT("on-live-channel-timeout", LiveChannelTimeoutStrategy.class, String.class, true, false,
+            HeaderValueValidators.getEnumValidator(LiveChannelTimeoutStrategy.values())),
+
+    /**
      * Header definition for origin value that is set to the id of the originating session.
      * <p>
      * Key: {@code "ditto-origin"}, Java type: {@link String}.
@@ -238,18 +250,6 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      */
     TIMEOUT("timeout", DittoDuration.class, String.class, true, true,
             HeaderValueValidators.getTimeoutValueValidator()),
-
-    /**
-     * Header definition for when a thing query command with smart channel selection should wait for a live response
-     * before falling back to the twin response.
-     * <p>
-     * Key: {@code "twin-fallback-after"}, Java type: {@code String}.
-     * </p>
-     *
-     * @since 2.3.0
-     */
-    ON_LIVE_CHANNEL_TIMEOUT("on-live-channel-timeout", LiveChannelTimeoutStrategy.class, String.class, true, false,
-            HeaderValueValidators.getEnumValidator(LiveChannelTimeoutStrategy.values())),
 
     /**
      * Header definition for the entity ID related to the command/event/response/error.

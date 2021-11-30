@@ -12,10 +12,15 @@
  */
 package org.eclipse.ditto.base.model.headers;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotEmpty;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -25,7 +30,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 
 /**
- * This validator checks if a normalized CharSequence denote an enum value.
+ * This validator checks if a normalized CharSequence denotes a known enum value.
  *
  * @since 2.3.0
  */
@@ -34,20 +39,28 @@ final class EnumValueValidator extends AbstractHeaderValueValidator {
 
     private final Set<String> enumValueSet;
     private final String errorDescription;
+    private final Class<?> enumDeclaringType;
 
-    private EnumValueValidator(final Enum<?>[] enumValues) {
+    private EnumValueValidator(final List<Enum<?>> enumValues) {
         super(String.class::equals);
-        enumValueSet = groupByNormalizedName(enumValues);
+        enumDeclaringType = enumValues.get(0).getDeclaringClass();
+        enumValueSet = Collections.unmodifiableSet(new LinkedHashSet<>(groupByNormalizedName(enumValues)));
         errorDescription = formatErrorDescription(enumValueSet);
     }
 
     /**
-     * Returns an instance of {@code DittoChannelValueValidator}.
+     * Returns an instance of {@code EnumValueValidator}.
      *
-     * @return the instance.
+     * @param enumValues the known and allowed enum values this EnumValueValidator validates for.
+     * @return the enum validator instance.
+     * @throws IllegalArgumentException if {@code enumValues} is empty.
+     * @throws NullPointerException if {@code enumValues} is {@code null}.
      */
     static EnumValueValidator getInstance(final Enum<?>[] enumValues) {
-        return new EnumValueValidator(enumValues);
+        checkNotNull(enumValues, "enumValues");
+        final List<Enum<?>> enums = Arrays.asList(enumValues);
+        checkNotEmpty(enums, "enumValues");
+        return new EnumValueValidator(enums);
     }
 
     @Override
@@ -55,7 +68,7 @@ final class EnumValueValidator extends AbstractHeaderValueValidator {
         final String normalizedValue = normalize(value);
         if (!enumValueSet.contains(normalizedValue)) {
             throw DittoHeaderInvalidException.newInvalidTypeBuilder(definition, value,
-                            DittoHeaderDefinition.ON_LIVE_CHANNEL_TIMEOUT.getKey())
+                            "enum value of type '" + enumDeclaringType.getSimpleName() + "'")
                     .description(errorDescription)
                     .build();
         }
@@ -65,17 +78,15 @@ final class EnumValueValidator extends AbstractHeaderValueValidator {
         return charSequence.toString().trim().toLowerCase(Locale.ENGLISH);
     }
 
-    private static Set<String> groupByNormalizedName(final Enum<?>[] enumValues) {
-        final Set<String> set = Arrays.stream(enumValues)
+    private static List<String> groupByNormalizedName(final Collection<Enum<?>> enumValues) {
+        return enumValues.stream()
                 .map(Enum::toString)
                 .map(EnumValueValidator::normalize)
-                .collect(Collectors.toSet());
-        return Collections.unmodifiableSet(set);
+                .collect(Collectors.toList());
     }
 
     private static String formatErrorDescription(final Collection<String> normalizedNames) {
-        final String valuesString = normalizedNames.stream()
-                .collect(Collectors.joining(">, <", "<", ">"));
-        return MessageFormat.format("The value must either be one of: {0}.", valuesString);
+        final String valuesString = String.join("|", normalizedNames);
+        return MessageFormat.format("The value must be one of: <{0}>.", valuesString);
     }
 }
