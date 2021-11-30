@@ -15,6 +15,8 @@ package org.eclipse.ditto.things.service.persistence.actors;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.LiveChannelTimeoutStrategy;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -27,6 +29,7 @@ import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext
 import org.eclipse.ditto.internal.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingBuilder;
@@ -37,6 +40,7 @@ import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.service.common.config.DittoThingsConfig;
 import org.eclipse.ditto.things.service.common.config.ThingConfig;
@@ -113,6 +117,22 @@ public final class ThingPersistenceActor
     public static Props props(final ThingId thingId, final DistributedPub<ThingEvent<?>> distributedPub,
             final ActorRef pubSubMediator) {
         return props(thingId, distributedPub, new ThingMongoSnapshotAdapter(pubSubMediator));
+    }
+
+    @Override
+    public void onQuery(final Command<?> command, final WithDittoHeaders response) {
+        if (response.getDittoHeaders().didLiveChannelConditionMatch()) {
+            final var liveChannelTimeoutStrategy = response.getDittoHeaders()
+                    .getLiveChannelTimeoutStrategy()
+                    .orElse(LiveChannelTimeoutStrategy.FAIL);
+            if (liveChannelTimeoutStrategy != LiveChannelTimeoutStrategy.USE_TWIN &&
+                    response instanceof ThingQueryCommandResponse) {
+                final var queryResponse = (ThingQueryCommandResponse<?>) response;
+                super.onQuery(command, queryResponse.setEntity(JsonFactory.nullLiteral()));
+                return;
+            }
+        }
+        super.onQuery(command, response);
     }
 
     @Override
