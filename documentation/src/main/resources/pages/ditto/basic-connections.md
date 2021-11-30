@@ -293,7 +293,7 @@ following parameters can additionally be provided when specifying the `topics` o
 | Description | Topic | [Filter by namespaces](basic-changenotifications.html#by-namespaces) | [Filter by RQL expression](basic-changenotifications.html#by-rql-expression) |
 |-------------|-----------------|------------------|-----------|
 | Subscribe for [Thing events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | &#10004; | &#10004; |
-| Subscribe for [Thing messages](basic-messages.html) | `_/_/things/live/messages` | &#10004; | &#10060; |
+| Subscribe for [Thing messages](basic-messages.html) | `_/_/things/live/messages` | &#10004; | &#10004; |
 | Subscribe for [Thing live commands](protocol-twinlive.html) | `_/_/things/live/commands` | &#10004; | &#10060; |
 | Subscribe for [Thing live events](protocol-twinlive.html) | `_/_/things/live/events` | &#10004; | &#10004; |
 | Subscribe for [Policy announcements](protocol-specification-policies-announcement.html) | `_/_/policies/announcements` | &#10004; | &#10060; |
