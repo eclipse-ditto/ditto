@@ -93,7 +93,9 @@ public final class SearchUpdaterRootActor extends AbstractActor {
             log.warning("Event processing is disabled!");
         }
 
-        final var thingUpdaterProps = ThingUpdater.props(pubSubMediator, changeQueueActor, updaterConfig);
+        final var thingEventObserver = ThingEventObserver.get(actorSystem);
+        final var thingUpdaterProps = ThingUpdater.props(pubSubMediator, changeQueueActor, thingEventObserver,
+                updaterConfig);
 
         final ActorRef thingsShard = shardRegionFactory.getThingsShardRegion(numberOfShards);
         final ActorRef policiesShard = shardRegionFactory.getPoliciesShardRegion(numberOfShards);

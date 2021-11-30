@@ -81,6 +81,7 @@ final class ThingUpdater extends AbstractActorWithStash {
     private final ThingId thingId;
     private final ShutdownBehaviour shutdownBehaviour;
     private final ActorRef changeQueueActor;
+    private final ThingEventObserver thingEventObserver;
     private final double forceUpdateProbability;
 
     // state of Thing and Policy
@@ -94,12 +95,14 @@ final class ThingUpdater extends AbstractActorWithStash {
     @SuppressWarnings("unused") //It is used via reflection. See props method.
     private ThingUpdater(final ActorRef pubSubMediator,
             final ActorRef changeQueueActor,
+            final ThingEventObserver thingEventObserver,
             final double forceUpdateProbability) {
-        this(pubSubMediator, changeQueueActor, forceUpdateProbability, true, true);
+        this(pubSubMediator, changeQueueActor, thingEventObserver, forceUpdateProbability, true, true);
     }
 
     ThingUpdater(final ActorRef pubSubMediator,
             final ActorRef changeQueueActor,
+            final ThingEventObserver thingEventObserver,
             final double forceUpdateProbability,
             final boolean loadPreviousState,
             final boolean awaitRecovery) {
@@ -111,6 +114,7 @@ final class ThingUpdater extends AbstractActorWithStash {
         thingId = tryToGetThingId();
         shutdownBehaviour = ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
         this.changeQueueActor = changeQueueActor;
+        this.thingEventObserver = thingEventObserver;
         this.forceUpdateProbability = forceUpdateProbability;
 
         getContext().setReceiveTimeout(dittoSearchConfig.getUpdaterConfig().getMaxIdleTime());
@@ -129,13 +133,14 @@ final class ThingUpdater extends AbstractActorWithStash {
      *
      * @param pubSubMediator Akka pub-sub mediator.
      * @param changeQueueActor reference of the change queue actor.
+     * @param thingEventObserver the thing event observer
      * @param updaterConfig the updater config.
      * @return the Akka configuration Props object
      */
     static Props props(final ActorRef pubSubMediator, final ActorRef changeQueueActor,
-            final UpdaterConfig updaterConfig) {
+            final ThingEventObserver thingEventObserver, final UpdaterConfig updaterConfig) {
 
-        return Props.create(ThingUpdater.class, pubSubMediator, changeQueueActor,
+        return Props.create(ThingUpdater.class, pubSubMediator, changeQueueActor, thingEventObserver,
                 updaterConfig.getForceUpdateProbability());
     }
 
@@ -342,6 +347,7 @@ final class ThingUpdater extends AbstractActorWithStash {
             DittoTracing.wrapTimer(DittoTracing.extractTraceContext(thingEvent), timer);
             ConsistencyLag.startS0InUpdater(timer);
             enqueueMetadata(exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), timer));
+            thingEventObserver.processThingEvent(thingEvent);
         }
     }
 

@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
-import java.time.Instant;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import org.assertj.core.api.Assertions;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonInt64;
@@ -32,6 +35,7 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
@@ -70,11 +74,14 @@ public final class ThingUpdaterTest {
     private ActorSystem actorSystem;
     private TestProbe pubSubTestProbe;
     private TestProbe changeQueueTestProbe;
+    private AssertingThingEventObserver
+            thingEventObserver;
 
     @Before
     public void setUpBase() {
         final Config config = ConfigFactory.load("test");
         startActorSystem(config);
+        thingEventObserver = AssertingThingEventObserver.get();
     }
 
     @After
@@ -108,10 +115,12 @@ public final class ThingUpdaterTest {
                 underTest.tell(thingCreated, getRef());
 
                 final Metadata metadata = changeQueueTestProbe.expectMsgClass(Metadata.class);
-                Assertions.assertThat((CharSequence) metadata.getThingId()).isEqualTo(THING_ID);
-                Assertions.assertThat(metadata.getThingRevision()).isEqualTo(1L);
-                Assertions.assertThat(metadata.getPolicyId()).isEmpty();
-                Assertions.assertThat(metadata.getPolicyRevision()).contains(-1L);
+                assertThat((CharSequence) metadata.getThingId()).isEqualTo(THING_ID);
+                assertThat(metadata.getThingRevision()).isEqualTo(1L);
+                assertThat(metadata.getPolicyId()).isEmpty();
+                assertThat(metadata.getPolicyRevision()).contains(-1L);
+
+                thingEventObserver.assertProcessed(thingCreated);
             }
         };
     }
@@ -131,20 +140,23 @@ public final class ThingUpdaterTest {
             {
                 final ActorRef underTest = createThingUpdaterActor();
 
-                underTest.tell(ThingModified.of(currentThing, revision, Instant.now(), DittoHeaders.empty(), null),
-                        ActorRef.noSender());
+                final ThingModified thingModified =
+                        ThingModified.of(currentThing, revision, Instant.now(), DittoHeaders.empty(), null);
+                underTest.tell(thingModified, ActorRef.noSender());
                 final Metadata metadata = changeQueueTestProbe.expectMsgClass(Metadata.class);
-                Assertions.assertThat((CharSequence) metadata.getThingId()).isEqualTo(THING_ID);
-                Assertions.assertThat(metadata.getThingRevision()).isEqualTo(revision);
-                Assertions.assertThat(metadata.getPolicyId()).isEmpty();
-                Assertions.assertThat(metadata.getPolicyRevision()).contains(-1L);
+                assertThat((CharSequence) metadata.getThingId()).isEqualTo(THING_ID);
+                assertThat(metadata.getThingRevision()).isEqualTo(revision);
+                assertThat(metadata.getPolicyId()).isEmpty();
+                assertThat(metadata.getPolicyRevision()).contains(-1L);
 
                 underTest.tell(thingTag, ActorRef.noSender());
                 final Metadata metadata2 = changeQueueTestProbe.expectMsgClass(Metadata.class);
-                Assertions.assertThat((CharSequence) metadata2.getThingId()).isEqualTo(THING_ID);
-                Assertions.assertThat(metadata2.getThingRevision()).isEqualTo(thingTagRevision);
-                Assertions.assertThat(metadata2.getPolicyId()).isEmpty();
-                Assertions.assertThat(metadata2.getPolicyRevision()).contains(-1L);
+                assertThat((CharSequence) metadata2.getThingId()).isEqualTo(THING_ID);
+                assertThat(metadata2.getThingRevision()).isEqualTo(thingTagRevision);
+                assertThat(metadata2.getPolicyId()).isEmpty();
+                assertThat(metadata2.getPolicyRevision()).contains(-1L);
+
+                thingEventObserver.assertProcessed(thingModified);
             }
         };
     }
@@ -164,16 +176,18 @@ public final class ThingUpdaterTest {
             {
                 final ActorRef underTest = createThingUpdaterActor();
 
-                underTest.tell(ThingModified.of(currentThing, revision, Instant.now(), DittoHeaders.empty(), null),
-                        ActorRef.noSender());
+                final ThingModified thingModified =
+                        ThingModified.of(currentThing, revision, Instant.now(), DittoHeaders.empty(), null);
+                underTest.tell(thingModified, ActorRef.noSender());
                 final Metadata metadata = changeQueueTestProbe.expectMsgClass(Metadata.class);
-                Assertions.assertThat((CharSequence) metadata.getThingId()).isEqualTo(THING_ID);
-                Assertions.assertThat(metadata.getThingRevision()).isEqualTo(revision);
-                Assertions.assertThat(metadata.getPolicyId()).isEmpty();
-                Assertions.assertThat(metadata.getPolicyRevision()).contains(-1L);
+                assertThat((CharSequence) metadata.getThingId()).isEqualTo(THING_ID);
+                assertThat(metadata.getThingRevision()).isEqualTo(revision);
+                assertThat(metadata.getPolicyId()).isEmpty();
+                assertThat(metadata.getPolicyRevision()).contains(-1L);
 
                 underTest.tell(thingTag, ActorRef.noSender());
                 changeQueueTestProbe.expectNoMessage();
+                thingEventObserver.assertProcessed(thingModified);
             }
         };
     }
@@ -194,6 +208,7 @@ public final class ThingUpdaterTest {
                 underTest.tell(PolicyReferenceTag.of(THING_ID, PolicyTag.of(policyId, REVISION)),
                         ActorRef.noSender());
                 changeQueueTestProbe.expectNoMessage();
+                thingEventObserver.assertProcessed();
             }
         };
     }
@@ -286,7 +301,8 @@ public final class ThingUpdaterTest {
     public void recoverLastWriteModel() {
         new TestKit(actorSystem) {{
             final Props props = Props.create(ThingUpdater.class,
-                    () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0, false, true));
+                    () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(),
+                            AssertingThingEventObserver.get(), 0.0, false, true));
             final var underTest = childActorOf(props, THING_ID.toString());
 
             final var document = new BsonDocument()
@@ -311,8 +327,26 @@ public final class ThingUpdaterTest {
 
     private ActorRef createThingUpdaterActor() {
         final Props props = Props.create(ThingUpdater.class,
-                () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0, false, false));
+                () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), thingEventObserver,
+                        0.0, false, false));
         return actorSystem.actorOf(props, THING_ID.toString());
     }
 
+    private static class AssertingThingEventObserver extends ThingEventObserver {
+
+        private final List<ThingEvent<?>> processed = new ArrayList<>();
+
+        public static AssertingThingEventObserver get() {
+            return new AssertingThingEventObserver();
+        }
+
+        @Override
+        public void processThingEvent(final ThingEvent<?> event) {
+            processed.add(event);
+        }
+
+        private void assertProcessed(final ThingEvent<?>... expected) {
+            assertThat(processed).isEqualTo(List.of(expected));
+        }
+    }
 }

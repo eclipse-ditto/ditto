@@ -48,6 +48,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
     @Nullable private final String mongoHintsByNamespace;
     private final String queryCriteriaValidator;
     private final String searchUpdateMapper;
+    private final String thingEventObserver;
     private final UpdaterConfig updaterConfig;
     private final HealthCheckConfig healthCheckConfig;
     private final IndexInitializationConfig indexInitializationConfig;
@@ -65,6 +66,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
         mongoHintsByNamespace = configWithFallback.getStringOrNull(SearchConfigValue.MONGO_HINTS_BY_NAMESPACE);
         queryCriteriaValidator = configWithFallback.getStringOrNull(SearchConfigValue.QUERY_CRITERIA_VALIDATOR);
         searchUpdateMapper = configWithFallback.getStringOrNull(SearchConfigValue.SEARCH_UPDATE_MAPPER);
+        thingEventObserver = configWithFallback.getStringOrNull(SearchConfigValue.THING_EVENT_OBSERVER);
         updaterConfig = DefaultUpdaterConfig.of(configWithFallback);
         indexInitializationConfig = DefaultIndexInitializationConfig.of(configWithFallback);
     }
@@ -94,6 +96,11 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
     @Override
     public String getSearchUpdateMapperImplementation() {
         return searchUpdateMapper;
+    }
+
+    @Override
+    public String getThingEventObserverImplementation() {
+        return thingEventObserver;
     }
 
     @Override
@@ -159,6 +166,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
         return Objects.equals(mongoHintsByNamespace, that.mongoHintsByNamespace) &&
                 Objects.equals(queryCriteriaValidator, that.queryCriteriaValidator) &&
                 Objects.equals(searchUpdateMapper, that.searchUpdateMapper) &&
+                Objects.equals(thingEventObserver, that.thingEventObserver) &&
                 Objects.equals(updaterConfig, that.updaterConfig) &&
                 Objects.equals(dittoServiceConfig, that.dittoServiceConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
@@ -169,8 +177,9 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
 
     @Override
     public int hashCode() {
-        return Objects.hash(mongoHintsByNamespace, queryCriteriaValidator, searchUpdateMapper, updaterConfig,
-                dittoServiceConfig, healthCheckConfig, indexInitializationConfig, persistenceOperationsConfig,
+        return Objects.hash(mongoHintsByNamespace, queryCriteriaValidator, searchUpdateMapper, thingEventObserver,
+                updaterConfig, dittoServiceConfig, healthCheckConfig, indexInitializationConfig,
+                persistenceOperationsConfig,
                 mongoDbConfig);
     }
 
@@ -180,6 +189,7 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
                 "mongoHintsByNamespace=" + mongoHintsByNamespace +
                 ", queryCriteriaValidator=" + queryCriteriaValidator +
                 ", searchUpdateMapper=" + searchUpdateMapper +
+                ", thingEventObserver=" + thingEventObserver +
                 ", updaterConfig=" + updaterConfig +
                 ", dittoServiceConfig=" + dittoServiceConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
