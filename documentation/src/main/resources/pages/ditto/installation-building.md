@@ -14,7 +14,6 @@ In order to build Ditto with Maven, you'll need:
 
 ```bash
 mvn clean install
-cd services
 sh build-images.sh
 ```
 
