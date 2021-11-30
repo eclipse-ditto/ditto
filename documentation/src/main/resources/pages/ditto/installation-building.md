@@ -31,7 +31,6 @@ docker run -it --rm --name mvn-ditto \
     maven:3.6-jdk-11 \
     mvn clean install
 
-cd services
 sh build-images.sh
 ```
 
