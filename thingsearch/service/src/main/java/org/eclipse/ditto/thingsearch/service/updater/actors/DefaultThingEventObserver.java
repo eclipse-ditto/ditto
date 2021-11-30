@@ -14,10 +14,16 @@ package org.eclipse.ditto.thingsearch.service.updater.actors;
 
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
+import akka.actor.ActorSystem;
+
 /**
  * Default ThingEventObserver implementation.
  */
 public class DefaultThingEventObserver extends ThingEventObserver {
+
+    public DefaultThingEventObserver(final ActorSystem system) {
+        // nothing to do
+    }
 
     @Override
     public void processThingEvent(final ThingEvent<?> event) {
