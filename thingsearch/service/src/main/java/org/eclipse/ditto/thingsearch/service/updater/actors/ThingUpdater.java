@@ -302,7 +302,7 @@ final class ThingUpdater extends AbstractActorWithStash {
             log.warning("Got negative acknowledgement for <{}>; updating to <{}>.",
                     Metadata.fromResponse(response),
                     metadata);
-            enqueueMetadata(metadata);
+            enqueueMetadata(metadata.withUpdateReason(UpdateReason.RETRY));
         }
     }
 

@@ -52,7 +52,7 @@ public final class Metadata {
     private final boolean invalidateThing;
     private final boolean invalidatePolicy;
     @Nullable private final ActorRef origin;
-    private final UpdateReason reason;
+    private final List<UpdateReason> updateReasons;
 
     private Metadata(final ThingId thingId,
             final long thingRevision,
@@ -65,7 +65,7 @@ public final class Metadata {
             final boolean invalidateThing,
             final boolean invalidatePolicy,
             @Nullable final ActorRef origin,
-            final UpdateReason reason) {
+            final Collection<UpdateReason> updateReasons) {
 
         this.thingId = thingId;
         this.thingRevision = thingRevision;
@@ -78,7 +78,7 @@ public final class Metadata {
         this.invalidateThing = invalidateThing;
         this.invalidatePolicy = invalidatePolicy;
         this.origin = origin;
-        this.reason = reason;
+        this.updateReasons = List.copyOf(updateReasons);
     }
 
     /**
@@ -99,7 +99,7 @@ public final class Metadata {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, null,
                 List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, false, null,
-                UpdateReason.UNKNOWN);
+                List.of(UpdateReason.UNKNOWN));
     }
 
     /**
@@ -123,7 +123,7 @@ public final class Metadata {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, null, events,
                 null != timer ? List.of(timer) : List.of(),
-                null != sender ? List.of(sender) : List.of(), false, false, null, UpdateReason.UNKNOWN);
+                null != sender ? List.of(sender) : List.of(), false, false, null, List.of(UpdateReason.UNKNOWN));
     }
 
     /**
@@ -147,7 +147,7 @@ public final class Metadata {
             final Collection<ActorRef> senders) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, List.of(), timers, senders,
-                false, false, null, UpdateReason.UNKNOWN);
+                false, false, null, List.of(UpdateReason.UNKNOWN));
     }
 
     /**
@@ -170,7 +170,7 @@ public final class Metadata {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified,
                 List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, false, null,
-                UpdateReason.UNKNOWN);
+                List.of(UpdateReason.UNKNOWN));
     }
 
     /**
@@ -195,7 +195,7 @@ public final class Metadata {
      */
     public Metadata invalidateCaches(final boolean invalidateThing, final boolean invalidatePolicy) {
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateThing, invalidatePolicy, origin, reason);
+                invalidateThing, invalidatePolicy, origin, updateReasons);
     }
 
     /**
@@ -205,7 +205,7 @@ public final class Metadata {
      */
     public Metadata withOrigin(@Nullable final ActorRef origin) {
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateThing, invalidatePolicy, origin, reason);
+                invalidateThing, invalidatePolicy, origin, updateReasons);
     }
 
     /**
@@ -215,7 +215,7 @@ public final class Metadata {
      */
     public Metadata withSender(final ActorRef sender) {
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, List.of(sender),
-                invalidateThing, invalidatePolicy, origin, reason);
+                invalidateThing, invalidatePolicy, origin, updateReasons);
     }
 
     /**
@@ -225,7 +225,7 @@ public final class Metadata {
      */
     public Metadata withUpdateReason(final UpdateReason reason) {
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateThing, invalidatePolicy, origin, reason);
+                invalidateThing, invalidatePolicy, origin, List.of(reason));
     }
 
     /**
@@ -324,8 +324,8 @@ public final class Metadata {
      *
      * @return the update reason.
      */
-    public UpdateReason getUpdateReason() {
-        return reason;
+    public List<UpdateReason> getUpdateReasons() {
+        return updateReasons;
     }
 
     /**
@@ -368,11 +368,13 @@ public final class Metadata {
                 Stream.concat(timers.stream(), newMetadata.timers.stream()).collect(Collectors.toList());
         final List<ActorRef> newSenders =
                 Stream.concat(senders.stream(), newMetadata.senders.stream()).collect(Collectors.toList());
+        final List<UpdateReason> newReasons =
+                Stream.concat(updateReasons.stream(), newMetadata.updateReasons.stream()).collect(Collectors.toList());
         return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.policyId,
                 newMetadata.policyRevision, newMetadata.modified, newEvents, newTimers, newSenders,
                 invalidateThing || newMetadata.invalidateThing,
                 invalidatePolicy || newMetadata.invalidatePolicy,
-                newMetadata.origin, newMetadata.reason);
+                newMetadata.origin, newReasons);
     }
 
     /**
@@ -429,13 +431,13 @@ public final class Metadata {
                 invalidateThing == that.invalidateThing &&
                 invalidatePolicy == that.invalidatePolicy &&
                 Objects.equals(origin, that.origin) &&
-                Objects.equals(reason, that.reason);
+                Objects.equals(updateReasons, that.updateReasons);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateThing, invalidatePolicy, origin, reason);
+                invalidateThing, invalidatePolicy, origin, updateReasons);
     }
 
     @Override
@@ -452,7 +454,7 @@ public final class Metadata {
                 ", invalidateThing=" + invalidateThing +
                 ", invalidatePolicy=" + invalidatePolicy +
                 ", origin=" + origin +
-                ", reason=" + reason +
+                ", updateReasons=" + updateReasons +
                 "]";
     }
 

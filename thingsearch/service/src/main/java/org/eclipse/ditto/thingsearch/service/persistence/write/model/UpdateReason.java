@@ -36,6 +36,10 @@ public enum UpdateReason {
     /**
      * Reason not known.
      */
-    UNKNOWN
+    UNKNOWN,
+    /**
+     * A search update failed and the update is retried.
+     */
+    RETRY;
 
 }
