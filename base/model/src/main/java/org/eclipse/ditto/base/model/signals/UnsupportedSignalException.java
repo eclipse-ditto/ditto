@@ -21,12 +21,13 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableException;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
 
 /**
  * Thrown if a {@link Signal} is not supported.
@@ -96,14 +97,23 @@ public final class UnsupportedSignalException extends DittoRuntimeException {
      */
     public static UnsupportedSignalException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         checkNotNull(jsonObject, "jsonObject");
-        checkNotNull(dittoHeaders, "dittoHeaders");
 
         final Builder builder = new Builder();
-        builder.dittoHeaders(dittoHeaders);
-        builder.message(jsonObject.getValueOrThrow(JsonFields.MESSAGE));
-        jsonObject.getValue(JsonFields.STATUS).flatMap(HttpStatus::tryGetInstance).ifPresent(builder::httpStatus);
-        jsonObject.getValue(JsonFields.DESCRIPTION).ifPresent(builder::description);
-        jsonObject.getValue(JsonFields.HREF).map(URI::create).ifPresent(builder::href);
+        builder.dittoHeaders(checkNotNull(dittoHeaders, "dittoHeaders"));
+
+        try {
+            builder.message(jsonObject.getValueOrThrow(JsonFields.MESSAGE));
+            jsonObject.getValue(JsonFields.STATUS).flatMap(HttpStatus::tryGetInstance).ifPresent(builder::httpStatus);
+            jsonObject.getValue(JsonFields.DESCRIPTION).ifPresent(builder::description);
+            jsonObject.getValue(JsonFields.HREF).map(URI::create).ifPresent(builder::href);
+        } catch (final Exception e) {
+            throw JsonParseException.newBuilder()
+                    .message(MessageFormat.format("Failed to deserialize JSON object to a {0}: {1}",
+                            UnsupportedSignalException.class.getSimpleName(),
+                            e.getMessage()))
+                    .cause(e)
+                    .build();
+        }
 
         return builder.build();
     }
