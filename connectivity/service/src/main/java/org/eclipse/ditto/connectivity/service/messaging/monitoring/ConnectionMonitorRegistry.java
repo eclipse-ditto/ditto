@@ -134,6 +134,16 @@ public interface ConnectionMonitorRegistry<T> {
     T forInboundAcknowledged(Connection connection, String source);
 
     /**
+     * Gets counter for {@link org.eclipse.ditto.connectivity.model.MetricDirection#INBOUND}/{@link
+     * org.eclipse.ditto.connectivity.model.MetricType#THROTTLED} messages.
+     *
+     * @param connection connection
+     * @param source the source
+     * @return the inbound counter
+     */
+    T forInboundThrottled(Connection connection, String source);
+
+    /**
      * Gets counter for {@link org.eclipse.ditto.connectivity.model.MetricDirection#OUTBOUND}/{@link
      * org.eclipse.ditto.connectivity.model.MetricType#DISPATCHED} messages for responses.
      *

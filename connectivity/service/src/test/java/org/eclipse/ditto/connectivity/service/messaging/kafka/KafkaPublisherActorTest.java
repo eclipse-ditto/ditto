@@ -17,6 +17,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.base.model.common.HttpStatus.SERVICE_UNAVAILABLE;
 import static org.mockito.Mockito.mock;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
@@ -38,6 +39,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
+import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -80,7 +82,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     private static final String TARGET_TOPIC = "anyTopic";
     private static final String OUTBOUND_ADDRESS = TARGET_TOPIC + "/keyA";
 
-    private final Queue<ProducerRecord<String, String>> published = new ConcurrentLinkedQueue<>();
+    private final Queue<ProducerRecord<String, ByteBuffer>> published = new ConcurrentLinkedQueue<>();
 
     private final DittoConnectivityConfig connectivityConfig =
             DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG));
@@ -117,12 +119,12 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected void verifyPublishedMessage() {
         Awaitility.await("wait for published messages").until(() -> !published.isEmpty());
-        final ProducerRecord<String, String> record = checkNotNull(published.poll());
+        final ProducerRecord<String, ByteBuffer> record = checkNotNull(published.poll());
         assertThat(published).isEmpty();
         assertThat(record).isNotNull();
         assertThat(record.topic()).isEqualTo(TARGET_TOPIC);
         assertThat(record.key()).isEqualTo("keyA");
-        assertThat(record.value()).isEqualTo("payload");
+        assertThat(record.value()).isEqualTo(ByteBufferUtils.fromUtf8String("payload"));
         final List<Header> headers = Arrays.asList(record.headers().toArray());
         shouldContainHeader(headers, "thing_id", TestConstants.Things.THING_ID.toString());
         shouldContainHeader(headers, "suffixed_thing_id", TestConstants.Things.THING_ID + ".some.suffix");
@@ -141,7 +143,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected void verifyPublishedMessageToReplyTarget() {
         Awaitility.await().until(() -> !published.isEmpty());
-        final ProducerRecord<String, String> record = checkNotNull(published.poll());
+        final ProducerRecord<String, ByteBuffer> record = checkNotNull(published.poll());
         assertThat(published).isEmpty();
         assertThat(record.topic()).isEqualTo("replyTarget");
         assertThat(record.key()).isEqualTo("thing:id");

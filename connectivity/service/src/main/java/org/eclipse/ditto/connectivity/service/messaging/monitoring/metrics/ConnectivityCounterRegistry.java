@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics;
 
-import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -22,7 +20,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -30,7 +27,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.connectivity.model.AddressMetric;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -50,12 +46,13 @@ import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 
 /**
- * This registry holds counters for the connectivity service. The counters are identified by the connection id, a {@link
- * MetricType}, a {@link MetricDirection} and an address.
+ * This registry holds counters for the connectivity service. The counters are identified by the connection id,
+ * a {@link MetricType}, a {@link MetricDirection} and an address.
  */
 public final class ConnectivityCounterRegistry implements ConnectionMonitorRegistry<ConnectionMetricsCounter> {
 
-    private static final ConcurrentMap<MapKey, DefaultConnectionMetricsCounter> counters = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<CounterKey, DefaultConnectionMetricsCounter> counters =
+            new ConcurrentHashMap<>();
     private static final MetricAlertRegistry alertRegistry = new MetricAlertRegistry();
 
     // artificial internal address for responses
@@ -66,7 +63,6 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
     private final ConnectivityConfig connectivityConfig;
 
     private ConnectivityCounterRegistry(final ConnectivityConfig connectivityConfig) {
-        // intentionally empty
         this.connectivityConfig = connectivityConfig;
     }
 
@@ -74,8 +70,8 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
         return new ConnectivityCounterRegistry(connectivityConfig);
     }
 
-    static ConnectionMetricsCounter lookup(final MapKey mapKey) {
-        return counters.get(mapKey);
+    static ConnectionMetricsCounter lookup(final CounterKey counterKey) {
+        return counters.get(counterKey);
     }
 
     /**
@@ -95,7 +91,6 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
                 .forEach(address ->
                         initCounter(connection, MetricDirection.OUTBOUND, address));
         initCounter(connection, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
-        updateAlertsForConnection(connection);
     }
 
     /**
@@ -107,39 +102,31 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
     public void resetForConnection(final Connection connection) {
         final ConnectionId connectionId = connection.getId();
         counters.entrySet().stream()
-                .filter(entry -> entry.getKey().connectionId.equals(connectionId))
+                .filter(entry -> entry.getKey().getConnectionId().equals(connectionId))
                 .forEach(entry -> entry.getValue().reset());
-        updateAlertsForConnection(connection);
     }
 
     /**
-     * Ensures that all alerts for this connection use the current {@link #connectivityConfig}.
-     *
-     * @param connection the connection for which the alerts should get updated.
+     * Register a custom alert for the given parameters that is created by the given alert factory.
      */
-    private void updateAlertsForConnection(final Connection connection) {
-        connection.getSources().stream()
-                .map(Source::getAddresses)
-                .flatMap(Collection::stream)
-                .forEach(address -> alertRegistry.updateAlert(MetricsAlert.Key.CONSUMED_INBOUND,
-                        connection.getId(), connection.getConnectionType(), address,
-                        connectivityConfig));
+    public void registerAlertFactory(final MetricType metricType,
+            final MetricDirection metricDirection, final MetricsAlertFactory factory) {
+        MetricsAlert.Key.from(metricDirection, metricType)
+                .ifPresent(alertKey -> alertRegistry.registerCustomAlert(alertKey, factory));
     }
 
-    private void initCounter(final Connection connection, final MetricDirection metricDirection,
-            final String address) {
+    private void initCounter(final Connection connection, final MetricDirection metricDirection, final String address) {
         Arrays.stream(MetricType.values())
                 .filter(metricType -> metricType.supportsDirection(metricDirection))
                 .forEach(metricType -> {
                     final ConnectionId connectionId = connection.getId();
                     final ConnectionType connectionType = connection.getConnectionType();
-                    final MapKey key = new MapKey(connectionId, metricType, metricDirection, address);
-                    final MetricsAlert alert =
-                            new DelegatingAlert(() -> alertRegistry.getAlert(metricDirection, metricType, connectionId,
-                                    connectionType, address, connectivityConfig));
+                    final CounterKey key = CounterKey.of(connectionId, metricType, metricDirection, address);
+                    final MetricsAlert delegatingAlert = new DelegatingAlert(() -> alertRegistry.getAlert(key,
+                            connectionType, connectivityConfig));
                     counters.computeIfAbsent(key,
                             m -> ConnectionMetricsCounterFactory.create(metricType, metricDirection, connectionId,
-                                    connectionType, address, CLOCK_UTC, alert));
+                                    connectionType, address, CLOCK_UTC, delegatingAlert));
                 });
     }
 
@@ -159,6 +146,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
             final String address) {
         final ConnectionId connectionId = connection.getId();
         final ConnectionType connectionType = connection.getConnectionType();
+
         return getCounter(CLOCK_UTC, connectionId, connectionType, metricType, metricDirection, address);
     }
 
@@ -179,10 +167,9 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
             final MetricType metricType,
             final MetricDirection metricDirection,
             final String address) {
-        final MapKey key = new MapKey(connectionId, metricType, metricDirection, address);
-        final MetricsAlert alert = new DelegatingAlert(
-                () -> alertRegistry.getAlert(metricDirection, metricType, connectionId, connectionType, address,
-                        connectivityConfig));
+        final CounterKey key = CounterKey.of(connectionId, metricType, metricDirection, address);
+        final MetricsAlert alert = alertRegistry.getAlert(key, connectionType, connectivityConfig);
+
         return counters.computeIfAbsent(key,
                 m -> ConnectionMetricsCounterFactory.create(metricType, metricDirection, connectionId, connectionType,
                         address, clock, alert));
@@ -239,6 +226,11 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
     }
 
     @Override
+    public ConnectionMetricsCounter forInboundThrottled(final Connection connection, final String source) {
+        return getCounter(connection, MetricType.THROTTLED, MetricDirection.INBOUND, source);
+    }
+
+    @Override
     public ConnectionMetricsCounter forResponseDispatched(final Connection connection) {
         return getCounter(connection, MetricType.DISPATCHED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
@@ -265,10 +257,9 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
 
     private static Stream<DefaultConnectionMetricsCounter> streamFor(final ConnectionId connectionId,
             final MetricDirection metricDirection) {
-
         return counters.entrySet()
                 .stream()
-                .filter(e -> e.getKey().connectionId.equals(connectionId))
+                .filter(e -> e.getKey().getConnectionId().equals(connectionId))
                 .filter(e -> metricDirection == e.getValue().getMetricDirection())
                 .map(Map.Entry::getValue);
     }
@@ -286,6 +277,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
                                     ? ConnectivityModelFactory.newAddressMetric(metric, measurements)
                                     : ConnectivityModelFactory.newAddressMetric(measurements);
                         }));
+
         return addressMetrics;
     }
 
@@ -363,6 +355,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
             final SourceMetrics sourceMetrics, final TargetMetrics targetMetrics) {
         final AddressMetric fromSources = mergeAllMetrics(sourceMetrics.getAddressMetrics().values());
         final AddressMetric fromTargets = mergeAllMetrics(targetMetrics.getAddressMetrics().values());
+
         return ConnectivityModelFactory.newConnectionMetrics(fromSources, fromTargets);
     }
 
@@ -371,6 +364,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
         for (AddressMetric metric : metrics) {
             result = mergeAddressMetric(result, metric);
         }
+
         return result;
     }
 
@@ -396,6 +390,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
                                     measurementB.getLastMessageAt().orElse(null)
                             ));
                 }));
+
         return ConnectivityModelFactory.newAddressMetric(new HashSet<>(result.values()));
     }
 
@@ -411,6 +406,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
             final Map<String, AddressMetric> second) {
         final Map<String, AddressMetric> result = new HashMap<>(first);
         second.forEach((k, v) -> result.merge(k, v, ConnectivityCounterRegistry::mergeAddressMetric));
+
         return result;
     }
 
@@ -424,6 +420,7 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
             final Map<Duration, Long> measurementB) {
         final Map<Duration, Long> result = new HashMap<>(measurementA);
         measurementB.forEach((k, v) -> result.merge(k, v, Long::sum));
+
         return result;
     }
 
@@ -439,66 +436,4 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
             return Instant.ofEpochMilli(Math.max(instantA.toEpochMilli(), instantB.toEpochMilli()));
         }
     }
-
-    /**
-     * Helper class to build the map key of the registry.
-     */
-    @Immutable
-    static class MapKey {
-
-        private final ConnectionId connectionId;
-        private final String metric;
-        private final String direction;
-        private final String address;
-
-        /**
-         * New map key.
-         *
-         * @param connectionId connection id
-         * @param metricType the metricType
-         * @param metricDirection the metricDirection
-         * @param address the address
-         */
-        MapKey(final ConnectionId connectionId,
-                final MetricType metricType,
-                final MetricDirection metricDirection,
-                final String address) {
-            this.connectionId = checkNotNull(connectionId, "connectionId");
-            this.metric = metricType.getName();
-            this.direction = metricDirection.getName();
-            this.address = checkNotNull(address, "address");
-        }
-
-        @Override
-        public boolean equals(@Nullable final Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            final MapKey mapKey = (MapKey) o;
-            return Objects.equals(connectionId, mapKey.connectionId) &&
-                    Objects.equals(metric, mapKey.metric) &&
-                    Objects.equals(direction, mapKey.direction) &&
-                    Objects.equals(address, mapKey.address);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(connectionId, metric, direction, address);
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() + " [" +
-                    "connectionId=" + connectionId +
-                    ", metric=" + metric +
-                    ", direction=" + direction +
-                    ", address=" + address +
-                    "]";
-        }
-
-    }
-
 }

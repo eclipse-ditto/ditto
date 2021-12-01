@@ -54,9 +54,9 @@ import org.komamitsu.fluency.Fluency;
 import org.slf4j.Logger;
 
 /**
- * This registry holds loggers for the connectivity service. The loggers are identified by the connection ID, a {@link
- * org.eclipse.ditto.connectivity.model.LogType}, a {@link org.eclipse.ditto.connectivity.model.LogCategory} and an
- * address. The public methods of this class should not throw exceptions since this can lead to crashing connections.
+ * This registry holds loggers for the connectivity service. The loggers are identified by the connection ID,
+ * a {@link org.eclipse.ditto.connectivity.model.LogType}, a {@link org.eclipse.ditto.connectivity.model.LogCategory}
+ * and an address. The public methods of this class should not throw exceptions since this can lead to crashing connections.
  */
 public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry<ConnectionLogger> {
 
@@ -182,6 +182,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             currentSize = sizeWithNextEntry;
         }
         Collections.reverse(restrictedLogs);
+
         return restrictedLogs;
     }
 
@@ -195,6 +196,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         final boolean muted = streamLoggers(connectionId)
                 .filter(MuteableConnectionLogger.class::isInstance)
                 .anyMatch(logger -> ((MuteableConnectionLogger) logger).isMuted());
+
         return !muted;
     }
 
@@ -210,6 +212,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         if (enabledUntil == null || timestamp.isAfter(enabledUntil)) {
             LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
                     .debug("Logging for connection <{}> expired.", connectionId);
+
             return true;
         }
 
@@ -420,6 +423,11 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     @Override
     public ConnectionLogger forInboundAcknowledged(final Connection connection, final String source) {
         return getLogger(connection.getId(), LogCategory.SOURCE, LogType.ACKNOWLEDGED, source);
+    }
+
+    @Override
+    public ConnectionLogger forInboundThrottled(final Connection connection, final String source) {
+        return getLogger(connection.getId(), LogCategory.SOURCE, LogType.THROTTLED, source);
     }
 
     @Override

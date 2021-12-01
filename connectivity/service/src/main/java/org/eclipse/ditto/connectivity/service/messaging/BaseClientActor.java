@@ -66,6 +66,8 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.FilteredTopic;
+import org.eclipse.ditto.connectivity.model.MetricDirection;
+import org.eclipse.ditto.connectivity.model.MetricType;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
@@ -101,6 +103,7 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.Connecti
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ThrottledLoggerMetricsAlert;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelActor;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
@@ -239,8 +242,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         connectionCounterRegistry = ConnectivityCounterRegistry.newInstance(connectivityConfig);
         connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
         connectionLoggerRegistry.initForConnection(connection);
-        connectionCounterRegistry.initForConnection(connection);
         connectionLogger = connectionLoggerRegistry.forConnection(connection.getId());
+        connectionCounterRegistry.registerAlertFactory(MetricType.THROTTLED, MetricDirection.INBOUND,
+                ThrottledLoggerMetricsAlert.getFactory(
+                        address -> connectionLoggerRegistry.forInboundThrottled(connection, address)));
+        connectionCounterRegistry.initForConnection(connection);
         clientGauge = DittoMetrics.gauge("connection_client")
                 .tag("id", connectionId.toString())
                 .tag("type", connection.getConnectionType().getName());
