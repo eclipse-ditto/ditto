@@ -16,7 +16,7 @@ package org.eclipse.ditto.internal.models.signal.type;
  * Thrown to indicate that the application has attempted to convert a CharSequence to a signal type, but that
  * CharSequence does not have the appropriate format.
  *
- * TODO change @since 2.x.x
+ * @since 2.3.0
  */
 public final class SignalTypeFormatException extends Exception {
 

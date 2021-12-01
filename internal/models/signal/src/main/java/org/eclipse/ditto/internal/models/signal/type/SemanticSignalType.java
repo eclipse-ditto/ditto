@@ -28,7 +28,7 @@ import javax.annotation.concurrent.Immutable;
  * <em>Note:</em> This class cannot be used for {@code Acknowledgement} signals.
  * </p>
  *
- * TODO change @since 2.x.x
+ * @since 2.3.0
  */
 @Immutable
 public final class SemanticSignalType {

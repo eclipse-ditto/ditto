@@ -182,6 +182,7 @@ public final class TestSetup {
             enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
             enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache,
                     projectedEnforcerCache,
+                    system,
                     new DummyLiveSignalPub(puSubMediatorRef),
                     ENFORCEMENT_CONFIG));
             final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, preEnforcer,

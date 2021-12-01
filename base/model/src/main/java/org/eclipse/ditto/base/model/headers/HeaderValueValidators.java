@@ -178,7 +178,7 @@ public final class HeaderValueValidators {
      * Normalization is temporarily conducted by the returned validator for validation only.
      *
      * @return the validator.
-     * @since 2.1.0
+     * @since 2.3.0
      */
     static ValueValidator getDittoChannelValidator() {
         return DittoChannelValueValidator.getInstance();

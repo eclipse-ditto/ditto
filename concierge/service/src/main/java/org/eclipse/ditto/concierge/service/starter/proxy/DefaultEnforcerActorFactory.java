@@ -123,6 +123,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache));
         enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache,
                 projectedEnforcerCache,
+                actorSystem,
                 liveSignalPub,
                 conciergeConfig.getEnforcementConfig()));
 

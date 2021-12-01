@@ -25,7 +25,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
  * Normalized in this context means trimmed and converted to lower case.
  * Normalization is temporarily conducted by this class for validation only.
  *
- * @since 2.1.0
+ * @since 2.3.0
  */
 @Immutable
 final class DittoChannelValueValidator extends AbstractHeaderValueValidator {

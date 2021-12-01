@@ -26,7 +26,7 @@ import akka.cluster.sharding.ClusterSharding;
 /**
  * Factory for creating shard region proxy actors.
  *
- * TODO change @since 2.x.x
+ * @since 2.3.0
  */
 @NotThreadSafe
 public final class ShardRegionProxyActorFactory {
