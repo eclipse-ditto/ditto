@@ -62,7 +62,6 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
-import akka.actor.ActorSystem;
 import akka.japi.Pair;
 
 /**
@@ -438,10 +437,10 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                         obj -> pub.wrapForPublicationWithAcks((S) obj, ackExtractor)));
     }
 
-    private <T extends Signal<?>> Contextual<WithDittoHeaders> askAndBuildJsonViewWithAckForwarding(
-            final T signal,
-            final AckExtractor<T> ackExtractor,
-            final DistributedPub<T> pub,
+    private Contextual<WithDittoHeaders> askAndBuildJsonViewWithAckForwarding(
+            final ThingCommand<?> signal,
+            final AckExtractor<ThingCommand<?>> ackExtractor,
+            final DistributedPub<ThingCommand<?>> pub,
             final Enforcer enforcer) {
 
         final var publish = pub.wrapForPublicationWithAcks(signal, ackExtractor);
