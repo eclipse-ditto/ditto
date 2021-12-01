@@ -68,15 +68,15 @@ interface ClusterMemberRemovedAware extends Actor {
     default void memberRemoved(final ClusterEvent.MemberRemoved memberRemoved) {
         final var address = memberRemoved.member().address();
         if (Cluster.get(context().system()).isTerminated()) {
-            log().debug("This instance was terminated from cluster, NOT removing declared acks on removed member <{}>",
+            log().debug("This instance was terminated from cluster, NOT removing removed member address <{}>",
                     address);
         } else {
-            // acksUpdater detected unreachable remote. remove it from local ORMultiMap.
-            log().info("Removing declared acks on removed member <{}>", address);
+            // detected unreachable remote. remove it from local ORMultiMap.
+            log().info("Removing address of removed member from DData: <{}>", address);
             getDDataWriter().removeAddress(address, writeLocal())
                     .whenComplete((unused, error) -> {
                         if (error != null) {
-                            log().error(error, "Failed to remove declared acks on removed cluster member <{}>", address);
+                            log().error(error, "Failed to remove address of removed cluster member: <{}>", address);
                         }
                     });
         }
