@@ -17,10 +17,10 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
@@ -32,7 +32,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryResponse}.
  */
-public class DeletePolicyEntryResponseTest {
+public final class DeletePolicyEntryResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, DeletePolicyEntryResponse.TYPE)
@@ -41,7 +41,6 @@ public class DeletePolicyEntryResponseTest {
             .set(DeletePolicyEntryResponse.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(DeletePolicyEntryResponse.class,
@@ -49,25 +48,23 @@ public class DeletePolicyEntryResponseTest {
                 provided(Label.class, PolicyId.class).isAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(DeletePolicyEntryResponse.class)
                 .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
 
-
     @Test
     public void toJsonReturnsExpected() {
-        final DeletePolicyEntryResponse underTest =
-                DeletePolicyEntryResponse.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+        final DeletePolicyEntryResponse underTest = DeletePolicyEntryResponse.of(TestConstants.Policy.POLICY_ID,
+                TestConstants.Policy.LABEL,
+                TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJsonCreated = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJsonCreated).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

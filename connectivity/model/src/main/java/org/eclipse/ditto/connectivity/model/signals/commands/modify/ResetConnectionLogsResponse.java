@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
@@ -21,19 +20,18 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 
 /**
  * Response to a {@link ResetConnectionLogs} command.
@@ -41,17 +39,34 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserial
 @Immutable
 @JsonParsableCommandResponse(type = ResetConnectionLogsResponse.TYPE)
 public final class ResetConnectionLogsResponse extends AbstractCommandResponse<ResetConnectionLogsResponse>
-    implements ConnectivityModifyCommandResponse<ResetConnectionLogsResponse> {
+        implements ConnectivityModifyCommandResponse<ResetConnectionLogsResponse> {
 
     /**
      * Type of this command.
      */
     public static final String TYPE = TYPE_PREFIX + ResetConnectionLogs.NAME;
 
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<ResetConnectionLogsResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    HTTP_STATUS,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new ResetConnectionLogsResponse(
+                                ConnectionId.of(jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID)),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
+
     private final ConnectionId connectionId;
 
-    private ResetConnectionLogsResponse(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatus.OK, dittoHeaders);
+    private ResetConnectionLogsResponse(final ConnectionId connectionId,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE, httpStatus, dittoHeaders);
         this.connectionId = connectionId;
     }
 
@@ -64,12 +79,12 @@ public final class ResetConnectionLogsResponse extends AbstractCommandResponse<R
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ResetConnectionLogsResponse of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
-        checkNotNull(connectionId, "Connection ID");
-        return new ResetConnectionLogsResponse(connectionId, dittoHeaders);
+        return new ResetConnectionLogsResponse(checkNotNull(connectionId, "connectionId"), HTTP_STATUS, dittoHeaders);
     }
 
     /**
      * Creates a new {@code ResetConnectionLogsResponse} from a JSON string.
+     *
      * @param jsonString the JSON containing the command.
      * @param dittoHeaders the headers of the command.
      * @return the command.
@@ -79,11 +94,12 @@ public final class ResetConnectionLogsResponse extends AbstractCommandResponse<R
      * format.
      */
     public static ResetConnectionLogsResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
      * Creates a new {@code ResetConnectionLogsResponse} from a JSON object.
+     *
      * @param jsonObject the JSON containing the command.
      * @param dittoHeaders the headers of the command.
      * @return the command.
@@ -92,21 +108,17 @@ public final class ResetConnectionLogsResponse extends AbstractCommandResponse<R
      * format.
      */
     public static ResetConnectionLogsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ResetConnectionLogsResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final String readConnectionId =
-                            jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-
-                    return of(ConnectionId.of(readConnectionId), dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID,
+                connectionId.toString(),
                 predicate);
     }
 

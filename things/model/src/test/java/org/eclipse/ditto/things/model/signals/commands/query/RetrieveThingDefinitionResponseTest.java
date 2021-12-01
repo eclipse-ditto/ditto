@@ -17,11 +17,11 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
@@ -34,41 +34,42 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link RetrieveThingDefinitionResponse}.
  */
-public class RetrieveThingDefinitionResponseTest {
+public final class RetrieveThingDefinitionResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveThingDefinitionResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
-            .set(RetrieveThingDefinitionResponse.JSON_DEFINITION, JsonValue.of(TestConstants.Thing.DEFINITION.toString()))
+            .set(RetrieveThingDefinitionResponse.JSON_DEFINITION,
+                    JsonValue.of(TestConstants.Thing.DEFINITION.toString()))
             .build();
-
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveThingDefinitionResponse.class, areImmutable(),
+        assertInstancesOf(RetrieveThingDefinitionResponse.class,
+                areImmutable(),
                 provided(ThingId.class, ThingDefinition.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(RetrieveThingDefinitionResponse.class)
                 .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
         final RetrieveThingDefinitionResponse underTest =
-                RetrieveThingDefinitionResponse.of(TestConstants.Thing.THING_ID, TestConstants.Thing.DEFINITION,
+                RetrieveThingDefinitionResponse.of(TestConstants.Thing.THING_ID,
+                        TestConstants.Thing.DEFINITION,
                         TestConstants.EMPTY_DITTO_HEADERS);
+
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {
@@ -76,9 +77,8 @@ public class RetrieveThingDefinitionResponseTest {
                 RetrieveThingDefinitionResponse.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         ThingCommandAssertions.assertThat(underTest).isNotNull();
-        assertThat(underTest.getThingDefinition().toString()).isEqualTo(
-                TestConstants.Thing.DEFINITION.toString());
+        assertThat(underTest.getThingDefinition().toString())
+                .isEqualTo(TestConstants.Thing.DEFINITION.toString());
     }
-
 
 }

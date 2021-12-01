@@ -20,23 +20,22 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 /**
@@ -53,12 +52,26 @@ public final class RetrieveFeaturePropertiesResponse extends AbstractCommandResp
     public static final String TYPE = TYPE_PREFIX + RetrieveFeatureProperties.NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("featureId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonObject> JSON_PROPERTIES =
-            JsonFactory.newJsonObjectFieldDefinition("properties", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonObject("properties", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<RetrieveFeaturePropertiesResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    HTTP_STATUS,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new RetrieveFeaturePropertiesResponse(
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                jsonObject.getValueOrThrow(JSON_FEATURE_ID),
+                                ThingsModelFactory.newFeatureProperties(jsonObject.getValueOrThrow(JSON_PROPERTIES)),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final ThingId thingId;
     private final String featureId;
@@ -67,12 +80,13 @@ public final class RetrieveFeaturePropertiesResponse extends AbstractCommandResp
     private RetrieveFeaturePropertiesResponse(final ThingId thingId,
             final String featureId,
             final FeatureProperties featureProperties,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatus.OK, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "thing ID");
-        this.featureId = checkNotNull(featureId, "Feature ID");
-        this.featureProperties = checkNotNull(featureProperties, "FeatureProperties");
+        super(TYPE, httpStatus, dittoHeaders);
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.featureId = checkNotNull(featureId, "featureId");
+        this.featureProperties = checkNotNull(featureProperties, "featureProperties");
     }
 
     /**
@@ -90,7 +104,7 @@ public final class RetrieveFeaturePropertiesResponse extends AbstractCommandResp
             final FeatureProperties featureProperties,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveFeaturePropertiesResponse(thingId, featureId, featureProperties, dittoHeaders);
+        return new RetrieveFeaturePropertiesResponse(thingId, featureId, featureProperties, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -130,7 +144,7 @@ public final class RetrieveFeaturePropertiesResponse extends AbstractCommandResp
      * format.
      */
     public static RetrieveFeaturePropertiesResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -146,16 +160,7 @@ public final class RetrieveFeaturePropertiesResponse extends AbstractCommandResp
     public static RetrieveFeaturePropertiesResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new CommandResponseJsonDeserializer<RetrieveFeaturePropertiesResponse>(TYPE, jsonObject)
-                .deserialize(httpStatus -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
-                    final ThingId thingId = ThingId.of(extractedThingId);
-                    final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
-                    final JsonObject extractedFeatureProperties = jsonObject.getValueOrThrow(JSON_PROPERTIES);
-
-                    return of(thingId, extractedFeatureId, extractedFeatureProperties, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -199,12 +204,12 @@ public final class RetrieveFeaturePropertiesResponse extends AbstractCommandResp
 
     @Override
     public JsonPointer getResourcePath() {
-        final String path = "/features/" + featureId + "/properties";
-        return JsonPointer.of(path);
+        return JsonPointer.of("/features/" + featureId + "/properties");
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

@@ -17,15 +17,19 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -33,55 +37,82 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link RetrieveAttributesResponse}.
  */
-public class RetrieveAttributesResponseTest {
+public final class RetrieveAttributesResponseTest {
 
-    private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(ThingCommandResponse.JsonFields.TYPE, RetrieveAttributesResponse.TYPE)
-            .set(ThingCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
-            .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
-            .set(RetrieveAttributesResponse.JSON_ATTRIBUTES, TestConstants.Thing.ATTRIBUTES)
-            .build();
+    @Rule
+    public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
 
+    private DittoHeaders dittoHeaders;
+
+    @Before
+    public void before() {
+        dittoHeaders = DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
+    }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveAttributesResponse.class, areImmutable(),
+        assertInstancesOf(RetrieveAttributesResponse.class,
+                areImmutable(),
                 provided(Attributes.class, ThingId.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(RetrieveAttributesResponse.class)
                 .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullAttributes() {
-        RetrieveAttributesResponse.of(TestConstants.Thing.THING_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
+        RetrieveAttributesResponse.of(TestConstants.Thing.THING_ID, null, dittoHeaders);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
-        final RetrieveAttributesResponse underTest =
-                RetrieveAttributesResponse.of(TestConstants.Thing.THING_ID, TestConstants.Thing.ATTRIBUTES,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+        final JsonObject expectedJsonObject = JsonObject.newBuilder()
+                .set(ThingCommandResponse.JsonFields.TYPE, RetrieveAttributesResponse.TYPE)
+                .set(ThingCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
+                .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
+                .set(RetrieveAttributesResponse.JSON_ATTRIBUTES, TestConstants.Thing.ATTRIBUTES)
+                .build();
+
+        final RetrieveAttributesResponse underTest = RetrieveAttributesResponse.of(TestConstants.Thing.THING_ID,
+                TestConstants.Thing.ATTRIBUTES,
+                dittoHeaders);
+
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
-        DittoJsonAssertions.assertThat(actualJson).isEqualTo(KNOWN_JSON);
+        DittoJsonAssertions.assertThat(actualJson).isEqualTo(expectedJsonObject);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {
-        final RetrieveAttributesResponse underTest =
-                RetrieveAttributesResponse.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
+        final RetrieveAttributesResponse retrieveAttributesResponse =
+                RetrieveAttributesResponse.of(TestConstants.Thing.THING_ID,
+                        TestConstants.Thing.ATTRIBUTES,
+                        dittoHeaders);
 
-        assertThat(underTest).isNotNull();
-        assertThat(underTest.getAttributes()).isEqualTo(TestConstants.Thing.ATTRIBUTES);
+        final RetrieveAttributesResponse fromJson =
+                RetrieveAttributesResponse.fromJson(retrieveAttributesResponse.toJson(),
+                        retrieveAttributesResponse.getDittoHeaders());
+
+        assertThat(fromJson).isEqualTo(retrieveAttributesResponse);
+    }
+
+    @Test
+    public void createInstanceFromValidJson2() {
+        final RetrieveAttributesResponse retrieveAttributesResponse =
+                RetrieveAttributesResponse.of(TestConstants.Thing.THING_ID,
+                        ThingsModelFactory.nullAttributes(),
+                        dittoHeaders);
+
+        final RetrieveAttributesResponse fromJson =
+                RetrieveAttributesResponse.fromJson(retrieveAttributesResponse.toJson(),
+                        retrieveAttributesResponse.getDittoHeaders());
+
+        assertThat(fromJson).isEqualTo(retrieveAttributesResponse);
     }
 
 }

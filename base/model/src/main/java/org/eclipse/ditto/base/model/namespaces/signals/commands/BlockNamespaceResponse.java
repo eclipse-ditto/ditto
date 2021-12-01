@@ -14,11 +14,11 @@ package org.eclipse.ditto.base.model.namespaces.signals.commands;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Response to {@link BlockNamespace}.
@@ -31,10 +31,27 @@ public final class BlockNamespaceResponse extends AbstractNamespaceCommandRespon
      */
     public static final String TYPE = TYPE_PREFIX + BlockNamespace.NAME;
 
-    private BlockNamespaceResponse(final CharSequence namespace, final CharSequence resourceType,
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<BlockNamespaceResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    HTTP_STATUS,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new BlockNamespaceResponse(
+                                jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.NAMESPACE),
+                                jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.RESOURCE_TYPE),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
+
+    private BlockNamespaceResponse(final CharSequence namespace,
+            final CharSequence resourceType,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(namespace, resourceType, TYPE, HttpStatus.OK, dittoHeaders);
+        super(namespace, resourceType, TYPE, httpStatus, dittoHeaders);
     }
 
     /**
@@ -47,10 +64,11 @@ public final class BlockNamespaceResponse extends AbstractNamespaceCommandRespon
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code namespace} or {@code resourceType} is empty.
      */
-    public static BlockNamespaceResponse getInstance(final CharSequence namespace, final CharSequence resourceType,
+    public static BlockNamespaceResponse getInstance(final CharSequence namespace,
+            final CharSequence resourceType,
             final DittoHeaders dittoHeaders) {
 
-        return new BlockNamespaceResponse(namespace, resourceType, dittoHeaders);
+        return new BlockNamespaceResponse(namespace, resourceType, HttpStatus.OK, dittoHeaders);
     }
 
     /**
@@ -68,17 +86,12 @@ public final class BlockNamespaceResponse extends AbstractNamespaceCommandRespon
      * </ul>
      */
     public static BlockNamespaceResponse fromJson(final JsonObject jsonObject, final DittoHeaders headers) {
-        return new CommandResponseJsonDeserializer<BlockNamespaceResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
-            final String namespace = jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.NAMESPACE);
-            final String resourceType = jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.RESOURCE_TYPE);
-
-            return new BlockNamespaceResponse(namespace, resourceType, headers);
-        });
+        return JSON_DESERIALIZER.deserialize(jsonObject, headers);
     }
 
     @Override
     public BlockNamespaceResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new BlockNamespaceResponse(getNamespace(), getResourceType(), dittoHeaders);
+        return new BlockNamespaceResponse(getNamespace(), getResourceType(), getHttpStatus(), dittoHeaders);
     }
 
     @Override

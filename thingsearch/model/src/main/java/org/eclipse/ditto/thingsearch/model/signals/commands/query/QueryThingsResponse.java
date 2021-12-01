@@ -20,20 +20,18 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.thingsearch.model.SearchModelFactory;
-import org.eclipse.ditto.thingsearch.model.SearchResult;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
-
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.thingsearch.model.SearchModelFactory;
+import org.eclipse.ditto.thingsearch.model.SearchResult;
 
 /**
  * Response to a {@link QueryThings} command.
@@ -48,10 +46,30 @@ public final class QueryThingsResponse extends AbstractCommandResponse<QueryThin
      */
     public static final String TYPE = TYPE_PREFIX + QueryThings.NAME;
 
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<QueryThingsResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    HTTP_STATUS,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+
+                        final JsonValue searchResultJsonValue = jsonObject.getValueOrThrow(JsonFields.PAYLOAD);
+
+                        return new QueryThingsResponse(
+                                SearchModelFactory.newSearchResult(searchResultJsonValue.asObject()),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
+
     private final SearchResult searchResult;
 
-    private QueryThingsResponse(final SearchResult searchResult, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatus.OK, dittoHeaders);
+    private QueryThingsResponse(final SearchResult searchResult,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE, httpStatus, dittoHeaders);
         this.searchResult = searchResult;
     }
 
@@ -64,7 +82,7 @@ public final class QueryThingsResponse extends AbstractCommandResponse<QueryThin
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static QueryThingsResponse of(final SearchResult searchResult, final DittoHeaders dittoHeaders) {
-        return new QueryThingsResponse(checkNotNull(searchResult, "searchResult"), dittoHeaders);
+        return new QueryThingsResponse(checkNotNull(searchResult, "searchResult"), HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -79,7 +97,7 @@ public final class QueryThingsResponse extends AbstractCommandResponse<QueryThin
      * format.
      */
     public static QueryThingsResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -93,12 +111,7 @@ public final class QueryThingsResponse extends AbstractCommandResponse<QueryThin
      * format.
      */
     public static QueryThingsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<QueryThingsResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
-            final JsonObject searchResultJson = jsonObject.getValueOrThrow(JsonFields.PAYLOAD).asObject();
-            final SearchResult extractedSearchResult = SearchModelFactory.newSearchResult(searchResultJson);
-
-            return of(extractedSearchResult, dittoHeaders);
-        });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     /**
@@ -122,8 +135,10 @@ public final class QueryThingsResponse extends AbstractCommandResponse<QueryThin
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JsonFields.PAYLOAD, searchResult.toJson(schemaVersion, thePredicate), predicate);
     }
@@ -138,7 +153,6 @@ public final class QueryThingsResponse extends AbstractCommandResponse<QueryThin
         return Objects.hash(super.hashCode(), searchResult);
     }
 
-    @SuppressWarnings("squid:MethodCyclomaticComplexity")
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {

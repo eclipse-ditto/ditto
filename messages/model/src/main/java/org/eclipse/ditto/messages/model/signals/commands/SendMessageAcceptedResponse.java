@@ -12,20 +12,20 @@
  */
 package org.eclipse.ditto.messages.model.signals.commands;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 
 /**
  * Command to send a response to a {@link org.eclipse.ditto.messages.model.Message}.
@@ -44,6 +44,23 @@ public final class SendMessageAcceptedResponse
      * Type of this command.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
+
+    private static final CommandResponseJsonDeserializer<SendMessageAcceptedResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    Objects::nonNull,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+
+                        final JsonObject jsonMessage =
+                                jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_MESSAGE);
+
+                        return new SendMessageAcceptedResponse(
+                                ThingId.of(jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID)),
+                                MessageHeaders.of(jsonMessage.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_MESSAGE_HEADERS)),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private SendMessageAcceptedResponse(final ThingId thingId,
             final MessageHeaders messageHeaders,
@@ -95,7 +112,7 @@ public final class SendMessageAcceptedResponse
      * format.
      */
     public static SendMessageAcceptedResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -109,19 +126,7 @@ public final class SendMessageAcceptedResponse
      * format.
      */
     public static SendMessageAcceptedResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<SendMessageAcceptedResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
-                    final ThingId thingId = ThingId.of(extractedThingId);
-                    final JsonObject jsonMessage =
-                            jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_MESSAGE);
-                    final JsonObject jsonHeaders =
-                            jsonMessage.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_MESSAGE_HEADERS);
-                    final MessageHeaders messageHeaders = MessageHeaders.of(jsonHeaders);
-
-                    return newInstance(thingId, messageHeaders, httpStatus, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override

@@ -16,13 +16,13 @@ import static org.eclipse.ditto.base.model.signals.commands.assertions.CommandAs
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.util.UUID;
-
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.junit.BeforeClass;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.json.JsonObject;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -35,22 +35,14 @@ public final class PurgeNamespaceResponseTest {
     private static final String NAMESPACE = "com.example.test";
     private static final String RESOURCE_TYPE = "policy";
 
-    private static JsonObject knownJsonRepresentation;
-    private static DittoHeaders dittoHeaders;
+    private DittoHeaders dittoHeaders;
 
-    @BeforeClass
-    public static void initTestConstants() {
-        knownJsonRepresentation = JsonFactory.newObjectBuilder()
-                .set(PurgeNamespaceResponse.JsonFields.TYPE, PurgeNamespaceResponse.TYPE)
-                .set(PurgeNamespaceResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
-                .set(PurgeNamespaceResponse.JsonFields.NAMESPACE, NAMESPACE)
-                .set(PurgeNamespaceResponse.JsonFields.RESOURCE_TYPE, RESOURCE_TYPE)
-                .set(PurgeNamespaceResponse.JsonFields.SUCCESSFUL, true)
-                .build();
+    @Rule
+    public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
 
-        dittoHeaders = DittoHeaders.newBuilder()
-                .correlationId(String.valueOf(UUID.randomUUID()))
-                .build();
+    @Before
+    public void before() {
+        dittoHeaders = DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
     }
 
     @Test
@@ -67,31 +59,52 @@ public final class PurgeNamespaceResponseTest {
     }
 
     @Test
-    public void fromJsonReturnsExpected() {
-        final PurgeNamespaceResponse responseFromJson =
-                PurgeNamespaceResponse.fromJson(knownJsonRepresentation, dittoHeaders);
-
-        assertThat(responseFromJson)
-                .isEqualTo(PurgeNamespaceResponse.successful(NAMESPACE, RESOURCE_TYPE, dittoHeaders));
-    }
-
-    @Test
     public void successfulResponseToJson() {
+        final JsonObject jsonObject = JsonObject.newBuilder()
+                .set(CommandResponse.JsonFields.TYPE, PurgeNamespaceResponse.TYPE)
+                .set(CommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
+                .set(NamespaceCommandResponse.JsonFields.NAMESPACE, NAMESPACE)
+                .set(NamespaceCommandResponse.JsonFields.RESOURCE_TYPE, RESOURCE_TYPE)
+                .build();
         final PurgeNamespaceResponse underTest =
                 PurgeNamespaceResponse.successful(NAMESPACE, RESOURCE_TYPE, dittoHeaders);
 
-        assertThat(underTest.toJson()).isEqualTo(knownJsonRepresentation);
+        assertThat(underTest.toJson()).isEqualTo(jsonObject);
+    }
+
+    @Test
+    public void fromJsonReturnsExpectedSuccessful() {
+        final PurgeNamespaceResponse purgeNamespaceResponse =
+                PurgeNamespaceResponse.successful(NAMESPACE, RESOURCE_TYPE, dittoHeaders);
+
+        final PurgeNamespaceResponse responseFromJson = PurgeNamespaceResponse.fromJson(purgeNamespaceResponse.toJson(),
+                purgeNamespaceResponse.getDittoHeaders());
+
+        assertThat(responseFromJson).isEqualTo(purgeNamespaceResponse);
     }
 
     @Test
     public void failedResponseToJson() {
-        final JsonObject expectedJson = knownJsonRepresentation.toBuilder()
-                .set(PurgeNamespaceResponse.JsonFields.SUCCESSFUL, false)
+        final JsonObject jsonObject = JsonObject.newBuilder()
+                .set(CommandResponse.JsonFields.TYPE, PurgeNamespaceResponse.TYPE)
+                .set(CommandResponse.JsonFields.STATUS, HttpStatus.INTERNAL_SERVER_ERROR.getCode())
+                .set(NamespaceCommandResponse.JsonFields.NAMESPACE, NAMESPACE)
+                .set(NamespaceCommandResponse.JsonFields.RESOURCE_TYPE, RESOURCE_TYPE)
                 .build();
-
         final PurgeNamespaceResponse underTest = PurgeNamespaceResponse.failed(NAMESPACE, RESOURCE_TYPE, dittoHeaders);
 
-        assertThat(underTest.toJson()).isEqualTo(expectedJson);
+        assertThat(underTest.toJson()).isEqualTo(jsonObject);
+    }
+
+    @Test
+    public void fromJsonReturnsExpectedFailed() {
+        final PurgeNamespaceResponse purgeNamespaceResponse =
+                PurgeNamespaceResponse.failed(NAMESPACE, RESOURCE_TYPE, dittoHeaders);
+
+        final PurgeNamespaceResponse responseFromJson = PurgeNamespaceResponse.fromJson(purgeNamespaceResponse.toJson(),
+                purgeNamespaceResponse.getDittoHeaders());
+
+        assertThat(responseFromJson).isEqualTo(purgeNamespaceResponse);
     }
 
     @Test

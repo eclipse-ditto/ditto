@@ -61,7 +61,7 @@ public final class CloseConnectionResponseTest {
     public void createInstanceWithNullConnectionId() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> CloseConnectionResponse.of(null, DittoHeaders.empty()))
-                .withMessage("The %s must not be null!", "Connection ID")
+                .withMessage("The %s must not be null!", "connectionId")
                 .withNoCause();
     }
 

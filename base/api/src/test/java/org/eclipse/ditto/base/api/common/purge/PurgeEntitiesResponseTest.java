@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.base.api.common.purge;
 
-import static org.eclipse.ditto.base.model.signals.commands.assertions.CommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -20,13 +19,14 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.UUID;
 
 import org.eclipse.ditto.base.api.common.CommonCommandResponse;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.assertions.CommandAssertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.entity.type.EntityType;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -59,13 +59,13 @@ public final class PurgeEntitiesResponseTest {
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(PurgeEntitiesResponse.class)
                 .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
 
     @Test
     public void fromJsonReturnsExpected() {
-        final PurgeEntitiesResponse responseFromJson =
-                PurgeEntitiesResponse.fromJson(KNOWN_JSON, HEADERS);
+        final var responseFromJson = PurgeEntitiesResponse.fromJson(KNOWN_JSON, HEADERS);
 
         CommandAssertions.assertThat(responseFromJson)
                 .isEqualTo(PurgeEntitiesResponse.successful(ENTITY_TYPE, HEADERS));
@@ -73,19 +73,19 @@ public final class PurgeEntitiesResponseTest {
 
     @Test
     public void successfulResponseToJson() {
-        final PurgeEntitiesResponse underTest =
-                PurgeEntitiesResponse.successful(ENTITY_TYPE, HEADERS);
+        final var underTest = PurgeEntitiesResponse.successful(ENTITY_TYPE, HEADERS);
 
         DittoJsonAssertions.assertThat(underTest.toJson()).isEqualTo(KNOWN_JSON);
     }
 
     @Test
     public void failedResponseToJson() {
-        final JsonObject expectedJson = KNOWN_JSON.toBuilder()
+        final var expectedJson = JsonFactory.newObjectBuilder(KNOWN_JSON)
+                .set(CommandResponse.JsonFields.STATUS, HttpStatus.INTERNAL_SERVER_ERROR.getCode())
                 .set(PurgeEntitiesResponse.JsonFields.SUCCESSFUL, false)
                 .build();
 
-        final PurgeEntitiesResponse underTest = PurgeEntitiesResponse.failed(ENTITY_TYPE, HEADERS);
+        final var underTest = PurgeEntitiesResponse.failed(ENTITY_TYPE, HEADERS);
 
         DittoJsonAssertions.assertThat(underTest.toJson()).isEqualTo(expectedJson);
     }

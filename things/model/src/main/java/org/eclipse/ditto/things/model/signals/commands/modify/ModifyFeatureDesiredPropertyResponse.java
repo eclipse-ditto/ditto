@@ -15,6 +15,7 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -22,22 +23,21 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 /**
@@ -57,13 +57,28 @@ public final class ModifyFeatureDesiredPropertyResponse
     public static final String TYPE = TYPE_PREFIX + ModifyFeatureDesiredProperty.NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("featureId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_DESIRED_PROPERTY =
-            JsonFactory.newStringFieldDefinition("desiredProperty", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("desiredProperty", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonValue> JSON_DESIRED_VALUE =
-            JsonFactory.newJsonValueFieldDefinition("desiredValue", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonValue("desiredValue", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final CommandResponseJsonDeserializer<ModifyFeatureDesiredPropertyResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    Arrays.asList(HttpStatus.CREATED, HttpStatus.NO_CONTENT)::contains,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new ModifyFeatureDesiredPropertyResponse(
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                jsonObject.getValueOrThrow(JSON_FEATURE_ID),
+                                JsonPointer.of(jsonObject.getValueOrThrow(JSON_DESIRED_PROPERTY)),
+                                jsonObject.getValue(JSON_DESIRED_VALUE).orElse(null),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final ThingId thingId;
     private final String featureId;
@@ -107,8 +122,12 @@ public final class ModifyFeatureDesiredPropertyResponse
             final JsonValue desiredValue,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyFeatureDesiredPropertyResponse(thingId, featureId, desiredPropertyPointer, desiredValue,
-                HttpStatus.CREATED, dittoHeaders);
+        return new ModifyFeatureDesiredPropertyResponse(thingId,
+                featureId,
+                desiredPropertyPointer,
+                desiredValue,
+                HttpStatus.CREATED,
+                dittoHeaders);
     }
 
     /**
@@ -127,8 +146,12 @@ public final class ModifyFeatureDesiredPropertyResponse
             final JsonPointer desiredPropertyPointer,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyFeatureDesiredPropertyResponse(thingId, featureId, desiredPropertyPointer, null,
-                HttpStatus.NO_CONTENT, dittoHeaders);
+        return new ModifyFeatureDesiredPropertyResponse(thingId,
+                featureId,
+                desiredPropertyPointer,
+                null,
+                HttpStatus.NO_CONTENT,
+                dittoHeaders);
     }
 
     /**
@@ -147,7 +170,7 @@ public final class ModifyFeatureDesiredPropertyResponse
     public static ModifyFeatureDesiredPropertyResponse fromJson(final String jsonString,
             final DittoHeaders dittoHeaders) {
 
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -165,16 +188,7 @@ public final class ModifyFeatureDesiredPropertyResponse
     public static ModifyFeatureDesiredPropertyResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new CommandResponseJsonDeserializer<ModifyFeatureDesiredPropertyResponse>(TYPE, jsonObject)
-                .deserialize(httpStatus -> new ModifyFeatureDesiredPropertyResponse(
-                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
-                                jsonObject.getValueOrThrow(JSON_FEATURE_ID),
-                                JsonFactory.newPointer(jsonObject.getValueOrThrow(JSON_DESIRED_PROPERTY)),
-                                jsonObject.getValue(JSON_DESIRED_VALUE).orElse(null),
-                                httpStatus,
-                                dittoHeaders
-                        )
-                );
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -185,7 +199,7 @@ public final class ModifyFeatureDesiredPropertyResponse
     /**
      * Returns the pointer of the modified desired property.
      *
-     * @return the the pointer of the modified desired property.
+     * @return the pointer of the modified desired property.
      */
     public JsonPointer getDesiredPropertyPointer() {
         return desiredPropertyPointer;
@@ -226,12 +240,12 @@ public final class ModifyFeatureDesiredPropertyResponse
 
     @Override
     public JsonPointer getResourcePath() {
-        final String path = "/features/" + featureId + "/desiredProperties" + desiredPropertyPointer;
-        return JsonPointer.of(path);
+        return JsonPointer.of("/features/" + featureId + "/desiredProperties" + desiredPropertyPointer);
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

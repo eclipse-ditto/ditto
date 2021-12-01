@@ -12,23 +12,23 @@
  */
 package org.eclipse.ditto.base.api.devops.signals.commands;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
  * Response to the {@link ChangeLogLevel} command.
@@ -43,19 +43,27 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
     public static final String TYPE = TYPE_PREFIX + ChangeLogLevel.NAME;
 
     static final JsonFieldDefinition<Boolean> JSON_SUCCESSFUL =
-            JsonFactory.newBooleanFieldDefinition("successful", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofBoolean("successful", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final boolean successful;
+    private static final CommandResponseJsonDeserializer<ChangeLogLevelResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    Arrays.asList(HttpStatus.OK, HttpStatus.INTERNAL_SERVER_ERROR)::contains,
+                    context -> {
+                        final var jsonObject = context.getJsonObject();
+                        return new ChangeLogLevelResponse(
+                                jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME).orElse(null),
+                                jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE).orElse(null),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private ChangeLogLevelResponse(@Nullable final String serviceName,
             @Nullable final String instance,
-            final boolean successful,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, serviceName, instance, successful ? HttpStatus.OK : HttpStatus.INTERNAL_SERVER_ERROR,
-                dittoHeaders);
-        this.successful = successful;
+        super(TYPE, serviceName, instance, httpStatus, dittoHeaders);
     }
 
     /**
@@ -72,7 +80,10 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
             final boolean successful,
             final DittoHeaders dittoHeaders) {
 
-        return new ChangeLogLevelResponse(serviceName, instance, successful, dittoHeaders);
+        return new ChangeLogLevelResponse(serviceName,
+                instance,
+                successful ? HttpStatus.OK : HttpStatus.INTERNAL_SERVER_ERROR,
+                dittoHeaders);
     }
 
     /**
@@ -87,7 +98,7 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
      * format.
      */
     public static ChangeLogLevelResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -101,15 +112,7 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
      * format.
      */
     public static ChangeLogLevelResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ChangeLogLevelResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final String serviceName = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME)
-                            .orElse(null);
-                    final String instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
-                            .orElse(null);
-                    final boolean successful = jsonObject.getValueOrThrow(JSON_SUCCESSFUL);
-                    return ChangeLogLevelResponse.of(serviceName, instance, successful, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     /**
@@ -118,25 +121,29 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
      * @return whether the persistence snapshot was successful.
      */
     public boolean isSuccessful() {
-        return successful;
+        final var httpStatus = getHttpStatus();
+        return httpStatus.isSuccess();
     }
 
     @Override
     public ChangeLogLevelResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getServiceName().orElse(null), getInstance().orElse(null), successful, dittoHeaders);
+        return new ChangeLogLevelResponse(getServiceName().orElse(null),
+                getInstance().orElse(null),
+                getHttpStatus(),
+                dittoHeaders);
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
 
-        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JSON_SUCCESSFUL, successful, predicate);
+        final var predicate = schemaVersion.and(thePredicate);
+        jsonObjectBuilder.set(JSON_SUCCESSFUL, isSuccessful(), predicate);
     }
 
-    @SuppressWarnings("squid:MethodCyclomaticComplexity")
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
@@ -145,8 +152,8 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final ChangeLogLevelResponse that = (ChangeLogLevelResponse) o;
-        return that.canEqual(this) && Objects.equals(successful, that.successful) && super.equals(that);
+        final var that = (ChangeLogLevelResponse) o;
+        return that.canEqual(this) && super.equals(that);
     }
 
     @Override
@@ -156,12 +163,12 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), successful);
+        return Objects.hash(super.hashCode());
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + super.toString() + ", successful=" + successful + "]";
+        return getClass().getSimpleName() + " [" + super.toString() + ", successful=" + isSuccessful() + "]";
     }
 
 }

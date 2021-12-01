@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -21,22 +22,21 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 /**
@@ -53,16 +53,28 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
     public static final String TYPE = TYPE_PREFIX + ModifyFeatureProperty.NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("featureId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_PROPERTY =
-            JsonFactory.newStringFieldDefinition("property", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("property", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonValue> JSON_VALUE =
-            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonValue("value", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final CommandResponseJsonDeserializer<ModifyFeaturePropertyResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    Arrays.asList(HttpStatus.CREATED, HttpStatus.NO_CONTENT)::contains,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new ModifyFeaturePropertyResponse(
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                jsonObject.getValueOrThrow(JSON_FEATURE_ID),
+                                JsonPointer.of(jsonObject.getValueOrThrow(JSON_PROPERTY)),
+                                jsonObject.getValue(JSON_VALUE).orElse(null),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final ThingId thingId;
     private final String featureId;
@@ -78,13 +90,13 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
 
         super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.featureId = checkNotNull(featureId, "featrueId");
+        this.featureId = checkNotNull(featureId, "featureId");
         this.featurePropertyPointer = checkPropertyPointer(featurePropertyPointer);
         this.featurePropertyValue = featurePropertyValue;
     }
 
     private static JsonPointer checkPropertyPointer(final JsonPointer propertyPointer) {
-        checkNotNull(propertyPointer, "The FeatureProperty Pointer must not be null!");
+        checkNotNull(propertyPointer, "featurePropertyPointer");
         return ThingsModelFactory.validateFeaturePropertyPointer(propertyPointer);
     }
 
@@ -106,8 +118,12 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
             final JsonValue featureValue,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyFeaturePropertyResponse(thingId, featureId, featurePropertyPointer, featureValue,
-                HttpStatus.CREATED, dittoHeaders);
+        return new ModifyFeaturePropertyResponse(thingId,
+                featureId,
+                featurePropertyPointer,
+                featureValue,
+                HttpStatus.CREATED,
+                dittoHeaders);
     }
 
     /**
@@ -148,7 +164,7 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
      * according to pattern {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyFeaturePropertyResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -166,14 +182,7 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
     public static ModifyFeaturePropertyResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new CommandResponseJsonDeserializer<ModifyFeaturePropertyResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> new ModifyFeaturePropertyResponse(
-                        ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
-                        jsonObject.getValueOrThrow(JSON_FEATURE_ID),
-                        JsonFactory.newPointer(jsonObject.getValueOrThrow(JSON_PROPERTY)),
-                        jsonObject.getValue(JSON_VALUE).orElse(null),
-                        httpStatus,
-                        dittoHeaders));
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -184,7 +193,7 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
     /**
      * Returns the pointer of the modified {@code FeatureProperty}.
      *
-     * @return the the pointer of the modified FeatureProperty.
+     * @return the pointer of the modified FeatureProperty.
      */
     public JsonPointer getFeaturePropertyPointer() {
         return featurePropertyPointer;
@@ -220,7 +229,8 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

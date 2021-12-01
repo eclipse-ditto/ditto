@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -21,22 +22,21 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.AttributesModelFactory;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 
@@ -54,12 +54,24 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     public static final String TYPE = ThingCommandResponse.TYPE_PREFIX + ModifyAttribute.NAME;
 
     static final JsonFieldDefinition<String> JSON_ATTRIBUTE =
-            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("attribute", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonValue> JSON_VALUE =
-            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonValue("value", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final CommandResponseJsonDeserializer<ModifyAttributeResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    Arrays.asList(HttpStatus.CREATED, HttpStatus.NO_CONTENT)::contains,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new ModifyAttributeResponse(
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                context.getDeserializedHttpStatus(),
+                                JsonPointer.of(jsonObject.getValueOrThrow(JSON_ATTRIBUTE)),
+                                jsonObject.getValue(JSON_VALUE).orElse(null),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final ThingId thingId;
     private final JsonPointer attributePointer;
@@ -72,7 +84,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, httpStatus, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "Thing ID");
+        this.thingId = checkNotNull(thingId, "thingId");
         this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
         this.attributeValue = attributeValue;
     }
@@ -80,7 +92,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     private static JsonPointer checkAttributePointer(final JsonPointer attributePointer,
             final DittoHeaders dittoHeaders) {
 
-        checkNotNull(attributePointer, "The Attribute Pointer must not be null!");
+        checkNotNull(attributePointer, "attributePointer");
         if (attributePointer.isEmpty()) {
             throw AttributePointerInvalidException.newBuilder(attributePointer)
                     .dittoHeaders(dittoHeaders)
@@ -109,8 +121,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
             final JsonValue attributeValue,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyAttributeResponse(thingId, HttpStatus.CREATED, attributePointer, attributeValue,
-                dittoHeaders);
+        return new ModifyAttributeResponse(thingId, HttpStatus.CREATED, attributePointer, attributeValue, dittoHeaders);
     }
 
     /**
@@ -127,7 +138,8 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
      * according to pattern {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
-    public static ModifyAttributeResponse modified(final ThingId thingId, final JsonPointer attributePointer,
+    public static ModifyAttributeResponse modified(final ThingId thingId,
+            final JsonPointer attributePointer,
             final DittoHeaders dittoHeaders) {
 
         return new ModifyAttributeResponse(thingId, HttpStatus.NO_CONTENT, attributePointer, null, dittoHeaders);
@@ -147,7 +159,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * according to pattern {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyAttributeResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -163,13 +175,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * according to pattern {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyAttributeResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifyAttributeResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> new ModifyAttributeResponse(
-                        ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
-                        httpStatus,
-                        JsonFactory.newPointer(jsonObject.getValueOrThrow(JSON_ATTRIBUTE)),
-                        jsonObject.getValue(JSON_VALUE).orElse(null),
-                        dittoHeaders));
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -180,7 +186,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     /**
      * Returns the pointer of the modified {@code Attribute}.
      *
-     * @return the the pointer of the modified Attribute.
+     * @return the pointer of the modified Attribute.
      */
     public JsonPointer getAttributePointer() {
         return attributePointer;
@@ -202,12 +208,12 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
 
     @Override
     public JsonPointer getResourcePath() {
-        final String path = "/attributes" + attributePointer;
-        return JsonPointer.of(path);
+        return JsonPointer.of("/attributes" + attributePointer);
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

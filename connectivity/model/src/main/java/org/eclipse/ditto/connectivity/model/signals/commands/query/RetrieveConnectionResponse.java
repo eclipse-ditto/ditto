@@ -20,23 +20,22 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.WithConnectionId;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.WithConnectionId;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Response to a {@link RetrieveConnection} command.
@@ -53,14 +52,28 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
     public static final String TYPE = TYPE_PREFIX + RetrieveConnection.NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_CONNECTION =
-            JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonObject("connection", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final JsonObject jsonObject;
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
 
-    private RetrieveConnectionResponse(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatus.OK, dittoHeaders);
-        this.jsonObject = jsonObject;
+    private static final CommandResponseJsonDeserializer<RetrieveConnectionResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    HTTP_STATUS,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new RetrieveConnectionResponse(jsonObject.getValueOrThrow(JSON_CONNECTION),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders());
+                    });
+
+    private final JsonObject connection;
+
+    private RetrieveConnectionResponse(final JsonObject connection,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE, httpStatus, dittoHeaders);
+        this.connection = checkNotNull(connection, "connection");
     }
 
     /**
@@ -72,8 +85,7 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveConnectionResponse of(final JsonObject connection, final DittoHeaders dittoHeaders) {
-        checkNotNull(connection, "Connection");
-        return new RetrieveConnectionResponse(connection, dittoHeaders);
+        return new RetrieveConnectionResponse(connection, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -88,7 +100,7 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
      * format.
      */
     public static RetrieveConnectionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -102,8 +114,7 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
      * format.
      */
     public static RetrieveConnectionResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveConnectionResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> of(jsonObject.getValueOrThrow(JSON_CONNECTION), dittoHeaders));
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -111,17 +122,19 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JSON_CONNECTION, jsonObject, predicate);
+        jsonObjectBuilder.set(JSON_CONNECTION, connection, predicate);
     }
 
     /**
      * @return the {@code JsonObject} of the connection.
      */
-    public JsonObject getJsonObject() { return jsonObject; }
+    public JsonObject getJsonObject() {
+        return connection;
+    }
 
     @Override
     public ConnectionId getEntityId() {
-        return ConnectionId.of(jsonObject.getValueOrThrow(Connection.JsonFields.ID));
+        return ConnectionId.of(connection.getValueOrThrow(Connection.JsonFields.ID));
     }
 
     @Override
@@ -131,12 +144,12 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
 
     @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        return jsonObject;
+        return connection;
     }
 
     @Override
     public RetrieveConnectionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(jsonObject, dittoHeaders);
+        return of(connection, dittoHeaders);
     }
 
     @Override
@@ -152,21 +165,23 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        if (!super.equals(o)) {return false;}
+        if (!super.equals(o)) {
+            return false;
+        }
         final RetrieveConnectionResponse that = (RetrieveConnectionResponse) o;
-        return Objects.equals(jsonObject, that.jsonObject);
+        return Objects.equals(connection, that.connection);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), jsonObject);
+        return Objects.hash(super.hashCode(), connection);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 super.toString() +
-                ", jsonObject=" + jsonObject +
+                ", jsonObject=" + connection +
                 "]";
     }
 

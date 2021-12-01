@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.model.signals.commands.modify;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,7 +32,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ResetConnectionLogsResponse}.
  */
-public class ResetConnectionLogsResponseTest {
+public final class ResetConnectionLogsResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, ResetConnectionLogsResponse.TYPE)
@@ -59,7 +58,7 @@ public class ResetConnectionLogsResponseTest {
     public void createInstanceWithNullConnectionId() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> ResetConnectionLogsResponse.of(null, DittoHeaders.empty()))
-                .withMessage("The %s must not be null!", "Connection ID")
+                .withMessage("The %s must not be null!", "connectionId")
                 .withNoCause();
     }
 

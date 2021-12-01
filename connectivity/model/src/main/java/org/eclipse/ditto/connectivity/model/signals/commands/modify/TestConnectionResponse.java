@@ -14,26 +14,26 @@ package org.eclipse.ditto.connectivity.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 
 /**
  * Response to a {@link TestConnection} command.
@@ -49,19 +49,31 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
     public static final String TYPE = ConnectivityCommandResponse.TYPE_PREFIX + TestConnection.NAME;
 
     static final JsonFieldDefinition<String> JSON_TEST_RESULT =
-            JsonFactory.newStringFieldDefinition("testResult", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("testResult", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final CommandResponseJsonDeserializer<TestConnectionResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    Arrays.asList(HttpStatus.OK, HttpStatus.CONFLICT)::contains,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new TestConnectionResponse(
+                                ConnectionId.of(jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID)),
+                                jsonObject.getValueOrThrow(JSON_TEST_RESULT),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final ConnectionId connectionId;
     private final String testResult;
 
-    private TestConnectionResponse(final HttpStatus httpStatusCode,
-            final ConnectionId connectionId,
+    private TestConnectionResponse(final ConnectionId connectionId,
             final String testResult,
+            final HttpStatus httpStatusCode,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, httpStatusCode, dittoHeaders);
-        this.connectionId = connectionId;
+        this.connectionId = checkNotNull(connectionId, "connectionId");
         this.testResult = testResult;
     }
 
@@ -74,12 +86,14 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
      * @return a new TestConnectionResponse.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static TestConnectionResponse success(final ConnectionId connectionId, final String restResult,
+    public static TestConnectionResponse success(final ConnectionId connectionId,
+            final String restResult,
             final DittoHeaders dittoHeaders) {
 
-        checkNotNull(connectionId, "ConnectionId");
-        checkNotNull(restResult, "TestResult");
-        return new TestConnectionResponse(HttpStatus.OK, connectionId, restResult, dittoHeaders);
+        return new TestConnectionResponse(connectionId,
+                checkNotNull(restResult, "testResult"),
+                HttpStatus.OK,
+                dittoHeaders);
     }
 
     /**
@@ -90,10 +104,13 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
      * @return a new TestConnectionResponse.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static TestConnectionResponse alreadyCreated(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
-        checkNotNull(connectionId, "ConnectionId");
-        return new TestConnectionResponse(HttpStatus.CONFLICT, connectionId,
-                "Connection was already created - no test possible", dittoHeaders);
+    public static TestConnectionResponse alreadyCreated(final ConnectionId connectionId,
+            final DittoHeaders dittoHeaders) {
+
+        return new TestConnectionResponse(connectionId,
+                "Connection was already created - no test possible",
+                HttpStatus.CONFLICT,
+                dittoHeaders);
     }
 
     /**
@@ -108,7 +125,7 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
      * format.
      */
     public static TestConnectionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -122,15 +139,7 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
      * format.
      */
     public static TestConnectionResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<TestConnectionResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final String readConnectionId =
-                            jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-                    final ConnectionId connectionId = ConnectionId.of(readConnectionId);
-                    final String readConnectionResult = jsonObject.getValueOrThrow(JSON_TEST_RESULT);
-
-                    return new TestConnectionResponse(httpStatus, connectionId, readConnectionResult, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     /**
@@ -143,11 +152,13 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID,
+                connectionId.toString(),
                 predicate);
         jsonObjectBuilder.set(JSON_TEST_RESULT, testResult, predicate);
     }

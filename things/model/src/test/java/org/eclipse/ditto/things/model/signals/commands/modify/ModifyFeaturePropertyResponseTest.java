@@ -35,7 +35,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ModifyFeaturePropertyResponse}.
  */
-public class ModifyFeaturePropertyResponseTest {
+public final class ModifyFeaturePropertyResponseTest {
 
     private static final JsonObject KNOWN_JSON_CREATED = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, ModifyFeaturePropertyResponse.TYPE)
@@ -67,6 +67,7 @@ public class ModifyFeaturePropertyResponseTest {
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ModifyFeaturePropertyResponse.class)
                 .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
 
@@ -116,4 +117,5 @@ public class ModifyFeaturePropertyResponseTest {
         ModifyFeaturePropertyResponse.modified(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
                 TestConstants.Pointer.INVALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
     }
+
 }

@@ -21,18 +21,17 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Response to a {@link CountThings} command.
@@ -47,10 +46,30 @@ public final class CountThingsResponse extends AbstractCommandResponse<CountThin
      */
     public static final String TYPE = TYPE_PREFIX + CountThings.NAME;
 
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<CountThingsResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    HTTP_STATUS,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        final JsonValue jsonValue = jsonObject.getValueOrThrow(JsonFields.PAYLOAD);
+                        if (jsonValue.isLong()) {
+                            return new CountThingsResponse(jsonValue.asLong(),
+                                    context.getDeserializedHttpStatus(),
+                                    context.getDittoHeaders());
+                        } else {
+                            throw new JsonParseException(MessageFormat.format(
+                                    "Payload JSON value <{0}> is not a count representation!",
+                                    jsonValue
+                            ));
+                        }
+                    });
+
     private final long count;
 
-    private CountThingsResponse(final long count, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatus.OK, dittoHeaders);
+    private CountThingsResponse(final long count, final HttpStatus httpStatus, final DittoHeaders dittoHeaders) {
+        super(TYPE, httpStatus, dittoHeaders);
         this.count = count;
     }
 
@@ -63,7 +82,7 @@ public final class CountThingsResponse extends AbstractCommandResponse<CountThin
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static CountThingsResponse of(final long count, final DittoHeaders dittoHeaders) {
-        return new CountThingsResponse(count, dittoHeaders);
+        return new CountThingsResponse(count, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -78,7 +97,7 @@ public final class CountThingsResponse extends AbstractCommandResponse<CountThin
      * format.
      */
     public static CountThingsResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -92,16 +111,7 @@ public final class CountThingsResponse extends AbstractCommandResponse<CountThin
      * format.
      */
     public static CountThingsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<CountThingsResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
-            final JsonValue jsonValue = jsonObject.getValueOrThrow(JsonFields.PAYLOAD);
-            if (jsonValue.isLong()) {
-                return of(jsonValue.asLong(), dittoHeaders);
-            } else {
-                throw new JsonParseException(MessageFormat.format(
-                        "Payload JSON value <{0}> is not a count representation!",
-                        jsonValue));
-            }
-        });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     /**
@@ -125,11 +135,12 @@ public final class CountThingsResponse extends AbstractCommandResponse<CountThin
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JsonFields.PAYLOAD, JsonFactory.newValue(count), predicate);
+        jsonObjectBuilder.set(JsonFields.PAYLOAD, JsonValue.of(count), predicate);
     }
 
     @Override

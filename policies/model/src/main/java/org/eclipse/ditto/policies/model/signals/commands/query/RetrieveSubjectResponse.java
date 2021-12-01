@@ -20,25 +20,24 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Subject;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 
 /**
  * Response to a {@link RetrieveSubject} command.
@@ -54,13 +53,30 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
     public static final String TYPE = TYPE_PREFIX + RetrieveSubject.NAME;
 
     static final JsonFieldDefinition<String> JSON_LABEL =
-            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_SUBJECT_ID =
-            JsonFactory.newStringFieldDefinition("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonObject> JSON_SUBJECT =
-            JsonFactory.newJsonObjectFieldDefinition("subject", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonObject("subject", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<RetrieveSubjectResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    HTTP_STATUS,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new RetrieveSubjectResponse(
+                                PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID)),
+                                Label.of(jsonObject.getValueOrThrow(JSON_LABEL)),
+                                jsonObject.getValueOrThrow(JSON_SUBJECT_ID),
+                                jsonObject.getValueOrThrow(JSON_SUBJECT),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final PolicyId policyId;
     private final Label label;
@@ -75,10 +91,10 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, httpStatus, dittoHeaders);
-        this.policyId = checkNotNull(policyId, "Policy ID");
-        this.label = checkNotNull(label, "Label");
-        this.subjectId = checkNotNull(subjectId, "Subject ID");
-        this.subject = checkNotNull(subject, "Subject");
+        this.policyId = checkNotNull(policyId, "policyId");
+        this.label = checkNotNull(label, "label");
+        this.subjectId = checkNotNull(subjectId, "subjectId");
+        this.subject = checkNotNull(subject, "subject");
     }
 
     /**
@@ -98,7 +114,7 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
             final JsonObject subject,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveSubjectResponse(policyId, label, subjectId, subject, HttpStatus.OK, dittoHeaders);
+        return new RetrieveSubjectResponse(policyId, label, subjectId, subject, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -116,11 +132,12 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
             final Subject subject,
             final DittoHeaders dittoHeaders) {
 
-        final String subjectId = subject.getId().toString();
-        final JsonObject jsonSubject = checkNotNull(subject, "Subject")
-                .toJson(dittoHeaders.getSchemaVersion().orElse(subject.getLatestSchemaVersion()));
-
-        return of(policyId, label, subjectId, jsonSubject, dittoHeaders);
+        checkNotNull(subject, "subject");
+        return of(policyId,
+                label,
+                String.valueOf(subject.getId()),
+                subject.toJson(dittoHeaders.getSchemaVersion().orElse(subject.getLatestSchemaVersion())),
+                dittoHeaders);
     }
 
     /**
@@ -135,7 +152,7 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
      * format.
      */
     public static RetrieveSubjectResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -149,17 +166,7 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
      * format.
      */
     public static RetrieveSubjectResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveSubjectResponse>(TYPE, jsonObject)
-                .deserialize(httpStatus -> {
-                    final String extractedPolicyId =
-                            jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
-                    final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
-                    final String extractedSubjectId = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
-                    final JsonObject extractedSubject = jsonObject.getValueOrThrow(JSON_SUBJECT);
-
-                    return of(policyId, label, extractedSubjectId, extractedSubject, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -203,12 +210,12 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
 
     @Override
     public JsonPointer getResourcePath() {
-        final String path = "/entries/" + label + "/subjects/" + subjectId;
-        return JsonPointer.of(path);
+        return JsonPointer.of("/entries/" + label + "/subjects/" + subjectId);
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

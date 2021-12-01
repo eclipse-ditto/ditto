@@ -20,18 +20,17 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 /**
@@ -47,11 +46,25 @@ public final class DeleteThingResponse extends AbstractCommandResponse<DeleteThi
      */
     public static final String TYPE = ThingCommandResponse.TYPE_PREFIX + DeleteThing.NAME;
 
+    private static final HttpStatus HTTP_STATUS = HttpStatus.NO_CONTENT;
+
+    private static final CommandResponseJsonDeserializer<DeleteThingResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    HTTP_STATUS,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new DeleteThingResponse(
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
+
     private final ThingId thingId;
 
-    private DeleteThingResponse(final ThingId thingId, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "Thing ID");
+    private DeleteThingResponse(final ThingId thingId, final HttpStatus httpStatus, final DittoHeaders dittoHeaders) {
+        super(TYPE, httpStatus, dittoHeaders);
+        this.thingId = checkNotNull(thingId, "thingId");
     }
 
     /**
@@ -63,7 +76,7 @@ public final class DeleteThingResponse extends AbstractCommandResponse<DeleteThi
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static DeleteThingResponse of(final ThingId thingId, final DittoHeaders dittoHeaders) {
-        return new DeleteThingResponse(thingId, dittoHeaders);
+        return new DeleteThingResponse(thingId, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -78,7 +91,7 @@ public final class DeleteThingResponse extends AbstractCommandResponse<DeleteThi
      * format.
      */
     public static DeleteThingResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -92,11 +105,7 @@ public final class DeleteThingResponse extends AbstractCommandResponse<DeleteThi
      * format.
      */
     public static DeleteThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<DeleteThingResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
-            final ThingId thingId = ThingId.of(extractedThingId);
-            return of(thingId, dittoHeaders);
-        });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -106,11 +115,12 @@ public final class DeleteThingResponse extends AbstractCommandResponse<DeleteThi
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonFactory.emptyPointer();
+        return JsonPointer.empty();
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

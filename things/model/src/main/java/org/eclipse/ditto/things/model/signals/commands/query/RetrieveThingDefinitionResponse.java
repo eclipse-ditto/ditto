@@ -20,23 +20,22 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 /**
@@ -54,21 +53,45 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
     public static final String TYPE = TYPE_PREFIX + RetrieveThingDefinition.NAME;
 
     static final JsonFieldDefinition<JsonValue> JSON_DEFINITION =
-            JsonFactory.newJsonValueFieldDefinition("definition", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonValue("definition", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<RetrieveThingDefinitionResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    HTTP_STATUS,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+
+                        final JsonValue definitionJsonValue = jsonObject.getValueOrThrow(JSON_DEFINITION);
+
+                        final ThingDefinition definition;
+                        if (definitionJsonValue.isNull()) {
+                            definition = ThingsModelFactory.nullDefinition();
+                        } else {
+                            definition = ThingsModelFactory.newDefinition(definitionJsonValue.asString());
+                        }
+
+                        return new RetrieveThingDefinitionResponse(
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                definition,
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final ThingId thingId;
     private final ThingDefinition definition;
 
     private RetrieveThingDefinitionResponse(final ThingId thingId,
-            final HttpStatus httpStatus,
             final ThingDefinition definition,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, httpStatus, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "thing ID");
-        this.definition = checkNotNull(definition, "definition is null");
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.definition = checkNotNull(definition, "definition");
     }
-
 
     /**
      * Creates a response to a {@link RetrieveThingDefinition} command.
@@ -79,10 +102,11 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveThingDefinitionResponse of(final ThingId thingId, final ThingDefinition definition,
+    public static RetrieveThingDefinitionResponse of(final ThingId thingId,
+            final ThingDefinition definition,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveThingDefinitionResponse(thingId, HttpStatus.OK, definition, dittoHeaders);
+        return new RetrieveThingDefinitionResponse(thingId, definition, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -98,7 +122,7 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
      * format.
      */
     public static RetrieveThingDefinitionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -115,21 +139,7 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
     public static RetrieveThingDefinitionResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new CommandResponseJsonDeserializer<RetrieveThingDefinitionResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
-                    final ThingId thingId = ThingId.of(extractedThingId);
-                    final JsonValue readDefinition = jsonObject.getValueOrThrow(JSON_DEFINITION);
-                    final ThingDefinition definition;
-                    if (readDefinition.isNull()) {
-                        definition = ThingsModelFactory.nullDefinition();
-                    } else {
-                        definition = ThingsModelFactory.newDefinition(readDefinition.asString());
-                    }
-
-                    return of(thingId, definition, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     /**
@@ -181,7 +191,8 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

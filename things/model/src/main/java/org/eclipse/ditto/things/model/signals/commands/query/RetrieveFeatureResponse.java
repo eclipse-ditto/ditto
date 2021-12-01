@@ -20,23 +20,22 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 /**
@@ -44,8 +43,8 @@ import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
  */
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveFeatureResponse.TYPE)
-public final class RetrieveFeatureResponse extends AbstractCommandResponse<RetrieveFeatureResponse> implements
-        ThingQueryCommandResponse<RetrieveFeatureResponse> {
+public final class RetrieveFeatureResponse extends AbstractCommandResponse<RetrieveFeatureResponse>
+        implements ThingQueryCommandResponse<RetrieveFeatureResponse> {
 
     /**
      * Type of this response.
@@ -53,22 +52,40 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
     public static final String TYPE = TYPE_PREFIX + RetrieveFeature.NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("featureId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonObject> JSON_FEATURE =
-            JsonFactory.newJsonObjectFieldDefinition("feature", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonObject("feature", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<RetrieveFeatureResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    HTTP_STATUS,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new RetrieveFeatureResponse(
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                ThingsModelFactory.newFeatureBuilder(jsonObject.getValueOrThrow(JSON_FEATURE))
+                                        .useId(jsonObject.getValueOrThrow(JSON_FEATURE_ID))
+                                        .build(),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final ThingId thingId;
     private final Feature feature;
 
-    private RetrieveFeatureResponse(final ThingId thingId, final Feature feature, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatus.OK, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "thing ID");
+    private RetrieveFeatureResponse(final ThingId thingId,
+            final Feature feature,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE, httpStatus, dittoHeaders);
+        this.thingId = checkNotNull(thingId, "thingId");
         this.feature = feature;
     }
-
 
     /**
      * Creates a response to a {@link RetrieveFeature} command.
@@ -85,13 +102,13 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
             @Nullable final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        checkNotNull(featureId, "Feature ID");
+        checkNotNull(featureId, "featureId");
 
         final Feature feature = null != jsonObject
                 ? ThingsModelFactory.newFeatureBuilder(jsonObject).useId(featureId).build()
                 : ThingsModelFactory.nullFeature(featureId);
 
-        return new RetrieveFeatureResponse(thingId, feature, dittoHeaders);
+        return new RetrieveFeatureResponse(thingId, feature, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -103,10 +120,11 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveFeatureResponse of(final ThingId thingId, final Feature feature,
+    public static RetrieveFeatureResponse of(final ThingId thingId,
+            final Feature feature,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveFeatureResponse(thingId, checkNotNull(feature, "retrieved Feature"), dittoHeaders);
+        return new RetrieveFeatureResponse(thingId, checkNotNull(feature, "feature"), HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -121,7 +139,7 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
      * format.
      */
     public static RetrieveFeatureResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -135,18 +153,7 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
      * format.
      */
     public static RetrieveFeatureResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveFeatureResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
-                    final ThingId thingId = ThingId.of(extractedThingId);
-                    final JsonObject extractedFeatureJsonObject = jsonObject.getValueOrThrow(JSON_FEATURE);
-                    final Feature extractedFeature = ThingsModelFactory.newFeatureBuilder(extractedFeatureJsonObject)
-                            .useId(jsonObject.getValueOrThrow(JSON_FEATURE_ID))
-                            .build();
-
-                    return of(thingId, extractedFeature, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -190,12 +197,12 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
 
     @Override
     public JsonPointer getResourcePath() {
-        final String path = "/features/" + getFeatureId();
-        return JsonPointer.of(path);
+        return JsonPointer.of("/features/" + getFeatureId());
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

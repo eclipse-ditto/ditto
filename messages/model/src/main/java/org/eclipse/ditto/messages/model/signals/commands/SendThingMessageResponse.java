@@ -12,19 +12,21 @@
  */
 package org.eclipse.ditto.messages.model.signals.commands;
 
+import java.util.Objects;
+
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 
 /**
- * Command to send a response {@link org.eclipse.ditto.messages.model.Message} <em>FROM</em> a Thing answering to a {@link SendThingMessage}.
+ * Command to send a response {@link org.eclipse.ditto.messages.model.Message} <em>FROM</em> a Thing answering to
+ * a {@link SendThingMessage}.
  *
  * @param <T> the type of the message's payload.
  */
@@ -40,6 +42,19 @@ public final class SendThingMessageResponse<T> extends AbstractMessageCommandRes
      * Type of this command.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
+
+    private static final CommandResponseJsonDeserializer<SendThingMessageResponse<?>> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    Objects::nonNull,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new SendThingMessageResponse<>(
+                                ThingId.of(jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID)),
+                                deserializeMessageFromJson(jsonObject),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private SendThingMessageResponse(final ThingId thingId,
             final Message<T> message,
@@ -86,7 +101,7 @@ public final class SendThingMessageResponse<T> extends AbstractMessageCommandRes
      * format.
      */
     public static SendThingMessageResponse<?> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -100,12 +115,7 @@ public final class SendThingMessageResponse<T> extends AbstractMessageCommandRes
      * format.
      */
     public static SendThingMessageResponse<?> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<SendThingMessageResponse<?>>(TYPE, jsonObject).deserialize(
-                httpStatus -> of(
-                        ThingId.of(jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID)),
-                        deserializeMessageFromJson(jsonObject),
-                        httpStatus,
-                        dittoHeaders));
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override

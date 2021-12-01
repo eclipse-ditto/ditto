@@ -20,19 +20,18 @@ import java.util.function.Predicate;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 
 /**
  * Response to a {@link SudoRetrieveNamespaceReport} containing a {@link org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult}.
@@ -48,12 +47,32 @@ public final class SudoRetrieveNamespaceReportResponse
      */
     public static final String TYPE = TYPE_PREFIX + SudoRetrieveNamespaceReport.NAME;
 
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<SudoRetrieveNamespaceReportResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    HTTP_STATUS,
+                    context -> {
+                        final var jsonObject = context.getJsonObject();
+                        final var payload = jsonObject.getValueOrThrow(JsonFields.PAYLOAD);
+                        if (!payload.isObject()) {
+                            throw new JsonParseException(
+                                    MessageFormat.format("Payload JSON value <{0}> is not an object!", payload));
+                        }
+                        return new SudoRetrieveNamespaceReportResponse(
+                                SearchNamespaceReportResult.fromJson(payload.asObject()),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
+
     private final SearchNamespaceReportResult namespaceReportResult;
 
     private SudoRetrieveNamespaceReportResponse(final SearchNamespaceReportResult namespaceReportResult,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatus.OK, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.namespaceReportResult = namespaceReportResult;
     }
 
@@ -68,9 +87,9 @@ public final class SudoRetrieveNamespaceReportResponse
     public static SudoRetrieveNamespaceReportResponse of(final SearchNamespaceReportResult namespaceReportResult,
             final DittoHeaders dittoHeaders) {
 
-        checkNotNull(namespaceReportResult, "namespace report result");
+        checkNotNull(namespaceReportResult, "namespaceReportResult");
 
-        return new SudoRetrieveNamespaceReportResponse(namespaceReportResult, dittoHeaders);
+        return new SudoRetrieveNamespaceReportResponse(namespaceReportResult, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -87,7 +106,7 @@ public final class SudoRetrieveNamespaceReportResponse
     public static SudoRetrieveNamespaceReportResponse fromJson(final String jsonString,
             final DittoHeaders dittoHeaders) {
 
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -103,16 +122,7 @@ public final class SudoRetrieveNamespaceReportResponse
     public static SudoRetrieveNamespaceReportResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new CommandResponseJsonDeserializer<SudoRetrieveNamespaceReportResponse>(TYPE, jsonObject)
-                .deserialize(httpStatus -> {
-
-                    final var payload = jsonObject.getValueOrThrow(JsonFields.PAYLOAD);
-                    if (!payload.isObject()) {
-                        throw new JsonParseException(
-                                MessageFormat.format("Payload JSON value <{0}> is not an object!", payload));
-                    }
-                    return of(SearchNamespaceReportResult.fromJson(payload.asObject()), dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     /**
@@ -125,10 +135,11 @@ public final class SudoRetrieveNamespaceReportResponse
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
-        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+        final var predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JsonFields.PAYLOAD, namespaceReportResult.toJson(schemaVersion, thePredicate), predicate);
     }
 
@@ -162,7 +173,7 @@ public final class SudoRetrieveNamespaceReportResponse
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final SudoRetrieveNamespaceReportResponse that = (SudoRetrieveNamespaceReportResponse) o;
+        final var that = (SudoRetrieveNamespaceReportResponse) o;
         return that.canEqual(this) &&
                 Objects.equals(namespaceReportResult, that.namespaceReportResult) &&
                 super.equals(that);

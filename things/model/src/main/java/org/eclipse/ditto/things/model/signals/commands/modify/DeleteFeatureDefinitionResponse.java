@@ -20,20 +20,19 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 /**
@@ -50,18 +49,35 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
     public static final String TYPE = TYPE_PREFIX + DeleteFeatureDefinition.NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("featureId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.NO_CONTENT;
+
+    private static final CommandResponseJsonDeserializer<DeleteFeatureDefinitionResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    HTTP_STATUS,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new DeleteFeatureDefinitionResponse(
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                jsonObject.getValueOrThrow(JSON_FEATURE_ID),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    }
+            );
 
     private final ThingId thingId;
     private final String featureId;
 
-    private DeleteFeatureDefinitionResponse(final ThingId thingId, final String featureId,
+    private DeleteFeatureDefinitionResponse(final ThingId thingId,
+            final String featureId,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = thingId;
-        this.featureId = checkNotNull(featureId, "Feature ID");
+        this.featureId = checkNotNull(featureId, "featureId");
     }
 
     /**
@@ -73,10 +89,11 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DeleteFeatureDefinitionResponse of(final ThingId thingId, final String featureId,
+    public static DeleteFeatureDefinitionResponse of(final ThingId thingId,
+            final String featureId,
             final DittoHeaders dittoHeaders) {
 
-        return new DeleteFeatureDefinitionResponse(thingId, featureId, dittoHeaders);
+        return new DeleteFeatureDefinitionResponse(thingId, featureId, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -99,7 +116,7 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
      * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static DeleteFeatureDefinitionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -123,15 +140,7 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
     public static DeleteFeatureDefinitionResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new CommandResponseJsonDeserializer<DeleteFeatureDefinitionResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
-                    final ThingId thingId = ThingId.of(extractedThingId);
-                    final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
-
-                    return of(thingId, extractedFeatureId, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -150,11 +159,12 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonFactory.newPointer("/features/" + featureId + "/definition");
+        return JsonPointer.of("/features/" + featureId + "/definition");
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

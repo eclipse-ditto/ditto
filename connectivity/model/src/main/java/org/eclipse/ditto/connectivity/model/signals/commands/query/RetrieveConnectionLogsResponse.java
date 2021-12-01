@@ -29,10 +29,21 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.LogEntry;
+import org.eclipse.ditto.connectivity.model.WithConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -40,18 +51,6 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.LogEntry;
-import org.eclipse.ditto.connectivity.model.WithConnectionId;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 
 /**
  * Response to a {@link RetrieveConnectionLogs} command.
@@ -68,6 +67,13 @@ public final class RetrieveConnectionLogsResponse
      */
     public static final String TYPE = ConnectivityCommandResponse.TYPE_PREFIX + RetrieveConnectionLogs.NAME;
 
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<RetrieveConnectionLogsResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    HTTP_STATUS,
+                    context -> getRetrieveConnectionLogsResponse(context.getJsonObject(), context.getDittoHeaders()));
+
     private final ConnectionId connectionId;
     private final Collection<LogEntry> connectionLogs;
 
@@ -78,9 +84,10 @@ public final class RetrieveConnectionLogsResponse
             final Collection<LogEntry> connectionLogs,
             @Nullable final Instant enabledSince,
             @Nullable final Instant enabledUntil,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatus.OK, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
 
         this.connectionId = connectionId;
         this.connectionLogs = Collections.unmodifiableList(new ArrayList<>(connectionLogs));
@@ -101,13 +108,17 @@ public final class RetrieveConnectionLogsResponse
      * null}.
      */
     public static RetrieveConnectionLogsResponse of(final ConnectionId connectionId,
-            final Collection<LogEntry> connectionLogs, @Nullable final Instant enabledSince,
-            @Nullable final Instant enabledUntil, final DittoHeaders dittoHeaders) {
-        checkNotNull(connectionId, "Connection ID");
-        checkNotNull(connectionLogs, "Connection Logs");
+            final Collection<LogEntry> connectionLogs,
+            @Nullable final Instant enabledSince,
+            @Nullable final Instant enabledUntil,
+            final DittoHeaders dittoHeaders) {
 
-        return new RetrieveConnectionLogsResponse(connectionId, connectionLogs, enabledSince,
-                enabledUntil, dittoHeaders);
+        return new RetrieveConnectionLogsResponse(checkNotNull(connectionId, "connectionId"),
+                checkNotNull(connectionLogs, "connectionLogs"),
+                enabledSince,
+                enabledUntil,
+                HTTP_STATUS,
+                dittoHeaders);
     }
 
     /**
@@ -146,9 +157,8 @@ public final class RetrieveConnectionLogsResponse
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      */
-    public static RetrieveConnectionLogsResponse fromJson(final String jsonString,
-            final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+    public static RetrieveConnectionLogsResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -164,21 +174,19 @@ public final class RetrieveConnectionLogsResponse
     public static RetrieveConnectionLogsResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new CommandResponseJsonDeserializer<RetrieveConnectionLogsResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> getRetrieveConnectionLogsResponse(jsonObject, dittoHeaders));
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     private static RetrieveConnectionLogsResponse getRetrieveConnectionLogsResponse(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        final String readConnectionId =
-                jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-        final ConnectionId connectionId = ConnectionId.of(readConnectionId);
-        final List<LogEntry> readConnectionLogs = parseConnectionLogs(jsonObject);
-        final Instant readEnabledSince = parseInstantOrNull(jsonObject, JsonFields.ENABLED_SINCE);
-        final Instant readEnabledUntil = parseInstantOrNull(jsonObject, JsonFields.ENABLED_UNTIL);
-
-        return of(connectionId, readConnectionLogs, readEnabledSince, readEnabledUntil, dittoHeaders);
+        return of(
+                ConnectionId.of(jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID)),
+                parseConnectionLogs(jsonObject),
+                parseInstantOrNull(jsonObject, JsonFields.ENABLED_SINCE),
+                parseInstantOrNull(jsonObject, JsonFields.ENABLED_UNTIL),
+                dittoHeaders
+        );
     }
 
     /**
@@ -268,7 +276,7 @@ public final class RetrieveConnectionLogsResponse
 
     @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
+        final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
         appendPayload(jsonObjectBuilder, schemaVersion, field -> true);
         return jsonObjectBuilder.build();
     }
@@ -337,22 +345,19 @@ public final class RetrieveConnectionLogsResponse
          * JSON field containing when logging was enabled.
          */
         public static final JsonFieldDefinition<String> ENABLED_SINCE =
-                JsonFactory.newStringFieldDefinition("enabledSince", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFieldDefinition.ofString("enabledSince", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing when logging gets disabled.
          */
         public static final JsonFieldDefinition<String> ENABLED_UNTIL =
-                JsonFactory.newStringFieldDefinition("enabledUntil", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFieldDefinition.ofString("enabledUntil", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the logs.
          */
         public static final JsonFieldDefinition<JsonArray> CONNECTION_LOGS =
-                JsonFactory.newJsonArrayFieldDefinition("connectionLogs", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFieldDefinition.ofJsonArray("connectionLogs", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

@@ -12,23 +12,20 @@
  */
 package org.eclipse.ditto.base.model.namespaces.signals.commands;
 
+import java.util.Arrays;
 import java.util.Objects;
-import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Response to {@link PurgeNamespace} for speeding up namespace purge.
@@ -42,15 +39,25 @@ public final class PurgeNamespaceResponse extends AbstractNamespaceCommandRespon
      */
     public static final String TYPE = TYPE_PREFIX + PurgeNamespace.NAME;
 
-    private final boolean successful;
+    private static final CommandResponseJsonDeserializer<PurgeNamespaceResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    Arrays.asList(HttpStatus.OK, HttpStatus.INTERNAL_SERVER_ERROR)::contains,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new PurgeNamespaceResponse(
+                                jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.NAMESPACE),
+                                jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.RESOURCE_TYPE),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private PurgeNamespaceResponse(final CharSequence namespace,
             final CharSequence resourceType,
-            final boolean successful,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(namespace, resourceType, TYPE, HttpStatus.OK, dittoHeaders);
-        this.successful = successful;
+        super(namespace, resourceType, TYPE, httpStatus, dittoHeaders);
     }
 
     /**
@@ -63,10 +70,11 @@ public final class PurgeNamespaceResponse extends AbstractNamespaceCommandRespon
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code namespace} or {@code resourceType} is empty.
      */
-    public static PurgeNamespaceResponse successful(final CharSequence namespace, final CharSequence resourceType,
+    public static PurgeNamespaceResponse successful(final CharSequence namespace,
+            final CharSequence resourceType,
             final DittoHeaders dittoHeaders) {
 
-        return new PurgeNamespaceResponse(namespace, resourceType, true, dittoHeaders);
+        return new PurgeNamespaceResponse(namespace, resourceType, HttpStatus.OK, dittoHeaders);
     }
 
     /**
@@ -79,17 +87,18 @@ public final class PurgeNamespaceResponse extends AbstractNamespaceCommandRespon
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code namespace} or {@code resourceType} is empty.
      */
-    public static PurgeNamespaceResponse failed(final CharSequence namespace, final CharSequence resourceType,
+    public static PurgeNamespaceResponse failed(final CharSequence namespace,
+            final CharSequence resourceType,
             final DittoHeaders dittoHeaders) {
 
-        return new PurgeNamespaceResponse(namespace, resourceType, false, dittoHeaders);
+        return new PurgeNamespaceResponse(namespace, resourceType, HttpStatus.INTERNAL_SERVER_ERROR, dittoHeaders);
     }
 
     /**
      * Creates a new {@code PurgeNamespaceResponse} from the given JSON object.
      *
      * @param jsonObject the JSON object of which the PurgeNamespaceResponse is to be created.
-     * @param headers the headers.
+     * @param dittoHeaders the dittoHeaders.
      * @return the deserialized response.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} was not in the expected format.
@@ -100,14 +109,8 @@ public final class PurgeNamespaceResponse extends AbstractNamespaceCommandRespon
      *     <li>{@link PurgeNamespaceResponse.JsonFields#SUCCESSFUL}.</li>
      * </ul>
      */
-    public static PurgeNamespaceResponse fromJson(final JsonObject jsonObject, final DittoHeaders headers) {
-        return new CommandResponseJsonDeserializer<PurgeNamespaceResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
-            final String namespace = jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.NAMESPACE);
-            final String resourceType = jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.RESOURCE_TYPE);
-            final Boolean isSuccessful = jsonObject.getValueOrThrow(JsonFields.SUCCESSFUL);
-
-            return new PurgeNamespaceResponse(namespace, resourceType, isSuccessful, headers);
-        });
+    public static PurgeNamespaceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     /**
@@ -116,7 +119,8 @@ public final class PurgeNamespaceResponse extends AbstractNamespaceCommandRespon
      * @return {@code true} if the namespace was purged, {@code false} else.
      */
     public boolean isSuccessful() {
-        return successful;
+        final HttpStatus httpStatus = getHttpStatus();
+        return httpStatus.isSuccess();
     }
 
     @Override
@@ -124,7 +128,7 @@ public final class PurgeNamespaceResponse extends AbstractNamespaceCommandRespon
         if (Objects.equals(getDittoHeaders(), dittoHeaders)) {
             return this;
         }
-        return new PurgeNamespaceResponse(getNamespace(), getResourceType(), isSuccessful(), dittoHeaders);
+        return new PurgeNamespaceResponse(getNamespace(), getResourceType(), getHttpStatus(), dittoHeaders);
     }
 
     @Override
@@ -139,7 +143,7 @@ public final class PurgeNamespaceResponse extends AbstractNamespaceCommandRespon
             return false;
         }
         final PurgeNamespaceResponse that = (PurgeNamespaceResponse) o;
-        return that.canEqual(this) && successful == that.successful && super.equals(that);
+        return that.canEqual(this) && super.equals(that);
     }
 
     @Override
@@ -149,35 +153,33 @@ public final class PurgeNamespaceResponse extends AbstractNamespaceCommandRespon
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), successful);
-    }
-
-    @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
-            final Predicate<JsonField> predicate) {
-
-        super.appendPayload(jsonObjectBuilder, schemaVersion, predicate);
-        jsonObjectBuilder.set(JsonFields.SUCCESSFUL, isSuccessful(), schemaVersion.and(predicate));
+        return Objects.hash(super.hashCode());
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + super.toString() + ", successful=" + successful + "]";
+        return getClass().getSimpleName() + " [" + super.toString() + ", successful=" + isSuccessful() + "]";
     }
 
     /**
      * This class contains definitions for all specific fields of a {@code PurgeNamespaceResponse}'s JSON
      * representation.
+     *
+     * @deprecated as of 2.3.0 there are no additional JSON fields for {@code PurgeNamespaceResponse}.
      */
+    @Deprecated
     @Immutable
     public static final class JsonFields extends NamespaceCommandResponse.JsonFields {
 
         /**
          * This JSON field indicates whether the namespace was purged successfully.
+         *
+         * @deprecated as of 2.3.0 this field is not used anymore as the success
+         * status is derived from HTTP status code.
          */
+        @Deprecated
         public static final JsonFieldDefinition<Boolean> SUCCESSFUL =
-                JsonFactory.newBooleanFieldDefinition("successful", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFieldDefinition.ofBoolean("successful", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

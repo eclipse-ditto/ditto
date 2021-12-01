@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -21,24 +22,23 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 /**
@@ -55,19 +55,33 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
     public static final String TYPE = TYPE_PREFIX + ModifyThingDefinition.NAME;
 
     static final JsonFieldDefinition<String> JSON_DEFINITION =
-            JsonFactory.newStringFieldDefinition("definition", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("definition", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
+    private static final CommandResponseJsonDeserializer<ModifyThingDefinitionResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    Arrays.asList(HttpStatus.CREATED, HttpStatus.NO_CONTENT)::contains,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new ModifyThingDefinitionResponse(
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                jsonObject.getValue(JSON_DEFINITION)
+                                        .map(ThingsModelFactory::newDefinition)
+                                        .orElse(null),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final ThingId thingId;
     @Nullable private final ThingDefinition definition;
 
     private ModifyThingDefinitionResponse(final ThingId thingId,
-            final HttpStatus httpStatus,
             @Nullable final ThingDefinition definition,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, httpStatus, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "Thing ID");
+        this.thingId = checkNotNull(thingId, "thingId");
         this.definition = definition;
     }
 
@@ -83,9 +97,10 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
      * @throws NullPointerException if {@code thingId} or {@code dittoHeaders} is {@code null}.
      */
     public static ModifyThingDefinitionResponse created(final ThingId thingId,
-            @Nullable final ThingDefinition definition, final DittoHeaders dittoHeaders) {
+            @Nullable final ThingDefinition definition,
+            final DittoHeaders dittoHeaders) {
 
-        return new ModifyThingDefinitionResponse(thingId, HttpStatus.CREATED, definition, dittoHeaders);
+        return new ModifyThingDefinitionResponse(thingId, definition, HttpStatus.CREATED, dittoHeaders);
     }
 
 
@@ -99,7 +114,7 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyThingDefinitionResponse modified(final ThingId thingId, final DittoHeaders dittoHeaders) {
-        return new ModifyThingDefinitionResponse(thingId, HttpStatus.NO_CONTENT, null, dittoHeaders);
+        return new ModifyThingDefinitionResponse(thingId, null, HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -114,7 +129,7 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
      * format.
      */
     public static ModifyThingDefinitionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -128,18 +143,7 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
      * format.
      */
     public static ModifyThingDefinitionResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifyThingDefinitionResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
-                    final ThingId thingId = ThingId.of(extractedThingId);
-
-                    final ThingDefinition definition = jsonObject.getValue(JSON_DEFINITION)
-                            .map(ThingsModelFactory::newDefinition)
-                            .orElse(null);
-
-                    return new ModifyThingDefinitionResponse(thingId, httpStatus, definition, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     /**
@@ -174,12 +178,12 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
 
     @Override
     public JsonPointer getResourcePath() {
-        final String path = Thing.JsonFields.DEFINITION.getPointer().toString();
-        return JsonPointer.of(path);
+        return JsonPointer.of(Thing.JsonFields.DEFINITION.getPointer().toString());
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

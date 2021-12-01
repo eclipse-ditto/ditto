@@ -17,24 +17,24 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
@@ -53,14 +53,40 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
      */
     public static final String TYPE = ThingCommandResponse.TYPE_PREFIX + MergeThing.NAME;
 
+    private static final HttpStatus HTTP_STATUS = HttpStatus.NO_CONTENT;
+
+    private static final CommandResponseJsonDeserializer<MergeThingResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    HTTP_STATUS,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new MergeThingResponse(
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                JsonPointer.of(jsonObject.getValueOrThrow(JsonFields.JSON_PATH)),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
+
     private final ThingId thingId;
     private final JsonPointer path;
 
-    private MergeThingResponse(final ThingId thingId, final JsonPointer path, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatus.NO_CONTENT, FeatureToggle.checkMergeFeatureEnabled(TYPE, dittoHeaders));
+    private MergeThingResponse(final ThingId thingId,
+            final JsonPointer path,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE, httpStatus, FeatureToggle.checkMergeFeatureEnabled(TYPE, dittoHeaders));
         this.thingId = checkNotNull(thingId, "thingId");
         this.path = checkNotNull(path, "path");
         checkSchemaVersion();
+    }
+
+    private void checkSchemaVersion() {
+        final JsonSchemaVersion implementedSchemaVersion = getImplementedSchemaVersion();
+        if (!implementsSchemaVersion(implementedSchemaVersion)) {
+            throw UnsupportedSchemaVersionException.newBuilder(implementedSchemaVersion).build();
+        }
     }
 
     /**
@@ -71,8 +97,28 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
      * @param dittoHeaders the ditto headers.
      * @return the created {@code MergeThingResponse}.
      */
-    public static MergeThingResponse of(final ThingId thingId, final JsonPointer path, final DittoHeaders dittoHeaders) {
-        return new MergeThingResponse(thingId, path, dittoHeaders);
+    public static MergeThingResponse of(final ThingId thingId,
+            final JsonPointer path,
+            final DittoHeaders dittoHeaders) {
+
+        return new MergeThingResponse(thingId, path, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Creates a new {@code MergeThingResponse} from a JSON object.
+     *
+     * @param jsonObject the JSON object of which the command response is to be created.
+     * @param dittoHeaders the headers of the command.
+     * @return the {@code MergeThingResponse} command created from JSON.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a field for
+     * {@link org.eclipse.ditto.things.model.signals.commands.ThingCommand.JsonFields#JSON_THING_ID} or
+     * {@link MergeThingResponse.JsonFields#JSON_PATH}.
+     */
+    public static MergeThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -95,61 +141,29 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
         return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
     }
 
-    private void checkSchemaVersion() {
-        final JsonSchemaVersion implementedSchemaVersion = getImplementedSchemaVersion();
-        if (!implementsSchemaVersion(implementedSchemaVersion)) {
-            throw UnsupportedSchemaVersionException.newBuilder(implementedSchemaVersion).build();
-        }
-    }
-
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicateParam) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(predicateParam);
         jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.JSON_PATH, path.toString(), predicate);
     }
 
-    /**
-     * Creates a new {@code MergeThingResponse} from a JSON object.
-     *
-     * @param jsonObject the JSON object of which the command response is to be created.
-     * @param dittoHeaders the headers of the command.
-     * @return the {@code MergeThingResponse} command created from JSON.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
-     * format.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a field for
-     * {@link org.eclipse.ditto.things.model.signals.commands.ThingCommand.JsonFields#JSON_THING_ID} or {@link MergeThingResponse.JsonFields#JSON_PATH}.
-     */
-    public static MergeThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<MergeThingResponse>(TYPE, jsonObject)
-                .deserialize(statusCode -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
-                    final String path = jsonObject.getValueOrThrow(JsonFields.JSON_PATH);
-
-                    return new MergeThingResponse(ThingId.of(extractedThingId), JsonPointer.of(path), dittoHeaders);
-                });
-    }
-
-    /**
-     * An enumeration of the JSON fields of a {@code MergeThingResponse} command.
-     */
-    private static final class JsonFields {
-
-        static final JsonFieldDefinition<String> JSON_PATH =
-                JsonFactory.newStringFieldDefinition("path", FieldType.REGULAR, JsonSchemaVersion.V_2);
-    }
-
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+    public boolean equals(@Nullable final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         final MergeThingResponse that = (MergeThingResponse) o;
-        return that.canEqual(this) && thingId.equals(that.thingId) &&
-                path.equals(that.path);
+        return that.canEqual(this) && thingId.equals(that.thingId) && path.equals(that.path);
     }
 
     @Override
@@ -165,4 +179,19 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
                 ", path=" + path +
                 "]";
     }
+
+    /**
+     * An enumeration of the JSON fields of a {@code MergeThingResponse} command.
+     */
+    private static final class JsonFields {
+
+        static final JsonFieldDefinition<String> JSON_PATH =
+                JsonFieldDefinition.ofString("path", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
+
+    }
+
 }
