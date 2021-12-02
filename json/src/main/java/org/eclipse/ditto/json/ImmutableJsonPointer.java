@@ -315,7 +315,7 @@ final class ImmutableJsonPointer implements JsonPointer {
     }
 
     /**
-     * The string representation of this JSON pointer, i. e. all of its levels concatenated by {@literal "/"}. For
+     * The string representation of this JSON pointer, i.e. all of its levels concatenated by {@literal "/"}. For
      * example if this pointer consists of the three levels {@code "foo"}, {@code "bar"} and {@code "baz"}, this method
      * will return the string {@code "/foo/bar/baz"}. If this pointer #isEmpty(), this method will return the empty
      * string {@code ""}.

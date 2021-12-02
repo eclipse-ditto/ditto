@@ -17,14 +17,14 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Base type for top level entities.
@@ -79,9 +79,9 @@ public interface Entity<T extends Revision<T>> extends Jsonifiable.WithFieldSele
     boolean isDeleted();
 
     /**
-     * Returns all non hidden marked fields of this object.
+     * Returns all non-hidden marked fields of this object.
      *
-     * @return a JSON object representation of this object including only non hidden marked fields.
+     * @return a JSON object representation of this object including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {

@@ -26,13 +26,13 @@ public enum UpdateReason {
      */
     MANUAL_REINDEXING,
     /**
-     * The thing is indexed as part of the automatic background sync.
-     */
-    BACKGROUND_SYNC,
-    /**
      * The thing was updated.
      */
     THING_UPDATE,
+    /**
+     * The thing is indexed as part of the automatic background sync.
+     */
+    BACKGROUND_SYNC,
     /**
      * Reason not known.
      */

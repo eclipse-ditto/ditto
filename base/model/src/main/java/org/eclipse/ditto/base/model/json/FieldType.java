@@ -64,6 +64,16 @@ public enum FieldType implements JsonFieldMarker, Predicate<JsonField> {
     }
 
     /**
+     * Returns a Predicate for fields which are either {@link #SPECIAL} or {@link #HIDDEN}.
+     *
+     * @return the Predicate.
+     * @since  2.3.0.
+     */
+    public static Predicate<JsonField> specialOrHidden() {
+        return FieldType.SPECIAL.or(FieldType.HIDDEN);
+    }
+
+    /**
      * Returns a Predicate which returns {@code true} for all fields.
      *
      * @return the Predicate.

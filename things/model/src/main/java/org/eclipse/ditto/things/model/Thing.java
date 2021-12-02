@@ -18,15 +18,15 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.Entity;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.entity.Entity;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
@@ -705,7 +705,8 @@ public interface Thing extends Entity<ThingRevision> {
          * JSON field containing the Thing's Policy ID.
          */
         public static final JsonFieldDefinition<String> POLICY_ID =
-                JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR,
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's definition.

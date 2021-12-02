@@ -129,7 +129,7 @@ final class EnforcementFlow {
 
     /**
      * Decide whether to reload an enforcer entry.
-     * An entry should be reload if it is out-of-date, nonexistent, or corresponds to a nonexistent entity.
+     * An entry should be reloaded if it is out-of-date, nonexistent, or corresponds to a nonexistent entity.
      *
      * @param entry the enforcer cache entry
      * @param metadata the metadata
