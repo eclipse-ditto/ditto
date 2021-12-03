@@ -120,13 +120,15 @@ public final class LiveResponseAndAcknowledgementForwarder extends AbstractActor
         logger.debug("Got <{}>, valid=<{}>", response, validResponse);
         if (validResponse) {
             responseReceived = true;
-        }
-        if (messageSender != null) {
-            messageSender.forward(response, getContext());
-            checkCompletion();
+            if (messageSender != null) {
+                messageSender.forward(response, getContext());
+                checkCompletion();
+            } else {
+                logger.error("Got response without receiving command");
+                stopSelf("Message sender not found");
+            }
         } else {
-            logger.error("Got response without receiving command");
-            stopSelf("Message sender not found");
+            acknowledgementReceiver.forward(response, getContext());
         }
     }
 

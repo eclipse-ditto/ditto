@@ -14,11 +14,13 @@ package org.eclipse.ditto.concierge.service.enforcement;
 
 import static org.eclipse.ditto.policies.api.Permission.WRITE;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
 
-import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -63,12 +65,16 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.japi.Pair;
+import akka.pattern.Patterns;
 
 /**
  * Enforces live commands (including message commands) and live events.
  */
 public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<SignalWithEntityId<?>,
         ThingQueryCommandResponse<?>> {
+
+    private static final Duration MIN_LIVE_TIMEOUT = Duration.ofSeconds(1L);
+    private static final Duration DEFAULT_LIVE_TIMEOUT = Duration.ofSeconds(60L);
 
     private static final AckExtractor<ThingCommand<?>> THING_COMMAND_ACK_EXTRACTOR =
             AckExtractor.of(ThingCommand::getEntityId, ThingCommand::getDittoHeaders);
@@ -313,16 +319,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                 log(withReadSubjects).info("Live Command was authorized: <{}>", withReadSubjects);
                 final boolean isThingQueryCommandRequiringResponse =
                         liveSignal instanceof ThingQueryCommand && liveSignal.getDittoHeaders().isResponseRequired();
-                final boolean hasCustomAckRequests = hasCustomAcknowledgementRequests(withReadSubjects);
-                if (isThingQueryCommandRequiringResponse && !hasCustomAckRequests) {
-                    return addToResponseReceiver(withReadSubjects).thenApply(newSignal ->
-                            askAndBuildJsonView((ThingCommand<?>) newSignal, THING_COMMAND_ACK_EXTRACTOR,
-                                    liveSignalPub.command(), enforcer)
-                    );
-                } else if (isThingQueryCommandRequiringResponse) {
-                    return addToResponseReceiver(withReadSubjects).thenApply(newSignal ->
-                            askAndBuildJsonViewWithAckForwarding((ThingCommand<?>) newSignal,
-                                    THING_COMMAND_ACK_EXTRACTOR, liveSignalPub.command(), enforcer));
+                if (isThingQueryCommandRequiringResponse) {
+                    return publishLiveQueryCommandAndBuildJsonView(withReadSubjects, enforcer);
                 } else {
                     return publishLiveSignal(withReadSubjects, THING_COMMAND_ACK_EXTRACTOR, liveSignalPub.command());
                 }
@@ -335,11 +333,11 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
         }
     }
 
-    private static boolean hasCustomAcknowledgementRequests(final Signal<?> signal) {
-        return !signal.getDittoHeaders()
-                .getAcknowledgementRequests()
-                .stream()
-                .allMatch(request -> DittoAcknowledgementLabel.LIVE_RESPONSE.equals(request.getLabel()));
+    private CompletionStage<Contextual<WithDittoHeaders>> publishLiveQueryCommandAndBuildJsonView(
+            final ThingCommand<?> withReadSubjects, final Enforcer enforcer) {
+        return addToResponseReceiver(withReadSubjects).thenApply(newSignal ->
+                askAndBuildJsonViewWithAckForwarding((ThingCommand<?>) newSignal,
+                        liveSignalPub.command(), enforcer));
     }
 
     /**
@@ -439,30 +437,26 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
 
     private Contextual<WithDittoHeaders> askAndBuildJsonViewWithAckForwarding(
             final ThingCommand<?> signal,
-            final AckExtractor<ThingCommand<?>> ackExtractor,
             final DistributedPub<ThingCommand<?>> pub,
             final Enforcer enforcer) {
 
-        final var publish = pub.wrapForPublicationWithAcks(signal, ackExtractor);
-        final var castSignal = (SignalWithEntityId<?>) signal;
         final var props = LiveResponseAndAcknowledgementForwarder.props(signal, pub.getPublisher(), sender());
         final var liveResponseForwarder = actorRefFactory.actorOf(props);
-        return withMessageToReceiverViaAskFuture(signal, sender(), () ->
-                askAndBuildJsonView(liveResponseForwarder, castSignal, publish, enforcer, context.getScheduler(),
-                        context.getExecutor()));
-    }
-
-    private <T extends Signal<?>> Contextual<WithDittoHeaders> askAndBuildJsonView(
-            final T signal,
-            final AckExtractor<T> ackExtractor,
-            final DistributedPub<T> pub,
-            final Enforcer enforcer) {
-
-        final var publish = pub.wrapForPublicationWithAcks(signal, ackExtractor);
-        final var castSignal = (SignalWithEntityId<?>) signal;
-        return withMessageToReceiverViaAskFuture(signal, sender(), () ->
-                askAndBuildJsonView(pub.getPublisher(), castSignal, publish, enforcer, context.getScheduler(),
-                        context.getExecutor()));
+        final var startTime = Instant.now();
+        return withMessageToReceiverViaAskFuture(signal, sender(), () -> {
+            final BiFunction<ActorRef, Object, CompletionStage<ThingQueryCommandResponse<?>>> askStrategy =
+                    (toAsk, message) -> {
+                        // TODO: move timeout adjustment to thing command enforcement
+                        final var timeout = getAdjustedTimeout(signal, startTime);
+                        final var signalWithAdjustedTimeout = adjustTimeout(signal, timeout);
+                        final var publish =
+                                pub.wrapForPublicationWithAcks(signalWithAdjustedTimeout, THING_COMMAND_ACK_EXTRACTOR);
+                        return Patterns.ask(toAsk, publish, timeout)
+                                .thenApply(getResponseCaster(signal, "before building JsonView"));
+                    };
+            return ask(liveResponseForwarder, signal, askStrategy)
+                    .thenApply(response -> filterJsonView(response, enforcer));
+        });
     }
 
     private CompletionStage<Signal<?>> addToResponseReceiver(final Signal<?> signal) {
@@ -551,4 +545,18 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                 });
     }
 
+    private static Duration getAdjustedTimeout(final Signal<?> signal, final Instant startTime) {
+        final var baseTimeout = signal.getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT);
+        final var adjustedTimeout = baseTimeout.minus(Duration.between(startTime, Instant.now()));
+        return adjustedTimeout.minus(MIN_LIVE_TIMEOUT).isNegative() ? MIN_LIVE_TIMEOUT : adjustedTimeout;
+    }
+
+    private static ThingCommand<?> adjustTimeout(final ThingCommand<?> command, final Duration adjustedTimeout) {
+        return command.setDittoHeaders(
+                command.getDittoHeaders()
+                        .toBuilder()
+                        .timeout(adjustedTimeout)
+                        .build()
+        );
+    }
 }

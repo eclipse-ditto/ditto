@@ -187,14 +187,8 @@ final class OutboundDispatchingActor extends AbstractActor {
 
         final var context = getContext();
         final var proxyActor = settings.getProxyActor();
-        final Consumer<ActorRef> forwardAck = acknowledgementForwarder -> {
-            if (responseOrAck instanceof ThingQueryCommandResponse && isLiveResponse(responseOrAck)) {
-                // forward live command responses to concierge to filter response
-                proxyActor.tell(responseOrAck, getSender());
-            } else {
-                acknowledgementForwarder.forward(responseOrAck, context);
-            }
-        };
+        final Consumer<ActorRef> forwardAck =
+                acknowledgementForwarder -> acknowledgementForwarder.forward(responseOrAck, context);
 
         final Runnable forwardToConcierge = () -> {
             final var forwarderActorClassName = AcknowledgementForwarderActor.class.getSimpleName();
