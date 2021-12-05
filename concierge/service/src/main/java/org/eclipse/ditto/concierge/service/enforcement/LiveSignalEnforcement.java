@@ -73,10 +73,11 @@ import akka.pattern.Patterns;
 public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<SignalWithEntityId<?>,
         ThingQueryCommandResponse<?>> {
 
-    private static final Duration MIN_LIVE_TIMEOUT = Duration.ofSeconds(1L);
-    private static final Duration DEFAULT_LIVE_TIMEOUT = Duration.ofSeconds(60L);
+    // TODO: configure
+    static final Duration MIN_LIVE_TIMEOUT = Duration.ofSeconds(1L);
+    static final Duration DEFAULT_LIVE_TIMEOUT = Duration.ofSeconds(60L);
 
-    private static final AckExtractor<ThingCommand<?>> THING_COMMAND_ACK_EXTRACTOR =
+    static final AckExtractor<ThingCommand<?>> THING_COMMAND_ACK_EXTRACTOR =
             AckExtractor.of(ThingCommand::getEntityId, ThingCommand::getDittoHeaders);
     private static final AckExtractor<ThingEvent<?>> THING_EVENT_ACK_EXTRACTOR =
             AckExtractor.of(ThingEvent::getEntityId, ThingEvent::getDittoHeaders);

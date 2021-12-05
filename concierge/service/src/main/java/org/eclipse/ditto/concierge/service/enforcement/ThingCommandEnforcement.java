@@ -13,8 +13,15 @@
 package org.eclipse.ditto.concierge.service.enforcement;
 
 import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcement.DEFAULT_LIVE_TIMEOUT;
+import static org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcement.MIN_LIVE_TIMEOUT;
+import static org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcement.THING_COMMAND_ACK_EXTRACTOR;
+import static org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcement.addEffectedReadSubjectsToThingLiveSignal;
 import static org.eclipse.ditto.policies.api.Permission.MIN_REQUIRED_POLICY_PERMISSIONS;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -38,9 +45,11 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.concierge.api.ConciergeMessagingConstants;
+import org.eclipse.ditto.concierge.service.actors.LiveResponseAndAcknowledgementForwarder;
 import org.eclipse.ditto.concierge.service.enforcement.placeholders.references.PolicyIdReferencePlaceholderResolver;
 import org.eclipse.ditto.concierge.service.enforcement.placeholders.references.ReferencePlaceholder;
 import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
@@ -53,6 +62,7 @@ import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementContext;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -82,6 +92,7 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicyResponse;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.rql.model.ParserException;
 import org.eclipse.ditto.rql.model.predicates.ast.RootNode;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
@@ -110,7 +121,9 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorRefFactory;
 import akka.pattern.AskTimeoutException;
+import akka.pattern.Patterns;
 
 /**
  * Authorize {@code ThingCommand}.
@@ -140,13 +153,17 @@ public final class ThingCommandEnforcement
     private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
     private final PreEnforcer preEnforcer;
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
+    private final LiveSignalPub liveSignalPub;
+    private final ActorRefFactory actorRefFactory;
 
     private ThingCommandEnforcement(final Contextual<ThingCommand<?>> data,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
             final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
             final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
-            final PreEnforcer preEnforcer) {
+            final PreEnforcer preEnforcer,
+            final LiveSignalPub liveSignalPub,
+            final ActorRefFactory actorRefFactory) {
 
         super(data, ThingQueryCommandResponse.class);
         this.thingsShardRegion = requireNonNull(thingsShardRegion);
@@ -155,11 +172,13 @@ public final class ThingCommandEnforcement
         this.thingIdCache = requireNonNull(thingIdCache);
         this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
         this.preEnforcer = preEnforcer;
+        this.actorRefFactory = actorRefFactory;
         thingEnforcerRetriever = PolicyEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache);
         policyEnforcerRetriever = new EnforcerRetriever<>(IdentityCache.INSTANCE, policyEnforcerCache);
         policyIdReferencePlaceholderResolver =
                 PolicyIdReferencePlaceholderResolver.of(conciergeForwarder(), getAskWithRetryConfig(),
                         context.getScheduler(), context.getExecutor());
+        this.liveSignalPub = liveSignalPub;
     }
 
     @Override
@@ -281,22 +300,65 @@ public final class ThingCommandEnforcement
         final Contextual<WithDittoHeaders> result;
         if (commandWithReadSubjects instanceof ThingQueryCommand) {
             final ThingQueryCommand<?> thingQueryCommand = (ThingQueryCommand<?>) commandWithReadSubjects;
+            final Instant startTime = Instant.now();
             if (!isResponseRequired(thingQueryCommand)) {
                 // drop query command with response-required=false
                 result = withMessageToReceiver(null, ActorRef.noSender());
             } else if (thingQueryCommand instanceof RetrieveThing && shouldRetrievePolicyWithThing(thingQueryCommand)) {
                 final var retrieveThing = (RetrieveThing) thingQueryCommand;
-                result = withMessageToReceiverViaAskFuture(retrieveThing, sender(),
-                        () -> retrieveThingAndPolicy(retrieveThing, policyId, enforcer));
+                result = withMessageToReceiverViaAskFuture(retrieveThing, sender(), () ->
+                        retrieveThingAndPolicy(retrieveThing, policyId, enforcer).thenCompose(response ->
+                                doSmartChannelSelection(retrieveThing, response, startTime, enforcer))
+                );
             } else {
-                result = withMessageToReceiverViaAskFuture(thingQueryCommand, sender(),
-                        () -> askAndBuildJsonView(thingsShardRegion, thingQueryCommand, enforcer,
-                                context.getScheduler(), context.getExecutor()));
+                result = withMessageToReceiverViaAskFuture(thingQueryCommand, sender(), () ->
+                        askAndBuildJsonView(thingsShardRegion, thingQueryCommand, enforcer,
+                                context.getScheduler(), context.getExecutor()).thenCompose(response ->
+                                doSmartChannelSelection(thingQueryCommand, response, startTime, enforcer))
+                );
             }
         } else {
             result = forwardToThingsShardRegion(commandWithReadSubjects);
         }
         return result;
+    }
+
+    private CompletionStage<ThingQueryCommandResponse<?>> doSmartChannelSelection(final ThingQueryCommand<?> command,
+            final ThingQueryCommandResponse<?> twinResponse, final Instant startTime, final Enforcer enforcer) {
+
+        if (command.getDittoHeaders().getLiveChannelCondition().isEmpty() ||
+                !twinResponse.getDittoHeaders().didLiveChannelConditionMatch()) {
+            return CompletableFuture.completedStage(twinResponse);
+        }
+
+        final ThingQueryCommand<?> liveCommand = toLiveCommand(command, enforcer);
+
+        final var pub = liveSignalPub.command();
+        // TODO: twin fallback
+        final var props =
+                LiveResponseAndAcknowledgementForwarder.props(liveCommand, pub.getPublisher(), sender());
+        final var liveResponseForwarder = actorRefFactory.actorOf(props);
+        final BiFunction<ActorRef, Object, CompletionStage<ThingQueryCommandResponse<?>>> askStrategy =
+                (toAsk, message) -> {
+                    // TODO: consolidate with live signal enforcement
+                    final var timeout = getAdjustedLiveTimeout(liveCommand, startTime);
+                    final var signalWithAdjustedTimeout =
+                            adjustTimeoutAndSetReadSubjects(liveCommand, timeout);
+                    final var publish =
+                            pub.wrapForPublicationWithAcks(signalWithAdjustedTimeout, THING_COMMAND_ACK_EXTRACTOR);
+                    return Patterns.ask(toAsk, publish, timeout)
+                            .thenApply(getResponseCaster(liveCommand, "before building JsonView"));
+                };
+        return ask(liveResponseForwarder, liveCommand, askStrategy)
+                .thenApply(response -> filterJsonView(response, enforcer));
+    }
+
+    private ThingQueryCommand<?> toLiveCommand(final ThingQueryCommand<?> command, final Enforcer enforcer) {
+        final ThingQueryCommand<?> withReadSubjects = addEffectedReadSubjectsToThingLiveSignal(command, enforcer);
+        return withReadSubjects.setDittoHeaders(withReadSubjects.getDittoHeaders().toBuilder()
+                .liveChannelCondition(null)
+                .channel(TopicPath.Channel.LIVE.getName())
+                .build());
     }
 
     /**
@@ -1115,6 +1177,22 @@ public final class ThingCommandEnforcement
                         .build());
     }
 
+    private static Duration getAdjustedLiveTimeout(final Signal<?> signal, final Instant startTime) {
+        final var baseTimeout = signal.getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT);
+        final var adjustedTimeout = baseTimeout.minus(Duration.between(startTime, Instant.now()));
+        return adjustedTimeout.minus(MIN_LIVE_TIMEOUT).isNegative() ? MIN_LIVE_TIMEOUT : adjustedTimeout;
+    }
+
+    private static ThingCommand<?> adjustTimeoutAndSetReadSubjects(final ThingCommand<?> command,
+            final Duration adjustedTimeout) {
+        return command.setDittoHeaders(
+                command.getDittoHeaders()
+                        .toBuilder()
+                        .timeout(adjustedTimeout)
+                        .build()
+        );
+    }
+
     /**
      * A pair of {@code CreateThing} command with {@code Enforcer}.
      */
@@ -1140,6 +1218,8 @@ public final class ThingCommandEnforcement
         private final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache;
         private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
         private final PreEnforcer preEnforcer;
+        private final LiveSignalPub liveSignalPub;
+        private final ActorRefFactory actorRefFactory;
 
         /**
          * Constructor.
@@ -1149,18 +1229,25 @@ public final class ThingCommandEnforcement
          * @param thingIdCache the thing-id-cache.
          * @param policyEnforcerCache the policy-enforcer cache.
          * @param preEnforcer pre-enforcer function to block undesirable messages to policies shard region.
+         * @param liveSignalPub publisher of live signals.
+         * @param actorRefFactory factory with which to create actors.
          */
+        @SuppressWarnings("NullableProblems")
         public Provider(final ActorRef thingsShardRegion,
                 final ActorRef policiesShardRegion,
                 final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
                 final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
-                @Nullable final PreEnforcer preEnforcer) {
+                @Nullable final PreEnforcer preEnforcer,
+                final LiveSignalPub liveSignalPub,
+                final ActorRefFactory actorRefFactory) {
 
-            this.thingsShardRegion = requireNonNull(thingsShardRegion);
-            this.policiesShardRegion = requireNonNull(policiesShardRegion);
-            this.thingIdCache = requireNonNull(thingIdCache);
-            this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
+            this.thingsShardRegion = checkNotNull(thingsShardRegion, "thingShardRegion");
+            this.policiesShardRegion = checkNotNull(policiesShardRegion, "policiesShardRegion");
+            this.thingIdCache = checkNotNull(thingIdCache, "thingIdCache");
+            this.policyEnforcerCache = checkNotNull(policyEnforcerCache, "policyEnforcerCache");
             this.preEnforcer = Objects.requireNonNullElseGet(preEnforcer, () -> CompletableFuture::completedFuture);
+            this.liveSignalPub = checkNotNull(liveSignalPub, "liveSignalPub");
+            this.actorRefFactory = actorRefFactory;
         }
 
         @Override
@@ -1189,7 +1276,9 @@ public final class ThingCommandEnforcement
                     policiesShardRegion,
                     thingIdCache,
                     policyEnforcerCache,
-                    preEnforcer);
+                    preEnforcer,
+                    liveSignalPub,
+                    actorRefFactory);
         }
 
     }

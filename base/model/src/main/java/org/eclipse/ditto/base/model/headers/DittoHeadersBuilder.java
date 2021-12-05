@@ -319,7 +319,7 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
      * @return this builder for method chaining.
      * @since 2.2.0
      */
-    B liveChannelCondition(String liveChannelCondition);
+    B liveChannelCondition(@Nullable String liveChannelCondition);
 
     /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.

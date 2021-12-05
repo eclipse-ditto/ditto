@@ -119,7 +119,8 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,
-                policiesShardRegionProxy, thingIdCache, projectedEnforcerCache, preEnforcer));
+                policiesShardRegionProxy, thingIdCache, projectedEnforcerCache, preEnforcer, liveSignalPub,
+                actorSystem));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache));
         enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache,
                 projectedEnforcerCache,
