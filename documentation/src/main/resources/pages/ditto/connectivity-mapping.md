@@ -251,7 +251,7 @@ Example configuration:
 
 This mapper implicitly creates a new thing for an incoming message. 
  
-The created thing contains the values defined in the template, configured in the `mappingDefinitions` `options`. </br>
+The created thing contains the values defined in the template, configured in the `mappingDefinitions` `options`.  
 
 #### Configuration options
 

@@ -219,7 +219,7 @@ successfully established. The only parameter necessary for retrieving the connec
 
 ### Retrieve connection metrics
 
-This command returns the connection metrics showing how many messages have been successfully or failingly `conusmed`,
+This command returns the connection metrics showing how many messages have been successfully or failingly `consumed`,
 `filtered`, `mapped`, `published`, `dropped`. The metrics are collected and returned in different time intervals:
 * the last minute
 * the last hour
