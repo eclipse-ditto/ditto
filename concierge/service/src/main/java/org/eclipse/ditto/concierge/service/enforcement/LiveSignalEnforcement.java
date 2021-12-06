@@ -456,7 +456,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                                 .thenApply(getResponseCaster(signal, "before building JsonView"));
                     };
             return ask(liveResponseForwarder, signal, askStrategy)
-                    .thenApply(response -> filterJsonView(response, enforcer));
+                    .thenApply(response -> filterJsonView(replaceAuthContext(response, signal), enforcer));
         });
     }
 
@@ -559,5 +559,13 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                         .timeout(adjustedTimeout)
                         .build()
         );
+    }
+
+    static ThingQueryCommandResponse<?> replaceAuthContext(final ThingQueryCommandResponse<?> response,
+            final WithDittoHeaders command) {
+        return response.setDittoHeaders(response.getDittoHeaders()
+                .toBuilder()
+                .authorizationContext(command.getDittoHeaders().getAuthorizationContext())
+                .build());
     }
 }

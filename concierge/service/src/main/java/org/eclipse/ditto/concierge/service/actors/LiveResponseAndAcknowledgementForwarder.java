@@ -87,7 +87,7 @@ public final class LiveResponseAndAcknowledgementForwarder extends AbstractActor
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(ThingQueryCommandResponse.class, this::onQueryCommandResponse)
+                .match(CommandResponse.class, this::onCommandResponse)
                 .match(Acknowledgement.class, this::onAcknowledgement)
                 .match(Acknowledgements.class, this::onAcknowledgements)
                 .match(ReceiveTimeout.class, this::stopSelf)
@@ -115,7 +115,7 @@ public final class LiveResponseAndAcknowledgementForwarder extends AbstractActor
         acknowledgementReceiver.forward(acks, getContext());
     }
 
-    private void onQueryCommandResponse(final ThingQueryCommandResponse<?> response) {
+    private void onCommandResponse(final CommandResponse<?> response) {
         final boolean validResponse = isValidResponse(response);
         logger.debug("Got <{}>, valid=<{}>", response, validResponse);
         if (validResponse) {

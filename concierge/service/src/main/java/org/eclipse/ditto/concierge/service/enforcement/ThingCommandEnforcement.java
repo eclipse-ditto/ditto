@@ -18,6 +18,7 @@ import static org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcem
 import static org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcement.MIN_LIVE_TIMEOUT;
 import static org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcement.THING_COMMAND_ACK_EXTRACTOR;
 import static org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcement.addEffectedReadSubjectsToThingLiveSignal;
+import static org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcement.replaceAuthContext;
 import static org.eclipse.ditto.policies.api.Permission.MIN_REQUIRED_POLICY_PERMISSIONS;
 
 import java.time.Duration;
@@ -350,7 +351,7 @@ public final class ThingCommandEnforcement
                             .thenApply(getResponseCaster(liveCommand, "before building JsonView"));
                 };
         return ask(liveResponseForwarder, liveCommand, askStrategy)
-                .thenApply(response -> filterJsonView(response, enforcer));
+                .thenApply(response -> filterJsonView(replaceAuthContext(response, command), enforcer));
     }
 
     private ThingQueryCommand<?> toLiveCommand(final ThingQueryCommand<?> command, final Enforcer enforcer) {
