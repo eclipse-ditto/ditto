@@ -36,7 +36,6 @@ import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
-import org.eclipse.ditto.things.api.ThingTag;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
@@ -124,7 +123,6 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(ThingEvent.class, this::processThingEvent)
-                .match(ThingTag.class, this::processThingTag)
                 .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
                 .matchEquals(ShardRegion.getShardRegionStateInstance(), getShardRegionState ->
                         shardRegion.forward(getShardRegionState, getContext()))
@@ -161,13 +159,6 @@ final class ThingsUpdater extends AbstractActorWithTimers {
         log.info("Sending the namespace stats of the search-updater shard as requested..");
         Patterns.pipe(retrieveStatisticsDetailsResponseSupplier
                 .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
-    }
-
-    private void processThingTag(final ThingTag thingTag) {
-        final String elementIdentifier = thingTag.asIdentifierString();
-        log.withCorrelationId("things-tags-sync-" + elementIdentifier)
-                .debug("Forwarding incoming ThingTag '{}'", elementIdentifier);
-        forwardJsonifiableToShardRegion(thingTag, ThingTag::getEntityId);
     }
 
     private void updateThings(final ThingsOutOfSync updateThings) {

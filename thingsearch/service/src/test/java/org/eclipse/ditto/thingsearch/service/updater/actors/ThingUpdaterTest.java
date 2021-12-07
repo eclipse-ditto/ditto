@@ -22,12 +22,10 @@ import org.bson.BsonString;
 import org.eclipse.ditto.base.api.common.Shutdown;
 import org.eclipse.ditto.base.api.common.ShutdownReasonFactory;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.things.api.ThingTag;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
@@ -126,7 +124,6 @@ public final class ThingUpdaterTest {
                 .setRevision(revision)
                 .build();
         final long thingTagRevision = revision + 9L;
-        final ThingTag thingTag = ThingTag.of(THING_ID, thingTagRevision);
 
         new TestKit(actorSystem) {
             {
@@ -139,13 +136,6 @@ public final class ThingUpdaterTest {
                 Assertions.assertThat(metadata.getThingRevision()).isEqualTo(revision);
                 Assertions.assertThat(metadata.getPolicyId()).isEmpty();
                 Assertions.assertThat(metadata.getPolicyRevision()).contains(-1L);
-
-                underTest.tell(thingTag, ActorRef.noSender());
-                final Metadata metadata2 = changeQueueTestProbe.expectMsgClass(Metadata.class);
-                Assertions.assertThat((CharSequence) metadata2.getThingId()).isEqualTo(THING_ID);
-                Assertions.assertThat(metadata2.getThingRevision()).isEqualTo(thingTagRevision);
-                Assertions.assertThat(metadata2.getPolicyId()).isEmpty();
-                Assertions.assertThat(metadata2.getPolicyRevision()).contains(-1L);
             }
         };
     }
@@ -159,7 +149,6 @@ public final class ThingUpdaterTest {
                 .setRevision(revision)
                 .build();
         final long thingTagRevision = revision - 2L;
-        final ThingTag thingTag = ThingTag.of(THING_ID, thingTagRevision);
 
         new TestKit(actorSystem) {
             {
@@ -172,9 +161,6 @@ public final class ThingUpdaterTest {
                 Assertions.assertThat(metadata.getThingRevision()).isEqualTo(revision);
                 Assertions.assertThat(metadata.getPolicyId()).isEmpty();
                 Assertions.assertThat(metadata.getPolicyRevision()).contains(-1L);
-
-                underTest.tell(thingTag, ActorRef.noSender());
-                changeQueueTestProbe.expectNoMessage();
             }
         };
     }
@@ -218,48 +204,6 @@ public final class ThingUpdaterTest {
                         ActorRef.noSender());
                 changeQueueTestProbe.expectMsg(Metadata.of(THING_ID, -1L, policyId2, 9L, null)
                         .withOrigin(underTest).withUpdateReason(UpdateReason.POLICY_UPDATE));
-            }
-        };
-    }
-
-    @Test
-    public void acknowledgesSuccessfulSync() {
-        final long thingTagRevision = 7L;
-        new TestKit(actorSystem) {
-            {
-                final ActorRef underTest = createThingUpdaterActor();
-
-                // GIVEN: a ThingTag with nonempty sender triggers synchronization
-                final ThingTag thingTag = ThingTag.of(THING_ID, thingTagRevision);
-                underTest.tell(thingTag, getRef());
-
-                // THEN: success is acknowledged
-                expectMsgEquals(StreamAck.success(thingTag.asIdentifierString()));
-            }
-        };
-    }
-
-    @Test
-    public void acknowledgesSkippedSync() {
-        final long thingTagRevision = 59L;
-        final long outdatedRevision = 5L;
-
-        new TestKit(actorSystem) {
-            {
-                final ActorRef underTest = createThingUpdaterActor();
-
-                // GIVEN: a ThingTag with nonempty sender triggered synchronization
-                final ThingTag thingTag = ThingTag.of(THING_ID, thingTagRevision);
-                underTest.tell(thingTag, getRef());
-                expectMsgEquals(StreamAck.success(thingTag.asIdentifierString()));
-                changeQueueTestProbe.expectMsgClass(Metadata.class);
-
-                // WHEN: updater receives outdated ThingTag
-                final ThingTag outdatedThingTag = ThingTag.of(THING_ID, outdatedRevision);
-                underTest.tell(outdatedThingTag, getRef());
-
-                // THEN: success is acknowledged
-                expectMsgEquals(StreamAck.success(outdatedThingTag.asIdentifierString()));
             }
         };
     }

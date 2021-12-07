@@ -38,7 +38,6 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.things.api.ThingTag;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
@@ -160,7 +159,6 @@ final class ThingUpdater extends AbstractActorWithStash {
         return shutdownBehaviour.createReceive()
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(AbstractWriteModel.class, this::onNextWriteModel)
-                .match(ThingTag.class, this::processThingTag)
                 .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
                 .match(UpdateThing.class, this::updateThing)
                 .match(UpdateThingResponse.class, this::processUpdateThingResponse)
@@ -259,22 +257,6 @@ final class ThingUpdater extends AbstractActorWithStash {
 
     private void enqueueMetadata(final Metadata metadata) {
         changeQueueActor.tell(metadata.withOrigin(getSelf()), getSelf());
-    }
-
-    private void processThingTag(final ThingTag thingTag) {
-        log.debug("Received new Thing Tag for thing <{}> with revision <{}>: <{}>.",
-                thingId, thingRevision, thingTag.asIdentifierString());
-
-        if (thingTag.getRevision() > thingRevision) {
-            log.debug("The Thing Tag for the thing <{}> has the revision {} which is greater than the current actor's"
-                    + " sequence number <{}>.", thingId, thingTag.getRevision(), thingRevision);
-            thingRevision = thingTag.getRevision();
-            // TODO what triggers a ThingTag?
-            enqueueMetadata(UpdateReason.UNKNOWN);
-        } else {
-            log.debug("Dropping <{}> because my thingRevision=<{}>", thingTag, thingRevision);
-        }
-        acknowledge(thingTag);
     }
 
     private void updateThing(final UpdateThing updateThing) {

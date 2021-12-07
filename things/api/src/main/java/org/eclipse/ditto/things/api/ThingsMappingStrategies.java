@@ -18,13 +18,12 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.internal.models.streaming.BatchedEntityIdWithRevisions;
+import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.internal.utils.cluster.GlobalMappingStrategies;
 import org.eclipse.ditto.internal.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.internal.utils.cluster.MappingStrategiesBuilder;
-import org.eclipse.ditto.base.model.signals.JsonParsable;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 
 /**
  * {@link MappingStrategies} for the Things service containing all {@link Jsonifiable} types known to Things.
@@ -63,9 +62,6 @@ public final class ThingsMappingStrategies extends MappingStrategies {
     private static MappingStrategies getThingsMappingStrategies() {
         return MappingStrategiesBuilder.newInstance()
                 .add(Thing.class, jsonObject -> ThingsModelFactory.newThing(jsonObject)) // do not replace with lambda!
-                .add(ThingTag.class, jsonObject -> ThingTag.fromJson(jsonObject))  // do not replace with lambda!
-                .add(BatchedEntityIdWithRevisions.typeOf(ThingTag.class),
-                        BatchedEntityIdWithRevisions.deserializer(jsonObject -> ThingTag.fromJson(jsonObject)))
                 .putAll(GlobalMappingStrategies.getInstance())
                 .build();
     }

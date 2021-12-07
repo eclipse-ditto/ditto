@@ -32,7 +32,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
-import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.ddata.DistributedData;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
@@ -40,7 +39,6 @@ import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.things.api.ThingTag;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -111,16 +109,6 @@ public final class ThingsUpdaterTest {
     }
 
     @Test
-    public void thingTagIsForwarded() {
-        final EntityIdWithRevision<?> event = ThingTag.of(KNOWN_THING_ID, KNOWN_REVISION);
-        new TestKit(actorSystem) {{
-            final ActorRef underTest = createThingsUpdater();
-            underTest.tell(event, getRef());
-            expectShardedMessage(shardMessageReceiver, event, event.getEntityId());
-        }};
-    }
-
-    @Test
     public void policyReferenceTagIsForwarded() {
         final PolicyReferenceTag message =
                 PolicyReferenceTag.of(KNOWN_THING_ID, PolicyTag.of(PolicyId.of("a", "b"), 9L));
@@ -172,7 +160,6 @@ public final class ThingsUpdaterTest {
         final String blockedNamespace = "blocked";
         final ThingEvent<?> thingEvent = ThingDeleted.of(ThingId.of(blockedNamespace, "thing2"), 10L,
                 Instant.now(), KNOWN_HEADERS, null);
-        final ThingTag thingTag = ThingTag.of(ThingId.of(blockedNamespace, "thing3"), 11L);
         final PolicyReferenceTag refTag =
                 PolicyReferenceTag.of(ThingId.of(blockedNamespace + ":thing4"),
                         PolicyTag.of(KNOWN_POLICY_ID, 12L));
@@ -184,10 +171,6 @@ public final class ThingsUpdaterTest {
 
             // events blocked silently
             underTest.tell(thingEvent, getRef());
-
-            // thing tag blocked with acknowledgement
-            underTest.tell(thingTag, getRef());
-            expectMsg(StreamAck.success(thingTag.asIdentifierString()));
 
             // policy tag blocked with acknowledgement
             underTest.tell(refTag, getRef());
