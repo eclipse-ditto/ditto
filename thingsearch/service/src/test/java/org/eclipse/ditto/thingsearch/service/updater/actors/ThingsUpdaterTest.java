@@ -31,23 +31,24 @@ import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.policies.api.PolicyReferenceTag;
-import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
 import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
-import org.eclipse.ditto.things.api.ThingTag;
-import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
-import org.eclipse.ditto.thingsearch.service.common.config.DefaultUpdaterConfig;
-import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.ddata.DistributedData;
 import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
-import org.eclipse.ditto.base.model.signals.ShardedMessageEnvelope;
+import org.eclipse.ditto.policies.api.PolicyReferenceTag;
+import org.eclipse.ditto.policies.api.PolicyTag;
+import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.things.api.ThingTag;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.api.UpdateReason;
+import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
+import org.eclipse.ditto.thingsearch.service.common.config.DefaultUpdaterConfig;
+import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -150,7 +151,7 @@ public final class ThingsUpdaterTest {
                 expectedIds.remove(envelopeId);
                 assertThat(envelope.getDittoHeaders()).isEqualTo(dittoHeaders);
                 assertThat(envelope.getMessage())
-                        .isEqualTo(UpdateThing.of(ThingId.of(envelopeId), dittoHeaders).toJson());
+                        .isEqualTo(UpdateThing.of(ThingId.of(envelopeId),  UpdateReason.THING_UPDATE, dittoHeaders).toJson());
             }
         }};
     }

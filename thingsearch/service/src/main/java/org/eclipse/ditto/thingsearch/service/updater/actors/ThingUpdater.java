@@ -41,6 +41,7 @@ import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.api.ThingTag;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
@@ -51,7 +52,6 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWri
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.UpdateReason;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ConsistencyLag;
 import org.eclipse.ditto.thingsearch.service.starter.actors.MongoClientExtension;
 
@@ -285,8 +285,7 @@ final class ThingUpdater extends AbstractActorWithStash {
         }
         final Metadata metadata = exportMetadata(null, null)
                 .invalidateCaches(updateThing.shouldInvalidateThing(), updateThing.shouldInvalidatePolicy())
-                // TODO background sync or namespace indexing?
-                .withUpdateReason(UpdateReason.MANUAL_REINDEXING);
+                .withUpdateReason(updateThing.getUpdateReason());
         if (updateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)) {
             enqueueMetadata(metadata.withSender(getSender()));
         } else {

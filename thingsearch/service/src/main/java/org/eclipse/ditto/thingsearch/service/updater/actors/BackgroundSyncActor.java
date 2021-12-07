@@ -33,6 +33,7 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.BackgroundSyncConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultBackgroundSyncConfig;
@@ -251,8 +252,9 @@ public final class BackgroundSyncActor
 
     private void handleInconsistency(final Metadata metadata) {
         final var thingId = metadata.getThingId();
-        final var command = UpdateThing.of(thingId, metadata.shouldInvalidateThing(), metadata.shouldInvalidatePolicy(),
-                SEARCH_PERSISTED_HEADERS);
+        final var command =
+                UpdateThing.of(thingId, metadata.shouldInvalidateThing(), metadata.shouldInvalidatePolicy(),
+                        UpdateReason.BACKGROUND_SYNC, SEARCH_PERSISTED_HEADERS);
         final var askFuture = Patterns.ask(thingsUpdater, command, UPDATER_TIMEOUT)
                 .handle((result, error) -> {
                     if (result instanceof Acknowledgement) {

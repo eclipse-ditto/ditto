@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.thingsearch.service.persistence.write.model;
+package org.eclipse.ditto.thingsearch.api;
 
 /**
  * Describes the reason why a thing is being updated in the search index.

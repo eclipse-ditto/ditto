@@ -39,6 +39,7 @@ import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.things.api.ThingTag;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
@@ -175,7 +176,8 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                 .info("Out-of-sync things are reported: <{}>", updateThings);
         updateThings.getThingIds().forEach(thingId ->
                 forwardToShardRegion(
-                        UpdateThing.of(ThingId.of(thingId), updateThings.getDittoHeaders()),
+                        // TODO define update reason
+                        UpdateThing.of(ThingId.of(thingId), UpdateReason.THING_UPDATE, updateThings.getDittoHeaders()),
                         UpdateThing::getEntityId,
                         UpdateThing::getType,
                         UpdateThing::toJson,

@@ -34,6 +34,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.WithThingId;
+import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -68,21 +69,26 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
             JsonFactory.newBooleanFieldDefinition("invalidateThing", FieldType.REGULAR, V_2);
     private static final JsonFieldDefinition<Boolean> JSON_INVALIDATE_POLICY =
             JsonFactory.newBooleanFieldDefinition("invalidatePolicy", FieldType.REGULAR, V_2);
+    private static final JsonFieldDefinition<String> JSON_UPDATE_REASON =
+            JsonFactory.newStringFieldDefinition("updateReason", FieldType.REGULAR, V_2);
 
 
     private final ThingId thingId;
     private final boolean invalidateThing;
     private final boolean invalidatePolicy;
+    private final UpdateReason updateReason;
 
     private UpdateThing(final ThingId thingId,
             final boolean invalidateThing,
             final boolean invalidatePolicy,
+            final UpdateReason updateReason,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
         this.thingId = thingId;
         this.invalidateThing = invalidateThing;
         this.invalidatePolicy = invalidatePolicy;
+        this.updateReason = updateReason;
     }
 
     /**
@@ -92,8 +98,10 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
      * @param dittoHeaders Ditto headers of the command.
      * @return the command.
      */
-    public static UpdateThing of(final ThingId thingId, final DittoHeaders dittoHeaders) {
-        return new UpdateThing(thingId, true, true, dittoHeaders);
+    public static UpdateThing of(final ThingId thingId,
+            final UpdateReason updateReason,
+            final DittoHeaders dittoHeaders) {
+        return new UpdateThing(thingId, true, true, updateReason, dittoHeaders);
     }
 
     /**
@@ -109,9 +117,9 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
     public static UpdateThing of(final ThingId thingId,
             final boolean invalidateThing,
             final boolean invalidatePolicy,
+            final UpdateReason updateReason,
             final DittoHeaders dittoHeaders) {
-
-        return new UpdateThing(thingId, invalidateThing, invalidatePolicy, dittoHeaders);
+        return new UpdateThing(thingId, invalidateThing, invalidatePolicy, updateReason, dittoHeaders);
     }
 
     /**
@@ -129,6 +137,7 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
                 ThingId.of(jsonObject.getValueOrThrow(JSON_THING_ID)),
                 jsonObject.getValueOrThrow(JSON_INVALIDATE_THING),
                 jsonObject.getValueOrThrow(JSON_INVALIDATE_POLICY),
+                UpdateReason.valueOf(jsonObject.getValueOrThrow(JSON_UPDATE_REASON)),
                 dittoHeaders
         );
     }
@@ -138,7 +147,8 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
             final Predicate<JsonField> predicate) {
         jsonObjectBuilder.set(JSON_THING_ID, thingId.toString(), predicate)
                 .set(JSON_INVALIDATE_THING, invalidateThing, predicate)
-                .set(JSON_INVALIDATE_POLICY, invalidatePolicy, predicate);
+                .set(JSON_INVALIDATE_POLICY, invalidatePolicy, predicate)
+                .set(JSON_UPDATE_REASON, updateReason.toString(), predicate);
     }
 
     @Override
@@ -153,7 +163,7 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
 
     @Override
     public UpdateThing setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new UpdateThing(thingId, invalidateThing, invalidatePolicy, dittoHeaders);
+        return new UpdateThing(thingId, invalidateThing, invalidatePolicy, updateReason, dittoHeaders);
     }
 
     @Override
@@ -181,6 +191,16 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
         return invalidatePolicy;
     }
 
+    /**
+     * Return the update reason.
+     *
+     * @return the update reason.
+     * @since 2.3.0
+     */
+    public UpdateReason getUpdateReason() {
+        return updateReason;
+    }
+
     @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
@@ -200,13 +220,14 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
             return Objects.equals(thingId, that.thingId) &&
                     invalidateThing == that.invalidateThing &&
                     invalidatePolicy == that.invalidatePolicy &&
+                    updateReason == that.updateReason &&
                     super.equals(that);
         }
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), thingId, invalidateThing, invalidatePolicy);
+        return Objects.hash(super.hashCode(), thingId, invalidateThing, invalidatePolicy, updateReason);
     }
 
     @Override
@@ -216,6 +237,8 @@ public final class UpdateThing extends AbstractCommand<UpdateThing> implements S
                 ",thingId=" + thingId +
                 ",invalidateThing=" + invalidateThing +
                 ",invalidatePolicy=" + invalidatePolicy +
+                ",updateReason=" + updateReason +
                 "]";
     }
+
 }

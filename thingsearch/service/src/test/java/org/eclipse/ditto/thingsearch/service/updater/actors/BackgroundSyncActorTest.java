@@ -53,6 +53,7 @@ import org.eclipse.ditto.rql.query.Query;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.thingsearch.api.SearchNamespaceReportResult;
+import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.service.common.config.BackgroundSyncConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DefaultBackgroundSyncConfig;
@@ -181,7 +182,7 @@ public final class BackgroundSyncActorTest {
             thenRespondWithPersistedThingsStream(pubSub,
                     List.of(createStreamedSnapshot(THING_ID, persistedRevision + 1)));
             expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater,
-                    List.of(UpdateThing.of(THING_ID, true, false, HEADERS)));
+                    List.of(UpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
 
             expectSyncActorToBeUpWithWarning(underTest, this);
 
@@ -209,14 +210,14 @@ public final class BackgroundSyncActorTest {
             expectSyncActorToStartStreaming(pubSub);
             thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, persistedRevision)));
             expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater,
-                    List.of(UpdateThing.of(THING_ID, true, false, HEADERS)));
+                    List.of(UpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
 
             // second synchronization stream
             whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
             expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
             thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, persistedRevision)));
             expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater,
-                    List.of(UpdateThing.of(THING_ID, true, false, HEADERS)));
+                    List.of(UpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
 
             // expect health to have events for both runs
             syncActorShouldHaveHealth(underTest, this, StatusInfo.Status.UP, List.of(StatusDetailMessage.Level.WARN),
@@ -249,14 +250,14 @@ public final class BackgroundSyncActorTest {
             expectSyncActorToStartStreaming(pubSub);
             thenRespondWithPersistedThingsStream(pubSub, streamedSnapshots);
             expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater,
-                    List.of(UpdateThing.of(THING_ID, true, false, HEADERS)));
+                    List.of(UpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
 
             // second synchronization stream
             whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
             expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
             thenRespondWithPersistedThingsStream(pubSub, streamedSnapshots);
             expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater,
-                    List.of(UpdateThing.of(THING_ID, true, false, HEADERS)));
+                    List.of(UpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
 
             // third synchronization stream
             whenSearchPersistenceHasIndexedThings(List.of(persistedThingMetadata));
@@ -292,14 +293,14 @@ public final class BackgroundSyncActorTest {
             expectSyncActorToStartStreaming(pubSub);
             thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, persistedRevision)));
             expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(
-                    UpdateThing.of(THING_ID, true, false, HEADERS)));
+                    UpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
 
             // second synchronization stream
             whenSearchPersistenceHasIndexedThings(List.of(nextThingMetadata));
             expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
             thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, nextRevision)));
             expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(
-                    UpdateThing.of(THING_ID, true, false, HEADERS)));
+                    UpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
 
             // expect health to have events for both runs
             syncActorShouldHaveHealth(underTest, this, StatusInfo.Status.UP, List.of(StatusDetailMessage.Level.INFO),
@@ -354,10 +355,10 @@ public final class BackgroundSyncActorTest {
 
     private void expectSyncActorToRequestThingUpdatesInSearch(final TestKit thingsUpdater) {
         expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater, List.of(
-                UpdateThing.of(KNOWN_IDs.get(0), true, false, HEADERS),
-                UpdateThing.of(KNOWN_IDs.get(1), true, false, HEADERS),
-                UpdateThing.of(KNOWN_IDs.get(2), true, false, HEADERS),
-                UpdateThing.of(KNOWN_IDs.get(3), true, false, HEADERS)
+                UpdateThing.of(KNOWN_IDs.get(0), true, false, UpdateReason.BACKGROUND_SYNC, HEADERS),
+                UpdateThing.of(KNOWN_IDs.get(1), true, false, UpdateReason.BACKGROUND_SYNC, HEADERS),
+                UpdateThing.of(KNOWN_IDs.get(2), true, false, UpdateReason.BACKGROUND_SYNC, HEADERS),
+                UpdateThing.of(KNOWN_IDs.get(3), true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)
         ));
     }
 
