@@ -42,17 +42,18 @@ public abstract class SearchUpdateObserver implements Extension {
     /**
      * Load a {@code SearchUpdateObserver} dynamically according to the search configuration.
      *
-     * @param actorSystem The actor system in which to load the observer.
-     * @return The thing event observer.
+     * @param actorSystem the actor system in which to load the observer.
+     * @return the thing event observer.
      */
     public static SearchUpdateObserver get(final ActorSystem actorSystem) {
         return EXTENSION_ID.get(actorSystem);
     }
 
     /**
-     * Process the given {@code ThingEvent}.
+     * Process the given {@code Metadata} and thing as {@code JsonObject}.
      *
-     * @param metadata the thing event
+     * @param metadata the metadata for the update.
+     * @param thingJson the thing used for the update as jsonObject.
      */
     public abstract void process(final Metadata metadata, @Nullable final JsonObject thingJson);
 

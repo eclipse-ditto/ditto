@@ -251,7 +251,7 @@ final class ThingUpdater extends AbstractActorWithStash {
     /**
      * Push metadata of this updater to the queue of thing-changes to be streamed into the persistence.
      *
-     * @param updateReason TODO
+     * @param updateReason the reason why the search index is updated.
      */
     private void enqueueMetadata(final UpdateReason updateReason) {
         enqueueMetadata(exportMetadata(null, null).withUpdateReason(updateReason));

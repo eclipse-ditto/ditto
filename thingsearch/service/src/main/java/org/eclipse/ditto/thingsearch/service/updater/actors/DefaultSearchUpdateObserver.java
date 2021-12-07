@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 
@@ -27,7 +29,7 @@ public class DefaultSearchUpdateObserver extends SearchUpdateObserver {
     }
 
     @Override
-    public void process(final Metadata metadata, final JsonObject thingJson) {
+    public void process(final Metadata metadata, @Nullable final JsonObject thingJson) {
         // noop
     }
 }

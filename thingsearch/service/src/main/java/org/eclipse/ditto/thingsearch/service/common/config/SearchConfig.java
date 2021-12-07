@@ -14,6 +14,7 @@ package org.eclipse.ditto.thingsearch.service.common.config;
 
 import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.service.config.ServiceSpecificConfig;
@@ -37,22 +38,25 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
      * {@link org.eclipse.ditto.rql.query.criteria.Criteria} of a
      * {@link org.eclipse.ditto.thingsearch.model.signals.commands.query.ThingSearchQueryCommand}.
      *
-     * @return the config.
+     * @return the query validator implementation or {@code null}.
      */
+    @Nullable
     String getQueryValidatorImplementation();
 
     /**
      * Returns the {@code SearchUpdateMapper} to be used for additional processing of search updates.
      *
-     * @return the config.
+     * @return the search update mapper implementation or {@code null}.
      */
+    @Nullable
     String getSearchUpdateMapperImplementation();
 
     /**
      * Returns the {@code SearchUpdateObserver} to be used for additional processing of search updates.
      *
-     * @return the name of the implementing class.
+     * @return the name of the implementing class or {@code null}.
      */
+    @Nullable
     String getSearchUpdateObserverImplementation();
 
     /**

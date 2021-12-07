@@ -46,9 +46,9 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
 
     private final DittoServiceConfig dittoServiceConfig;
     @Nullable private final String mongoHintsByNamespace;
-    private final String queryCriteriaValidator;
-    private final String searchUpdateMapper;
-    private final String searchUpdateObserver;
+    @Nullable private final String queryCriteriaValidator;
+    @Nullable private final String searchUpdateMapper;
+    @Nullable private final String searchUpdateObserver;
     private final UpdaterConfig updaterConfig;
     private final HealthCheckConfig healthCheckConfig;
     private final IndexInitializationConfig indexInitializationConfig;
@@ -88,16 +88,19 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
         return Optional.ofNullable(mongoHintsByNamespace);
     }
 
+    @Nullable
     @Override
     public String getQueryValidatorImplementation() {
         return queryCriteriaValidator;
     }
 
+    @Nullable
     @Override
     public String getSearchUpdateMapperImplementation() {
         return searchUpdateMapper;
     }
 
+    @Nullable
     @Override
     public String getSearchUpdateObserverImplementation() {
         return searchUpdateObserver;
