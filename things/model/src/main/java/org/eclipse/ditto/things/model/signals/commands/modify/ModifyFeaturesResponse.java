@@ -14,20 +14,25 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Arrays;
+import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -56,12 +61,19 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
     static final JsonFieldDefinition<JsonObject> JSON_FEATURES =
             JsonFieldDefinition.ofJsonObject("features", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
+    private static final Set<HttpStatus> HTTP_STATUSES;
+
+    static {
+        final Set<HttpStatus> httpStatuses = new HashSet<>();
+        Collections.addAll(httpStatuses, HttpStatus.CREATED, HttpStatus.NO_CONTENT);
+        HTTP_STATUSES = Collections.unmodifiableSet(httpStatuses);
+    }
+
     private static final CommandResponseJsonDeserializer<ModifyFeaturesResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Arrays.asList(HttpStatus.CREATED, HttpStatus.NO_CONTENT)::contains,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new ModifyFeaturesResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 ThingsModelFactory.newFeatures(jsonObject.getValueOrThrow(JSON_FEATURES)),
                                 context.getDeserializedHttpStatus(),
@@ -70,16 +82,29 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
                     });
 
     private final ThingId thingId;
-    private final Features featuresCreated;
+    private final Features features;
 
     private ModifyFeaturesResponse(final ThingId thingId,
-            final Features featuresCreated,
+            final Features features,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.featuresCreated = checkNotNull(featuresCreated, "features");
+        this.features = ConditionChecker.checkArgument(
+                checkNotNull(features, "features"),
+                featuresArgument -> {
+                    final boolean result;
+                    if (HttpStatus.NO_CONTENT.equals(httpStatus)) {
+                        result = featuresArgument.isNull();
+                    } else {
+                        result = !featuresArgument.isNull();
+                    }
+                    return result;
+                },
+                () -> MessageFormat.format("Features <{0}> are illegal in conjunction with <{1}>.",
+                        features,
+                        httpStatus));
     }
 
     /**
@@ -96,7 +121,7 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
             final Features features,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyFeaturesResponse(thingId, features, HttpStatus.CREATED, dittoHeaders);
+        return newInstance(thingId, features, HttpStatus.CREATED, dittoHeaders);
     }
 
     /**
@@ -109,9 +134,36 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyFeaturesResponse modified(final ThingId thingId, final DittoHeaders dittoHeaders) {
-        return new ModifyFeaturesResponse(thingId,
+        return newInstance(thingId,
                 ThingsModelFactory.nullFeatures(),
                 HttpStatus.NO_CONTENT,
+                dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code ModifyFeaturesResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the features belong to.
+     * @param httpStatus the status of the response.
+     * @param features the {@code Features} that were created or the result of {@link ThingsModelFactory#nullFeatures()}
+     * if existing attributes were modified.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code ModifyFeaturesResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code ModifyFeaturesResponse}
+     * or if {@code httpStatus} contradicts {@code features}.
+     * @since 2.3.0
+     */
+    public static ModifyFeaturesResponse newInstance(final ThingId thingId,
+            final Features features,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new ModifyFeaturesResponse(thingId,
+                features,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        HTTP_STATUSES,
+                        ModifyFeaturesResponse.class),
                 dittoHeaders);
     }
 
@@ -155,12 +207,12 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
      * @return the created Features.
      */
     public Optional<Features> getFeaturesCreated() {
-        return Optional.of(featuresCreated);
+        return Optional.of(features);
     }
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.of(featuresCreated.toJson(schemaVersion, FieldType.notHidden()));
+        return Optional.of(features.toJson(schemaVersion, FieldType.notHidden()));
     }
 
     @Override
@@ -175,13 +227,13 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
-        jsonObjectBuilder.set(JSON_FEATURES, featuresCreated.toJson(schemaVersion, thePredicate), predicate);
+        jsonObjectBuilder.set(JSON_FEATURES, features.toJson(schemaVersion, thePredicate), predicate);
     }
 
     @Override
     public ModifyFeaturesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return HttpStatus.CREATED.equals(getHttpStatus())
-                ? created(thingId, featuresCreated, dittoHeaders)
+                ? created(thingId, features, dittoHeaders)
                 : modified(thingId, dittoHeaders);
     }
 
@@ -201,19 +253,19 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
         final ModifyFeaturesResponse that = (ModifyFeaturesResponse) o;
         return that.canEqual(this) &&
                 Objects.equals(thingId, that.thingId) &&
-                Objects.equals(featuresCreated, that.featuresCreated) &&
+                Objects.equals(features, that.features) &&
                 super.equals(o);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), thingId, featuresCreated);
+        return Objects.hash(super.hashCode(), thingId, features);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", thingId=" + thingId + ", featuresCreated=" +
-                featuresCreated + "]";
+                features + "]";
     }
 
 }

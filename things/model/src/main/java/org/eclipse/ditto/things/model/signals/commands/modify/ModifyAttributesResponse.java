@@ -14,20 +14,25 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Arrays;
+import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -56,13 +61,20 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
     static final JsonFieldDefinition<JsonObject> JSON_ATTRIBUTES =
             JsonFieldDefinition.ofJsonObject("attributes", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
+    private static final Set<HttpStatus> HTTP_STATUSES;
+
+    static {
+        final Set<HttpStatus> httpStatuses = new HashSet<>();
+        Collections.addAll(httpStatuses, HttpStatus.CREATED, HttpStatus.NO_CONTENT);
+        HTTP_STATUSES = Collections.unmodifiableSet(httpStatuses);
+    }
+
     private static final CommandResponseJsonDeserializer<ModifyAttributesResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Arrays.asList(HttpStatus.CREATED, HttpStatus.NO_CONTENT)::contains,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
                         final JsonObject attributesJsonObject = jsonObject.getValueOrThrow(JSON_ATTRIBUTES);
-                        return new ModifyAttributesResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 context.getDeserializedHttpStatus(),
                                 !attributesJsonObject.isNull()
@@ -73,7 +85,7 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
                     });
 
     private final ThingId thingId;
-    private final Attributes attributesCreated;
+    private final Attributes attributes;
 
     private ModifyAttributesResponse(final ThingId thingId,
             final HttpStatus httpStatus,
@@ -82,7 +94,20 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
 
         super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        attributesCreated = checkNotNull(attributes, "attributes");
+        this.attributes = ConditionChecker.checkArgument(
+                checkNotNull(attributes, "attributes"),
+                attributesArgument -> {
+                    final boolean result;
+                    if (HttpStatus.NO_CONTENT.equals(httpStatus)) {
+                        result = attributesArgument.isNull();
+                    } else {
+                        result = !attributesArgument.isNull();
+                    }
+                    return result;
+                },
+                () -> MessageFormat.format("Attributes <{0}> are illegal in conjunction with <{1}>.",
+                        attributes,
+                        httpStatus));
     }
 
     /**
@@ -99,7 +124,7 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
             final Attributes attributes,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyAttributesResponse(thingId, HttpStatus.CREATED, attributes, dittoHeaders);
+        return newInstance(thingId, HttpStatus.CREATED, attributes, dittoHeaders);
     }
 
     /**
@@ -112,9 +137,33 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyAttributesResponse modified(final ThingId thingId, final DittoHeaders dittoHeaders) {
+        return newInstance(thingId, HttpStatus.NO_CONTENT, ThingsModelFactory.nullAttributes(), dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code ModifyAttributesResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the attributes belong to.
+     * @param httpStatus the status of the response.
+     * @param attributes the {@code Attributes} that were created or the result of
+     * {@link ThingsModelFactory#nullAttributes()} if existing attributes were modified.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code ModifyAttributesResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code ModifyAttributesResponse}
+     * or if {@code httpStatus} contradicts {@code attributes}.
+     * @since 2.3.0
+     */
+    public static ModifyAttributesResponse newInstance(final ThingId thingId,
+            final HttpStatus httpStatus,
+            final Attributes attributes,
+            final DittoHeaders dittoHeaders) {
+
         return new ModifyAttributesResponse(thingId,
-                HttpStatus.NO_CONTENT,
-                ThingsModelFactory.nullAttributes(),
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        HTTP_STATUSES,
+                        ModifyAttributesResponse.class),
+                attributes,
                 dittoHeaders);
     }
 
@@ -158,12 +207,12 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
      * @return the created Attributes.
      */
     public Attributes getAttributesCreated() {
-        return attributesCreated;
+        return attributes;
     }
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.of(attributesCreated);
+        return Optional.of(attributes);
     }
 
     @Override
@@ -178,13 +227,13 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
-        jsonObjectBuilder.set(JSON_ATTRIBUTES, attributesCreated.toJson(schemaVersion, thePredicate), predicate);
+        jsonObjectBuilder.set(JSON_ATTRIBUTES, attributes.toJson(schemaVersion, thePredicate), predicate);
     }
 
     @Override
     public ModifyAttributesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
         return HttpStatus.CREATED.equals(getHttpStatus())
-                ? created(thingId, attributesCreated, dittoHeaders)
+                ? created(thingId, attributes, dittoHeaders)
                 : modified(thingId, dittoHeaders);
     }
 
@@ -204,19 +253,19 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
         final ModifyAttributesResponse that = (ModifyAttributesResponse) o;
         return that.canEqual(this) &&
                 Objects.equals(thingId, that.thingId) &&
-                Objects.equals(attributesCreated, that.attributesCreated) &&
+                Objects.equals(attributes, that.attributes) &&
                 super.equals(o);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), thingId, attributesCreated);
+        return Objects.hash(super.hashCode(), thingId, attributes);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", thingId=" + thingId
-                + ", attributesCreated=" + attributesCreated + "]";
+                + ", attributes=" + attributes + "]";
     }
 
 }

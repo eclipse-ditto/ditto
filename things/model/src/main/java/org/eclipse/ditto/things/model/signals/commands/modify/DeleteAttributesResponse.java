@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.things.model.signals.commands.modify;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -24,6 +25,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -49,10 +51,9 @@ public final class DeleteAttributesResponse extends AbstractCommandResponse<Dele
 
     private static final CommandResponseJsonDeserializer<DeleteAttributesResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new DeleteAttributesResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 context.getDeserializedHttpStatus(),
                                 context.getDittoHeaders()
@@ -78,7 +79,29 @@ public final class DeleteAttributesResponse extends AbstractCommandResponse<Dele
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static DeleteAttributesResponse of(final ThingId thingId, final DittoHeaders dittoHeaders) {
-        return new DeleteAttributesResponse(thingId, HTTP_STATUS, dittoHeaders);
+        return newInstance(thingId, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code DeleteAttributesResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the attributes were deleted from.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code DeleteAttributesResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code DeleteAttributesResponse}.
+     * @since 2.3.0
+     */
+    public static DeleteAttributesResponse newInstance(final ThingId thingId,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new DeleteAttributesResponse(thingId,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        DeleteAttributesResponse.class),
+                dittoHeaders);
     }
 
     /**

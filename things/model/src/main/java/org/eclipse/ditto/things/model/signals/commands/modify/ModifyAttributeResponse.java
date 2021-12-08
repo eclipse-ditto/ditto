@@ -14,20 +14,25 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Arrays;
+import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -59,16 +64,23 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     static final JsonFieldDefinition<JsonValue> JSON_VALUE =
             JsonFieldDefinition.ofJsonValue("value", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
+    private static final Set<HttpStatus> HTTP_STATUSES;
+
+    static {
+        final Set<HttpStatus> httpStatuses = new HashSet<>();
+        Collections.addAll(httpStatuses, HttpStatus.CREATED, HttpStatus.NO_CONTENT);
+        HTTP_STATUSES = Collections.unmodifiableSet(httpStatuses);
+    }
+
     private static final CommandResponseJsonDeserializer<ModifyAttributeResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Arrays.asList(HttpStatus.CREATED, HttpStatus.NO_CONTENT)::contains,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new ModifyAttributeResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
-                                context.getDeserializedHttpStatus(),
                                 JsonPointer.of(jsonObject.getValueOrThrow(JSON_ATTRIBUTE)),
                                 jsonObject.getValue(JSON_VALUE).orElse(null),
+                                context.getDeserializedHttpStatus(),
                                 context.getDittoHeaders()
                         );
                     });
@@ -78,27 +90,29 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     @Nullable private final JsonValue attributeValue;
 
     private ModifyAttributeResponse(final ThingId thingId,
-            final HttpStatus httpStatus,
             final JsonPointer attributePointer,
             @Nullable final JsonValue attributeValue,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
-        this.attributeValue = attributeValue;
-    }
-
-    private static JsonPointer checkAttributePointer(final JsonPointer attributePointer,
-            final DittoHeaders dittoHeaders) {
-
-        checkNotNull(attributePointer, "attributePointer");
-        if (attributePointer.isEmpty()) {
-            throw AttributePointerInvalidException.newBuilder(attributePointer)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
-        return AttributesModelFactory.validateAttributePointer(attributePointer);
+        this.attributePointer = attributePointer;
+        this.attributeValue = ConditionChecker.checkArgument(
+                attributeValue,
+                attributeValueArgument -> {
+                    final boolean result;
+                    if (HttpStatus.NO_CONTENT.equals(httpStatus)) {
+                        result = null == attributeValueArgument;
+                    } else {
+                        result = null != attributeValueArgument;
+                    }
+                    return result;
+                },
+                () -> MessageFormat.format("Attribute value <{0}> is illegal in conjunction with <{1}>.",
+                        attributeValue,
+                        httpStatus)
+        );
     }
 
     /**
@@ -121,7 +135,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
             final JsonValue attributeValue,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyAttributeResponse(thingId, HttpStatus.CREATED, attributePointer, attributeValue, dittoHeaders);
+        return newInstance(thingId, attributePointer, attributeValue, HttpStatus.CREATED, dittoHeaders);
     }
 
     /**
@@ -142,7 +156,48 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
             final JsonPointer attributePointer,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyAttributeResponse(thingId, HttpStatus.NO_CONTENT, attributePointer, null, dittoHeaders);
+        return newInstance(thingId, attributePointer, null, HttpStatus.NO_CONTENT, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code ModifyAttributeResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the attribute belongs to.
+     * @param attributePointer the pointer of the attribute that is subject to the response.
+     * @param attributeValue the created attribute value or {@code null} if an existing attribute was modified.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code ModifyAttributeResponse} instance.
+     * @throws NullPointerException if any argument but {@code attributeValue} is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code ModifyAttributeResponse} or
+     * if {@code httpStatus} contradicts {@code attributeValue}.
+     * @since 2.3.0
+     */
+    public static ModifyAttributeResponse newInstance(final ThingId thingId,
+            final JsonPointer attributePointer,
+            @Nullable final JsonValue attributeValue,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new ModifyAttributeResponse(thingId,
+                validateAttributePointer(attributePointer, dittoHeaders),
+                attributeValue,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        HTTP_STATUSES,
+                        ModifyAttributeResponse.class),
+                dittoHeaders);
+    }
+
+    private static JsonPointer validateAttributePointer(final JsonPointer attributePointer,
+            final DittoHeaders dittoHeaders) {
+
+        checkNotNull(attributePointer, "attributePointer");
+        if (attributePointer.isEmpty()) {
+            throw AttributePointerInvalidException.newBuilder(attributePointer)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        return AttributesModelFactory.validateAttributePointer(attributePointer);
     }
 
     /**

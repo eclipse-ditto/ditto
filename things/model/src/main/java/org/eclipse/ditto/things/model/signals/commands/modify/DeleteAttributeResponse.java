@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -26,6 +27,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -54,14 +56,18 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
     static final JsonFieldDefinition<String> JSON_ATTRIBUTE =
             JsonFieldDefinition.ofString("attribute", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
+    private static final HttpStatus HTTP_STATUS = HttpStatus.NO_CONTENT;
+
     private static final CommandResponseJsonDeserializer<DeleteAttributeResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HttpStatus.NO_CONTENT,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return of(ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                        return newInstance(
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 JsonFactory.newPointer(jsonObject.getValueOrThrow(JSON_ATTRIBUTE)),
-                                context.getDittoHeaders());
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
                     });
 
     private final ThingId thingId;
@@ -69,9 +75,10 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
 
     private DeleteAttributeResponse(final ThingId thingId,
             final JsonPointer attributePointer,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
         this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
     }
@@ -105,7 +112,32 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
             final JsonPointer attributePointer,
             final DittoHeaders dittoHeaders) {
 
-        return new DeleteAttributeResponse(thingId, attributePointer, dittoHeaders);
+        return newInstance(thingId, attributePointer, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code DeleteAttributeResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the attributes were deleted from.
+     * @param attributePointer the JSON pointer of the deleted attribute.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code DeleteAttributeResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code DeleteAttributeResponse}.
+     * @since 2.3.0
+     */
+    public static DeleteAttributeResponse newInstance(final ThingId thingId,
+            final JsonPointer attributePointer,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new DeleteAttributeResponse(thingId,
+                attributePointer,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        DeleteAttributeResponse.class),
+                dittoHeaders);
     }
 
     /**

@@ -15,6 +15,7 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -28,6 +29,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -60,10 +62,9 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
 
     private static final CommandResponseJsonDeserializer<CreateThingResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new CreateThingResponse(
+                        return newInstance(
                                 jsonObject.getValue(JSON_THING)
                                         .map(JsonValue::asObject)
                                         .map(ThingsModelFactory::newThing)
@@ -96,7 +97,29 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static CreateThingResponse of(final Thing thing, final DittoHeaders dittoHeaders) {
-        return new CreateThingResponse(thing, HTTP_STATUS, dittoHeaders);
+        return newInstance(thing, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code CreateThingResponse} for the specified arguments.
+     *
+     * @param createdThing the created thing.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code CreateThingResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code CreateThingResponse}.
+     * @since 2.3.0
+     */
+    public static CreateThingResponse newInstance(final Thing createdThing,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new CreateThingResponse(createdThing,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        CreateThingResponse.class),
+                dittoHeaders);
     }
 
     /**
