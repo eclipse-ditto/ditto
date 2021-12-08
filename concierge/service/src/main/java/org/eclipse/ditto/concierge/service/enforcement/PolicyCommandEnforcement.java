@@ -12,14 +12,7 @@
  */
 package org.eclipse.ditto.concierge.service.enforcement;
 
-import static java.util.Objects.requireNonNull;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.stream.Collectors;
-
+import akka.actor.ActorRef;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -28,41 +21,33 @@ import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
 import org.eclipse.ditto.concierge.api.ConciergeMessagingConstants;
 import org.eclipse.ditto.internal.utils.cache.Cache;
-import org.eclipse.ditto.internal.utils.cache.CacheKey;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonKey;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.*;
 import org.eclipse.ditto.policies.api.Permission;
-import org.eclipse.ditto.policies.model.Label;
-import org.eclipse.ditto.policies.model.Permissions;
-import org.eclipse.ditto.policies.model.PoliciesResourceType;
-import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.PolicyEntry;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.ResourceKey;
+import org.eclipse.ditto.policies.model.*;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.policies.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.actions.PolicyActionCommand;
 import org.eclipse.ditto.policies.model.signals.commands.actions.TopLevelPolicyActionCommand;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyCommandToAccessExceptionRegistry;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyCommandToActionsExceptionRegistry;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyCommandToModifyExceptionRegistry;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyNotAccessibleException;
-import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyUnavailableException;
+import org.eclipse.ditto.policies.model.signals.commands.exceptions.*;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommand;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommand;
 import org.eclipse.ditto.policies.model.signals.commands.query.PolicyQueryCommandResponse;
 
-import akka.actor.ActorRef;
+import javax.annotation.Nullable;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * Authorize {@link PolicyCommand}.
@@ -79,14 +64,17 @@ public final class PolicyCommandEnforcement
     private final ActorRef policiesShardRegion;
     private final EnforcerRetriever<PolicyEnforcer> enforcerRetriever;
     private final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> enforcerCache;
+    private final CreationRestrictionEnforcer creationRestrictionEnforcer;
 
     private PolicyCommandEnforcement(final Contextual<PolicyCommand<?>> context, final ActorRef policiesShardRegion,
-            final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> enforcerCache) {
+            final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> enforcerCache,
+            final CreationRestrictionEnforcer creationRestrictionEnforcer) {
 
         super(context, PolicyQueryCommandResponse.class);
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
         this.enforcerCache = requireNonNull(enforcerCache);
-        enforcerRetriever = new EnforcerRetriever<>(IdentityCache.INSTANCE, enforcerCache);
+        this.enforcerRetriever = new EnforcerRetriever<>(IdentityCache.INSTANCE, enforcerCache);
+        this.creationRestrictionEnforcer = creationRestrictionEnforcer;
     }
 
     /**
@@ -95,18 +83,29 @@ public final class PolicyCommandEnforcement
      * @param <T> type of the policy-command.
      * @param policyEnforcer the policy enforcer.
      * @param command the command to authorize.
+     * @param creationRestrictionEnforcer the enforcer for restricting entity creation.
      * @return optionally the authorized command.
      */
     public static <T extends PolicyCommand<?>> Optional<T> authorizePolicyCommand(final T command,
-            final PolicyEnforcer policyEnforcer) {
+            final PolicyEnforcer policyEnforcer,
+            final CreationRestrictionEnforcer creationRestrictionEnforcer
+    ) {
 
         final var enforcer = policyEnforcer.getEnforcer();
         final var policyResourceKey = PoliciesResourceType.policyResource(command.getResourcePath());
         final var authorizationContext = command.getDittoHeaders().getAuthorizationContext();
         final Optional<T> authorizedCommand;
         if (command instanceof CreatePolicy) {
-            if (command.getDittoHeaders().isAllowPolicyLockout() ||
-                    hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)) {
+            final var enforcerContext = new CreationRestrictionEnforcer.Context(command.getResourceType(),
+                    command.getEntityId().getNamespace(),
+                    command.getDittoHeaders()
+            );
+            if (creationRestrictionEnforcer.canCreate(enforcerContext)
+                    && (
+                    command.getDittoHeaders().isAllowPolicyLockout()
+                            || hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)
+            )
+            ) {
                 authorizedCommand = Optional.of(command);
             } else {
                 authorizedCommand = Optional.empty();
@@ -251,7 +250,7 @@ public final class PolicyCommandEnforcement
     private Contextual<WithDittoHeaders> enforcePolicyCommandByEnforcer(final PolicyEnforcer policyEnforcer) {
         final PolicyCommand<?> policyCommand = signal();
         final Optional<? extends PolicyCommand<?>> authorizedCommandOpt =
-                authorizePolicyCommand(policyCommand, policyEnforcer);
+                authorizePolicyCommand(policyCommand, policyEnforcer, this.creationRestrictionEnforcer);
         if (authorizedCommandOpt.isPresent()) {
             final PolicyCommand<?> authorizedCommand = authorizedCommandOpt.get();
             if (authorizedCommand instanceof PolicyQueryCommand) {
@@ -278,7 +277,7 @@ public final class PolicyCommandEnforcement
             final var createPolicy = (CreatePolicy) policyCommand;
             final var enforcer = PolicyEnforcers.defaultEvaluator(createPolicy.getPolicy());
             final Optional<CreatePolicy> authorizedCommand =
-                    authorizePolicyCommand(createPolicy, PolicyEnforcer.of(enforcer));
+                    authorizePolicyCommand(createPolicy, PolicyEnforcer.of(enforcer), this.creationRestrictionEnforcer);
             if (authorizedCommand.isPresent()) {
                 return createPolicy;
             } else {
@@ -322,9 +321,9 @@ public final class PolicyCommandEnforcement
         final var entityId = EnforcementCacheKey.of(policyId);
         enforcerCache.invalidate(entityId);
         pubSubMediator().tell(DistPubSubAccess.sendToAll(
-                ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
-                InvalidateCacheEntry.of(entityId),
-                true),
+                        ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
+                        InvalidateCacheEntry.of(entityId),
+                        true),
                 self());
     }
 
@@ -367,17 +366,23 @@ public final class PolicyCommandEnforcement
 
         private final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> enforcerCache;
         private final ActorRef policiesShardRegion;
+        private final CreationRestrictionEnforcer creationRestrictionEnforcer;
 
         /**
          * Constructor.
          *
          * @param policiesShardRegion the ActorRef to the Policies shard region.
          * @param enforcerCache the enforcer cache.
+         * @param creationRestrictionEnforcer the enforcer for restricting entity creation.
          */
         public Provider(final ActorRef policiesShardRegion,
-                final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> enforcerCache) {
+                final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> enforcerCache,
+                @Nullable final CreationRestrictionEnforcer creationRestrictionEnforcer
+        ) {
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
             this.enforcerCache = requireNonNull(enforcerCache);
+            this.creationRestrictionEnforcer = Optional.ofNullable(creationRestrictionEnforcer)
+                    .orElse(CreationRestrictionEnforcer.NULL);
         }
 
         @Override
@@ -393,7 +398,7 @@ public final class PolicyCommandEnforcement
 
         @Override
         public AbstractEnforcement<PolicyCommand<?>> createEnforcement(final Contextual<PolicyCommand<?>> context) {
-            return new PolicyCommandEnforcement(context, policiesShardRegion, enforcerCache);
+            return new PolicyCommandEnforcement(context, policiesShardRegion, enforcerCache, creationRestrictionEnforcer);
         }
 
     }

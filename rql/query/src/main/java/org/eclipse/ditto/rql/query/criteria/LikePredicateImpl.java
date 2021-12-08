@@ -12,19 +12,15 @@
  */
 package org.eclipse.ditto.rql.query.criteria;
 
-import java.util.regex.Pattern;
+import org.eclipse.ditto.rql.query.LikeHelper;
+import org.eclipse.ditto.rql.query.criteria.visitors.PredicateVisitor;
 
 import javax.annotation.Nullable;
-
-import org.eclipse.ditto.rql.query.criteria.visitors.PredicateVisitor;
 
 /**
  * Like predicate.
  */
 final class LikePredicateImpl extends AbstractSinglePredicate {
-
-    private static final String LEADING_WILDCARD = "\\Q\\E.*";
-    private static final String TRAILING_WILDCARD = ".*\\Q\\E";
 
     public LikePredicateImpl(@Nullable final Object value) {
         super(value);
@@ -32,36 +28,12 @@ final class LikePredicateImpl extends AbstractSinglePredicate {
 
     @Nullable
     private String convertToRegexSyntaxAndGetOption() {
-        if (null == getValue()) {
+        final Object value = getValue();
+        if (value != null) {
+            return LikeHelper.convertToRegexSyntax(value.toString());
+        } else {
             return null;
         }
-
-        // simplify expression by replacing repeating wildcard with a single one
-        final String valueString = replaceRepeatingWildcards(getValue().toString());
-        // shortcut for single * wildcard
-        if ("*".equals(valueString)) {
-            return ".*";
-        }
-
-        // first escape the whole string
-        String escapedString = Pattern.compile(Pattern.quote(valueString)).toString();
-        // then enable allowed wildcards (* and ?) again
-        escapedString = escapedString.replaceAll("\\*", "\\\\E.*\\\\Q");
-        escapedString = escapedString.replaceAll("\\?", "\\\\E.\\\\Q"); // escape Char wild cards for ?
-
-        // prepend ^ if is a prefix match (no * at the beginning of the string, much faster)
-        if (!valueString.startsWith(LEADING_WILDCARD)) {
-            escapedString = "^" + escapedString;
-        }
-        // append $ if is a postfix match  (no * at the end of the string, much faster)
-        if (!valueString.endsWith(TRAILING_WILDCARD)) {
-            escapedString = escapedString + "$";
-        }
-        return escapedString;
-    }
-
-    private String replaceRepeatingWildcards(final String value) {
-        return value.replaceAll("\\*{2,}", "*");
     }
 
     @Override

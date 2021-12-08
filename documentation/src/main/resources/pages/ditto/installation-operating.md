@@ -159,6 +159,69 @@ ssl-config {
 }
 ```
 
+## Restricting entity creation
+
+By default, Ditto allows anyone to create a new entity (policy or thing) in any namespace. However, this behavior can
+be customized, and the ability to create new entities can be restricted.
+
+In the concierge service, you can re-configure the `entity-creation` section to suit your needs. The basic schema is:
+
+```
+ditto {
+  concierge {
+    enforcement {
+
+      # restrict entity creation
+      entity-creation {
+        grant = [
+            {
+                resource-types = [],
+                namespace = []
+                auth-subjects = []
+            }
+        ]
+        revoke = [
+            # same as "grant", but rejecting requests which already passed "grant"
+        ]
+      }
+
+    }
+  }
+}
+```
+
+When enforcing, the logic is:
+
+* Find a matching entry in the `grant` list
+* If one was found, ensure there is no matching entry in the `revoke` list
+* If that is the case, accept the request, otherwise deny it
+
+An entry matches, when all of the following conditions are met:
+
+* The resource types list is empty, or contains the requested resource type
+* The namespace wildcard list is empty, or contains a wildcard that matches the requested namespace
+* The auth subject wildcard list is empty, or contains at least one matching wildcard of the authorized subjects for the request
+
+This means, an existing entry, with all empty lists, will match. So the default configuration, allowing all access,
+can be as simple as:
+
+```
+entity-creation {
+  grant = [{}]
+}
+```
+
+The resource types can be any of:
+
+* `policy`
+* `thing`
+
+The namespace wildcard list, is a list of wildcard patters, which must match the namespace. `*` will match any number
+of characters, and `?` will match exactly one character.
+
+The auth subject wildcard list requires only a single entry of the requests auth subjects to match, like `oauth:user-id`
+or `pre-authenticated:service`. `*` will match any number of characters, and `?` will match exactly one character.
+
 ## Logging
 
 Gathering logs for a running Ditto installation can be achieved by:

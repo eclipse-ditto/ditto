@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.concierge.service.common;
 
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -45,7 +46,8 @@ public final class DefaultEnforcementConfigTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DefaultEnforcementConfig.class, areImmutable());
+        assertInstancesOf(DefaultEnforcementConfig.class, areImmutable(),
+                provided(EntityCreationConfig.class).areAlsoImmutable());
     }
 
     @Test
