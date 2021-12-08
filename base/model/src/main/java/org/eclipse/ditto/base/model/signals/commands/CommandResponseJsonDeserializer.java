@@ -89,6 +89,26 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse<?>>
 
     /**
      * Returns a new instance of {@code CommandResponseJsonDeserializer}.
+     * The returned instance does not validate the deserialized HTTP status.
+     *
+     * @param <T> the type of the {@code CommandResponse} to be deserialized.
+     * @param type the type of the deserialized {@code CommandResponse}.
+     * @param deserializationFunction deserializes a {@code CommandResponse} for a provided
+     * {@link DeserializationContext}.
+     * Any {@code Exception} that is thrown by this function will be wrapped in a {@code JsonParseException}.
+     * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code type} is empty or blank.
+     * @since 2.3.0
+     */
+    public static <T extends CommandResponse<?>> CommandResponseJsonDeserializer<T> newInstance(final CharSequence type,
+            final DeserializationFunction<T> deserializationFunction) {
+
+        return newInstance(type, httpStatus -> true, deserializationFunction);
+    }
+
+    /**
+     * Returns a new instance of {@code CommandResponseJsonDeserializer}.
      *
      * @param <T> the type of the {@code CommandResponse} to be deserialized.
      * @param type the type of the deserialized {@code CommandResponse}.
