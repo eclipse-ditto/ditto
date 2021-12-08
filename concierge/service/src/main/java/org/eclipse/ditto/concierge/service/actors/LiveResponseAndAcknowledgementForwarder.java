@@ -25,7 +25,6 @@ import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandResponseMatchingValidator;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -87,9 +86,9 @@ public final class LiveResponseAndAcknowledgementForwarder extends AbstractActor
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(CommandResponse.class, this::onCommandResponse)
                 .match(Acknowledgement.class, this::onAcknowledgement)
                 .match(Acknowledgements.class, this::onAcknowledgements)
+                .match(CommandResponse.class, this::onCommandResponse)
                 .match(ReceiveTimeout.class, this::stopSelf)
                 .matchAny(this::sendMessage)
                 .build();

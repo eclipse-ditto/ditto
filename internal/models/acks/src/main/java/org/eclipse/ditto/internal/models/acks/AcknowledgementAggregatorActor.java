@@ -47,10 +47,12 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.Props;
@@ -91,7 +93,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
                         getSelf().path().name()
                 );
 
-        timeout = getTimeout(signalDittoHeaders, maxTimeout);
+        timeout = getTimeout(originatingSignal, maxTimeout);
         this.matchingValidationFailureConsumer = Objects.requireNonNullElseGet(
                 matchingValidationFailureConsumer,
                 this::getDefaultMatchingValidationFailureConsumer
@@ -426,10 +428,21 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
                         });
     }
 
-    private static Duration getTimeout(final DittoHeaders headers, final Duration maxTimeout) {
-        return headers.getTimeout()
+    private static Duration getTimeout(final Signal<?> originatingSignal, final Duration maxTimeout) {
+        final var headers = originatingSignal.getDittoHeaders();
+        final var candidateTimeout = headers.getTimeout()
                 .filter(timeout -> timeout.minus(maxTimeout).isNegative())
                 .orElse(maxTimeout);
+
+        // TODO consolidate condition; configure budget
+        if ((headers.getLiveChannelCondition().isPresent() ||
+                TopicPath.Channel.LIVE.getName().equals(headers.getChannel().orElse("")) &&
+                        headers.getLiveChannelTimeoutStrategy().isPresent()) &&
+                originatingSignal instanceof ThingQueryCommand) {
+            return candidateTimeout.plus(Duration.ofSeconds(10));
+        } else {
+            return candidateTimeout;
+        }
     }
 
     private enum Control {

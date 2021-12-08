@@ -176,7 +176,8 @@ public interface HttpConfig extends org.eclipse.ditto.base.service.config.http.H
                 DittoHeaderDefinition.ON_LIVE_CHANNEL_TIMEOUT.getKey(),
                 DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT.getKey(),
                 DittoHeaderDefinition.CONDITION.getKey(),
-                DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey())),
+                DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey()
+        )),
 
         /**
          * PUT and POST resources validate that the content-type of a request is supported. With this config value

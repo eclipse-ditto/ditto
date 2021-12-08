@@ -497,16 +497,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         try {
             getContext().findChild(AcknowledgementForwarderActor.determineActorName(response.getDittoHeaders()))
                     .ifPresentOrElse(
-                            forwarder -> {
-                                if (response instanceof ThingQueryCommandResponse &&
-                                        SignalInformationPoint.isChannelLive(response)) {
-
-                                    // forward live command responses to concierge to filter response
-                                    commandRouter.tell(response, sender);
-                                } else {
-                                    forwarder.tell(response, sender);
-                                }
-                            },
+                            forwarder -> forwarder.tell(response, sender),
                             () -> {
                                 // the Acknowledgement / LiveCommandResponse is meant for someone else:
                                 final var template =

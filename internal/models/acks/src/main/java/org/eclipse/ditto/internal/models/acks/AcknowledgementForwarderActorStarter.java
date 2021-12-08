@@ -235,7 +235,8 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
             return ackRequests.stream()
                     .anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersistedOrLiveResponse);
         } else if (signal instanceof MessageCommand || (isLiveSignal && signal instanceof ThingCommand)) {
-            return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted);
+            return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted) ||
+                    signal.getDittoHeaders().isResponseRequired();
         } else if (signal instanceof PolicyAnnouncement) {
             return !ackRequests.isEmpty();
         } else {

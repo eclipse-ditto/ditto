@@ -14,14 +14,10 @@ package org.eclipse.ditto.concierge.service.enforcement;
 
 import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcement.DEFAULT_LIVE_TIMEOUT;
-import static org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcement.MIN_LIVE_TIMEOUT;
-import static org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcement.THING_COMMAND_ACK_EXTRACTOR;
 import static org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcement.addEffectedReadSubjectsToThingLiveSignal;
-import static org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcement.replaceAuthContext;
+import static org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcement.adjustTimeoutAndFilterLiveQueryResponse;
 import static org.eclipse.ditto.policies.api.Permission.MIN_REQUIRED_POLICY_PERMISSIONS;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashSet;
@@ -31,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -39,15 +36,21 @@ import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.exceptions.AskException;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.headers.LiveChannelTimeoutStrategy;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
+import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.concierge.api.ConciergeMessagingConstants;
 import org.eclipse.ditto.concierge.service.actors.LiveResponseAndAcknowledgementForwarder;
@@ -124,7 +127,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandRe
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.pattern.AskTimeoutException;
-import akka.pattern.Patterns;
 
 /**
  * Authorize {@code ThingCommand}.
@@ -325,36 +327,76 @@ public final class ThingCommandEnforcement
     }
 
     private CompletionStage<ThingQueryCommandResponse<?>> doSmartChannelSelection(final ThingQueryCommand<?> command,
-            final ThingQueryCommandResponse<?> twinResponse, final Instant startTime, final Enforcer enforcer) {
+            final ThingQueryCommandResponse<?> response, final Instant startTime, final Enforcer enforcer) {
 
+        final var twinResponse = setTwinChannel(response);
         if (command.getDittoHeaders().getLiveChannelCondition().isEmpty() ||
                 !twinResponse.getDittoHeaders().didLiveChannelConditionMatch()) {
             return CompletableFuture.completedStage(twinResponse);
         }
 
         final ThingQueryCommand<?> liveCommand = toLiveCommand(command, enforcer);
-
         final var pub = liveSignalPub.command();
-        // TODO: twin fallback
-        final var props =
-                LiveResponseAndAcknowledgementForwarder.props(liveCommand, pub.getPublisher(), sender());
+        final var props = LiveResponseAndAcknowledgementForwarder.props(liveCommand, pub.getPublisher(), sender());
         final var liveResponseForwarder = actorRefFactory.actorOf(props);
-        final BiFunction<ActorRef, Object, CompletionStage<ThingQueryCommandResponse<?>>> askStrategy =
-                (toAsk, message) -> {
-                    // TODO: consolidate with live signal enforcement
-                    final var timeout = getAdjustedLiveTimeout(liveCommand, startTime);
-                    final var signalWithAdjustedTimeout =
-                            adjustTimeoutAndSetReadSubjects(liveCommand, timeout);
-                    final var publish =
-                            pub.wrapForPublicationWithAcks(signalWithAdjustedTimeout, THING_COMMAND_ACK_EXTRACTOR);
-                    return Patterns.ask(toAsk, publish, timeout)
-                            .thenApply(getResponseCaster(liveCommand, "before building JsonView"));
-                };
-        return ask(liveResponseForwarder, liveCommand, askStrategy)
-                .thenApply(response -> filterJsonView(replaceAuthContext(response, command), enforcer));
+        return adjustTimeoutAndFilterLiveQueryResponse(this, liveCommand, startTime, pub, liveResponseForwarder,
+                enforcer, getFallbackResponseCaster(liveCommand, twinResponse));
     }
 
-    private ThingQueryCommand<?> toLiveCommand(final ThingQueryCommand<?> command, final Enforcer enforcer) {
+    private Function<Object, CompletionStage<ThingQueryCommandResponse<?>>> getFallbackResponseCaster(
+            final ThingQueryCommand<?> liveCommand, final ThingQueryCommandResponse<?> twinResponse) {
+
+        return response -> {
+            if (response instanceof ThingQueryCommandResponse) {
+                return CompletableFuture.completedStage(
+                        setAdditionalHeaders((ThingQueryCommandResponse<?>) response));
+            } else if (response instanceof ErrorResponse) {
+                return CompletableFuture.failedStage(
+                        setAdditionalHeaders(((ErrorResponse<?>) response).getDittoRuntimeException()));
+            } else if (response instanceof AskException || response instanceof AskTimeoutException) {
+                return applyTimeoutStrategy(liveCommand, twinResponse);
+            } else {
+                final var errorToReport = reportErrorOrResponse(
+                        "before building JsonView for live response via smart channel selection",
+                        response, null);
+                return CompletableFuture.failedStage(errorToReport);
+            }
+        };
+    }
+
+    private static <T extends DittoHeadersSettable<T>> T setAdditionalHeaders(final DittoHeadersSettable<T> settable) {
+        // TODO: ensure pre-enforcer headers in responses
+        return settable.setDittoHeaders(settable.getDittoHeaders()
+                .toBuilder()
+                .putHeaders(getAdditionalLiveResponseHeaders(settable.getDittoHeaders()))
+                .build());
+    }
+
+    private static CompletionStage<ThingQueryCommandResponse<?>> applyTimeoutStrategy(
+            final ThingCommand<?> command,
+            final ThingQueryCommandResponse<?> twinResponse) {
+
+        if (isTwinFallbackEnabled(twinResponse)) {
+            return CompletableFuture.completedStage(twinResponse);
+        } else {
+            final var timeout = LiveSignalEnforcement.getLiveSignalTimeout(command);
+            final var timeoutException = GatewayCommandTimeoutException.newBuilder(timeout)
+                    .dittoHeaders(twinResponse.getDittoHeaders()
+                            .toBuilder()
+                            .putHeaders(getAdditionalLiveResponseHeaders(twinResponse.getDittoHeaders()))
+                            .build())
+                    .build();
+            return CompletableFuture.failedStage(timeoutException);
+        }
+    }
+
+    private static boolean isTwinFallbackEnabled(final Signal<?> signal) {
+        final var liveChannelFallbackStrategy =
+                signal.getDittoHeaders().getLiveChannelTimeoutStrategy().orElse(LiveChannelTimeoutStrategy.FAIL);
+        return LiveChannelTimeoutStrategy.USE_TWIN == liveChannelFallbackStrategy;
+    }
+
+    private static ThingQueryCommand<?> toLiveCommand(final ThingQueryCommand<?> command, final Enforcer enforcer) {
         final ThingQueryCommand<?> withReadSubjects = addEffectedReadSubjectsToThingLiveSignal(command, enforcer);
         return withReadSubjects.setDittoHeaders(withReadSubjects.getDittoHeaders().toBuilder()
                 .liveChannelCondition(null)
@@ -1178,20 +1220,24 @@ public final class ThingCommandEnforcement
                         .build());
     }
 
-    private static Duration getAdjustedLiveTimeout(final Signal<?> signal, final Instant startTime) {
-        final var baseTimeout = signal.getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT);
-        final var adjustedTimeout = baseTimeout.minus(Duration.between(startTime, Instant.now()));
-        return adjustedTimeout.minus(MIN_LIVE_TIMEOUT).isNegative() ? MIN_LIVE_TIMEOUT : adjustedTimeout;
+    private static ThingQueryCommandResponse<?> setTwinChannel(final ThingQueryCommandResponse<?> response) {
+        return response.setDittoHeaders(response.getDittoHeaders()
+                .toBuilder()
+                .channel(TopicPath.Channel.TWIN.getName())
+                .putHeaders(getAdditionalLiveResponseHeaders(response.getDittoHeaders()))
+                .build());
     }
 
-    private static ThingCommand<?> adjustTimeoutAndSetReadSubjects(final ThingCommand<?> command,
-            final Duration adjustedTimeout) {
-        return command.setDittoHeaders(
-                command.getDittoHeaders()
-                        .toBuilder()
-                        .timeout(adjustedTimeout)
-                        .build()
-        );
+    private static DittoHeaders getAdditionalLiveResponseHeaders(final DittoHeaders responseHeaders) {
+        final var liveChannelConditionMatched = responseHeaders.getOrDefault(
+                DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), Boolean.TRUE.toString());
+        return DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), liveChannelConditionMatched)
+                // TODO: ensure pre-enforcer headers in responses
+                .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(),
+                        responseHeaders.getAuthorizationContext().getFirstAuthorizationSubject().toString())
+                .responseRequired(false)
+                .build();
     }
 
     /**

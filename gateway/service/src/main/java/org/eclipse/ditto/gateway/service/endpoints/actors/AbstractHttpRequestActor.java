@@ -68,8 +68,10 @@ import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -238,7 +240,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             final var actorContext = getContext();
 
             return GatewayCommandTimeoutException.newBuilder(actorContext.getReceiveTimeout())
-                    .dittoHeaders(command.getDittoHeaders())
+                    .dittoHeaders(command.getDittoHeaders()
+                            .toBuilder()
+                            .responseRequired(false)
+                            .build())
                     .build();
         };
     }
@@ -328,9 +333,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             // DevOpsCommands do have their own timeout mechanism, don't reply with a command timeout for the user
             //  for DevOps commands, so only set the receiveTimeout for non-DevOps commands:
             context.setReceiveTimeout(
-                    dittoHeaders.getTimeout()
-                            // if no specific timeout was configured, use the default command timeout
-                            .orElse(commandConfig.getDefaultTimeout())
+                    // TODO consolidate with ackgregator
+                    getReceiveTimeout(command, commandConfig.getDefaultTimeout(), commandConfig.getMaxTimeout())
             );
         }
 
@@ -712,6 +716,26 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         final var httpResponse = jsonValueSourceToHttpResponse.apply(jsonValueSourceRef.getSource());
         enhanceResponseWithExternalDittoHeaders(httpResponse, receivedCommand.getDittoHeaders());
         completeWithResult(httpResponse);
+    }
+
+    // TODO consolidate with ackregator
+    private static Duration getReceiveTimeout(final Signal<?> originatingSignal, final Duration defaultTimeout,
+            final Duration maxTimeout) {
+
+        final var headers = originatingSignal.getDittoHeaders();
+        final var candidateTimeout = headers.getTimeout()
+                .filter(timeout -> timeout.minus(maxTimeout).isNegative())
+                .orElse(defaultTimeout);
+
+        // TODO consolidate condition; configure budget
+        if ((headers.getLiveChannelCondition().isPresent() ||
+                TopicPath.Channel.LIVE.getName().equals(headers.getChannel().orElse("")) &&
+                headers.getLiveChannelTimeoutStrategy().isPresent()) &&
+                originatingSignal instanceof ThingQueryCommand) {
+            return candidateTimeout.plus(Duration.ofSeconds(10));
+        } else {
+            return candidateTimeout;
+        }
     }
 
     private static final class HttpAcknowledgementConfig implements AcknowledgementConfig {
