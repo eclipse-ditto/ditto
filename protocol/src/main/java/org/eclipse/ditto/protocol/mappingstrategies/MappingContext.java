@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.MessagePath;
 import org.eclipse.ditto.protocol.Payload;
@@ -84,14 +85,14 @@ final class MappingContext {
         return ThingId.of(topicPath.getNamespace(), topicPath.getEntityName());
     }
 
-    Thing getThingOrThrow() {
-        final Thing result;
+    Optional<Thing> getThing() {
+        final Optional<Thing> result;
         final Payload payload = adaptable.getPayload();
         final Optional<JsonValue> payloadValueOptional = payload.getValue();
         if (payloadValueOptional.isPresent()) {
             final JsonValue jsonValue = payloadValueOptional.get();
             if (jsonValue.isObject()) {
-                result = ThingsModelFactory.newThing(jsonValue.asObject());
+                result = Optional.of(ThingsModelFactory.newThing(jsonValue.asObject()));
             } else {
                 throw new IllegalAdaptableException(
                         MessageFormat.format("Payload value is not a Thing as JSON object but <{0}>.", jsonValue),
@@ -100,14 +101,19 @@ final class MappingContext {
                 );
             }
         } else {
-            throw new IllegalAdaptableException(
-                    MessageFormat.format("Payload does not contain a {0} as JSON object" +
-                                    " because it has no value at all.",
-                            Thing.class.getSimpleName()),
-                    adaptable.getDittoHeaders()
-            );
+            result = Optional.empty();
         }
         return result;
+    }
+
+    Thing getThingOrThrow() {
+        return getThing().orElseThrow(() ->
+                new IllegalAdaptableException(
+                        MessageFormat.format("Payload does not contain a {0} as JSON object" +
+                                        " because it has no value at all.",
+                                Thing.class.getSimpleName()),
+                        adaptable.getDittoHeaders()
+                ));
     }
 
     JsonPointer getAttributePointerOrThrow() {
@@ -246,6 +252,28 @@ final class MappingContext {
                 throw new IllegalAdaptableException(
                         MessageFormat.format("Payload value is not a {0} as JSON string but <{1}>.",
                                 ThingDefinition.class.getSimpleName(),
+                                jsonValue),
+                        adaptable.getDittoHeaders()
+                );
+            }
+        } else {
+            result = Optional.empty();
+        }
+        return result;
+    }
+
+    Optional<PolicyId> getPolicyId() {
+        final Optional<PolicyId> result;
+        final Payload payload = adaptable.getPayload();
+        final Optional<JsonValue> payloadValueOptional = payload.getValue();
+        if (payloadValueOptional.isPresent()) {
+            final JsonValue jsonValue = payloadValueOptional.get();
+            if (jsonValue.isString()) {
+                result = Optional.of(PolicyId.of(jsonValue.asString()));
+            } else {
+                throw new IllegalAdaptableException(
+                        MessageFormat.format("Payload value is not a {0} as JSON string but <{1}>.",
+                                PolicyId.class.getSimpleName(),
                                 jsonValue),
                         adaptable.getDittoHeaders()
                 );

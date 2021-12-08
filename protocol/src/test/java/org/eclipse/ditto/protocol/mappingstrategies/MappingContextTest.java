@@ -22,6 +22,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.ProtocolFactory;
@@ -480,6 +481,43 @@ public final class MappingContextTest {
         final MappingContext underTest = MappingContext.of(adaptable);
 
         assertThat(underTest.getThingDefinition()).isEmpty();
+    }
+
+    @Test
+    public void getPolicyIdReturnsPolicyIfContainedInPayload() {
+        final PolicyId policyId = PolicyId.inNamespaceWithRandomName("org.ditto");
+        final Payload payload = ProtocolFactory.newPayloadBuilder()
+                .withValue(JsonValue.of(policyId.toString()))
+                .build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThat(underTest.getPolicyId()).contains(policyId);
+    }
+
+    @Test
+    public void getPolicyIdThrowsExceptionIfPayloadContainsNoJsonStringValue() {
+        final JsonValue jsonValue = JsonValue.of(true);
+        final Payload payload = ProtocolFactory.newPayloadBuilder()
+                .withValue(jsonValue)
+                .build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getPolicyId)
+                .withMessage("Payload value is not a PolicyId as JSON string but <%s>.", jsonValue)
+                .withNoCause();
+    }
+
+    @Test
+    public void getPolicyIdReturnsEmptyOptionalIfPayloadContainsNoValue() {
+        final JsonValue jsonValue = JsonValue.of(true);
+        final Payload payload = ProtocolFactory.newPayloadBuilder().build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThat(underTest.getPolicyId()).isEmpty();
     }
 
 }
