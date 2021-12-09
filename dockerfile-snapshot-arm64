@@ -9,7 +9,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 
-FROM adoptopenjdk/openjdk11-openj9:aarch64-centos-jre-11.0.10_9_openj9-0.24.0
+FROM docker.io/adoptopenjdk/openjdk11-openj9:aarch64-centos-jre-11.0.10_9_openj9-0.24.0
 
 ARG TARGET_DIR
 ARG SERVICE_STARTER
