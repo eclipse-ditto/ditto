@@ -31,6 +31,7 @@ import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingDefinition;
@@ -252,6 +253,28 @@ final class MappingContext {
                 throw new IllegalAdaptableException(
                         MessageFormat.format("Payload value is not a {0} as JSON string but <{1}>.",
                                 ThingDefinition.class.getSimpleName(),
+                                jsonValue),
+                        adaptable.getDittoHeaders()
+                );
+            }
+        } else {
+            result = Optional.empty();
+        }
+        return result;
+    }
+
+    Optional<FeatureDefinition> getFeatureDefinition() {
+        final Optional<FeatureDefinition> result;
+        final Payload payload = adaptable.getPayload();
+        final Optional<JsonValue> payloadValueOptional = payload.getValue();
+        if (payloadValueOptional.isPresent()) {
+            final JsonValue jsonValue = payloadValueOptional.get();
+            if (jsonValue.isArray()) {
+                result = Optional.of(ThingsModelFactory.newFeatureDefinition(jsonValue.asArray()));
+            } else {
+                throw new IllegalAdaptableException(
+                        MessageFormat.format("Payload value is not a {0} as JSON array but <{1}>.",
+                                FeatureDefinition.class.getSimpleName(),
                                 jsonValue),
                         adaptable.getDittoHeaders()
                 );

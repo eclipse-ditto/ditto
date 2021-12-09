@@ -29,6 +29,7 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
@@ -481,6 +482,43 @@ public final class MappingContextTest {
         final MappingContext underTest = MappingContext.of(adaptable);
 
         assertThat(underTest.getThingDefinition()).isEmpty();
+    }
+
+    @Test
+    public void getFeatureDefinitionReturnsExpectedThingDefinitionIfContainedInPayload() {
+        final FeatureDefinition featureDefinition =
+                ThingsModelFactory.newFeatureDefinition(JsonArray.of(JsonValue.of("example:test:definition")));
+        final Payload payload = ProtocolFactory.newPayloadBuilder()
+                .withValue(featureDefinition.toJson())
+                .build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThat(underTest.getFeatureDefinition()).contains(featureDefinition);
+    }
+
+    @Test
+    public void getFeatureDefinitionThrowsExceptionIfPayloadContainsValueThatIsNoJsonString() {
+        final JsonValue value = JsonValue.of(true);
+        final Payload payload = ProtocolFactory.newPayloadBuilder()
+                .withValue(value)
+                .build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getFeatureDefinition)
+                .withMessage("Payload value is not a FeatureDefinition as JSON array but <%s>.", value)
+                .withNoCause();
+    }
+
+    @Test
+    public void getFeatureDefinitionReturnsEmptyOptionalIfPayloadContainsNoValue() {
+        final Payload payload = ProtocolFactory.newPayloadBuilder().build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThat(underTest.getFeatureDefinition()).isEmpty();
     }
 
     @Test
