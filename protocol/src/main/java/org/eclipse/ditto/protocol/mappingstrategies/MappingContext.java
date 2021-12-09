@@ -48,6 +48,7 @@ final class MappingContext {
 
     private static final JsonKey ATTRIBUTE_PATH_PREFIX = JsonKey.of("attributes");
     private static final JsonKey FEATURE_PATH_PREFIX = JsonKey.of("features");
+    private static final int FEATURE_PROPERTY_PATH_LEVEL = 3;
 
     private final Adaptable adaptable;
 
@@ -89,8 +90,7 @@ final class MappingContext {
 
     Optional<Thing> getThing() {
         final Optional<Thing> result;
-        final Payload payload = adaptable.getPayload();
-        final Optional<JsonValue> payloadValueOptional = payload.getValue();
+        final Optional<JsonValue> payloadValueOptional = getPayloadValue();
         if (payloadValueOptional.isPresent()) {
             final JsonValue jsonValue = payloadValueOptional.get();
             if (jsonValue.isObject()) {
@@ -108,6 +108,11 @@ final class MappingContext {
         return result;
     }
 
+    private Optional<JsonValue> getPayloadValue() {
+        final Payload payload = adaptable.getPayload();
+        return payload.getValue();
+    }
+
     Thing getThingOrThrow() {
         return getThing().orElseThrow(() ->
                 new IllegalAdaptableException(
@@ -123,9 +128,8 @@ final class MappingContext {
         final MessagePath messagePath = payload.getPath();
         if (!messagePath.getRoot().filter(ATTRIBUTE_PATH_PREFIX::equals).isPresent()) {
             throw new IllegalAdaptableException(
-                    MessageFormat.format("Message path of payload does not start with <{0}>.",
-                            ATTRIBUTE_PATH_PREFIX.asPointer()),
-                    MessageFormat.format("Please ensure that the payload of the Adaptable starts with <{0}>.",
+                    getMessagePathInvalidPrefixMessage(ATTRIBUTE_PATH_PREFIX.asPointer()),
+                    MessageFormat.format("Please ensure that the message path of the Adaptable starts with <{0}>.",
                             ATTRIBUTE_PATH_PREFIX.asPointer()),
                     adaptable.getDittoHeaders()
             );
@@ -133,9 +137,12 @@ final class MappingContext {
         return messagePath.nextLevel();
     }
 
+    private static String getMessagePathInvalidPrefixMessage(final Object expectedPrefix) {
+        return MessageFormat.format("Message path of payload does not start with <{0}>.", expectedPrefix);
+    }
+
     Optional<JsonValue> getAttributeValue() {
-        final Payload payload = adaptable.getPayload();
-        return payload.getValue();
+        return getPayloadValue();
     }
 
     JsonValue getAttributeValueOrThrow() {
@@ -147,8 +154,7 @@ final class MappingContext {
 
     Optional<Attributes> getAttributes() {
         final Optional<Attributes> result;
-        final Payload payload = adaptable.getPayload();
-        final Optional<JsonValue> payloadValueOptional = payload.getValue();
+        final Optional<JsonValue> payloadValueOptional = getPayloadValue();
         if (payloadValueOptional.isPresent()) {
             final JsonValue jsonValue = payloadValueOptional.get();
             if (jsonValue.isObject()) {
@@ -169,19 +175,13 @@ final class MappingContext {
 
     Optional<Features> getFeatures() {
         final Optional<Features> result;
-        final Payload payload = adaptable.getPayload();
-        final Optional<JsonValue> payloadValueOptional = payload.getValue();
+        final Optional<JsonValue> payloadValueOptional = getPayloadValue();
         if (payloadValueOptional.isPresent()) {
             final JsonValue jsonValue = payloadValueOptional.get();
             if (jsonValue.isObject()) {
                 result = Optional.of(ThingsModelFactory.newFeatures(jsonValue.asObject()));
             } else {
-                throw new IllegalAdaptableException(
-                        MessageFormat.format("Payload value is not a {0} as JSON object but <{1}>.",
-                                Features.class.getSimpleName(),
-                                jsonValue),
-                        adaptable.getDittoHeaders()
-                );
+                throw newPayloadValueNotJsonObjectException(Features.class, jsonValue);
             }
         } else {
             result = Optional.empty();
@@ -189,13 +189,25 @@ final class MappingContext {
         return result;
     }
 
+    private IllegalAdaptableException newPayloadValueNotJsonObjectException(final Class<?> targetType,
+            final JsonValue jsonValue) {
+
+        return new IllegalAdaptableException(
+                MessageFormat.format("Payload value is not a {0} as JSON object but <{1}>.",
+                        targetType.getSimpleName(),
+                        jsonValue),
+                MessageFormat.format("Please ensure that the payload value is a JSON object representation of <{0}>.",
+                        targetType),
+                adaptable.getDittoHeaders()
+        );
+    }
+
     String getFeatureIdOrThrow() {
         final Payload payload = adaptable.getPayload();
         final MessagePath messagePath = payload.getPath();
         if (!messagePath.getRoot().filter(FEATURE_PATH_PREFIX::equals).isPresent()) {
             throw new IllegalAdaptableException(
-                    MessageFormat.format("Message path of payload does not start with <{0}>.",
-                            FEATURE_PATH_PREFIX.asPointer()),
+                    getMessagePathInvalidPrefixMessage(FEATURE_PATH_PREFIX.asPointer()),
                     MessageFormat.format("Please ensure that the message path of the payload starts with <{0}>.",
                             FEATURE_PATH_PREFIX.asPointer()),
                     adaptable.getDittoHeaders()
@@ -215,8 +227,7 @@ final class MappingContext {
 
     Feature getFeatureOrThrow() {
         final Feature result;
-        final Payload payload = adaptable.getPayload();
-        final Optional<JsonValue> payloadValueOptional = payload.getValue();
+        final Optional<JsonValue> payloadValueOptional = getPayloadValue();
         if (payloadValueOptional.isPresent()) {
             final JsonValue jsonValue = payloadValueOptional.get();
             if (jsonValue.isObject()) {
@@ -224,12 +235,7 @@ final class MappingContext {
                         .useId(getFeatureIdOrThrow())
                         .build();
             } else {
-                throw new IllegalAdaptableException(
-                        MessageFormat.format("Payload value is not a {0} as JSON object but <{1}>.",
-                                Feature.class.getSimpleName(),
-                                jsonValue),
-                        adaptable.getDittoHeaders()
-                );
+                throw newPayloadValueNotJsonObjectException(Feature.class, jsonValue);
             }
         } else {
             throw new IllegalAdaptableException(
@@ -244,8 +250,7 @@ final class MappingContext {
 
     Optional<ThingDefinition> getThingDefinition() {
         final Optional<ThingDefinition> result;
-        final Payload payload = adaptable.getPayload();
-        final Optional<JsonValue> payloadValueOptional = payload.getValue();
+        final Optional<JsonValue> payloadValueOptional = getPayloadValue();
         if (payloadValueOptional.isPresent()) {
             final JsonValue jsonValue = payloadValueOptional.get();
             if (jsonValue.isString()) {
@@ -266,8 +271,7 @@ final class MappingContext {
 
     Optional<FeatureDefinition> getFeatureDefinition() {
         final Optional<FeatureDefinition> result;
-        final Payload payload = adaptable.getPayload();
-        final Optional<JsonValue> payloadValueOptional = payload.getValue();
+        final Optional<JsonValue> payloadValueOptional = getPayloadValue();
         if (payloadValueOptional.isPresent()) {
             final JsonValue jsonValue = payloadValueOptional.get();
             if (jsonValue.isArray()) {
@@ -288,19 +292,13 @@ final class MappingContext {
 
     Optional<FeatureProperties> getFeatureProperties() {
         final Optional<FeatureProperties> result;
-        final Payload payload = adaptable.getPayload();
-        final Optional<JsonValue> payloadValueOptional = payload.getValue();
+        final Optional<JsonValue> payloadValueOptional = getPayloadValue();
         if (payloadValueOptional.isPresent()) {
             final JsonValue jsonValue = payloadValueOptional.get();
             if (jsonValue.isObject()) {
                 result = Optional.of(ThingsModelFactory.newFeatureProperties(jsonValue.asObject()));
             } else {
-                throw new IllegalAdaptableException(
-                        MessageFormat.format("Payload value is not a {0} as JSON object but <{1}>.",
-                                FeatureProperties.class.getSimpleName(),
-                                jsonValue),
-                        adaptable.getDittoHeaders()
-                );
+                throw newPayloadValueNotJsonObjectException(FeatureProperties.class, jsonValue);
             }
         } else {
             result = Optional.empty();
@@ -308,10 +306,54 @@ final class MappingContext {
         return result;
     }
 
+    @SuppressWarnings("java:S3655")
+    JsonPointer getFeaturePropertyPointerOrThrow() {
+        final Payload payload = adaptable.getPayload();
+        final MessagePath messagePath = payload.getPath();
+        if (!messagePath.getRoot().filter(FEATURE_PATH_PREFIX::equals).isPresent()) {
+            throw new IllegalAdaptableException(
+                    getMessagePathInvalidPrefixMessage(FEATURE_PATH_PREFIX.asPointer()),
+                    MessageFormat.format("Please ensure that the message path of the Adaptable starts with <{0}>.",
+                            FEATURE_PATH_PREFIX.asPointer()),
+                    adaptable.getDittoHeaders()
+            );
+        } else {
+            if (messagePath.getLevelCount() <= FEATURE_PROPERTY_PATH_LEVEL) {
+                throw new IllegalAdaptableException(
+                        MessageFormat.format("Message path of payload has <{0,number}> levels which is less than" +
+                                        " the required <{1,number}> levels.",
+                                messagePath.getLevelCount(),
+                                FEATURE_PROPERTY_PATH_LEVEL + 1),
+                        "Please ensure that the message path complies to the schema" +
+                                " \"features/${FEATURE_ID}/properties/${PROPERTY_SUB_PATH_OR_PROPERTY_NAME}\".",
+                        adaptable.getDittoHeaders()
+                );
+            }
+            final JsonKey propertiesKey = JsonKey.of("properties");
+            final boolean hasExpectedPropertiesSegment = messagePath.get(FEATURE_PROPERTY_PATH_LEVEL - 1)
+                    .filter(propertiesKey::equals)
+                    .isPresent();
+            if (!hasExpectedPropertiesSegment) {
+                throw new IllegalAdaptableException(
+                        MessageFormat.format("Message path of payload is not <{0}> at level <{1,number}>.",
+                                propertiesKey,
+                                FEATURE_PROPERTY_PATH_LEVEL - 1),
+                        "Please ensure that the message path complies to the schema" +
+                                " \"features/${FEATURE_ID}/properties/${PROPERTY_SUB_PATH_OR_PROPERTY_NAME}\".",
+                        adaptable.getDittoHeaders()
+                );
+            }
+            return messagePath.getSubPointer(FEATURE_PROPERTY_PATH_LEVEL).get();
+        }
+    }
+
+    Optional<JsonValue> getFeaturePropertyValue() {
+        return getPayloadValue();
+    }
+
     Optional<PolicyId> getPolicyId() {
         final Optional<PolicyId> result;
-        final Payload payload = adaptable.getPayload();
-        final Optional<JsonValue> payloadValueOptional = payload.getValue();
+        final Optional<JsonValue> payloadValueOptional = getPayloadValue();
         if (payloadValueOptional.isPresent()) {
             final JsonValue jsonValue = payloadValueOptional.get();
             if (jsonValue.isString()) {
