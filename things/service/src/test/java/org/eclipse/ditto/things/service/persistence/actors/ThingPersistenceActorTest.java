@@ -14,7 +14,6 @@ package org.eclipse.ditto.things.service.persistence.actors;
 
 import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.things.model.assertions.DittoThingsAssertions.assertThat;
-import static org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils.retrieveThingResponse;
 
 import java.time.Instant;
 import java.util.NoSuchElementException;
@@ -23,13 +22,8 @@ import java.util.function.Function;
 
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonParseOptions;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.base.api.common.Shutdown;
+import org.eclipse.ditto.base.api.common.ShutdownReasonFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -39,6 +33,16 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.test.Retry;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseOptions;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
@@ -51,10 +55,6 @@ import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.ThingRevision;
 import org.eclipse.ditto.things.model.ThingTooLargeException;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.test.Retry;
-import org.eclipse.ditto.base.api.common.Shutdown;
-import org.eclipse.ditto.base.api.common.ShutdownReasonFactory;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.FeatureNotAccessibleException;
@@ -80,11 +80,11 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatures;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
-import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
@@ -379,6 +379,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
+    @Ignore("Since Ditto 2.2.0, this is no longer the case - ModifyThing overwrites and does no longer merge on top-level")
     public void modifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwrittenV2() {
         final Thing thingWithFirstLevelFields = createThingV2WithRandomId();
         doTestModifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwritten(thingWithFirstLevelFields,
