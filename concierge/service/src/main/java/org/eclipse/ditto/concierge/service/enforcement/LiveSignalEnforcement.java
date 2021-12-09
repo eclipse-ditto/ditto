@@ -458,8 +458,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
             final DistributedPub<ThingCommand<?>> pub,
             final Enforcer enforcer) {
 
-        final var props = LiveResponseAndAcknowledgementForwarder.props(signal, pub.getPublisher(), sender()
-        );
+        final var props = LiveResponseAndAcknowledgementForwarder.props(signal, pub.getPublisher(), sender());
         final var liveResponseForwarder = actorRefFactory.actorOf(props);
         final var startTime = Instant.now();
         final var responseCaster = getResponseCaster(signal, "before building JsonView")

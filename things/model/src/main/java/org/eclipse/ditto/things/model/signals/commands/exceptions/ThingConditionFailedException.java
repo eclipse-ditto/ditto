@@ -47,6 +47,10 @@ public final class ThingConditionFailedException extends DittoRuntimeException i
             "The specified resource in the condition could not be found " +
                     "or the requester had insufficient permissions to access it.";
 
+    private static final String MESSAGE_FOR_INSUFFICIENT_LIVE_CHANNEL_PERMISSION =
+            "The specified resource in the live channel condition could not be found " +
+                    "or the requester had insufficient permissions to access it.";
+
     private static final String DEFAULT_DESCRIPTION = "The provided condition did not match the actual Thing state. " +
             "Please check your provided condition.";
 
@@ -84,6 +88,20 @@ public final class ThingConditionFailedException extends DittoRuntimeException i
             final DittoHeaders dittoHeaders) {
         return newBuilder(dittoHeaders)
                 .message(MESSAGE_FOR_INSUFFICIENT_PERMISSION)
+                .description(DESCRIPTION_FOR_INSUFFICIENT_PERMISSION);
+    }
+
+    /**
+     * A mutable builder for when the live channel condition cannot be evaluated due to a lack of permission.
+     *
+     * @param dittoHeaders the headers to apply for the exception.
+     * @return the builder.
+     * @since 2.3.0
+     */
+    public static DittoRuntimeExceptionBuilder<ThingConditionFailedException>
+    newBuilderForInsufficientLiveChannelPermission(final DittoHeaders dittoHeaders) {
+        return newBuilder(dittoHeaders)
+                .message(MESSAGE_FOR_INSUFFICIENT_LIVE_CHANNEL_PERMISSION)
                 .description(DESCRIPTION_FOR_INSUFFICIENT_PERMISSION);
     }
 

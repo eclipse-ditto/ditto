@@ -383,6 +383,7 @@ public final class ThingCommandEnforcement
             final var timeoutException = GatewayCommandTimeoutException.newBuilder(timeout)
                     .dittoHeaders(twinResponse.getDittoHeaders()
                             .toBuilder()
+                            .channel(TopicPath.Channel.LIVE.getName())
                             .putHeaders(getAdditionalLiveResponseHeaders(twinResponse.getDittoHeaders()))
                             .build())
                     .build();
@@ -919,11 +920,13 @@ public final class ThingCommandEnforcement
 
         final var condition = dittoHeaders.getCondition();
         if (!(command instanceof CreateThing) && condition.isPresent()) {
-            enforceReadPermissionOnCondition(condition.get(), policyEnforcer, dittoHeaders);
+            enforceReadPermissionOnCondition(condition.get(), policyEnforcer, dittoHeaders,
+                    ThingConditionFailedException.newBuilderForInsufficientPermission(dittoHeaders).build());
         }
         final var liveChannelCondition = dittoHeaders.getLiveChannelCondition();
         if ((command instanceof ThingQueryCommand) && liveChannelCondition.isPresent()) {
-            enforceReadPermissionOnCondition(liveChannelCondition.get(), policyEnforcer, dittoHeaders);
+            enforceReadPermissionOnCondition(liveChannelCondition.get(), policyEnforcer, dittoHeaders,
+                    ThingConditionFailedException.newBuilderForInsufficientLiveChannelPermission(dittoHeaders).build());
         }
 
         if (commandAuthorized) {
@@ -935,14 +938,15 @@ public final class ThingCommandEnforcement
 
     private static void enforceReadPermissionOnCondition(final String condition,
             final Enforcer policyEnforcer,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            final DittoRuntimeException exception) {
 
         final var authorizationContext = dittoHeaders.getAuthorizationContext();
         final var rootNode = tryParseRqlCondition(condition, dittoHeaders);
         final var resourceKeys = determineResourceKeys(rootNode, dittoHeaders);
 
         if (!policyEnforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.READ)) {
-            throw ThingConditionFailedException.newBuilderForInsufficientPermission(dittoHeaders).build();
+            throw exception;
         }
     }
 
