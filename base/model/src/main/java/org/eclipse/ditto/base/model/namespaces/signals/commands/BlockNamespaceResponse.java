@@ -68,7 +68,7 @@ public final class BlockNamespaceResponse extends AbstractNamespaceCommandRespon
             final CharSequence resourceType,
             final DittoHeaders dittoHeaders) {
 
-        return new BlockNamespaceResponse(namespace, resourceType, HttpStatus.OK, dittoHeaders);
+        return new BlockNamespaceResponse(namespace, resourceType, HTTP_STATUS, dittoHeaders);
     }
 
     /**

@@ -133,7 +133,7 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
     public static RetrieveThingResponse of(final ThingId thingId, final String thingPlainJson,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveThingResponse(thingId, null, thingPlainJson, HttpStatus.OK, dittoHeaders);
+        return new RetrieveThingResponse(thingId, null, thingPlainJson, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -154,7 +154,7 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
             final DittoHeaders dittoHeaders) {
 
         final JsonObject thingJson = toThingJson(checkNotNull(thing, "Thing"), fieldSelector, predicate, dittoHeaders);
-        return new RetrieveThingResponse(thingId, thingJson, thingJson.toString(), HttpStatus.OK, dittoHeaders);
+        return new RetrieveThingResponse(thingId, thingJson, thingJson.toString(), HTTP_STATUS, dittoHeaders);
     }
 
     private static JsonObject toThingJson(final Thing thing,
