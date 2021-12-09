@@ -347,7 +347,20 @@ public final class MappingContextTest {
         Mockito.when(adaptable.getPayload()).thenReturn(payload);
         final MappingContext underTest = MappingContext.of(adaptable);
 
-        assertThat(underTest.getFeatureIdOrThrow()).isEqualTo(featureId.toString());
+        assertThat(underTest.getFeatureIdOrThrow()).isEqualTo(featureId);
+    }
+
+    @Test
+    public void getFeatureIdOrThrowReturnsFeatureIdIfContainedInPayload2() {
+        final String featureId = "HX711";
+        final JsonPointer path = JsonPointer.of("features/" + featureId + "/definition");
+        final Payload payload = ProtocolFactory.newPayloadBuilder()
+                .withPath(path)
+                .build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThat(underTest.getFeatureIdOrThrow()).isEqualTo(featureId);
     }
 
     @Test
@@ -366,8 +379,8 @@ public final class MappingContextTest {
     }
 
     @Test
-    public void getFeatureIdOrThrowThrowsExceptionIfPayloadHasPathWithTooManySegments() {
-        final JsonPointer path = JsonPointer.of("features/unexpected/HX711");
+    public void getFeatureIdOrThrowThrowsExceptionIfPayloadHasPathWithTooLessSegments() {
+        final JsonPointer path = JsonPointer.of("features");
         final Payload payload = ProtocolFactory.newPayloadBuilder()
                 .withPath(path)
                 .build();
@@ -381,7 +394,7 @@ public final class MappingContextTest {
     }
 
     @Test
-    public void getFeatureOrThrowReturnsFeatureIfContainedInPayload() {
+    public void getFeatureReturnsExpectedFeatureIfContainedInPayload() {
         final Feature feature = Feature.newBuilder()
                 .properties(FeatureProperties.newBuilder()
                         .set("uint8_t HX711_DT[3]", "{A1, 11, 7}")
@@ -395,19 +408,16 @@ public final class MappingContextTest {
         Mockito.when(adaptable.getPayload()).thenReturn(payload);
         final MappingContext underTest = MappingContext.of(adaptable);
 
-        assertThat(underTest.getFeatureOrThrow()).isEqualTo(feature);
+        assertThat(underTest.getFeature()).contains(feature);
     }
 
     @Test
-    public void getFeatureOrThrowThrowsExceptionIfPayloadHasNoValue() {
+    public void getFeatureReturnsEmptyOptionalIfPayloadHasNoValue() {
         final Payload payload = ProtocolFactory.newPayloadBuilder().build();
         Mockito.when(adaptable.getPayload()).thenReturn(payload);
         final MappingContext underTest = MappingContext.of(adaptable);
 
-        assertThatExceptionOfType(IllegalAdaptableException.class)
-                .isThrownBy(underTest::getFeatureOrThrow)
-                .withMessage("Payload does not contain a Feature as JSON object because it has no value at all.")
-                .withNoCause();
+        assertThat(underTest.getFeature()).isEmpty();
     }
 
     @Test
@@ -422,13 +432,13 @@ public final class MappingContextTest {
         final MappingContext underTest = MappingContext.of(adaptable);
 
         assertThatExceptionOfType(IllegalAdaptableException.class)
-                .isThrownBy(underTest::getFeatureOrThrow)
+                .isThrownBy(underTest::getFeature)
                 .withMessage("Payload value is not a Feature as JSON object but <%s>.", jsonValue)
                 .withNoCause();
     }
 
     @Test
-    public void getFeatureOrThrowThrowsExceptionIfMessagePathProvidesNoFeatureId() {
+    public void getFeatureThrowsExceptionIfMessagePathProvidesNoFeatureId() {
         final Feature feature = Feature.newBuilder()
                 .properties(FeatureProperties.newBuilder()
                         .set("uint8_t HX711_DT[3]", "{A1, 11, 7}")
@@ -443,7 +453,7 @@ public final class MappingContextTest {
         final MappingContext underTest = MappingContext.of(adaptable);
 
         assertThatExceptionOfType(IllegalAdaptableException.class)
-                .isThrownBy(underTest::getFeatureOrThrow)
+                .isThrownBy(underTest::getFeature)
                 .withMessageStartingWith("Message path of payload does not start with")
                 .withNoCause();
     }
@@ -599,6 +609,66 @@ public final class MappingContextTest {
 
         assertThatExceptionOfType(IllegalAdaptableException.class)
                 .isThrownBy(underTest::getFeaturePropertyPointerOrThrow)
+                .withMessage("Message path of payload has <%d> levels which is less than the required <4> levels.",
+                        path.getLevelCount())
+                .withNoCause();
+    }
+
+    @Test
+    public void getFeatureDesiredPropertyPointerOrThrowThrowsExceptionIfMessagePathHasNoPropertiesSegment() {
+        final JsonPointer path = JsonPointer.of("features/HX711/foo/uint8_t HX711_DT[3]");
+        final Payload payload = ProtocolFactory.newPayloadBuilder()
+                .withPath(path)
+                .build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getFeatureDesiredPropertyPointerOrThrow)
+                .withMessage("Message path of payload is not <desiredProperties> at level <2>.")
+                .withNoCause();
+    }
+
+    @Test
+    public void getFeatureDesiredPropertyPointerOrThrowReturnsPointerIfMessagePathHasAppropriatePrefix() {
+        final JsonPointer path = JsonPointer.of("features/HX711/desiredProperties/uint8_t HX711_DT[3]");
+        final Payload payload = ProtocolFactory.newPayloadBuilder()
+                .withPath(path)
+                .build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        final JsonPointer featurePropertyPointer = underTest.getFeatureDesiredPropertyPointerOrThrow();
+
+        assertThat((CharSequence) featurePropertyPointer).isEqualTo(path.getSubPointer(3).get());
+    }
+
+    @Test
+    public void getFeatureDesiredPropertyPointerOrThrowThrowsExceptionIfMessagePathHasAnInappropriatePrefix() {
+        final JsonPointer path = JsonPointer.of("rfeatures/HX711/desiredProperties/uint8_t HX711_DT[3]");
+        final Payload payload = ProtocolFactory.newPayloadBuilder()
+                .withPath(path)
+                .build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getFeatureDesiredPropertyPointerOrThrow)
+                .withMessage("Message path of payload does not start with <%s>.", "/features")
+                .withNoCause();
+    }
+
+    @Test
+    public void getFeatureDesiredPropertyPointerOrThrowThrowsExceptionIfMessagePathHasUnexpectedLevelCount() {
+        final JsonPointer path = JsonPointer.of("features/HX711/uint8_t HX711_DT[3]");
+        final Payload payload = ProtocolFactory.newPayloadBuilder()
+                .withPath(path)
+                .build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getFeatureDesiredPropertyPointerOrThrow)
                 .withMessage("Message path of payload has <%d> levels which is less than the required <4> levels.",
                         path.getLevelCount())
                 .withNoCause();

@@ -212,38 +212,35 @@ final class MappingContext {
                             FEATURE_PATH_PREFIX.asPointer()),
                     adaptable.getDittoHeaders()
             );
+        } else {
+            return messagePath.get(1)
+                    .map(JsonKey::toString)
+                    .orElseThrow(() -> new IllegalAdaptableException(
+                                    "Message path of payload does not contain a feature ID.",
+                                    MessageFormat.format("Please ensure that the message path of the payload consists" +
+                                                    " of two segments, starting with {0}/ and ending with" +
+                                                    " the feature ID.",
+                                            FEATURE_PATH_PREFIX),
+                                    adaptable.getDittoHeaders()
+                            )
+                    );
         }
-        return messagePath.getLeaf()
-                .filter(leaf -> 2 == messagePath.getLevelCount())
-                .map(JsonKey::toString)
-                .orElseThrow(() -> new IllegalAdaptableException(
-                        "Message path of payload does not contain a feature ID.",
-                        MessageFormat.format("Please ensure that the message path of the payload consists" +
-                                        " of two segments, starting with {0}/ and ending with the feature ID.",
-                                FEATURE_PATH_PREFIX),
-                        adaptable.getDittoHeaders())
-                );
     }
 
-    Feature getFeatureOrThrow() {
-        final Feature result;
+    Optional<Feature> getFeature() {
+        final Optional<Feature> result;
         final Optional<JsonValue> payloadValueOptional = getPayloadValue();
         if (payloadValueOptional.isPresent()) {
             final JsonValue jsonValue = payloadValueOptional.get();
             if (jsonValue.isObject()) {
-                result = ThingsModelFactory.newFeatureBuilder(jsonValue.asObject())
+                result = Optional.of(ThingsModelFactory.newFeatureBuilder(jsonValue.asObject())
                         .useId(getFeatureIdOrThrow())
-                        .build();
+                        .build());
             } else {
                 throw newPayloadValueNotJsonObjectException(Feature.class, jsonValue);
             }
         } else {
-            throw new IllegalAdaptableException(
-                    MessageFormat.format("Payload does not contain a {0} as JSON object" +
-                                    " because it has no value at all.",
-                            Feature.class.getSimpleName()),
-                    adaptable.getDittoHeaders()
-            );
+            result = Optional.empty();
         }
         return result;
     }
@@ -306,8 +303,12 @@ final class MappingContext {
         return result;
     }
 
-    @SuppressWarnings("java:S3655")
     JsonPointer getFeaturePropertyPointerOrThrow() {
+        return getFeaturePropertyPointerOrThrow(JsonKey.of("properties"));
+    }
+
+    @SuppressWarnings("java:S3655")
+    private JsonPointer getFeaturePropertyPointerOrThrow(final JsonKey levelTwoKey) {
         final Payload payload = adaptable.getPayload();
         final MessagePath messagePath = payload.getPath();
         if (!messagePath.getRoot().filter(FEATURE_PATH_PREFIX::equals).isPresent()) {
@@ -324,27 +325,30 @@ final class MappingContext {
                                         " the required <{1,number}> levels.",
                                 messagePath.getLevelCount(),
                                 FEATURE_PROPERTY_PATH_LEVEL + 1),
-                        "Please ensure that the message path complies to the schema" +
+                        "Please ensure that the message path complies to schema" +
                                 " \"features/${FEATURE_ID}/properties/${PROPERTY_SUB_PATH_OR_PROPERTY_NAME}\".",
                         adaptable.getDittoHeaders()
                 );
             }
-            final JsonKey propertiesKey = JsonKey.of("properties");
             final boolean hasExpectedPropertiesSegment = messagePath.get(FEATURE_PROPERTY_PATH_LEVEL - 1)
-                    .filter(propertiesKey::equals)
+                    .filter(levelTwoKey::equals)
                     .isPresent();
             if (!hasExpectedPropertiesSegment) {
                 throw new IllegalAdaptableException(
                         MessageFormat.format("Message path of payload is not <{0}> at level <{1,number}>.",
-                                propertiesKey,
+                                levelTwoKey,
                                 FEATURE_PROPERTY_PATH_LEVEL - 1),
-                        "Please ensure that the message path complies to the schema" +
+                        "Please ensure that the message path complies to schema" +
                                 " \"features/${FEATURE_ID}/properties/${PROPERTY_SUB_PATH_OR_PROPERTY_NAME}\".",
                         adaptable.getDittoHeaders()
                 );
             }
             return messagePath.getSubPointer(FEATURE_PROPERTY_PATH_LEVEL).get();
         }
+    }
+
+    JsonPointer getFeatureDesiredPropertyPointerOrThrow() {
+        return getFeaturePropertyPointerOrThrow(JsonKey.of("desiredProperties"));
     }
 
     Optional<JsonValue> getFeaturePropertyValue() {
