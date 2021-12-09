@@ -1239,7 +1239,9 @@ public final class ThingCommandEnforcement
                 .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), liveChannelConditionMatched)
                 // TODO: ensure pre-enforcer headers in responses
                 .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(),
-                        responseHeaders.getAuthorizationContext().getFirstAuthorizationSubject().toString())
+                        responseHeaders.getAuthorizationContext().getFirstAuthorizationSubject()
+                                .map(AuthorizationSubject::toString)
+                                .orElseThrow())
                 .responseRequired(false)
                 .build();
     }
