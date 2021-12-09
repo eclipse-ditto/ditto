@@ -485,7 +485,7 @@ public final class MappingContextTest {
     }
 
     @Test
-    public void getFeatureDefinitionReturnsExpectedThingDefinitionIfContainedInPayload() {
+    public void getFeatureDefinitionReturnsExpectedFeatureDefinitionIfContainedInPayload() {
         final FeatureDefinition featureDefinition =
                 ThingsModelFactory.newFeatureDefinition(JsonArray.of(JsonValue.of("example:test:definition")));
         final Payload payload = ProtocolFactory.newPayloadBuilder()
@@ -519,6 +519,44 @@ public final class MappingContextTest {
         final MappingContext underTest = MappingContext.of(adaptable);
 
         assertThat(underTest.getFeatureDefinition()).isEmpty();
+    }
+
+    @Test
+    public void getFeaturePropertiesReturnsExpectedFeaturePropertiesIfContainedInPayload() {
+        final FeatureProperties featureProperties = FeatureProperties.newBuilder()
+                .set("uint8_t HX711_DT[3]", "{A1, 11, 7}")
+                .build();
+        final Payload payload = ProtocolFactory.newPayloadBuilder()
+                .withValue(featureProperties)
+                .build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThat(underTest.getFeatureProperties()).contains(featureProperties);
+    }
+
+    @Test
+    public void getFeaturePropertiesThrowsExceptionIfPayloadContainsValueThatIsNoJsonObject() {
+        final JsonValue value = JsonValue.of(true);
+        final Payload payload = ProtocolFactory.newPayloadBuilder()
+                .withValue(value)
+                .build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getFeatureProperties)
+                .withMessage("Payload value is not a FeatureProperties as JSON object but <%s>.", value)
+                .withNoCause();
+    }
+
+    @Test
+    public void getFeaturePropertiesReturnsEmptyOptionalIfPayloadContainsNoValue() {
+        final Payload payload = ProtocolFactory.newPayloadBuilder().build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThat(underTest.getFeatureProperties()).isEmpty();
     }
 
     @Test
