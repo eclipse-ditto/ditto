@@ -138,57 +138,6 @@ put:
     The ID of a thing cannot be changed after creation. Any `thingId`
     specified in the request body is therefore ignored.
 
-    ### Partially update an existing thing
-
-    When updating an existing thing, which already contains `attributes`, `definition` `policyId` or `features`,
-    the existing fields must not explicitly be provided again.
-    For this "PUT thing" request - and only for this top-level update on the thing -
-    the top-level field to update is **merged** with the existing top-level fields of the thing.
-
-    ### Example for a partial update
-
-    Given, a thing already exists with this content:
-
-    ```
-    {
-      "thingId": "namespace:thing-name",
-      "policyId": "namespace:policy-name",
-      "definition": "namespace:model:version",
-      "attributes": {
-        "foo": 1
-      },
-      "features": {...}
-    }
-    ```
-
-    The thing's `attributes` may be modified without having to pass the `policyId` or
-    the `features` in again.
-    For updating the `attributes`, following request body would be sufficient :
-
-    ```
-    {
-      "attributes": {
-        "foo": 2,
-        "bar": false
-      }
-    }
-    ```
-
-    The `policyId` and `features` of the thing will not be overwritten.
-    The thing will be merged into:
-
-    ```
-    {
-      "thingId": "namespace:thing-name",
-      "policyId": "namespace:policy-name",
-      "definition": "namespace:model:version",
-      "attributes": {
-        "foo": 2,
-        "bar": false
-      },
-      "features": {...}
-    }
-    ```
   tags:
     - Things
   parameters:
