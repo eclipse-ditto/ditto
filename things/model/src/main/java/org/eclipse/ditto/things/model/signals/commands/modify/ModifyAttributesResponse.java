@@ -25,7 +25,6 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -76,10 +75,8 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
                         final JsonObject attributesJsonObject = jsonObject.getValueOrThrow(JSON_ATTRIBUTES);
                         return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                ThingsModelFactory.newAttributes(attributesJsonObject),
                                 context.getDeserializedHttpStatus(),
-                                !attributesJsonObject.isNull()
-                                        ? ThingsModelFactory.newAttributes(attributesJsonObject)
-                                        : ThingsModelFactory.nullAttributes(),
                                 context.getDittoHeaders()
                         );
                     });
@@ -94,20 +91,14 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
 
         super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.attributes = ConditionChecker.checkArgument(
-                checkNotNull(attributes, "attributes"),
-                attributesArgument -> {
-                    final boolean result;
-                    if (HttpStatus.NO_CONTENT.equals(httpStatus)) {
-                        result = attributesArgument.isNull();
-                    } else {
-                        result = !attributesArgument.isNull();
-                    }
-                    return result;
-                },
-                () -> MessageFormat.format("Attributes <{0}> are illegal in conjunction with <{1}>.",
-                        attributes,
-                        httpStatus));
+        this.attributes = checkNotNull(attributes, "attributes");
+        if (HttpStatus.NO_CONTENT.equals(httpStatus) && !attributes.isNull()) {
+            throw new IllegalArgumentException(
+                    MessageFormat.format("Attributes <{0}> are illegal in conjunction with <{1}>.",
+                            attributes,
+                            httpStatus)
+            );
+        }
     }
 
     /**
@@ -124,7 +115,7 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
             final Attributes attributes,
             final DittoHeaders dittoHeaders) {
 
-        return newInstance(thingId, HttpStatus.CREATED, attributes, dittoHeaders);
+        return newInstance(thingId, checkNotNull(attributes, "attributes"), HttpStatus.CREATED, dittoHeaders);
     }
 
     /**
@@ -137,16 +128,16 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyAttributesResponse modified(final ThingId thingId, final DittoHeaders dittoHeaders) {
-        return newInstance(thingId, HttpStatus.NO_CONTENT, ThingsModelFactory.nullAttributes(), dittoHeaders);
+        return newInstance(thingId, ThingsModelFactory.nullAttributes(), HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
      * Returns a new instance of {@code ModifyAttributesResponse} for the specified arguments.
      *
      * @param thingId the ID of the thing the attributes belong to.
-     * @param httpStatus the status of the response.
      * @param attributes the {@code Attributes} that were created or the result of
      * {@link ThingsModelFactory#nullAttributes()} if existing attributes were modified.
+     * @param httpStatus the status of the response.
      * @param dittoHeaders the headers of the response.
      * @return the {@code ModifyAttributesResponse} instance.
      * @throws NullPointerException if any argument is {@code null}.
@@ -155,8 +146,8 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
      * @since 2.3.0
      */
     public static ModifyAttributesResponse newInstance(final ThingId thingId,
-            final HttpStatus httpStatus,
             final Attributes attributes,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
         return new ModifyAttributesResponse(thingId,
@@ -232,9 +223,7 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
 
     @Override
     public ModifyAttributesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return HttpStatus.CREATED.equals(getHttpStatus())
-                ? created(thingId, attributes, dittoHeaders)
-                : modified(thingId, dittoHeaders);
+        return newInstance(thingId, attributes, getHttpStatus(), dittoHeaders);
     }
 
     @Override

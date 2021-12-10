@@ -14,18 +14,21 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -55,10 +58,9 @@ public final class DeleteFeaturePropertiesResponse extends AbstractCommandRespon
 
     private static final CommandResponseJsonDeserializer<DeleteFeaturePropertiesResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new DeleteFeaturePropertiesResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 jsonObject.getValueOrThrow(JSON_FEATURE_ID),
                                 context.getDeserializedHttpStatus(),
@@ -76,7 +78,9 @@ public final class DeleteFeaturePropertiesResponse extends AbstractCommandRespon
 
         super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.featureId = checkNotNull(featureId, "featureId");
+        this.featureId = ConditionChecker.checkArgument(checkNotNull(featureId, "featureId"),
+                fid -> !fid.trim().isEmpty(),
+                () -> "The featureId must neither be empty nor blank.");
     }
 
     /**
@@ -92,7 +96,33 @@ public final class DeleteFeaturePropertiesResponse extends AbstractCommandRespon
             final String featureId,
             final DittoHeaders dittoHeaders) {
 
-        return new DeleteFeaturePropertiesResponse(thingId, featureId, HTTP_STATUS, dittoHeaders);
+        return newInstance(thingId, featureId, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code DeleteFeaturePropertiesResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the feature properties were deleted from.
+     * @param featureId ID of feature the properties were deleted from.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code DeleteFeaturePropertiesResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code featureId} is empty or blank or if {@code httpStatus} is not allowed
+     * for a {@code DeleteFeaturePropertiesResponse}.
+     * @since 2.3.0
+     */
+    public static DeleteFeaturePropertiesResponse newInstance(final ThingId thingId,
+            final String featureId,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new DeleteFeaturePropertiesResponse(thingId,
+                featureId,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        DeleteFeaturePropertiesResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -157,7 +187,7 @@ public final class DeleteFeaturePropertiesResponse extends AbstractCommandRespon
 
     @Override
     public DeleteFeaturePropertiesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, featureId, dittoHeaders);
+        return newInstance(thingId, featureId, getHttpStatus(), dittoHeaders);
     }
 
     @Override

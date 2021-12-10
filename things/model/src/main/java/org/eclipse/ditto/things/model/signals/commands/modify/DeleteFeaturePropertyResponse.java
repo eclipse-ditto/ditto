@@ -14,18 +14,21 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -59,10 +62,9 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
 
     private static final CommandResponseJsonDeserializer<DeleteFeaturePropertyResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new DeleteFeaturePropertyResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 jsonObject.getValueOrThrow(JSON_FEATURE_ID),
                                 JsonPointer.of(jsonObject.getValueOrThrow(JSON_PROPERTY)),
@@ -76,14 +78,16 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
     private final JsonPointer propertyPointer;
 
     private DeleteFeaturePropertyResponse(final ThingId thingId,
-            final String featureId,
+            final CharSequence featureId,
             final JsonPointer propertyPointer,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.featureId = checkNotNull(featureId, "featureId");
+        this.featureId = ConditionChecker.checkArgument(checkNotNull(featureId, "featureId").toString(),
+                featureIdArgument -> !featureIdArgument.trim().isEmpty(),
+                () -> "The featureId must neither be empty nor blank.");
         this.propertyPointer = checkPropertyPointer(propertyPointer);
     }
 
@@ -108,7 +112,36 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
             final JsonPointer propertyPointer,
             final DittoHeaders dittoHeaders) {
 
-        return new DeleteFeaturePropertyResponse(thingId, featureId, propertyPointer, HTTP_STATUS, dittoHeaders);
+        return newInstance(thingId, featureId, propertyPointer, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code DeleteFeaturePropertyResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the feature property was deleted from.
+     * @param featureId ID of the feature the property was deleted from.
+     * @param propertyPointer the JSON pointer of the deleted property.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code DeleteFeaturePropertyResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code featureId} is empty or blank or if {@code httpStatus} is not allowed
+     * for a {@code DeleteFeaturePropertyResponse}.
+     * @since 2.3.0
+     */
+    public static DeleteFeaturePropertyResponse newInstance(final ThingId thingId,
+            final CharSequence featureId,
+            final JsonPointer propertyPointer,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new DeleteFeaturePropertyResponse(thingId,
+                featureId,
+                propertyPointer,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        DeleteFeaturePropertyResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -185,7 +218,7 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
 
     @Override
     public DeleteFeaturePropertyResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, featureId, propertyPointer, dittoHeaders);
+        return newInstance(thingId, featureId, propertyPointer, getHttpStatus(), dittoHeaders);
     }
 
     @Override

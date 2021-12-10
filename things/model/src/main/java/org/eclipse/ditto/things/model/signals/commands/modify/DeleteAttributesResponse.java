@@ -154,7 +154,7 @@ public final class DeleteAttributesResponse extends AbstractCommandResponse<Dele
 
     @Override
     public DeleteAttributesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, dittoHeaders);
+        return newInstance(thingId, getHttpStatus(), dittoHeaders);
     }
 
     @Override

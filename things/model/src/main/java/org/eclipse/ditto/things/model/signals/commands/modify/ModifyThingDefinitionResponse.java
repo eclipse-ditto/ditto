@@ -25,13 +25,13 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -73,7 +73,7 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
             CommandResponseJsonDeserializer.newInstance(TYPE,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new ModifyThingDefinitionResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 jsonObject.getValue(JSON_DEFINITION)
                                         .map(ThingsModelFactory::newDefinition)
@@ -93,21 +93,14 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
 
         super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.definition = ConditionChecker.checkArgument(
-                definition,
-                definitionArgument -> {
-                    final boolean result;
-                    if (HttpStatus.NO_CONTENT.equals(httpStatus)) {
-                        result = null == definitionArgument;
-                    } else {
-                        result = null != definitionArgument;
-                    }
-                    return result;
-                },
-                () -> MessageFormat.format("ThingDefinition <{0}> is illegal in conjunction with <{1}>.",
-                        definition,
-                        httpStatus)
-        );
+        this.definition = definition;
+        if (HttpStatus.NO_CONTENT.equals(httpStatus) && null != definition) {
+            throw new IllegalArgumentException(
+                    MessageFormat.format("ThingDefinition <{0}> is illegal in conjunction with <{1}>.",
+                            definition,
+                            httpStatus)
+            );
+        }
     }
 
     /**
@@ -124,7 +117,7 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
             @Nullable final ThingDefinition definition,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyThingDefinitionResponse(thingId, definition, HttpStatus.CREATED, dittoHeaders);
+        return newInstance(thingId, definition, HttpStatus.CREATED, dittoHeaders);
     }
 
 
@@ -138,7 +131,7 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyThingDefinitionResponse modified(final ThingId thingId, final DittoHeaders dittoHeaders) {
-        return new ModifyThingDefinitionResponse(thingId, null, HttpStatus.NO_CONTENT, dittoHeaders);
+        return newInstance(thingId, null, HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -160,16 +153,12 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyThingDefinitionResponse(thingId, definition, validateHttpStatus(httpStatus), dittoHeaders);
-    }
-
-    private static HttpStatus validateHttpStatus(final HttpStatus httpStatus) {
-        return ConditionChecker.checkArgument(checkNotNull(httpStatus, "httpStatus"),
-                HTTP_STATUSES::contains,
-                () -> MessageFormat.format("<{0}> is invalid. {1} only allows {2}.",
-                        httpStatus,
-                        ModifyThingDefinitionResponse.class.getSimpleName(),
-                        HTTP_STATUSES));
+        return new ModifyThingDefinitionResponse(thingId,
+                definition,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        HTTP_STATUSES,
+                        ModifyThingDefinitionResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -250,7 +239,7 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
 
     @Override
     public ModifyThingDefinitionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return definition != null ? created(thingId, definition, dittoHeaders) : modified(thingId, dittoHeaders);
+        return newInstance(thingId, definition, getHttpStatus(), dittoHeaders);
     }
 
     @Override
