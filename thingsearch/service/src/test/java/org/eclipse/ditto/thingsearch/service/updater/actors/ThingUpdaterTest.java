@@ -30,7 +30,6 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;
-import org.eclipse.ditto.things.model.signals.events.ThingModified;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
@@ -109,56 +108,6 @@ public final class ThingUpdaterTest {
                 final Metadata metadata = changeQueueTestProbe.expectMsgClass(Metadata.class);
                 Assertions.assertThat((CharSequence) metadata.getThingId()).isEqualTo(THING_ID);
                 Assertions.assertThat(metadata.getThingRevision()).isEqualTo(1L);
-                Assertions.assertThat(metadata.getPolicyId()).isEmpty();
-                Assertions.assertThat(metadata.getPolicyRevision()).contains(-1L);
-            }
-        };
-    }
-
-    @Test
-    public void thingTagWithHigherSequenceNumberTriggersSync() {
-        final long revision = 7L;
-        final Thing currentThing = ThingsModelFactory.newThingBuilder()
-                .setId(THING_ID)
-                .setPolicyId(POLICY_ID)
-                .setRevision(revision)
-                .build();
-        final long thingTagRevision = revision + 9L;
-
-        new TestKit(actorSystem) {
-            {
-                final ActorRef underTest = createThingUpdaterActor();
-
-                underTest.tell(ThingModified.of(currentThing, revision, Instant.now(), DittoHeaders.empty(), null),
-                        ActorRef.noSender());
-                final Metadata metadata = changeQueueTestProbe.expectMsgClass(Metadata.class);
-                Assertions.assertThat((CharSequence) metadata.getThingId()).isEqualTo(THING_ID);
-                Assertions.assertThat(metadata.getThingRevision()).isEqualTo(revision);
-                Assertions.assertThat(metadata.getPolicyId()).isEmpty();
-                Assertions.assertThat(metadata.getPolicyRevision()).contains(-1L);
-            }
-        };
-    }
-
-    @Test
-    public void thingTagWithLowerSequenceNumberDoesNotTriggerSync() {
-        final long revision = 7L;
-        final Thing currentThing = ThingsModelFactory.newThingBuilder()
-                .setId(THING_ID)
-                .setPolicyId(POLICY_ID)
-                .setRevision(revision)
-                .build();
-        final long thingTagRevision = revision - 2L;
-
-        new TestKit(actorSystem) {
-            {
-                final ActorRef underTest = createThingUpdaterActor();
-
-                underTest.tell(ThingModified.of(currentThing, revision, Instant.now(), DittoHeaders.empty(), null),
-                        ActorRef.noSender());
-                final Metadata metadata = changeQueueTestProbe.expectMsgClass(Metadata.class);
-                Assertions.assertThat((CharSequence) metadata.getThingId()).isEqualTo(THING_ID);
-                Assertions.assertThat(metadata.getThingRevision()).isEqualTo(revision);
                 Assertions.assertThat(metadata.getPolicyId()).isEmpty();
                 Assertions.assertThat(metadata.getPolicyRevision()).contains(-1L);
             }

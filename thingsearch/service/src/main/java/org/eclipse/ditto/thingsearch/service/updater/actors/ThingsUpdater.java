@@ -167,8 +167,8 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                 .info("Out-of-sync things are reported: <{}>", updateThings);
         updateThings.getThingIds().forEach(thingId ->
                 forwardToShardRegion(
-                        // TODO define update reason
-                        UpdateThing.of(ThingId.of(thingId), UpdateReason.THING_UPDATE, updateThings.getDittoHeaders()),
+                        UpdateThing.of(ThingId.of(thingId), UpdateReason.BACKGROUND_SYNC,
+                                updateThings.getDittoHeaders()),
                         UpdateThing::getEntityId,
                         UpdateThing::getType,
                         UpdateThing::toJson,

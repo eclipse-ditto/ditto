@@ -14,6 +14,8 @@ package org.eclipse.ditto.thingsearch.api;
 
 /**
  * Describes the reason why a thing is being updated in the search index.
+ *
+ * @since 2.3.0
  */
 public enum UpdateReason {
 
