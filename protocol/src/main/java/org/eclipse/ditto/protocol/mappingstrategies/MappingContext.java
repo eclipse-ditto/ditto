@@ -57,6 +57,7 @@ final class MappingContext {
     private static final JsonKey ATTRIBUTE_PATH_PREFIX = JsonKey.of("attributes");
     private static final JsonKey FEATURE_PATH_PREFIX = JsonKey.of("features");
     private static final int FEATURE_PROPERTY_PATH_LEVEL = 3;
+    private static final JsonKey POLICY_ENTRIES_PATH_PREFIX = JsonKey.of("entries");
     private static final int RESOURCES_PATH_LEVEL = 2;
     private static final int SUBJECT_PATH_LEVEL = 3;
     private static final int RESOURCE_PATH_LEVEL = 3;
@@ -135,21 +136,25 @@ final class MappingContext {
     }
 
     JsonPointer getAttributePointerOrThrow() {
-        final Payload payload = adaptable.getPayload();
-        final MessagePath messagePath = payload.getPath();
+        final MessagePath messagePath = getMessagePath();
         if (!messagePath.getRoot().filter(ATTRIBUTE_PATH_PREFIX::equals).isPresent()) {
-            throw new IllegalAdaptableException(
-                    getMessagePathInvalidPrefixMessage(ATTRIBUTE_PATH_PREFIX.asPointer()),
-                    MessageFormat.format("Please ensure that the message path of the Adaptable starts with <{0}>.",
-                            ATTRIBUTE_PATH_PREFIX.asPointer()),
-                    adaptable.getDittoHeaders()
-            );
+            throw newMessagePathInvalidPrefixException(ATTRIBUTE_PATH_PREFIX.asPointer());
         }
         return messagePath.nextLevel();
     }
 
-    private static String getMessagePathInvalidPrefixMessage(final Object expectedPrefix) {
-        return MessageFormat.format("Message path of payload does not start with <{0}>.", expectedPrefix);
+    private MessagePath getMessagePath() {
+        final Payload payload = adaptable.getPayload();
+        return payload.getPath();
+    }
+
+    private IllegalAdaptableException newMessagePathInvalidPrefixException(final CharSequence expectedPrefix) {
+        return new IllegalAdaptableException(
+                MessageFormat.format("Message path of payload does not start with <{0}>.", expectedPrefix),
+                MessageFormat.format("Please ensure that the message path of the Adaptable starts with <{0}>.",
+                        expectedPrefix),
+                adaptable.getDittoHeaders()
+        );
     }
 
     Optional<JsonValue> getAttributeValue() {
@@ -214,15 +219,9 @@ final class MappingContext {
     }
 
     String getFeatureIdOrThrow() {
-        final Payload payload = adaptable.getPayload();
-        final MessagePath messagePath = payload.getPath();
+        final MessagePath messagePath = getMessagePath();
         if (!messagePath.getRoot().filter(FEATURE_PATH_PREFIX::equals).isPresent()) {
-            throw new IllegalAdaptableException(
-                    getMessagePathInvalidPrefixMessage(FEATURE_PATH_PREFIX.asPointer()),
-                    MessageFormat.format("Please ensure that the message path of the payload starts with <{0}>.",
-                            FEATURE_PATH_PREFIX.asPointer()),
-                    adaptable.getDittoHeaders()
-            );
+            throw newMessagePathInvalidPrefixException(FEATURE_PATH_PREFIX.asPointer());
         } else {
             return messagePath.get(1)
                     .map(JsonKey::toString)
@@ -320,15 +319,9 @@ final class MappingContext {
 
     @SuppressWarnings("java:S3655")
     private JsonPointer getFeaturePropertyPointerOrThrow(final JsonKey levelTwoKey) {
-        final Payload payload = adaptable.getPayload();
-        final MessagePath messagePath = payload.getPath();
+        final MessagePath messagePath = getMessagePath();
         if (!messagePath.getRoot().filter(FEATURE_PATH_PREFIX::equals).isPresent()) {
-            throw new IllegalAdaptableException(
-                    getMessagePathInvalidPrefixMessage(FEATURE_PATH_PREFIX.asPointer()),
-                    MessageFormat.format("Please ensure that the message path of the Adaptable starts with <{0}>.",
-                            FEATURE_PATH_PREFIX.asPointer()),
-                    adaptable.getDittoHeaders()
-            );
+            throw newMessagePathInvalidPrefixException(FEATURE_PATH_PREFIX.asPointer());
         } else {
             if (messagePath.getLevelCount() <= FEATURE_PROPERTY_PATH_LEVEL) {
                 throw new IllegalAdaptableException(
@@ -395,64 +388,49 @@ final class MappingContext {
     }
 
     Optional<Policy> getPolicy() {
-        return adaptable.getPayload().getValue()
-                .filter(value -> {
-                    if (value.isObject()) {
-                        return true;
-                    } else {
-                        throw new IllegalAdaptableException(
-                                MessageFormat.format("Payload value is not a {0} as JSON object but <{1}>.",
-                                        Policy.class.getSimpleName(),
-                                        value),
-                                adaptable.getDittoHeaders());
-                    }
-                })
-                .map(JsonValue::asObject)
-                .map(PoliciesModelFactory::newPolicy);
+        final Optional<Policy> result;
+        final Optional<JsonValue> payloadValueOptional = getPayloadValue();
+        if (payloadValueOptional.isPresent()) {
+            final JsonValue jsonValue = payloadValueOptional.get();
+            if (jsonValue.isObject()) {
+                result = Optional.of(PoliciesModelFactory.newPolicy(jsonValue.asObject()));
+            } else {
+                throw newPayloadValueNotJsonObjectException(Policy.class, jsonValue);
+            }
+        } else {
+            result = Optional.empty();
+        }
+        return result;
     }
 
     Optional<PolicyEntry> getPolicyEntry() {
-        return adaptable.getPayload().getValue()
-                .filter(value -> {
-                    if (value.isObject()) {
-                        return true;
-                    } else {
-                        throw new IllegalAdaptableException(
-                                MessageFormat.format("Payload value is not a {0} as JSON object but <{1}>.",
-                                        PolicyEntry.class.getSimpleName(),
-                                        value),
-                                adaptable.getDittoHeaders());
-                    }
-                })
-                .map(JsonValue::asObject)
-                .map(entry -> PoliciesModelFactory.newPolicyEntry(getLabelOrThrow(), entry));
+        final Optional<PolicyEntry> result;
+        final Optional<JsonValue> payloadValueOptional = getPayloadValue();
+        if (payloadValueOptional.isPresent()) {
+            final JsonValue jsonValue = payloadValueOptional.get();
+            if (jsonValue.isObject()) {
+                result = Optional.of(PoliciesModelFactory.newPolicyEntry(getLabelOrThrow(), jsonValue.asObject()));
+            } else {
+                throw newPayloadValueNotJsonObjectException(PolicyEntry.class, jsonValue);
+            }
+        } else {
+            result = Optional.empty();
+        }
+        return result;
     }
 
     Label getLabelOrThrow() {
-        return getLabel()
+        final MessagePath messagePath = getMessagePath();
+        final JsonPointer labelSubPath = messagePath.getRoot()
+                .filter(POLICY_ENTRIES_PATH_PREFIX::equals)
+                .map(root -> messagePath.nextLevel())
+                .orElseThrow(() -> newMessagePathInvalidPrefixException(POLICY_ENTRIES_PATH_PREFIX.asPointer()));
+
+        return labelSubPath.getRoot()
+                .map(PoliciesModelFactory::newLabel)
                 .orElseThrow(() -> new IllegalAdaptableException("Path does not contain a policy label.",
                         "Please ensure that the path of the Adaptable contains a policy label.",
                         adaptable.getDittoHeaders()));
-    }
-
-    private Optional<Label> getLabel() {
-        final MessagePath path = adaptable.getPayload().getPath();
-        return path.getRoot()
-                .filter(entries -> {
-                    if (Policy.JsonFields.ENTRIES.getPointer().equals(entries.asPointer())) {
-                        return true;
-                    } else {
-                        throw new IllegalAdaptableException(
-                                MessageFormat.format("Path does not include <{0}> but <{1}>",
-                                        Policy.JsonFields.ENTRIES.getPointer(),
-                                        entries),
-                                adaptable.getDittoHeaders());
-                    }
-                })
-                .map(entries -> path.nextLevel())
-                .flatMap(JsonPointer::getRoot)
-                .map(JsonKey::toString)
-                .map(Label::of);
     }
 
     ResourceKey getResourceKeyOrThrow() {
@@ -465,7 +443,7 @@ final class MappingContext {
 
     private Optional<ResourceKey> getResourceKey() {
         // expected: entries/<entry>/resources/<type:/path1/path2>
-        final MessagePath path = adaptable.getPayload().getPath();
+        final MessagePath path = getMessagePath();
         return path.getRoot()
                 .filter(entries -> {
                     if (Policy.JsonFields.ENTRIES.getPointer().equals(entries.asPointer())) {
@@ -495,8 +473,7 @@ final class MappingContext {
     }
 
     Optional<Resource> getResource() {
-        final Optional<JsonValue> effectedPermissions = adaptable.getPayload().getValue();
-        return effectedPermissions.map(jsonValue -> Resource.newInstance(getResourceKeyOrThrow(), jsonValue));
+        return getPayloadValue().map(jsonValue -> Resource.newInstance(getResourceKeyOrThrow(), jsonValue));
     }
 
     SubjectId getSubjectIdOrThrow() {
@@ -508,14 +485,14 @@ final class MappingContext {
 
     private Optional<SubjectId> getSubjectId() {
         // expected: entries/<entry>/resources/<issuer:subject>
-        final MessagePath path = adaptable.getPayload().getPath();
+        final MessagePath path = getMessagePath();
         return path.getRoot()
                 .filter(entries -> {
                     if (Policy.JsonFields.ENTRIES.getPointer().equals(entries.asPointer())) {
                         return true;
                     } else {
                         throw new IllegalAdaptableException(
-                                MessageFormat.format("Path does not include <{0}> but <{1}>",
+                                MessageFormat.format("Path does not include <{0}> but <{1}>.",
                                         Policy.JsonFields.ENTRIES.getPointer(),
                                         entries),
                                 adaptable.getDittoHeaders());
@@ -527,7 +504,7 @@ final class MappingContext {
                         return true;
                     } else {
                         throw new IllegalAdaptableException(
-                                MessageFormat.format("Path does not include <{0}> but <{1}>",
+                                MessageFormat.format("Path does not include <{0}> but <{1}>.",
                                         PolicyEntry.JsonFields.SUBJECTS.getPointer(),
                                         resources),
                                 adaptable.getDittoHeaders());
@@ -539,30 +516,30 @@ final class MappingContext {
     }
 
     private static CharSequence stripLeadingSlash(final CharSequence charSequence) {
-        if (charSequence.length() == 0 || charSequence.charAt(0) != '/') {
-            return charSequence;
+        final CharSequence result;
+        if (0 < charSequence.length() && '/' == charSequence.charAt(0)) {
+            result = charSequence.subSequence(1, charSequence.length());
         } else {
-            return charSequence.subSequence(1, charSequence.length());
+            result = charSequence;
         }
+        return result;
     }
 
     Optional<Subject> getSubject() {
-        return adaptable.getPayload().getValue()
-                .filter(value -> {
-                    if (value.isObject()) {
-                        return true;
-                    } else {
-                        throw new IllegalAdaptableException(
-                                MessageFormat.format("Payload value is not a {0} as JSON object but <{1}>.",
-                                        Subject.class.getSimpleName(),
-                                        value),
-                                adaptable.getDittoHeaders());
-                    }
-                })
-                .map(JsonValue::asObject)
-                .map(value -> PoliciesModelFactory.newSubject(getSubjectIdOrThrow(), value));
+        final Optional<Subject> result;
+        final Optional<JsonValue> payloadValueOptional = getPayloadValue();
+        if (payloadValueOptional.isPresent()) {
+            final JsonValue jsonValue = payloadValueOptional.get();
+            if (jsonValue.isObject()) {
+                result = Optional.of(PoliciesModelFactory.newSubject(getSubjectIdOrThrow(), jsonValue.asObject()));
+            } else {
+                throw newPayloadValueNotJsonObjectException(Subject.class, jsonValue);
+            }
+        } else {
+            result = Optional.empty();
+        }
+        return result;
     }
-
 
     @Override
     public boolean equals(@Nullable final Object o) {
