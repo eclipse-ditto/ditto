@@ -90,13 +90,13 @@ public final class ModifyResourceResponseTest {
                 ModifyResourceResponse.fromJson(KNOWN_JSON_CREATED, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTestCreated).isNotNull();
-        assertThat(underTestCreated.getResource()).hasValue(TestConstants.Policy.RESOURCE);
+        assertThat(underTestCreated.getResourceCreated()).hasValue(TestConstants.Policy.RESOURCE);
 
         final ModifyResourceResponse underTestUpdated =
                 ModifyResourceResponse.fromJson(KNOWN_JSON_UPDATED, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTestUpdated).isNotNull();
-        assertThat(underTestUpdated.getResource()).isEmpty();
+        assertThat(underTestUpdated.getResourceCreated()).isEmpty();
     }
 
 }

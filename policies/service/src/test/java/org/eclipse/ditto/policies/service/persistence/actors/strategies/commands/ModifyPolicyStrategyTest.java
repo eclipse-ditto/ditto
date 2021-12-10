@@ -74,7 +74,7 @@ public final class ModifyPolicyStrategyTest extends AbstractPolicyCommandStrateg
                 },
                 ModifyPolicyResponse.class,
                 response -> {
-                    assertThat(response.getPolicy()).isNotPresent();
+                    assertThat(response.getPolicyCreated()).isNotPresent();
                 }
         );
     }
@@ -117,7 +117,7 @@ public final class ModifyPolicyStrategyTest extends AbstractPolicyCommandStrateg
                 },
                 ModifyPolicyResponse.class,
                 response -> {
-                    assertThat(response.getPolicy()).isNotPresent();
+                    assertThat(response.getPolicyCreated()).isNotPresent();
                 }
         );
     }

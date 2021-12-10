@@ -251,7 +251,7 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      *
      * @return the created Subject.
      */
-    public Optional<Subject> getSubject() {
+    public Optional<Subject> getSubjectCreated() {
         return Optional.ofNullable(subject);
     }
 

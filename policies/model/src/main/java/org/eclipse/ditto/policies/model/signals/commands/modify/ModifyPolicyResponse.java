@@ -203,7 +203,7 @@ public final class ModifyPolicyResponse extends AbstractCommandResponse<ModifyPo
      *
      * @return the Policy.
      */
-    public Optional<Policy> getPolicy() {
+    public Optional<Policy> getPolicyCreated() {
         return Optional.ofNullable(policy);
     }
 

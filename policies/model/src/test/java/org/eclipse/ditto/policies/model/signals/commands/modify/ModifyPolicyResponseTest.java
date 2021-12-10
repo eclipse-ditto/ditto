@@ -86,13 +86,13 @@ public final class ModifyPolicyResponseTest {
                 ModifyPolicyResponse.fromJson(KNOWN_JSON_CREATED, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTestCreated).isNotNull();
-        assertThat(underTestCreated.getPolicy()).hasValue(TestConstants.Policy.POLICY);
+        assertThat(underTestCreated.getPolicyCreated()).hasValue(TestConstants.Policy.POLICY);
 
         final ModifyPolicyResponse underTestUpdated =
                 ModifyPolicyResponse.fromJson(KNOWN_JSON_UPDATED, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTestUpdated).isNotNull();
-        assertThat(underTestUpdated.getPolicy()).isEmpty();
+        assertThat(underTestUpdated.getPolicyCreated()).isEmpty();
     }
 
     @Test
