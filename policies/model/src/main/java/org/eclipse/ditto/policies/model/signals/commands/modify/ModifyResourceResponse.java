@@ -14,20 +14,25 @@ package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Arrays;
+import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -64,16 +69,23 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
     static final JsonFieldDefinition<JsonValue> JSON_RESOURCE =
             JsonFieldDefinition.ofJsonValue("resource", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
+    private static final Set<HttpStatus> HTTP_STATUSES;
+
+    static {
+        final Set<HttpStatus> httpStatuses = new HashSet<>();
+        Collections.addAll(httpStatuses, HttpStatus.CREATED, HttpStatus.NO_CONTENT);
+        HTTP_STATUSES = Collections.unmodifiableSet(httpStatuses);
+    }
+
     private static final CommandResponseJsonDeserializer<ModifyResourceResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Arrays.asList(HttpStatus.CREATED, HttpStatus.NO_CONTENT)::contains,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
 
                         final ResourceKey resourceKey =
                                 ResourceKey.newInstance(jsonObject.getValueOrThrow(JSON_RESOURCE_KEY));
 
-                        return new ModifyResourceResponse(
+                        return newInstance(
                                 PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID)),
                                 Label.of(jsonObject.getValueOrThrow(JSON_LABEL)),
                                 resourceKey,
@@ -89,12 +101,12 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
     private final PolicyId policyId;
     private final Label label;
     private final ResourceKey resourceKey;
-    @Nullable private final Resource resourceCreated;
+    @Nullable private final Resource resource;
 
     private ModifyResourceResponse(final PolicyId policyId,
             final Label label,
             final ResourceKey resourceKey,
-            @Nullable final Resource resourceCreated,
+            @Nullable final Resource resource,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
@@ -102,7 +114,21 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
         this.policyId = checkNotNull(policyId, "policyId");
         this.label = checkNotNull(label, "label");
         this.resourceKey = checkNotNull(resourceKey, "resourceKey");
-        this.resourceCreated = resourceCreated;
+        this.resource = ConditionChecker.checkArgument(
+                resource,
+                resourceArgument -> {
+                    final boolean result;
+                    if (HttpStatus.NO_CONTENT.equals(httpStatus)) {
+                        result = null == resourceArgument;
+                    } else {
+                        result = null != resourceArgument;
+                    }
+                    return result;
+                },
+                () -> MessageFormat.format("Resource <{0}> is illegal in conjunction with <{1}>.",
+                        resource,
+                        httpStatus)
+        );
     }
 
     /**
@@ -120,7 +146,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
             final Resource resourceCreated,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyResourceResponse(policyId,
+        return newInstance(policyId,
                 label,
                 checkNotNull(resourceCreated, "resourceCreated").getResourceKey(),
                 resourceCreated,
@@ -144,11 +170,42 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
             final ResourceKey resourceKey,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyResourceResponse(policyId,
+        return newInstance(policyId,
                 label,
                 resourceKey,
                 null,
                 HttpStatus.NO_CONTENT,
+                dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code ModifyResourceResponse} for the specified arguments.
+     *
+     * @param policyId the Policy ID of the modified resource.
+     * @param label the Label of the PolicyEntry.
+     * @param resourceKey the resource key of the modified resource.
+     * @param resource the Resource created.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code ModifyResourceResponse} instance.
+     * @throws NullPointerException if any argument is {@code null} except {@code resource}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code ModifyResourceResponse}.
+     * @since 2.3.0
+     */
+    public static ModifyResourceResponse newInstance(final PolicyId policyId,
+            final Label label,
+            final ResourceKey resourceKey,
+            @Nullable final Resource resource,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new ModifyResourceResponse(policyId,
+                label,
+                resourceKey,
+                resource,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        HTTP_STATUSES,
+                        ModifyResourceResponse.class),
                 dittoHeaders);
     }
 
@@ -200,13 +257,13 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      *
      * @return the created Resource.
      */
-    public Optional<Resource> getResourceCreated() {
-        return Optional.ofNullable(resourceCreated);
+    public Optional<Resource> getResource() {
+        return Optional.ofNullable(resource);
     }
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(resourceCreated).map(obj -> obj.toJson(schemaVersion, FieldType.notHidden()));
+        return Optional.ofNullable(resource).map(obj -> obj.toJson(schemaVersion, FieldType.notHidden()));
     }
 
     @Override
@@ -223,16 +280,14 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
         jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCE_KEY, resourceKey.toString(), predicate);
-        if (null != resourceCreated) {
-            jsonObjectBuilder.set(JSON_RESOURCE, resourceCreated.toJson(schemaVersion, thePredicate), predicate);
+        if (null != resource) {
+            jsonObjectBuilder.set(JSON_RESOURCE, resource.toJson(schemaVersion, thePredicate), predicate);
         }
     }
 
     @Override
     public ModifyResourceResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return null != resourceCreated
-                ? created(policyId, label, resourceCreated, dittoHeaders)
-                : modified(policyId, label, resourceKey, dittoHeaders);
+        return newInstance(policyId, label, resourceKey, resource, getHttpStatus(), dittoHeaders);
     }
 
     @Override
@@ -252,20 +307,20 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
         return that.canEqual(this) &&
                 Objects.equals(policyId, that.policyId) &&
                 Objects.equals(label, that.label) &&
-                Objects.equals(resourceCreated, that.resourceCreated) &&
+                Objects.equals(resource, that.resource) &&
                 Objects.equals(resourceKey, that.resourceKey) &&
                 super.equals(o);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), policyId, label, resourceCreated, resourceKey);
+        return Objects.hash(super.hashCode(), policyId, label, resource, resourceKey);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", policyId=" + policyId + ", label=" + label +
-                ", resourceCreated=" + resourceCreated + ", resourceKey=" + resourceKey + "]";
+                ", resourceKey=" + resourceKey + ", resource=" + resource + "]";
     }
 
 }

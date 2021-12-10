@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -26,6 +27,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -62,10 +64,9 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
 
     private static final CommandResponseJsonDeserializer<DeleteResourceResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new DeleteResourceResponse(
+                        return newInstance(
                                 PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID)),
                                 PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL)),
                                 ResourceKey.newInstance(jsonObject.getValueOrThrow(JSON_RESOURCE_KEY)),
@@ -105,7 +106,35 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
             final ResourceKey resourceKey,
             final DittoHeaders dittoHeaders) {
 
-        return new DeleteResourceResponse(policyId, label, resourceKey, HttpStatus.NO_CONTENT, dittoHeaders);
+        return newInstance(policyId, label, resourceKey, HttpStatus.NO_CONTENT, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code DeleteResourceResponse} for the specified arguments.
+     *
+     * @param policyId the Policy ID of the deleted resource.
+     * @param label the Label of the PolicyEntry.
+     * @param resourceKey the ResourceKey of the deleted Resource.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code DeleteResourceResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code DeleteResourceResponse}.
+     * @since 2.3.0
+     */
+    public static DeleteResourceResponse newInstance(final PolicyId policyId,
+            final Label label,
+            final ResourceKey resourceKey,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new DeleteResourceResponse(policyId,
+                label,
+                resourceKey,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        DeleteResourceResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -178,7 +207,7 @@ public final class DeleteResourceResponse extends AbstractCommandResponse<Delete
 
     @Override
     public DeleteResourceResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(policyId, label, resourceKey, dittoHeaders);
+        return newInstance(policyId, label, resourceKey, getHttpStatus(), dittoHeaders);
     }
 
     @Override

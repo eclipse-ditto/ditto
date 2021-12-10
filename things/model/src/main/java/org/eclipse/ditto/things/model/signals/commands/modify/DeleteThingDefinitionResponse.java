@@ -52,7 +52,6 @@ public final class DeleteThingDefinitionResponse extends AbstractCommandResponse
 
     private static final CommandResponseJsonDeserializer<DeleteThingDefinitionResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
                         return newInstance(

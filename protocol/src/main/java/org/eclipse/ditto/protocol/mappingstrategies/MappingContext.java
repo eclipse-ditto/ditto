@@ -24,7 +24,15 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.PoliciesModelFactory;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.policies.model.Resource;
+import org.eclipse.ditto.policies.model.ResourceKey;
+import org.eclipse.ditto.policies.model.Subject;
+import org.eclipse.ditto.policies.model.SubjectId;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.MessagePath;
 import org.eclipse.ditto.protocol.Payload;
@@ -46,6 +54,9 @@ final class MappingContext {
 
     private static final JsonKey ATTRIBUTE_PATH_PREFIX = JsonKey.of("attributes");
     private static final JsonKey FEATURE_PATH_PREFIX = JsonKey.of("features");
+    private static final int RESOURCES_PATH_LEVEL = 2;
+    private static final int SUBJECT_PATH_LEVEL = 3;
+    private static final int RESOURCE_PATH_LEVEL = 3;
 
     private final Adaptable adaptable;
 
@@ -283,6 +294,183 @@ final class MappingContext {
         }
         return result;
     }
+
+    PolicyId getPolicyIdFromTopicPath() {
+        final TopicPath topicPath = adaptable.getTopicPath();
+        final String namespace = topicPath.getNamespace();
+        final String entityName = topicPath.getEntityName();
+        return PolicyId.of(namespace, entityName);
+    }
+
+    Optional<Policy> getPolicy() {
+        return adaptable.getPayload().getValue()
+                .filter(value -> {
+                    if (value.isObject()) {
+                        return true;
+                    } else {
+                        throw new IllegalAdaptableException(
+                                MessageFormat.format("Payload value is not a {0} as JSON object but <{1}>.",
+                                        Policy.class.getSimpleName(),
+                                        value),
+                                adaptable.getDittoHeaders());
+                    }
+                })
+                .map(JsonValue::asObject)
+                .map(PoliciesModelFactory::newPolicy);
+    }
+
+    Optional<PolicyEntry> getPolicyEntry() {
+        return adaptable.getPayload().getValue()
+                .filter(value -> {
+                    if (value.isObject()) {
+                        return true;
+                    } else {
+                        throw new IllegalAdaptableException(
+                                MessageFormat.format("Payload value is not a {0} as JSON object but <{1}>.",
+                                        PolicyEntry.class.getSimpleName(),
+                                        value),
+                                adaptable.getDittoHeaders());
+                    }
+                })
+                .map(JsonValue::asObject)
+                .map(entry -> PoliciesModelFactory.newPolicyEntry(getLabelOrThrow(), entry));
+    }
+
+    Label getLabelOrThrow() {
+        return getLabel()
+                .orElseThrow(() -> new IllegalAdaptableException("Path does not contain a policy label.",
+                        "Please ensure that the path of the Adaptable contains a policy label.",
+                        adaptable.getDittoHeaders()));
+    }
+
+    private Optional<Label> getLabel() {
+        final MessagePath path = adaptable.getPayload().getPath();
+        return path.getRoot()
+                .filter(entries -> {
+                    if (Policy.JsonFields.ENTRIES.getPointer().equals(entries.asPointer())) {
+                        return true;
+                    } else {
+                        throw new IllegalAdaptableException(
+                                MessageFormat.format("Path does not include <{0}> but <{1}>",
+                                        Policy.JsonFields.ENTRIES.getPointer(),
+                                        entries),
+                                adaptable.getDittoHeaders());
+                    }
+                })
+                .map(entries -> path.nextLevel())
+                .flatMap(JsonPointer::getRoot)
+                .map(JsonKey::toString)
+                .map(Label::of);
+    }
+
+    ResourceKey getResourceKeyOrThrow() {
+        return getResourceKey()
+                .orElseThrow(() -> new IllegalAdaptableException("Path does not contain policy resource key.",
+                        "Please ensure that the path of the Adaptable contains the policy resource key.",
+                        adaptable.getDittoHeaders()));
+    }
+
+
+    private Optional<ResourceKey> getResourceKey() {
+        // expected: entries/<entry>/resources/<type:/path1/path2>
+        final MessagePath path = adaptable.getPayload().getPath();
+        return path.getRoot()
+                .filter(entries -> {
+                    if (Policy.JsonFields.ENTRIES.getPointer().equals(entries.asPointer())) {
+                        return true;
+                    } else {
+                        throw new IllegalAdaptableException(
+                                MessageFormat.format("Path does not include <{0}> but <{1}>",
+                                        Policy.JsonFields.ENTRIES.getPointer(),
+                                        entries),
+                                adaptable.getDittoHeaders());
+                    }
+                })
+                .flatMap(entries -> path.get(RESOURCES_PATH_LEVEL))
+                .filter(resources -> {
+                    if (PolicyEntry.JsonFields.RESOURCES.getPointer().equals(resources.asPointer())) {
+                        return true;
+                    } else {
+                        throw new IllegalAdaptableException(
+                                MessageFormat.format("Path does not include <{0}> but <{1}>",
+                                        PolicyEntry.JsonFields.RESOURCES.getPointer(),
+                                        resources),
+                                adaptable.getDittoHeaders());
+                    }
+                })
+                .flatMap(resources -> path.getSubPointer(RESOURCE_PATH_LEVEL))
+                .map(PoliciesModelFactory::newResourceKey);
+    }
+
+    Optional<Resource> getResource() {
+        final Optional<JsonValue> effectedPermissions = adaptable.getPayload().getValue();
+        return effectedPermissions.map(jsonValue -> Resource.newInstance(getResourceKeyOrThrow(), jsonValue));
+    }
+
+    SubjectId getSubjectIdOrThrow() {
+        return getSubjectId()
+                .orElseThrow(() -> new IllegalAdaptableException("Path does not contain policy resource key.",
+                        "Please ensure that the path of the Adaptable contains the policy resource key.",
+                        adaptable.getDittoHeaders()));
+    }
+
+    private Optional<SubjectId> getSubjectId() {
+        // expected: entries/<entry>/resources/<issuer:subject>
+        final MessagePath path = adaptable.getPayload().getPath();
+        return path.getRoot()
+                .filter(entries -> {
+                    if (Policy.JsonFields.ENTRIES.getPointer().equals(entries.asPointer())) {
+                        return true;
+                    } else {
+                        throw new IllegalAdaptableException(
+                                MessageFormat.format("Path does not include <{0}> but <{1}>",
+                                        Policy.JsonFields.ENTRIES.getPointer(),
+                                        entries),
+                                adaptable.getDittoHeaders());
+                    }
+                })
+                .flatMap(entries -> path.get(RESOURCES_PATH_LEVEL))
+                .filter(resources -> {
+                    if (PolicyEntry.JsonFields.SUBJECTS.getPointer().equals(resources.asPointer())) {
+                        return true;
+                    } else {
+                        throw new IllegalAdaptableException(
+                                MessageFormat.format("Path does not include <{0}> but <{1}>",
+                                        PolicyEntry.JsonFields.SUBJECTS.getPointer(),
+                                        resources),
+                                adaptable.getDittoHeaders());
+                    }
+                })
+                .flatMap(resources -> path.getSubPointer(SUBJECT_PATH_LEVEL))
+                .map(MappingContext::stripLeadingSlash)
+                .map(PoliciesModelFactory::newSubjectId);
+    }
+
+    private static CharSequence stripLeadingSlash(final CharSequence charSequence) {
+        if (charSequence.length() == 0 || charSequence.charAt(0) != '/') {
+            return charSequence;
+        } else {
+            return charSequence.subSequence(1, charSequence.length());
+        }
+    }
+
+    Optional<Subject> getSubject() {
+        return adaptable.getPayload().getValue()
+                .filter(value -> {
+                    if (value.isObject()) {
+                        return true;
+                    } else {
+                        throw new IllegalAdaptableException(
+                                MessageFormat.format("Payload value is not a {0} as JSON object but <{1}>.",
+                                        Subject.class.getSimpleName(),
+                                        value),
+                                adaptable.getDittoHeaders());
+                    }
+                })
+                .map(JsonValue::asObject)
+                .map(value -> PoliciesModelFactory.newSubject(getSubjectIdOrThrow(), value));
+    }
+
 
     @Override
     public boolean equals(@Nullable final Object o) {

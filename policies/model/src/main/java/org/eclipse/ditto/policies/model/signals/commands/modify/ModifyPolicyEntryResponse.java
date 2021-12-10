@@ -14,20 +14,25 @@ package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Arrays;
+import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -60,9 +65,16 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
     static final JsonFieldDefinition<JsonValue> JSON_POLICY_ENTRY =
             JsonFieldDefinition.ofJsonValue("policyEntry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
+    private static final Set<HttpStatus> HTTP_STATUSES;
+
+    static {
+        final Set<HttpStatus> httpStatuses = new HashSet<>();
+        Collections.addAll(httpStatuses, HttpStatus.CREATED, HttpStatus.NO_CONTENT);
+        HTTP_STATUSES = Collections.unmodifiableSet(httpStatuses);
+    }
+
     private static final CommandResponseJsonDeserializer<ModifyPolicyEntryResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Arrays.asList(HttpStatus.CREATED, HttpStatus.NO_CONTENT)::contains,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
 
@@ -74,8 +86,9 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
                                         .map(obj -> PoliciesModelFactory.newPolicyEntry(readLabel, obj))
                                         .orElse(null);
 
-                        return new ModifyPolicyEntryResponse(
-                                PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID)),
+                        return newInstance(
+                                PolicyId.of(
+                                        jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID)),
                                 extractedPolicyEntryCreated,
                                 readLabel,
                                 context.getDeserializedHttpStatus(),
@@ -85,10 +98,10 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
 
     private final PolicyId policyId;
     private final Label label;
-    @Nullable private final PolicyEntry policyEntryCreated;
+    @Nullable private final PolicyEntry policyEntry;
 
     private ModifyPolicyEntryResponse(final PolicyId policyId,
-            @Nullable final PolicyEntry policyEntryCreated,
+            @Nullable final PolicyEntry policyEntry,
             final Label label,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
@@ -96,14 +109,27 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
         super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
         this.label = checkNotNull(label, "label");
-        this.policyEntryCreated = policyEntryCreated;
+        this.policyEntry = ConditionChecker.checkArgument(
+                policyEntry,
+                policyEntryArgument -> {
+                    final boolean result;
+                    if (HttpStatus.NO_CONTENT.equals(httpStatus)) {
+                        result = null == policyEntryArgument;
+                    } else {
+                        result = null != policyEntryArgument;
+                    }
+                    return result;
+                },
+                () -> MessageFormat.format("Policy entry <{0}> is illegal in conjunction with <{1}>.",
+                        policyEntry, httpStatus)
+        );
     }
 
     /**
      * Creates a response to a {@code ModifyPolicyEntry} command.
      *
      * @param policyId the Policy ID of the created policy entry.
-     * @param policyEntryCreated (optional) the PolicyEntry created.
+     * @param policyEntryCreated the PolicyEntry created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
@@ -112,7 +138,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
             final PolicyEntry policyEntryCreated,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyPolicyEntryResponse(policyId,
+        return newInstance(policyId,
                 checkNotNull(policyEntryCreated, "policyEntryCreated"),
                 policyEntryCreated.getLabel(),
                 HttpStatus.CREATED,
@@ -133,7 +159,36 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
             final Label label,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyPolicyEntryResponse(policyId, null, label, HttpStatus.NO_CONTENT, dittoHeaders);
+        return newInstance(policyId, null, label, HttpStatus.NO_CONTENT, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code ModifyPolicyEntryResponse} for the specified arguments.
+     *
+     * @param policyId the Policy ID of the modified policy entry.
+     * @param policyEntry (optional) the PolicyEntry.
+     * @param label the label of the modified policy entry.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code ModifyPolicyEntryResponse} instance.
+     * @throws NullPointerException if any argument is {@code null} except {@code policyEntry}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a
+     * {@code ModifyPolicyEntryResponse}.
+     * @since 2.3.0
+     */
+    public static ModifyPolicyEntryResponse newInstance(final PolicyId policyId,
+            @Nullable final PolicyEntry policyEntry,
+            final Label label,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new ModifyPolicyEntryResponse(policyId,
+                policyEntry,
+                label,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        HTTP_STATUSES,
+                        ModifyPolicyEntryResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -175,13 +230,13 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      *
      * @return the created PolicyEntry.
      */
-    public Optional<PolicyEntry> getPolicyEntryCreated() {
-        return Optional.ofNullable(policyEntryCreated);
+    public Optional<PolicyEntry> getPolicyEntry() {
+        return Optional.ofNullable(policyEntry);
     }
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(policyEntryCreated).map(obj -> obj.toJson(schemaVersion, FieldType.notHidden()));
+        return Optional.ofNullable(policyEntry).map(obj -> obj.toJson(schemaVersion, FieldType.notHidden()));
     }
 
     @Override
@@ -197,16 +252,14 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
-        if (null != policyEntryCreated) {
-            jsonObjectBuilder.set(JSON_POLICY_ENTRY, policyEntryCreated.toJson(schemaVersion, thePredicate), predicate);
+        if (null != policyEntry) {
+            jsonObjectBuilder.set(JSON_POLICY_ENTRY, policyEntry.toJson(schemaVersion, thePredicate), predicate);
         }
     }
 
     @Override
     public ModifyPolicyEntryResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return policyEntryCreated != null
-                ? created(policyId, policyEntryCreated, dittoHeaders)
-                : modified(policyId, label, dittoHeaders);
+        return newInstance(policyId, policyEntry, label, getHttpStatus(), dittoHeaders);
     }
 
     @Override
@@ -225,21 +278,21 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
         final ModifyPolicyEntryResponse that = (ModifyPolicyEntryResponse) o;
         return that.canEqual(this) &&
                 Objects.equals(policyId, that.policyId) &&
-                Objects.equals(policyEntryCreated, that.policyEntryCreated) &&
+                Objects.equals(policyEntry, that.policyEntry) &&
                 Objects.equals(label, that.label) &&
                 super.equals(o);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), policyId, policyEntryCreated, label);
+        return Objects.hash(super.hashCode(), policyId, policyEntry, label);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", policyId=" + policyId +
-                ", policyEntryCreated=" + policyEntryCreated +
-                ", policyEntryModifiedLabel=" + label
+                ", policyEntry=" + policyEntry +
+                ", label=" + label
                 + "]";
     }
 

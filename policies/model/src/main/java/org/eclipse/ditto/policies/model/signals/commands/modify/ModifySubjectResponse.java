@@ -14,20 +14,25 @@ package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Arrays;
+import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -64,16 +69,23 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
     static final JsonFieldDefinition<JsonValue> JSON_SUBJECT =
             JsonFieldDefinition.ofJsonValue("subject", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
+    private static final Set<HttpStatus> HTTP_STATUSES;
+
+    static {
+        final Set<HttpStatus> httpStatuses = new HashSet<>();
+        Collections.addAll(httpStatuses, HttpStatus.CREATED, HttpStatus.NO_CONTENT);
+        HTTP_STATUSES = Collections.unmodifiableSet(httpStatuses);
+    }
+
     private static final CommandResponseJsonDeserializer<ModifySubjectResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Arrays.asList(HttpStatus.CREATED, HttpStatus.NO_CONTENT)::contains,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
 
                         final SubjectId subjectId =
                                 SubjectId.newInstance(jsonObject.getValueOrThrow(JSON_SUBJECT_ID));
 
-                        return new ModifySubjectResponse(
+                        return newInstance(
                                 PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID)),
                                 Label.of(jsonObject.getValueOrThrow(JSON_LABEL)),
                                 subjectId,
@@ -89,12 +101,12 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
     private final PolicyId policyId;
     private final Label label;
     private final SubjectId subjectId;
-    @Nullable private final Subject subjectCreated;
+    @Nullable private final Subject subject;
 
     private ModifySubjectResponse(final PolicyId policyId,
             final Label label,
             final SubjectId subjectId,
-            @Nullable final Subject subjectCreated,
+            @Nullable final Subject subject,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
@@ -102,7 +114,20 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
         this.policyId = checkNotNull(policyId, "policyId");
         this.label = checkNotNull(label, "label");
         this.subjectId = checkNotNull(subjectId, "subjectId");
-        this.subjectCreated = subjectCreated;
+        this.subject = ConditionChecker.checkArgument(
+                subject,
+                subjectArgument -> {
+                    final boolean result;
+                    if (HttpStatus.NO_CONTENT.equals(httpStatus)) {
+                        result = subjectArgument == null;
+                    } else {
+                        result = subjectArgument != null;
+                    }
+                    return result;
+                },
+                () -> MessageFormat.format("Subject <{0}> is illegal in conjunction with <{1}>.",
+                        subject,
+                        httpStatus));
     }
 
     /**
@@ -120,7 +145,7 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
             final Subject subjectCreated,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifySubjectResponse(policyId,
+        return newInstance(policyId,
                 label,
                 checkNotNull(subjectCreated, "subjectCreated").getId(),
                 subjectCreated,
@@ -144,7 +169,38 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
             final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifySubjectResponse(policyId, label, subjectId, null, HttpStatus.NO_CONTENT, dittoHeaders);
+        return newInstance(policyId, label, subjectId, null, HttpStatus.NO_CONTENT, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code ModifySubjectResponse} for the specified arguments.
+     *
+     * @param policyId the Policy ID of the modified subject.
+     * @param label the Label of the PolicyEntry.
+     * @param subjectId the subject id of the modified subject.
+     * @param subject (optional) the Subject created.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code ModifySubjectResponse} instance.
+     * @throws NullPointerException if any argument but {@code attributeValue} is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code ModifySubjectResponse}.
+     * @since 2.3.0
+     */
+    public static ModifySubjectResponse newInstance(final PolicyId policyId,
+            final Label label,
+            final SubjectId subjectId,
+            @Nullable final Subject subject,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new ModifySubjectResponse(policyId,
+                label,
+                subjectId,
+                subject,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        HTTP_STATUSES,
+                        ModifySubjectResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -195,13 +251,13 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      *
      * @return the created Subject.
      */
-    public Optional<Subject> getSubjectCreated() {
-        return Optional.ofNullable(subjectCreated);
+    public Optional<Subject> getSubject() {
+        return Optional.ofNullable(subject);
     }
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.ofNullable(subjectCreated).map(obj -> obj.toJson(schemaVersion, FieldType.notHidden()));
+        return Optional.ofNullable(subject).map(obj -> obj.toJson(schemaVersion, FieldType.notHidden()));
     }
 
     @Override
@@ -218,16 +274,14 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
         jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_SUBJECT_ID, subjectId.toString(), predicate);
-        if (null != subjectCreated) {
-            jsonObjectBuilder.set(JSON_SUBJECT, subjectCreated.toJson(schemaVersion, thePredicate), predicate);
+        if (null != subject) {
+            jsonObjectBuilder.set(JSON_SUBJECT, subject.toJson(schemaVersion, thePredicate), predicate);
         }
     }
 
     @Override
     public ModifySubjectResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return subjectCreated != null
-                ? created(policyId, label, subjectCreated, dittoHeaders)
-                : modified(policyId, label, subjectId, dittoHeaders);
+        return newInstance(policyId, label, subjectId, subject, getHttpStatus(), dittoHeaders);
     }
 
     @Override
@@ -247,20 +301,20 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
         return that.canEqual(this) &&
                 Objects.equals(policyId, that.policyId) &&
                 Objects.equals(label, that.label) &&
-                Objects.equals(subjectCreated, that.subjectCreated) &&
+                Objects.equals(subject, that.subject) &&
                 Objects.equals(subjectId, that.subjectId) &&
                 super.equals(o);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), policyId, label, subjectCreated, subjectId);
+        return Objects.hash(super.hashCode(), policyId, label, subject, subjectId);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", policyId=" + policyId + ", label=" + label +
-                ", subjectCreated=" + subjectCreated + ", subjectId=" + subjectId + "]";
+                ", subject=" + subject + ", subjectId=" + subjectId + "]";
     }
 
 }
