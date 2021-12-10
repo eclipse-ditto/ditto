@@ -25,7 +25,6 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -91,20 +90,14 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
 
         super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.features = ConditionChecker.checkArgument(
-                checkNotNull(features, "features"),
-                featuresArgument -> {
-                    final boolean result;
-                    if (HttpStatus.NO_CONTENT.equals(httpStatus)) {
-                        result = featuresArgument.isNull();
-                    } else {
-                        result = !featuresArgument.isNull();
-                    }
-                    return result;
-                },
-                () -> MessageFormat.format("Features <{0}> are illegal in conjunction with <{1}>.",
-                        features,
-                        httpStatus));
+        this.features = checkNotNull(features, "features");
+        if (HttpStatus.NO_CONTENT.equals(httpStatus) && !features.isNull()) {
+            throw new IllegalArgumentException(
+                    MessageFormat.format("Features <{0}> are illegal in conjunction with <{1}>.",
+                            features,
+                            httpStatus)
+            );
+        }
     }
 
     /**
@@ -134,10 +127,7 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyFeaturesResponse modified(final ThingId thingId, final DittoHeaders dittoHeaders) {
-        return newInstance(thingId,
-                ThingsModelFactory.nullFeatures(),
-                HttpStatus.NO_CONTENT,
-                dittoHeaders);
+        return newInstance(thingId, ThingsModelFactory.nullFeatures(), HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -232,9 +222,7 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
 
     @Override
     public ModifyFeaturesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return HttpStatus.CREATED.equals(getHttpStatus())
-                ? created(thingId, features, dittoHeaders)
-                : modified(thingId, dittoHeaders);
+        return newInstance(thingId, features, getHttpStatus(), dittoHeaders);
     }
 
     @Override

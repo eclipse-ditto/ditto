@@ -187,7 +187,7 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
 
     @Override
     public CreateThingResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(createdThing, dittoHeaders);
+        return newInstance(createdThing, getHttpStatus(), dittoHeaders);
     }
 
     @Override

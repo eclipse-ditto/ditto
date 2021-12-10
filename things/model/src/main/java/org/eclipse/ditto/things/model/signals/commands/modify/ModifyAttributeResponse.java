@@ -25,7 +25,6 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -97,22 +96,27 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
 
         super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.attributePointer = attributePointer;
-        this.attributeValue = ConditionChecker.checkArgument(
-                attributeValue,
-                attributeValueArgument -> {
-                    final boolean result;
-                    if (HttpStatus.NO_CONTENT.equals(httpStatus)) {
-                        result = null == attributeValueArgument;
-                    } else {
-                        result = null != attributeValueArgument;
-                    }
-                    return result;
-                },
-                () -> MessageFormat.format("Attribute value <{0}> is illegal in conjunction with <{1}>.",
-                        attributeValue,
-                        httpStatus)
-        );
+        this.attributePointer = validateAttributePointer(attributePointer, dittoHeaders);
+        this.attributeValue = attributeValue;
+        if (HttpStatus.NO_CONTENT.equals(httpStatus) && null != attributeValue) {
+            throw new IllegalArgumentException(
+                    MessageFormat.format("Attribute value <{0}> is illegal in conjunction with <{1}>.",
+                            attributeValue,
+                            httpStatus)
+            );
+        }
+    }
+
+    private static JsonPointer validateAttributePointer(final JsonPointer attributePointer,
+            final DittoHeaders dittoHeaders) {
+
+        checkNotNull(attributePointer, "attributePointer");
+        if (attributePointer.isEmpty()) {
+            throw AttributePointerInvalidException.newBuilder(attributePointer)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        return AttributesModelFactory.validateAttributePointer(attributePointer);
     }
 
     /**
@@ -135,7 +139,11 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
             final JsonValue attributeValue,
             final DittoHeaders dittoHeaders) {
 
-        return newInstance(thingId, attributePointer, attributeValue, HttpStatus.CREATED, dittoHeaders);
+        return newInstance(thingId,
+                attributePointer,
+                checkNotNull(attributeValue, "attributeValue"),
+                HttpStatus.CREATED,
+                dittoHeaders);
     }
 
     /**
@@ -180,24 +188,12 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
             final DittoHeaders dittoHeaders) {
 
         return new ModifyAttributeResponse(thingId,
-                validateAttributePointer(attributePointer, dittoHeaders),
+                attributePointer,
                 attributeValue,
                 CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
                         HTTP_STATUSES,
                         ModifyAttributeResponse.class),
                 dittoHeaders);
-    }
-
-    private static JsonPointer validateAttributePointer(final JsonPointer attributePointer,
-            final DittoHeaders dittoHeaders) {
-
-        checkNotNull(attributePointer, "attributePointer");
-        if (attributePointer.isEmpty()) {
-            throw AttributePointerInvalidException.newBuilder(attributePointer)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
-        return AttributesModelFactory.validateAttributePointer(attributePointer);
     }
 
     /**
@@ -281,9 +277,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
 
     @Override
     public ModifyAttributeResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return null != attributeValue
-                ? created(thingId, attributePointer, attributeValue, dittoHeaders)
-                : modified(thingId, attributePointer, dittoHeaders);
+        return newInstance(thingId, attributePointer, attributeValue, getHttpStatus(), dittoHeaders);
     }
 
     @Override

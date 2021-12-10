@@ -157,7 +157,7 @@ public final class DeleteThingDefinitionResponse extends AbstractCommandResponse
 
     @Override
     public DeleteThingDefinitionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, dittoHeaders);
+        return newInstance(thingId, getHttpStatus(), dittoHeaders);
     }
 
     @Override

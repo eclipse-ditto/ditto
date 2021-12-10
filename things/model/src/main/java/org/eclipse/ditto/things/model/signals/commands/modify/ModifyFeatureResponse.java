@@ -34,7 +34,6 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -85,7 +84,7 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
                         final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
                         final Feature feature;
                         if (featureJsonObject.isNull()) {
-                            feature = ThingsModelFactory.nullFeature(extractedFeatureId);
+                            feature = null;
                         } else {
                             feature = ThingsModelFactory.newFeatureBuilder(featureJsonObject)
                                     .useId(extractedFeatureId)
@@ -103,29 +102,24 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
     private final Feature feature;
 
     private ModifyFeatureResponse(final ThingId thingId,
-            final Feature feature,
+            @Nullable final Feature feature,
+            final String featureId,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.feature = ConditionChecker.checkArgument(
-                feature,
-                featureValueArgument -> {
-                    final boolean result;
-                    final boolean isNullFeature =
-                            Objects.equals(JsonFactory.nullObject(), featureValueArgument.toJson());
-                    if (HttpStatus.NO_CONTENT.equals(httpStatus)) {
-                        result = isNullFeature;
-                    } else {
-                        result = !isNullFeature;
-                    }
-                    return result;
-                },
-                () -> MessageFormat.format("Feature <{0}> is illegal in conjunction with <{1}>.",
-                        feature,
-                        httpStatus)
-        );
+        ConditionChecker.checkArgument(featureId,
+                fid -> !featureId.trim().isEmpty(),
+                () -> "The featureId must neither be empty nor blank.");
+        this.feature = null == feature ? ThingsModelFactory.nullFeature(featureId) : feature;
+        if (HttpStatus.NO_CONTENT.equals(httpStatus) && null != feature) {
+            throw new IllegalArgumentException(
+                    MessageFormat.format("Feature <{0}> is illegal in conjunction with <{1}>.",
+                            feature,
+                            httpStatus)
+            );
+        }
     }
 
     /**
@@ -142,7 +136,11 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
             final Feature feature,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyFeatureResponse(thingId, feature, HttpStatus.CREATED, dittoHeaders);
+        return newInstance(thingId,
+                checkNotNull(feature, "feature"),
+                feature.getId(),
+                HttpStatus.CREATED,
+                dittoHeaders);
     }
 
     /**
@@ -159,17 +157,14 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
             final String featureId,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyFeatureResponse(thingId,
-                ThingsModelFactory.nullFeature(featureId),
-                HttpStatus.NO_CONTENT,
-                dittoHeaders);
+        return newInstance(thingId, null, featureId, HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
      * Returns a new instance of {@code ModifyFeatureResponse} for the specified arguments.
      *
-     * @param thingId the ID of the thing the attribute belongs to.
-     * @param feature the created feature value or {@code null} if an existing attribute was modified.
+     * @param thingId the ID of the thing the feature belongs to.
+     * @param feature the created feature value or {@code null} if an existing feature was modified.
      * @param featureId ID of the modified feature or {@code null} if a new feature was created.
      * @param httpStatus the status of the response.
      * @param dittoHeaders the headers of the response.
@@ -181,29 +176,18 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
      */
     public static ModifyFeatureResponse newInstance(final ThingId thingId,
             @Nullable final Feature feature,
-            @Nullable final CharSequence featureId,
+            final String featureId,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        final Feature eventualFeature;
-        if (null == feature) {
-            if (null == featureId) {
-                throw new NullPointerException("Either feature or featureId argument may be null," +
-                        " never both at the same time.");
-            } else {
-                eventualFeature = ThingsModelFactory.nullFeature(featureId.toString());
-            }
-        } else {
-            if (null != featureId && !Objects.equals(feature.getId(), featureId.toString())) {
-                final String pattern = "Provided feature ID <{0}> differs from ID of provided feature <{1}>.";
-                throw new IllegalArgumentException(MessageFormat.format(pattern, featureId, feature.getId()));
-            } else {
-                eventualFeature = feature;
-            }
+        if (null != feature && !Objects.equals(feature.getId(), featureId)) {
+            final String pattern = "Provided feature ID <{0}> differs from ID of provided feature <{1}>.";
+            throw new IllegalArgumentException(MessageFormat.format(pattern, featureId, feature.getId()));
         }
 
         return new ModifyFeatureResponse(thingId,
-                eventualFeature,
+                feature,
+                featureId,
                 CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
                         HTTP_STATUSES,
                         ModifyFeatureResponse.class),
@@ -276,7 +260,7 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
 
     @Override
     public ModifyFeatureResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new ModifyFeatureResponse(thingId, feature, getHttpStatus(), dittoHeaders);
+        return newInstance(thingId, feature, feature.getId(), getHttpStatus(), dittoHeaders);
     }
 
     @Override

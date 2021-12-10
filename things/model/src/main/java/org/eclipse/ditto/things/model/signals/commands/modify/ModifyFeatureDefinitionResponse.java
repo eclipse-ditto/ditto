@@ -14,14 +14,18 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
-import java.util.Arrays;
+import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
@@ -29,6 +33,7 @@ import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonField;
@@ -61,12 +66,19 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
     static final JsonFieldDefinition<JsonArray> JSON_DEFINITION =
             JsonFieldDefinition.ofJsonArray("definition", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
+    private static final Set<HttpStatus> HTTP_STATUSES;
+
+    static {
+        final Set<HttpStatus> httpStatuses = new HashSet<>();
+        Collections.addAll(httpStatuses, HttpStatus.CREATED, HttpStatus.NO_CONTENT);
+        HTTP_STATUSES = Collections.unmodifiableSet(httpStatuses);
+    }
+
     private static final CommandResponseJsonDeserializer<ModifyFeatureDefinitionResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Arrays.asList(HttpStatus.CREATED, HttpStatus.NO_CONTENT)::contains,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new ModifyFeatureDefinitionResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 jsonObject.getValueOrThrow(JSON_FEATURE_ID),
                                 jsonObject.getValue(JSON_DEFINITION)
@@ -89,8 +101,17 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
 
         super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.featureId = checkNotNull(featureId, "featureId");
+        this.featureId = ConditionChecker.checkArgument(checkNotNull(featureId, "featureId"),
+                fid -> !fid.trim().isEmpty(),
+                () -> "The featureId must neither be empty nor blank.");
         this.definitionCreated = definitionCreated;
+        if (HttpStatus.NO_CONTENT.equals(httpStatus) && null != definitionCreated) {
+            throw new IllegalArgumentException(
+                    MessageFormat.format("Feature definition <{0}> is illegal in conjunction with <{1}>.",
+                    definitionCreated,
+                    httpStatus)
+            );
+        }
     }
 
     /**
@@ -109,7 +130,7 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
             final FeatureDefinition definitionCreated,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyFeatureDefinitionResponse(thingId,
+        return newInstance(thingId,
                 featureId,
                 checkNotNull(definitionCreated, "definitionCreated"),
                 HttpStatus.CREATED,
@@ -130,7 +151,36 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
             final String featureId,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyFeatureDefinitionResponse(thingId, featureId, null, HttpStatus.NO_CONTENT, dittoHeaders);
+        return newInstance(thingId, featureId, null, HttpStatus.NO_CONTENT, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code ModifyFeatureDefinitionResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the attribute belongs to.
+     * @param featureId ID of feature of which the definition was modified.
+     * @param definitionCreated the created feature definition or {@code null} if an existing was modified.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code ModifyFeatureDefinitionResponse} instance.
+     * @throws NullPointerException if any argument but {@code definitionCreated} is {@code null}.
+     * @throws IllegalArgumentException if {@code featureId} is empty or blank or if {@code httpStatus} is not allowed
+     * for a {@code ModifyFeatureDefinitionResponse} or if {@code httpStatus} contradicts {@code definitionCreated}.
+     * @since 2.3.0
+     */
+    public static ModifyFeatureDefinitionResponse newInstance(final ThingId thingId,
+            final String featureId,
+            @Nullable final FeatureDefinition definitionCreated,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new ModifyFeatureDefinitionResponse(thingId,
+                featureId,
+                definitionCreated,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        HTTP_STATUSES,
+                        ModifyFeatureDefinitionResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -212,8 +262,7 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
 
     @Override
     public JsonPointer getResourcePath() {
-        final String path = "/features/" + featureId + "/definition";
-        return JsonPointer.of(path);
+        return JsonPointer.of("/features/" + featureId + "/definition");
     }
 
     @Override
@@ -231,9 +280,7 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
 
     @Override
     public ModifyFeatureDefinitionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return definitionCreated != null
-                ? created(thingId, featureId, definitionCreated, dittoHeaders)
-                : modified(thingId, featureId, dittoHeaders);
+        return newInstance(thingId, featureId, definitionCreated, getHttpStatus(), dittoHeaders);
     }
 
     @Override

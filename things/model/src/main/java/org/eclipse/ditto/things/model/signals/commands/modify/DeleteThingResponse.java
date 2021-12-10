@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -25,6 +26,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -50,10 +52,9 @@ public final class DeleteThingResponse extends AbstractCommandResponse<DeleteThi
 
     private static final CommandResponseJsonDeserializer<DeleteThingResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new DeleteThingResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 context.getDeserializedHttpStatus(),
                                 context.getDittoHeaders()
@@ -76,7 +77,29 @@ public final class DeleteThingResponse extends AbstractCommandResponse<DeleteThi
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static DeleteThingResponse of(final ThingId thingId, final DittoHeaders dittoHeaders) {
-        return new DeleteThingResponse(thingId, HTTP_STATUS, dittoHeaders);
+        return newInstance(thingId, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code DeleteThingResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the deleted thing.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code DeleteThingResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code DeleteThingResponse}.
+     * @since 2.3.0
+     */
+    public static DeleteThingResponse newInstance(final ThingId thingId,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new DeleteThingResponse(thingId,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        DeleteThingResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -129,7 +152,7 @@ public final class DeleteThingResponse extends AbstractCommandResponse<DeleteThi
 
     @Override
     public DeleteThingResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, dittoHeaders);
+        return newInstance(thingId, getHttpStatus(), dittoHeaders);
     }
 
     @Override
