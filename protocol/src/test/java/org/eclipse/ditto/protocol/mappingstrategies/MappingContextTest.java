@@ -22,10 +22,13 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.ProtocolFactory;
+import org.eclipse.ditto.protocol.TestConstants;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
@@ -739,12 +742,96 @@ public final class MappingContextTest {
 
     @Test
     public void getPolicyIdReturnsEmptyOptionalIfPayloadContainsNoValue() {
-        final JsonValue jsonValue = JsonValue.of(true);
         final Payload payload = ProtocolFactory.newPayloadBuilder().build();
         Mockito.when(adaptable.getPayload()).thenReturn(payload);
         final MappingContext underTest = MappingContext.of(adaptable);
 
         assertThat(underTest.getPolicyId()).isEmpty();
+    }
+
+    @Test
+    public void getPolicyIdFromTopicPathReturnsExpectedPolicyId() {
+        final PolicyId policyId = PolicyId.inNamespaceWithRandomName("org.eclipse.ditto");
+        final TopicPath topicPath = ProtocolFactory.newTopicPathBuilder(policyId).commands().modify().build();
+        Mockito.when(adaptable.getTopicPath()).thenReturn(topicPath);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThat((CharSequence) underTest.getPolicyIdFromTopicPath()).isEqualTo(policyId);
+    }
+
+    @Test
+    public void getPolicyReturnsExpectedPolicyIfContainedInPayload() {
+        final Policy policy = Policy.newBuilder()
+                .setId(PolicyId.inNamespaceWithRandomName("org.eclipse.ditto"))
+                .build();
+        final Payload payload = ProtocolFactory.newPayloadBuilder()
+                .withValue(policy.toJson())
+                .build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThat(underTest.getPolicy()).contains(policy);
+    }
+
+    @Test
+    public void getPolicyThrowsExceptionIfPayloadContainsValueThatIsNoJsonObject() {
+        final JsonValue value = JsonValue.of(true);
+        final Payload payload = ProtocolFactory.newPayloadBuilder()
+                .withValue(value)
+                .build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getPolicy)
+                .withMessage("Payload value is not a Policy as JSON object but <%s>.", value)
+                .withNoCause();
+    }
+
+    @Test
+    public void getPolicyReturnsEmptyOptionalIfPayloadContainsNoValue() {
+        final Payload payload = ProtocolFactory.newPayloadBuilder().build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThat(underTest.getPolicy()).isEmpty();
+    }
+
+    @Test
+    public void getPolicyEntryReturnsExpectedPolicyEntryIfContainedInPayload() {
+        final PolicyEntry policyEntry = TestConstants.Policies.POLICY_ENTRY;
+        final Payload payload = ProtocolFactory.newPayloadBuilder()
+                .withValue(policyEntry.toJson())
+                .withPath(JsonPointer.of("entries/" + TestConstants.Policies.POLICY_ENTRY_LABEL))
+                .build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThat(underTest.getPolicyEntry()).contains(policyEntry);
+    }
+
+    @Test
+    public void getPolicyEntryThrowsExceptionIfPayloadContainsValueThatIsNoJsonObject() {
+        final JsonValue value = JsonValue.of(true);
+        final Payload payload = ProtocolFactory.newPayloadBuilder()
+                .withValue(value)
+                .build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getPolicyEntry)
+                .withMessage("Payload value is not a PolicyEntry as JSON object but <%s>.", value)
+                .withNoCause();
+    }
+
+    @Test
+    public void getPolicyEntryReturnsEmptyOptionalIfPayloadContainsNoValue() {
+        final Payload payload = ProtocolFactory.newPayloadBuilder().build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThat(underTest.getPolicyEntry()).isEmpty();
     }
 
 }
