@@ -36,7 +36,6 @@ Conditional requests are supported by HTTP API, WebSocket, Ditto protocol and Di
 
 READ permission is necessary on the resource specified in the condition, otherwise, the request will fail.
 
-
 ## Examples
 
 In this part, we will show how to use conditional updates via HTTP API, Ditto protocol, and Ditto Java Client.
@@ -116,6 +115,22 @@ client.twin().forFeature(ThingId.of("org.eclipse.ditto:fancy-thing"), "temperatu
             }
         });
 ```
+
+## Live channel condition
+
+Ditto also supports retrieving thing data with an automatic approach for switching between [twin](protocol-twinlive.html#twin) and [live](protocol-twinlive.html#live) channel.
+
+Conditions are defined with RQL as described [before](#defining-conditions). If a condition is matched, the Thing data is retrieved from the device itself.
+
+```
+GET .../things/{thingId}?live-channel-condition=eq(attributes/useLiveChannel,'true')
+```
+
+Additionally, a strategy to handle timeouts for retrieving live thing data can be specified with the http header `on-live-channel-timeout`.
+The request can either `fail` with a status code 408 or `use-twin` as a fallback, in that case the Thing date would be returned from Ditto directly.
+
+The response includes two additional http headers `live-channel-condition-matched` and `channel` to indicate which channel was used to retrieve the thing data.
+Also, it can be used to update the twin state via a specific [payload mapper](connectivity-mapping.html#updatetwinwithliveresponse-mapper).
 
 ## Further reading on RQL expressions
 
