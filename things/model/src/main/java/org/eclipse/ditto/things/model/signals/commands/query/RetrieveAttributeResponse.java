@@ -110,7 +110,7 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
             final JsonValue attributeValue,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveAttributeResponse(thingId, attributePointer, attributeValue, HttpStatus.OK, dittoHeaders);
+        return new RetrieveAttributeResponse(thingId, attributePointer, attributeValue, HTTP_STATUS, dittoHeaders);
     }
 
     /**

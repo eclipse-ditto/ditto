@@ -88,7 +88,7 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static SudoRetrieveThingResponse of(final JsonObject thing, final DittoHeaders dittoHeaders) {
-        return new SudoRetrieveThingResponse(thing, HttpStatus.OK, dittoHeaders);
+        return new SudoRetrieveThingResponse(thing, HTTP_STATUS, dittoHeaders);
     }
 
     /**
