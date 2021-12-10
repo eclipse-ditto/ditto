@@ -93,7 +93,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
         // required e.g. for updating the search-index)
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final Thing modifiedThing = mergeThingModifications(command.getThing(), thing, eventTs, nextRevision);
+        final Thing modifiedThing = applyThingModifications(command.getThing(), thing, eventTs, nextRevision);
 
         final ThingEvent<?> event =
                 ThingModified.of(modifiedThing, nextRevision, eventTs, dittoHeaders, metadata);
@@ -104,18 +104,16 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
     }
 
     /**
-     * Merges the modifications from {@code thingWithModifications} to {@code builder}. Merge is implemented very
-     * simple: All first level fields of {@code thingWithModifications} overwrite the first level fields of {@code
-     * builder}. If a field does not exist in {@code thingWithModifications}, a maybe existing field in {@code builder}
-     * remains unchanged.
+     * Applies the modifications from {@code thingWithModifications} to {@code builder}. The modified thing
+     * overwrites the existing thing of {@code builder}.
      *
      * @param thingWithModifications the thing containing the modifications.
-     * @param existingThing the existing thing to merge into.
+     * @param existingThing the existing thing.
      * @param eventTs the timestamp of the modification event.
      * @param nextRevision the next revision number.
-     * @return the merged Thing.
+     * @return the modified Thing.
      */
-    private static Thing mergeThingModifications(final Thing thingWithModifications, final Thing existingThing,
+    private static Thing applyThingModifications(final Thing thingWithModifications, final Thing existingThing,
             final Instant eventTs, final long nextRevision) {
 
         final ThingBuilder.FromCopy builder = existingThing.toBuilder()
