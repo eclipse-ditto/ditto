@@ -24,6 +24,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
@@ -35,9 +36,13 @@ import org.eclipse.ditto.protocol.Adaptable;
  *
  * @since 2.3.0
  */
+@JsonParsableException(errorCode = IllegalAdaptableException.ERROR_CODE)
 public final class IllegalAdaptableException extends DittoRuntimeException {
 
-    private static final String ERROR_CODE = "things.protocol.adapter:adaptable.illegal";
+    /**
+     * Error code of {@code IllegalAdaptableException}.
+     */
+    static final String ERROR_CODE = "things.protocol.adapter:adaptable.illegal";
 
     private static final HttpStatus HTTP_STATUS = HttpStatus.UNPROCESSABLE_ENTITY;
 

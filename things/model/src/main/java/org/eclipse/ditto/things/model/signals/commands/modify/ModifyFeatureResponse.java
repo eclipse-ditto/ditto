@@ -34,6 +34,7 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -99,7 +100,8 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
                     });
 
     private final ThingId thingId;
-    private final Feature feature;
+    private final String featureId;
+    @Nullable private final Feature feature;
 
     private ModifyFeatureResponse(final ThingId thingId,
             @Nullable final Feature feature,
@@ -109,15 +111,13 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
 
         super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        ConditionChecker.checkArgument(featureId,
+        this.featureId = ConditionChecker.checkArgument(featureId,
                 fid -> !featureId.trim().isEmpty(),
                 () -> "The featureId must neither be empty nor blank.");
-        this.feature = null == feature ? ThingsModelFactory.nullFeature(featureId) : feature;
+        this.feature = feature;
         if (HttpStatus.NO_CONTENT.equals(httpStatus) && null != feature) {
             throw new IllegalArgumentException(
-                    MessageFormat.format("Feature <{0}> is illegal in conjunction with <{1}>.",
-                            feature,
-                            httpStatus)
+                    MessageFormat.format("Feature <{0}> is illegal in conjunction with <{1}>.", feature, httpStatus)
             );
         }
     }
@@ -234,17 +234,29 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
      * @return the created Feature.
      */
     public Optional<Feature> getFeatureCreated() {
-        return Optional.of(feature);
+        final Optional<Feature> result;
+        if (null != feature) {
+            result = Optional.of(feature);
+        } else {
+            result = Optional.of(ThingsModelFactory.nullFeature(featureId));
+        }
+        return result;
     }
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.of(feature.toJson(schemaVersion, FieldType.notHidden()));
+        final Optional<JsonValue> result;
+        if (null != feature) {
+            result = Optional.of(feature.toJson(schemaVersion, FieldType.notHidden()));
+        } else {
+            result = Optional.of(JsonFactory.nullObject());
+        }
+        return result;
     }
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.of("/features/" + feature.getId());
+        return JsonPointer.of("/features/" + featureId);
     }
 
     @Override
@@ -254,13 +266,17 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
-        jsonObjectBuilder.set(JSON_FEATURE_ID, feature.getId());
-        jsonObjectBuilder.set(JSON_FEATURE, feature.toJson(schemaVersion, thePredicate), predicate);
+        jsonObjectBuilder.set(JSON_FEATURE_ID, featureId);
+        if (null != feature) {
+            jsonObjectBuilder.set(JSON_FEATURE, feature.toJson(schemaVersion, thePredicate), predicate);
+        } else {
+            jsonObjectBuilder.set(JSON_FEATURE, JsonFactory.nullObject());
+        }
     }
 
     @Override
     public ModifyFeatureResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return newInstance(thingId, feature, feature.getId(), getHttpStatus(), dittoHeaders);
+        return newInstance(thingId, feature, featureId, getHttpStatus(), dittoHeaders);
     }
 
     @Override
@@ -274,13 +290,14 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
         final ModifyFeatureResponse that = (ModifyFeatureResponse) o;
         return that.canEqual(this) &&
                 Objects.equals(thingId, that.thingId) &&
+                Objects.equals(featureId, that.featureId) &&
                 Objects.equals(feature, that.feature) &&
                 super.equals(that);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), thingId, feature);
+        return Objects.hash(super.hashCode(), thingId, featureId, feature);
     }
 
     @Override
@@ -288,6 +305,7 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
         return getClass().getSimpleName() + " [" +
                 super.toString() +
                 ", thingId=" + thingId +
+                ", featureId=" + featureId +
                 ", featureCreated=" + feature +
                 "]";
     }

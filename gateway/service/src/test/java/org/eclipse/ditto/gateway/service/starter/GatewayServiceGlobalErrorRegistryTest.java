@@ -38,6 +38,7 @@ import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
 import org.eclipse.ditto.protocol.UnknownCommandException;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
+import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidNamespacesException;
@@ -72,7 +73,8 @@ public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegi
                 CloudEventUnsupportedDataSchemaException.class,
                 CloudEventNotParsableException.class,
                 PathUnknownException.class,
-                UnknownTopicPathException.class
+                UnknownTopicPathException.class,
+                IllegalAdaptableException.class
         );
     }
 
