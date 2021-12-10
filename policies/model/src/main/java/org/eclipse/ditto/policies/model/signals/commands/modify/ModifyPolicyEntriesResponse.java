@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -25,6 +26,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -50,10 +52,9 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
 
     private static final CommandResponseJsonDeserializer<ModifyPolicyEntriesResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new ModifyPolicyEntriesResponse(
+                        return newInstance(
                                 PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID)),
                                 context.getDeserializedHttpStatus(),
                                 context.getDittoHeaders()
@@ -79,7 +80,29 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyPolicyEntriesResponse of(final PolicyId policyId, final DittoHeaders dittoHeaders) {
-        return new ModifyPolicyEntriesResponse(policyId, HttpStatus.NO_CONTENT, dittoHeaders);
+        return newInstance(policyId, HttpStatus.NO_CONTENT, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code ModifyPolicyEntriesResponse} for the specified arguments.
+     *
+     * @param policyId the Policy ID of the modified policy entries.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code ModifyPolicyEntriesResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code ModifyPolicyEntriesResponse}.
+     * @since 2.3.0
+     */
+    public static ModifyPolicyEntriesResponse newInstance(final PolicyId policyId,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new ModifyPolicyEntriesResponse(policyId,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        ModifyPolicyEntriesResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -132,7 +155,7 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
 
     @Override
     public ModifyPolicyEntriesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(policyId, dittoHeaders);
+        return newInstance(policyId, getHttpStatus(), dittoHeaders);
     }
 
     @Override

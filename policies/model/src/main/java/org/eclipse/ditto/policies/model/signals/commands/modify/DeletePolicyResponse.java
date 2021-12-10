@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -25,6 +26,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -50,10 +52,9 @@ public final class DeletePolicyResponse extends AbstractCommandResponse<DeletePo
 
     private static final CommandResponseJsonDeserializer<DeletePolicyResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new DeletePolicyResponse(
+                        return newInstance(
                                 PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID)),
                                 context.getDeserializedHttpStatus(),
                                 context.getDittoHeaders()
@@ -79,7 +80,29 @@ public final class DeletePolicyResponse extends AbstractCommandResponse<DeletePo
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static DeletePolicyResponse of(final PolicyId policyId, final DittoHeaders dittoHeaders) {
-        return new DeletePolicyResponse(policyId, HTTP_STATUS, dittoHeaders);
+        return newInstance(policyId, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code DeletePolicyResponse} for the specified arguments.
+     *
+     * @param policyId the Policy ID of the deleted Policy.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code DeletePolicyResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code DeletePolicyResponse}.
+     * @since 2.3.0
+     */
+    public static DeletePolicyResponse newInstance(final PolicyId policyId,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new DeletePolicyResponse(policyId,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        DeletePolicyResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -131,7 +154,7 @@ public final class DeletePolicyResponse extends AbstractCommandResponse<DeletePo
 
     @Override
     public DeletePolicyResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(policyId, dittoHeaders);
+        return newInstance(policyId, getHttpStatus(), dittoHeaders);
     }
 
     @Override

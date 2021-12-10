@@ -95,13 +95,13 @@ public final class ModifySubjectResponseTest {
                 ModifySubjectResponse.fromJson(KNOWN_JSON_CREATED, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTestCreated).isNotNull();
-        assertThat(underTestCreated.getSubjectCreated()).hasValue(TestConstants.Policy.SUBJECT);
+        assertThat(underTestCreated.getSubject()).hasValue(TestConstants.Policy.SUBJECT);
 
         final ModifySubjectResponse underTestUpdated =
                 ModifySubjectResponse.fromJson(KNOWN_JSON_UPDATED, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTestUpdated).isNotNull();
-        assertThat(underTestUpdated.getSubjectCreated()).isEmpty();
+        assertThat(underTestUpdated.getSubject()).isEmpty();
     }
 
 }

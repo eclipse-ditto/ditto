@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -27,6 +28,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -59,10 +61,9 @@ public final class CreatePolicyResponse extends AbstractCommandResponse<CreatePo
 
     private static final CommandResponseJsonDeserializer<CreatePolicyResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new CreatePolicyResponse(
+                        return newInstance(
                                 PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID)),
                                 jsonObject.getValue(JSON_POLICY)
                                         .map(JsonValue::asObject)
@@ -84,6 +85,31 @@ public final class CreatePolicyResponse extends AbstractCommandResponse<CreatePo
         super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
         this.policyCreated = policyCreated;
+    }
+
+    /**
+     * Returns a new instance of {@code CreatePolicyResponse} for the specified arguments.
+     *
+     * @param policyId the Policy ID of the created Policy
+     * @param policy the created Policy.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code CreatePolicyResponse} instance.
+     * @throws NullPointerException if any argument is {@code null} except the {@code policy}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code CreatePolicyResponse}.
+     * @since 2.3.0
+     */
+    public static CreatePolicyResponse newInstance(final PolicyId policyId,
+            @Nullable final Policy policy,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new CreatePolicyResponse(policyId,
+                policy,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        CreatePolicyResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -170,7 +196,7 @@ public final class CreatePolicyResponse extends AbstractCommandResponse<CreatePo
 
     @Override
     public CreatePolicyResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(policyId, policyCreated, dittoHeaders);
+        return newInstance(policyId, policyCreated, getHttpStatus(), dittoHeaders);
     }
 
     @Override

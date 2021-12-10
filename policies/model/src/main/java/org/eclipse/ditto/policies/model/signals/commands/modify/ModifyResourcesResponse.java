@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -26,6 +27,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -56,10 +58,9 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
 
     private static final CommandResponseJsonDeserializer<ModifyResourcesResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new ModifyResourcesResponse(
+                        return newInstance(
                                 PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID)),
                                 Label.of(jsonObject.getValueOrThrow(JSON_LABEL)),
                                 context.getDeserializedHttpStatus(),
@@ -93,7 +94,32 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
             final Label label,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyResourcesResponse(policyId, label, HTTP_STATUS, dittoHeaders);
+        return newInstance(policyId, label, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code ModifyResourcesResponse} for the specified arguments.
+     *
+     * @param policyId the Policy ID of the modified resources.
+     * @param label the Label of the PolicyEntry.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code ModifyResourcesResponse} instance.
+     * @throws NullPointerException if any argument but {@code attributeValue} is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code ModifyResourcesResponse}.
+     * @since 2.3.0
+     */
+    public static ModifyResourcesResponse newInstance(final PolicyId policyId,
+            final Label label,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new ModifyResourcesResponse(policyId,
+                label,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singletonList(HTTP_STATUS),
+                        ModifyResourcesResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -156,7 +182,7 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
 
     @Override
     public ModifyResourcesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(policyId, label, dittoHeaders);
+        return newInstance(policyId, label, getHttpStatus(), dittoHeaders);
     }
 
     @Override

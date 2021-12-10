@@ -17,14 +17,14 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.policies.model.Policy;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandResponseRegistry;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.policies.model.Policy;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
 import org.junit.Test;
@@ -86,13 +86,13 @@ public final class ModifyPolicyResponseTest {
                 ModifyPolicyResponse.fromJson(KNOWN_JSON_CREATED, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTestCreated).isNotNull();
-        assertThat(underTestCreated.getPolicyCreated()).hasValue(TestConstants.Policy.POLICY);
+        assertThat(underTestCreated.getPolicy()).hasValue(TestConstants.Policy.POLICY);
 
         final ModifyPolicyResponse underTestUpdated =
                 ModifyPolicyResponse.fromJson(KNOWN_JSON_UPDATED, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTestUpdated).isNotNull();
-        assertThat(underTestUpdated.getPolicyCreated()).isEmpty();
+        assertThat(underTestUpdated.getPolicy()).isEmpty();
     }
 
     @Test
