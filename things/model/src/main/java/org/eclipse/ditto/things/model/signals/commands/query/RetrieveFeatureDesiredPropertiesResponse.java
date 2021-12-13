@@ -15,6 +15,8 @@ package org.eclipse.ditto.things.model.signals.commands.query;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -27,6 +29,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -66,10 +69,9 @@ public final class RetrieveFeatureDesiredPropertiesResponse
 
     private static final CommandResponseJsonDeserializer<RetrieveFeatureDesiredPropertiesResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new RetrieveFeatureDesiredPropertiesResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 jsonObject.getValueOrThrow(JSON_FEATURE_ID),
                                 ThingsModelFactory.newFeatureProperties(jsonObject.getValueOrThrow(
@@ -110,11 +112,7 @@ public final class RetrieveFeatureDesiredPropertiesResponse
             final FeatureProperties desiredProperties,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveFeatureDesiredPropertiesResponse(thingId,
-                featureId,
-                desiredProperties,
-                HTTP_STATUS,
-                dittoHeaders);
+        return newInstance(thingId, featureId, desiredProperties, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -140,6 +138,34 @@ public final class RetrieveFeatureDesiredPropertiesResponse
         }
 
         return of(thingId, featureId, desiredProperties, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code RetrieveFeatureDesiredPropertiesResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the feature desired properties belong to.
+     * @param featureId the identifier of the feature whose desired properties were retrieved.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code RetrieveFeatureDesiredPropertiesResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a
+     * {@code RetrieveFeatureDesiredPropertiesResponse}.
+     * @since 2.3.0
+     */
+    public static RetrieveFeatureDesiredPropertiesResponse newInstance(final ThingId thingId,
+            final CharSequence featureId,
+            final FeatureProperties desiredProperties,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new RetrieveFeatureDesiredPropertiesResponse(thingId,
+                featureId,
+                desiredProperties,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveFeatureDesiredPropertiesResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -206,12 +232,15 @@ public final class RetrieveFeatureDesiredPropertiesResponse
     @Override
     public RetrieveFeatureDesiredPropertiesResponse setEntity(final JsonValue entity) {
         checkNotNull(entity, "entity");
+        if (!entity.isObject()) {
+            throw new IllegalArgumentException(MessageFormat.format("Entity is not a JSON object but <{0}>.", entity));
+        }
         return of(thingId, featureId, entity.asObject(), getDittoHeaders());
     }
 
     @Override
     public RetrieveFeatureDesiredPropertiesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, featureId, desiredProperties, dittoHeaders);
+        return newInstance(thingId, featureId, desiredProperties, getHttpStatus(), dittoHeaders);
     }
 
     /**

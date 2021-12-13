@@ -14,6 +14,8 @@ package org.eclipse.ditto.things.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -26,6 +28,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -58,10 +61,9 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
 
     private static final CommandResponseJsonDeserializer<RetrieveFeaturesResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new RetrieveFeaturesResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 ThingsModelFactory.newFeatures(jsonObject.getValueOrThrow(JSON_FEATURES)),
                                 context.getDeserializedHttpStatus(),
@@ -79,7 +81,7 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
 
         super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.features = features;
+        this.features = checkNotNull(features, "features");
     }
 
     /**
@@ -95,7 +97,7 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
             final Features features,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveFeaturesResponse(thingId, checkNotNull(features, "features"), HTTP_STATUS, dittoHeaders);
+        return newInstance(thingId, features, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -116,6 +118,31 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
                 : ThingsModelFactory.nullFeatures();
 
         return of(thingId, features, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code RetrieveFeaturesResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the features belong to.
+     * @param features the retrieved Features.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code RetrieveFeaturesResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code RetrieveFeaturesResponse}.
+     * @since 2.3.0
+     */
+    public static RetrieveFeaturesResponse newInstance(final ThingId thingId,
+            final Features features,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new RetrieveFeaturesResponse(thingId,
+                features,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveFeaturesResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -169,12 +196,18 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
     @Override
     public RetrieveFeaturesResponse setEntity(final JsonValue entity) {
         checkNotNull(entity, "entity");
-        return of(thingId, entity.asObject(), getDittoHeaders());
+        if (!entity.isObject()) {
+            throw new IllegalArgumentException(MessageFormat.format("Entity is not a JSON object but <{0}>.", entity));
+        }
+        return newInstance(thingId,
+                ThingsModelFactory.newFeatures(entity.asObject()),
+                getHttpStatus(),
+                getDittoHeaders());
     }
 
     @Override
     public RetrieveFeaturesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, features, dittoHeaders);
+        return newInstance(thingId, features, getHttpStatus(), dittoHeaders);
     }
 
     @Override

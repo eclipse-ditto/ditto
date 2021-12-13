@@ -14,6 +14,8 @@ package org.eclipse.ditto.things.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -26,6 +28,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -61,10 +64,9 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
 
     private static final CommandResponseJsonDeserializer<RetrieveFeatureResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new RetrieveFeatureResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 ThingsModelFactory.newFeatureBuilder(jsonObject.getValueOrThrow(JSON_FEATURE))
                                         .useId(jsonObject.getValueOrThrow(JSON_FEATURE_ID))
@@ -84,7 +86,7 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
 
         super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.feature = feature;
+        this.feature = checkNotNull(feature, "feature");
     }
 
     /**
@@ -103,12 +105,11 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
             final DittoHeaders dittoHeaders) {
 
         checkNotNull(featureId, "featureId");
-
         final Feature feature = null != jsonObject
                 ? ThingsModelFactory.newFeatureBuilder(jsonObject).useId(featureId).build()
                 : ThingsModelFactory.nullFeature(featureId);
 
-        return new RetrieveFeatureResponse(thingId, feature, HTTP_STATUS, dittoHeaders);
+        return of(thingId, feature, dittoHeaders);
     }
 
     /**
@@ -124,7 +125,32 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
             final Feature feature,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveFeatureResponse(thingId, checkNotNull(feature, "feature"), HTTP_STATUS, dittoHeaders);
+        return newInstance(thingId, feature, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code RetrieveFeatureResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the feature belong to.
+     * @param feature the retrieved Feature.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code RetrieveFeatureResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code RetrieveFeatureResponse}.
+     * @since 2.3.0
+     */
+    public static RetrieveFeatureResponse newInstance(final ThingId thingId,
+            final Feature feature,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new RetrieveFeatureResponse(thingId,
+                feature,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveFeatureResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -187,12 +213,15 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
     @Override
     public RetrieveFeatureResponse setEntity(final JsonValue entity) {
         checkNotNull(entity, "entity");
+        if (!entity.isObject()) {
+            throw new IllegalArgumentException(MessageFormat.format("Entity is not a JSON object but <{0}>.", entity));
+        }
         return of(thingId, getFeatureId(), entity.asObject(), getDittoHeaders());
     }
 
     @Override
     public RetrieveFeatureResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, feature, dittoHeaders);
+        return newInstance(thingId, feature, getHttpStatus(), dittoHeaders);
     }
 
     @Override

@@ -14,6 +14,8 @@ package org.eclipse.ditto.things.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -26,6 +28,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -58,10 +61,9 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
 
     private static final CommandResponseJsonDeserializer<RetrieveAttributesResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new RetrieveAttributesResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 ThingsModelFactory.newAttributes(jsonObject.getValueOrThrow(JSON_ATTRIBUTES)),
                                 context.getDeserializedHttpStatus(),
@@ -95,7 +97,7 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
             final Attributes attributes,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveAttributesResponse(thingId, attributes, HTTP_STATUS, dittoHeaders);
+        return newInstance(thingId, attributes, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -115,7 +117,32 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
                 ? ThingsModelFactory.newAttributes(jsonObject)
                 : ThingsModelFactory.nullAttributes();
 
-        return of(thingId, attributes, dittoHeaders);
+        return newInstance(thingId, attributes, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code RetrieveAttributesResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the attributes belongs to.
+     * @param attributes the retrieved Attributes.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code RetrieveAttributesResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code RetrieveAttributesResponse}.
+     * @since 2.3.0
+     */
+    public static RetrieveAttributesResponse newInstance(final ThingId thingId,
+            final Attributes attributes,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new RetrieveAttributesResponse(thingId,
+                attributes,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveAttributesResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -169,12 +196,15 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
     @Override
     public RetrieveAttributesResponse setEntity(final JsonValue entity) {
         checkNotNull(entity, "entity");
+        if (!entity.isObject()) {
+            throw new IllegalArgumentException(MessageFormat.format("Entity is not a JSON object but <{0}>.", entity));
+        }
         return of(thingId, entity.asObject(), getDittoHeaders());
     }
 
     @Override
     public RetrieveAttributesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, attributes, dittoHeaders);
+        return newInstance(thingId, attributes, getHttpStatus(), dittoHeaders);
     }
 
     @Override

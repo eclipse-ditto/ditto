@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -26,6 +27,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -63,10 +65,9 @@ public final class RetrieveFeaturePropertyResponse extends AbstractCommandRespon
 
     private static final CommandResponseJsonDeserializer<RetrieveFeaturePropertyResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new RetrieveFeaturePropertyResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 jsonObject.getValueOrThrow(JSON_FEATURE_ID),
                                 JsonPointer.of(jsonObject.getValueOrThrow(JSON_PROPERTY)),
@@ -119,11 +120,39 @@ public final class RetrieveFeaturePropertyResponse extends AbstractCommandRespon
             final JsonValue featurePropertyValue,
             final DittoHeaders dittoHeaders) {
 
+        return newInstance(thingId, featureId, featurePropertyPointer, featurePropertyValue, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code RetrieveFeaturePropertyResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the feature property belong to.
+     * @param featureId the identifier of the feature whose property was retrieved.
+     * @param propertyPointer the retrieved feature property JSON pointer.
+     * @param propertyValue the retrieved feature property value.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code RetrieveFeaturePropertyResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a
+     * {@code RetrieveFeaturePropertyResponse}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if {@code propertyPointer} is invalid.
+     * @since 2.3.0
+     */
+    public static RetrieveFeaturePropertyResponse newInstance(final ThingId thingId,
+            final String featureId,
+            final JsonPointer propertyPointer,
+            final JsonValue propertyValue,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
         return new RetrieveFeaturePropertyResponse(thingId,
                 featureId,
-                featurePropertyPointer,
-                featurePropertyValue,
-                HTTP_STATUS,
+                propertyPointer,
+                propertyValue,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveFeaturePropertyResponse.class),
                 dittoHeaders);
     }
 
@@ -201,13 +230,17 @@ public final class RetrieveFeaturePropertyResponse extends AbstractCommandRespon
 
     @Override
     public RetrieveFeaturePropertyResponse setEntity(final JsonValue entity) {
-        checkNotNull(entity, "entity");
-        return of(thingId, featureId, propertyPointer, entity, getDittoHeaders());
+        return newInstance(thingId,
+                featureId,
+                propertyPointer,
+                checkNotNull(entity, "entity"),
+                getHttpStatus(),
+                getDittoHeaders());
     }
 
     @Override
     public RetrieveFeaturePropertyResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, featureId, propertyPointer, propertyValue, dittoHeaders);
+        return newInstance(thingId, featureId, propertyPointer, propertyValue, getHttpStatus(), dittoHeaders);
     }
 
     @Override

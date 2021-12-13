@@ -14,6 +14,8 @@ package org.eclipse.ditto.things.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -26,6 +28,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -57,10 +60,9 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
 
     private static final CommandResponseJsonDeserializer<RetrievePolicyIdResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new RetrievePolicyIdResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 PolicyId.of(jsonObject.getValueOrThrow(JSON_POLICY_ID)),
                                 context.getDeserializedHttpStatus(),
@@ -94,7 +96,32 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
             final PolicyId policyId,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrievePolicyIdResponse(thingId, policyId, HttpStatus.OK, dittoHeaders);
+        return newInstance(thingId, policyId, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code RetrievePolicyIdResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the policy ID belongs to.
+     * @param policyId the retrieved Policy ID.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code RetrievePolicyIdResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code RetrievePolicyIdResponse}.
+     * @since 2.3.0
+     */
+    public static RetrievePolicyIdResponse newInstance(final ThingId thingId,
+            final PolicyId policyId,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new RetrievePolicyIdResponse(thingId,
+                policyId,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrievePolicyIdResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -158,12 +185,15 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     @Override
     public RetrievePolicyIdResponse setEntity(final JsonValue entity) {
         checkNotNull(entity, "entity");
-        return of(thingId, PolicyId.of(entity.asString()), getDittoHeaders());
+        if (!entity.isString()) {
+            throw new IllegalArgumentException(MessageFormat.format("Entity is not a JSON string but <{0}>.", entity));
+        }
+        return newInstance(thingId, PolicyId.of(entity.asString()), getHttpStatus(), getDittoHeaders());
     }
 
     @Override
     public RetrievePolicyIdResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, policyId, dittoHeaders);
+        return newInstance(thingId, policyId, getHttpStatus(), dittoHeaders);
     }
 
     @Override

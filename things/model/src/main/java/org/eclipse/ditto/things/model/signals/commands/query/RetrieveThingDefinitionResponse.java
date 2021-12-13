@@ -14,6 +14,8 @@ package org.eclipse.ditto.things.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -26,6 +28,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -59,7 +62,6 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
 
     private static final CommandResponseJsonDeserializer<RetrieveThingDefinitionResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
 
@@ -72,7 +74,7 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
                             definition = ThingsModelFactory.newDefinition(definitionJsonValue.asString());
                         }
 
-                        return new RetrieveThingDefinitionResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 definition,
                                 context.getDeserializedHttpStatus(),
@@ -106,7 +108,33 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
             final ThingDefinition definition,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveThingDefinitionResponse(thingId, definition, HTTP_STATUS, dittoHeaders);
+        return newInstance(thingId, definition, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code RetrieveThingDefinitionResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the definition belongs to.
+     * @param definition the retrieved definition.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code RetrieveThingDefinitionResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a
+     * {@code RetrieveThingDefinitionResponse}.
+     * @since 2.3.0
+     */
+    public static RetrieveThingDefinitionResponse newInstance(final ThingId thingId,
+            final ThingDefinition definition,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new RetrieveThingDefinitionResponse(thingId,
+                definition,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveThingDefinitionResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -157,7 +185,6 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
         return thingId;
     }
 
-
     /**
      * Returns the retrieved Definition.
      *
@@ -174,15 +201,23 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
 
     @Override
     public RetrieveThingDefinitionResponse setEntity(final JsonValue entity) {
-        if (entity.asString().isEmpty()) {
-            return of(thingId, ThingsModelFactory.nullDefinition(), getDittoHeaders());
+        checkNotNull(entity, "entity");
+        if (!entity.isString()) {
+            throw new IllegalArgumentException(MessageFormat.format("Entity is not a JSON string but <{0}>.", entity));
         }
-        return of(thingId, ThingsModelFactory.newDefinition(entity.asString()), getDittoHeaders());
+        final ThingDefinition thingDefinition;
+        final String thingDefinitionString = entity.asString();
+        if (thingDefinitionString.trim().isEmpty()) {
+            thingDefinition = ThingsModelFactory.nullDefinition();
+        } else {
+            thingDefinition = ThingsModelFactory.newDefinition(thingDefinitionString);
+        }
+        return newInstance(thingId, thingDefinition, getHttpStatus(), getDittoHeaders());
     }
 
     @Override
     public RetrieveThingDefinitionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, definition, dittoHeaders);
+        return newInstance(thingId, definition, getHttpStatus(), dittoHeaders);
     }
 
     @Override

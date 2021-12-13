@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -27,6 +28,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -64,7 +66,6 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
 
     private static final CommandResponseJsonDeserializer<RetrieveThingResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
 
@@ -79,7 +80,7 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
                                     return thingJsonObject.toString();
                                 });
 
-                        return new RetrieveThingResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 thingJsonObject,
                                 thingPlainJsonString,
@@ -118,7 +119,8 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
             final JsonObject thing,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveThingResponse(thingId, thing, thing.toString(), HTTP_STATUS, dittoHeaders);
+        checkNotNull(thingId, "thingId");
+        return newInstance(thingId, thing, thing.toString(), HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -133,7 +135,7 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
     public static RetrieveThingResponse of(final ThingId thingId, final String thingPlainJson,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveThingResponse(thingId, null, thingPlainJson, HTTP_STATUS, dittoHeaders);
+        return newInstance(thingId, null, thingPlainJson, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -153,8 +155,8 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
             @Nullable final Predicate<JsonField> predicate,
             final DittoHeaders dittoHeaders) {
 
-        final JsonObject thingJson = toThingJson(checkNotNull(thing, "Thing"), fieldSelector, predicate, dittoHeaders);
-        return new RetrieveThingResponse(thingId, thingJson, thingJson.toString(), HTTP_STATUS, dittoHeaders);
+        final JsonObject thingJson = toThingJson(checkNotNull(thing, "thing"), fieldSelector, predicate, dittoHeaders);
+        return newInstance(thingId, thingJson, thingJson.toString(), HTTP_STATUS, dittoHeaders);
     }
 
     private static JsonObject toThingJson(final Thing thing,
@@ -172,6 +174,34 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
                     ? thing.toJson(schemaVersion, predicate)
                     : thing.toJson(schemaVersion);
         }
+    }
+
+    /**
+     * Returns a new instance of {@code RetrieveThingResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing.
+     * @param thing the retrieved Thing or {@code null} if only {@code thingPlainJson} is available.
+     * @param thingPlainJson the retrieved Thing as plain JSON string.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code RetrieveThingResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code RetrieveThingResponse}.
+     * @since 2.3.0
+     */
+    public static RetrieveThingResponse newInstance(final ThingId thingId,
+            @Nullable final JsonObject thing,
+            final String thingPlainJson,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new RetrieveThingResponse(thingId,
+                thing,
+                thingPlainJson,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveThingResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -242,7 +272,7 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
 
     @Override
     public RetrieveThingResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, thingPlainJson, dittoHeaders);
+        return newInstance(thingId, thing, thingPlainJson, getHttpStatus(), dittoHeaders);
     }
 
     @Override

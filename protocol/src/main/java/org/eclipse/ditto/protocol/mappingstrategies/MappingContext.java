@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.Label;
@@ -134,13 +135,33 @@ final class MappingContext {
     }
 
     Thing getThingOrThrow() {
-        return getThing().orElseThrow(() ->
-                new IllegalAdaptableException(
-                        MessageFormat.format("Payload does not contain a {0} as JSON object" +
-                                        " because it has no value at all.",
-                                Thing.class.getSimpleName()),
+        return getThing().orElseThrow(() -> new IllegalAdaptableException(
+                "Payload does not contain a Thing as JSON object because it has no value at all.",
+                "Please ensure that the payload contains a valid Thing JSON object as value.",
+                adaptable.getDittoHeaders()
+        ));
+    }
+
+    JsonObject getPayloadValueAsJsonObjectOrThrow() {
+        final Optional<JsonValue> payloadValue = getPayloadValue();
+        if (payloadValue.isPresent()) {
+            final JsonValue jsonValue = payloadValue.get();
+            if (jsonValue.isObject()) {
+                return jsonValue.asObject();
+            } else {
+                throw new IllegalAdaptableException(
+                        MessageFormat.format("Payload value is not a JSON object but <{0}>.", jsonValue),
+                        "Please ensure that the payload value is a valid JSON object.",
                         adaptable.getDittoHeaders()
-                ));
+                );
+            }
+        } else {
+            throw new IllegalAdaptableException(
+                    "Payload does not contain a JSON object value because it has no value at all.",
+                    "Please ensure that the payload value contains a valid JSON object as value.",
+                    adaptable.getDittoHeaders()
+            );
+        }
     }
 
     JsonPointer getAttributePointerOrThrow() {
@@ -197,6 +218,14 @@ final class MappingContext {
         return result;
     }
 
+    Attributes getAttributesOrThrow() {
+        return getAttributes().orElseThrow(() -> new IllegalAdaptableException(
+                "Payload does not contain an Attributes as JSON object because it has no value at all.",
+                "Please ensure that the payload contains a valid Attributes JSON object as value.",
+                adaptable.getDittoHeaders()
+        ));
+    }
+
     Optional<Features> getFeatures() {
         final Optional<Features> result;
         final Optional<JsonValue> payloadValueOptional = getPayloadValue();
@@ -224,6 +253,14 @@ final class MappingContext {
                         targetType),
                 adaptable.getDittoHeaders()
         );
+    }
+
+    Features getFeaturesOrThrow() {
+        return getFeatures().orElseThrow(() -> new IllegalAdaptableException(
+                "Payload does not contain a Features as JSON string object it has no value at all.",
+                "Please ensure that the payload contains a valid Features JSON object as value.",
+                adaptable.getDittoHeaders()
+        ));
     }
 
     String getFeatureIdOrThrow() {
@@ -263,6 +300,14 @@ final class MappingContext {
         return result;
     }
 
+    Feature getFeatureOrThrow() {
+        return getFeature().orElseThrow(() -> new IllegalAdaptableException(
+                "Payload does not contain a Feature as JSON object it has no value at all.",
+                "Please ensure that the payload contains a valid Feature JSON object as value.",
+                adaptable.getDittoHeaders()
+        ));
+    }
+
     Optional<ThingDefinition> getThingDefinition() {
         final Optional<ThingDefinition> result;
         final Optional<JsonValue> payloadValueOptional = getPayloadValue();
@@ -282,6 +327,14 @@ final class MappingContext {
             result = Optional.empty();
         }
         return result;
+    }
+
+    ThingDefinition getThingDefinitionOrThrow() {
+        return getThingDefinition().orElseThrow(() -> new IllegalAdaptableException(
+                "Payload does not contain a ThingDefinition as JSON string because it has no value at all.",
+                "Please ensure that the payload contains a valid ThingDefinition JSON string as value.",
+                adaptable.getDittoHeaders()
+        ));
     }
 
     Optional<FeatureDefinition> getFeatureDefinition() {
@@ -305,6 +358,14 @@ final class MappingContext {
         return result;
     }
 
+    FeatureDefinition getFeatureDefinitionOrThrow() {
+        return getFeatureDefinition().orElseThrow(() -> new IllegalAdaptableException(
+                "Payload does not contain a FeatureDefinition as JSON array because it has no value at all.",
+                "Please ensure that the payload contains a valid FeatureDefinition JSON array as value.",
+                adaptable.getDittoHeaders()
+        ));
+    }
+
     Optional<FeatureProperties> getFeatureProperties() {
         final Optional<FeatureProperties> result;
         final Optional<JsonValue> payloadValueOptional = getPayloadValue();
@@ -319,6 +380,14 @@ final class MappingContext {
             result = Optional.empty();
         }
         return result;
+    }
+
+    FeatureProperties getFeaturePropertiesOrThrow() {
+        return getFeatureProperties().orElseThrow(() -> new IllegalAdaptableException(
+                "Payload does not contain a FeatureProperties as JSON object it has no value at all.",
+                "Please ensure that the payload contains a valid FeatureProperties JSON object as value.",
+                adaptable.getDittoHeaders()
+        ));
     }
 
     JsonPointer getFeaturePropertyPointerOrThrow() {
@@ -377,6 +446,14 @@ final class MappingContext {
         return getPayloadValue();
     }
 
+    JsonValue getFeaturePropertyValueOrThrow() {
+        return getFeaturePropertyValue().orElseThrow(() -> new IllegalAdaptableException(
+                "Payload does not contain a feature property value because it has no value at all.",
+                "Please ensure that the payload contains a JSON value as value.",
+                adaptable.getDittoHeaders()
+        ));
+    }
+
     Optional<PolicyId> getPolicyId() {
         final Optional<PolicyId> result;
         final Optional<JsonValue> payloadValueOptional = getPayloadValue();
@@ -396,6 +473,14 @@ final class MappingContext {
             result = Optional.empty();
         }
         return result;
+    }
+
+    PolicyId getPolicyIdOrThrow() {
+        return getPolicyId().orElseThrow(() -> new IllegalAdaptableException(
+                "Payload does not contain a PolicyId as JSON string because it has no value at all.",
+                "Please ensure that the payload contains a valid PolicyId JSON string value as value.",
+                adaptable.getDittoHeaders()
+        ));
     }
 
     PolicyId getPolicyIdFromTopicPath() {

@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -26,6 +27,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -60,10 +62,9 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
 
     private static final CommandResponseJsonDeserializer<RetrieveAttributeResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new RetrieveAttributeResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 JsonPointer.of(jsonObject.getValueOrThrow(JSON_ATTRIBUTE)),
                                 jsonObject.getValueOrThrow(JSON_VALUE),
@@ -85,12 +86,11 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
         super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
         this.attributePointer = checkAttributePointer(attributePointer);
-        this.attributeValue = checkNotNull(attributeValue, "Attribute Value");
+        this.attributeValue = checkNotNull(attributeValue, "attributeValue");
     }
 
     private static JsonPointer checkAttributePointer(final JsonPointer attributePointer) {
-        checkNotNull(attributePointer, "The JSON pointer which attribute to retrieve must not be null!");
-        return AttributesModelFactory.validateAttributePointer(attributePointer);
+        return AttributesModelFactory.validateAttributePointer(checkNotNull(attributePointer, "attributePointer"));
     }
 
     /**
@@ -110,7 +110,37 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
             final JsonValue attributeValue,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveAttributeResponse(thingId, attributePointer, attributeValue, HTTP_STATUS, dittoHeaders);
+        return newInstance(thingId, attributePointer, attributeValue, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code RetrieveAttributeResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the attribute belongs to.
+     * @param attributePointer the JSON pointer of the attribute to retrieve.
+     * @param attributeValue the retrieved Attribute value.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code RetrieveAttributeResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code RetrieveAttributeResponse}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @since 2.3.0
+     */
+    public static RetrieveAttributeResponse newInstance(final ThingId thingId,
+            final JsonPointer attributePointer,
+            final JsonValue attributeValue,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new RetrieveAttributeResponse(thingId,
+                attributePointer,
+                attributeValue,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveAttributeResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -167,13 +197,16 @@ public final class RetrieveAttributeResponse extends AbstractCommandResponse<Ret
 
     @Override
     public RetrieveAttributeResponse setEntity(final JsonValue entity) {
-        checkNotNull(entity, "entity");
-        return of(thingId, attributePointer, entity, getDittoHeaders());
+        return newInstance(thingId,
+                attributePointer,
+                checkNotNull(entity, "entity"),
+                getHttpStatus(),
+                getDittoHeaders());
     }
 
     @Override
     public RetrieveAttributeResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, attributePointer, attributeValue, dittoHeaders);
+        return newInstance(thingId, attributePointer, attributeValue, getHttpStatus(), dittoHeaders);
     }
 
     @Override

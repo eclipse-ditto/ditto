@@ -20,6 +20,7 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.Policy;
@@ -147,6 +148,41 @@ public final class MappingContextTest {
         assertThatExceptionOfType(IllegalAdaptableException.class)
                 .isThrownBy(underTest::getThingOrThrow)
                 .withMessage("Payload does not contain a Thing as JSON object because it has no value at all.")
+                .withNoCause();
+    }
+
+    @Test
+    public void getPayloadValueAsJsonObjectOrThrowReturnsExpectedJsonObjectIfContainedInPayload() {
+        final JsonObject jsonObject = JsonObject.newBuilder().set("foo", "bar").build();
+        final Payload payload = ProtocolFactory.newPayloadBuilder().withValue(jsonObject).build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThat(underTest.getPayloadValueAsJsonObjectOrThrow()).isEqualTo(jsonObject);
+    }
+
+    @Test
+    public void getPayloadValueAsJsonObjectOrThrowThrowsExceptionIfPayloadValueIsNoJsonObject() {
+        final JsonValue jsonValue = JsonValue.of(false);
+        final Payload payload = ProtocolFactory.newPayloadBuilder().withValue(jsonValue).build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getPayloadValueAsJsonObjectOrThrow)
+                .withMessage("Payload value is not a JSON object but <%s>.", jsonValue)
+                .withNoCause();
+    }
+
+    @Test
+    public void getPayloadValueAsJsonObjectOrThrowThrowsExceptionPayloadContainsNoValue() {
+        final Payload payload = ProtocolFactory.newPayloadBuilder().build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getPayloadValueAsJsonObjectOrThrow)
+                .withMessage("Payload does not contain a JSON object value because it has no value at all.")
                 .withNoCause();
     }
 
@@ -298,6 +334,18 @@ public final class MappingContextTest {
     }
 
     @Test
+    public void getAttributesOrThrowThrowsExceptionIfPayloadContainsNoValue() {
+        final Payload payload = ProtocolFactory.newPayloadBuilder().build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getAttributesOrThrow)
+                .withMessage("Payload does not contain an Attributes as JSON object because it has no value at all.")
+                .withNoCause();
+    }
+
+    @Test
     public void getFeaturesReturnsExpectedIfContainedInPayload() {
         final Features features = Features.newBuilder()
                 .set(Feature.newBuilder()
@@ -338,6 +386,18 @@ public final class MappingContextTest {
         final MappingContext underTest = MappingContext.of(adaptable);
 
         assertThat(underTest.getFeatures()).isEmpty();
+    }
+
+    @Test
+    public void getFeaturesOrThrowThrowsExceptionIfPayloadContainsNoValue() {
+        final Payload payload = ProtocolFactory.newPayloadBuilder().build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getFeaturesOrThrow)
+                .withMessage("Payload does not contain a Features as JSON string object it has no value at all.")
+                .withNoCause();
     }
 
     @Test
@@ -424,6 +484,18 @@ public final class MappingContextTest {
     }
 
     @Test
+    public void getFeatureOrThrowThrowsExceptionIfPayloadHasNoValue() {
+        final Payload payload = ProtocolFactory.newPayloadBuilder().build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getFeatureOrThrow)
+                .withMessage("Payload does not contain a Feature as JSON object it has no value at all.")
+                .withNoCause();
+    }
+
+    @Test
     public void getFeatureOrThrowThrowsExceptionIfPayloadContainsNoFeatureJsonObject() {
         final String featureId = "HX711";
         final JsonValue jsonValue = JsonValue.of(false);
@@ -498,6 +570,18 @@ public final class MappingContextTest {
     }
 
     @Test
+    public void getThingDefinitionOrThrowThrowsExceptionIfPayloadContainsNoValue() {
+        final Payload payload = ProtocolFactory.newPayloadBuilder().build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getThingDefinitionOrThrow)
+                .withMessage("Payload does not contain a ThingDefinition as JSON string because it has no value at all.")
+                .withNoCause();
+    }
+
+    @Test
     public void getFeatureDefinitionReturnsExpectedFeatureDefinitionIfContainedInPayload() {
         final FeatureDefinition featureDefinition =
                 ThingsModelFactory.newFeatureDefinition(JsonArray.of(JsonValue.of("example:test:definition")));
@@ -532,6 +616,18 @@ public final class MappingContextTest {
         final MappingContext underTest = MappingContext.of(adaptable);
 
         assertThat(underTest.getFeatureDefinition()).isEmpty();
+    }
+
+    @Test
+    public void getFeatureDefinitionOrThrowThrowsExceptionIfPayloadContainsNoValue() {
+        final Payload payload = ProtocolFactory.newPayloadBuilder().build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getFeatureDefinitionOrThrow)
+                .withMessage("Payload does not contain a FeatureDefinition as JSON array because it has no value at all.")
+                .withNoCause();
     }
 
     @Test
@@ -570,6 +666,18 @@ public final class MappingContextTest {
         final MappingContext underTest = MappingContext.of(adaptable);
 
         assertThat(underTest.getFeatureProperties()).isEmpty();
+    }
+
+    @Test
+    public void getFeaturePropertiesOrThrowThrowsExceptionIfPayloadContainsNoValue() {
+        final Payload payload = ProtocolFactory.newPayloadBuilder().build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getFeaturePropertiesOrThrow)
+                .withMessage("Payload does not contain a FeatureProperties as JSON object it has no value at all.")
+                .withNoCause();
     }
 
     @Test
@@ -710,6 +818,18 @@ public final class MappingContextTest {
     }
 
     @Test
+    public void getFeaturePropertyValueOrThrowThrowsExceptionIfPayloadHasNoValue() {
+        final Payload payload = ProtocolFactory.newPayloadBuilder().build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getFeaturePropertyValueOrThrow)
+                .withMessage("Payload does not contain a feature property value because it has no value at all.")
+                .withNoCause();
+    }
+
+    @Test
     public void getPolicyIdReturnsPolicyIfContainedInPayload() {
         final PolicyId policyId = PolicyId.inNamespaceWithRandomName("org.ditto");
         final Payload payload = ProtocolFactory.newPayloadBuilder()
@@ -743,6 +863,18 @@ public final class MappingContextTest {
         final MappingContext underTest = MappingContext.of(adaptable);
 
         assertThat(underTest.getPolicyId()).isEmpty();
+    }
+
+    @Test
+    public void getPolicyIdOrThrowThrowsExceptionIfPayloadContainsNoValue() {
+        final Payload payload = ProtocolFactory.newPayloadBuilder().build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThatExceptionOfType(IllegalAdaptableException.class)
+                .isThrownBy(underTest::getPolicyIdOrThrow)
+                .withMessage("Payload does not contain a PolicyId as JSON string because it has no value at all.")
+                .withNoCause();
     }
 
     @Test
