@@ -58,8 +58,7 @@ public interface CommandResponse<T extends CommandResponse<T>> extends Signal<T>
      * @since 1.2.0
      */
     default boolean isOfExpectedResponseType() {
-        return getDittoHeaders().getExpectedResponseTypes().contains(getResponseType()) ||
-                getDittoHeaders().getChannel().map("live"::equals).orElse(false);
+        return getDittoHeaders().getExpectedResponseTypes().contains(getResponseType());
     }
 
     /**
