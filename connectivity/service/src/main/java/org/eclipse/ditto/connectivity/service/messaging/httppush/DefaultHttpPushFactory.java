@@ -18,11 +18,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
@@ -103,7 +103,16 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
             final SSLContext sslContext = connection.getCredentials()
                     .map(credentials -> credentials.accept(sslContextCreator))
                     .orElse(sslContextCreator.withoutClientCertificate());
-            httpsConnectionContext = ConnectionContext.httpsClient(sslContext);
+            if (connection.isValidateCertificates()) {
+                httpsConnectionContext = ConnectionContext.httpsClient(sslContext);
+            } else {
+                httpsConnectionContext = ConnectionContext.httpsClient((host, port) -> {
+                    // This creates an SSL Engine without hostname verification.
+                    final SSLEngine engine = sslContext.createSSLEngine(host, port);
+                    engine.setUseClientMode(true);
+                    return engine;
+                });
+            }
         } else {
             httpsConnectionContext = null;
         }

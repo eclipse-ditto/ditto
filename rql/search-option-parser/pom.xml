@@ -22,9 +22,9 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>ditto-rql-parser</artifactId>
+    <artifactId>ditto-rql-search-option-parser</artifactId>
     <packaging>bundle</packaging>
-    <name>Eclipse Ditto :: RQL :: parser</name>
+    <name>Eclipse Ditto :: RQL :: search option parser</name>
 
     <properties>
         <javac.source>1.8</javac.source>
@@ -35,11 +35,15 @@
         <!-- ### Compile ### -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-base-model</artifactId>
+            <artifactId>ditto-thingsearch-model</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-rql-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-rql-parser</artifactId>
         </dependency>
 
         <dependency>
@@ -145,7 +149,7 @@
                             org.eclipse.ditto.*
                         </Import-Package>
                         <Export-Package>
-                            !org.eclipse.ditto.rql.parser.internal,
+                            !org.eclipse.ditto.rql.parser.thingsearch.internal,
                             org.eclipse.ditto.rql.parser.*
                         </Export-Package>
                     </instructions>
@@ -156,7 +160,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
-                    <excludePackageNames>org.eclipse.ditto.rql.parser</excludePackageNames>
+                    <excludePackageNames>org.eclipse.ditto.rql.parser.thingsearch</excludePackageNames>
                 </configuration>
                 <executions>
                     <execution>
@@ -170,12 +174,11 @@
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <configuration>
+                    <skip>true</skip> <!-- TODO TJ unskip once 2.3.0 was released -->
                     <parameter>
                         <excludes>
                             <!-- Always exclude the 'internal' package -->
-                            <exclude>org.eclipse.ditto.rql.parser.internal</exclude>
-                            <!-- thingsearch package was moved to its own module "ditto-rql-search-option-parser" -->
-                            <exclude>org.eclipse.ditto.rql.parser.thingsearch</exclude>
+                            <exclude>org.eclipse.ditto.rql.parser.thingsearch.internal</exclude>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
                         </excludes>

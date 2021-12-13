@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 # Copyright (c) 2020 Contributors to the Eclipse Foundation
 #
 # See the NOTICE file(s) distributed with this work for additional
@@ -62,6 +64,10 @@ build_docker_image() {
       --build-arg SERVICE_VERSION=$SERVICE_VERSION \
       -t "$image_tag":$IMAGE_VERSION \
       "$SCRIPTDIR"
+
+  if [[ "$PUSH_CONTAINERS" == "true" ]]; then
+    $DOCKER_BIN push "$image_tag":$IMAGE_VERSION
+  fi
 }
 
 build_all_docker_images() {
@@ -78,11 +84,13 @@ set_proxies() {
 }
 
 evaluate_script_arguments() {
-  while getopts "p:h" opt; do
+  while getopts "p:hP" opt; do
     case ${opt} in
     p)
       set_proxies "$OPTARG"
-      return 0
+      ;;
+    P)
+      PUSH_CONTAINERS="true"
       ;;
     h | *)
       print_usage "$0"
@@ -90,6 +98,7 @@ evaluate_script_arguments() {
       ;;
     esac
   done
+  return 0
 }
 
 # Here the programme begins

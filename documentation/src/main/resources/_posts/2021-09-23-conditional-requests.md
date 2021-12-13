@@ -178,37 +178,37 @@ Applying the following Ditto command to the existing thing will lead to the same
 The conditional requests are also supported via the [Ditto Java Client](client-sdk-java.html) 
 with the upcoming (**Ditto Java Client version 2.1.0**).
 
-Example for a conditional update of a thing with the ditto-client:
+Example for a conditional update of a thing with the Ditto Java client:
 
 ```java
-final String THING_ID = "org.eclipse.ditto:coffeebrewer";
-final String FEATURE_ID = "water-tank";
-final Feature FEATURE = ThingsModelFactory.newFeatureBuilder()
+String thingId = "org.eclipse.ditto:coffeebrewer";
+String featureId = "water-tank";
+Feature feature = ThingsModelFactory.newFeatureBuilder()
         .properties(ThingsModelFactory.newFeaturePropertiesBuilder()
             .set("status", JsonFactory.newObjectBuilder()
                 .set("temperature", 45.2)
                 .set("lastModified", Instant.now())
                 .build())
             .build())
-        .withId(FEATURE_ID)
+        .withId(featureId)
         .build();
 
-final Thing THING = ThingsModelFactory.newThingBuilder()
-        .setId(THING_ID)
-        .setFeature(FEATURE)
+Thing thing = ThingsModelFactory.newThingBuilder()
+        .setId(thingId)
+        .setFeature(feature)
         .build();
 
 // initialize the ditto-client
-final DittoClient dittoClient = ... ;
+DittoClient dittoClient = ... ;
 
-dittoClient.twin().update(THING, Options.condition("gt(features/water-tank/properties/status/lastModified,"22021-09-23T07:00:00Z")")).
-        .whenComplete(((adaptable, throwable) -> {
+dittoClient.twin().update(thing, Options.condition("gt(features/water-tank/properties/status/lastModified,'2021-09-23T07:00:00Z')"))
+        .whenComplete((adaptable, throwable) -> {
             if (throwable != null) {
                 LOGGER.error("Received error while sending conditional update: '{}' ", throwable.toString());
             } else {
                 LOGGER.info("Received response for conditional update: '{}'", adaptable);
             }
-        }));
+        });
 ```
 
 After running this code snippet, the existing thing should look like the above result for the HTTP example.

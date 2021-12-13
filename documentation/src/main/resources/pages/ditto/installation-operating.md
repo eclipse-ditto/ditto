@@ -20,14 +20,14 @@ This section will cover some of Ditto's config parameters.
 If you choose not to use the MongoDB container and instead use a dedicated MongoDB you can use
 the following environment variables in order to configure the connection to the MongoDB.
 
-* MONGO_DB_URI: Connection string to MongoDB
-* MONGO_DB_SSL_ENABLED: Enabled SSL connection to MongoDB
-* MONGO_DB_CONNECTION_MIN_POOL_SIZE: Configure MongoDB minimum connection pool size
-* MONGO_DB_CONNECTION_POOL_SIZE: Configure MongoDB connection pool size
-* MONGO_DB_READ_PREFERENCE: Configure MongoDB read preference
-* MONGO_DB_WRITE_CONCERN: Configure MongoDB write concern
-* AKKA_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN: Configure Akka Persistence MongoDB journal write concern
-* AKKA_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN: Configure Akka Persistence MongoDB snapshot write concern
+* `MONGO_DB_URI`: Connection string to MongoDB
+* `MONGO_DB_SSL_ENABLED`: Enabled SSL connection to MongoDB
+* `MONGO_DB_CONNECTION_MIN_POOL_SIZE`: Configure MongoDB minimum connection pool size
+* `MONGO_DB_CONNECTION_POOL_SIZE`: Configure MongoDB connection pool size
+* `MONGO_DB_READ_PREFERENCE`: Configure MongoDB read preference
+* `MONGO_DB_WRITE_CONCERN`: Configure MongoDB write concern
+* `AKKA_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN`: Configure Akka Persistence MongoDB journal write concern
+* `AKKA_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN`: Configure Akka Persistence MongoDB snapshot write concern
 
 ### Ditto configuration
 
@@ -484,7 +484,7 @@ Response example:
 ### Piggyback commands
 
 You can use a DevOps command to send a command to another actor in the cluster.
-Those special commands are called piggyback commands.
+Those special commands are called piggyback commands.  
 A piggyback command must conform to the following schema:
 
 {% include docson.html schema="jsonschema/piggyback-command.json" %}
@@ -501,6 +501,102 @@ Example:
         "type": "connectivity.commands:createConnection",
         ...
     }
+}
+```
+
+#### Managing policies
+
+Piggyback commands can be used for managing policies, e.g. in order to create, retrieve, modify, delete policies with 
+"devops" (super) user.
+
+All 
+[PolicyCommand](https://github.com/eclipse/ditto/blob/master/policies/model/src/main/java/org/eclipse/ditto/policies/model/signals/commands/PolicyCommand.java)s
+may be sent via piggyback - however be aware that the internal JSON representation of the policy commands must be used 
+and not the [Ditto Protocol](protocol-specification-policies.html).
+
+The internal JSON representation can be found in the code, e.g. defined in the static `fromJson` methods of the commands.
+
+Example piggyback for 
+[CreatePolicy](https://github.com/eclipse/ditto/blob/master/policies/model/src/main/java/org/eclipse/ditto/policies/model/signals/commands/modify/CreatePolicy.java):
+```json
+{
+  "targetActorSelection": "/system/sharding/policy",
+  "headers": {
+    "aggregate": false,
+    "is-group-topic": false
+  },
+  "piggybackCommand": {
+    "type": "policies.commands:createPolicy",
+    "policy": {
+      "policyId": "<insert-the-policy-id-to-retrieve-here>",
+      "entries": {
+        ...
+      }
+    }
+  }
+}
+```
+
+Example piggyback for 
+[RetrievePolicy](https://github.com/eclipse/ditto/blob/master/policies/model/src/main/java/org/eclipse/ditto/policies/model/signals/commands/query/RetrievePolicy.java):
+```json
+{
+  "targetActorSelection": "/system/sharding/policy",
+  "headers": {
+    "aggregate": false,
+    "is-group-topic": false
+  },
+  "piggybackCommand": {
+    "type": "policies.commands:retrievePolicy",
+    "policyId": "<insert-the-policy-id-to-retrieve-here>"
+  }
+}
+```
+
+#### Managing things
+
+Piggyback commands can be used for managing things, e.g. in order to create, retrieve, modify, delete things with
+"devops" (super) user.
+
+All
+[ThingCommand](https://github.com/eclipse/ditto/blob/master/things/model/src/main/java/org/eclipse/ditto/things/model/signals/commands/ThingCommand.java)s
+may be sent via piggyback - however be aware that the internal JSON representation of the thing commands must be used
+and not the [Ditto Protocol](protocol-specification-things.html).
+
+The internal JSON representation can be found in the code, e.g. defined in the static `fromJson` methods of the commands.
+
+Example piggyback for
+[CreateThing](https://github.com/eclipse/ditto/blob/master/things/model/src/main/java/org/eclipse/ditto/things/model/signals/commands/modify/CreateThing.java):
+```json
+{
+  "targetActorSelection": "/system/sharding/thing",
+  "headers": {
+    "aggregate": false,
+    "is-group-topic": false
+  },
+  "piggybackCommand": {
+    "type": "things.commands:createThing",
+    "thing": {
+      "thingId": "<insert-the-thing-id-to-use-here>",
+      "policyId": "<insert-the-policy-id-to-use-here>"
+    }
+  }
+}
+```
+
+Example piggyback for
+[RetrieveThing](https://github.com/eclipse/ditto/blob/master/things/model/src/main/java/org/eclipse/ditto/things/model/signals/commands/query/RetrieveThing.java):
+```json
+{
+  "targetActorSelection": "/system/sharding/thing",
+  "headers": {
+    "aggregate": false,
+    "is-group-topic": false
+  },
+  "piggybackCommand": {
+    "type": "things.commands:retrieveThing",
+    "thingId": "<insert-the-thing-id-to-retrieve-here>"
+  }
 }
 ```
 
@@ -688,7 +784,7 @@ Response example:
 
 Send a cleanup command by piggyback to the entity's service and shard region to trigger removal of stale events and
 snapshots manually. Here is an example for things. Change the service name and shard region name accordingly for
-policies and connections. Typically in a docker based environment, use `INSTANCE_INDEX=1`.
+policies and connections. Typically, in a docker based environment, use `INSTANCE_INDEX=1`.
 
 
 `POST /devops/piggygack/things/<INSTANCE_INDEX>?timeout=10s`
