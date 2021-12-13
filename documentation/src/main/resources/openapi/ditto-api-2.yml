@@ -249,6 +249,25 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParam'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
+        - name: condition
+          in: query
+          description: |-
+            Defines that the request should only be applied to a thing if the given condition is met. The condition can be specified using RQL syntax, e.g. if the temperature is not 23.9 update it to 23.9.
+
+             ```PUT /api/2/things/org.eclipse.ditto:my-fancy-car-1/features/temperature/properties/value?condition=ne(features/temperature/properties/value,23.9)```
+
+             `body: 23.9`
+
+            Further condition examples:
+            * ```eq(features/temperature/properties/unit,"Celsius")```
+            * ```ge(features/temperature/properties/lastModified,"2021-08-22T19:45:00")```
+            * ```gt(_modified,"2021-08-05T12:17")```
+            * ```exists(features/temperature/properties/value)```
+            * ```and(gt(features/temperature/properties/value,18.5),lt(features/temperature/properties/value,25.2))```
+            * ```or(gt(features/temperature/properties/value,18.5),not(exists(features/temperature/properties/value))```
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: The request successfully returned the specific thing.
@@ -357,58 +376,6 @@ paths:
 
         The ID of a thing cannot be changed after creation. Any `thingId`
         specified in the request body is therefore ignored.
-
-        ### Partially update an existing thing
-
-        When updating an existing thing, which already contains `attributes`, `definition` `policyId` or `features`,
-        the existing fields must not explicitly be provided again.
-        For this "PUT thing" request - and only for this top-level update on the thing -
-        the top-level field to update is **merged** with the existing top-level fields of the thing.
-
-        ### Example for a partial update
-
-        Given, a thing already exists with this content:
-
-        ```
-        {
-          "thingId": "namespace:thing-name",
-          "policyId": "namespace:policy-name",
-          "definition": "namespace:model:version",
-          "attributes": {
-            "foo": 1
-          },
-          "features": {...}
-        }
-        ```
-
-        The thing's `attributes` may be modified without having to pass the `policyId` or
-        the `features` in again.
-        For updating the `attributes`, following request body would be sufficient :
-
-        ```
-        {
-          "attributes": {
-            "foo": 2,
-            "bar": false
-          }
-        }
-        ```
-
-        The `policyId` and `features` of the thing will not be overwritten.
-        The thing will be merged into:
-
-        ```
-        {
-          "thingId": "namespace:thing-name",
-          "policyId": "namespace:policy-name",
-          "definition": "namespace:model:version",
-          "attributes": {
-            "foo": 2,
-            "bar": false
-          },
-          "features": {...}
-        }
-        ```
       tags:
         - Things
       parameters:
@@ -419,6 +386,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '201':
           description: The thing was successfully created.
@@ -654,6 +622,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The thing was successfully patched.
@@ -754,6 +723,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The thing was successfully deleted.
@@ -801,6 +771,7 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '200':
           description: The request successfully returned the definition of the specific thing.
@@ -864,6 +835,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '201':
           description: The definition was successfully created.
@@ -950,6 +922,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The definition was successfully patched.
@@ -1027,6 +1000,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The definition was successfully deleted.
@@ -1074,6 +1048,7 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '200':
           description: The request successfully returned the policy ID.
@@ -1129,6 +1104,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The policy ID was successfully updated.
@@ -1197,6 +1173,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: 'The policy ID was successfully patched. Note: You will need to create the policy content separately.'
@@ -1258,6 +1235,7 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '200':
           description: The attributes of the specific thing were successfully retrieved.
@@ -1312,6 +1290,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '201':
           description: The attributes were successfully created.
@@ -1397,6 +1376,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The attributes were successfully patched.
@@ -1475,6 +1455,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The attributes were successfully deleted.
@@ -1531,6 +1512,7 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '200':
           description: The attribute was successfully retrieved.
@@ -1591,6 +1573,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '201':
           description: The attribute was successfully created.
@@ -1677,6 +1660,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The attribute was successfully patched.
@@ -1744,6 +1728,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The attribute was successfully deleted.
@@ -1794,6 +1779,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '200':
           description: |-
@@ -1898,6 +1884,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '201':
           description: The features were successfully created.
@@ -2044,6 +2031,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The features were successfully patched.
@@ -2127,6 +2115,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The features were successfully deleted.
@@ -2180,6 +2169,7 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '200':
           description: The feature was successfully retrieved.
@@ -2255,6 +2245,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '201':
           description: The feature was successfully created.
@@ -2374,6 +2365,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The feature was successfully patched.
@@ -2453,6 +2445,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The feature was successfully deleted.
@@ -2501,6 +2494,7 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '200':
           description: The definition was successfully retrieved.
@@ -2559,6 +2553,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '201':
           description: The definition was successfully created.
@@ -2656,6 +2651,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The definition was successfully patched.
@@ -2729,6 +2725,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The definition was successfully deleted.
@@ -2780,6 +2777,7 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '200':
           description: The properties were successfully retrieved.
@@ -2837,6 +2835,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '201':
           description: The properties were successfully created.
@@ -2940,6 +2939,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The properties were successfully patched.
@@ -3021,6 +3021,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The properties were successfully deleted.
@@ -3079,6 +3080,7 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '200':
           description: The property was successfully retrieved.
@@ -3138,6 +3140,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '201':
           description: The property was successfully created.
@@ -3222,6 +3225,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The property was successfully patched.
@@ -3291,6 +3295,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The property was successfully deleted.
@@ -3342,6 +3347,7 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '200':
           description: The desired properties were successfully retrieved.
@@ -3405,6 +3411,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '201':
           description: The desired properties were successfully created.
@@ -3508,6 +3515,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The desired properties were successfully patched.
@@ -3589,6 +3597,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The desired properties were successfully deleted.
@@ -3648,6 +3657,7 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '200':
           description: The desired property was successfully retrieved.
@@ -3708,6 +3718,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '201':
           description: The desired property was successfully created.
@@ -3791,6 +3802,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The desired property was successfully patched.
@@ -3863,6 +3875,7 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
       responses:
         '204':
           description: The desired property was successfully deleted.
@@ -3996,8 +4009,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
-        '503':
-          $ref: '#/components/responses/MessageTimeout'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/inbox/messages/{messageSubject}':
@@ -4090,8 +4101,6 @@ paths:
           $ref: '#/components/responses/MessageTooLarge'
         '424':
           $ref: '#/paths/~1things/post/responses/424'
-        '503':
-          $ref: '#/components/responses/MessageTimeout'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/outbox/messages/{messageSubject}':
@@ -4171,8 +4180,6 @@ paths:
           $ref: '#/components/responses/MessageTooLarge'
         '424':
           $ref: '#/paths/~1things/post/responses/424'
-        '503':
-          $ref: '#/components/responses/MessageTimeout'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
@@ -4256,8 +4263,6 @@ paths:
           $ref: '#/components/responses/MessageTooLarge'
         '424':
           $ref: '#/paths/~1things/post/responses/424'
-        '503':
-          $ref: '#/components/responses/MessageTimeout'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
@@ -4339,8 +4344,6 @@ paths:
           $ref: '#/components/responses/MessageTooLarge'
         '424':
           $ref: '#/paths/~1things/post/responses/424'
-        '503':
-          $ref: '#/components/responses/MessageTimeout'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/policies/{policyId}':
@@ -6374,12 +6377,6 @@ components:
   responses:
     EntityTooLarge:
       description: The created or modified entity is larger than the accepted limit of 100 kB.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/AdvancedError'
-    MessageTimeout:
-      description: The request could not be completed as there is no consumer for this message connected.
       content:
         application/json:
           schema:

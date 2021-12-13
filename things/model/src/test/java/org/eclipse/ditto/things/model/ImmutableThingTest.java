@@ -35,14 +35,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.junit.Test;
@@ -1140,7 +1140,7 @@ public final class ImmutableThingTest {
     @Test
     public void createThingWithInvalidIds() {
         final List<String> invalidThingIds =
-                Arrays.asList("", "foobar2000", "foo-bar:foobar2000", "foo.bar%bum:foobar2000",
+                Arrays.asList("", "foobar2000", "foo--bar:foobar2000", "foo.bar%bum:foobar2000",
                         ".namespace:foobar2000", "namespace.:foobar2000", "namespace..invalid:foobar2000",
                         "namespace.42:foobar2000");
 

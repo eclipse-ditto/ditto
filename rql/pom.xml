@@ -29,6 +29,7 @@
     <modules>
         <module>model</module>
         <module>parser</module>
+        <module>search-option-parser</module>
         <module>query</module>
     </modules>
 
