@@ -12,11 +12,12 @@
  */
 package org.eclipse.ditto.protocol.mappingstrategies;
 
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.Map;
 
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
+import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 
 /**
@@ -29,22 +30,24 @@ final class ThingMergeCommandResponseMappingStrategies
             new ThingMergeCommandResponseMappingStrategies();
 
     private ThingMergeCommandResponseMappingStrategies() {
-        super(new HashMap<>());
+        super(initMappingStrategies());
     }
 
-    @Override
-    public JsonifiableMapper<MergeThingResponse> find(final String type) {
-        return ThingMergeCommandResponseMappingStrategies::mergeThing;
+    private static Map<String, JsonifiableMapper<MergeThingResponse>> initMappingStrategies() {
+        return Collections.singletonMap(MergeThingResponse.TYPE,
+                AdaptableToSignalMapper.of(MergeThingResponse.class,
+                        context -> {
+                            final Adaptable adaptable = context.getAdaptable();
+                            final Payload payload = adaptable.getPayload();
+                            return MergeThingResponse.newInstance(context.getThingId(),
+                                    payload.getPath(),
+                                    context.getHttpStatusOrThrow(),
+                                    context.getDittoHeaders());
+                        }));
     }
 
     static ThingMergeCommandResponseMappingStrategies getInstance() {
         return INSTANCE;
-    }
-
-    private static MergeThingResponse mergeThing(final Adaptable adaptable) {
-        return MergeThingResponse.of(thingIdFrom(adaptable),
-                JsonPointer.of(adaptable.getPayload().getPath().toString()),
-                dittoHeadersFrom(adaptable));
     }
 
 }

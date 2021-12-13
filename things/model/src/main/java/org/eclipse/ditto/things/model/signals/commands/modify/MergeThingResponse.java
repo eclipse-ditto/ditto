@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -28,6 +29,7 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.base.model.signals.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -57,10 +59,9 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
 
     private static final CommandResponseJsonDeserializer<MergeThingResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
-                        return new MergeThingResponse(
+                        return newInstance(
                                 ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
                                 JsonPointer.of(jsonObject.getValueOrThrow(JsonFields.JSON_PATH)),
                                 context.getDeserializedHttpStatus(),
@@ -101,7 +102,31 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
             final JsonPointer path,
             final DittoHeaders dittoHeaders) {
 
-        return new MergeThingResponse(thingId, path, HTTP_STATUS, dittoHeaders);
+        return newInstance(thingId, path, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code MergeThingResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the merged thing.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code MergeThingResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code MergeThingResponse}.
+     * @since 2.3.0
+     */
+    public static MergeThingResponse newInstance(final ThingId thingId,
+            final JsonPointer path,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new MergeThingResponse(thingId,
+                path,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        MergeThingResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -133,7 +158,7 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
 
     @Override
     public MergeThingResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, path, dittoHeaders);
+        return newInstance(thingId, path, getHttpStatus(), dittoHeaders);
     }
 
     @Override
