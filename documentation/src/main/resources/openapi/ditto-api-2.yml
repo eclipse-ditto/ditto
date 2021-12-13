@@ -175,8 +175,6 @@ paths:
               schema:
                 properties:
                   acknowledgementLabel1:
-                    $ref: '#/paths/~1things/post/responses/424/content/application~1json/schema/properties/acknowledgementLabelN'
-                  acknowledgementLabelN:
                     properties:
                       status:
                         type: integer
@@ -194,6 +192,8 @@ paths:
                     example:
                       status: 200
                       payload: OK
+                  acknowledgementLabelN:
+                    $ref: '#/paths/~1things/post/responses/424/content/application~1json/schema/properties/acknowledgementLabel1'
                 example:
                   acknowledgementLabel1:
                     status: 200
@@ -251,7 +251,23 @@ paths:
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
-        - $ref: '#/components/parameters/ChannelParam'
+        - name: channel
+          in: query
+          description: |-
+            Defines to which channel to route the command: `twin` (digital twin) or `live` (the device).
+            * If setting the channel parameter is omitted, the `twin` channel is set by default and the command is routed to the digital representation of a thing in Bosch IoT Things backend.
+            * When using the `live` channel, the command/message is sent towards the device.
+
+            The option `live` is not available when a new thing should be created, only for updating an
+            existing thing.
+          required: false
+          schema:
+            type: string
+            enum:
+              - twin
+              - live
+        - $ref: '#/components/parameters/LiveChannelConditionParam'
+        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
       responses:
         '200':
           description: The request successfully returned the specific thing.
@@ -260,6 +276,14 @@ paths:
               description: |-
                 The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
                 "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+            live-channel-condition-matched:
+              description: Whether or not the live-channel-condition did match and the thing was retrieved from the device.
+              schema:
+                type: boolean
+            channel:
+              description: The cannel which was used to retrieve the thing.
               schema:
                 type: string
           content:
@@ -812,6 +836,8 @@ paths:
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
+        - $ref: '#/components/parameters/LiveChannelConditionParam'
+        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
       responses:
         '200':
           description: The request successfully returned the definition of the specific thing.
@@ -820,6 +846,14 @@ paths:
               description: |-
                 The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
                 "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+            live-channel-condition-matched:
+              description: Whether or not the live-channel-condition did match and the thing was retrieved from the device.
+              schema:
+                type: boolean
+            channel:
+              description: The cannel which was used to retrieve the thing.
               schema:
                 type: string
           content:
@@ -1093,6 +1127,8 @@ paths:
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
+        - $ref: '#/components/parameters/LiveChannelConditionParam'
+        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
       responses:
         '200':
           description: The request successfully returned the policy ID.
@@ -1101,6 +1137,14 @@ paths:
               description: |-
                 The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
                 "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+            live-channel-condition-matched:
+              description: Whether or not the live-channel-condition did match and the thing was retrieved from the device.
+              schema:
+                type: boolean
+            channel:
+              description: The cannel which was used to retrieve the thing.
               schema:
                 type: string
           content:
@@ -1283,6 +1327,8 @@ paths:
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
+        - $ref: '#/components/parameters/LiveChannelConditionParam'
+        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
       responses:
         '200':
           description: The attributes of the specific thing were successfully retrieved.
@@ -1291,6 +1337,14 @@ paths:
               description: |-
                 The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
                 "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+            live-channel-condition-matched:
+              description: Whether or not the live-channel-condition did match and the thing was retrieved from the device.
+              schema:
+                type: boolean
+            channel:
+              description: The cannel which was used to retrieve the thing.
               schema:
                 type: string
           content:
@@ -1564,6 +1618,8 @@ paths:
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
+        - $ref: '#/components/parameters/LiveChannelConditionParam'
+        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
       responses:
         '200':
           description: The attribute was successfully retrieved.
@@ -1572,6 +1628,14 @@ paths:
               description: |-
                 The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
                 "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+            live-channel-condition-matched:
+              description: Whether or not the live-channel-condition did match and the thing was retrieved from the device.
+              schema:
+                type: boolean
+            channel:
+              description: The cannel which was used to retrieve the thing.
               schema:
                 type: string
         '304':
@@ -1835,6 +1899,8 @@ paths:
         - $ref: '#/components/parameters/ResponseRequiredParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
+        - $ref: '#/components/parameters/LiveChannelConditionParam'
+        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
       responses:
         '200':
           description: |-
@@ -1845,6 +1911,14 @@ paths:
               description: |-
                 The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
                 "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+            live-channel-condition-matched:
+              description: Whether or not the live-channel-condition did match and the thing was retrieved from the device.
+              schema:
+                type: boolean
+            channel:
+              description: The cannel which was used to retrieve the thing.
               schema:
                 type: string
           content:
@@ -2229,6 +2303,8 @@ paths:
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
+        - $ref: '#/components/parameters/LiveChannelConditionParam'
+        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
       responses:
         '200':
           description: The feature was successfully retrieved.
@@ -2237,6 +2313,14 @@ paths:
               description: |-
                 The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
                 "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+            live-channel-condition-matched:
+              description: Whether or not the live-channel-condition did match and the thing was retrieved from the device.
+              schema:
+                type: boolean
+            channel:
+              description: The cannel which was used to retrieve the thing.
               schema:
                 type: string
           content:
@@ -2558,6 +2642,8 @@ paths:
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
+        - $ref: '#/components/parameters/LiveChannelConditionParam'
+        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
       responses:
         '200':
           description: The definition was successfully retrieved.
@@ -2566,6 +2652,14 @@ paths:
               description: |-
                 The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
                 "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+            live-channel-condition-matched:
+              description: Whether or not the live-channel-condition did match and the thing was retrieved from the device.
+              schema:
+                type: boolean
+            channel:
+              description: The cannel which was used to retrieve the thing.
               schema:
                 type: string
           content:
@@ -2845,6 +2939,8 @@ paths:
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
+        - $ref: '#/components/parameters/LiveChannelConditionParam'
+        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
       responses:
         '200':
           description: The properties were successfully retrieved.
@@ -2853,6 +2949,14 @@ paths:
               description: |-
                 The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
                 "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+            live-channel-condition-matched:
+              description: Whether or not the live-channel-condition did match and the thing was retrieved from the device.
+              schema:
+                type: boolean
+            channel:
+              description: The cannel which was used to retrieve the thing.
               schema:
                 type: string
           content:
@@ -3152,6 +3256,8 @@ paths:
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
+        - $ref: '#/components/parameters/LiveChannelConditionParam'
+        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
       responses:
         '200':
           description: The property was successfully retrieved.
@@ -3160,6 +3266,14 @@ paths:
               description: |-
                 The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
                 "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+            live-channel-condition-matched:
+              description: Whether or not the live-channel-condition did match and the thing was retrieved from the device.
+              schema:
+                type: boolean
+            channel:
+              description: The cannel which was used to retrieve the thing.
               schema:
                 type: string
         '304':
@@ -3423,6 +3537,8 @@ paths:
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
+        - $ref: '#/components/parameters/LiveChannelConditionParam'
+        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
       responses:
         '200':
           description: The desired properties were successfully retrieved.
@@ -3431,6 +3547,14 @@ paths:
               description: |-
                 The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
                 "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+            live-channel-condition-matched:
+              description: Whether or not the live-channel-condition did match and the thing was retrieved from the device.
+              schema:
+                type: boolean
+            channel:
+              description: The cannel which was used to retrieve the thing.
               schema:
                 type: string
           content:
@@ -3737,6 +3861,8 @@ paths:
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
+        - $ref: '#/components/parameters/LiveChannelConditionParam'
+        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
       responses:
         '200':
           description: The desired property was successfully retrieved.
@@ -3745,6 +3871,14 @@ paths:
               description: |-
                 The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
                 "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+              schema:
+                type: string
+            live-channel-condition-matched:
+              description: Whether or not the live-channel-condition did match and the thing was retrieved from the device.
+              schema:
+                type: boolean
+            channel:
+              description: The cannel which was used to retrieve the thing.
               schema:
                 type: string
         '304':
@@ -6553,14 +6687,15 @@ components:
       name: channel
       in: query
       description: |-
-        Defines which channel should be used to route the command to. Either `twin` or `live` can be used.
-        If channel `twin` is used the command is routed to the digital representation of a Thing in the Ditto backend.
-        In case channel `live` is used the command/message is send towards an actual device.
-
-        The default (if omitted) is the `twin` channel.
+        Defines to which channel to route the command: `twin` (digital twin) or `live` (the device).
+        * If setting the channel parameter is omitted, the `twin` channel is set by default and the command is routed to the digital representation of a thing in Bosch IoT Things backend.
+        * When using the `live` channel, the command/message is sent towards the device.
       required: false
       schema:
         type: string
+        enum:
+          - twin
+          - live
     ConditionParam:
       name: condition
       in: query
@@ -6581,6 +6716,22 @@ components:
       required: false
       schema:
         type: string
+    LiveChannelConditionParam:
+      name: live-channel-condition
+      in: query
+      description: Defines that the request should fetch thing data via live channel if the given condition is met. The condition can be specified using RQL syntax.
+      required: false
+      schema:
+        type: string
+    OnLiveChannelTimeoutParam:
+      name: on-live-channel-timeout
+      in: query
+      description: Defines a strategy how to handle timeouts of a live response to a request sent with a matching live-channel-condition.
+      required: false
+      schema:
+        enum:
+          - fail
+          - use-twin
     DesiredPropertiesFieldsQueryParam:
       name: fields
       in: query

@@ -180,6 +180,10 @@ components:
       $ref: "./parameters/channelParam.yml"
     ConditionParam:
       $ref: "./parameters/conditionParam.yml"
+    LiveChannelConditionParam:
+      $ref: "./parameters/liveChannelConditionParam.yml"
+    OnLiveChannelTimeoutParam:
+      $ref: "./parameters/onLiveChannelTimeoutParam.yml"
     DesiredPropertiesFieldsQueryParam:
       $ref: "./parameters/desiredPropertiesFieldsQueryParam.yml"
     FeatureFieldsQueryParam:
