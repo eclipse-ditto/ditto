@@ -139,7 +139,7 @@ public final class ThingsUpdaterTest {
                 expectedIds.remove(envelopeId);
                 assertThat(envelope.getDittoHeaders()).isEqualTo(dittoHeaders);
                 assertThat(envelope.getMessage())
-                        .isEqualTo(UpdateThing.of(ThingId.of(envelopeId),  UpdateReason.THING_UPDATE, dittoHeaders).toJson());
+                        .isEqualTo(UpdateThing.of(ThingId.of(envelopeId),  UpdateReason.BACKGROUND_SYNC, dittoHeaders).toJson());
             }
         }};
     }
