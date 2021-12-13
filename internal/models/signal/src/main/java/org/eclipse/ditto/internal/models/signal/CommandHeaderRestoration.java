@@ -30,6 +30,7 @@ public final class CommandHeaderRestoration {
      *
      * @param signal the signal to adjust the headers in.
      * @param headersToRestoreFrom the original headers to restore connectivity headers from.
+     * @param <T> the type of the DittoHeadersSettable to pass through.
      * @return the potentially adjusted signal with restored connectivity headers.
      */
     @SuppressWarnings("unchecked")
