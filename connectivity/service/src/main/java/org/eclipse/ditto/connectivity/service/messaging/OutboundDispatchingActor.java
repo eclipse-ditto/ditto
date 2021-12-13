@@ -35,6 +35,7 @@ import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementForwarderActor;
+import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.protocol.TopicPath;
@@ -173,7 +174,7 @@ final class OutboundDispatchingActor extends AbstractActor {
         final var headers = signal.getDittoHeaders();
         return signal instanceof Command &&
                 headers.isResponseRequired() &&
-                (TopicPath.Channel.LIVE.getName().equals(headers.getChannel().orElse("")));
+                SignalInformationPoint.isChannelLive(signal);
     }
 
     private void handleInboundResponseOrAcknowledgement(final Signal<?> responseOrAck) {

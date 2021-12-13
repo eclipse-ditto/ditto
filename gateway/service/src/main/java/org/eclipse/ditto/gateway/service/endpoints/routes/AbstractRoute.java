@@ -54,7 +54,6 @@ import akka.actor.Status;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.MediaTypes;
-import akka.http.javadsl.model.headers.TimeoutAccess;
 import akka.http.javadsl.server.AllDirectives;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
@@ -82,6 +81,13 @@ public abstract class AbstractRoute extends AllDirectives {
     public static final JsonParseOptions JSON_FIELD_SELECTOR_PARSE_OPTIONS = JsonFactory.newParseOptionsBuilder()
             .withoutUrlDecoding()
             .build();
+
+    /**
+     * Timeout for Akka HTTP. Timeout is normally managed in HttpRequestActor and AcknowledgementAggregatorActor.
+     * The Akka HTTP timeout is only there to prevent resource leak.
+     */
+    private final static scala.concurrent.duration.Duration AKKA_HTTP_TIMEOUT =
+            scala.concurrent.duration.Duration.create(2, TimeUnit.MINUTES);
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(AbstractRoute.class);
 
@@ -189,27 +195,10 @@ public abstract class AbstractRoute extends AllDirectives {
             final Function<String, Command<?>> requestJsonToCommandFunction,
             @Nullable final Function<JsonValue, JsonValue> responseTransformFunction) {
 
-        // check if Akka HTTP timeout was overwritten by our code (e.g. for claim messages)
-        final boolean increasedAkkaHttpTimeout = ctx.getRequest().getHeader(TimeoutAccess.class)
-                .map(TimeoutAccess::timeoutAccess)
-                .map(akka.http.javadsl.TimeoutAccess::getTimeout)
-                .map(scalaDuration -> Duration.ofNanos(scalaDuration.toNanos()))
-                .filter(akkaHttpTimeout -> {
-                    final var commandConfig = routeBaseProperties.getCommandConfig();
-                    return akkaHttpTimeout.compareTo(commandConfig.getMaxTimeout()) > 0;
-                })
-                .isPresent();
-
-        if (increasedAkkaHttpTimeout) {
-            return doHandlePerRequest(ctx, dittoHeaders, payloadSource, requestJsonToCommandFunction,
-                    responseTransformFunction);
-        } else {
-            return withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
-                    this::validateCommandTimeout,
-                    null, // don't set default timeout in order to use the configured akka-http default
-                    timeout -> doHandlePerRequest(ctx, dittoHeaders.toBuilder().timeout(timeout).build(), payloadSource,
-                            requestJsonToCommandFunction, responseTransformFunction));
-        }
+        return withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
+                this::validateCommandTimeout,
+                timeout -> doHandlePerRequest(ctx, dittoHeaders.toBuilder().timeout(timeout).build(), payloadSource,
+                        requestJsonToCommandFunction, responseTransformFunction));
     }
 
     protected <M> M runWithSupervisionStrategy(final RunnableGraph<M> graph) {
@@ -346,33 +335,27 @@ public abstract class AbstractRoute extends AllDirectives {
     }
 
     /**
-     * Configures the passed {@code optionalTimeout} as Akka HTTP request timeout validating it with the passed
+     * Validate the passed {@code optionalTimeout} with the passed
      * {@code checkTimeoutFunction} falling back to the optional {@code defaultTimeout} wrapping the passed
-     * {@code inner} route.
+     * {@code inner} route. Set Akka HTTP timeout to a ceiling because the actual timeout handling happens in
+     * HttpRequestActor and AcknowledgementAggregatorActor.
      *
      * @param optionalTimeout the custom timeout to use as Akka HTTP request timeout adjusting the configured default
      * one.
      * @param checkTimeoutFunction a function to check the passed optionalTimeout for validity e. g. within some bounds.
-     * @param defaultTimeout an optional default timeout if the passed optionalTimeout was not set.
      * @param inner the inner Route to wrap.
      * @return the wrapped route - potentially with custom timeout adjusted.
      */
     protected Route withCustomRequestTimeout(@Nullable final Duration optionalTimeout,
             final UnaryOperator<Duration> checkTimeoutFunction,
-            @Nullable final Duration defaultTimeout,
             final java.util.function.Function<Duration, Route> inner) {
 
-        @Nullable Duration customRequestTimeout = defaultTimeout;
+        Duration customRequestTimeout = routeBaseProperties.getHttpConfig().getRequestTimeout();
         if (null != optionalTimeout) {
             customRequestTimeout = checkTimeoutFunction.apply(optionalTimeout);
         }
 
-        if (null != customRequestTimeout) {
-            return increaseHttpRequestTimeout(inner, customRequestTimeout);
-        } else {
-            return extractRequestTimeout(configuredTimeout ->
-                    increaseHttpRequestTimeout(inner, configuredTimeout));
-        }
+        return increaseHttpRequestTimeout(inner, customRequestTimeout);
     }
 
     private Route increaseHttpRequestTimeout(final java.util.function.Function<Duration, Route> inner,
@@ -383,17 +366,8 @@ public abstract class AbstractRoute extends AllDirectives {
 
     private Route increaseHttpRequestTimeout(final java.util.function.Function<Duration, Route> inner,
             final scala.concurrent.duration.Duration requestTimeout) {
-        if (requestTimeout.isFinite()) {
-            // adds some time in order to avoid race conditions with internal receiveTimeouts which shall return "408"
-            // in case of message timeouts or "424" in case of requested-acks timeouts:
-            final scala.concurrent.duration.Duration akkaHttpRequestTimeout = requestTimeout
-                    .plus(scala.concurrent.duration.Duration.create(5, TimeUnit.SECONDS));
-            return withRequestTimeout(akkaHttpRequestTimeout, () ->
-                    inner.apply(Duration.ofMillis(requestTimeout.toMillis()))
-            );
-        } else {
-            return inner.apply(Duration.ofMillis(Long.MAX_VALUE));
-        }
+        return withRequestTimeout(AKKA_HTTP_TIMEOUT,
+                () -> inner.apply(Duration.ofMillis(requestTimeout.toMillis())));
     }
 
     /**

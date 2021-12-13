@@ -64,7 +64,6 @@ import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.placeholders.MiscPlaceholder;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
@@ -73,7 +72,6 @@ import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
-import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
@@ -438,8 +436,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                         final Optional<DittoHeaderInvalidException> headerInvalid = checkForAcksWithoutResponse(s);
                         return headerInvalid.map(this::publishResponseOrError)
                                 .orElseGet(() -> ackregatorStarter.doStart(entityIdOptional.get(),
-                                        s,
-                                        this::publishResponseOrError,
+                                        s, null, this::publishResponseOrError,
                                         ackregator -> forwardToCommandRouterAndReturnDone(s, ackregator)));
                     } else {
                         return doNothing(s);

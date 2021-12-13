@@ -34,10 +34,13 @@ public final class DefaultCommandConfig implements CommandConfig {
 
     private final Duration defaultTimeout;
     private final Duration maxTimeout;
+    private final Duration smartChannelBuffer;
 
     private DefaultCommandConfig(final ScopedConfig scopedConfig) {
         defaultTimeout = scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(CommandConfigValue.DEFAULT_TIMEOUT);
         maxTimeout = scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(CommandConfigValue.MAX_TIMEOUT);
+        smartChannelBuffer =
+                scopedConfig.getNonNegativeAndNonZeroDurationOrThrow(CommandConfigValue.SMART_CHANNEL_BUFFER);
     }
 
     /**
@@ -63,6 +66,11 @@ public final class DefaultCommandConfig implements CommandConfig {
     }
 
     @Override
+    public Duration getSmartChannelBuffer() {
+        return smartChannelBuffer;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -71,12 +79,14 @@ public final class DefaultCommandConfig implements CommandConfig {
             return false;
         }
         final DefaultCommandConfig that = (DefaultCommandConfig) o;
-        return Objects.equals(defaultTimeout, that.defaultTimeout) && Objects.equals(maxTimeout, that.maxTimeout);
+        return Objects.equals(defaultTimeout, that.defaultTimeout) &&
+                Objects.equals(maxTimeout, that.maxTimeout) &&
+                Objects.equals(smartChannelBuffer, that.smartChannelBuffer);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(defaultTimeout, maxTimeout);
+        return Objects.hash(defaultTimeout, maxTimeout, smartChannelBuffer);
     }
 
     @Override
@@ -84,6 +94,7 @@ public final class DefaultCommandConfig implements CommandConfig {
         return getClass().getSimpleName() + " [" +
                 "defaultTimeout=" + defaultTimeout +
                 ", maxTimeout=" + maxTimeout +
+                ", smartChannelBuffer=" + smartChannelBuffer +
                 "]";
     }
 

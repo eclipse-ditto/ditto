@@ -175,7 +175,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
 
         @Override
         public boolean isApplicable(final SignalWithEntityId<?> signal) {
-            return SignalInformationPoint.isChannelLive(signal);
+            return SignalInformationPoint.isChannelLive(signal) && !SignalInformationPoint.isChannelSmart(signal);
         }
 
         @Override

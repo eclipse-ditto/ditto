@@ -172,7 +172,6 @@ public final class ThingCommandEnforcement
         super(data, ThingQueryCommandResponse.class);
         this.thingsShardRegion = requireNonNull(thingsShardRegion);
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
-
         this.thingIdCache = requireNonNull(thingIdCache);
         this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
         this.preEnforcer = preEnforcer;
@@ -309,13 +308,14 @@ public final class ThingCommandEnforcement
                 // drop query command with response-required=false
                 result = withMessageToReceiver(null, ActorRef.noSender());
             } else if (thingQueryCommand instanceof RetrieveThing && shouldRetrievePolicyWithThing(thingQueryCommand)) {
-                final var retrieveThing = (RetrieveThing) thingQueryCommand;
+                final var retrieveThing = (RetrieveThing) ensureTwinChannel(thingQueryCommand);
                 result = withMessageToReceiverViaAskFuture(retrieveThing, sender(), () ->
                         retrieveThingAndPolicy(retrieveThing, policyId, enforcer).thenCompose(response ->
-                                doSmartChannelSelection(retrieveThing, response, startTime, enforcer))
+                                doSmartChannelSelection(thingQueryCommand, response, startTime, enforcer))
                 );
             } else {
-                result = withMessageToReceiverViaAskFuture(thingQueryCommand, sender(), () ->
+                final var twinCommand = ensureTwinChannel(thingQueryCommand);
+                result = withMessageToReceiverViaAskFuture(twinCommand, sender(), () ->
                         askAndBuildJsonView(thingsShardRegion, thingQueryCommand, enforcer,
                                 context.getScheduler(), context.getExecutor()).thenCompose(response ->
                                 doSmartChannelSelection(thingQueryCommand, response, startTime, enforcer))
@@ -333,8 +333,7 @@ public final class ThingCommandEnforcement
         final ThingQueryCommandResponse<?> twinResponseWithTwinChannel = setTwinChannel(response);
         final ThingQueryCommandResponse<?> twinResponse = CommandHeaderRestoration.restoreCommandConnectivityHeaders(
                 twinResponseWithTwinChannel, command.getDittoHeaders());
-        if (command.getDittoHeaders().getLiveChannelCondition().isEmpty() ||
-                !twinResponse.getDittoHeaders().didLiveChannelConditionMatch()) {
+        if (!shouldAttemptLiveChannel(command, twinResponse)) {
             return CompletableFuture.completedStage(twinResponse);
         }
 
@@ -366,6 +365,23 @@ public final class ThingCommandEnforcement
                 return CompletableFuture.failedStage(errorToReport);
             }
         };
+    }
+
+    private static boolean shouldAttemptLiveChannel(final ThingQueryCommand<?> command,
+            final ThingQueryCommandResponse<?> twinResponse) {
+        return isLiveChannelConditionMatched(command, twinResponse) || isLiveQueryCommandWithTimeoutStrategy(command);
+    }
+
+    private static boolean isLiveChannelConditionMatched(final ThingQueryCommand<?> command,
+            final ThingQueryCommandResponse<?> twinResponse) {
+        return command.getDittoHeaders().getLiveChannelCondition().isPresent() &&
+                twinResponse.getDittoHeaders().didLiveChannelConditionMatch();
+    }
+
+    static boolean isLiveQueryCommandWithTimeoutStrategy(final Signal<?> command) {
+        return command instanceof ThingQueryCommand &&
+                command.getDittoHeaders().getLiveChannelTimeoutStrategy().isPresent() &&
+                SignalInformationPoint.isChannelLive(command);
     }
 
     private static <T extends DittoHeadersSettable<T>> T setAdditionalHeaders(final DittoHeadersSettable<T> settable,
@@ -1242,18 +1258,29 @@ public final class ThingCommandEnforcement
                 .build());
     }
 
+    private static ThingQueryCommand<?> ensureTwinChannel(final ThingQueryCommand<?> command) {
+        if (SignalInformationPoint.isChannelLive(command)) {
+            return command.setDittoHeaders(command.getDittoHeaders()
+                    .toBuilder()
+                    .channel(TopicPath.Channel.TWIN.getName())
+                    .build());
+        } else {
+            return command;
+        }
+    }
+
     private static DittoHeaders getAdditionalLiveResponseHeaders(final DittoHeaders responseHeaders) {
+        // TODO: ensure pre-enforcer headers in responses
         final var liveChannelConditionMatched = responseHeaders.getOrDefault(
                 DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), Boolean.TRUE.toString());
-        return DittoHeaders.newBuilder()
+        final var dittoHeadersBuilder = DittoHeaders.newBuilder()
                 .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), liveChannelConditionMatched)
-                // TODO: ensure pre-enforcer headers in responses
-                .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(),
-                        responseHeaders.getAuthorizationContext().getFirstAuthorizationSubject()
-                                .map(AuthorizationSubject::toString)
-                                .orElseThrow())
-                .responseRequired(false)
-                .build();
+                .responseRequired(false);
+        responseHeaders.getAuthorizationContext().getFirstAuthorizationSubject()
+                .map(AuthorizationSubject::toString)
+                .ifPresent(firstSubject ->
+                        dittoHeadersBuilder.putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), firstSubject));
+        return dittoHeadersBuilder.build();
     }
 
     /**
@@ -1324,7 +1351,7 @@ public final class ThingCommandEnforcement
 
             // live commands are not applicable for thing command enforcement
             // because they should never be forwarded to things shard region
-            return !SignalInformationPoint.isChannelLive(command);
+            return !SignalInformationPoint.isChannelLive(command) || SignalInformationPoint.isChannelSmart(command);
         }
 
         @Override

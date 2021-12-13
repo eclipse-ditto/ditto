@@ -461,9 +461,7 @@ public final class SubjectExpiryActor extends AbstractFSM<SubjectExpiryState, No
         if (announcement.getDittoHeaders().getAcknowledgementRequests().isEmpty()) {
             return null;
         } else {
-            return ackregatorStarter.doStart(policyId,
-                    announcement,
-                    this::receiveAcknowledgements,
+            return ackregatorStarter.doStart(policyId, announcement, null, this::receiveAcknowledgements,
                     Function.identity());
         }
     }

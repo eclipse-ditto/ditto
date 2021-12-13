@@ -48,12 +48,10 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
-import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.Props;
@@ -66,6 +64,9 @@ import akka.actor.Props;
  * @since 1.1.0
  */
 public final class AcknowledgementAggregatorActor extends AbstractActorWithTimers {
+
+    private static final Duration COMMAND_TIMEOUT = Duration.ofSeconds(60);
+    private static final Duration SMART_CHANNEL_BUFFER = Duration.ofSeconds(10);
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
@@ -80,6 +81,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
     @SuppressWarnings("java:S1144")
     private AcknowledgementAggregatorActor(final EntityId entityId,
             final Signal<?> originatingSignal,
+            @Nullable final Duration timeoutOverride,
             final Duration maxTimeout,
             final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer,
@@ -94,7 +96,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
                         getSelf().path().name()
                 );
 
-        timeout = getTimeout(originatingSignal, maxTimeout);
+        timeout = getTimeout(originatingSignal, maxTimeout, timeoutOverride);
         this.matchingValidationFailureConsumer = Objects.requireNonNullElseGet(
                 matchingValidationFailureConsumer,
                 this::getDefaultMatchingValidationFailureConsumer
@@ -152,6 +154,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
         return Props.create(AcknowledgementAggregatorActor.class,
                 entityId,
                 signal,
+                null,
                 acknowledgementConfig.getForwarderFallbackTimeout(),
                 headerTranslator,
                 responseSignalConsumer,
@@ -163,6 +166,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
      *
      * @param entityId the entity ID of the originating signal.
      * @param signal the originating signal.
+     * @param timeoutOverride the duration to override the timeout of the signal.
      * @param maxTimeout the maximum timeout of acknowledgement aggregation.
      * @param headerTranslator translates headers from external sources or to external sources.
      * @param responseSignalConsumer a consumer which is invoked with the response signal, e.g. in order to send the
@@ -174,6 +178,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
      */
     static Props props(final EntityId entityId,
             final Signal<?> signal,
+            @Nullable final Duration timeoutOverride,
             final Duration maxTimeout,
             final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer,
@@ -182,6 +187,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
         return Props.create(AcknowledgementAggregatorActor.class,
                 entityId,
                 signal,
+                timeoutOverride,
                 maxTimeout,
                 headerTranslator,
                 responseSignalConsumer,
@@ -205,8 +211,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
         log.withCorrelationId(correlationId).debug("Received thing command response <{}>.", thingCommandResponse);
         final var commandResponseValidationResult = validateResponse(thingCommandResponse);
         if (commandResponseValidationResult.isSuccess()) {
-            final var acknowledgementLabel =
-                    SignalInformationPoint.isChannelLive(thingCommandResponse) ? LIVE_RESPONSE : TWIN_PERSISTED;
+            final var acknowledgementLabel = getAckLabelOfResponse(originatingSignal);
             addCommandResponse(thingCommandResponse, getAcknowledgement(thingCommandResponse, acknowledgementLabel));
         } else {
             handleMatchingValidationFailure(commandResponseValidationResult.asFailureOrThrow());
@@ -408,25 +413,27 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
                 aggregatedAcknowledgements.stream()
                         .anyMatch(ack -> {
                             final var label = ack.getLabel();
-                            return TWIN_PERSISTED.equals(label) ||
-                                    LIVE_RESPONSE.equals(label);
+                            return TWIN_PERSISTED.equals(label) || LIVE_RESPONSE.equals(label);
                         });
     }
 
-    private static Duration getTimeout(final Signal<?> originatingSignal, final Duration maxTimeout) {
-        final var headers = originatingSignal.getDittoHeaders();
-        final var candidateTimeout = headers.getTimeout()
-                .filter(timeout -> timeout.minus(maxTimeout).isNegative())
-                .orElse(maxTimeout);
+    private static AcknowledgementLabel getAckLabelOfResponse(final Signal<?> signal) {
+        // check originating signal for ack label of response
+        // because live commands may generate twin responses due to live timeout fallback strategy
+        return SignalInformationPoint.isChannelLive(signal) ? LIVE_RESPONSE : TWIN_PERSISTED;
+    }
 
-        // TODO consolidate condition; configure budget
-        if ((headers.getLiveChannelCondition().isPresent() ||
-                TopicPath.Channel.LIVE.getName().equals(headers.getChannel().orElse("")) &&
-                        headers.getLiveChannelTimeoutStrategy().isPresent()) &&
-                originatingSignal instanceof ThingQueryCommand) {
-            return candidateTimeout.plus(Duration.ofSeconds(10));
+    private static Duration getTimeout(final Signal<?> originatingSignal, final Duration maxTimeout,
+            @Nullable final Duration specifiedTimeout) {
+        if (specifiedTimeout != null) {
+            return specifiedTimeout;
+        } else if (SignalInformationPoint.isChannelSmart(originatingSignal)) {
+            return originatingSignal.getDittoHeaders().getTimeout().orElse(COMMAND_TIMEOUT)
+                    .plus(SMART_CHANNEL_BUFFER);
         } else {
-            return candidateTimeout;
+            return originatingSignal.getDittoHeaders().getTimeout()
+                    .filter(timeout1 -> timeout1.minus(maxTimeout).isNegative())
+                    .orElse(maxTimeout);
         }
     }
 

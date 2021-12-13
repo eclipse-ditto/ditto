@@ -68,10 +68,8 @@ import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
-import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -91,6 +89,7 @@ import akka.http.scaladsl.model.EntityStreamSizeException;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.util.ByteString;
+import scala.Option;
 import scala.util.Either;
 
 /**
@@ -220,10 +219,12 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             logger.setCorrelationId(command);
             receivedCommand = command;
             setDefaultTimeoutExceptionSupplier(command);
+            final var timeoutOverride = getReceiveTimeout(command, commandConfig);
             ackregatorStarter.start(command,
+                    timeoutOverride,
                     this::onAggregatedResponseOrError,
                     this::handleCommandWithAckregator,
-                    this::handleCommandWithoutAckregator
+                    command1 -> handleCommandWithoutAckregator(command1, timeoutOverride)
             );
             final var responseBehavior = ReceiveBuilder.create()
                     .match(Acknowledgements.class, this::completeAcknowledgements)
@@ -261,9 +262,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         return null;
     }
 
-    private Void handleCommandWithoutAckregator(final Signal<?> command) {
+    private Void handleCommandWithoutAckregator(final Signal<?> command, final Duration timeoutOverride) {
         if (isDevOpsCommand(command) || !shallAcceptImmediately(command)) {
-            handleCommandWithResponse(command, getResponseAwaitingBehavior());
+            handleCommandWithResponse(command, getResponseAwaitingBehavior(), timeoutOverride);
             setDefaultTimeoutExceptionSupplier(command);
         } else {
             handleCommandAndAcceptImmediately(command);
@@ -322,20 +323,16 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         return WhoamiResponse.of(userInformation, dittoHeaders);
     }
 
-    private void handleCommandWithResponse(final Signal<?> command, final Receive awaitCommandResponseBehavior) {
+    private void handleCommandWithResponse(final Signal<?> command, final Receive awaitCommandResponseBehavior,
+            final Duration timeoutOverride) {
         logger.debug("Got <{}>. Telling the target actor about it.", command);
         proxyActor.tell(command, getSelf());
 
         final ActorContext context = getContext();
         if (!isDevOpsCommand(command)) {
-            final var dittoHeaders = command.getDittoHeaders();
-
             // DevOpsCommands do have their own timeout mechanism, don't reply with a command timeout for the user
             //  for DevOps commands, so only set the receiveTimeout for non-DevOps commands:
-            context.setReceiveTimeout(
-                    // TODO consolidate with ackgregator
-                    getReceiveTimeout(command, commandConfig.getDefaultTimeout(), commandConfig.getMaxTimeout())
-            );
+            context.setReceiveTimeout(timeoutOverride);
         }
 
         // After a Command was received, this Actor can only receive the correlating CommandResponse:
@@ -353,7 +350,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 // If an actor downstream replies with an HTTP response, simply forward it.
                 .match(HttpResponse.class, this::completeWithResult)
                 .match(MessageCommandResponse.class,
-                        messageCommandResponse -> completeWithResult(handleMessageResponseMessage(messageCommandResponse)))
+                        messageCommandResponse -> completeWithResult(
+                                handleMessageResponseMessage(messageCommandResponse)))
                 .match(CommandResponse.class, WithEntity.class::isInstance, commandResponse -> {
                     logger.withCorrelationId(commandResponse).debug("Got <{}> message.", commandResponse.getType());
                     handleCommandResponseWithEntity(commandResponse);
@@ -440,8 +438,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             final Optional<akka.http.scaladsl.model.ContentType> optionalContentType = message.getContentType()
                     .map(ContentType$.MODULE$::parse)
                     .filter(Either::isRight)
-                    .map(Either::right)
-                    .map(Either.RightProjection::get);
+                    .map(Either::toOption)
+                    .map(Option::get);
 
             final boolean isBinary = optionalContentType
                     .map(akka.http.scaladsl.model.ContentType::value)
@@ -718,21 +716,17 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         completeWithResult(httpResponse);
     }
 
-    // TODO consolidate with ackregator
-    private static Duration getReceiveTimeout(final Signal<?> originatingSignal, final Duration defaultTimeout,
-            final Duration maxTimeout) {
+    private static Duration getReceiveTimeout(final Signal<?> originatingSignal, final CommandConfig commandConfig) {
 
+        final var defaultTimeout = commandConfig.getDefaultTimeout();
+        final var maxTimeout = commandConfig.getMaxTimeout();
         final var headers = originatingSignal.getDittoHeaders();
         final var candidateTimeout = headers.getTimeout()
                 .filter(timeout -> timeout.minus(maxTimeout).isNegative())
                 .orElse(defaultTimeout);
 
-        // TODO consolidate condition; configure budget
-        if ((headers.getLiveChannelCondition().isPresent() ||
-                TopicPath.Channel.LIVE.getName().equals(headers.getChannel().orElse("")) &&
-                headers.getLiveChannelTimeoutStrategy().isPresent()) &&
-                originatingSignal instanceof ThingQueryCommand) {
-            return candidateTimeout.plus(Duration.ofSeconds(10));
+        if (SignalInformationPoint.isChannelSmart(originatingSignal)) {
+            return candidateTimeout.plus(commandConfig.getSmartChannelBuffer());
         } else {
             return candidateTimeout;
         }

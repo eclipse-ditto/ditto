@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
+import org.eclipse.ditto.base.model.headers.LiveChannelTimeoutStrategy;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithType;
@@ -28,6 +29,7 @@ import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 
 /**
  * Provides dedicated information about specified {@code Signal} arguments.
@@ -142,6 +144,27 @@ public final class SignalInformationPoint {
         }
 
         return result;
+    }
+
+    /**
+     * Indicates whether the signal is a thing query command using smart channel selection.
+     *
+     * @param signal the signal to be checked.
+     * @return {@code true} if the signal is handled by smart channel selection.
+     * @since 2.3.0
+     */
+    public static boolean isChannelSmart(@Nullable final WithDittoHeaders signal) {
+        if (signal instanceof ThingQueryCommand) {
+            final var headers = signal.getDittoHeaders();
+            if (isChannelLive(signal)) {
+                return LiveChannelTimeoutStrategy.USE_TWIN ==
+                        headers.getLiveChannelTimeoutStrategy().orElse(LiveChannelTimeoutStrategy.FAIL);
+            } else {
+                return headers.getLiveChannelCondition().isPresent();
+            }
+        } else {
+            return false;
+        }
     }
 
     /**

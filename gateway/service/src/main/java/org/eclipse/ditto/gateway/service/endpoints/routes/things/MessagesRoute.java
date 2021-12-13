@@ -138,7 +138,6 @@ final class MessagesRoute extends AbstractRoute {
                                 pathEndOrSingleSlash(() ->
                                         withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
                                                 this::checkClaimTimeout,
-                                                defaultClaimTimeout,
                                                 timeout ->
                                                         extractDataBytes(payloadSource ->
                                                                 handleMessage(ctx, payloadSource,
@@ -173,7 +172,6 @@ final class MessagesRoute extends AbstractRoute {
                         extractUnmatchedPath(msgSubject -> // <msgSubject/with/slashes>
                                 withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
                                         this::checkMessageTimeout,
-                                        defaultMessageTimeout,
                                         timeout ->
                                                 extractDataBytes(payloadSource ->
                                                         handleMessage(ctx, payloadSource,
@@ -214,7 +212,6 @@ final class MessagesRoute extends AbstractRoute {
                         extractUnmatchedPath(msgSubject -> // /messages/<msgSubject/with/slashes>
                                 withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
                                         this::checkMessageTimeout,
-                                        defaultMessageTimeout,
                                         timeout ->
                                                 extractDataBytes(payloadSource ->
                                                         handleMessage(ctx, payloadSource,

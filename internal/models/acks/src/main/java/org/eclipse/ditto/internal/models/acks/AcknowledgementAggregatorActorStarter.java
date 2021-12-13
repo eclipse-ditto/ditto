@@ -124,15 +124,17 @@ public final class AcknowledgementAggregatorActorStarter {
     /**
      * Start an acknowledgement aggregator actor if needed.
      *
+     * @param <T> type of the result.
      * @param command the command to start the aggregator actor for.
+     * @param timeoutOverride duration to override the timeout of the command.
      * @param responseSignalConsumer consumer of the aggregated response or error.
      * @param ackregatorStartedFunction what to do if the aggregator actor started. The first argument is
      * the command after setting requested-acks and response-required.
      * @param ackregatorNotStartedFunction what to do if the aggregator actor did not start.
-     * @param <T> type of the result.
      * @return the result.
      */
     public <T> T start(final Command<?> command,
+            final Duration timeoutOverride,
             final Function<Object, T> responseSignalConsumer,
             final BiFunction<Signal<?>, ActorRef, T> ackregatorStartedFunction,
             final Function<Signal<?>, T> ackregatorNotStartedFunction) {
@@ -143,6 +145,7 @@ public final class AcknowledgementAggregatorActorStarter {
                     if (shouldStart && entityIdOptional.isPresent()) {
                         return doStart(entityIdOptional.get(),
                                 originatingSignal,
+                                timeoutOverride,
                                 responseSignalConsumer::apply,
                                 ackregator -> ackregatorStartedFunction.apply(originatingSignal, ackregator));
                     } else {
@@ -180,24 +183,29 @@ public final class AcknowledgementAggregatorActorStarter {
      * @param <T> type of results.
      * @param entityId the entity ID of the originating signal.
      * @param signal the originating signal. Must have nonempty acknowledgement requests.
+     * @param timeoutOverride override timeout of the signal by another duration.
      * @param responseSignalConsumer consumer of the aggregated response or error.
      * @param forwarderStartedFunction what to do after the aggregator actor started.
      * @return the result.
      */
     public <T> T doStart(final EntityId entityId,
             final Signal<?> signal,
+            @Nullable final Duration timeoutOverride,
             final Consumer<Object> responseSignalConsumer,
             final Function<ActorRef, T> forwarderStartedFunction) {
 
-        return forwarderStartedFunction.apply(startAckAggregatorActor(entityId, signal, responseSignalConsumer));
+        return forwarderStartedFunction.apply(
+                startAckAggregatorActor(entityId, signal, timeoutOverride, responseSignalConsumer));
     }
 
     private ActorRef startAckAggregatorActor(final EntityId entityId,
             final Signal<?> signal,
+            @Nullable final Duration timeoutOverride,
             final Consumer<Object> responseSignalConsumer) {
 
         final var props = AcknowledgementAggregatorActor.props(entityId,
                 signal,
+                timeoutOverride,
                 maxTimeout,
                 headerTranslator,
                 responseSignalConsumer,
