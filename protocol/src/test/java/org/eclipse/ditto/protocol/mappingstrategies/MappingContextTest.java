@@ -830,6 +830,29 @@ public final class MappingContextTest {
     }
 
     @Test
+    public void getNamespaceReturnsExpectedNamespaceIfNotPlaceholder() {
+        final String namespace = "org.ditto";
+        final TopicPath topicPath = ProtocolFactory.newTopicPathBuilder(PolicyId.inNamespaceWithRandomName(namespace))
+                .commands()
+                .retrieve()
+                .build();
+        Mockito.when(adaptable.getTopicPath()).thenReturn(topicPath);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThat(underTest.getNamespace()).contains(namespace);
+    }
+
+    @Test
+    public void getNamespaceReturnsEmptyOptionalIfPlaceholder() {
+        final String namespace = TopicPath.ID_PLACEHOLDER;
+        final TopicPath topicPath = TopicPath.fromNamespace(namespace).twin().commands().retrieve().build();
+        Mockito.when(adaptable.getTopicPath()).thenReturn(topicPath);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThat(underTest.getNamespace()).isEmpty();
+    }
+
+    @Test
     public void getPolicyIdReturnsPolicyIfContainedInPayload() {
         final PolicyId policyId = PolicyId.inNamespaceWithRandomName("org.ditto");
         final Payload payload = ProtocolFactory.newPayloadBuilder()

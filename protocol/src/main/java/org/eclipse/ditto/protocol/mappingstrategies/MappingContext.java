@@ -454,6 +454,18 @@ final class MappingContext {
         ));
     }
 
+    Optional<String> getNamespace() {
+        final Optional<String> result;
+        final TopicPath topicPath = adaptable.getTopicPath();
+        final String namespace = topicPath.getNamespace();
+        if (TopicPath.ID_PLACEHOLDER.equals(namespace)) {
+            result = Optional.empty();
+        } else {
+            result = Optional.of(namespace);
+        }
+        return result;
+    }
+
     Optional<PolicyId> getPolicyId() {
         final Optional<PolicyId> result;
         final Optional<JsonValue> payloadValueOptional = getPayloadValue();
