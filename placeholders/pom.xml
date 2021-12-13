@@ -140,7 +140,7 @@
                 <groupId>com.github.siom79.japicmp</groupId>
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <configuration>
-                    <skip>true</skip> <!-- TODO remove after Ditto 2.1.0 release -->
+                    <skip>true</skip> <!-- TODO TJ remove after Ditto 2.2.0 release -->
                     <parameter>
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->

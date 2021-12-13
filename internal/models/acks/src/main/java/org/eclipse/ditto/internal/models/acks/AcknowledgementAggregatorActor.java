@@ -39,6 +39,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
 import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
 import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandResponseMatchingValidator;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
@@ -397,25 +398,9 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
         getContext().stop(getSelf());
     }
 
-    public static DittoHeadersSettable<?> restoreCommandConnectivityHeaders(final DittoHeadersSettable<?> signal,
-            final DittoHeaders requestCommandHeaders) {
-
-        final var signalDittoHeaders = signal.getDittoHeaders();
-        final var enhancedHeadersBuilder = signalDittoHeaders.toBuilder()
-                .removeHeader(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey())
-                .removeHeader(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey())
-                .removeHeader(DittoHeaderDefinition.REPLY_TARGET.getKey());
-        if (requestCommandHeaders.containsKey(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey())) {
-            enhancedHeadersBuilder.expectedResponseTypes(requestCommandHeaders.getExpectedResponseTypes());
-        }
-        requestCommandHeaders.getInboundPayloadMapper().ifPresent(enhancedHeadersBuilder::inboundPayloadMapper);
-        requestCommandHeaders.getReplyTarget().ifPresent(enhancedHeadersBuilder::replyTarget);
-
-        return signal.setDittoHeaders(enhancedHeadersBuilder.build());
-    }
-
     private void handleSignal(final DittoHeadersSettable<?> signal) {
-        responseSignalConsumer.accept(restoreCommandConnectivityHeaders(signal, originatingSignal.getDittoHeaders()));
+        responseSignalConsumer.accept(
+                CommandHeaderRestoration.restoreCommandConnectivityHeaders(signal, originatingSignal.getDittoHeaders()));
     }
 
     private static boolean containsOnlyTwinPersistedOrLiveResponse(final Acknowledgements aggregatedAcknowledgements) {
@@ -446,7 +431,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
     }
 
     private enum Control {
-        WAITING_FOR_ACKS_TIMED_OUT;
+        WAITING_FOR_ACKS_TIMED_OUT
     }
 
 }

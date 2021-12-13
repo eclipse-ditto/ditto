@@ -25,13 +25,13 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.AcknowledgementCorrelationIdMissingException;
-import org.eclipse.ditto.base.model.signals.Signal;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -98,8 +98,8 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
 
     private void forwardCommandResponse(final WithDittoHeaders acknowledgement) {
         log.withCorrelationId(acknowledgement)
-                .debug("Received Acknowledgement / live CommandResponse, forwarding to original requester: " +
-                        "<{}>", acknowledgement);
+                .debug("Received Acknowledgement / live CommandResponse, forwarding to original requester <{}>: " +
+                        "<{}>", acknowledgementRequester, acknowledgement);
         acknowledgementRequester.tell(acknowledgement, getSender());
     }
 

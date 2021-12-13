@@ -43,7 +43,6 @@ import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
@@ -83,10 +82,8 @@ import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
-import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
@@ -255,10 +252,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         } else {
             l.error("CommandResponse created from HTTP response, but no sender: <{}>", multiMapped.getSource());
         }
-    }
-
-    private boolean isLiveResponse(final WithDittoHeaders response) {
-        return response.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
     /**
