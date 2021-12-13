@@ -602,22 +602,6 @@ public final class MappingContextTest {
     }
 
     @Test
-    public void getFeaturePropertyPointerOrThrowThrowsExceptionIfMessagePathHasUnexpectedLevelCount() {
-        final JsonPointer path = JsonPointer.of("features/HX711/uint8_t HX711_DT[3]");
-        final Payload payload = ProtocolFactory.newPayloadBuilder()
-                .withPath(path)
-                .build();
-        Mockito.when(adaptable.getPayload()).thenReturn(payload);
-        final MappingContext underTest = MappingContext.of(adaptable);
-
-        assertThatExceptionOfType(IllegalAdaptableException.class)
-                .isThrownBy(underTest::getFeaturePropertyPointerOrThrow)
-                .withMessage("Message path of payload has <%d> levels which is less than the required <4> levels.",
-                        path.getLevelCount())
-                .withNoCause();
-    }
-
-    @Test
     public void getFeatureDesiredPropertyPointerOrThrowThrowsExceptionIfMessagePathHasNoPropertiesSegment() {
         final JsonPointer path = JsonPointer.of("features/HX711/foo/uint8_t HX711_DT[3]");
         final Payload payload = ProtocolFactory.newPayloadBuilder()
@@ -628,8 +612,20 @@ public final class MappingContextTest {
 
         assertThatExceptionOfType(IllegalAdaptableException.class)
                 .isThrownBy(underTest::getFeatureDesiredPropertyPointerOrThrow)
-                .withMessage("Message path of payload is not <desiredProperties> at level <2>.")
+                .withMessage("Message path of payload at level <2> is not <desiredProperties> but <foo>.")
                 .withNoCause();
+    }
+
+    @Test
+    public void getFeaturePropertyPointerOrThrowReturnsEmptyJsonPointerIfMessagePathHasNoPropertySubPointer() {
+        final JsonPointer path = JsonPointer.of("features/HX711/properties/");
+        final Payload payload = ProtocolFactory.newPayloadBuilder()
+                .withPath(path)
+                .build();
+        Mockito.when(adaptable.getPayload()).thenReturn(payload);
+        final MappingContext underTest = MappingContext.of(adaptable);
+
+        assertThat((CharSequence) underTest.getFeaturePropertyPointerOrThrow()).isEqualTo(JsonPointer.empty());
     }
 
     @Test
@@ -663,7 +659,8 @@ public final class MappingContextTest {
 
     @Test
     public void getFeatureDesiredPropertyPointerOrThrowThrowsExceptionIfMessagePathHasUnexpectedLevelCount() {
-        final JsonPointer path = JsonPointer.of("features/HX711/uint8_t HX711_DT[3]");
+        final String levelTwoKey = "uint8_t HX711_DT[3]";
+        final JsonPointer path = JsonPointer.of("features/HX711/" + levelTwoKey);
         final Payload payload = ProtocolFactory.newPayloadBuilder()
                 .withPath(path)
                 .build();
@@ -672,8 +669,7 @@ public final class MappingContextTest {
 
         assertThatExceptionOfType(IllegalAdaptableException.class)
                 .isThrownBy(underTest::getFeatureDesiredPropertyPointerOrThrow)
-                .withMessage("Message path of payload has <%d> levels which is less than the required <4> levels.",
-                        path.getLevelCount())
+                .withMessage("Message path of payload at level <2> is not <desiredProperties> but <%s>.", levelTwoKey)
                 .withNoCause();
     }
 
@@ -688,7 +684,7 @@ public final class MappingContextTest {
 
         assertThatExceptionOfType(IllegalAdaptableException.class)
                 .isThrownBy(underTest::getFeaturePropertyPointerOrThrow)
-                .withMessage("Message path of payload is not <properties> at level <2>.")
+                .withMessage("Message path of payload at level <2> is not <properties> but <foo>.")
                 .withNoCause();
     }
 

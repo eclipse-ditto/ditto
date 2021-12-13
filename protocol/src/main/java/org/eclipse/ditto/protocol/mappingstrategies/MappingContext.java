@@ -13,8 +13,13 @@
 package org.eclipse.ditto.protocol.mappingstrategies;
 
 import java.text.MessageFormat;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
@@ -59,7 +64,10 @@ final class MappingContext {
     private static final int FEATURE_PROPERTY_PATH_LEVEL = 3;
     private static final JsonKey POLICY_ENTRIES_PATH_PREFIX = JsonKey.of("entries");
     private static final int RESOURCES_PATH_LEVEL = 2;
-    private static final int SUBJECT_PATH_LEVEL = 3;
+    private static final JsonKey RESOURCES_LEVEL_KEY = JsonKey.of("resources");
+    private static final int SUBJECTS_PATH_LEVEL = 2;
+    private static final JsonKey SUBJECTS_LEVEL_KEY = JsonKey.of("subjects");
+    private static final int SUBJECT_PATH_LEVEL = SUBJECTS_PATH_LEVEL + 1;
     private static final int RESOURCE_PATH_LEVEL = 3;
 
     private final Adaptable adaptable;
@@ -319,36 +327,46 @@ final class MappingContext {
 
     @SuppressWarnings("java:S3655")
     private JsonPointer getFeaturePropertyPointerOrThrow(final JsonKey levelTwoKey) {
+        final String schema = "\"features/${FEATURE_ID}/properties/${PROPERTY_SUB_PATH_OR_PROPERTY_NAME}\"";
+        final Map<Integer, JsonKey> expectedPathSegments = new HashMap<>();
+        expectedPathSegments.put(0, FEATURE_PATH_PREFIX);
+        expectedPathSegments.put(FEATURE_PROPERTY_PATH_LEVEL - 1, levelTwoKey);
+        validateMessagePathSegments(expectedPathSegments, schema);
+
         final MessagePath messagePath = getMessagePath();
-        if (!messagePath.getRoot().filter(FEATURE_PATH_PREFIX::equals).isPresent()) {
-            throw newMessagePathInvalidPrefixException(FEATURE_PATH_PREFIX.asPointer());
-        } else {
-            if (messagePath.getLevelCount() <= FEATURE_PROPERTY_PATH_LEVEL) {
-                throw new IllegalAdaptableException(
-                        MessageFormat.format("Message path of payload has <{0,number}> levels which is less than" +
-                                        " the required <{1,number}> levels.",
-                                messagePath.getLevelCount(),
-                                FEATURE_PROPERTY_PATH_LEVEL + 1),
-                        "Please ensure that the message path complies to schema" +
-                                " \"features/${FEATURE_ID}/properties/${PROPERTY_SUB_PATH_OR_PROPERTY_NAME}\".",
-                        adaptable.getDittoHeaders()
-                );
+        return messagePath.getSubPointer(FEATURE_PROPERTY_PATH_LEVEL)
+                .orElseThrow(() -> new IllegalAdaptableException(
+                        MessageFormat.format("Message path of payload does not contain a sub-pointer" +
+                                " at level <{0,number}>.", FEATURE_PROPERTY_PATH_LEVEL),
+                        MessageFormat.format("Please ensure that the message path complies to schema {0}.", schema),
+                        adaptable.getDittoHeaders()));
+    }
+
+    private void validateMessagePathSegments(final Map<Integer, JsonKey> expectedSegments, final String schema) {
+        final MessagePath messagePath = getMessagePath();
+        final List<JsonKey> messagePathAsList =
+                StreamSupport.stream(messagePath.spliterator(), false).collect(Collectors.toList());
+
+        expectedSegments.forEach((level, expectedJsonKey) -> {
+            @Nullable final JsonKey actualJsonKey = messagePathAsList.get(level);
+            if (!Objects.equals(actualJsonKey, expectedJsonKey)) {
+                final String message;
+                if (0 == level) {
+                    message = MessageFormat.format("Message path of payload does not start with <{0}>.",
+                            expectedJsonKey.asPointer());
+                } else {
+                    message = MessageFormat.format(
+                            "Message path of payload at level <{1, number}> is not <{0}> but <{2}>.",
+                            expectedJsonKey,
+                            level,
+                            actualJsonKey
+                    );
+                }
+                throw new IllegalAdaptableException(message,
+                        MessageFormat.format("Please ensure that the message path complies to schema {0}.", schema),
+                        adaptable.getDittoHeaders());
             }
-            final boolean hasExpectedPropertiesSegment = messagePath.get(FEATURE_PROPERTY_PATH_LEVEL - 1)
-                    .filter(levelTwoKey::equals)
-                    .isPresent();
-            if (!hasExpectedPropertiesSegment) {
-                throw new IllegalAdaptableException(
-                        MessageFormat.format("Message path of payload is not <{0}> at level <{1,number}>.",
-                                levelTwoKey,
-                                FEATURE_PROPERTY_PATH_LEVEL - 1),
-                        "Please ensure that the message path complies to schema" +
-                                " \"features/${FEATURE_ID}/properties/${PROPERTY_SUB_PATH_OR_PROPERTY_NAME}\".",
-                        adaptable.getDittoHeaders()
-                );
-            }
-            return messagePath.getSubPointer(FEATURE_PROPERTY_PATH_LEVEL).get();
-        }
+        });
     }
 
     JsonPointer getFeatureDesiredPropertyPointerOrThrow() {
@@ -434,42 +452,23 @@ final class MappingContext {
     }
 
     ResourceKey getResourceKeyOrThrow() {
-        return getResourceKey()
-                .orElseThrow(() -> new IllegalAdaptableException("Path does not contain policy resource key.",
-                        "Please ensure that the path of the Adaptable contains the policy resource key.",
-                        adaptable.getDittoHeaders()));
-    }
 
-
-    private Optional<ResourceKey> getResourceKey() {
         // expected: entries/<entry>/resources/<type:/path1/path2>
-        final MessagePath path = getMessagePath();
-        return path.getRoot()
-                .filter(entries -> {
-                    if (Policy.JsonFields.ENTRIES.getPointer().equals(entries.asPointer())) {
-                        return true;
-                    } else {
-                        throw new IllegalAdaptableException(
-                                MessageFormat.format("Path does not include <{0}> but <{1}>",
-                                        Policy.JsonFields.ENTRIES.getPointer(),
-                                        entries),
-                                adaptable.getDittoHeaders());
-                    }
-                })
-                .flatMap(entries -> path.get(RESOURCES_PATH_LEVEL))
-                .filter(resources -> {
-                    if (PolicyEntry.JsonFields.RESOURCES.getPointer().equals(resources.asPointer())) {
-                        return true;
-                    } else {
-                        throw new IllegalAdaptableException(
-                                MessageFormat.format("Path does not include <{0}> but <{1}>",
-                                        PolicyEntry.JsonFields.RESOURCES.getPointer(),
-                                        resources),
-                                adaptable.getDittoHeaders());
-                    }
-                })
-                .flatMap(resources -> path.getSubPointer(RESOURCE_PATH_LEVEL))
-                .map(PoliciesModelFactory::newResourceKey);
+        final String schema = "\"entries/${POLICY_LABEL}/resources/${RESOURCE_KEY}\"";
+        final Map<Integer, JsonKey> expectedSegments = new HashMap<>();
+        expectedSegments.put(0, POLICY_ENTRIES_PATH_PREFIX);
+        expectedSegments.put(RESOURCES_PATH_LEVEL, RESOURCES_LEVEL_KEY);
+        validateMessagePathSegments(expectedSegments, schema);
+
+        final MessagePath messagePath = getMessagePath();
+        return messagePath.getSubPointer(RESOURCE_PATH_LEVEL)
+                .map(PoliciesModelFactory::newResourceKey)
+                .orElseThrow(() -> new IllegalAdaptableException(
+                        MessageFormat.format("Message messagePath of payload does have resource key " +
+                                "at level <{0,number}>.", RESOURCE_PATH_LEVEL),
+                        "Please ensure that the message path complies to schema " + schema + ".",
+                        adaptable.getDittoHeaders()
+                ));
     }
 
     Optional<Resource> getResource() {
@@ -477,52 +476,23 @@ final class MappingContext {
     }
 
     SubjectId getSubjectIdOrThrow() {
-        return getSubjectId()
-                .orElseThrow(() -> new IllegalAdaptableException("Path does not contain policy resource key.",
-                        "Please ensure that the path of the Adaptable contains the policy resource key.",
-                        adaptable.getDittoHeaders()));
-    }
 
-    private Optional<SubjectId> getSubjectId() {
-        // expected: entries/<entry>/resources/<issuer:subject>
-        final MessagePath path = getMessagePath();
-        return path.getRoot()
-                .filter(entries -> {
-                    if (Policy.JsonFields.ENTRIES.getPointer().equals(entries.asPointer())) {
-                        return true;
-                    } else {
-                        throw new IllegalAdaptableException(
-                                MessageFormat.format("Path does not include <{0}> but <{1}>.",
-                                        Policy.JsonFields.ENTRIES.getPointer(),
-                                        entries),
-                                adaptable.getDittoHeaders());
-                    }
-                })
-                .flatMap(entries -> path.get(RESOURCES_PATH_LEVEL))
-                .filter(resources -> {
-                    if (PolicyEntry.JsonFields.SUBJECTS.getPointer().equals(resources.asPointer())) {
-                        return true;
-                    } else {
-                        throw new IllegalAdaptableException(
-                                MessageFormat.format("Path does not include <{0}> but <{1}>.",
-                                        PolicyEntry.JsonFields.SUBJECTS.getPointer(),
-                                        resources),
-                                adaptable.getDittoHeaders());
-                    }
-                })
-                .flatMap(resources -> path.getSubPointer(SUBJECT_PATH_LEVEL))
-                .map(MappingContext::stripLeadingSlash)
-                .map(PoliciesModelFactory::newSubjectId);
-    }
+        // expected: entries/<entry>/subjects/<issuer:subject>
+        final String schema = "\"entries/${POLICY_LABEL}/subjects/${SUBJECT_ID}\"";
+        final Map<Integer, JsonKey> expectedPathSegments = new HashMap<>();
+        expectedPathSegments.put(0, JsonKey.of(POLICY_ENTRIES_PATH_PREFIX));
+        expectedPathSegments.put(SUBJECTS_PATH_LEVEL, SUBJECTS_LEVEL_KEY);
+        validateMessagePathSegments(expectedPathSegments, schema);
 
-    private static CharSequence stripLeadingSlash(final CharSequence charSequence) {
-        final CharSequence result;
-        if (0 < charSequence.length() && '/' == charSequence.charAt(0)) {
-            result = charSequence.subSequence(1, charSequence.length());
-        } else {
-            result = charSequence;
-        }
-        return result;
+        final MessagePath messagePath = getMessagePath();
+        return messagePath.get(SUBJECT_PATH_LEVEL)
+                .map(PoliciesModelFactory::newSubjectId)
+                .orElseThrow(() -> new IllegalAdaptableException(
+                        MessageFormat.format("Message path of payload does not contain a subject ID" +
+                                " at level <{0,number}>.", SUBJECT_PATH_LEVEL),
+                        "Please ensure that message path complies to schema " + schema + ".",
+                        adaptable.getDittoHeaders()
+                ));
     }
 
     Optional<Subject> getSubject() {
