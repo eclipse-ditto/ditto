@@ -21,14 +21,15 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,7 +46,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class MatchingValidationResultTest {
 
     private static final String DETAIL_MESSAGE = "My detail message.";
-    private static final ConnectionId CONNECTION_ID = ConnectionId.generateRandom();
+    private static final EntityId CONNECTION_ID = EntityId.of(EntityType.of("connection"), UUID.randomUUID().toString());
 
     @Mock private Command<?> command;
     @Mock private CommandResponse<?> commandResponse;
@@ -88,7 +89,7 @@ public final class MatchingValidationResultTest {
     public void assertImmutabilityForFailure() {
         assertInstancesOf(MatchingValidationResult.Failure.class,
                 areImmutable(),
-                provided(Command.class, CommandResponse.class).areAlsoImmutable());
+                provided(Command.class, CommandResponse.class, EntityId.class).areAlsoImmutable());
     }
 
     @Test
@@ -156,7 +157,7 @@ public final class MatchingValidationResultTest {
                         .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), "")
                         .build());
 
-        Assertions.assertThatExceptionOfType(ConnectionIdInvalidException.class)
+        Assertions.assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> MatchingValidationResult.failure(command, commandResponse, DETAIL_MESSAGE))
                 .withNoCause();
     }

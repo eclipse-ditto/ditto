@@ -22,10 +22,11 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.id.EntityId;
+import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
 
 /**
  * Represents the result of validating whether two particular signals are correlated to each other.
@@ -64,7 +65,7 @@ public abstract class MatchingValidationResult {
      * @param detailMessage the detail message of the failure.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException if the {@code DittoHeaders} of
+     * @throws org.eclipse.ditto.base.model.entity.id.EntityIdInvalidException if the {@code DittoHeaders} of
      * {@code commandResponse} contain an invalid value for {@link DittoHeaderDefinition#CONNECTION_ID}.
      * @throws IllegalArgumentException if {@code detailMessage} is empty or blank.
      */
@@ -126,7 +127,7 @@ public abstract class MatchingValidationResult {
 
         private final Command<?> command;
         private final CommandResponse<?> commandResponse;
-        private final Optional<ConnectionId> connectionId;
+        @Nullable private final EntityId connectionId;
         private final String detailMessage;
 
         private Failure(final Command<?> command,
@@ -143,18 +144,18 @@ public abstract class MatchingValidationResult {
              * Connection ID in DittoHeaders could be invalid as it gets not
              * validated by DittoHeaders.
              */
-            connectionId = getConnectionId(commandResponse);
+            connectionId = getConnectionId(commandResponse).orElse(null);
             this.detailMessage = checkArgument(checkNotNull(detailMessage, "detailMessage"),
                     Predicate.not(String::isBlank),
                     () -> "The detailMessage must not be blank.");
         }
 
-        private static Optional<ConnectionId> getConnectionId(final CommandResponse<?> commandResponse) {
-            final Optional<ConnectionId> result;
+        private static Optional<EntityId> getConnectionId(final CommandResponse<?> commandResponse) {
+            final Optional<EntityId> result;
             final var responseDittoHeaders = commandResponse.getDittoHeaders();
             final var connectionIdString = responseDittoHeaders.get(DittoHeaderDefinition.CONNECTION_ID.getKey());
             if (null != connectionIdString) {
-                result = Optional.of(ConnectionId.of(connectionIdString));
+                result = Optional.of(EntityId.of(EntityType.of("connection"), connectionIdString));
             } else {
                 result = Optional.empty();
             }
@@ -204,8 +205,8 @@ public abstract class MatchingValidationResult {
          *
          * @return the connection ID.
          */
-        public Optional<ConnectionId> getConnectionId() {
-            return connectionId;
+        public Optional<EntityId> getConnectionId() {
+            return Optional.ofNullable(connectionId);
         }
 
         @Override

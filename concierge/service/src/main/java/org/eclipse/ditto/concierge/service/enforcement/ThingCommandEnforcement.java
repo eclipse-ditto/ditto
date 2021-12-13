@@ -56,6 +56,7 @@ import org.eclipse.ditto.concierge.api.ConciergeMessagingConstants;
 import org.eclipse.ditto.concierge.service.actors.LiveResponseAndAcknowledgementForwarder;
 import org.eclipse.ditto.concierge.service.enforcement.placeholders.references.PolicyIdReferencePlaceholderResolver;
 import org.eclipse.ditto.concierge.service.enforcement.placeholders.references.ReferencePlaceholder;
+import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
 import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
@@ -329,7 +330,9 @@ public final class ThingCommandEnforcement
     private CompletionStage<ThingQueryCommandResponse<?>> doSmartChannelSelection(final ThingQueryCommand<?> command,
             final ThingQueryCommandResponse<?> response, final Instant startTime, final Enforcer enforcer) {
 
-        final var twinResponse = setTwinChannel(response);
+        final ThingQueryCommandResponse<?> twinResponseWithTwinChannel = setTwinChannel(response);
+        final ThingQueryCommandResponse<?> twinResponse = CommandHeaderRestoration.restoreCommandConnectivityHeaders(
+                twinResponseWithTwinChannel, command.getDittoHeaders());
         if (command.getDittoHeaders().getLiveChannelCondition().isEmpty() ||
                 !twinResponse.getDittoHeaders().didLiveChannelConditionMatch()) {
             return CompletableFuture.completedStage(twinResponse);
@@ -349,10 +352,11 @@ public final class ThingCommandEnforcement
         return response -> {
             if (response instanceof ThingQueryCommandResponse) {
                 return CompletableFuture.completedStage(
-                        setAdditionalHeaders((ThingQueryCommandResponse<?>) response));
+                        setAdditionalHeaders((ThingQueryCommandResponse<?>) response, liveCommand.getDittoHeaders()));
             } else if (response instanceof ErrorResponse) {
                 return CompletableFuture.failedStage(
-                        setAdditionalHeaders(((ErrorResponse<?>) response).getDittoRuntimeException()));
+                        setAdditionalHeaders(((ErrorResponse<?>) response),
+                                liveCommand.getDittoHeaders()).getDittoRuntimeException());
             } else if (response instanceof AskException || response instanceof AskTimeoutException) {
                 return applyTimeoutStrategy(liveCommand, twinResponse);
             } else {
@@ -364,11 +368,14 @@ public final class ThingCommandEnforcement
         };
     }
 
-    private static <T extends DittoHeadersSettable<T>> T setAdditionalHeaders(final DittoHeadersSettable<T> settable) {
+    private static <T extends DittoHeadersSettable<T>> T setAdditionalHeaders(final DittoHeadersSettable<T> settable,
+            final DittoHeaders commandHeaders) {
         // TODO: ensure pre-enforcer headers in responses
-        return settable.setDittoHeaders(settable.getDittoHeaders()
+        final T dittoHeadersSettable =
+                CommandHeaderRestoration.restoreCommandConnectivityHeaders(settable, commandHeaders);
+        return dittoHeadersSettable.setDittoHeaders(dittoHeadersSettable.getDittoHeaders()
                 .toBuilder()
-                .putHeaders(getAdditionalLiveResponseHeaders(settable.getDittoHeaders()))
+                .putHeaders(getAdditionalLiveResponseHeaders(dittoHeadersSettable.getDittoHeaders()))
                 .build());
     }
 
@@ -380,14 +387,17 @@ public final class ThingCommandEnforcement
             return CompletableFuture.completedStage(twinResponse);
         } else {
             final var timeout = LiveSignalEnforcement.getLiveSignalTimeout(command);
-            final var timeoutException = GatewayCommandTimeoutException.newBuilder(timeout)
+            final GatewayCommandTimeoutException timeoutException = GatewayCommandTimeoutException.newBuilder(timeout)
                     .dittoHeaders(twinResponse.getDittoHeaders()
                             .toBuilder()
                             .channel(TopicPath.Channel.LIVE.getName())
                             .putHeaders(getAdditionalLiveResponseHeaders(twinResponse.getDittoHeaders()))
                             .build())
                     .build();
-            return CompletableFuture.failedStage(timeoutException);
+            final GatewayCommandTimeoutException timeoutExceptionWithConnectivityHeaders =
+                    CommandHeaderRestoration.restoreCommandConnectivityHeaders(timeoutException,
+                            command.getDittoHeaders());
+            return CompletableFuture.failedStage(timeoutExceptionWithConnectivityHeaders);
         }
     }
 

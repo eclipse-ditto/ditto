@@ -156,7 +156,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     () -> logger.withCorrelationId(failure.getCommand())
                             .warning("Discarding invalid response as connection ID of sender could not be determined.");
             failure.getConnectionId()
-                    .map(connectionId -> getAddConnectionLogEntry(connectionId, failure))
+                    .map(connectionId -> getAddConnectionLogEntry(ConnectionId.of(connectionId), failure))
                     .ifPresentOrElse(addConnectionLogEntry, logMissingConnectionId);
         };
     }
