@@ -384,15 +384,15 @@ public final class ThingCommandEnforcement
                 SignalInformationPoint.isChannelLive(command);
     }
 
-    private static <T extends DittoHeadersSettable<T>> T setAdditionalHeaders(final DittoHeadersSettable<T> settable,
+    private static <T extends DittoHeadersSettable<?>> T setAdditionalHeaders(final T settable,
             final DittoHeaders commandHeaders) {
         // TODO: ensure pre-enforcer headers in responses
-        final T dittoHeadersSettable =
-                CommandHeaderRestoration.restoreCommandConnectivityHeaders(settable, commandHeaders);
-        return dittoHeadersSettable.setDittoHeaders(dittoHeadersSettable.getDittoHeaders()
+        final DittoHeaders dittoHeaders = settable.getDittoHeaders();
+        final DittoHeadersSettable<?> theSettable = settable.setDittoHeaders(dittoHeaders
                 .toBuilder()
-                .putHeaders(getAdditionalLiveResponseHeaders(dittoHeadersSettable.getDittoHeaders()))
+                .putHeaders(getAdditionalLiveResponseHeaders(dittoHeaders))
                 .build());
+        return (T) CommandHeaderRestoration.restoreCommandConnectivityHeaders(theSettable, commandHeaders);
     }
 
     private static CompletionStage<ThingQueryCommandResponse<?>> applyTimeoutStrategy(

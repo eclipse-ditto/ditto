@@ -96,11 +96,11 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
                 .build();
     }
 
-    private void forwardCommandResponse(final WithDittoHeaders acknowledgement) {
-        log.withCorrelationId(acknowledgement)
+    private void forwardCommandResponse(final WithDittoHeaders acknowledgementOrResponse) {
+        log.withCorrelationId(acknowledgementOrResponse)
                 .debug("Received Acknowledgement / live CommandResponse, forwarding to original requester <{}>: " +
-                        "<{}>", acknowledgementRequester, acknowledgement);
-        acknowledgementRequester.tell(acknowledgement, getSender());
+                        "<{}>", acknowledgementRequester, acknowledgementOrResponse);
+        acknowledgementRequester.tell(acknowledgementOrResponse, getSender());
     }
 
     private void handleReceiveTimeout(final ReceiveTimeout receiveTimeout) {

@@ -35,7 +35,7 @@ public final class CommandHeaderRestoration {
      */
     @SuppressWarnings("unchecked")
     public static <T extends DittoHeadersSettable<?>> T restoreCommandConnectivityHeaders(
-            final DittoHeadersSettable<?> signal,
+            final T signal,
             final DittoHeaders headersToRestoreFrom) {
 
         final var signalDittoHeaders = signal.getDittoHeaders();

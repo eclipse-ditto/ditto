@@ -460,7 +460,11 @@ public final class InboundDispatchingSink
                                 return ConnectivityErrorResponse.of(dre, originalHeaders);
                             }
                         })
-                        .thenAccept(response -> sender.tell(response, ActorRef.noSender()));
+                        .thenAccept(response -> sender.tell(response, ActorRef.noSender()))
+                        .exceptionally(throwable -> {
+                            logger.warn("Error during dispatching incoming signal <{}>", incomingSignal, throwable);
+                            return null;
+                        });
             } else {
                 proxyActor.tell(signal, sender);
             }

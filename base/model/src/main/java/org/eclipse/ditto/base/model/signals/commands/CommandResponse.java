@@ -51,8 +51,7 @@ public interface CommandResponse<T extends CommandResponse<T>> extends Signal<T>
 
     /**
      * Indicates whether this response is of a type contained in
-     * {@link org.eclipse.ditto.base.model.headers.DittoHeaderDefinition#EXPECTED_RESPONSE_TYPES} header or whether it
-     * was a {@code "live"} response which always is expected.
+     * {@link org.eclipse.ditto.base.model.headers.DittoHeaderDefinition#EXPECTED_RESPONSE_TYPES} header.
      *
      * @return true if this response is expected, false if not.
      * @since 1.2.0
