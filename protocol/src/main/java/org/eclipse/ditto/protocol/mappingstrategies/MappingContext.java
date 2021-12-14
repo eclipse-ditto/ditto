@@ -288,9 +288,14 @@ final class MappingContext {
         if (payloadValueOptional.isPresent()) {
             final JsonValue jsonValue = payloadValueOptional.get();
             if (jsonValue.isObject()) {
-                result = Optional.of(ThingsModelFactory.newFeatureBuilder(jsonValue.asObject())
-                        .useId(getFeatureIdOrThrow())
-                        .build());
+                final JsonObject jsonObject = jsonValue.asObject();
+                if (jsonObject.isNull()) {
+                    result = Optional.empty();
+                } else {
+                    result = Optional.of(ThingsModelFactory.newFeatureBuilder(jsonObject)
+                            .useId(getFeatureIdOrThrow())
+                            .build());
+                }
             } else {
                 throw newPayloadValueNotJsonObjectException(Feature.class, jsonValue);
             }
