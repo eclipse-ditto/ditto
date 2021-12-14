@@ -160,7 +160,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 // retrieve created thing
                 final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersV2);
                 underTest.tell(retrieveThing, getRef());
-                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, thing.toJson(), dittoHeadersV2));
+                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, null, dittoHeadersV2));
 
                 // terminate thing persistence actor
                 final String thingActorPath = String.format("akka://AkkaTestSystem/user/%s/pa", thingId);
@@ -479,7 +479,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing);
 
                 underTest.tell(retrieveThingCommand, getRef());
-                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, thing.toJson(), dittoHeadersV2));
+                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, null, dittoHeadersV2));
             }
         };
     }
@@ -891,7 +891,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         .withSelectedFields(versionFieldSelector)
                         .build();
                 underTest.tell(retrieveThing, getRef());
-                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, thingExpected.toJson(versionFieldSelector),
+                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, versionFieldSelector,
                         dittoHeadersV2));
             }
         };
@@ -938,7 +938,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 Awaitility.await().atMost(10L, TimeUnit.SECONDS).untilAsserted(() -> {
                     underTestAfterRestart.tell(retrieveThing, getRef());
-                    expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, thingExpected.toJson(versionFieldSelector),
+                    expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, versionFieldSelector,
                             dittoHeadersV2));
                 });
             }
