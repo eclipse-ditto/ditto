@@ -53,7 +53,6 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
-import org.mockito.Mockito;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.typesafe.config.Config;
@@ -178,7 +177,7 @@ public final class TestSetup {
                     CaffeineCache.of(Caffeine.newBuilder(), thingEnforcementIdCacheLoader);
 
             final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
-            final LiveSignalPub liveSignalPub = Mockito.mock(LiveSignalPub.class);
+            final LiveSignalPub liveSignalPub = new DummyLiveSignalPub(puSubMediatorRef);
             enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
                     policiesShardRegion, thingIdCache, projectedEnforcerCache, preEnforcer, liveSignalPub,
                     system));
@@ -186,7 +185,7 @@ public final class TestSetup {
             enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache,
                     projectedEnforcerCache,
                     system,
-                    new DummyLiveSignalPub(puSubMediatorRef),
+                    liveSignalPub,
                     ENFORCEMENT_CONFIG));
             final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, preEnforcer,
                     null, null);
