@@ -70,13 +70,6 @@ public final class EvictingConnectionLoggerTest {
     }
 
     @Test
-    public void testEqualsAndHashcode() {
-        EqualsVerifier.forClass(EvictingConnectionLogger.class)
-                .usingGetClass()
-                .verify();
-    }
-
-    @Test
     public void logTypeAndCategoryAreUsedForLogEntries() {
         final var logger = builder.build();
         final var infoProvider = InfoProviderFactory.forSignal(RetrieveThing.of(EvictingConnectionLoggerTest.THING_ID,
@@ -305,7 +298,7 @@ public final class EvictingConnectionLoggerTest {
     public void exceptionsUsesMessageOfExceptionOrElseDefault() {
         final var defaultSuccessMessage = "this is a success";
         final var defaultFailureMessage = "this is also success";
-        final var defaultExceptionMessage = "hey there: {0}";
+        final var defaultExceptionMessage = "hey there: {1}";
 
         final var test = "test";
         final var notSpecified = "not specified";
@@ -316,12 +309,12 @@ public final class EvictingConnectionLoggerTest {
 
         logger.exception(getInfoProvider(), new Exception(test));
         LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger))
-                .hasMessage(formatString(defaultExceptionMessage, test));
+                .hasMessage(formatString("hey there: {0}", test));
 
         logger.clear();
         logger.exception(getInfoProvider(), null);
         LogEntryAssertions.assertThat(getFirstAndOnlyEntry(logger))
-                .hasMessage(formatString(defaultExceptionMessage, notSpecified));
+                .hasMessage(formatString("hey there: {0}", notSpecified));
 
         final var withoutFormatting = "withoutAnyFormatting";
 
@@ -372,6 +365,13 @@ public final class EvictingConnectionLoggerTest {
 
         LogEntryAssertions.assertThat(entry)
                 .hasMessageContainingPayload(payloadWithBadCharacters);
+    }
+
+    @Test
+    public void testEqualsAndHashcode() {
+        EqualsVerifier.forClass(EvictingConnectionLogger.class)
+                .usingGetClass()
+                .verify();
     }
 
     @Test

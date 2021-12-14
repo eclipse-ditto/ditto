@@ -62,7 +62,7 @@ import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
-import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
@@ -147,7 +147,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
         new TestKit(actorSystem) {{
             //Arrange
-            final Amqp10Config connectionConfig = loadConnectionConfig().getAmqp10Config();
+            final Amqp10Config connectionConfig = loadConnectivityConfig().getConnectionConfig().getAmqp10Config();
             final TestProbe probe = new TestProbe(actorSystem);
             setupMocks(probe);
             final String ack = "just-an-ack";
@@ -243,10 +243,10 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                     TestConstants.Targets.TWIN_TARGET.withAddress(ANOTHER_ADDRESS)))
                             .build(),
                     session,
-                    loadConnectionConfig(),
                     "clientId",
                     proxyActor,
-                    connectivityStatusResolver);
+                    connectivityStatusResolver,
+                    loadConnectivityConfig());
             final ActorRef publisherActor = actorSystem.actorOf(props);
 
             publisherCreated(this, publisherActor);
@@ -306,10 +306,10 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                     TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())))
                             .build(),
                     session,
-                    loadConnectionConfig(),
                     "clientId",
                     proxyActor,
-                    connectivityStatusResolver);
+                    connectivityStatusResolver,
+                    loadConnectivityConfig());
             final ActorRef publisherActor = actorSystem.actorOf(props);
             publisherCreated(this, publisherActor);
 
@@ -345,10 +345,10 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                                         getOutboundAddress() + "/{{ thing:id }}")))
                                 .build(),
                         session,
-                        loadConnectionConfig(),
                         "clientId",
                         proxyActor,
-                        connectivityStatusResolver);
+                        connectivityStatusResolver,
+                        loadConnectivityConfig());
                 final ActorRef publisherActor = actorSystem.actorOf(props);
                 publisherCreated(this, publisherActor);
 
@@ -401,10 +401,10 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                             TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())))
                             .build(),
                     session,
-                    loadConnectionConfig(),
                     "clientId",
                     proxyActor,
-                    connectivityStatusResolver);
+                    connectivityStatusResolver,
+                    loadConnectivityConfig());
 
             final ActorRef publisherActor = actorSystem.actorOf(props);
             publisherCreated(this, publisherActor);
@@ -475,8 +475,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return AmqpPublisherActor.props(TestConstants.createConnection(), session, loadConnectionConfig(),
-                "clientId", proxyActor, connectivityStatusResolver);
+        return AmqpPublisherActor.props(TestConstants.createConnection(), session, "clientId",
+                proxyActor, connectivityStatusResolver, loadConnectivityConfig());
     }
 
     @Override
@@ -542,7 +542,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
         kit.expectMsgClass(Status.Success.class);
     }
 
-    private static ConnectionConfig loadConnectionConfig() {
-        return DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG)).getConnectionConfig();
+    private static ConnectivityConfig loadConnectivityConfig() {
+        return DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG));
     }
 }

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.nio.ByteBuffer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
@@ -21,6 +22,7 @@ import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AcknowledgeableMessage;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
@@ -52,6 +54,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
     private final Sink<CommittableTransformationResult, NotUsed> dreSink;
     private final Sink<CommittableTransformationResult, NotUsed> unexpectedMessageSink;
     private final Consumer.DrainingControl<Done> consumerControl;
+    private final KafkaConsumerMetrics consumerMetrics;
 
     AtLeastOnceConsumerStream(
             final AtLeastOnceKafkaConsumerSourceSupplier sourceSupplier,
@@ -63,25 +66,27 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
             final ConnectionMonitor inboundMonitor,
             final ConnectionMonitor ackMonitor,
             final Sink<AcknowledgeableMessage, NotUsed> inboundMappingSink,
-            final Sink<DittoRuntimeException, ?> exceptionSink) {
+            final Sink<DittoRuntimeException, ?> exceptionSink,
+            final ConnectionId connectionId,
+            final String consumerId) {
 
         this.ackMonitor = ackMonitor;
 
         // Pre materialize sinks with MergeHub to avoid multiple materialization per kafka record in processTransformationResult
-        this.externalMessageSink = MergeHub.of(KafkaAcknowledgableMessage.class)
+        externalMessageSink = MergeHub.of(KafkaAcknowledgableMessage.class)
                 .map(KafkaAcknowledgableMessage::getAcknowledgeableMessage)
                 .to(inboundMappingSink)
                 .run(materializer);
 
-        this.dreSink = MergeHub.of(CommittableTransformationResult.class)
+        dreSink = MergeHub.of(CommittableTransformationResult.class)
                 .map(AtLeastOnceConsumerStream::extractDittoRuntimeException)
                 .to(exceptionSink)
                 .run(materializer);
 
-        this.unexpectedMessageSink = MergeHub.of(CommittableTransformationResult.class)
+        unexpectedMessageSink = MergeHub.of(CommittableTransformationResult.class)
                 .to(Sink.foreach(transformationResult -> inboundMonitor.exception(
                         "Got unexpected transformation result <{0}>. This is an internal error. " +
-                                "Please contact the service team.", transformationResult)))
+                                "Please contact the service team", transformationResult)))
                 .run(materializer);
 
         this.materializer = materializer;
@@ -93,6 +98,8 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
                 .mapAsync(throttlingConfig.getMaxInFlight(), x -> x)
                 .toMat(Committer.sink(committerSettings), Consumer::createDrainingControl)
                 .run(materializer);
+
+        consumerMetrics = KafkaConsumerMetrics.newInstance(consumerControl, connectionId, consumerId);
     }
 
     @Override
@@ -103,6 +110,11 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
     @Override
     public CompletionStage<Done> stop() {
         return consumerControl.drainAndShutdown(materializer.executionContext());
+    }
+
+    @Override
+    public void reportMetrics() {
+        consumerMetrics.reportMetrics();
     }
 
     private Source<CompletableFuture<CommittableOffset>, NotUsed> processTransformationResult(
@@ -118,7 +130,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         if (isExternalMessage(result)) {
             return Source.single(result)
                     .map(this::toAcknowledgeableMessage)
-                    .alsoTo(this.externalMessageSink)
+                    .alsoTo(externalMessageSink)
                     .map(KafkaAcknowledgableMessage::getAcknowledgementFuture);
         }
         /*
@@ -151,7 +163,7 @@ final class AtLeastOnceConsumerStream implements KafkaConsumerStream {
         return new KafkaAcknowledgableMessage(externalMessage, committableOffset, ackMonitor);
     }
 
-    private static boolean isNotDryRun(final ConsumerRecord<String, String> cRecord, final boolean dryRun) {
+    private static boolean isNotDryRun(final ConsumerRecord<String, ByteBuffer> cRecord, final boolean dryRun) {
         if (dryRun && LOGGER.isDebugEnabled()) {
             LOGGER.debug("Dropping record (key: {}, topic: {}, partition: {}, offset: {}) in dry run mode.",
                     cRecord.key(), cRecord.topic(), cRecord.partition(), cRecord.offset());

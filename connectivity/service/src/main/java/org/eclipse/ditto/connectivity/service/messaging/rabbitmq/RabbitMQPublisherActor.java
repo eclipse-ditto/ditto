@@ -54,11 +54,10 @@ import org.eclipse.ditto.connectivity.model.GenericTarget;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Target;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
@@ -69,7 +68,6 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.ConfirmListener;
 import com.rabbitmq.client.ReturnListener;
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -110,10 +108,10 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     private RabbitMQPublisherActor(final Connection connection,
             final String clientId,
             final ActorRef proxyActor,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
-        super(connection, clientId, proxyActor, connectivityStatusResolver);
-        final Config config = getContext().getSystem().settings().config();
-        pendingAckTTL = DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(config))
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
+        super(connection, clientId, proxyActor, connectivityStatusResolver, connectivityConfig);
+        pendingAckTTL = connectivityConfig
                 .getConnectionConfig()
                 .getAmqp091Config()
                 .getPublisherPendingAckTTL();
@@ -127,11 +125,13 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
+     * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection, final String clientId, final ActorRef proxyActor,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
-        return Props.create(RabbitMQPublisherActor.class, connection, clientId, proxyActor, connectivityStatusResolver);
+            final ConnectivityStatusResolver connectivityStatusResolver, final ConnectivityConfig connectivityConfig) {
+        return Props.create(RabbitMQPublisherActor.class, connection, clientId, proxyActor, connectivityStatusResolver,
+                connectivityConfig);
     }
 
     @Override

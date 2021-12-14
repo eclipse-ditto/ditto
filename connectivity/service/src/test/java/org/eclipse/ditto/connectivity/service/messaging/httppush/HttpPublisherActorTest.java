@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPublisherActor.OMIT_REQUEST_BODY_CONFIG_KEY;
 import static org.eclipse.ditto.connectivity.service.messaging.httppush.HttpTestDittoProtocolHelper.signalToJsonString;
 import static org.eclipse.ditto.connectivity.service.messaging.httppush.HttpTestDittoProtocolHelper.signalToMultiMapped;
 import static org.mockito.Mockito.mock;
@@ -25,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -42,13 +43,16 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
+import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
@@ -72,7 +76,9 @@ import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.event.LoggingAdapter;
 import akka.http.javadsl.model.ContentTypes;
+import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpHeader;
+import akka.http.javadsl.model.HttpMethod;
 import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
@@ -116,7 +122,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected Props getPublisherActorProps() {
         return HttpPublisherActor.props(TestConstants.createConnection(), httpPushFactory, "clientId",
-                proxyActor, mock(ConnectivityStatusResolver.class));
+                proxyActor, mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
     }
 
     @Override
@@ -732,7 +738,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .credentials(hmacCredentials)
                     .build();
             final var props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
-                    proxyActor, mock(ConnectivityStatusResolver.class));
+                    proxyActor, mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
             final var publisherActor = childActorOf(props);
             publisherCreated(this, publisherActor);
 
@@ -799,7 +805,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .credentials(hmacCredentials)
                     .build();
             final var props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
-                    proxyActor, mock(ConnectivityStatusResolver.class));
+                    proxyActor, mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
             final var publisherActor = childActorOf(props);
             publisherCreated(this, publisherActor);
 
@@ -895,6 +901,64 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(request.getUri().getPathString()).isEqualTo("/my/awesome/path");
     }
 
+    @Test
+    public void testOmitRequestBody() throws Exception {
+        testOmitRequestBody(HttpMethods.GET, Map.of(), true);
+        testOmitRequestBody(HttpMethods.GET, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, "GET"), true);
+        testOmitRequestBody(HttpMethods.GET, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, "POST"), false);
+        testOmitRequestBody(HttpMethods.GET, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, ""), false);
+        testOmitRequestBody(HttpMethods.DELETE, Map.of(), true);
+        testOmitRequestBody(HttpMethods.DELETE, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, "GET,DELETE"), true);
+        testOmitRequestBody(HttpMethods.DELETE, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, "GET"), false);
+        testOmitRequestBody(HttpMethods.DELETE, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, ""), false);
+    }
+
+    private void testOmitRequestBody(final HttpMethod method, final Map<String, String> specificConfig,
+            final boolean expectEmptyBody) throws Exception {
+        new TestKit(actorSystem) {{
+
+            final TestProbe probe = new TestProbe(actorSystem);
+            setupMocks(probe);
+            final Target testTarget =
+                    ConnectivityModelFactory.newTargetBuilder(createTestTarget())
+                            .address(method.name() + ":/path")
+                            .build();
+            final OutboundSignal.MultiMapped multiMapped =
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(getMockOutboundSignal(testTarget)),
+                            getRef());
+
+            final Connection connection =
+                    TestConstants.createConnection().toBuilder().specificConfig(specificConfig).build();
+            final Props props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
+                    proxyActor, mock(ConnectivityStatusResolver.class),
+                    ConnectivityConfig.of(actorSystem.settings().config()));
+            final ActorRef publisherActor = childActorOf(props);
+
+            publisherCreated(this, publisherActor);
+
+            publisherActor.tell(multiMapped, getRef());
+
+            final HttpRequest request = received.take();
+            assertThat(received).isEmpty();
+            assertThat(request.method()).isEqualTo(method);
+            if (expectEmptyBody) {
+                assertThat(request.entity().isKnownEmpty()).isTrue();
+            } else {
+                final HttpEntity.Strict entity = request.entity()
+                        .toStrict(60_000L, SystemMaterializer.get(actorSystem).materializer())
+                        .toCompletableFuture()
+                        .join();
+                assertThat(entity.getData().utf8String()).isEqualTo("payload");
+                if (!entity.getContentType().toString().equals(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)) {
+                    // Ditto protocol content type is parsed as binary for some reason
+                    assertThat(entity.getContentType().binary()).isFalse();
+                }
+            }
+        }};
+
+    }
+
+
     private HttpRequest publishMessageWithHeaders(final Map<String, String> headers) throws InterruptedException {
         final var published = new Container<HttpRequest>();
         new TestKit(actorSystem) {{
@@ -988,11 +1052,12 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         }
 
         @Override
-        public <T> Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> createFlow(final ActorSystem system,
+        public Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?> createFlow(
+                final ActorSystem system,
                 final LoggingAdapter log, final Duration requestTimeout, @Nullable final PreparedTimer timer,
-                @Nullable final Consumer<Duration> consumer) {
+                @Nullable final BiConsumer<Duration, ConnectionMonitor.InfoProvider> consumer) {
 
-            return Flow.<Pair<HttpRequest, T>>create()
+            return Flow.<Pair<HttpRequest, HttpPushContext>>create()
                     .map(pair -> Pair.create(Try.apply(() -> mapper.apply(pair.first())), pair.second()));
         }
 

@@ -15,6 +15,7 @@ package org.eclipse.ditto.concierge.service.enforcement;
 import static org.eclipse.ditto.base.model.json.JsonSchemaVersion.V_2;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -114,9 +115,10 @@ public final class TestSetup {
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
             final ActorRef pubSubMediatorRef,
-            @Nullable final PreEnforcer preEnforcer) {
+            @Nullable final PreEnforcer preEnforcer,
+            @Nullable final CreationRestrictionEnforcer creationRestrictionEnforcer) {
         return new EnforcerActorBuilder(system, testActorRef, thingsShardRegion, policiesShardRegion, pubSubMediatorRef)
-                .setPreEnforcer(preEnforcer).build();
+                .setPreEnforcer(preEnforcer).setCreationRestrictionEnforcer(creationRestrictionEnforcer).build();
     }
 
     static class EnforcerActorBuilder {
@@ -128,6 +130,7 @@ public final class TestSetup {
         private final ActorRef puSubMediatorRef;
         @Nullable private ActorRef conciergeForwarder;
         @Nullable private PreEnforcer preEnforcer;
+        @Nullable private CreationRestrictionEnforcer creationRestrictionEnforcer;
 
         EnforcerActorBuilder(final ActorSystem system, final ActorRef testActorRef, final ActorRef thingsShardRegion,
                 final ActorRef policiesShardRegion) {
@@ -157,11 +160,15 @@ public final class TestSetup {
             return this;
         }
 
+        public EnforcerActorBuilder setCreationRestrictionEnforcer(@Nullable final CreationRestrictionEnforcer creationRestrictionEnforcer) {
+            this.creationRestrictionEnforcer = creationRestrictionEnforcer;
+            return this;
+        }
+
         public ActorRef build() {
 
-            if (conciergeForwarder == null) {
-                conciergeForwarder = new TestProbe(system, createUniqueName()).ref();
-            }
+            var conciergeForwarder = Optional.ofNullable(this.conciergeForwarder)
+                    .orElseGet(() -> new TestProbe(system, createUniqueName()).ref());
 
             final AskWithRetryConfig askWithRetryConfig = CACHES_CONFIG.getAskWithRetryConfig();
 
@@ -177,9 +184,11 @@ public final class TestSetup {
                     CaffeineCache.of(Caffeine.newBuilder(), thingEnforcementIdCacheLoader);
 
             final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
-            enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
-                    policiesShardRegion, thingIdCache, projectedEnforcerCache, preEnforcer));
-            enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
+            enforcementProviders.add(new ThingCommandEnforcement.Provider(system, thingsShardRegion,
+                    policiesShardRegion, thingIdCache, projectedEnforcerCache, preEnforcer,
+                    creationRestrictionEnforcer));
+            enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache,
+                    creationRestrictionEnforcer));
             enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache,
                     projectedEnforcerCache,
                     system,

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.nio.ByteBuffer;
+
 import akka.actor.ActorSystem;
 import akka.kafka.ProducerSettings;
 import akka.kafka.javadsl.SendProducer;
@@ -21,11 +23,12 @@ import akka.kafka.javadsl.SendProducer;
  */
 final class DefaultSendProducerFactory implements SendProducerFactory {
 
-    private final ProducerSettings<String, String> producerSettings;
+    private final ProducerSettings<String, ByteBuffer> producerSettings;
     private final ActorSystem actorSystem;
 
-    private DefaultSendProducerFactory(final ProducerSettings<String, String> producerSettings,
+    private DefaultSendProducerFactory(final ProducerSettings<String, ByteBuffer> producerSettings,
             final ActorSystem actorSystem) {
+
         this.producerSettings = producerSettings;
         this.actorSystem = actorSystem;
     }
@@ -37,13 +40,14 @@ final class DefaultSendProducerFactory implements SendProducerFactory {
      * @param actorSystem the actor system
      * @return a Kafka SendProducerFactory.
      */
-    static DefaultSendProducerFactory getInstance(final ProducerSettings<String, String> producerSettings,
+    static DefaultSendProducerFactory getInstance(final ProducerSettings<String, ByteBuffer> producerSettings,
             final ActorSystem actorSystem) {
+
         return new DefaultSendProducerFactory(producerSettings, actorSystem);
     }
 
     @Override
-    public SendProducer<String, String> newSendProducer() {
+    public SendProducer<String, ByteBuffer> newSendProducer() {
         return new SendProducer<>(producerSettings, actorSystem);
     }
 

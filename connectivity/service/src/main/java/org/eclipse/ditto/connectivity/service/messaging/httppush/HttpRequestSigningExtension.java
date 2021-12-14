@@ -20,6 +20,7 @@ import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
+import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
@@ -88,6 +89,11 @@ public final class HttpRequestSigningExtension implements Extension, Credentials
                             credentials.getAlgorithm()))
                     .build();
         }
+    }
+
+    @Override
+    public HttpRequestSigning oauthClientCredentials(final OAuthClientCredentials credentials) {
+        return NoOpSigning.INSTANCE;
     }
 
     /**

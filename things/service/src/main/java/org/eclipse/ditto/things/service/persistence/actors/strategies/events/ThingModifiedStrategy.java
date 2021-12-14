@@ -25,16 +25,13 @@ import org.eclipse.ditto.things.model.signals.events.ThingModified;
 @Immutable
 final class ThingModifiedStrategy extends AbstractThingEventStrategy<ThingModified> {
 
-    protected ThingModifiedStrategy() {
+    ThingModifiedStrategy() {
         super();
     }
 
     /**
-     * Merges the modifications from {@code thingWithModifications} to {@code thingBuilder}.
-     * Merge is implemented very simple: All first level fields of {@code thingWithModifications} overwrite the first
-     * level fields of {@code thingBuilder}.
-     * If a field does not exist in the event's Thing, a maybe existing field in {@code thingBuilder} remains
-     * unchanged.
+     * Applies the modifications from {@code thingWithModifications} to {@code thingBuilder} by overwriting the
+     * existing thing with the modified thing.
      */
     @Override
     protected ThingBuilder.FromCopy applyEvent(final ThingModified event, final ThingBuilder.FromCopy thingBuilder) {

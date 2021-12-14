@@ -29,6 +29,7 @@ import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.Connecti
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigUnavailableException;
 import org.eclipse.ditto.connectivity.service.messaging.kafka.MessageRejectedException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
+import org.eclipse.ditto.jwt.model.JwtInvalidException;
 import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.placeholders.PlaceholderFunctionSignatureInvalidException;
 import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
@@ -70,6 +71,7 @@ public final class ConnectivityServiceGlobalErrorRegistryTest extends GlobalErro
                 PathUnknownException.class,
                 UnknownTopicPathException.class,
                 MessageRejectedException.class,
+                JwtInvalidException.class,
                 IllegalAdaptableException.class);
     }
 

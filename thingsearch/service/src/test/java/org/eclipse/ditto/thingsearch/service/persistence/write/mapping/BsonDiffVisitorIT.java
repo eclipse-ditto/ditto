@@ -59,6 +59,7 @@ public class BsonDiffVisitorIT {
     private MongoCollection<Document> collection;
     private ActorSystem system;
     private Enforcer enforcer;
+    private Enforcer enforcer2;
 
     @Before
     public void init() {
@@ -70,18 +71,27 @@ public class BsonDiffVisitorIT {
 
         system = ActorSystem.create();
 
-        enforcer = PolicyEnforcers.defaultEvaluator(
-                PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy", "id"))
-                        .forLabel("grant-root")
-                        .setSubject("grant:" + "root".repeat(20), SubjectType.GENERATED)
-                        .setGrantedPermissions(THING, "/", Permission.READ)
-                        .forLabel("grant-d")
-                        .setSubject("grant:" + "dx.e".repeat(20), SubjectType.GENERATED)
-                        .setGrantedPermissions(THING, "/d/e", Permission.READ)
-                        .forLabel("revoke")
-                        .setSubject("revoke:" + "dx.e".repeat(20), SubjectType.GENERATED)
-                        .setRevokedPermissions(THING, "/d/e", Permission.READ)
-                        .build());
+        final int n = 20;
+        final var policy = PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy", "id"))
+                .forLabel("grant-root")
+                .setSubject("grant:" + "root".repeat(n), SubjectType.GENERATED)
+                .setGrantedPermissions(THING, "/", Permission.READ)
+                .forLabel("grant-d")
+                .setSubject("grant:" + "dx.e".repeat(n), SubjectType.GENERATED)
+                .setGrantedPermissions(THING, "/d/e", Permission.READ)
+                .forLabel("revoke")
+                .setSubject("revoke:" + "dx.e".repeat(n), SubjectType.GENERATED)
+                .setRevokedPermissions(THING, "/d/e", Permission.READ)
+                .build();
+
+        enforcer = PolicyEnforcers.defaultEvaluator(policy);
+
+        enforcer2 = PolicyEnforcers.defaultEvaluator(policy.toBuilder()
+                .forLabel("additional")
+                .setSubject("revoke:" + "dx.e".repeat(n), SubjectType.GENERATED)
+                .setGrantedPermissions(THING, "/d/e/f", Permission.READ)
+                .setGrantedPermissions(THING, "/d/e/h", Permission.READ)
+                .build());
     }
 
     @After
@@ -115,6 +125,76 @@ public class BsonDiffVisitorIT {
         assertThat(updateDoc.toString().length())
                 .describedAs("Incremental update should be less than half as large as replacement")
                 .isLessThan(nextThingDoc.toString().length() / 2);
+
+        run(collection.insertOne(toDocument(prevThingDoc)));
+        run(collection.updateOne(new Document(), updateDoc));
+
+        final BsonDocument incrementalUpdateResult = toBsonDocument(run(collection.find()).get(0));
+
+        assertThat(incrementalUpdateResult)
+                .describedAs("Incremental update result")
+                .isEqualTo(nextThingDoc);
+    }
+
+    @Test
+    public void testEnforcerChange() {
+        final var collection = client.getCollection("test");
+
+        final int maxArraySize = 99;
+        final Metadata metadata =
+                Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
+
+        final JsonObject prevThing = getThing1();
+        final JsonObject nextThing = getThing1();
+
+        final BsonDocument prevThingDoc =
+                EnforcedThingMapper.toBsonDocument(prevThing, enforcer, maxArraySize, metadata);
+
+        final BsonDocument nextThingDoc =
+                EnforcedThingMapper.toBsonDocument(nextThing, enforcer2, maxArraySize, metadata);
+
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+
+        final List<BsonDocument> updateDoc = diff.consumeAndExport();
+
+        assertThat(updateDoc.toString().length())
+                .describedAs("Incremental update should be less than replacement")
+                .isLessThan(nextThingDoc.toString().length() / 2);
+
+        run(collection.insertOne(toDocument(prevThingDoc)));
+        run(collection.updateOne(new Document(), updateDoc));
+
+        final BsonDocument incrementalUpdateResult = toBsonDocument(run(collection.find()).get(0));
+
+        assertThat(incrementalUpdateResult)
+                .describedAs("Incremental update result")
+                .isEqualTo(nextThingDoc);
+    }
+
+    @Test
+    public void testEnforcerAndThingChange() {
+        final var collection = client.getCollection("test");
+
+        final int maxArraySize = 99;
+        final Metadata metadata =
+                Metadata.of(ThingId.of("solar.system:pluto"), 23L, PolicyId.of("solar.system:pluto"), 45L, null, null);
+
+        final JsonObject prevThing = getThing1();
+        final JsonObject nextThing = getThing2();
+
+        final BsonDocument prevThingDoc =
+                EnforcedThingMapper.toBsonDocument(prevThing, enforcer, maxArraySize, metadata);
+
+        final BsonDocument nextThingDoc =
+                EnforcedThingMapper.toBsonDocument(nextThing, enforcer2, maxArraySize, metadata);
+
+        final BsonDiff diff = BsonDiff.minusThingDocs(nextThingDoc, prevThingDoc);
+
+        final List<BsonDocument> updateDoc = diff.consumeAndExport();
+
+        assertThat(updateDoc.toString().length())
+                .describedAs("Incremental update should be less than half as large as replacement")
+                .isLessThan((int) (nextThingDoc.toString().length() * 0.75));
 
         run(collection.insertOne(toDocument(prevThingDoc)));
         run(collection.updateOne(new Document(), updateDoc));

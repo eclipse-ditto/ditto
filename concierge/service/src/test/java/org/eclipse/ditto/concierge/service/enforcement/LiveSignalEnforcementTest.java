@@ -393,7 +393,7 @@ public final class LiveSignalEnforcementTest {
 
     private ActorRef newEnforcerActor(final ActorRef testActorRef) {
         return TestSetup.newEnforcerActor(system, testActorRef, mockEntitiesActor, mockEntitiesActor,
-                pubSubMediatorProbe.ref(), null);
+                pubSubMediatorProbe.ref(), null, null);
     }
 
     private static DittoHeaders headers() {

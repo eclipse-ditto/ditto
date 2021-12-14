@@ -18,7 +18,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.assertj.core.api.Assertions;
 import org.junit.Test;
+import org.mutabilitydetector.internal.com.google.common.collect.Streams;
 
 /**
  * Unit test for {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns}.
@@ -79,20 +81,24 @@ public final class RegexPatternsTest {
             "org.ec lipse",
             "org.",
             ".org",
-            "$test"
+            "$test",
+            "-foo",
+            "foo.-bar",
+            "foo--bar"
     );
 
     private static final List<String> GOOD_NAMESPACES = Arrays.asList(
             "",
             "ditto.eclipseprojects.io",
             "com.google",
-            "Foo.bar_122_"
+            "Foo.bar_122_",
+            "foo-bar.io"
     );
 
     @Test
     public void entityNameRegex() {
-        GOOD_FEATURE_IDS.forEach(this::assertNameMatches);
-        BAD_FEATURE_IDS.forEach(this::assertNameNotMatches);
+        Assertions.assertThat(GOOD_FEATURE_IDS).allSatisfy(this::assertNameMatches);
+        Assertions.assertThat(BAD_FEATURE_IDS).allSatisfy(this::assertNameNotMatches);
     }
 
     private void assertNameMatches(final String name) {
@@ -105,8 +111,8 @@ public final class RegexPatternsTest {
 
     @Test
     public void featureRegex() {
-        GOOD_FEATURE_IDS.forEach(this::assertFeatureMatches);
-        BAD_FEATURE_IDS.forEach(this::assertFeatureNotMatches);
+        Assertions.assertThat(GOOD_FEATURE_IDS).allSatisfy(this::assertFeatureMatches);
+        Assertions.assertThat(BAD_FEATURE_IDS).allSatisfy(this::assertFeatureNotMatches);
     }
 
     private void assertFeatureMatches(final String id) {
@@ -119,8 +125,8 @@ public final class RegexPatternsTest {
 
     @Test
     public void namespaceRegex() {
-        GOOD_NAMESPACES.forEach(this::assertNamespaceMatches);
-        BAD_NAMESPACES.forEach(this::assertNamespaceNotMatches);
+        Assertions.assertThat(GOOD_NAMESPACES).allSatisfy(this::assertNamespaceMatches);
+        Assertions.assertThat(BAD_NAMESPACES).allSatisfy(this::assertNamespaceNotMatches);
     }
 
     private void assertNamespaceMatches(final String namespace) {
@@ -133,8 +139,8 @@ public final class RegexPatternsTest {
 
     @Test
     public void subjectRegex() {
-        GOOD_MESSAGE_SUBJECTS.forEach(this::assertSubjectMatches);
-        BAD_MESSAGE_SUBJECTS.forEach(this::assertSubjectNotMatches);
+        Assertions.assertThat(GOOD_MESSAGE_SUBJECTS).allSatisfy(this::assertSubjectMatches);
+        Assertions.assertThat(BAD_MESSAGE_SUBJECTS).allSatisfy(this::assertSubjectNotMatches);
     }
 
     private void assertSubjectMatches(final String subject) {
@@ -147,13 +153,18 @@ public final class RegexPatternsTest {
 
     @Test
     public void idRegex() {
-        GOOD_NAMESPACES.forEach(namespace -> GOOD_FEATURE_IDS.forEach(name -> {
-            assertIdMatches(namespace + ":" + name);
-        }));
-        BAD_NAMESPACES.forEach(namespace -> BAD_FEATURE_IDS.forEach(name -> {
-            assertIdNotMatches(namespace + ":" + name);
-        }));
-        BAD_FEATURE_IDS.forEach(this::assertIdNotMatches);
+
+        Assertions.assertThat(Streams.zip(
+                GOOD_NAMESPACES.stream(), GOOD_FEATURE_IDS.stream(),
+                (ns, id) -> ns + ":" + id))
+                .allSatisfy(this::assertIdMatches);
+
+        Assertions.assertThat(Streams.zip(
+                        BAD_NAMESPACES.stream(), BAD_FEATURE_IDS.stream(),
+                        (ns, id) -> ns + ":" + id))
+                .allSatisfy(this::assertIdNotMatches);
+
+        Assertions.assertThat(BAD_FEATURE_IDS).allSatisfy(this::assertIdNotMatches);
     }
 
     private void assertIdMatches(final String id) {

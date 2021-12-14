@@ -129,8 +129,7 @@ public final class HiveMqtt3ClientActor
     ActorRef startPublisherActor(final Connection connection, final Mqtt3AsyncClient client) {
         final Props publisherActorProps =
                 HiveMqtt3PublisherActor.props(connection, client, isDryRun(), getDefaultClientId(), getProxyActor(),
-                        connectivityStatusResolver);
-
+                        connectivityStatusResolver, connectivityConfig());
         return startChildActorConflictFree(HiveMqtt3PublisherActor.NAME, publisherActorProps);
     }
 
@@ -142,7 +141,7 @@ public final class HiveMqtt3ClientActor
 
         return startChildActorConflictFree(HiveMqtt3ConsumerActor.NAME,
                 HiveMqtt3ConsumerActor.props(connection(), inboundMappingSink, source, dryRun, specificConfig,
-                        connectivityStatusResolver));
+                        connectivityStatusResolver, connectivityConfig()));
     }
 
 }

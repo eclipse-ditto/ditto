@@ -82,6 +82,7 @@ import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushValidat
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLoggerRegistry;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.RetrieveConnectionLogsAggregatorActor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.RetrieveConnectionMetricsAggregatorActor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.RetrieveConnectionStatusAggregatorActor;
@@ -104,6 +105,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
@@ -456,11 +458,17 @@ public final class ConnectionPersistenceActor
                     if (response instanceof RetrieveConnectionStatusResponse) {
                         final RetrieveConnectionStatusResponse rcsResp = (RetrieveConnectionStatusResponse) response;
                         final ConnectivityStatus liveStatus = rcsResp.getLiveStatus();
+                        final String connectionType = Optional.ofNullable(entity)
+                                .map(Connection::getConnectionType).map(Object::toString).orElse("?");
+                        DittoMetrics.counter("connection_live_status_reported")
+                                .tag("connectionId", String.valueOf(entityId))
+                                .tag("connectionType", connectionType)
+                                .tag("status", liveStatus.getName())
+                                .increment();
                         final DittoDiagnosticLoggingAdapter l = log
                                 .withMdcEntries(
                                         ConnectivityMdcEntryKey.CONNECTION_ID, entityId,
-                                        ConnectivityMdcEntryKey.CONNECTION_TYPE, Optional.ofNullable(entity)
-                                                .map(Connection::getConnectionType).map(Object::toString).orElse("?"),
+                                        ConnectivityMdcEntryKey.CONNECTION_TYPE, connectionType,
                                         CommonMdcEntryKey.DITTO_LOG_TAG,
                                         "connection-live-status-" + liveStatus.getName()
                                 )
@@ -937,7 +945,8 @@ public final class ConnectionPersistenceActor
         if (sendExceptionResponse && origin != null) {
             origin.tell(dre, getSelf());
         }
-        connectionLogger.failure("Operation {0} failed due to {1}", action, dre.getMessage());
+        connectionLogger.failure(InfoProviderFactory.forHeaders(dre.getDittoHeaders()),
+                "Operation {0} failed due to {1}", action, dre.getMessage());
         log.warning("Operation <{}> on connection <{}> failed due to {}: {}.", action, entityId,
                 dre.getClass().getSimpleName(), dre.getMessage());
         return null;
@@ -1093,7 +1102,7 @@ public final class ConnectionPersistenceActor
                         Mqtt3Validator.newInstance(mqttConfig),
                         Mqtt5Validator.newInstance(mqttConfig),
                         KafkaValidator.getInstance(),
-                        HttpPushValidator.newInstance());
+                        HttpPushValidator.newInstance(connectivityConfig.getConnectionConfig().getHttpPushConfig()));
 
         final DittoConnectivityCommandValidator dittoCommandValidator =
                 new DittoConnectivityCommandValidator(propsFactory, proxyActor, getSelf(), connectionValidator,

@@ -16,7 +16,9 @@ import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.policies.api.Permission.MIN_REQUIRED_POLICY_PERMISSIONS;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -41,6 +43,8 @@ import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.base.model.signals.commands.CommandToExceptionRegistry;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.concierge.api.ConciergeMessagingConstants;
+import org.eclipse.ditto.concierge.service.common.ConciergeConfig;
+import org.eclipse.ditto.concierge.service.common.DittoConciergeConfig;
 import org.eclipse.ditto.concierge.service.enforcement.placeholders.references.PolicyIdReferencePlaceholderResolver;
 import org.eclipse.ditto.concierge.service.enforcement.placeholders.references.ReferencePlaceholder;
 import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
@@ -53,6 +57,7 @@ import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementContext;
 import org.eclipse.ditto.internal.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
@@ -110,6 +115,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.pattern.AskTimeoutException;
 
 /**
@@ -120,6 +126,8 @@ public final class ThingCommandEnforcement
 
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(ThingCommandEnforcement.class);
+
+    private static final Map<String, ThreadSafeDittoLogger> NAMESPACE_INSPECTION_LOGGERS = new HashMap<>();
 
     /**
      * Label of default policy entry in default policy.
@@ -140,17 +148,30 @@ public final class ThingCommandEnforcement
     private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
     private final PreEnforcer preEnforcer;
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
+    private final CreationRestrictionEnforcer creationRestrictionEnforcer;
 
     private ThingCommandEnforcement(final Contextual<ThingCommand<?>> data,
+            final ActorSystem actorSystem,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
             final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
             final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
-            final PreEnforcer preEnforcer) {
+            final PreEnforcer preEnforcer,
+            final CreationRestrictionEnforcer creationRestrictionEnforcer) {
 
         super(data, ThingQueryCommandResponse.class);
         this.thingsShardRegion = requireNonNull(thingsShardRegion);
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
+
+        final ConciergeConfig conciergeConfig = DittoConciergeConfig.of(
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
+        );
+
+        conciergeConfig.getEnforcementConfig().getSpecialLoggingInspectedNamespaces()
+                .forEach(loggedNamespace -> NAMESPACE_INSPECTION_LOGGERS.put(
+                        loggedNamespace,
+                        DittoLoggerFactory.getThreadSafeLogger(ThingCommandEnforcement.class.getName() +
+                                ".namespace." + loggedNamespace)));
 
         this.thingIdCache = requireNonNull(thingIdCache);
         this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
@@ -160,6 +181,7 @@ public final class ThingCommandEnforcement
         policyIdReferencePlaceholderResolver =
                 PolicyIdReferencePlaceholderResolver.of(conciergeForwarder(), getAskWithRetryConfig(),
                         context.getScheduler(), context.getExecutor());
+        this.creationRestrictionEnforcer = creationRestrictionEnforcer;
     }
 
     @Override
@@ -316,7 +338,8 @@ public final class ThingCommandEnforcement
                         .build();
 
         final Optional<RetrievePolicy> retrievePolicyOptional = PolicyCommandEnforcement.authorizePolicyCommand(
-                RetrievePolicy.of(policyId, dittoHeadersWithoutPreconditionHeaders), PolicyEnforcer.of(enforcer));
+                RetrievePolicy.of(policyId, dittoHeadersWithoutPreconditionHeaders), PolicyEnforcer.of(enforcer),
+                this.creationRestrictionEnforcer);
 
         if (retrievePolicyOptional.isPresent()) {
             return retrieveThingBeforePolicy(retrieveThing)
@@ -520,6 +543,21 @@ public final class ThingCommandEnforcement
     private Contextual<WithDittoHeaders> forwardToThingsShardRegion(final ThingCommand<?> command) {
         if (command instanceof ThingModifyCommand && ((ThingModifyCommand<?>) command).changesAuthorization()) {
             invalidateThingCaches(command.getEntityId());
+        }
+
+        if (NAMESPACE_INSPECTION_LOGGERS.containsKey(command.getEntityId().getNamespace())) {
+            final ThreadSafeDittoLogger namespaceLogger = NAMESPACE_INSPECTION_LOGGERS
+                    .get(command.getEntityId().getNamespace()).withCorrelationId(command);
+            if (command instanceof ThingModifyCommand) {
+                final JsonValue value = ((ThingModifyCommand<?>) command).getEntity().orElse(null);
+                if (null != value) {
+                    final Set<ResourceKey> resourceKeys = calculateLeaves(command.getResourcePath(), value);
+                    namespaceLogger.info("Forwarding modify command type <{}> with resourceKeys <{}>",
+                            command.getType(),
+                            resourceKeys);
+                }
+            }
+            namespaceLogger.debug("Forwarding command type <{}>: <{}>", command.getType(), command);
         }
         return withMessageToReceiver(command, thingsShardRegion);
     }
@@ -980,7 +1018,10 @@ public final class ThingCommandEnforcement
 
                 final var createPolicy = CreatePolicy.of(policy.get(), dittoHeadersForCreatePolicy);
                 final Optional<CreatePolicy> authorizedCreatePolicy =
-                        PolicyCommandEnforcement.authorizePolicyCommand(createPolicy, PolicyEnforcer.of(enforcer));
+                        PolicyCommandEnforcement.authorizePolicyCommand(createPolicy,
+                                PolicyEnforcer.of(enforcer),
+                                this.creationRestrictionEnforcer
+                        );
 
                 // CreatePolicy is rejected; abort CreateThing.
                 return authorizedCreatePolicy
@@ -1131,32 +1172,42 @@ public final class ThingCommandEnforcement
      */
     public static final class Provider implements EnforcementProvider<ThingCommand<?>> {
 
+        private final ActorSystem actorSystem;
         private final ActorRef thingsShardRegion;
         private final ActorRef policiesShardRegion;
         private final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache;
         private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
         private final PreEnforcer preEnforcer;
+        private final CreationRestrictionEnforcer creationRestrictionEnforcer;
 
         /**
          * Constructor.
          *
+         * @param actorSystem the ActorSystem for e.g. looking up config.
          * @param thingsShardRegion the ActorRef to the Things shard region.
          * @param policiesShardRegion the ActorRef to the Policies shard region.
          * @param thingIdCache the thing-id-cache.
          * @param policyEnforcerCache the policy-enforcer cache.
          * @param preEnforcer pre-enforcer function to block undesirable messages to policies shard region.
+         * @param creationRestrictionEnforcer the enforcer for restricting entity creation.
          */
-        public Provider(final ActorRef thingsShardRegion,
+        public Provider(final ActorSystem actorSystem,
+                final ActorRef thingsShardRegion,
                 final ActorRef policiesShardRegion,
                 final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
                 final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
-                @Nullable final PreEnforcer preEnforcer) {
+                @Nullable final PreEnforcer preEnforcer,
+                @Nullable final CreationRestrictionEnforcer creationRestrictionEnforcer
+        ) {
 
+            this.actorSystem = requireNonNull(actorSystem);
             this.thingsShardRegion = requireNonNull(thingsShardRegion);
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
             this.thingIdCache = requireNonNull(thingIdCache);
             this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
             this.preEnforcer = Objects.requireNonNullElseGet(preEnforcer, () -> CompletableFuture::completedFuture);
+            this.creationRestrictionEnforcer = Optional.ofNullable(creationRestrictionEnforcer)
+                    .orElse(CreationRestrictionEnforcer.NULL);
         }
 
         @Override
@@ -1181,11 +1232,13 @@ public final class ThingCommandEnforcement
         @Override
         public AbstractEnforcement<ThingCommand<?>> createEnforcement(final Contextual<ThingCommand<?>> context) {
             return new ThingCommandEnforcement(context,
+                    actorSystem,
                     thingsShardRegion,
                     policiesShardRegion,
                     thingIdCache,
                     policyEnforcerCache,
-                    preEnforcer);
+                    preEnforcer,
+                    creationRestrictionEnforcer);
         }
 
     }

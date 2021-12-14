@@ -128,6 +128,14 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     }
 
     @Override
+    public ConnectionMonitor forInboundThrottled(final Connection connection, final String source) {
+        return DefaultConnectionMonitor.builder(
+                        connectionCounterRegistry.forInboundThrottled(connection, source),
+                        connectionLoggerRegistry.forInboundThrottled(connection, source))
+                .build();
+    }
+
+    @Override
     public ConnectionMonitor forInboundMapped(final Connection connection, final String source) {
         return DefaultConnectionMonitor.builder(
                         connectionCounterRegistry.forInboundMapped(connection, source),
@@ -232,7 +240,7 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", connectionLoggerRegistry=" + connectionLoggerRegistry +
+                "connectionLoggerRegistry=" + connectionLoggerRegistry +
                 ", connectionCounterRegistry=" + connectionCounterRegistry +
                 "]";
     }

@@ -20,6 +20,7 @@ import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
+import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
@@ -89,12 +90,18 @@ public final class AmqpConnectionSigningExtension implements Extension, Credenti
         }
     }
 
+    @Override
+    public AmqpConnectionSigning oauthClientCredentials(final OAuthClientCredentials credentials) {
+        return NoOpSigning.INSTANCE;
+    }
+
     /**
      * The extension ID.
      */
     public static final class Id extends AbstractExtensionId<AmqpConnectionSigningExtension> {
 
-        private static AmqpConnectionSigningFactory instantiate(final ExtendedActorSystem system, final String className) {
+        private static AmqpConnectionSigningFactory instantiate(final ExtendedActorSystem system,
+                final String className) {
             final ClassTag<AmqpConnectionSigningFactory> tag =
                     scala.reflect.ClassTag$.MODULE$.apply(AmqpConnectionSigningFactory.class);
             return system.dynamicAccess().createInstanceFor(className, List$.MODULE$.empty(), tag).get();

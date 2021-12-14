@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 
+import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Collection;
 import java.util.Collections;
@@ -110,6 +111,11 @@ public final class ExceptionalConnectionLogger implements ConnectionLogger {
     @Override
     public void clear() {
         logger.trace("Not clearing logs since logger is exceptional.");
+    }
+
+    @Override
+    public void close() throws IOException {
+        clear();
     }
 
     @Override

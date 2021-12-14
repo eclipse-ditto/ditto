@@ -63,7 +63,6 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
@@ -76,7 +75,6 @@ import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionVal
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
@@ -86,12 +84,10 @@ import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
-import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.japi.pf.ReceiveBuilder;
 import kamon.context.Context;
 
@@ -128,14 +124,15 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     protected BasePublisherActor(final Connection connection,
             final String clientId,
             final ActorRef proxyActor,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
         this.connection = checkNotNull(connection, "connection");
         this.clientId = checkNotNull(clientId, "clientId");
         this.proxyActor = checkNotNull(proxyActor, "proxyActor");
         resourceStatusMap = new HashMap<>();
         final List<Target> targets = connection.getTargets();
         targets.forEach(target -> resourceStatusMap.put(target, getTargetResourceStatus(target)));
-        connectivityConfig = getConnectivityConfig();
+        this.connectivityConfig = connectivityConfig;
         connectionConfig = connectivityConfig.getConnectionConfig();
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         final MonitoringLoggerConfig loggerConfig = monitoringConfig.logger();
@@ -153,14 +150,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         connectionIdResolver = PlaceholderFactory.newExpressionResolver(
                 ConnectivityPlaceholders.newConnectionIdPlaceholder(),
                 connection.getId());
-    }
-
-    private ConnectivityConfig getConnectivityConfig() {
-        final ActorContext context = getContext();
-        final ActorSystem actorSystem = context.getSystem();
-        final ActorSystem.Settings settings = actorSystem.settings();
-        final DefaultScopedConfig dittoScopedConfig = DefaultScopedConfig.dittoScoped(settings.config());
-        return DittoConnectivityConfig.of(dittoScopedConfig);
     }
 
     @Override

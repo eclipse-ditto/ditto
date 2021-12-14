@@ -66,7 +66,6 @@ When using an RQL expression in order to e.g. filter for certain
 field in JSON representation inside the Thing.
 
 Currently supported placeholders for RQL expressions are:
-* 
 * `topic:<placeholder-name>`
 * `resource:<placeholder-name>`
 

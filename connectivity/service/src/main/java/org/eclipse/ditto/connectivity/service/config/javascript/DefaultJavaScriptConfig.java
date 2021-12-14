@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.connectivity.service.config.javascript;
 
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
@@ -34,6 +37,7 @@ public final class DefaultJavaScriptConfig implements JavaScriptConfig {
     private final Duration maxScriptExecutionTime;
     private final int maxScriptStackDepth;
     private final boolean allowUnsafeStandardObjects;
+    @Nullable private final Path commonJsModulesPath;
 
     private DefaultJavaScriptConfig(final ScopedConfig config) {
         maxScriptSizeBytes = config.getPositiveIntOrThrow(JavaScriptConfigValue.MAX_SCRIPT_SIZE_BYTES);
@@ -42,6 +46,13 @@ public final class DefaultJavaScriptConfig implements JavaScriptConfig {
         maxScriptStackDepth = config.getPositiveIntOrThrow(JavaScriptConfigValue.MAX_SCRIPT_STACK_DEPTH);
         allowUnsafeStandardObjects = config.getBoolean(JavaScriptConfigValue.ALLOW_UNSAFE_STANDARD_OBJECTS
                 .getConfigPath());
+        final String commonJsModulesPathString = config.getString(
+                JavaScriptConfigValue.COMMON_JS_MODULE_PATH.getConfigPath());
+        if (commonJsModulesPathString.isEmpty()) {
+            commonJsModulesPath = null;
+        } else {
+            commonJsModulesPath = Path.of(commonJsModulesPathString);
+        }
     }
 
     /**
@@ -77,6 +88,11 @@ public final class DefaultJavaScriptConfig implements JavaScriptConfig {
     }
 
     @Override
+    public Optional<Path> getCommonJsModulesPath() {
+        return Optional.ofNullable(commonJsModulesPath);
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -88,12 +104,14 @@ public final class DefaultJavaScriptConfig implements JavaScriptConfig {
         return maxScriptSizeBytes == that.maxScriptSizeBytes &&
                 maxScriptStackDepth == that.maxScriptStackDepth &&
                 allowUnsafeStandardObjects == that.allowUnsafeStandardObjects &&
-                Objects.equals(maxScriptExecutionTime, that.maxScriptExecutionTime);
+                Objects.equals(maxScriptExecutionTime, that.maxScriptExecutionTime) &&
+                Objects.equals(commonJsModulesPath, that.commonJsModulesPath);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxScriptSizeBytes, maxScriptExecutionTime, maxScriptStackDepth, allowUnsafeStandardObjects);
+        return Objects.hash(maxScriptSizeBytes, maxScriptExecutionTime, maxScriptStackDepth, allowUnsafeStandardObjects,
+                commonJsModulesPath);
     }
 
     @Override
@@ -103,6 +121,7 @@ public final class DefaultJavaScriptConfig implements JavaScriptConfig {
                 ", maxScriptExecutionTime=" + maxScriptExecutionTime +
                 ", maxScriptStackDepth=" + maxScriptStackDepth +
                 ", allowUnsafeStandardObjects=" + allowUnsafeStandardObjects +
+                ", commonJsModulesPath=" + commonJsModulesPath +
                 "]";
     }
 

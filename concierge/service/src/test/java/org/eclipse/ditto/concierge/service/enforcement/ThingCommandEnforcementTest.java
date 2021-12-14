@@ -701,7 +701,7 @@ public final class ThingCommandEnforcementTest {
                     .condition("eq(attributes/testAttr,\"testString\")")
                     .build();
 
-            final ThingCommand modifyCommand = getModifyCommand(dittoHeaders);
+            final ThingCommand<?> modifyCommand = getModifyCommand(dittoHeaders);
             mockEntitiesActorInstance.setReply(modifyCommand);
             underTest.tell(modifyCommand, getRef());
             final DittoRuntimeException response = TestSetup.fishForMsgClass(this, DittoRuntimeException.class);
@@ -737,7 +737,7 @@ public final class ThingCommandEnforcementTest {
                     .condition("eq(attributes//testAttr,\"testString\")")
                     .build();
 
-            final ThingCommand modifyCommand = getModifyCommand(dittoHeaders);
+            final ThingCommand<?> modifyCommand = getModifyCommand(dittoHeaders);
             mockEntitiesActorInstance.setReply(modifyCommand);
             underTest.tell(modifyCommand, getRef());
             final DittoRuntimeException response = TestSetup.fishForMsgClass(this, DittoRuntimeException.class);

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.kafka;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
@@ -32,6 +34,7 @@ import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
@@ -44,6 +47,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.GenericTarget;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.KafkaProducerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
@@ -74,7 +78,6 @@ import akka.stream.javadsl.RestartFlow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SourceQueueWithComplete;
-import akka.util.ByteString;
 
 /**
  * Responsible for publishing {@link org.eclipse.ditto.connectivity.api.ExternalMessage}s into an Kafka
@@ -89,41 +92,43 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     @SuppressWarnings("unused")
     private KafkaPublisherActor(final Connection connection,
-            final KafkaProducerConfig config,
             final SendProducerFactory producerFactory,
             final boolean dryRun,
             final String clientId,
             final ActorRef proxyActor,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
-        super(connection, clientId, proxyActor, connectivityStatusResolver);
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
+        super(connection, clientId, proxyActor, connectivityStatusResolver, connectivityConfig);
         this.dryRun = dryRun;
         final Materializer materializer = Materializer.createMaterializer(this::getContext);
-        producerStream = new KafkaProducerStream(config, materializer, producerFactory);
+        final KafkaProducerConfig producerConfig = connectivityConfig.getConnectionConfig().getKafkaConfig()
+                .getProducerConfig();
+        producerStream = new KafkaProducerStream(producerConfig, materializer, producerFactory);
     }
 
     /**
      * Creates Akka configuration object {@link akka.actor.Props} for this {@code BasePublisherActor}.
      *
      * @param connection the connection this publisher belongs to.
-     * @param config configuration for the kafka client.
      * @param producerFactory factory to create kafka SendProducer.
      * @param dryRun whether this publisher is only created for a test or not.
      * @param clientId identifier of the client actor.
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
+     * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection,
-            final KafkaProducerConfig config,
             final SendProducerFactory producerFactory,
             final boolean dryRun,
             final String clientId,
             final ActorRef proxyActor,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
 
-        return Props.create(KafkaPublisherActor.class, connection, config, producerFactory, dryRun, clientId,
-                proxyActor, connectivityStatusResolver);
+        return Props.create(KafkaPublisherActor.class, connection, producerFactory, dryRun, clientId,
+                proxyActor, connectivityStatusResolver, connectivityConfig);
     }
 
     @Override
@@ -313,20 +318,20 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 "b) The client count of this connection is not configured high enough.";
 
         private final KillSwitch killSwitch;
-        private final SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>
+        private final SourceQueueWithComplete<ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>>>
                 sourceQueue;
-        private final AtomicReference<SendProducer<String, String>> sendProducer = new AtomicReference<>();
+        private final AtomicReference<SendProducer<String, ByteBuffer>> sendProducer = new AtomicReference<>();
 
         private KafkaProducerStream(final KafkaProducerConfig config, final Materializer materializer,
                 final SendProducerFactory producerFactory) {
 
             final RestartSettings restartSettings =
-                    RestartSettings.create(config.getMinBackoff(),config.getMaxBackoff(), config.getRandomFactor())
+                    RestartSettings.create(config.getMinBackoff(), config.getMaxBackoff(), config.getRandomFactor())
                             .withMaxRestarts(config.getMaxRestartsCount(), config.getMaxRestartsWithin());
 
-            final Pair<SourceQueueWithComplete<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>, Source<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>, NotUsed>>
+            final Pair<SourceQueueWithComplete<ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>>>, Source<ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>>, NotUsed>>
                     sourcePair =
-                    Source.<ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>>>
+                    Source.<ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>>>
                             queue(config.getQueueSize(), OverflowStrategy.dropNew()).preMaterialize(materializer);
 
             sourceQueue = sourcePair.first();
@@ -347,12 +352,12 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         }
 
         private void handleSendResult(
-                @Nullable final ProducerMessage.Results<String, String, CompletableFuture<RecordMetadata>> results,
+                @Nullable final ProducerMessage.Results<String, ByteBuffer, CompletableFuture<RecordMetadata>> results,
                 @Nullable final Throwable exception, final CompletableFuture<RecordMetadata> resultFuture) {
             if (exception == null) {
                 if (results instanceof ProducerMessage.Result) {
-                    final ProducerMessage.Result<String, String, CompletableFuture<RecordMetadata>> result =
-                            (ProducerMessage.Result<String, String, CompletableFuture<RecordMetadata>>) results;
+                    final ProducerMessage.Result<String, ByteBuffer, CompletableFuture<RecordMetadata>> result =
+                            (ProducerMessage.Result<String, ByteBuffer, CompletableFuture<RecordMetadata>>) results;
                     resultFuture.complete(result.metadata());
                 } else {
                     // should never happen, we provide only ProducerMessage.single to the source
@@ -370,9 +375,10 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
         private CompletableFuture<RecordMetadata> publish(final KafkaPublishTarget publishTarget,
                 final ExternalMessage externalMessage) {
+
             final CompletableFuture<RecordMetadata> resultFuture = new CompletableFuture<>();
-            final ProducerRecord<String, String> producerRecord = getProducerRecord(publishTarget, externalMessage);
-            final ProducerMessage.Envelope<String, String, CompletableFuture<RecordMetadata>> envelope =
+            final ProducerRecord<String, ByteBuffer> producerRecord = getProducerRecord(publishTarget, externalMessage);
+            final ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>> envelope =
                     ProducerMessage.single(producerRecord, resultFuture);
             if (null != sourceQueue) {
                 sourceQueue.offer(envelope).whenComplete(handleQueueOfferResult(externalMessage, resultFuture));
@@ -384,10 +390,10 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             return resultFuture;
         }
 
-        private ProducerRecord<String, String> getProducerRecord(final KafkaPublishTarget publishTarget,
+        private ProducerRecord<String, ByteBuffer> getProducerRecord(final KafkaPublishTarget publishTarget,
                 final ExternalMessage externalMessage) {
 
-            final String payload = mapExternalMessagePayload(externalMessage);
+            final ByteBuffer payload = mapExternalMessagePayload(externalMessage);
             final Iterable<Header> headers = mapExternalMessageHeaders(externalMessage);
 
             return new ProducerRecord<>(publishTarget.getTopic(),
@@ -405,16 +411,18 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                     .collect(Collectors.toList());
         }
 
-        private String mapExternalMessagePayload(final ExternalMessage externalMessage) {
-            if (externalMessage.isTextMessage()) {
-                return externalMessage.getTextPayload().orElse("");
-            } else if (externalMessage.isBytesMessage()) {
+        private ByteBuffer mapExternalMessagePayload(final ExternalMessage externalMessage) {
+            if (externalMessage.isBytesMessage()) {
                 return externalMessage.getBytePayload()
-                        .map(ByteString::fromByteBuffer)
-                        .map(ByteString::utf8String)
-                        .orElse("");
+                        .orElseGet(ByteBufferUtils::empty);
+            } else if (externalMessage.isTextMessage()) {
+                final Charset charset = getCharsetFromMessage(externalMessage);
+                return externalMessage.getTextPayload()
+                        .map(text -> text.getBytes(charset))
+                        .map(ByteBuffer::wrap)
+                        .orElseGet(ByteBufferUtils::empty);
             } else {
-                return "";
+                return ByteBufferUtils.empty();
             }
         }
 

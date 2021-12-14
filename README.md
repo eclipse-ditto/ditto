@@ -50,6 +50,7 @@ Or have a look at the ["Hello World"](https://eclipse.org/ditto/intro-hello-worl
 In order to build Ditto, you'll need
 * JDK 11 >= 11.0.5 and
 * Apache Maven 3.x installed.
+* a running Docker daemon (at least version 18.06 CE).
 
 In order to first build Ditto and then start the built Docker images.
 

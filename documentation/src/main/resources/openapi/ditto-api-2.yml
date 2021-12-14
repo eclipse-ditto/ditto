@@ -175,8 +175,6 @@ paths:
               schema:
                 properties:
                   acknowledgementLabel1:
-                    $ref: '#/paths/~1things/post/responses/424/content/application~1json/schema/properties/acknowledgementLabelN'
-                  acknowledgementLabelN:
                     properties:
                       status:
                         type: integer
@@ -194,6 +192,8 @@ paths:
                     example:
                       status: 200
                       payload: OK
+                  acknowledgementLabelN:
+                    $ref: '#/paths/~1things/post/responses/424/content/application~1json/schema/properties/acknowledgementLabel1'
                 example:
                   acknowledgementLabel1:
                     status: 200
@@ -251,7 +251,21 @@ paths:
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ConditionParam'
-        - $ref: '#/components/parameters/ChannelParam'
+        - name: channel
+          in: query
+          description: |-
+            Defines to which channel to route the command: `twin` (digital twin) or `live` (the device).
+            * If setting the channel parameter is omitted, the `twin` channel is set by default and the command is routed to the digital representation of a thing in Bosch IoT Things backend.
+            * When using the `live` channel, the command/message is sent towards the device.
+
+            The option `live` is not available when a new thing should be created, only for updating an
+            existing thing.
+          required: false
+          schema:
+            type: string
+            enum:
+              - twin
+              - live
       responses:
         '200':
           description: The request successfully returned the specific thing.
@@ -360,58 +374,6 @@ paths:
 
         The ID of a thing cannot be changed after creation. Any `thingId`
         specified in the request body is therefore ignored.
-
-        ### Partially update an existing thing
-
-        When updating an existing thing, which already contains `attributes`, `definition` `policyId` or `features`,
-        the existing fields must not explicitly be provided again.
-        For this "PUT thing" request - and only for this top-level update on the thing -
-        the top-level field to update is **merged** with the existing top-level fields of the thing.
-
-        ### Example for a partial update
-
-        Given, a thing already exists with this content:
-
-        ```
-        {
-          "thingId": "namespace:thing-name",
-          "policyId": "namespace:policy-name",
-          "definition": "namespace:model:version",
-          "attributes": {
-            "foo": 1
-          },
-          "features": {...}
-        }
-        ```
-
-        The thing's `attributes` may be modified without having to pass the `policyId` or
-        the `features` in again.
-        For updating the `attributes`, following request body would be sufficient :
-
-        ```
-        {
-          "attributes": {
-            "foo": 2,
-            "bar": false
-          }
-        }
-        ```
-
-        The `policyId` and `features` of the thing will not be overwritten.
-        The thing will be merged into:
-
-        ```
-        {
-          "thingId": "namespace:thing-name",
-          "policyId": "namespace:policy-name",
-          "definition": "namespace:model:version",
-          "attributes": {
-            "foo": 2,
-            "bar": false
-          },
-          "features": {...}
-        }
-        ```
       tags:
         - Things
       parameters:
@@ -6553,14 +6515,15 @@ components:
       name: channel
       in: query
       description: |-
-        Defines which channel should be used to route the command to. Either `twin` or `live` can be used.
-        If channel `twin` is used the command is routed to the digital representation of a Thing in the Ditto backend.
-        In case channel `live` is used the command/message is send towards an actual device.
-
-        The default (if omitted) is the `twin` channel.
+        Defines to which channel to route the command: `twin` (digital twin) or `live` (the device).
+        * If setting the channel parameter is omitted, the `twin` channel is set by default and the command is routed to the digital representation of a thing in Bosch IoT Things backend.
+        * When using the `live` channel, the command/message is sent towards the device.
       required: false
       schema:
         type: string
+        enum:
+          - twin
+          - live
     ConditionParam:
       name: condition
       in: query

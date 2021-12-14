@@ -14,7 +14,6 @@ package org.eclipse.ditto.things.service.persistence.actors;
 
 import static org.assertj.core.api.Assertions.fail;
 import static org.eclipse.ditto.things.model.assertions.DittoThingsAssertions.assertThat;
-import static org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils.retrieveThingResponse;
 
 import java.time.Instant;
 import java.util.NoSuchElementException;
@@ -23,13 +22,8 @@ import java.util.function.Function;
 
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonParseOptions;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.base.api.common.Shutdown;
+import org.eclipse.ditto.base.api.common.ShutdownReasonFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -39,6 +33,16 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.events.Event;
+import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.test.Retry;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseOptions;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
@@ -51,10 +55,6 @@ import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.ThingRevision;
 import org.eclipse.ditto.things.model.ThingTooLargeException;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.internal.utils.test.Retry;
-import org.eclipse.ditto.base.api.common.Shutdown;
-import org.eclipse.ditto.base.api.common.ShutdownReasonFactory;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.FeatureNotAccessibleException;
@@ -80,7 +80,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatures;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
-import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingModified;
@@ -323,7 +322,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
-    public void modifyThingKeepsOverwritesExistingFirstLevelFieldsWhenExplicitlySpecifiedV2() {
+    public void modifyThingOverwritesExistingFirstLevelFieldsWhenExplicitlySpecifiedV2() {
         final Thing thingWithFirstLevelFields = createThingV2WithRandomId();
         final Thing thingWithDifferentFirstLevelFields = Thing.newBuilder()
                 .setId(getIdOrThrow(thingWithFirstLevelFields))
@@ -379,25 +378,28 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
-    public void modifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwrittenV2() {
+    public void modifyThingOverwritesExistingFirstLevelFieldsWhenNotExplicitlySpecifiedV2() {
         final Thing thingWithFirstLevelFields = createThingV2WithRandomId();
-        doTestModifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwritten(thingWithFirstLevelFields,
+        doTestModifyThingOverwritesExistingFirstLevelFieldsWhenNotExplicitlySpecified(thingWithFirstLevelFields,
                 dittoHeadersV2);
     }
 
-    private void doTestModifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwritten(
+    private void doTestModifyThingOverwritesExistingFirstLevelFieldsWhenNotExplicitlySpecified(
             final Thing thingWithFirstLevelFields, final DittoHeaders dittoHeaders) {
 
         final ThingId thingId = getIdOrThrow(thingWithFirstLevelFields);
 
         final Thing minimalThing = Thing.newBuilder()
                 .setId(thingId)
+                .setPolicyId(PolicyId.of(thingId))
                 .build();
+
+        final Thing expectedThing = minimalThing.toBuilder().setPolicyId(PolicyId.of(thingId)).build();
+
         final ModifyThing modifyThingCommand = ModifyThing.of(thingId, minimalThing, null, dittoHeaders);
 
         new TestKit(actorSystem) {
             {
-                final TestKit pubSub = new TestKit(actorSystem);
                 final ActorRef underTest = createPersistenceActorFor(thingWithFirstLevelFields);
 
                 final CreateThing createThing = CreateThing.of(thingWithFirstLevelFields, null, dittoHeaders);
@@ -406,17 +408,13 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thingWithFirstLevelFields);
 
-                assertPublishEvent(ThingCreated.of(thingWithFirstLevelFields, 1L, TIMESTAMP, dittoHeaders,
-                        null));
+                assertPublishEvent(ThingCreated.of(thingWithFirstLevelFields, 1L, TIMESTAMP, dittoHeaders, null));
 
                 underTest.tell(modifyThingCommand, getRef());
 
-                expectMsgEquals(
-                        ETagTestUtils.modifyThingResponse(thingWithFirstLevelFields, minimalThing, dittoHeaders, false));
+                expectMsgEquals(ETagTestUtils.modifyThingResponse(thingWithFirstLevelFields, minimalThing, dittoHeaders, false));
 
-                // we expect that in the Event the minimalThing was merged with thingWithFirstLevelFields:
-                assertPublishEvent(ThingModified.of(thingWithFirstLevelFields, 2L, TIMESTAMP, dittoHeaders,
-                        null));
+                assertPublishEvent(ThingModified.of(expectedThing, 2L, TIMESTAMP, dittoHeaders, null));
 
                 final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeaders)
                         .withSelectedFields(ALL_FIELDS_SELECTOR)
@@ -424,7 +422,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 underTest.tell(retrieveThing, getRef());
 
                 final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
-                assertThingInResponse(retrieveThingResponse.getThing(), thingWithFirstLevelFields);
+                assertThingInResponse(retrieveThingResponse.getThing(), expectedThing);
             }
         };
     }

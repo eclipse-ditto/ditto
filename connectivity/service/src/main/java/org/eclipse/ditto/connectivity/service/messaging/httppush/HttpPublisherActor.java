@@ -21,13 +21,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -50,13 +53,17 @@ import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
 import org.eclipse.ditto.connectivity.model.GenericTarget;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.signing.NoOpSigning;
 import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.json.JsonFactory;
@@ -84,6 +91,8 @@ import akka.actor.Props;
 import akka.http.javadsl.model.HttpCharset;
 import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpHeader;
+import akka.http.javadsl.model.HttpMethod;
+import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.Uri;
@@ -120,12 +129,15 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             "a) The HTTP endpoint does not consume the messages fast enough.\n" +
             "b) The client count and/or the parallelism of this connection is not configured high enough.";
 
+    static final String OMIT_REQUEST_BODY_CONFIG_KEY = "omitRequestBody";
+
     private final HttpPushFactory factory;
 
     private final Materializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
     private final KillSwitch killSwitch;
     private final HttpRequestSigning httpRequestSigning;
+    private final List<HttpMethod> omitBodyForMethods;
     private final HttpPushRoundTripSignalsValidator httpPushRoundTripSignalValidator;
 
     @SuppressWarnings("unused")
@@ -133,9 +145,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final HttpPushFactory factory,
             final String clientId,
             final ActorRef proxyActor,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
-
-        super(connection, clientId, proxyActor, connectivityStatusResolver);
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
+        super(connection, clientId, proxyActor, connectivityStatusResolver, connectivityConfig);
         this.factory = factory;
         materializer = Materializer.createMaterializer(this::getContext);
         final var config = connectionConfig.getHttpPushConfig();
@@ -156,6 +168,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         httpRequestSigning = connection.getCredentials()
                 .map(credentials -> credentials.accept(HttpRequestSigningExtension.get(getContext().getSystem())))
                 .orElse(NoOpSigning.INSTANCE);
+
+        omitBodyForMethods = parseOmitBodyMethods(connection, config);
         httpPushRoundTripSignalValidator = HttpPushRoundTripSignalsValidator.newInstance(connectionLogger);
     }
 
@@ -168,12 +182,14 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
+     * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection, final HttpPushFactory factory, final String clientId,
-            final ActorRef proxyActor, final ConnectivityStatusResolver connectivityStatusResolver) {
+            final ActorRef proxyActor, final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
         return Props.create(HttpPublisherActor.class, connection, factory, clientId, proxyActor,
-                connectivityStatusResolver);
+                connectivityStatusResolver, connectivityConfig);
     }
 
     private static Uri setPathAndQuery(final Uri uri, @Nullable final String path, @Nullable final String query) {
@@ -279,8 +295,13 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 .maximumDuration(requestTimeout.plus(Duration.ofSeconds(5)))
                 .tag("id", connection.getId().toString());
 
-        final Consumer<Duration> logRequestTimes =
-                duration -> connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis());
+        final BiConsumer<Duration, ConnectionMonitor.InfoProvider> logRequestTimes =
+                (duration, infoProvider) -> connectionLogger.success(infoProvider,
+                        "HTTP request took <{0}> ms.", duration.toMillis());
+
+
+        final Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> oauthFlow =
+                ClientCredentialsFlowVisitor.eval(getContext().getSystem(), config, connection);
 
         final Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> requestSigningFlow =
                 Flow.<Pair<HttpRequest, HttpPushContext>>create()
@@ -291,10 +312,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                                 }));
 
         final var httpPushFlow =
-                factory.<HttpPushContext>createFlow(getContext().getSystem(), logger, requestTimeout, timer,
-                        logRequestTimes);
+                factory.createFlow(getContext().getSystem(), logger, requestTimeout, timer, logRequestTimes);
 
-        return requestSigningFlow.via(httpPushFlow);
+        return oauthFlow.via(requestSigningFlow).via(httpPushFlow);
     }
 
     @Override
@@ -351,17 +371,23 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         final Pair<Iterable<HttpHeader>, ContentType> headersPair = getHttpHeadersPair(message.getHeaders());
         final var requestWithoutEntity = newRequestWithoutEntity(publishTarget, headersPair.first(), message);
         final ContentType contentTypeHeader = headersPair.second();
-        if (contentTypeHeader != null) {
-            final var httpEntity =
-                    HttpEntities.create(contentTypeHeader.contentType(), getPayloadAsBytes(message));
-            result = requestWithoutEntity.withEntity(httpEntity);
-        } else if (message.isTextMessage()) {
-            result = requestWithoutEntity.withEntity(getTextPayload(message));
+
+        if (omitBodyForMethods.contains(publishTarget.getMethod())) {
+            return requestWithoutEntity;
         } else {
-            result = requestWithoutEntity.withEntity(getBytePayload(message));
+            if (contentTypeHeader != null) {
+                final var httpEntity =
+                        HttpEntities.create(contentTypeHeader.contentType(), getPayloadAsBytes(message));
+                result = requestWithoutEntity.withEntity(httpEntity);
+            } else if (message.isTextMessage()) {
+                result = requestWithoutEntity.withEntity(getTextPayload(message));
+            } else {
+                result = requestWithoutEntity.withEntity(getBytePayload(message));
         }
 
         return result;
+    }
+
     }
 
     private HttpRequest newRequestWithoutEntity(final HttpPublishTarget publishTarget,
@@ -407,39 +433,47 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final AuthorizationContext targetAuthorizationContext,
             final CompletableFuture<SendResult> resultFuture) {
 
-        return tryResponse -> {
-            final var l = logger.withCorrelationId(message.getInternalHeaders());
+        return new HttpPushContext() {
+            @Override
+            public void onResponse(final Try<HttpResponse> tryResponse) {
+                final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(message.getInternalHeaders());
 
-            if (tryResponse.isSuccess()) {
-                final var response = tryResponse.get();
-                l.info("Got response status <{}>", response.status());
-                l.debug("Sent message <{}>.", message);
-                l.debug("Got response <{} {} {}>", response.status(), response.getHeaders(),
-                        response.entity().getContentType());
+                if (tryResponse.isSuccess()) {
+                    final var response = tryResponse.get();
+                    l.info("Got response status <{}>", response.status());
+                    l.debug("Sent message <{}>.", message);
+                    l.debug("Got response <{} {} {}>", response.status(), response.getHeaders(),
+                            response.entity().getContentType());
 
-                toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize, ackSizeQuota,
-                        targetAuthorizationContext)
-                        .thenAccept(resultFuture::complete)
-                        .exceptionally(e -> {
-                            resultFuture.completeExceptionally(e);
-                            return null;
-                        });
-            } else {
-                final var failure = tryResponse.failed();
-                final var error = failure.get();
-                if (l.isDebugEnabled()) {
-                    l.debug("Failed to send message <{}> due to <{}: {}>",
-                            message,
-                            error.getClass().getSimpleName(),
-                            error.getMessage());
+                    toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize, ackSizeQuota,
+                            targetAuthorizationContext)
+                            .thenAccept(resultFuture::complete)
+                            .exceptionally(e -> {
+                                resultFuture.completeExceptionally(e);
+                                return null;
+                            });
                 } else {
-                    l.info("Failed to send message due to <{}: {}>",
-                            error.getClass().getSimpleName(),
-                            error.getMessage());
+                    final var failure = tryResponse.failed();
+                    final var error = failure.get();
+                    if (l.isDebugEnabled()) {
+                        l.debug("Failed to send message <{}> due to <{}: {}>",
+                                message,
+                                error.getClass().getSimpleName(),
+                                error.getMessage());
+                    } else {
+                        l.info("Failed to send message due to <{}: {}>",
+                                error.getClass().getSimpleName(),
+                                error.getMessage());
+                    }
+                    resultFuture.completeExceptionally(error);
+                    escalate(error, MessageFormat.format("Failed to send HTTP request to <{0}>.",
+                            stripUserInfo(request.getUri())));
                 }
-                resultFuture.completeExceptionally(error);
-                escalate(error, MessageFormat.format("Failed to send HTTP request to <{0}>.",
-                        stripUserInfo(request.getUri())));
+            }
+
+            @Override
+            public ConnectionMonitor.InfoProvider getInfoProvider() {
+                return InfoProviderFactory.forExternalMessage(message);
             }
         };
     }
@@ -521,11 +555,11 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 httpPushRoundTripSignalValidator.accept((Command<?>) liveCommandWithEntityId.get(), result);
             }
             if (result == null) {
-                connectionLogger.success(
+                connectionLogger.success(InfoProviderFactory.forSignal(sentSignal),
                         "No CommandResponse created from HTTP response with status <{0}> and body <{1}>.",
                         response.status(), body);
             } else {
-                connectionLogger.success(
+                connectionLogger.success(InfoProviderFactory.forSignal(result),
                         "CommandResponse <{0}> created from HTTP response with Status <{1}> and body <{2}>.",
                         result, response.status(), body);
             }
@@ -573,7 +607,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             } else if (commandResponse instanceof MessageCommandResponse) {
                 return (MessageCommandResponse<?, ?>) commandResponse;
             } else {
-                connectionLogger.failure("Expected <{0}> to be of type <{1}> but was of type <{2}>.",
+                connectionLogger.failure("Expected <{0}> to be of type <{1}> but was of type <{2}>",
                         commandResponse, MessageCommandResponse.class.getSimpleName(),
                         commandResponse.getClass().getSimpleName());
                 return null;
@@ -600,8 +634,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     return SendFeatureMessageResponse.of(sentMessageCommand.getEntityId(),
                             sendFeatureMessage.getFeatureId(), message, status, dittoHeaders);
                 default:
-                    connectionLogger.failure("Initial message command type <{0}> is unknown.",
-                            sentMessageCommand.getType());
+                    connectionLogger.failure(InfoProviderFactory.forSignal(sentMessageCommand),
+                            "Initial message command type <{0}> is unknown.", sentMessageCommand.getType());
                     return null;
             }
         }
@@ -650,14 +684,31 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             return commandResponse.setDittoHeaders(dittoHeadersWithTargetAuthorization);
 
         } else {
-            connectionLogger.exception("Expected <{}> to be of type <{}> but was of type <{}>.",
-                    jsonObject, CommandResponse.class.getSimpleName(), signal.getClass().getSimpleName());
+            connectionLogger.exception(InfoProviderFactory.forHeaders(jsonifiableAdaptable.getDittoHeaders()),
+                    "Expected <{}> to be of type <{}> but was of type <{}>.", jsonObject,
+                    CommandResponse.class.getSimpleName(), signal.getClass().getSimpleName());
             return null;
         }
     }
 
     private ConnectionFailure toConnectionFailure(@Nullable final Done done, @Nullable final Throwable error) {
         return ConnectionFailure.of(getSelf(), error, "HttpPublisherActor stream terminated");
+    }
+
+    private List<HttpMethod> parseOmitBodyMethods(final Connection connection,
+            final HttpPushConfig httpPushConfig) {
+        return Optional.of(connection.getSpecificConfig())
+                .map(specificConfig -> specificConfig.get(OMIT_REQUEST_BODY_CONFIG_KEY))
+                .map(methods -> {
+                    if (methods.isEmpty()) {
+                        return Stream.<String>empty();
+                    } else {
+                        return Arrays.stream(methods.split(","));
+                    }
+                })
+                .map(s -> s.flatMap(m -> HttpMethods.lookup(m).stream()).collect(Collectors.toList()))
+                .orElse(httpPushConfig.getOmitRequestBodyMethods()
+                        .stream().flatMap(m -> HttpMethods.lookup(m).stream()).collect(Collectors.toList()));
     }
 
     private enum ReservedHeaders {

@@ -48,7 +48,7 @@ import akka.http.javadsl.server.Route;
 public final class CorsEnablingDirective {
 
     private static final AccessControlAllowMethods ACCESS_CONTROL_ALLOW_METHODS =
-            AccessControlAllowMethods.create(HttpMethods.OPTIONS, HttpMethods.GET, HttpMethods.PUT,
+            AccessControlAllowMethods.create(HttpMethods.OPTIONS, HttpMethods.GET, HttpMethods.PUT, HttpMethods.PATCH,
                     HttpMethods.POST, HttpMethods.HEAD, HttpMethods.DELETE);
 
     private final HttpConfig httpConfig;

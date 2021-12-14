@@ -47,6 +47,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.HmacCredentials;
+import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
 import org.eclipse.ditto.connectivity.model.PayloadMappingDefinition;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.SourceBuilder;
@@ -55,6 +56,7 @@ import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.config.ConnectionConfigProvider;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.DittoConnectivityConfig;
+import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.mapping.NormalizedMessageMapper;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.amqp.AmqpValidator;
@@ -70,6 +72,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorSystem;
@@ -86,8 +89,6 @@ public class ConnectionValidatorTest {
     private static final Config CONFIG =
             TestConstants.CONFIG.withValue("ditto.connectivity.connection.blocked-hostnames",
                     ConfigValueFactory.fromAnyRef("8.8.8.8,2001:4860:4860:0000:0000:0000:0000:0001"));
-    private static final ConnectivityConfig CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST =
-            DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG));
     private static ActorSystem actorSystem;
 
     @BeforeClass
@@ -556,6 +557,84 @@ public class ConnectionValidatorTest {
                 .withMessageContaining("HMAC credentials are not supported");
     }
 
+    @Test
+    public void acceptHttpConnectionWithValidClientCredentials() {
+        final Connection connection = createHttpConnection().toBuilder()
+                .credentials(OAuthClientCredentials.newBuilder()
+                        .clientId("id")
+                        .clientSecret("secret")
+                        .scope("scope")
+                        .tokenEndpoint("https://8.8.4.4/token")
+                        .build())
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void rejectInvalidTokenEndpointForOauthClientCredentials() {
+        final Connection connection = createHttpConnection().toBuilder()
+                .credentials(OAuthClientCredentials.newBuilder()
+                        .clientId("id")
+                        .clientSecret("secret")
+                        .scope("scope")
+                        .tokenEndpoint("local:host")
+                        .build())
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("Invalid token endpoint");
+    }
+
+    @Test
+    public void rejectBlockedTokenEndpointForOauthClientCredentials() {
+        final Connection connection = createHttpConnection().toBuilder()
+                .credentials(OAuthClientCredentials.newBuilder()
+                        .clientId("id")
+                        .clientSecret("secret")
+                        .scope("scope")
+                        .tokenEndpoint("http://8.8.8.8/token")
+                        .build())
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("the host is blocked");
+    }
+
+    @Test
+    public void rejectInvalidScopesForOauthClientCredentials() {
+        final Connection connection = createHttpConnection().toBuilder()
+                .credentials(OAuthClientCredentials.newBuilder()
+                        .clientId("id")
+                        .clientSecret("secret")
+                        .scope("\"scope1\" scope2")
+                        .tokenEndpoint("http://8.8.4.4/token")
+                        .build())
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("Invalid format of requested scopes");
+    }
+
+    @Test
+    public void rejectOauthClientCredentialsForAmqpConnection() {
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
+                .credentials(OAuthClientCredentials.newBuilder()
+                        .clientId("id")
+                        .clientSecret("secret")
+                        .scope("scope")
+                        .tokenEndpoint("http://localhost/token")
+                        .build())
+                .build();
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .withMessageContaining("OAuth client credentials are only supported for HTTP connection type");
+    }
+
     private void rejectInvalidPayloadMappingReferenceInTarget(List<Source> sources, List<Target> targets) {
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition("status",
@@ -577,7 +656,7 @@ public class ConnectionValidatorTest {
     private ConnectionValidator getConnectionValidator() {
         return ConnectionValidator.of(actorSystem.log(),
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG)),
-                AmqpValidator.newInstance(), HttpPushValidator.newInstance());
+                AmqpValidator.newInstance(), HttpPushValidator.newInstance(HttpPushConfig.of(ConfigFactory.empty())));
     }
 
     private static Connection createHttpConnection() {

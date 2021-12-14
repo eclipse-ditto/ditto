@@ -251,7 +251,8 @@ public abstract class AbstractConsumerActorTest<M> {
                 InboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
         final OutboundMappingProcessor outboundMappingProcessor =
                 OutboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
-        final Props props = OutboundMappingProcessorActor.props(clientActor, outboundMappingProcessor, CONNECTION, 43);
+        final Props props = OutboundMappingProcessorActor.props(clientActor, outboundMappingProcessor, CONNECTION,
+                connectivityConfig, 43);
         final ActorRef outboundProcessorActor = actorSystem.actorOf(props,
                 OutboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
 
@@ -262,7 +263,7 @@ public abstract class AbstractConsumerActorTest<M> {
                 outboundProcessorActor,
                 TestProbe.apply(actorSystem).ref(),
                 actorSystem,
-                actorSystem.settings().config(),
+                ConnectivityConfig.of(actorSystem.settings().config()),
                 null);
 
         return InboundMappingSink.createSink(inboundMappingProcessor,

@@ -90,7 +90,15 @@ final class DockerContainer {
                 .map(ContainerNetworkSettings::getNetworks)
                 .map(networks -> networks.get(DOCKER_BRIDGE_NETWORK))
                 .map(ContainerNetwork::getGateway)
-                .map(hostname -> OsDetector.isWindows() && DEFAULT_DOCKER_HOST.equals(hostname) ? LOCALHOST : hostname)
+                .map(hostname -> {
+                    if (OsDetector.isMac()) {
+                        return LOCALHOST;
+                    } else if (OsDetector.isWindows() && DEFAULT_DOCKER_HOST.equals(hostname)) {
+                        return LOCALHOST;
+                    } else {
+                        return hostname;
+                    }
+                })
                 .orElseThrow(
                         () -> new IllegalArgumentException("Could not find a gateway defined for network 'bridge'.")
                 );

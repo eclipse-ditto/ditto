@@ -13,6 +13,7 @@
 
 package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
@@ -146,6 +147,11 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
     @Override
     public void clear() {
         wrapInExceptionHandling(() -> delegate.clear());
+    }
+
+    @Override
+    public void close() throws IOException {
+        delegate.close();
     }
 
     @Override

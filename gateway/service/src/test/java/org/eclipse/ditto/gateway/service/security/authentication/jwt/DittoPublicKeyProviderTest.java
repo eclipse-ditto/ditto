@@ -19,7 +19,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.security.PublicKey;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
@@ -28,14 +27,14 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.gateway.service.security.utils.HttpClientFacade;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.jwt.model.JsonWebKey;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
-import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
-import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayAuthenticationProviderUnavailableException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

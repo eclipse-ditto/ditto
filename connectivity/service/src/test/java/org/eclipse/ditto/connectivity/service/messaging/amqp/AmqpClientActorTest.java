@@ -43,7 +43,6 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -472,22 +471,23 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsgClass(Status.Failure.class);
 
-            final AtomicInteger count = new AtomicInteger(20);
             Awaitility.await()
                     .pollInterval(Duration.ofMillis(100))
-                    .atMost(Duration.ofSeconds(5)).until(() -> {
-                        amqpClientActor.tell(RetrieveConnectionStatus.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
+                    .atMost(Duration.ofSeconds(10))
+                    .untilAsserted(() -> {
+                        amqpClientActor.tell(RetrieveConnectionStatus.of(CONNECTION_ID, DittoHeaders.empty()),
+                                getRef());
                         fishForMessage(Duration.ofSeconds(1), "client status", o -> {
                             if (o instanceof ResourceStatus) {
                                 final ResourceStatus resourceStatus = (ResourceStatus) o;
                                 if (resourceStatus.getResourceType() == ResourceStatus.ResourceType.CLIENT) {
-                                    assertThat((Object) resourceStatus.getStatus()).isEqualTo(ConnectivityStatus.MISCONFIGURED);
+                                    assertThat((Object) resourceStatus.getStatus())
+                                            .isEqualTo(ConnectivityStatus.MISCONFIGURED);
                                     return true;
                                 }
                             }
                             return false;
                         });
-                        return count.decrementAndGet() == 0;
                     });
         }};
     }

@@ -36,6 +36,7 @@ import org.eclipse.ditto.connectivity.model.EnforcementFilter;
 import org.eclipse.ditto.connectivity.model.EnforcementFilterFactory;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.Source;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.LegacyBaseConsumerActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
@@ -61,9 +62,9 @@ abstract class AbstractMqttConsumerActor<P> extends LegacyBaseConsumerActor {
 
     protected AbstractMqttConsumerActor(final Connection connection, final Sink<Object, NotUsed> inboundMappingSink,
             final Source source, final boolean dryRun, final boolean reconnectForRedelivery,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
+            final ConnectivityStatusResolver connectivityStatusResolver, final ConnectivityConfig connectivityConfig) {
         super(connection, String.join(";", source.getAddresses()), inboundMappingSink, source,
-                connectivityStatusResolver);
+                connectivityStatusResolver, connectivityConfig);
 
         this.dryRun = dryRun;
         this.payloadMapping = source.getPayloadMapping();

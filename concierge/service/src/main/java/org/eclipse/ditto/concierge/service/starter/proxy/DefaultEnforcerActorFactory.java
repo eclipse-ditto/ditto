@@ -29,6 +29,8 @@ import org.eclipse.ditto.concierge.api.actors.ConciergeEnforcerClusterRouterFact
 import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.concierge.service.actors.ShardRegions;
 import org.eclipse.ditto.concierge.service.common.ConciergeConfig;
+import org.eclipse.ditto.concierge.service.enforcement.CreationRestrictionEnforcer;
+import org.eclipse.ditto.concierge.service.enforcement.DefaultCreationRestrictionEnforcer;
 import org.eclipse.ditto.concierge.service.enforcement.EnforcementProvider;
 import org.eclipse.ditto.concierge.service.enforcement.EnforcerActor;
 import org.eclipse.ditto.concierge.service.enforcement.LiveSignalEnforcement;
@@ -117,10 +119,16 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
         final DistributedAcks distributedAcks = DistributedAcks.lookup(actorSystem);
         final LiveSignalPub liveSignalPub = LiveSignalPub.of(context, distributedAcks);
 
+        // creation restriction
+        final CreationRestrictionEnforcer creationRestriction = DefaultCreationRestrictionEnforcer.of(
+                conciergeConfig.getEnforcementConfig().getEntityCreation()
+        );
+
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
-        enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,
-                policiesShardRegionProxy, thingIdCache, projectedEnforcerCache, preEnforcer));
-        enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache));
+        enforcementProviders.add(new ThingCommandEnforcement.Provider(actorSystem, thingsShardRegionProxy,
+                policiesShardRegionProxy, thingIdCache, projectedEnforcerCache, preEnforcer, creationRestriction));
+        enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache,
+                creationRestriction));
         enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache,
                 projectedEnforcerCache,
                 actorSystem,
