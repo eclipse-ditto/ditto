@@ -445,7 +445,7 @@ public final class MultiStageCommandTest {
     }
 
     private ActorRef newEnforcerActor(final ActorRef testActorRef) {
-        return TestSetup.newEnforcerActor(system, testActorRef, mockThingsActor, mockPoliciesActor, null);
+        return TestSetup.newEnforcerActor(system, testActorRef, mockThingsActor, mockPoliciesActor, null, null);
     }
 
     private static TestActorRef<MockEntitiesActor> newMockEntitiesActor(final ActorSystem system) {

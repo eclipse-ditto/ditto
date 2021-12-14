@@ -146,6 +146,7 @@ public final class ThingCommandEnforcement
     private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
     private final PreEnforcer preEnforcer;
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
+    private final CreationRestrictionEnforcer creationRestrictionEnforcer;
 
     private ThingCommandEnforcement(final Contextual<ThingCommand<?>> data,
             final ActorSystem actorSystem,
@@ -153,7 +154,8 @@ public final class ThingCommandEnforcement
             final ActorRef policiesShardRegion,
             final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
             final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
-            final PreEnforcer preEnforcer) {
+            final PreEnforcer preEnforcer,
+            final CreationRestrictionEnforcer creationRestrictionEnforcer) {
 
         super(data, ThingQueryCommandResponse.class);
         this.thingsShardRegion = requireNonNull(thingsShardRegion);
@@ -177,6 +179,7 @@ public final class ThingCommandEnforcement
         policyIdReferencePlaceholderResolver =
                 PolicyIdReferencePlaceholderResolver.of(conciergeForwarder(), getAskWithRetryConfig(),
                         context.getScheduler(), context.getExecutor());
+        this.creationRestrictionEnforcer = creationRestrictionEnforcer;
     }
 
     @Override
@@ -333,7 +336,8 @@ public final class ThingCommandEnforcement
                         .build();
 
         final Optional<RetrievePolicy> retrievePolicyOptional = PolicyCommandEnforcement.authorizePolicyCommand(
-                RetrievePolicy.of(policyId, dittoHeadersWithoutPreconditionHeaders), PolicyEnforcer.of(enforcer));
+                RetrievePolicy.of(policyId, dittoHeadersWithoutPreconditionHeaders), PolicyEnforcer.of(enforcer),
+                this.creationRestrictionEnforcer);
 
         if (retrievePolicyOptional.isPresent()) {
             return retrieveThingBeforePolicy(retrieveThing)
@@ -1012,7 +1016,10 @@ public final class ThingCommandEnforcement
 
                 final var createPolicy = CreatePolicy.of(policy.get(), dittoHeadersForCreatePolicy);
                 final Optional<CreatePolicy> authorizedCreatePolicy =
-                        PolicyCommandEnforcement.authorizePolicyCommand(createPolicy, PolicyEnforcer.of(enforcer));
+                        PolicyCommandEnforcement.authorizePolicyCommand(createPolicy,
+                                PolicyEnforcer.of(enforcer),
+                                this.creationRestrictionEnforcer
+                        );
 
                 // CreatePolicy is rejected; abort CreateThing.
                 return authorizedCreatePolicy
@@ -1169,6 +1176,7 @@ public final class ThingCommandEnforcement
         private final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache;
         private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
         private final PreEnforcer preEnforcer;
+        private final CreationRestrictionEnforcer creationRestrictionEnforcer;
 
         /**
          * Constructor.
@@ -1179,13 +1187,16 @@ public final class ThingCommandEnforcement
          * @param thingIdCache the thing-id-cache.
          * @param policyEnforcerCache the policy-enforcer cache.
          * @param preEnforcer pre-enforcer function to block undesirable messages to policies shard region.
+         * @param creationRestrictionEnforcer the enforcer for restricting entity creation.
          */
         public Provider(final ActorSystem actorSystem,
                 final ActorRef thingsShardRegion,
                 final ActorRef policiesShardRegion,
                 final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
                 final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
-                @Nullable final PreEnforcer preEnforcer) {
+                @Nullable final PreEnforcer preEnforcer,
+                @Nullable final CreationRestrictionEnforcer creationRestrictionEnforcer
+        ) {
 
             this.actorSystem = requireNonNull(actorSystem);
             this.thingsShardRegion = requireNonNull(thingsShardRegion);
@@ -1193,6 +1204,7 @@ public final class ThingCommandEnforcement
             this.thingIdCache = requireNonNull(thingIdCache);
             this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
             this.preEnforcer = Optional.ofNullable(preEnforcer).orElse(CompletableFuture::completedFuture);
+            this.creationRestrictionEnforcer = Optional.ofNullable(creationRestrictionEnforcer).orElse(CreationRestrictionEnforcer.NULL);
         }
 
         @Override
@@ -1216,7 +1228,7 @@ public final class ThingCommandEnforcement
         @Override
         public AbstractEnforcement<ThingCommand<?>> createEnforcement(final Contextual<ThingCommand<?>> context) {
             return new ThingCommandEnforcement(context, actorSystem, thingsShardRegion, policiesShardRegion, thingIdCache,
-                    policyEnforcerCache, preEnforcer);
+                    policyEnforcerCache, preEnforcer, creationRestrictionEnforcer);
         }
 
     }

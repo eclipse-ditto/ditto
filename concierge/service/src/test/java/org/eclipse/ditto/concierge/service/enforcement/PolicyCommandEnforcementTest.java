@@ -864,7 +864,7 @@ public final class PolicyCommandEnforcementTest {
         final ActorRef conciergeForwarder = new TestProbe(system, createUniqueName("conciergeForwarder-")).ref();
 
         final PolicyCommandEnforcement.Provider enforcementProvider =
-                new PolicyCommandEnforcement.Provider(policiesShardRegionProbe.ref(), enforcerCache);
+                new PolicyCommandEnforcement.Provider(policiesShardRegionProbe.ref(), enforcerCache, null);
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(enforcementProvider);
 

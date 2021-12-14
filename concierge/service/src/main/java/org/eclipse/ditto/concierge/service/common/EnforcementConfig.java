@@ -56,6 +56,13 @@ public interface EnforcementConfig {
     Set<String> getSpecialLoggingInspectedNamespaces();
 
     /**
+     * Returns the configuration for the entity creation restrictions.
+     *
+     * @return the configuration.
+     */
+    EntityCreationConfig getEntityCreation();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code EnforcementConfig}.
      */
