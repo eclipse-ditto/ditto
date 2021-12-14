@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -48,7 +49,6 @@ public final class PurgeEntitiesResponse extends CommonCommandResponse<PurgeEnti
 
     private static final CommandResponseJsonDeserializer<PurgeEntitiesResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Arrays.asList(HttpStatus.OK, HttpStatus.INTERNAL_SERVER_ERROR)::contains,
                     context -> {
                         final var jsonObject = context.getJsonObject();
                         return new PurgeEntitiesResponse(
@@ -67,7 +67,11 @@ public final class PurgeEntitiesResponse extends CommonCommandResponse<PurgeEnti
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, httpStatus, dittoHeaders);
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Arrays.asList(HttpStatus.OK, HttpStatus.INTERNAL_SERVER_ERROR),
+                        PurgeEntitiesResponse.class),
+                dittoHeaders);
         this.entityType = checkNotNull(entityType);
         this.successful = successful;
     }

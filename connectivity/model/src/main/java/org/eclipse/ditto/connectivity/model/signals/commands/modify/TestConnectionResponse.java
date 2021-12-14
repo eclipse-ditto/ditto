@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
@@ -53,7 +54,6 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
 
     private static final CommandResponseJsonDeserializer<TestConnectionResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Arrays.asList(HttpStatus.OK, HttpStatus.CONFLICT)::contains,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
                         return new TestConnectionResponse(
@@ -69,10 +69,14 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
 
     private TestConnectionResponse(final ConnectionId connectionId,
             final String testResult,
-            final HttpStatus httpStatusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, httpStatusCode, dittoHeaders);
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Arrays.asList(HttpStatus.OK, HttpStatus.CONFLICT),
+                        TestConnectionResponse.class),
+                dittoHeaders);
         this.connectionId = checkNotNull(connectionId, "connectionId");
         this.testResult = testResult;
     }

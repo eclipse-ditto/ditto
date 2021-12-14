@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.messages.model.signals.commands;
 
-import java.util.Objects;
-
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
@@ -45,7 +43,6 @@ public final class SendThingMessageResponse<T> extends AbstractMessageCommandRes
 
     private static final CommandResponseJsonDeserializer<SendThingMessageResponse<?>> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Objects::nonNull,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
                         return new SendThingMessageResponse<>(
@@ -58,10 +55,10 @@ public final class SendThingMessageResponse<T> extends AbstractMessageCommandRes
 
     private SendThingMessageResponse(final ThingId thingId,
             final Message<T> message,
-            final HttpStatus responseHttpStatus,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, thingId, message, responseHttpStatus, dittoHeaders);
+        super(TYPE, thingId, message, httpStatus, dittoHeaders);
     }
 
     @Override

@@ -12,11 +12,14 @@
  */
 package org.eclipse.ditto.base.model.namespaces.signals.commands;
 
+import java.util.Collections;
+
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonObject;
 
@@ -35,7 +38,6 @@ public final class BlockNamespaceResponse extends AbstractNamespaceCommandRespon
 
     private static final CommandResponseJsonDeserializer<BlockNamespaceResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
                         return new BlockNamespaceResponse(
@@ -51,7 +53,13 @@ public final class BlockNamespaceResponse extends AbstractNamespaceCommandRespon
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(namespace, resourceType, TYPE, httpStatus, dittoHeaders);
+        super(namespace,
+                resourceType,
+                TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        BlockNamespaceResponse.class),
+                dittoHeaders);
     }
 
     /**

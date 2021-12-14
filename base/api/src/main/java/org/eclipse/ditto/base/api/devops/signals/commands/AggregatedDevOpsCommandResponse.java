@@ -55,7 +55,6 @@ public final class AggregatedDevOpsCommandResponse
 
     private static final CommandResponseJsonDeserializer<AggregatedDevOpsCommandResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Objects::nonNull,
                     context -> {
                         final var jsonObject = context.getJsonObject();
                         return new AggregatedDevOpsCommandResponse(jsonObject.getValueOrThrow(JSON_AGGREGATED_RESPONSES),

@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonField;
@@ -56,7 +57,6 @@ public final class RetrieveAllConnectionIdsResponse extends AbstractCommandRespo
 
     private static final CommandResponseJsonDeserializer<RetrieveAllConnectionIdsResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
                         return new RetrieveAllConnectionIdsResponse(fromArray(jsonObject.getValueOrThrow(CONNECTION_IDS)),
@@ -70,7 +70,11 @@ public final class RetrieveAllConnectionIdsResponse extends AbstractCommandRespo
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, httpStatus, dittoHeaders);
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveAllConnectionIdsResponse.class),
+                dittoHeaders);
         this.connectionIds = Collections.unmodifiableSet(new LinkedHashSet<>(connectionIds));
     }
 

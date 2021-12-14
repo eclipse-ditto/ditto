@@ -15,6 +15,7 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.whoami;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -27,6 +28,7 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.json.JsonField;
@@ -56,7 +58,6 @@ public final class WhoamiResponse extends CommonCommandResponse<WhoamiResponse> 
 
     private static final CommandResponseJsonDeserializer<WhoamiResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final var jsonObject = context.getJsonObject();
                         return new WhoamiResponse(jsonObject.getValueOrThrow(JSON_USER_INFO),
@@ -71,7 +72,11 @@ public final class WhoamiResponse extends CommonCommandResponse<WhoamiResponse> 
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, httpStatus, dittoHeaders);
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        WhoamiResponse.class),
+                dittoHeaders);
         this.userInformation = checkNotNull(userInformation, "userInformation");
     }
 

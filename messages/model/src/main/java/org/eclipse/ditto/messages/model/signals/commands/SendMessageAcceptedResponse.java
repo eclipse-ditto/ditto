@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.messages.model.signals.commands;
 
-import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -47,7 +46,6 @@ public final class SendMessageAcceptedResponse
 
     private static final CommandResponseJsonDeserializer<SendMessageAcceptedResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Objects::nonNull,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
 

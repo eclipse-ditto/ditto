@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.base.api.devops.signals.commands;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -24,6 +25,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.json.JsonFactory;
@@ -53,7 +55,6 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
 
     private static final CommandResponseJsonDeserializer<RetrieveStatisticsResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final var jsonObject = context.getJsonObject();
                         return new RetrieveStatisticsResponse(jsonObject.getValueOrThrow(JSON_STATISTICS),
@@ -67,7 +68,13 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, null, null, httpStatus, dittoHeaders);
+        super(TYPE,
+                null,
+                null,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveStatisticsResponse.class),
+                dittoHeaders);
         this.statistics = ConditionChecker.checkNotNull(statistics, "statistics");
     }
 

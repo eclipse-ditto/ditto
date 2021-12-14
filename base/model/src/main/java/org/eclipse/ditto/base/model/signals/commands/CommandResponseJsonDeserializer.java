@@ -16,7 +16,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Objects;
-import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -38,19 +37,16 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse<?>>
 
     @Nullable private final JsonObject jsonObject;
     private final String expectedCommandResponseType;
-    private final Predicate<HttpStatus> validHttpStatusPredicate;
     private final DeserializationFunction<T> deserializationFunction;
 
     private CommandResponseJsonDeserializer(final CharSequence type,
             @Nullable final JsonObject jsonObject,
-            final Predicate<HttpStatus> validHttpStatusPredicate,
             final DeserializationFunction<T> deserializationFunction) {
 
         this.jsonObject = jsonObject;
         expectedCommandResponseType = ConditionChecker.checkArgument(checkNotNull(type, "type").toString(),
                 arg -> !arg.trim().isEmpty(),
                 () -> "The type must not be empty or blank.");
-        this.validHttpStatusPredicate = checkNotNull(validHttpStatusPredicate, "validHttpStatusPredicate");
         this.deserializationFunction = deserializationFunction;
     }
 
@@ -61,11 +57,11 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse<?>>
      * @param jsonObject the JSON object to deserialize.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code type} is empty or blank.
-     * @deprecated as of 2.3.0 please use {@link #newInstance(CharSequence, Predicate, DeserializationFunction)} instead.
+     * @deprecated as of 2.3.0 please use {@link #newInstance(CharSequence, DeserializationFunction)} instead.
      */
     @Deprecated
     public CommandResponseJsonDeserializer(final String type, final JsonObject jsonObject) {
-        this(type, checkJsonObjectNotNull(jsonObject), Objects::nonNull, null);
+        this(type, checkJsonObjectNotNull(jsonObject), null);
     }
 
     private static JsonObject checkJsonObjectNotNull(@Nullable final JsonObject jsonObject) {
@@ -80,7 +76,7 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse<?>>
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code type} is empty or blank or if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonString} does not contain a valid JSON object.
-     * @deprecated as of 2.3.0 please use {@link #newInstance(CharSequence, Predicate, DeserializationFunction)} instead.
+     * @deprecated as of 2.3.0 please use {@link #newInstance(CharSequence, DeserializationFunction)} instead.
      */
     @Deprecated
     public CommandResponseJsonDeserializer(final String type, final String jsonString) {
@@ -89,7 +85,6 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse<?>>
 
     /**
      * Returns a new instance of {@code CommandResponseJsonDeserializer}.
-     * The returned instance does not validate the deserialized HTTP status.
      *
      * @param <T> the type of the {@code CommandResponse} to be deserialized.
      * @param type the type of the deserialized {@code CommandResponse}.
@@ -104,56 +99,9 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse<?>>
     public static <T extends CommandResponse<?>> CommandResponseJsonDeserializer<T> newInstance(final CharSequence type,
             final DeserializationFunction<T> deserializationFunction) {
 
-        return newInstance(type, httpStatus -> true, deserializationFunction);
-    }
-
-    /**
-     * Returns a new instance of {@code CommandResponseJsonDeserializer}.
-     *
-     * @param <T> the type of the {@code CommandResponse} to be deserialized.
-     * @param type the type of the deserialized {@code CommandResponse}.
-     * @param validHttpStatusPredicate a predicate that decides which deserialized {@code HttpStatus} is valid for
-     * a {@code CommandResponse} of type {@code type}.
-     * @param deserializationFunction deserializes a {@code CommandResponse} for a provided
-     * {@link DeserializationContext}.
-     * Any {@code Exception} that is thrown by this function will be wrapped in a {@code JsonParseException}.
-     * @return the instance.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code type} is empty or blank.
-     * @since 2.3.0
-     */
-    public static <T extends CommandResponse<?>> CommandResponseJsonDeserializer<T> newInstance(final CharSequence type,
-            final Predicate<HttpStatus> validHttpStatusPredicate,
-            final DeserializationFunction<T> deserializationFunction) {
-
-        return new CommandResponseJsonDeserializer<>(type,
+        return new CommandResponseJsonDeserializer(type,
                 null,
-                validHttpStatusPredicate,
                 checkNotNull(deserializationFunction, "deserializationFunction"));
-    }
-
-    /**
-     * Returns a new instance of {@code CommandResponseJsonDeserializer}.
-     * This method is more convenient to be used than {@link #newInstance(CharSequence, Predicate, DeserializationFunction)}
-     * for cases where only one particular {@code HttpStatus} is valid for the target {@code CommandResponse}.
-     *
-     * @param <T> the type of the {@code CommandResponse} to be deserialized.
-     * @param type the type of the deserialized {@code CommandResponse}.
-     * @param validHttpStatus the valid {@code HttpStatus} for a {@code CommandResponse} of type {@code type}.
-     * @param deserializationFunction deserializes a {@code CommandResponse} for a provided
-     * {@link DeserializationContext}.
-     * Any {@code Exception} that is thrown by this function will be wrapped in a {@code JsonParseException}.
-     * @return the instance.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code type} is empty or blank.
-     * @since 2.3.0
-     */
-    public static <T extends CommandResponse<?>> CommandResponseJsonDeserializer<T> newInstance(final CharSequence type,
-            final HttpStatus validHttpStatus,
-            final DeserializationFunction<T> deserializationFunction) {
-
-        checkNotNull(validHttpStatus, "validHttpStatus");
-        return newInstance(type, validHttpStatus::equals, deserializationFunction);
     }
 
     /**
@@ -173,7 +121,6 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse<?>>
         final CommandResponseJsonDeserializer<T> deserializer =
                 new CommandResponseJsonDeserializer<>(expectedCommandResponseType,
                         checkJsonObjectNotNull(jsonObject),
-                        validHttpStatusPredicate,
                         context -> factoryMethodFunction.create(context.getDeserializedHttpStatus()));
 
         return deserializer.deserialize(jsonObject, DittoHeaders.empty());
@@ -195,7 +142,7 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse<?>>
             return deserializationFunction.deserializeCommandResponse(new DefaultDeserializationContext(jsonObject,
                     dittoHeaders,
                     validateCommandResponseType(deserializeCommandResponseTypeOrThrow(jsonObject)),
-                    validateHttpStatus(deserializeHttpStatusOrThrow(jsonObject))));
+                    deserializeHttpStatusOrThrow(jsonObject)));
         } catch (final Exception e) {
             throw newJsonParseException(e);
         }
@@ -220,14 +167,6 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse<?>>
             throws HttpStatusCodeOutOfRangeException {
 
         return HttpStatus.getInstance(jsonObject.getValueOrThrow(CommandResponse.JsonFields.STATUS));
-    }
-
-    private HttpStatus validateHttpStatus(final HttpStatus deserializedHttpStatus) {
-        if (validHttpStatusPredicate.test(deserializedHttpStatus)) {
-            return deserializedHttpStatus;
-        } else {
-            throw new JsonParseException(MessageFormat.format("<{0}> is invalid.", deserializedHttpStatus));
-        }
     }
 
     private JsonParseException newJsonParseException(final Exception cause) {
@@ -283,7 +222,7 @@ public final class CommandResponseJsonDeserializer<T extends CommandResponse<?>>
 
     /**
      * The context for deserializing a JSON object to a {@code CommandResponse}.
-     * <p>
+     *
      * @since 2.3.0
      */
     public interface DeserializationContext {

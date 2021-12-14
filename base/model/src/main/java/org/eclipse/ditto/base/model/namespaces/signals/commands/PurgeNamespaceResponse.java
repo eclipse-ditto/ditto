@@ -23,6 +23,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -41,7 +42,6 @@ public final class PurgeNamespaceResponse extends AbstractNamespaceCommandRespon
 
     private static final CommandResponseJsonDeserializer<PurgeNamespaceResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Arrays.asList(HttpStatus.OK, HttpStatus.INTERNAL_SERVER_ERROR)::contains,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
                         return new PurgeNamespaceResponse(
@@ -57,7 +57,13 @@ public final class PurgeNamespaceResponse extends AbstractNamespaceCommandRespon
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(namespace, resourceType, TYPE, httpStatus, dittoHeaders);
+        super(namespace,
+                resourceType,
+                TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Arrays.asList(HttpStatus.OK, HttpStatus.INTERNAL_SERVER_ERROR),
+                        PurgeNamespaceResponse.class),
+                dittoHeaders);
     }
 
     /**

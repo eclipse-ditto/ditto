@@ -48,7 +48,6 @@ public final class ExecutePiggybackCommandResponse
 
     private static final CommandResponseJsonDeserializer<ExecutePiggybackCommandResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Objects::nonNull,
                     context -> {
                         final var jsonObject = context.getJsonObject();
                         return ExecutePiggybackCommandResponse.of(

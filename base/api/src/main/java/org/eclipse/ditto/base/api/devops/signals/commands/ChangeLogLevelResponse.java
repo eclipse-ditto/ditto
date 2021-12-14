@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -47,7 +48,6 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
 
     private static final CommandResponseJsonDeserializer<ChangeLogLevelResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Arrays.asList(HttpStatus.OK, HttpStatus.INTERNAL_SERVER_ERROR)::contains,
                     context -> {
                         final var jsonObject = context.getJsonObject();
                         return new ChangeLogLevelResponse(
@@ -63,7 +63,13 @@ public final class ChangeLogLevelResponse extends AbstractDevOpsCommandResponse<
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, serviceName, instance, httpStatus, dittoHeaders);
+        super(TYPE,
+                serviceName,
+                instance,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Arrays.asList(HttpStatus.OK, HttpStatus.INTERNAL_SERVER_ERROR),
+                        ChangeLogLevelResponse.class),
+                dittoHeaders);
     }
 
     /**

@@ -36,6 +36,7 @@ import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
@@ -71,7 +72,6 @@ public final class RetrieveConnectionLogsResponse
 
     private static final CommandResponseJsonDeserializer<RetrieveConnectionLogsResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> getRetrieveConnectionLogsResponse(context.getJsonObject(), context.getDittoHeaders()));
 
     private final ConnectionId connectionId;
@@ -87,7 +87,11 @@ public final class RetrieveConnectionLogsResponse
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, httpStatus, dittoHeaders);
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveConnectionLogsResponse.class),
+                dittoHeaders);
 
         this.connectionId = connectionId;
         this.connectionLogs = Collections.unmodifiableList(new ArrayList<>(connectionLogs));

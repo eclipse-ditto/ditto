@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.api.commands.sudo;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -27,6 +28,7 @@ import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -57,7 +59,6 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
 
     private static final CommandResponseJsonDeserializer<SudoRetrievePolicyResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final var jsonObject = context.getJsonObject();
                         return new SudoRetrievePolicyResponse(
@@ -76,7 +77,11 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
             final JsonObject policy,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, httpStatus, dittoHeaders);
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        SudoRetrievePolicyResponse.class),
+                dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
         this.policy = checkNotNull(policy, "policy");
     }

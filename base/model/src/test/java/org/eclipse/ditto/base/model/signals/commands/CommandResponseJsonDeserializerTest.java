@@ -12,11 +12,7 @@
  */
 package org.eclipse.ditto.base.model.signals.commands;
 
-import java.util.Set;
-import java.util.function.Predicate;
-
 import org.assertj.core.api.Assertions;
-import org.assertj.core.util.Sets;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
@@ -36,8 +32,6 @@ public final class CommandResponseJsonDeserializerTest {
 
     private static final String FAKE_TYPE = "things.responses:modifyZoiglfrex";
 
-    private static Set<HttpStatus> validHttpStatuses;
-    private static Predicate<HttpStatus> validHttpStatusPredicate;
     private static CommandResponseJsonDeserializer.DeserializationFunction<CommandResponse<?>>
             voidDeserializationFunction;
 
@@ -48,8 +42,6 @@ public final class CommandResponseJsonDeserializerTest {
 
     @BeforeClass
     public static void beforeClass() {
-        validHttpStatuses = Sets.newLinkedHashSet(HttpStatus.CREATED, HttpStatus.NO_CONTENT);
-        validHttpStatusPredicate = validHttpStatuses::contains;
         voidDeserializationFunction = context -> null;
     }
 
@@ -61,9 +53,7 @@ public final class CommandResponseJsonDeserializerTest {
     @Test
     public void newInstanceWithNullTypeThrowsException() {
         Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> CommandResponseJsonDeserializer.newInstance(null,
-                        validHttpStatusPredicate,
-                        voidDeserializationFunction))
+                .isThrownBy(() -> CommandResponseJsonDeserializer.newInstance(null, voidDeserializationFunction))
                 .withMessage("The type must not be null!")
                 .withNoCause();
     }
@@ -71,9 +61,7 @@ public final class CommandResponseJsonDeserializerTest {
     @Test
     public void newInstanceWithEmptyTypeThrowsException() {
         Assertions.assertThatIllegalArgumentException()
-                .isThrownBy(() -> CommandResponseJsonDeserializer.newInstance("",
-                        validHttpStatusPredicate,
-                        voidDeserializationFunction))
+                .isThrownBy(() -> CommandResponseJsonDeserializer.newInstance("", voidDeserializationFunction))
                 .withMessage("The type must not be empty or blank.")
                 .withNoCause();
     }
@@ -81,29 +69,15 @@ public final class CommandResponseJsonDeserializerTest {
     @Test
     public void newInstanceWithBlankTypeThrowsException() {
         Assertions.assertThatIllegalArgumentException()
-                .isThrownBy(() -> CommandResponseJsonDeserializer.newInstance("   ",
-                        validHttpStatusPredicate,
-                        voidDeserializationFunction))
+                .isThrownBy(() -> CommandResponseJsonDeserializer.newInstance("   ", voidDeserializationFunction))
                 .withMessage("The type must not be empty or blank.")
-                .withNoCause();
-    }
-
-    @Test
-    public void newInstanceWithNullHttpStatusPredicateThrowsException() {
-        Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> CommandResponseJsonDeserializer.newInstance(FAKE_TYPE,
-                        (Predicate<HttpStatus>) null,
-                        voidDeserializationFunction))
-                .withMessage("The validHttpStatusPredicate must not be null!")
                 .withNoCause();
     }
 
     @Test
     public void newInstanceWithNullDeserializationFunctionThrowsException() {
         Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> CommandResponseJsonDeserializer.newInstance(FAKE_TYPE,
-                        validHttpStatusPredicate,
-                        null))
+                .isThrownBy(() -> CommandResponseJsonDeserializer.newInstance(FAKE_TYPE, null))
                 .withMessage("The deserializationFunction must not be null!")
                 .withNoCause();
     }
@@ -111,12 +85,10 @@ public final class CommandResponseJsonDeserializerTest {
     @Test
     public void callDeserializeWithNullJsonObjectThrowsException() {
         final CommandResponseJsonDeserializer<CommandResponse<?>> underTest =
-                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE,
-                        validHttpStatusPredicate,
-                        voidDeserializationFunction);
+                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE, voidDeserializationFunction);
 
         Assertions.assertThatNullPointerException()
-                .isThrownBy(() -> underTest.deserialize((JsonObject) null, dittoHeaders))
+                .isThrownBy(() -> underTest.deserialize(null, dittoHeaders))
                 .withMessage("The jsonObject must not be null!")
                 .withNoCause();
     }
@@ -124,9 +96,7 @@ public final class CommandResponseJsonDeserializerTest {
     @Test
     public void callDeserializeWithNullDittoHeadersThrowsException() {
         final CommandResponseJsonDeserializer<CommandResponse<?>> underTest =
-                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE,
-                        validHttpStatusPredicate,
-                        voidDeserializationFunction);
+                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE, voidDeserializationFunction);
 
         Assertions.assertThatNullPointerException()
                 .isThrownBy(() -> underTest.deserialize(JsonObject.empty(), null))
@@ -137,9 +107,7 @@ public final class CommandResponseJsonDeserializerTest {
     @Test
     public void deserializeJsonWithoutTypeField() {
         final CommandResponseJsonDeserializer<CommandResponse<?>> underTest =
-                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE,
-                        validHttpStatusPredicate,
-                        voidDeserializationFunction);
+                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE, voidDeserializationFunction);
 
         Assertions.assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> underTest.deserialize(JsonObject.empty(), dittoHeaders))
@@ -156,9 +124,7 @@ public final class CommandResponseJsonDeserializerTest {
                 .set(CommandResponse.JsonFields.TYPE.getPointer(), invalidTypeValue)
                 .build();
         final CommandResponseJsonDeserializer<CommandResponse<?>> underTest =
-                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE,
-                        validHttpStatusPredicate,
-                        voidDeserializationFunction);
+                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE, voidDeserializationFunction);
 
         Assertions.assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> underTest.deserialize(jsonObject, dittoHeaders))
@@ -176,9 +142,7 @@ public final class CommandResponseJsonDeserializerTest {
                 .set(CommandResponse.JsonFields.TYPE, unexpectedType)
                 .build();
         final CommandResponseJsonDeserializer<CommandResponse<?>> underTest =
-                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE,
-                        validHttpStatusPredicate,
-                        voidDeserializationFunction);
+                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE, voidDeserializationFunction);
 
         Assertions.assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> underTest.deserialize(jsonObject, dittoHeaders))
@@ -196,9 +160,7 @@ public final class CommandResponseJsonDeserializerTest {
                 .set(CommandResponse.JsonFields.TYPE, FAKE_TYPE)
                 .build();
         final CommandResponseJsonDeserializer<CommandResponse<?>> underTest =
-                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE,
-                        validHttpStatusPredicate,
-                        voidDeserializationFunction);
+                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE, voidDeserializationFunction);
 
         Assertions.assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> underTest.deserialize(jsonObject, dittoHeaders))
@@ -216,9 +178,7 @@ public final class CommandResponseJsonDeserializerTest {
                 .set(CommandResponse.JsonFields.STATUS.getPointer(), invalidHttpStatusCodeValue)
                 .build();
         final CommandResponseJsonDeserializer<CommandResponse<?>> underTest =
-                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE,
-                        validHttpStatusPredicate,
-                        voidDeserializationFunction);
+                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE, voidDeserializationFunction);
 
         Assertions.assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> underTest.deserialize(jsonObject, dittoHeaders))
@@ -237,9 +197,7 @@ public final class CommandResponseJsonDeserializerTest {
                 .set(CommandResponse.JsonFields.STATUS, invalidHttpStatusCodeValue)
                 .build();
         final CommandResponseJsonDeserializer<CommandResponse<?>> underTest =
-                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE,
-                        validHttpStatusPredicate,
-                        voidDeserializationFunction);
+                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE, voidDeserializationFunction);
 
         Assertions.assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> underTest.deserialize(jsonObject, dittoHeaders))
@@ -248,27 +206,6 @@ public final class CommandResponseJsonDeserializerTest {
                         FAKE_TYPE,
                         invalidHttpStatusCodeValue)
                 .withCauseInstanceOf(HttpStatusCodeOutOfRangeException.class);
-    }
-
-    @Test
-    public void deserializeJsonWithInvalidHttpStatusCodeValueField3() {
-        final HttpStatus invalidHttpStatus = HttpStatus.IM_A_TEAPOT;
-        final JsonObject jsonObject = JsonObject.newBuilder()
-                .set(CommandResponse.JsonFields.TYPE, FAKE_TYPE)
-                .set(CommandResponse.JsonFields.STATUS, invalidHttpStatus.getCode())
-                .build();
-        final CommandResponseJsonDeserializer<CommandResponse<?>> underTest =
-                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE,
-                        validHttpStatusPredicate,
-                        voidDeserializationFunction);
-
-        Assertions.assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(() -> underTest.deserialize(jsonObject, dittoHeaders))
-                .withMessage("Failed to deserialize JSON object to a command response of type <%s>: <%s> is invalid.",
-                        FAKE_TYPE,
-                        invalidHttpStatus,
-                        validHttpStatuses)
-                .withCauseInstanceOf(JsonParseException.class);
     }
 
     @Test
@@ -283,9 +220,7 @@ public final class CommandResponseJsonDeserializerTest {
                     throw illegalArgumentException;
                 };
         final CommandResponseJsonDeserializer<CommandResponse<?>> underTest =
-                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE,
-                        validHttpStatusPredicate,
-                        deserializationFunction);
+                CommandResponseJsonDeserializer.newInstance(FAKE_TYPE, deserializationFunction);
 
         Assertions.assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> underTest.deserialize(jsonObject, dittoHeaders))

@@ -61,7 +61,6 @@ public final class SendFeatureMessageResponse<T>
 
     private static final CommandResponseJsonDeserializer<SendFeatureMessageResponse<?>> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Objects::nonNull,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
                         return new SendFeatureMessageResponse<>(
@@ -78,10 +77,10 @@ public final class SendFeatureMessageResponse<T>
     private SendFeatureMessageResponse(final ThingId thingId,
             final String featureId,
             final Message<T> message,
-            final HttpStatus responseStatus,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, thingId, message, responseStatus, dittoHeaders);
+        super(TYPE, thingId, message, httpStatus, dittoHeaders);
         this.featureId = ConditionChecker.checkNotNull(featureId, "featureId");
         validateMessageFeatureId(this.featureId, message, dittoHeaders);
     }

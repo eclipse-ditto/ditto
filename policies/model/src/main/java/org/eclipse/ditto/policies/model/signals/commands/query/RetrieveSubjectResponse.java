@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -26,6 +27,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -65,7 +67,6 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
 
     private static final CommandResponseJsonDeserializer<RetrieveSubjectResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final JsonObject jsonObject = context.getJsonObject();
                         return new RetrieveSubjectResponse(
@@ -90,7 +91,11 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, httpStatus, dittoHeaders);
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveSubjectResponse.class),
+                dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
         this.label = checkNotNull(label, "label");
         this.subjectId = checkNotNull(subjectId, "subjectId");

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.base.api.devops.signals.commands;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -27,6 +28,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.json.JsonArray;
@@ -57,7 +59,6 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
 
     private static final CommandResponseJsonDeserializer<RetrieveLoggerConfigResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    HTTP_STATUS,
                     context -> {
                         final var jsonObject = context.getJsonObject();
 
@@ -85,7 +86,13 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, serviceName, instance, httpStatus, dittoHeaders);
+        super(TYPE,
+                serviceName,
+                instance,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveLoggerConfigResponse.class),
+                dittoHeaders);
         this.loggerConfigs = List.copyOf(loggerConfigs);
     }
 

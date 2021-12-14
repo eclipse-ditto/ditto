@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -48,7 +49,6 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
 
     private static final CommandResponseJsonDeserializer<CleanupPersistenceResponse> JSON_DESERIALIZER =
             CommandResponseJsonDeserializer.newInstance(TYPE,
-                    Arrays.asList(HttpStatus.OK, HttpStatus.INTERNAL_SERVER_ERROR)::contains,
                     context -> {
                         final var jsonObject = context.getJsonObject();
 
@@ -70,7 +70,11 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, httpStatus, dittoHeaders);
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Arrays.asList(HttpStatus.OK, HttpStatus.INTERNAL_SERVER_ERROR),
+                        CleanupPersistenceResponse.class),
+                dittoHeaders);
         this.entityId = ConditionChecker.checkNotNull(entityId, "entityId");
     }
 
