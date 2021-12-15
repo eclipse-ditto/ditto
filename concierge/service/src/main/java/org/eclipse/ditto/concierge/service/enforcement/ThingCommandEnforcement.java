@@ -28,6 +28,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -946,12 +947,12 @@ public final class ThingCommandEnforcement
 
         final var condition = dittoHeaders.getCondition();
         if (!(command instanceof CreateThing) && condition.isPresent()) {
-            enforceReadPermissionOnCondition(condition.get(), policyEnforcer, dittoHeaders,
+            enforceReadPermissionOnCondition(condition.get(), policyEnforcer, dittoHeaders, () ->
                     ThingConditionFailedException.newBuilderForInsufficientPermission(dittoHeaders).build());
         }
         final var liveChannelCondition = dittoHeaders.getLiveChannelCondition();
         if ((command instanceof ThingQueryCommand) && liveChannelCondition.isPresent()) {
-            enforceReadPermissionOnCondition(liveChannelCondition.get(), policyEnforcer, dittoHeaders,
+            enforceReadPermissionOnCondition(liveChannelCondition.get(), policyEnforcer, dittoHeaders, () ->
                     ThingConditionFailedException.newBuilderForInsufficientLiveChannelPermission(dittoHeaders).build());
         }
 
@@ -965,14 +966,14 @@ public final class ThingCommandEnforcement
     private static void enforceReadPermissionOnCondition(final String condition,
             final Enforcer policyEnforcer,
             final DittoHeaders dittoHeaders,
-            final DittoRuntimeException exception) {
+            final Supplier<DittoRuntimeException> exceptionSupplier) {
 
         final var authorizationContext = dittoHeaders.getAuthorizationContext();
         final var rootNode = tryParseRqlCondition(condition, dittoHeaders);
         final var resourceKeys = determineResourceKeys(rootNode, dittoHeaders);
 
         if (!policyEnforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.READ)) {
-            throw exception;
+            throw exceptionSupplier.get();
         }
     }
 
