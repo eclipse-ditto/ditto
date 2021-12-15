@@ -16,11 +16,7 @@ import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.internal.models.streaming.EntityIdWithRevision;
-import org.eclipse.ditto.internal.utils.persistence.mongo.DefaultPersistenceStreamingActor;
 import org.eclipse.ditto.internal.utils.persistence.mongo.SnapshotStreamingActor;
-import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.PidWithSeqNr;
-import org.eclipse.ditto.things.api.ThingTag;
 import org.eclipse.ditto.things.model.ThingId;
 
 import akka.actor.ActorRef;
@@ -31,12 +27,6 @@ import akka.actor.Props;
  * Creates an actor which streams information about persisted things.
  */
 public final class ThingsPersistenceStreamingActorCreator {
-
-    /**
-     * The name of the event streaming actor. Must agree with
-     * {@link org.eclipse.ditto.things.api.ThingsMessagingConstants#THINGS_STREAM_PROVIDER_ACTOR_PATH}.
-     */
-    public static final String EVENT_STREAMING_ACTOR_NAME = "persistenceStreamingActor";
 
     /**
      * The name of the snapshot streaming actor. Must agree with
@@ -51,19 +41,6 @@ public final class ThingsPersistenceStreamingActorCreator {
     }
 
     /**
-     * Create an actor for streaming from the event journal.
-     *
-     * @param actorCreator function to create a named actor with.
-     * @return a reference of the created actor.
-     */
-    public static ActorRef startEventStreamingActor(final BiFunction<String, Props, ActorRef> actorCreator) {
-        final var props = DefaultPersistenceStreamingActor.props(ThingTag.class,
-                ThingsPersistenceStreamingActorCreator::createElement,
-                ThingsPersistenceStreamingActorCreator::createPidWithSeqNr);
-        return actorCreator.apply(EVENT_STREAMING_ACTOR_NAME, props);
-    }
-
-    /**
      * Create an actor that streams from the snapshot store.
      *
      * @param actorCreator function to create a named actor with.
@@ -74,14 +51,6 @@ public final class ThingsPersistenceStreamingActorCreator {
                 ThingsPersistenceStreamingActorCreator::entityId2Pid);
 
         return actorCreator.apply(SNAPSHOT_STREAMING_ACTOR_NAME, props);
-    }
-
-    private static ThingTag createElement(final PidWithSeqNr pidWithSeqNr) {
-        return ThingTag.of(pid2EntityId(pidWithSeqNr.getPersistenceId()), pidWithSeqNr.getSequenceNr());
-    }
-
-    private static PidWithSeqNr createPidWithSeqNr(final EntityIdWithRevision<?> thingTag) {
-        return new PidWithSeqNr(entityId2Pid(thingTag.getEntityId()), thingTag.getRevision());
     }
 
     private static ThingId pid2EntityId(final String pid) {

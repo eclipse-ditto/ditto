@@ -36,9 +36,9 @@ import org.eclipse.ditto.internal.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.internal.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
-import org.eclipse.ditto.things.api.ThingTag;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.model.signals.events.ThingsOutOfSync;
 import org.eclipse.ditto.thingsearch.service.common.config.UpdaterConfig;
@@ -123,7 +123,6 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(ThingEvent.class, this::processThingEvent)
-                .match(ThingTag.class, this::processThingTag)
                 .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
                 .matchEquals(ShardRegion.getShardRegionStateInstance(), getShardRegionState ->
                         shardRegion.forward(getShardRegionState, getContext()))
@@ -162,20 +161,14 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                 .apply(command.getDittoHeaders()), getContext().dispatcher()).to(getSender());
     }
 
-    private void processThingTag(final ThingTag thingTag) {
-        final String elementIdentifier = thingTag.asIdentifierString();
-        log.withCorrelationId("things-tags-sync-" + elementIdentifier)
-                .debug("Forwarding incoming ThingTag '{}'", elementIdentifier);
-        forwardJsonifiableToShardRegion(thingTag, ThingTag::getEntityId);
-    }
-
     private void updateThings(final ThingsOutOfSync updateThings) {
         // log all thing IDs because getting this command implies out-of-sync things.
         log.withCorrelationId(updateThings)
                 .info("Out-of-sync things are reported: <{}>", updateThings);
         updateThings.getThingIds().forEach(thingId ->
                 forwardToShardRegion(
-                        UpdateThing.of(ThingId.of(thingId), updateThings.getDittoHeaders()),
+                        UpdateThing.of(ThingId.of(thingId), UpdateReason.BACKGROUND_SYNC,
+                                updateThings.getDittoHeaders()),
                         UpdateThing::getEntityId,
                         UpdateThing::getType,
                         UpdateThing::toJson,

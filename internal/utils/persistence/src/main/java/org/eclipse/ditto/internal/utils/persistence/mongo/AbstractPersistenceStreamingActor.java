@@ -136,12 +136,12 @@ public abstract class AbstractPersistenceStreamingActor<T extends EntityIdWithRe
             // resume from lower bound
             final var pidWithSeqNr = entityUnmapper.apply(command.getLowerBound());
             pidSource =
-                    readJournal.getJournalPidsAbove(pidWithSeqNr.getPersistenceId(), batchSize,
-                            materializer);
+                    readJournal.getJournalPidsAbove(pidWithSeqNr.getPersistenceId(), batchSize, materializer);
         } else {
             // no lower bound; read from event journals with restart-source
             pidSource = readJournal.getJournalPids(batchSize, maxIdleTime, materializer);
         }
+
         return pidSource.map(pid -> mapEntity(new PidWithSeqNr(pid, 0L))).log("pid-streaming", log);
     }
 

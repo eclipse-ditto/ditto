@@ -32,6 +32,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
 
 import akka.actor.ActorRef;
@@ -52,6 +53,7 @@ public final class Metadata {
     private final boolean invalidateThing;
     private final boolean invalidatePolicy;
     @Nullable private final ActorRef origin;
+    private final List<UpdateReason> updateReasons;
 
     private Metadata(final ThingId thingId,
             final long thingRevision,
@@ -63,7 +65,8 @@ public final class Metadata {
             final Collection<ActorRef> senders,
             final boolean invalidateThing,
             final boolean invalidatePolicy,
-            @Nullable final ActorRef origin) {
+            @Nullable final ActorRef origin,
+            final Collection<UpdateReason> updateReasons) {
 
         this.thingId = thingId;
         this.thingRevision = thingRevision;
@@ -76,6 +79,7 @@ public final class Metadata {
         this.invalidateThing = invalidateThing;
         this.invalidatePolicy = invalidatePolicy;
         this.origin = origin;
+        this.updateReasons = List.copyOf(updateReasons);
     }
 
     /**
@@ -95,7 +99,8 @@ public final class Metadata {
             @Nullable final StartedTimer timer) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, null,
-                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, false, null);
+                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, false, null,
+                List.of(UpdateReason.UNKNOWN));
     }
 
     /**
@@ -119,7 +124,7 @@ public final class Metadata {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, null, events,
                 null != timer ? List.of(timer) : List.of(),
-                null != sender ? List.of(sender) : List.of(), false, false, null);
+                null != sender ? List.of(sender) : List.of(), false, false, null, List.of(UpdateReason.UNKNOWN));
     }
 
     /**
@@ -143,7 +148,7 @@ public final class Metadata {
             final Collection<ActorRef> senders) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, List.of(), timers, senders,
-                false, false, null);
+                false, false, null, List.of(UpdateReason.UNKNOWN));
     }
 
     /**
@@ -165,7 +170,8 @@ public final class Metadata {
             @Nullable final StartedTimer timer) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified,
-                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, false, null);
+                List.of(), null != timer ? List.of(timer) : List.of(), List.of(), false, false, null,
+                List.of(UpdateReason.UNKNOWN));
     }
 
     /**
@@ -190,7 +196,7 @@ public final class Metadata {
      */
     public Metadata invalidateCaches(final boolean invalidateThing, final boolean invalidatePolicy) {
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateThing, invalidatePolicy, origin);
+                invalidateThing, invalidatePolicy, origin, updateReasons);
     }
 
     /**
@@ -200,7 +206,7 @@ public final class Metadata {
      */
     public Metadata withOrigin(@Nullable final ActorRef origin) {
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateThing, invalidatePolicy, origin);
+                invalidateThing, invalidatePolicy, origin, updateReasons);
     }
 
     /**
@@ -210,7 +216,17 @@ public final class Metadata {
      */
     public Metadata withSender(final ActorRef sender) {
         return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, List.of(sender),
-                invalidateThing, invalidatePolicy, origin);
+                invalidateThing, invalidatePolicy, origin, updateReasons);
+    }
+
+    /**
+     * Create a copy of this metadata with senders replaced by the argument.
+     *
+     * @return the copy.
+     */
+    public Metadata withUpdateReason(final UpdateReason reason) {
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
+                invalidateThing, invalidatePolicy, origin, List.of(reason));
     }
 
     /**
@@ -305,6 +321,15 @@ public final class Metadata {
     }
 
     /**
+     * Return the reason of the update.
+     *
+     * @return the update reason.
+     */
+    public List<UpdateReason> getUpdateReasons() {
+        return updateReasons;
+    }
+
+    /**
      * Returns whether an acknowledgement for the successful adding to the search index is requested.
      *
      * @return whether {@code "search-persisted"} is requested.
@@ -344,11 +369,13 @@ public final class Metadata {
                 Stream.concat(timers.stream(), newMetadata.timers.stream()).collect(Collectors.toList());
         final List<ActorRef> newSenders =
                 Stream.concat(senders.stream(), newMetadata.senders.stream()).collect(Collectors.toList());
+        final List<UpdateReason> newReasons =
+                Stream.concat(updateReasons.stream(), newMetadata.updateReasons.stream()).collect(Collectors.toList());
         return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.policyId,
                 newMetadata.policyRevision, newMetadata.modified, newEvents, newTimers, newSenders,
                 invalidateThing || newMetadata.invalidateThing,
                 invalidatePolicy || newMetadata.invalidatePolicy,
-                newMetadata.origin);
+                newMetadata.origin, newReasons);
     }
 
     /**
@@ -404,13 +431,14 @@ public final class Metadata {
                 Objects.equals(senders, that.senders) &&
                 invalidateThing == that.invalidateThing &&
                 invalidatePolicy == that.invalidatePolicy &&
-                Objects.equals(origin, that.origin);
+                Objects.equals(origin, that.origin) &&
+                Objects.equals(updateReasons, that.updateReasons);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, events, timers, senders,
-                invalidateThing, invalidatePolicy, origin);
+                invalidateThing, invalidatePolicy, origin, updateReasons);
     }
 
     @Override
@@ -427,6 +455,7 @@ public final class Metadata {
                 ", invalidateThing=" + invalidateThing +
                 ", invalidatePolicy=" + invalidatePolicy +
                 ", origin=" + origin +
+                ", updateReasons=" + updateReasons +
                 "]";
     }
 
