@@ -71,9 +71,9 @@ final class AdaptableToSignalMapper<T extends Signal<T>> implements JsonifiableM
             throw new IllegalAdaptableException(getDetailMessage(adaptable, e),
                     e.getDescription().orElse(null),
                     e,
-                    e.getDittoHeaders());
+                    adaptable);
         } catch (final Exception e) {
-            throw new IllegalAdaptableException(getDetailMessage(adaptable, e), null, e, adaptable.getDittoHeaders());
+            throw new IllegalAdaptableException(getDetailMessage(adaptable, e), null, e, adaptable);
         }
     }
 
