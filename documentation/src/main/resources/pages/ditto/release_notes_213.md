@@ -21,5 +21,4 @@ This is a complete list of the
 #### [Update logback to 1.2.8 due to "possibility of vulnerability"](https://github.com/eclipse/ditto/pull/1253)
 
 The reported [LOGBACK-1591](https://jira.qos.ch/browse/LOGBACK-1591) reports a "Possibility of vulnerability" with
-a medium severity, see also the CVE originally created for Log4j 1.2 (from which logback is a fork): 
-[CVE-2021-4104](https://nvd.nist.gov/vuln/detail/CVE-2021-4104).
+a medium severity.
