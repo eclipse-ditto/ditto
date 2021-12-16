@@ -29,6 +29,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -153,7 +154,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             final ConnectionId connectionId) {
 
         logger.trace("Logging is enabled, will aggregate logs for connection <{}>", connectionId);
-        final List<LogEntry> allLogs = streamLoggers(connectionId)
+        final List<LogEntry> allLogs = loggersForConnectionId(connectionId)
                 .map(ConnectionLogger::getLogs)
                 .flatMap(Collection::stream)
                 .sorted(Comparator.comparing(LogEntry::getTimestamp).reversed())
@@ -193,11 +194,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @return true if logging is currently enabled for the connection.
      */
     static boolean isActiveForConnection(final ConnectionId connectionId) {
-        final boolean muted = streamLoggers(connectionId)
-                .filter(MuteableConnectionLogger.class::isInstance)
-                .anyMatch(logger -> ((MuteableConnectionLogger) logger).isMuted());
-
-        return !muted;
+        return muteableLoggersForConnectionId(connectionId).anyMatch(Predicate.not(MuteableConnectionLogger::isMuted));
     }
 
     /**
@@ -230,9 +227,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 .info("Muting loggers for connection <{}>.", connectionId);
 
         try {
-            streamLoggers(connectionId)
-                    .filter(MuteableConnectionLogger.class::isInstance)
-                    .forEach(logger -> ((MuteableConnectionLogger) logger).mute());
+            muteableLoggersForConnectionId(connectionId).forEach(MuteableConnectionLogger::mute);
             stopMetadata(connectionId);
             resetForConnectionId(connectionId);
         } catch (final Exception e) {
@@ -250,22 +245,43 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     public void unmuteForConnection(final ConnectionId connectionId) {
         LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
                 .info("Unmuting loggers for connection <{}>.", connectionId);
+        tryToUnmuteLoggersForConnection(connectionId);
+        startMetadata(connectionId);
+    }
 
+    private static void tryToUnmuteLoggersForConnection(final ConnectionId connectionId) {
         try {
-            streamLoggers(connectionId)
-                    .filter(MuteableConnectionLogger.class::isInstance)
-                    .forEach(logger -> ((MuteableConnectionLogger) logger).unmute());
-            startMetadata(connectionId);
+            unmuteLoggersForConnection(connectionId);
         } catch (final Exception e) {
             LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
                     .error("Failed unmuting loggers for connection <{}>. Reason: <{}>.", connectionId, e);
         }
     }
 
-    private static Stream<ConnectionLogger> streamLoggers(final ConnectionId connectionId) {
-        return LOGGERS.entrySet()
-                .stream()
-                .filter(e -> e.getKey().connectionId.equals(connectionId))
+    private static void unmuteLoggersForConnection(final ConnectionId connectionId) {
+        final var amountUnmutedLoggers = muteableLoggersForConnectionId(connectionId)
+                .mapToInt(logger -> {
+                    logger.unmute();
+                    return 1;
+                })
+                .sum();
+        LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
+                .info("Unmuted <{}> loggers for connection <{}>.", amountUnmutedLoggers, connectionId);
+    }
+
+    private static Stream<MuteableConnectionLogger> muteableLoggersForConnectionId(final ConnectionId connectionId) {
+        return loggersForConnectionId(connectionId)
+                .filter(MuteableConnectionLogger.class::isInstance)
+                .map(MuteableConnectionLogger.class::cast);
+    }
+
+    private static Stream<ConnectionLogger> loggersForConnectionId(final ConnectionId connectionId) {
+        final var connectionLoggerEntries = LOGGERS.entrySet();
+        return connectionLoggerEntries.stream()
+                .filter(e -> {
+                    final var connectionLoggerMapKey = e.getKey();
+                    return connectionId.equals(connectionLoggerMapKey.connectionId);
+                })
                 .map(Map.Entry::getValue);
     }
 
@@ -347,7 +363,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     }
 
     private static void resetForConnectionId(final ConnectionId connectionId) {
-        streamLoggers(connectionId)
+        loggersForConnectionId(connectionId)
                 .forEach(ConnectionLogger::clear);
     }
 
