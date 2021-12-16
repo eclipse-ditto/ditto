@@ -67,14 +67,14 @@ public final class RetrieveThingsCommandResponseMappingStrategies
                 throw new IllegalAdaptableException(
                         MessageFormat.format("Payload value is not a JSON array of things but <{0}>.", jsonValue),
                         "Please ensure that the payload contains a valid JSON array of things as value.",
-                        adaptable.getDittoHeaders()
+                        adaptable
                 );
             }
         } else {
             throw new IllegalAdaptableException(
                     "Payload does not contain an array of things because it has no value at all.",
                     "Please ensure that the payload contains a valid JSON array of things as value.",
-                    adaptable.getDittoHeaders()
+                    adaptable
             );
         }
     }

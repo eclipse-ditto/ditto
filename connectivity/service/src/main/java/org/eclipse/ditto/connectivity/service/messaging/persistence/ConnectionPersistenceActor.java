@@ -48,6 +48,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
 import org.eclipse.ditto.connectivity.model.ConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
@@ -170,6 +171,7 @@ public final class ConnectionPersistenceActor
     private final ClientActorPropsFactory propsFactory;
     private final ActorRef pubSubMediator;
     private final boolean allClientActorsOnOneNode;
+    private final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final ConnectionLogger connectionLogger;
     private final Duration clientActorAskTimeout;
     private final Duration checkLoggingActiveInterval;
@@ -209,9 +211,8 @@ public final class ConnectionPersistenceActor
         connectionPriorityProvider = connectionPriorityProviderFactory.newProvider(self(), log);
         clientActorAskTimeout = connectionConfig.getClientActorAskTimeout();
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
-        final ConnectionLoggerRegistry loggerRegistry =
-                ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
-        connectionLogger = loggerRegistry.forConnection(connectionId);
+        connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
+        connectionLogger = connectionLoggerRegistry.forConnection(connectionId);
 
         loggingEnabledDuration = monitoringConfig.logger().logDuration();
         checkLoggingActiveInterval = monitoringConfig.logger().loggingActiveCheckInterval();
@@ -626,7 +627,15 @@ public final class ConnectionPersistenceActor
     private void handleAddConnectionLogEntry(final AddConnectionLogEntry addConnectionLogEntry) {
         final var logEntry = addConnectionLogEntry.getLogEntry();
         log.withCorrelationId(logEntry.getCorrelationId()).debug("Handling <{}>.", addConnectionLogEntry);
-        connectionLogger.logEntry(logEntry);
+        final var logger = getAppropriateLogger(addConnectionLogEntry.getEntityId(), logEntry);
+        logger.logEntry(logEntry);
+    }
+
+    private ConnectionLogger getAppropriateLogger(final ConnectionId connectionId, final LogEntry logEntry) {
+        return connectionLoggerRegistry.getLogger(connectionId,
+                logEntry.getLogCategory(),
+                logEntry.getLogType(),
+                logEntry.getAddress().orElse(null));
     }
 
     @Override

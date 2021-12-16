@@ -101,7 +101,7 @@ final class MappingContext {
         return payload.getHttpStatus()
                 .orElseThrow(() -> new IllegalAdaptableException("Payload does not contain a HTTP status.",
                         "Please ensure that the payload of the Adaptable contains an expected HTTP status.",
-                        adaptable.getDittoHeaders()));
+                        adaptable));
     }
 
     ThingId getThingId() {
@@ -120,7 +120,7 @@ final class MappingContext {
                 throw new IllegalAdaptableException(
                         MessageFormat.format("Payload value is not a Thing as JSON object but <{0}>.", jsonValue),
                         "Please ensure that the payload value is a valid Thing JSON object representation.",
-                        adaptable.getDittoHeaders()
+                        adaptable
                 );
             }
         } else {
@@ -138,7 +138,7 @@ final class MappingContext {
         return getThing().orElseThrow(() -> new IllegalAdaptableException(
                 "Payload does not contain a Thing as JSON object because it has no value at all.",
                 "Please ensure that the payload contains a valid Thing JSON object as value.",
-                adaptable.getDittoHeaders()
+                adaptable
         ));
     }
 
@@ -152,14 +152,14 @@ final class MappingContext {
                 throw new IllegalAdaptableException(
                         MessageFormat.format("Payload value is not a JSON object but <{0}>.", jsonValue),
                         "Please ensure that the payload value is a valid JSON object.",
-                        adaptable.getDittoHeaders()
+                        adaptable
                 );
             }
         } else {
             throw new IllegalAdaptableException(
                     "Payload does not contain a JSON object value because it has no value at all.",
                     "Please ensure that the payload value contains a valid JSON object as value.",
-                    adaptable.getDittoHeaders()
+                    adaptable
             );
         }
     }
@@ -182,7 +182,7 @@ final class MappingContext {
                 MessageFormat.format("Message path of payload does not start with <{0}>.", expectedPrefix),
                 MessageFormat.format("Please ensure that the message path of the Adaptable starts with <{0}>.",
                         expectedPrefix),
-                adaptable.getDittoHeaders()
+                adaptable
         );
     }
 
@@ -194,7 +194,7 @@ final class MappingContext {
         return getAttributeValue()
                 .orElseThrow(() -> new IllegalAdaptableException("Payload does not contain an attribute value.",
                         "Please ensure that the payload of the Adaptable contains an attribute value.",
-                        adaptable.getDittoHeaders()));
+                        adaptable));
     }
 
     Optional<Attributes> getAttributes() {
@@ -209,7 +209,7 @@ final class MappingContext {
                         MessageFormat.format("Payload value is not an {0} as JSON object but <{1}>.",
                                 Attributes.class.getSimpleName(),
                                 jsonValue),
-                        adaptable.getDittoHeaders()
+                        adaptable
                 );
             }
         } else {
@@ -222,7 +222,7 @@ final class MappingContext {
         return getAttributes().orElseThrow(() -> new IllegalAdaptableException(
                 "Payload does not contain an Attributes as JSON object because it has no value at all.",
                 "Please ensure that the payload contains a valid Attributes JSON object as value.",
-                adaptable.getDittoHeaders()
+                adaptable
         ));
     }
 
@@ -251,7 +251,7 @@ final class MappingContext {
                         jsonValue),
                 MessageFormat.format("Please ensure that the payload value is a JSON object representation of <{0}>.",
                         targetType),
-                adaptable.getDittoHeaders()
+                adaptable
         );
     }
 
@@ -259,7 +259,7 @@ final class MappingContext {
         return getFeatures().orElseThrow(() -> new IllegalAdaptableException(
                 "Payload does not contain a Features as JSON string object it has no value at all.",
                 "Please ensure that the payload contains a valid Features JSON object as value.",
-                adaptable.getDittoHeaders()
+                adaptable
         ));
     }
 
@@ -276,7 +276,7 @@ final class MappingContext {
                                                     " of two segments, starting with {0}/ and ending with" +
                                                     " the feature ID.",
                                             FEATURE_PATH_PREFIX),
-                                    adaptable.getDittoHeaders()
+                                    adaptable
                             )
                     );
         }
@@ -309,7 +309,7 @@ final class MappingContext {
         return getFeature().orElseThrow(() -> new IllegalAdaptableException(
                 "Payload does not contain a Feature as JSON object it has no value at all.",
                 "Please ensure that the payload contains a valid Feature JSON object as value.",
-                adaptable.getDittoHeaders()
+                adaptable
         ));
     }
 
@@ -325,7 +325,7 @@ final class MappingContext {
                         MessageFormat.format("Payload value is not a {0} as JSON string but <{1}>.",
                                 ThingDefinition.class.getSimpleName(),
                                 jsonValue),
-                        adaptable.getDittoHeaders()
+                        adaptable
                 );
             }
         } else {
@@ -338,7 +338,7 @@ final class MappingContext {
         return getThingDefinition().orElseThrow(() -> new IllegalAdaptableException(
                 "Payload does not contain a ThingDefinition as JSON string because it has no value at all.",
                 "Please ensure that the payload contains a valid ThingDefinition JSON string as value.",
-                adaptable.getDittoHeaders()
+                adaptable
         ));
     }
 
@@ -354,7 +354,7 @@ final class MappingContext {
                         MessageFormat.format("Payload value is not a {0} as JSON array but <{1}>.",
                                 FeatureDefinition.class.getSimpleName(),
                                 jsonValue),
-                        adaptable.getDittoHeaders()
+                        adaptable
                 );
             }
         } else {
@@ -367,7 +367,7 @@ final class MappingContext {
         return getFeatureDefinition().orElseThrow(() -> new IllegalAdaptableException(
                 "Payload does not contain a FeatureDefinition as JSON array because it has no value at all.",
                 "Please ensure that the payload contains a valid FeatureDefinition JSON array as value.",
-                adaptable.getDittoHeaders()
+                adaptable
         ));
     }
 
@@ -391,7 +391,7 @@ final class MappingContext {
         return getFeatureProperties().orElseThrow(() -> new IllegalAdaptableException(
                 "Payload does not contain a FeatureProperties as JSON object it has no value at all.",
                 "Please ensure that the payload contains a valid FeatureProperties JSON object as value.",
-                adaptable.getDittoHeaders()
+                adaptable
         ));
     }
 
@@ -413,7 +413,7 @@ final class MappingContext {
                         MessageFormat.format("Message path of payload does not contain a sub-pointer" +
                                 " at level <{0,number}>.", FEATURE_PROPERTY_PATH_LEVEL),
                         MessageFormat.format("Please ensure that the message path complies to schema {0}.", schema),
-                        adaptable.getDittoHeaders()));
+                        adaptable));
     }
 
     private void validateMessagePathSegments(final Map<Integer, JsonKey> expectedSegments, final String schema) {
@@ -438,7 +438,7 @@ final class MappingContext {
                 }
                 throw new IllegalAdaptableException(message,
                         MessageFormat.format("Please ensure that the message path complies to schema {0}.", schema),
-                        adaptable.getDittoHeaders());
+                        adaptable);
             }
         });
     }
@@ -455,7 +455,7 @@ final class MappingContext {
         return getFeaturePropertyValue().orElseThrow(() -> new IllegalAdaptableException(
                 "Payload does not contain a feature property value because it has no value at all.",
                 "Please ensure that the payload contains a JSON value as value.",
-                adaptable.getDittoHeaders()
+                adaptable
         ));
     }
 
@@ -483,7 +483,7 @@ final class MappingContext {
                         MessageFormat.format("Payload value is not a {0} as JSON string but <{1}>.",
                                 PolicyId.class.getSimpleName(),
                                 jsonValue),
-                        adaptable.getDittoHeaders()
+                        adaptable
                 );
             }
         } else {
@@ -496,7 +496,7 @@ final class MappingContext {
         return getPolicyId().orElseThrow(() -> new IllegalAdaptableException(
                 "Payload does not contain a PolicyId as JSON string because it has no value at all.",
                 "Please ensure that the payload contains a valid PolicyId JSON string value as value.",
-                adaptable.getDittoHeaders()
+                adaptable
         ));
     }
 
@@ -550,7 +550,7 @@ final class MappingContext {
                 .map(PoliciesModelFactory::newLabel)
                 .orElseThrow(() -> new IllegalAdaptableException("Path does not contain a policy label.",
                         "Please ensure that the path of the Adaptable contains a policy label.",
-                        adaptable.getDittoHeaders()));
+                        adaptable));
     }
 
     ResourceKey getResourceKeyOrThrow() {
@@ -569,7 +569,7 @@ final class MappingContext {
                         MessageFormat.format("Message messagePath of payload does have resource key " +
                                 "at level <{0,number}>.", RESOURCE_PATH_LEVEL),
                         "Please ensure that the message path complies to schema " + schema + ".",
-                        adaptable.getDittoHeaders()
+                        adaptable
                 ));
     }
 
@@ -593,7 +593,7 @@ final class MappingContext {
                         MessageFormat.format("Message path of payload does not contain a subject ID" +
                                 " at level <{0,number}>.", SUBJECT_PATH_LEVEL),
                         "Please ensure that message path complies to schema " + schema + ".",
-                        adaptable.getDittoHeaders()
+                        adaptable
                 ));
     }
 

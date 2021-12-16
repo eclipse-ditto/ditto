@@ -103,8 +103,9 @@ public final class AdaptableToSignalMapperTest {
     @Test
     public void mapAdaptableThrowsIllegalAdaptableExceptionIfMappingFunctionThrowsDittoRuntimeException() {
         final Adaptable adaptable = Mockito.mock(Adaptable.class);
+        Mockito.when(adaptable.getDittoHeaders()).thenReturn(dittoHeaders);
         final IllegalAdaptableException illegalAdaptableException =
-                new IllegalAdaptableException("This is a message.", "This is a description.", dittoHeaders);
+                new IllegalAdaptableException("This is a message.", "This is a description.", adaptable);
         Mockito.when(mappingFunction.apply(Mockito.any(MappingContext.class))).thenThrow(illegalAdaptableException);
         final Class<CreateThingResponse> targetType = CreateThingResponse.class;
         final AdaptableToSignalMapper<CreateThingResponse> underTest =
