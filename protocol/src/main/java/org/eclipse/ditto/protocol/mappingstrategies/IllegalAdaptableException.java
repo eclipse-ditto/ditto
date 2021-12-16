@@ -62,27 +62,25 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
     }
 
     /**
-     * Returns a new instance of {@code IllegalAdaptableException} for
-     * the specified {@code Adaptable} argument.
+     * Returns a new instance of {@code IllegalAdaptableException}.
      *
      * @param message the detail message of the exception.
      * @param dittoHeaders the {@code DittoHeaders} of the exception.
-     * @throws NullPointerException if {@code adaptable} is {@code null}.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public IllegalAdaptableException(final String message, final DittoHeaders dittoHeaders) {
+    public IllegalAdaptableException(@Nullable final String message, final DittoHeaders dittoHeaders) {
         this(ERROR_CODE, HTTP_STATUS, dittoHeaders, message, DEFAULT_DESCRIPTION, null, null);
     }
 
     /**
-     * Returns a new instance of {@code IllegalAdaptableException} for
-     * the specified {@code Adaptable} argument.
+     * Returns a new instance of {@code IllegalAdaptableException}.
      *
      * @param message the detail message of the exception.
      * @param description the description of the exception.
      * @param dittoHeaders the {@code DittoHeaders} of the exception.
-     * @throws NullPointerException if {@code adaptable} is {@code null}.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public IllegalAdaptableException(final String message,
+    public IllegalAdaptableException(@Nullable final String message,
             @Nullable final String description,
             final DittoHeaders dittoHeaders) {
 
@@ -90,16 +88,15 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
     }
 
     /**
-     * Returns a new instance of {@code IllegalAdaptableException} for
-     * the specified {@code Adaptable} argument.
+     * Returns a new instance of {@code IllegalAdaptableException}.
      *
      * @param message the detail message of the exception.
      * @param description the description of the exception.
      * @param cause the cause of the exception.
      * @param dittoHeaders the {@code DittoHeaders} of the exception.
-     * @throws NullPointerException if {@code adaptable} is {@code null}.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public IllegalAdaptableException(final String message,
+    public IllegalAdaptableException(@Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             final DittoHeaders dittoHeaders) {
@@ -112,7 +109,7 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
      *
      * @param jsonObject the JSON object to be deserialized.
      * @param dittoHeaders the headers of the deserialized exception.
-     * @return the new UnsupportedSignalException.
+     * @return the new {@code IllegalAdaptableException}.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain all mandatory
      * fields.

@@ -306,7 +306,7 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
                 super.toString() +
                 ", thingId=" + thingId +
                 ", featureId=" + featureId +
-                ", featureCreated=" + feature +
+                ", feature=" + feature +
                 "]";
     }
 

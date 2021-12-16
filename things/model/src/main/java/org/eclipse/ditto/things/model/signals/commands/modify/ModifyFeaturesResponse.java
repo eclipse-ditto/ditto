@@ -252,7 +252,7 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + super.toString() + ", thingId=" + thingId + ", featuresCreated=" +
+        return getClass().getSimpleName() + " [" + super.toString() + ", thingId=" + thingId + ", features=" +
                 features + "]";
     }
 
