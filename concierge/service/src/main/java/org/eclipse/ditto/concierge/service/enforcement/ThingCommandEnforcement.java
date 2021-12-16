@@ -55,6 +55,7 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTi
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.concierge.api.ConciergeMessagingConstants;
 import org.eclipse.ditto.concierge.service.actors.LiveResponseAndAcknowledgementForwarder;
+import org.eclipse.ditto.concierge.service.common.EnforcementConfig;
 import org.eclipse.ditto.concierge.service.enforcement.placeholders.references.PolicyIdReferencePlaceholderResolver;
 import org.eclipse.ditto.concierge.service.enforcement.placeholders.references.ReferencePlaceholder;
 import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
@@ -160,6 +161,7 @@ public final class ThingCommandEnforcement
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
     private final LiveSignalPub liveSignalPub;
     private final ActorRefFactory actorRefFactory;
+    private final EnforcementConfig enforcementConfig;
 
     private ThingCommandEnforcement(final Contextual<ThingCommand<?>> data,
             final ActorRef thingsShardRegion,
@@ -168,7 +170,8 @@ public final class ThingCommandEnforcement
             final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
             final PreEnforcer preEnforcer,
             final LiveSignalPub liveSignalPub,
-            final ActorRefFactory actorRefFactory) {
+            final ActorRefFactory actorRefFactory,
+            final EnforcementConfig enforcementConfig) {
 
         super(data, ThingQueryCommandResponse.class);
         this.thingsShardRegion = requireNonNull(thingsShardRegion);
@@ -177,6 +180,7 @@ public final class ThingCommandEnforcement
         this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
         this.preEnforcer = preEnforcer;
         this.actorRefFactory = actorRefFactory;
+        this.enforcementConfig = enforcementConfig;
         thingEnforcerRetriever = PolicyEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache);
         policyEnforcerRetriever = new EnforcerRetriever<>(IdentityCache.INSTANCE, policyEnforcerCache);
         policyIdReferencePlaceholderResolver =
@@ -340,10 +344,24 @@ public final class ThingCommandEnforcement
 
         final ThingQueryCommand<?> liveCommand = toLiveCommand(command, enforcer);
         final var pub = liveSignalPub.command();
-        final var props = LiveResponseAndAcknowledgementForwarder.props(liveCommand, pub.getPublisher(), sender());
-        final var liveResponseForwarder = actorRefFactory.actorOf(props);
-        return adjustTimeoutAndFilterLiveQueryResponse(this, liveCommand, startTime, pub, liveResponseForwarder,
-                enforcer, getFallbackResponseCaster(liveCommand, twinResponse));
+        final var liveResponseForwarder = startLiveResponseForwarder(liveCommand);
+        if (enforcementConfig.shouldDispatchGlobally(liveCommand)) {
+            return ResponseReceiverCache.getDefaultInstance().insertResponseReceiverConflictFreeWithFuture(
+                    liveCommand,
+                    newCommand -> liveResponseForwarder,
+                    (newCommand, forwarder) -> adjustTimeoutAndFilterLiveQueryResponse(this, newCommand,
+                            startTime, pub, forwarder, enforcer, getFallbackResponseCaster(liveCommand, twinResponse))
+            );
+        } else {
+            return adjustTimeoutAndFilterLiveQueryResponse(this, liveCommand, startTime, pub, liveResponseForwarder,
+                    enforcer, getFallbackResponseCaster(liveCommand, twinResponse));
+        }
+    }
+
+    private ActorRef startLiveResponseForwarder(final ThingQueryCommand<?> signal) {
+        final var pub = liveSignalPub.command();
+        final var props = LiveResponseAndAcknowledgementForwarder.props(signal, pub.getPublisher(), sender());
+        return actorRefFactory.actorOf(props);
     }
 
     private Function<Object, CompletionStage<ThingQueryCommandResponse<?>>> getFallbackResponseCaster(
@@ -1311,6 +1329,7 @@ public final class ThingCommandEnforcement
         private final PreEnforcer preEnforcer;
         private final LiveSignalPub liveSignalPub;
         private final ActorRefFactory actorRefFactory;
+        private final EnforcementConfig enforcementConfig;
 
         /**
          * Constructor.
@@ -1322,6 +1341,7 @@ public final class ThingCommandEnforcement
          * @param preEnforcer pre-enforcer function to block undesirable messages to policies shard region.
          * @param liveSignalPub publisher of live signals.
          * @param actorRefFactory factory with which to create actors.
+         * @param enforcementConfig the enforcement config.
          */
         @SuppressWarnings("NullableProblems")
         public Provider(final ActorRef thingsShardRegion,
@@ -1330,7 +1350,8 @@ public final class ThingCommandEnforcement
                 final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
                 @Nullable final PreEnforcer preEnforcer,
                 final LiveSignalPub liveSignalPub,
-                final ActorRefFactory actorRefFactory) {
+                final ActorRefFactory actorRefFactory,
+                final EnforcementConfig enforcementConfig) {
 
             this.thingsShardRegion = checkNotNull(thingsShardRegion, "thingShardRegion");
             this.policiesShardRegion = checkNotNull(policiesShardRegion, "policiesShardRegion");
@@ -1339,6 +1360,7 @@ public final class ThingCommandEnforcement
             this.preEnforcer = Objects.requireNonNullElseGet(preEnforcer, () -> CompletableFuture::completedFuture);
             this.liveSignalPub = checkNotNull(liveSignalPub, "liveSignalPub");
             this.actorRefFactory = actorRefFactory;
+            this.enforcementConfig = enforcementConfig;
         }
 
         @Override
@@ -1369,7 +1391,8 @@ public final class ThingCommandEnforcement
                     policyEnforcerCache,
                     preEnforcer,
                     liveSignalPub,
-                    actorRefFactory);
+                    actorRefFactory,
+                    enforcementConfig);
         }
 
     }

@@ -17,7 +17,11 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -28,7 +32,9 @@ import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
 
@@ -40,9 +46,9 @@ import akka.japi.Pair;
 
 /**
  * A cache of response receivers and their associated correlation ID.
- *
+ * <p>
  * Each cache entry gets evicted after becoming expired.
- *
+ * <p>
  * To put a response receiver to this cache a {@link Command} has to be provided as key.
  * The command is necessary because of its headers.
  * The command headers are required to contain the mandatory correlation ID.
@@ -54,6 +60,7 @@ import akka.japi.Pair;
 final class ResponseReceiverCache {
 
     private static final Duration DEFAULT_ENTRY_EXPIRY = Duration.ofMinutes(2L);
+    private static final ResponseReceiverCache DEFAULT_INSTANCE = newInstance();
 
     private final Duration fallBackEntryExpiry;
     private final Cache<CorrelationIdKey, Pair<ActorRef, AuthorizationContext>> cache;
@@ -63,6 +70,15 @@ final class ResponseReceiverCache {
 
         this.fallBackEntryExpiry = fallBackEntryExpiry;
         this.cache = cache;
+    }
+
+    /**
+     * Returns a static default instance of {@code ResponseReceiverCache} with a hard-coded fall-back entry expiry.
+     *
+     * @return the instance.
+     */
+    static ResponseReceiverCache getDefaultInstance() {
+        return DEFAULT_INSTANCE;
     }
 
     /**
@@ -97,13 +113,13 @@ final class ResponseReceiverCache {
     }
 
     /**
-     * Puts the specified response receiver for the correlation ID of the command header's correlation ID.
+     * Puts the specified response receiver for the correlation ID of the signal's correlation ID.
      *
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if the headers of {@code command} do not contain a correlation ID.
+     * @throws IllegalArgumentException if the headers of {@code signal} do not contain a correlation ID.
      */
-    public void putCommand(final Command<?> command, final Pair<ActorRef, AuthorizationContext> responseReceiver) {
-        cache.put(getCorrelationIdKeyForInsertion(checkNotNull(command, "command")),
+    public void putCommand(final Signal<?> signal, final Pair<ActorRef, AuthorizationContext> responseReceiver) {
+        cache.put(getCorrelationIdKeyForInsertion(checkNotNull(signal, "command")),
                 checkNotNull(responseReceiver, "responseReceiver"));
     }
 
@@ -138,6 +154,70 @@ final class ResponseReceiverCache {
                 () -> "The correlationId must not be blank.");
 
         return cache.get(CorrelationIdKey.forCacheRetrieval(correlationIdString));
+    }
+
+    /**
+     * Insert a response receiver for a live or message command.
+     *
+     * @param command the command.
+     * @param receiverCreator creator of the receiver actor.
+     * @param responseHandler handler of the response.
+     * @param <T> type of results of the response handler.
+     * @return the result of the response handler.
+     */
+    public <S extends Signal<?>, T> CompletionStage<T> insertResponseReceiverConflictFree(final S command,
+            final Function<S, ActorRef> receiverCreator,
+            final BiFunction<S, ActorRef, T> responseHandler) {
+
+        return insertResponseReceiverConflictFreeWithFuture(command, receiverCreator,
+                responseHandler.andThen(CompletableFuture::completedStage));
+    }
+
+    /**
+     * Insert a response receiver for a live or message command.
+     *
+     * @param command the command.
+     * @param receiverCreator creator of the receiver actor.
+     * @param responseHandler handler of the response.
+     * @param <T> type of results of the response handler.
+     * @return the result of the response handler.
+     */
+    public <S extends Signal<?>, T> CompletionStage<T> insertResponseReceiverConflictFreeWithFuture(final S command,
+            final Function<S, ActorRef> receiverCreator,
+            final BiFunction<S, ActorRef, CompletionStage<T>> responseHandler) {
+
+        return setUniqueCorrelationIdForGlobalDispatching(command, false)
+                .thenCompose(commandWithUniqueCorrelationId -> {
+                    final ActorRef receiver = receiverCreator.apply(commandWithUniqueCorrelationId);
+                    // TODO change pair simply to receiver
+                    final var responseReceiver =
+                            Pair.create(receiver, command.getDittoHeaders().getAuthorizationContext());
+                    putCommand(commandWithUniqueCorrelationId, responseReceiver);
+                    return responseHandler.apply(commandWithUniqueCorrelationId, receiver);
+                });
+    }
+
+    @SuppressWarnings("unchecked")
+    private <S extends Signal<?>> CompletionStage<S> setUniqueCorrelationIdForGlobalDispatching(
+            final S signal, final boolean refreshCorrelationId) {
+
+        final String correlationId;
+        if (refreshCorrelationId) {
+            correlationId = UUID.randomUUID().toString();
+        } else {
+            correlationId = SignalInformationPoint.getCorrelationId(signal)
+                    .orElseGet(() -> UUID.randomUUID().toString());
+        }
+
+        return get(correlationId).thenCompose(entry -> {
+            if (entry.isPresent()) {
+                return setUniqueCorrelationIdForGlobalDispatching(signal, true);
+            }
+            final S result = (S) signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
+                    .correlationId(correlationId)
+                    .build());
+            return CompletableFuture.completedStage(result);
+        });
     }
 
     @Immutable

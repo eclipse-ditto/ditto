@@ -722,8 +722,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         final var maxTimeout = commandConfig.getMaxTimeout();
         final var headers = originatingSignal.getDittoHeaders();
         final var candidateTimeout = headers.getTimeout()
+                .or(() -> Optional.of(defaultTimeout))
                 .filter(timeout -> timeout.minus(maxTimeout).isNegative())
-                .orElse(defaultTimeout);
+                .orElse(maxTimeout);
 
         if (SignalInformationPoint.isChannelSmart(originatingSignal)) {
             return candidateTimeout.plus(commandConfig.getSmartChannelBuffer());

@@ -129,15 +129,6 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
      */
     public static final class Provider implements EnforcementProvider<SignalWithEntityId<?>> {
 
-        /*
-         * Defined as constant because it is crucial to use the same cache for
-         * multiple instances of LiveSignalEnforcement to ensure that
-         * correlating live commands with live responses works as expected.
-         * Technically this constant could be defined in LiveSignalEnforcement
-         * as well.
-         */
-        private static final ResponseReceiverCache RESPONSE_RECEIVER_CACHE = ResponseReceiverCache.newInstance();
-
         private final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache;
         private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
         private final LiveSignalPub liveSignalPub;
@@ -184,7 +175,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                     thingIdCache,
                     policyEnforcerCache,
                     actorRefFactory,
-                    RESPONSE_RECEIVER_CACHE,
+                    ResponseReceiverCache.getDefaultInstance(),
                     liveSignalPub,
                     enforcementConfig);
         }
@@ -261,8 +252,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
     private CompletionStage<Contextual<WithDittoHeaders>> returnCommandResponseContextual(
             final CommandResponse<?> liveResponse,
             final CharSequence correlationId,
-            final Enforcer enforcer
-    ) {
+            final Enforcer enforcer) {
+
         return responseReceiverCache.get(correlationId)
                 .thenApply(responseReceiverEntry -> {
                     final Contextual<WithDittoHeaders> commandResponseContextual;
@@ -335,9 +326,17 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
 
     private CompletionStage<Contextual<WithDittoHeaders>> publishLiveQueryCommandAndBuildJsonView(
             final ThingCommand<?> withReadSubjects, final Enforcer enforcer) {
-        return addToResponseReceiver(withReadSubjects).thenApply(newSignal ->
-                askAndBuildJsonViewWithAckForwarding((ThingCommand<?>) newSignal,
-                        liveSignalPub.command(), enforcer));
+        if (enforcementConfig.shouldDispatchGlobally(withReadSubjects)) {
+            return responseReceiverCache.insertResponseReceiverConflictFree(
+                    withReadSubjects,
+                    this::createReceiverActor,
+                    (command, receiver) -> askAndBuildJsonViewWithReceiverActor(command, receiver, enforcer)
+            );
+        } else {
+            final var receiver = createReceiverActor(withReadSubjects);
+            final var result = askAndBuildJsonViewWithReceiverActor(withReadSubjects, receiver, enforcer);
+            return CompletableFuture.completedStage(result);
+        }
     }
 
     /**
@@ -422,7 +421,6 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
         return error;
     }
 
-    @SuppressWarnings("unchecked")
     private <T extends Signal<?>, S extends T> CompletionStage<Contextual<WithDittoHeaders>> publishLiveSignal(
             final S signal,
             final AckExtractor<S> ackExtractor,
@@ -431,40 +429,40 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
         // using pub/sub to publish the command to any interested parties (e.g. a Websocket):
         log(signal).debug("Publish message to pub-sub: <{}>", signal);
 
-        return addToResponseReceiver(signal)
-                .thenApply(newSignal -> withMessageToReceiver(newSignal,
-                        pub.getPublisher(),
-                        obj -> pub.wrapForPublicationWithAcks((S) obj, ackExtractor)));
-    }
-
-    private CompletionStage<Signal<?>> addToResponseReceiver(final Signal<?> signal) {
-        final CompletionStage<Signal<?>> result;
-        final var dittoHeaders = signal.getDittoHeaders();
-        if (enforcementConfig.isDispatchLiveResponsesGlobally() &&
-                SignalInformationPoint.isCommand(signal) &&
-                dittoHeaders.isResponseRequired()) {
-
-            result = insertResponseReceiverConflictFree((Command<?>) signal,
-                    Pair.create(sender(), dittoHeaders.getAuthorizationContext()));
+        if (enforcementConfig.shouldDispatchGlobally(signal)) {
+            return responseReceiverCache.insertResponseReceiverConflictFree(signal,
+                    newSignal -> sender(),
+                    (newSignal, receiver) -> publishSignal(newSignal, ackExtractor, pub));
         } else {
-            result = CompletableFuture.completedStage(signal);
+            return CompletableFuture.completedStage(publishSignal(signal, ackExtractor, pub));
         }
-
-        return result;
     }
 
-    private Contextual<WithDittoHeaders> askAndBuildJsonViewWithAckForwarding(
-            final ThingCommand<?> signal,
-            final DistributedPub<ThingCommand<?>> pub,
+    @SuppressWarnings("unchecked")
+    private <T extends Signal<?>, S extends T> Contextual<WithDittoHeaders> publishSignal(final T signal,
+            final AckExtractor<S> ackExtractor, final DistributedPub<T> pub) {
+        return withMessageToReceiver(signal, pub.getPublisher(),
+                obj -> pub.wrapForPublicationWithAcks((S) obj, ackExtractor));
+    }
+
+    private ActorRef createReceiverActor(final Command<?> signal) {
+        final var pub = liveSignalPub.command();
+        final var props = LiveResponseAndAcknowledgementForwarder.props(signal, pub.getPublisher(), sender());
+        return actorRefFactory.actorOf(props);
+    }
+
+    private Contextual<WithDittoHeaders> askAndBuildJsonViewWithReceiverActor(
+            final Command<?> command,
+            final ActorRef receiver,
             final Enforcer enforcer) {
 
-        final var props = LiveResponseAndAcknowledgementForwarder.props(signal, pub.getPublisher(), sender());
-        final var liveResponseForwarder = actorRefFactory.actorOf(props);
+        final var thingCommand = (ThingCommand<?>) command;
         final var startTime = Instant.now();
-        final var responseCaster = getResponseCaster(signal, "before building JsonView")
+        final var pub = liveSignalPub.command();
+        final var responseCaster = getResponseCaster(thingCommand, "before building JsonView")
                 .<CompletionStage<ThingQueryCommandResponse<?>>>andThen(CompletableFuture::completedStage);
-        return withMessageToReceiverViaAskFuture(signal, sender(), () ->
-                adjustTimeoutAndFilterLiveQueryResponse(this, signal, startTime, pub, liveResponseForwarder, enforcer,
+        return withMessageToReceiverViaAskFuture(thingCommand, sender(), () ->
+                adjustTimeoutAndFilterLiveQueryResponse(this, thingCommand, startTime, pub, receiver, enforcer,
                         responseCaster));
     }
 

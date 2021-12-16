@@ -180,7 +180,7 @@ public final class TestSetup {
             final LiveSignalPub liveSignalPub = new DummyLiveSignalPub(puSubMediatorRef);
             enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
                     policiesShardRegion, thingIdCache, projectedEnforcerCache, preEnforcer, liveSignalPub,
-                    system));
+                    system, ENFORCEMENT_CONFIG));
             enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
             enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache,
                     projectedEnforcerCache,
