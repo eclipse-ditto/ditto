@@ -62,9 +62,9 @@ import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.placeholders.MiscPlaceholder;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
@@ -671,7 +671,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 RqlPredicateParser.getInstance(),
                 TopicPathPlaceholder.getInstance(),
                 ResourcePlaceholder.getInstance(),
-                MiscPlaceholder.getInstance()
+                TimePlaceholder.getInstance()
         );
 
         return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);

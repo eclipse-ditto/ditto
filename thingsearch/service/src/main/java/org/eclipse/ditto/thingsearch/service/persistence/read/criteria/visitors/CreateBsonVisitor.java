@@ -21,6 +21,8 @@ import javax.annotation.Nullable;
 
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.criteria.Predicate;
 import org.eclipse.ditto.rql.query.criteria.visitors.CriteriaVisitor;
@@ -36,6 +38,8 @@ import com.mongodb.client.model.Filters;
  * Creates the Bson object used for querying.
  */
 public class CreateBsonVisitor implements CriteriaVisitor<Bson> {
+
+    private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
 
     @Nullable
     private final List<String> authorizationSubjectIds;
@@ -62,7 +66,7 @@ public class CreateBsonVisitor implements CriteriaVisitor<Bson> {
      * @param authorizationSubjectIds subject ids with which to restrict visibility, or null to not restrict visibility.
      * @return the Bson object
      */
-    public static Bson apply(final Criteria criteria, List<String> authorizationSubjectIds) {
+    public static Bson apply(final Criteria criteria, final List<String> authorizationSubjectIds) {
         checkNotNull(criteria, "criteria");
         checkNotNull(authorizationSubjectIds, "authorizationSubjectIds");
         final Bson baseFilter = criteria.accept(new CreateBsonVisitor(authorizationSubjectIds));
@@ -81,7 +85,11 @@ public class CreateBsonVisitor implements CriteriaVisitor<Bson> {
 
     @Override
     public Bson visitField(final FilterFieldExpression fieldExpression, final Predicate predicate) {
-        final Function<String, Bson> predicateCreator = predicate.accept(CreateBsonPredicateVisitor.getInstance());
+        final Function<String, Bson> predicateCreator = predicate.accept(
+                CreateBsonPredicateVisitor.createInstance(
+                        PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object())
+                )
+        );
         return GetFilterBsonVisitor.apply(fieldExpression, predicateCreator, authorizationSubjectIds);
     }
 

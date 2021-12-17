@@ -12,12 +12,20 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.read.criteria.visitors;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.bson.conversions.Bson;
+import org.eclipse.ditto.placeholders.PlaceholderResolver;
+import org.eclipse.ditto.rql.model.ParsedPlaceholder;
 import org.eclipse.ditto.rql.query.criteria.Predicate;
 import org.eclipse.ditto.rql.query.criteria.visitors.PredicateVisitor;
 
@@ -33,8 +41,11 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
     private static final String LEADING_WILDCARD = "^\\Q\\E.*";
     private static final String TRAILING_WILDCARD = ".*\\Q\\E$";
 
-    private CreateBsonPredicateVisitor() {
-        // only internally instantiable
+    private final List<PlaceholderResolver<?>> additionalPlaceholderResolvers;
+
+    private CreateBsonPredicateVisitor(final Collection<PlaceholderResolver<?>> additionalPlaceholderResolvers) {
+        this.additionalPlaceholderResolvers = Collections.unmodifiableList(
+                new ArrayList<>(additionalPlaceholderResolvers));
     }
 
     /**
@@ -44,9 +55,35 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
      */
     public static CreateBsonPredicateVisitor getInstance() {
         if (null == instance) {
-            instance = new CreateBsonPredicateVisitor();
+            instance = new CreateBsonPredicateVisitor(Collections.emptyList());
         }
         return instance;
+    }
+
+    /**
+     * Creates a new instance of {@code CreateBsonPredicateVisitor} with additional custom placeholder resolvers.
+     *
+     * @param additionalPlaceholderResolvers the additional {@code PlaceholderResolver} to use for resolving
+     * placeholders in RQL predicates.
+     * @return the created instance.
+     * @since 2.3.0
+     */
+    public static CreateBsonPredicateVisitor createInstance(
+            final PlaceholderResolver<?>... additionalPlaceholderResolvers) {
+        return createInstance(Arrays.asList(additionalPlaceholderResolvers));
+    }
+
+    /**
+     * Creates a new instance of {@code CreateBsonPredicateVisitor} with additional custom placeholder resolvers.
+     *
+     * @param additionalPlaceholderResolvers the additional {@code PlaceholderResolver} to use for resolving
+     * placeholders in RQL predicates.
+     * @return the created instance.
+     * @since 2.3.0
+     */
+    public static CreateBsonPredicateVisitor createInstance(
+            final Collection<PlaceholderResolver<?>> additionalPlaceholderResolvers) {
+        return new CreateBsonPredicateVisitor(additionalPlaceholderResolvers);
     }
 
     /**
@@ -62,27 +99,27 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
 
     @Override
     public Function<String, Bson> visitEq(@Nullable final Object value) {
-        return fieldName -> Filters.eq(fieldName, value);
+        return fieldName -> Filters.eq(fieldName, resolveValue(value));
     }
 
     @Override
     public Function<String, Bson> visitGe(@Nullable final Object value) {
-        return fieldName -> Filters.gte(fieldName, value);
+        return fieldName -> Filters.gte(fieldName, resolveValue(value));
     }
 
     @Override
     public Function<String, Bson> visitGt(@Nullable final Object value) {
-        return fieldName -> Filters.gt(fieldName, value);
+        return fieldName -> Filters.gt(fieldName, resolveValue(value));
     }
 
     @Override
     public Function<String, Bson> visitIn(final List<?> values) {
-        return fieldName -> Filters.in(fieldName, values);
+        return fieldName -> Filters.in(fieldName, values.stream().map(this::resolveValue).collect(Collectors.toList()));
     }
 
     @Override
     public Function<String, Bson> visitLe(@Nullable final Object value) {
-        return fieldName -> Filters.lte(fieldName, value);
+        return fieldName -> Filters.lte(fieldName, resolveValue(value));
     }
 
     @Override
@@ -113,11 +150,28 @@ public class CreateBsonPredicateVisitor implements PredicateVisitor<Function<Str
 
     @Override
     public Function<String, Bson> visitLt(final Object value) {
-        return fieldName -> Filters.lt(fieldName, value);
+        return fieldName -> Filters.lt(fieldName, resolveValue(value));
     }
 
     @Override
     public Function<String, Bson> visitNe(final Object value) {
-        return fieldName -> Filters.ne(fieldName, value);
+        return fieldName -> Filters.ne(fieldName, resolveValue(value));
+    }
+
+    @Nullable
+    private Object resolveValue(@Nullable final Object value) {
+        if (value instanceof ParsedPlaceholder) {
+            final String prefix = ((ParsedPlaceholder) value).getPrefix();
+            final String name = ((ParsedPlaceholder) value).getName();
+            return additionalPlaceholderResolvers.stream()
+                    .filter(pr -> prefix.equals(pr.getPrefix()))
+                    .filter(pr -> pr.supports(name))
+                    .map(pr -> pr.resolve(name))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .findFirst()
+                    .orElse(null);
+        }
+        return value;
     }
 }

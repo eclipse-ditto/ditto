@@ -86,7 +86,7 @@ public final class UpdateTwinWithLiveResponseMessageMapperTest {
     private static final String CUSTOM_HEADER_KEY = "some-custom-hint";
     private static final String CUSTOM_HEADER_VALUE = "my-awesome-hint";
     private static final JsonValue KNOWN_METADATA_VALUE_2 = JsonValue.of("{{ header:" + CUSTOM_HEADER_KEY + " }}");
-    private static final JsonValue KNOWN_METADATA_VALUE_3 = JsonValue.of("{{ misc:current-timestamp-iso8601 }}");
+    private static final JsonValue KNOWN_METADATA_VALUE_3 = JsonValue.of("{{ time:now }}");
     private static final String UNRESOLVED_HEADER_KEY = "unresolvable-header";
     private static final String UNRESOLVABLE_HEADER_DEFAULT_FALLBACK = "none";
     private static final JsonValue KNOWN_METADATA_VALUE_4 = JsonValue.of("{{header:" + UNRESOLVED_HEADER_KEY +

@@ -43,13 +43,13 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.HeadersPlaceholder;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.placeholders.MiscPlaceholder;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThing;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
@@ -69,7 +69,7 @@ public class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapp
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER =
             DittoProtocolAdapter.of(HeaderTranslator.empty());
 
-    private static final MiscPlaceholder MISC_PLACEHOLDER = MiscPlaceholder.getInstance();
+    private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
     private static final RequestPlaceholder REQUEST_PLACEHOLDER = ConnectivityPlaceholders.newRequestPlaceholder();
 
@@ -188,7 +188,7 @@ public class UpdateTwinWithLiveResponseMessageMapper extends AbstractMessageMapp
     private static ExpressionResolver getExpressionResolver(final Map<String, String> headers,
             @Nullable final AuthorizationContext authorizationContext) {
         return PlaceholderFactory.newExpressionResolver(List.of(
-                PlaceholderFactory.newPlaceholderResolver(MISC_PLACEHOLDER, new Object()),
+                PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object()),
                 PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, headers),
                 PlaceholderFactory.newPlaceholderResolver(REQUEST_PLACEHOLDER, authorizationContext)
         ));

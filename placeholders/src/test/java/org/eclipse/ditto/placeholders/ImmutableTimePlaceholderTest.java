@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.protocol.placeholders;
+package org.eclipse.ditto.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -26,21 +26,21 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
 /**
- * Tests {@link ImmutableMiscPlaceholder}.
+ * Tests {@link ImmutableTimePlaceholder}.
  */
-public final class ImmutableMiscPlaceholderTest {
+public final class ImmutableTimePlaceholderTest {
 
-    private static final ImmutableMiscPlaceholder UNDER_TEST = ImmutableMiscPlaceholder.INSTANCE;
+    private static final ImmutableTimePlaceholder UNDER_TEST = ImmutableTimePlaceholder.INSTANCE;
     private static final Object SOME_OBJECT = new Object();
 
     @Test
     public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(ImmutableMiscPlaceholder.class, MutabilityMatchers.areImmutable());
+        MutabilityAssert.assertInstancesOf(ImmutableTimePlaceholder.class, MutabilityMatchers.areImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ImmutableMiscPlaceholder.class)
+        EqualsVerifier.forClass(ImmutableTimePlaceholder.class)
                 .suppress(Warning.INHERITED_DIRECTLY_FROM_OBJECT)
                 .usingGetClass()
                 .verify();
@@ -48,7 +48,7 @@ public final class ImmutableMiscPlaceholderTest {
 
     @Test
     public void testReplaceCurrentTimestampIso() {
-        assertThat(UNDER_TEST.resolve(SOME_OBJECT, "current-timestamp-iso8601"))
+        assertThat(UNDER_TEST.resolve(SOME_OBJECT, "now"))
                 .map(Instant::parse)
                 .hasValueSatisfying(i -> {
                             final Instant now = Instant.now();
@@ -61,7 +61,7 @@ public final class ImmutableMiscPlaceholderTest {
 
     @Test
     public void testReplaceCurrentTimestampMillisSinceEpoch() {
-        assertThat(UNDER_TEST.resolve(SOME_OBJECT, "current-timestamp-epoch-millis"))
+        assertThat(UNDER_TEST.resolve(SOME_OBJECT, "now_epoch_millis"))
                 .map(Long::parseLong)
                 .map(Instant::ofEpochMilli)
                 .hasValueSatisfying(i -> {

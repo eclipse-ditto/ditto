@@ -53,7 +53,7 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextC
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
-import org.eclipse.ditto.protocol.placeholders.MiscPlaceholder;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
@@ -82,7 +82,7 @@ public final class ConnectionValidator {
                 .collect(Collectors.toMap(AbstractProtocolValidator::type, Function.identity()));
         this.specMap = Collections.unmodifiableMap(theSpecMap);
         queryFilterCriteriaFactory = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
-                TopicPathPlaceholder.getInstance(), ResourcePlaceholder.getInstance(), MiscPlaceholder.getInstance());
+                TopicPathPlaceholder.getInstance(), ResourcePlaceholder.getInstance(), TimePlaceholder.getInstance());
     }
 
     /**

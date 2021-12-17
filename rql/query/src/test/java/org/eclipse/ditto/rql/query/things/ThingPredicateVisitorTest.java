@@ -15,6 +15,8 @@ package org.eclipse.ditto.rql.query.things;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.function.Predicate;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
@@ -24,8 +26,8 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
-import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.Thing;
@@ -39,6 +41,8 @@ public final class ThingPredicateVisitorTest {
 
     private static final QueryFilterCriteriaFactory queryFilterCriteriaFactory =
             QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance());
+
+    private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
 
     private static final String KNOWN_PLACEHOLDER_VALUE = "LoreM";
 
@@ -58,7 +62,9 @@ public final class ThingPredicateVisitorTest {
             .set("/attributes/sensorType", "self-pushing")
             .set("/features/Car/properties/status", "running")
             .build();
+    private static final Instant MATCHING_THING_MODIFIED = Instant.now();
     private static final Thing MATCHING_THING = Thing.newBuilder().setId(MATCHING_THING_ID)
+            .setModified(MATCHING_THING_MODIFIED)
             .setAttribute(JsonPointer.of("anInteger"), JsonValue.of(MATCHING_THING_INTEGER))
             .setAttribute(JsonPointer.of("aLong"), JsonValue.of(MATCHING_THING_LONG))
             .setAttribute(JsonPointer.of("aDouble"), JsonValue.of(MATCHING_THING_DOUBLE))
@@ -82,7 +88,9 @@ public final class ThingPredicateVisitorTest {
     private static final double NON_MATCHING_THING_LESSER_DOUBLE = MATCHING_THING_DOUBLE / 2.0;
     private static final boolean NON_MATCHING_THING_LESSER_BOOLEAN = !MATCHING_THING_BOOLEAN;
     private static final String NON_MATCHING_THING_LESSER_STRING = "aaa_string";
+    private static final Instant NON_MATCHING_THING_LESSER_MODIFIED = Instant.now().minus(1, ChronoUnit.MINUTES);
     private static final Thing NON_MATCHING_THING_LESSER = Thing.newBuilder().setId(NON_MATCHING_THING_LESSER_ID)
+            .setModified(NON_MATCHING_THING_LESSER_MODIFIED)
             .setAttribute(JsonPointer.of("anInteger"), JsonValue.of(NON_MATCHING_THING_LESSER_INTEGER))
             .setAttribute(JsonPointer.of("aLong"), JsonValue.of(NON_MATCHING_THING_LESSER_LONG))
             .setAttribute(JsonPointer.of("aDouble"), JsonValue.of(NON_MATCHING_THING_LESSER_DOUBLE))
@@ -105,7 +113,9 @@ public final class ThingPredicateVisitorTest {
     private static final double NON_MATCHING_THING_GREATER_DOUBLE = MATCHING_THING_DOUBLE * 2.0;
     private static final boolean NON_MATCHING_THING_GREATER_BOOLEAN = !MATCHING_THING_BOOLEAN;
     private static final String NON_MATCHING_THING_GREATER_STRING = "eee_string";
+    private static final Instant NON_MATCHING_THING_GREATER_MODIFIED = Instant.now().plus(1, ChronoUnit.MINUTES);
     private static final Thing NON_MATCHING_THING_GREATER = Thing.newBuilder().setId(NON_MATCHING_THING_GREATER_ID)
+            .setModified(NON_MATCHING_THING_GREATER_MODIFIED)
             .setAttribute(JsonPointer.of("anInteger"), JsonValue.of(NON_MATCHING_THING_GREATER_INTEGER))
             .setAttribute(JsonPointer.of("aLong"), JsonValue.of(NON_MATCHING_THING_GREATER_LONG))
             .setAttribute(JsonPointer.of("aDouble"), JsonValue.of(NON_MATCHING_THING_GREATER_DOUBLE))
@@ -122,7 +132,8 @@ public final class ThingPredicateVisitorTest {
             .build();
 
     private static Predicate<Thing> createPredicate(final String filter) {
-        return ThingPredicateVisitor.apply(queryFilterCriteriaFactory.filterCriteria(filter, DittoHeaders.empty()));
+        return ThingPredicateVisitor.apply(queryFilterCriteriaFactory.filterCriteria(filter, DittoHeaders.empty()),
+                PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object()));
     }
 
     private static Predicate<Thing> createPredicateWithPlaceholderResolver(final String filter) {
@@ -319,6 +330,11 @@ public final class ThingPredicateVisitorTest {
     }
 
     @Test
+    public void testFilterModifiedWithTimePlaceholderGt() {
+        testPredicate(NON_MATCHING_THING_LESSER, "gt", "_modified", "time:now", false, false);
+    }
+
+    @Test
     public void testFilterAttributeWithIntegerLe() {
         testPredicate(NON_MATCHING_THING_GREATER, "le", "attributes/anInteger", MATCHING_THING_INTEGER + 1);
         testPredicate(NON_MATCHING_THING_GREATER, "le", "attributes/anInteger", MATCHING_THING_INTEGER); // corner case
@@ -365,6 +381,11 @@ public final class ThingPredicateVisitorTest {
     public void testFilterAttributeWithStringLt() {
         testPredicate(NON_MATCHING_THING_GREATER, "lt", "attributes/aString", "d");
         testPredicateNeg(NON_MATCHING_THING_GREATER, "lt", "attributes/aString", MATCHING_THING_STRING); // corner case
+    }
+
+    @Test
+    public void testFilterModifiedWithTimePlaceholderLt() {
+        testPredicate(NON_MATCHING_THING_GREATER, "lt", "_modified", "time:now", true, false);
     }
 
     @Test

@@ -55,7 +55,7 @@ import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SearchSource;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.protocol.placeholders.MiscPlaceholder;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
@@ -154,7 +154,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         final var queryFilterCriteriaFactory =
                 QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
                         TopicPathPlaceholder.getInstance(), ResourcePlaceholder.getInstance(),
-                        MiscPlaceholder.getInstance());
+                        TimePlaceholder.getInstance());
 
         return new ThingsSseRouteBuilder(streamingActor, streamingConfig, queryFilterCriteriaFactory, pubSubMediator);
     }

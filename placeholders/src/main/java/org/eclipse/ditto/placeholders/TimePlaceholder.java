@@ -10,29 +10,26 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.protocol.placeholders;
-
-import org.eclipse.ditto.placeholders.Placeholder;
+package org.eclipse.ditto.placeholders;
 
 /**
- * A {@link Placeholder} that resolves miscellaneous placeholders, e.g. from the runtime environment like the
- * current time.
+ * A {@link Placeholder} that resolves time placeholders, e.g. from the current time.
  *
- * @since 2.2.0
+ * @since 2.3.0
  */
-public interface MiscPlaceholder extends Placeholder<Object> {
+public interface TimePlaceholder extends Placeholder<Object> {
 
     /**
      * The used prefix of this placeholder.
      */
-    String PREFIX = "misc";
+    String PREFIX = "time";
 
     /**
-     * Returns the singleton instance of the {@link MiscPlaceholder}.
+     * Returns the singleton instance of the {@link TimePlaceholder}.
      *
      * @return the singleton instance.
      */
-    static MiscPlaceholder getInstance() {
-        return ImmutableMiscPlaceholder.INSTANCE;
+    static TimePlaceholder getInstance() {
+        return ImmutableTimePlaceholder.INSTANCE;
     }
 }

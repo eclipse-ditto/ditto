@@ -46,10 +46,10 @@ import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.placeholders.MiscPlaceholder;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
@@ -72,7 +72,7 @@ public final class SignalFilter {
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final TopicPathPlaceholder TOPIC_PATH_PLACEHOLDER = TopicPathPlaceholder.getInstance();
     private static final ResourcePlaceholder RESOURCE_PLACEHOLDER = ResourcePlaceholder.getInstance();
-    private static final MiscPlaceholder MISC_PLACEHOLDER = MiscPlaceholder.getInstance();
+    private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
 
     private final Connection connection;
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
@@ -168,22 +168,22 @@ public final class SignalFilter {
                     PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER, topicPath);
             final PlaceholderResolver<WithResource> resourcePlaceholderResolver = PlaceholderFactory
                     .newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal);
-            final PlaceholderResolver<Object> miscPlaceholderResolver = PlaceholderFactory
-                    .newPlaceholderResolver(MISC_PLACEHOLDER, new Object());
+            final PlaceholderResolver<Object> timePlaceholderResolver = PlaceholderFactory
+                    .newPlaceholderResolver(TIME_PLACEHOLDER, new Object());
             final Criteria criteria = parseCriteria(filterOptional.get(), signal.getDittoHeaders(),
-                    topicPathPlaceholderResolver, resourcePlaceholderResolver, miscPlaceholderResolver);
+                    topicPathPlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
             final Set<JsonPointer> extraFields = filteredTopic.getExtraFields()
                     .map(JsonFieldSelector::getPointers)
                     .orElse(Collections.emptySet());
             if (signal instanceof ThingEvent) {
                 return ThingEventToThingConverter.thingEventToThing((ThingEvent<?>) signal)
                         .filter(thing -> Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, thing,
-                                topicPathPlaceholderResolver, resourcePlaceholderResolver, miscPlaceholderResolver))
+                                topicPathPlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver))
                         .isPresent();
             } else {
                 final Thing emptyThing = Thing.newBuilder().build();
                 return Thing3ValuePredicateVisitor.couldBeTrue(criteria, extraFields, emptyThing,
-                        topicPathPlaceholderResolver, resourcePlaceholderResolver, miscPlaceholderResolver);
+                        topicPathPlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver);
             }
         } else {
             return true;

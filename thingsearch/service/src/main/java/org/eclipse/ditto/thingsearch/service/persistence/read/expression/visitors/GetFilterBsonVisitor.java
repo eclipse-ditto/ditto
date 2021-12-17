@@ -32,13 +32,8 @@ public class GetFilterBsonVisitor extends AbstractFieldBsonCreator implements Fi
     private final Function<String, Bson> predicateFunction;
     private final Bson valueFilter;
 
-    /**
-     * Creates a visitor object to create a Mongo Bson object for field-based search criteria.
-     *
-     * @param predicateFunction the function for creating the predicate-part (e.g. "eq", "ne", ...) of the criteria
-     */
     private GetFilterBsonVisitor(final Function<String, Bson> predicateFunction,
-            @Nullable List<String> authorizationSubjectIds) {
+            @Nullable final List<String> authorizationSubjectIds) {
 
         super(authorizationSubjectIds);
         this.predicateFunction = predicateFunction;

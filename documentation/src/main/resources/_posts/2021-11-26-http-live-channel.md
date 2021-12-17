@@ -4,7 +4,7 @@ published: true
 permalink: 2021-11-26-http-live-channel.html
 layout: post
 author: stefan_maute
-tags: [blog, http, live]
+tags: [blog, http]
 hide_sidebar: true
 sidebar: false
 toc: true

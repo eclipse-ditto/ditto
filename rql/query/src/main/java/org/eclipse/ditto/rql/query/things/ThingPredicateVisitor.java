@@ -43,7 +43,10 @@ public final class ThingPredicateVisitor implements CriteriaVisitor<Predicate<Th
      *
      * @param criteria the RQL criteria to visit.
      * @return the Predicate of a thing to test.
+     * @deprecated use the other {@link #apply(org.eclipse.ditto.rql.query.criteria.Criteria, org.eclipse.ditto.placeholders.PlaceholderResolver[])}
+     * specifying the available placeholder resolvers
      */
+    @Deprecated
     public static Predicate<Thing> apply(final Criteria criteria) {
         return criteria.accept(new ThingPredicateVisitor(Collections.emptyList()));
     }

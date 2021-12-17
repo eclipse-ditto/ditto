@@ -283,12 +283,12 @@ This mapper creates a [merge Thing command](protocol-specification-things-merge.
   (default applied Ditto headers if not configured: `"response-required": false`, `"if-match": "*"`).
    * in this configured headers, the following placeholders may be used:
 
-       | Placeholder                       | Description  |
-       |-----------------------------------|--------------|
-       | `{%raw%}{{ header:<header-name> }}{%endraw%}` | header value from the external message, e.g. from protocol headers |
+       | Placeholder                       | Description                                                                                             |
+       |---------------------------------------------------------------------------------------------------------|--------------|
+       | `{%raw%}{{ header:<header-name> }}{%endraw%}` | header value from the external message, e.g. from protocol headers                                      |
        | `{%raw%}{{ request:subjectId }}{%endraw%}` | the first authenticated subjectId which did the request - the one of the connection source in this case |
-       | `{%raw%}{{ misc:current-timestamp-iso8601 }}{%endraw%}` | the current timestamp in ISO-8601 format as string | 
-       | `{%raw%}{{ misc:current-timestamp-epoch-millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string | 
+       | `{%raw%}{{ time:now }}{%endraw%}` | the current timestamp in ISO-8601 format as string in UTC timezone                                                     | 
+       | `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string                                 | 
 
 
 Example configuration:
@@ -301,7 +301,7 @@ Example configuration:
       {"key":"*/updated-by","value":"{%raw%}{{ request:subjectId }}{%endraw%}"},
       {"key":"*/updated-via","value":"device-live-response"},
       {"key":"*/update-hint","value":"{%raw%}{{ header:some-custom-hint }}{%endraw%}"},
-      {"key":"*/updated-at","value":"{%raw%}{{ misc:current-timestamp-iso8601 }}{%endraw%}"}
+      {"key":"*/updated-at","value":"{%raw%}{{ time:now }}{%endraw%}"}
     ]
   }
 }

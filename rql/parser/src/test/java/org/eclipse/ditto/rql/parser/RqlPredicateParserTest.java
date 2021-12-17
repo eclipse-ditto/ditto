@@ -14,6 +14,7 @@ package org.eclipse.ditto.rql.parser;
 
 import static org.eclipse.ditto.base.model.assertions.DittoBaseAssertions.assertThat;
 
+import org.eclipse.ditto.rql.model.ParsedPlaceholder;
 import org.eclipse.ditto.rql.model.ParserException;
 import org.eclipse.ditto.rql.model.predicates.PredicateParser;
 import org.eclipse.ditto.rql.model.predicates.ast.ExistsNode;
@@ -604,4 +605,38 @@ public class RqlPredicateParserTest {
         assertThat(existsNode.getProperty().getClass()).isEqualTo(String.class);
         assertThat(existsNode.getProperty()).isEqualTo("topic:action");
     }
+
+    @Test
+    public void testHeaderPlaceholderMayBeUsedAsValue() throws ParserException {
+        final RootNode root = parser.parse("eq(attributes/foo,header:some-cool-header)");
+
+        assertThat(root).isNotNull();
+        assertThat(root.getChildren().size()).isEqualTo(1);
+
+        final SingleComparisonNode comparisonNode = (SingleComparisonNode) root.getChildren().get(0);
+        assertThat(comparisonNode.getComparisonProperty()).isEqualTo("attributes/foo");
+        assertThat(comparisonNode.getComparisonValue().getClass()).isEqualTo(ParsedPlaceholder.class);
+        assertThat(comparisonNode.getComparisonValue()).isEqualTo(ParsedPlaceholder.of("header:some-cool-header"));
+        assertThat(comparisonNode.getComparisonValue()).isEqualTo("header:some-cool-header");
+    }
+
+    @Test
+    public void testMiscPlaceholderMayBeUsedAsValue() throws ParserException {
+        final RootNode root = parser.parse("lt(_modified,time:now)");
+
+        assertThat(root).isNotNull();
+        assertThat(root.getChildren().size()).isEqualTo(1);
+
+        final SingleComparisonNode comparisonNode = (SingleComparisonNode) root.getChildren().get(0);
+        assertThat(comparisonNode.getComparisonProperty()).isEqualTo("_modified");
+        assertThat(comparisonNode.getComparisonValue().getClass()).isEqualTo(ParsedPlaceholder.class);
+        assertThat(comparisonNode.getComparisonValue()).isEqualTo(ParsedPlaceholder.of("time:now"));
+        assertThat(comparisonNode.getComparisonValue()).isEqualTo("time:now");
+    }
+
+    @Test(expected = ParserException.class)
+    public void testUnknownPlaceholderPrefixCannotBeUsed() throws ParserException {
+        parser.parse("eq(thingId,foo:bar)");
+    }
+
 }

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.api.placeholders;
 
-import org.eclipse.ditto.protocol.placeholders.MiscPlaceholder;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
 
@@ -72,10 +72,10 @@ public final class ConnectivityPlaceholders {
     }
 
     /**
-     * @return the singleton instance of {@link MiscPlaceholder}
+     * @return the singleton instance of {@link TimePlaceholder}
      */
-    public static MiscPlaceholder newMiscPlaceholder() {
-        return MiscPlaceholder.getInstance();
+    public static TimePlaceholder newMiscPlaceholder() {
+        return TimePlaceholder.getInstance();
     }
 
     /**

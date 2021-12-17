@@ -76,9 +76,10 @@ documentation describes which placeholder names are supported.
 
 ### Query value
 ```
-<value> = <number>, <string>, true, false, null
-<number> = double, integer
+<value> = <number>, <string>, <placeholder>, true, false, null
+<number> = <double>, <integer>
 <string> = "url-encoded-string", 'url-encoded-string'
+<placeholder> = time:now, time:now_epoch_millis
 ```
 
 String values may either be delimited using single or double quotes.
