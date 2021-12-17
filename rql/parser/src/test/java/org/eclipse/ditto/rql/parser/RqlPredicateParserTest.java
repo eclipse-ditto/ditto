@@ -607,20 +607,6 @@ public class RqlPredicateParserTest {
     }
 
     @Test
-    public void testHeaderPlaceholderMayBeUsedAsValue() throws ParserException {
-        final RootNode root = parser.parse("eq(attributes/foo,header:some-cool-header)");
-
-        assertThat(root).isNotNull();
-        assertThat(root.getChildren().size()).isEqualTo(1);
-
-        final SingleComparisonNode comparisonNode = (SingleComparisonNode) root.getChildren().get(0);
-        assertThat(comparisonNode.getComparisonProperty()).isEqualTo("attributes/foo");
-        assertThat(comparisonNode.getComparisonValue().getClass()).isEqualTo(ParsedPlaceholder.class);
-        assertThat(comparisonNode.getComparisonValue()).isEqualTo(ParsedPlaceholder.of("header:some-cool-header"));
-        assertThat(comparisonNode.getComparisonValue()).isEqualTo("header:some-cool-header");
-    }
-
-    @Test
     public void testMiscPlaceholderMayBeUsedAsValue() throws ParserException {
         final RootNode root = parser.parse("lt(_modified,time:now)");
 
