@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.concierge.service.actors;
 
+import static org.eclipse.ditto.concierge.service.starter.proxy.DefaultEnforcerActorFactory.setOriginatorHeader;
+
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
@@ -114,7 +116,8 @@ public final class LiveResponseAndAcknowledgementForwarder extends AbstractActor
         acknowledgementReceiver.forward(acks, getContext());
     }
 
-    private void onCommandResponse(final CommandResponse<?> response) {
+    private void onCommandResponse(final CommandResponse<?> incomingResponse) {
+        final CommandResponse<?> response = setOriginatorHeader(incomingResponse);
         final boolean validResponse = isValidResponse(response);
         logger.debug("Got <{}>, valid=<{}>", response, validResponse);
         if (validResponse) {

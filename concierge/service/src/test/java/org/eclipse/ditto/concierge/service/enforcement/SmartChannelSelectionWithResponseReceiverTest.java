@@ -175,7 +175,7 @@ public final class SmartChannelSelectionWithResponseReceiverTest {
     }
 
     private RetrieveThing getRetrieveThing(final Consumer<DittoHeadersBuilder<?, ?>> headerModifier) {
-        final DittoHeadersBuilder<?, ?> builder = headers().toBuilder();
+        final DittoHeadersBuilder<?, ?> builder = headers().toBuilder().randomCorrelationId();
         headerModifier.accept(builder);
         return RetrieveThing.of(TestSetup.THING_ID, builder.build());
     }

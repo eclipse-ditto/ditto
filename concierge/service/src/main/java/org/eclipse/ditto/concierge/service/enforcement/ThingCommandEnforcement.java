@@ -42,6 +42,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.LiveChannelTimeoutStrategy;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -1289,16 +1290,11 @@ public final class ThingCommandEnforcement
     }
 
     private static DittoHeaders getAdditionalLiveResponseHeaders(final DittoHeaders responseHeaders) {
-        // TODO: ensure pre-enforcer headers in responses
         final var liveChannelConditionMatched = responseHeaders.getOrDefault(
                 DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), Boolean.TRUE.toString());
-        final var dittoHeadersBuilder = DittoHeaders.newBuilder()
+        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = DittoHeaders.newBuilder()
                 .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), liveChannelConditionMatched)
                 .responseRequired(false);
-        responseHeaders.getAuthorizationContext().getFirstAuthorizationSubject()
-                .map(AuthorizationSubject::toString)
-                .ifPresent(firstSubject ->
-                        dittoHeadersBuilder.putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), firstSubject));
         return dittoHeadersBuilder.build();
     }
 

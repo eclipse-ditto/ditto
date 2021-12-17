@@ -65,7 +65,7 @@ public class CreateThingSubstitutionStrategyTest extends AbstractSubstitutionStr
     @Test
     public void applyReturnsTheSameCommandInstanceWhenInvalidInlinePolicyIsSpecified() {
         final CreateThing commandWithoutInlinePolicy =
-                CreateThing.of(THING, JsonObject.newBuilder().set("foo", "bar").build(), DITTO_HEADERS);
+                CreateThing.of(THING, JsonObject.newBuilder().set("_modified", "bar").build(), DITTO_HEADERS);
 
         final WithDittoHeaders response = applyBlocking(commandWithoutInlinePolicy);
 
