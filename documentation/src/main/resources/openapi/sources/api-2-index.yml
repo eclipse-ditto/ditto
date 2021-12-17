@@ -168,6 +168,8 @@ components:
       $ref: "./responses/notModified.yml"
     PreconditionFailed:
       $ref: "./responses/preconditionFailed.yml"
+    DependencyFailed:
+      $ref: "./responses/dependencyFailed.yml"
 
   parameters:
     AllowPolicyLockoutParam:
@@ -182,8 +184,8 @@ components:
       $ref: "./parameters/conditionParam.yml"
     LiveChannelConditionParam:
       $ref: "./parameters/liveChannelConditionParam.yml"
-    OnLiveChannelTimeoutParam:
-      $ref: "./parameters/onLiveChannelTimeoutParam.yml"
+    LiveChannelTimeoutStrategyParam:
+      $ref: "./parameters/liveChannelTimeoutStrategyParam.yml"
     DesiredPropertiesFieldsQueryParam:
       $ref: "./parameters/desiredPropertiesFieldsQueryParam.yml"
     FeatureFieldsQueryParam:

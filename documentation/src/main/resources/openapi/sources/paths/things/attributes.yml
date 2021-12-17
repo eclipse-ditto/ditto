@@ -23,7 +23,7 @@ get:
     - $ref: '../../parameters/conditionParam.yml'
     - $ref: '../../parameters/channelParam.yml'
     - $ref: '../../parameters/liveChannelConditionParam.yml'
-    - $ref: '../../parameters/onLiveChannelTimeoutParam.yml'
+    - $ref: '../../parameters/liveChannelTimeoutStrategyParam.yml'
   responses:
     '200':
       description: The attributes of the specific thing were successfully retrieved.

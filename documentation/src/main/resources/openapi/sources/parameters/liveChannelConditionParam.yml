@@ -11,8 +11,14 @@
 name: live-channel-condition
 in: query
 description: >-
-  Defines that the request should fetch thing data via live channel if the given condition is met.
+  Defines that the request should fetch thing data via `live` channel if the given condition is met.
   The condition can be specified using RQL syntax.
+  
+  #### Examples
+
+    * ```?live-channel-condition=lt(_modified,"2021-12-24T12:23:42Z")```
+  
+    * ```?live-channel-condition=ge(features/ConnectionStatus/properties/status/readyUntil,time:now)```
 
 required: false
 schema:

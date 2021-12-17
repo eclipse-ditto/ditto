@@ -30,7 +30,7 @@ get:
     - $ref: '../../parameters/conditionParam.yml'
     - $ref: '../../parameters/channelParamPutDescription.yml'
     - $ref: '../../parameters/liveChannelConditionParam.yml'
-    - $ref: '../../parameters/onLiveChannelTimeoutParam.yml'
+    - $ref: '../../parameters/liveChannelTimeoutStrategyParam.yml'
   responses:
     '200':
       description: The request successfully returned the specific thing.

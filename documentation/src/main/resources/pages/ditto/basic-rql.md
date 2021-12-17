@@ -66,9 +66,9 @@ When using an RQL expression in order to e.g. filter for certain
 field in JSON representation inside the Thing.
 
 Currently supported placeholders for RQL expressions are:
-* 
 * `topic:<placeholder-name>`
 * `resource:<placeholder-name>`
+* `time:<placeholder-name>`
 
 The [placeholder](basic-placeholders.html#scope-rql-expressions-when-filtering-for-ditto-protocol-messages) 
 documentation describes which placeholder names are supported.

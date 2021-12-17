@@ -167,40 +167,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          description: |-
-            One or more acknowledgement requests in the parameter `requested-acks`
-            were not fulfilled.
-          content:
-            application/json:
-              schema:
-                properties:
-                  acknowledgementLabel1:
-                    properties:
-                      status:
-                        type: integer
-                        description: The HTTP status of the acknowledgement
-                      payload:
-                        oneOf:
-                          - type: object
-                          - type: string
-                          - type: number
-                          - type: array
-                          - type: boolean
-                        description: The payload of the acknowledgement
-                    required:
-                      - status
-                    example:
-                      status: 200
-                      payload: OK
-                  acknowledgementLabelN:
-                    $ref: '#/paths/~1things/post/responses/424/content/application~1json/schema/properties/acknowledgementLabel1'
-                example:
-                  acknowledgementLabel1:
-                    status: 200
-                    payload: OK
-                  acknnowledgementLabelN:
-                    status: 403
-                    payload: Forbidden
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/json:
@@ -255,7 +222,7 @@ paths:
           in: query
           description: |-
             Defines to which channel to route the command: `twin` (digital twin) or `live` (the device).
-            * If setting the channel parameter is omitted, the `twin` channel is set by default and the command is routed to the digital representation of a thing in Bosch IoT Things backend.
+            * If setting the channel parameter is omitted, the `twin` channel is set by default and the command is routed to the persisted representation of a thing in Eclipse Ditto.
             * When using the `live` channel, the command/message is sent towards the device.
 
             The option `live` is not available when a new thing should be created, only for updating an
@@ -267,7 +234,7 @@ paths:
               - twin
               - live
         - $ref: '#/components/parameters/LiveChannelConditionParam'
-        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
+        - $ref: '#/components/parameters/LiveChannelTimeoutStrategyParam'
       responses:
         '200':
           description: The request successfully returned the specific thing.
@@ -519,7 +486,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/json:
@@ -736,7 +703,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/merge-patch+json:
@@ -822,7 +789,7 @@ paths:
         '412':
           $ref: '#/components/responses/PreconditionFailed'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
   '/things/{thingId}/definition':
     get:
       summary: Retrieve the definition of a specific thing
@@ -837,7 +804,7 @@ paths:
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
         - $ref: '#/components/parameters/LiveChannelConditionParam'
-        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
+        - $ref: '#/components/parameters/LiveChannelTimeoutStrategyParam'
       responses:
         '200':
           description: The request successfully returned the definition of the specific thing.
@@ -976,7 +943,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         $ref: '#/components/requestBodies/Definition'
     patch:
@@ -1047,7 +1014,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/merge-patch+json:
@@ -1113,7 +1080,7 @@ paths:
         '412':
           $ref: '#/components/responses/PreconditionFailed'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
   '/things/{thingId}/policyId':
     get:
       summary: Retrieve the policy ID of a thing
@@ -1128,7 +1095,7 @@ paths:
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
         - $ref: '#/components/parameters/LiveChannelConditionParam'
-        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
+        - $ref: '#/components/parameters/LiveChannelTimeoutStrategyParam'
       responses:
         '200':
           description: The request successfully returned the policy ID.
@@ -1232,7 +1199,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/json:
@@ -1301,7 +1268,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/merge-patch+json:
@@ -1328,7 +1295,7 @@ paths:
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
         - $ref: '#/components/parameters/LiveChannelConditionParam'
-        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
+        - $ref: '#/components/parameters/LiveChannelTimeoutStrategyParam'
       responses:
         '200':
           description: The attributes of the specific thing were successfully retrieved.
@@ -1455,7 +1422,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         $ref: '#/components/requestBodies/Attributes'
     patch:
@@ -1525,7 +1492,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/merge-patch+json:
@@ -1595,7 +1562,7 @@ paths:
         '412':
           $ref: '#/components/responses/PreconditionFailed'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
   '/things/{thingId}/attributes/{attributePath}':
     get:
       summary: Retrieve a specific attribute of a specific thing
@@ -1619,7 +1586,7 @@ paths:
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
         - $ref: '#/components/parameters/LiveChannelConditionParam'
-        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
+        - $ref: '#/components/parameters/LiveChannelTimeoutStrategyParam'
       responses:
         '200':
           description: The attribute was successfully retrieved.
@@ -1747,7 +1714,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         $ref: '#/components/requestBodies/Value'
     patch:
@@ -1822,7 +1789,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         $ref: '#/components/requestBodies/PatchValue'
     delete:
@@ -1882,7 +1849,7 @@ paths:
         '412':
           $ref: '#/components/responses/PreconditionFailed'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
   '/things/{thingId}/features':
     get:
       summary: List all features of a specific thing
@@ -1900,7 +1867,7 @@ paths:
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
         - $ref: '#/components/parameters/LiveChannelConditionParam'
-        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
+        - $ref: '#/components/parameters/LiveChannelTimeoutStrategyParam'
       responses:
         '200':
           description: |-
@@ -2078,7 +2045,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/json:
@@ -2208,7 +2175,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/merge-patch+json:
@@ -2285,7 +2252,7 @@ paths:
         '412':
           $ref: '#/components/responses/PreconditionFailed'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
   '/things/{thingId}/features/{featureId}':
     get:
       summary: Retrieve a specific feature of a specific thing
@@ -2304,7 +2271,7 @@ paths:
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
         - $ref: '#/components/parameters/LiveChannelConditionParam'
-        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
+        - $ref: '#/components/parameters/LiveChannelTimeoutStrategyParam'
       responses:
         '200':
           description: The feature was successfully retrieved.
@@ -2452,7 +2419,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/json:
@@ -2556,7 +2523,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/merge-patch+json:
@@ -2627,7 +2594,7 @@ paths:
         '412':
           $ref: '#/components/responses/PreconditionFailed'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
   '/things/{thingId}/features/{featureId}/definition':
     get:
       summary: List the definition of a feature
@@ -2643,7 +2610,7 @@ paths:
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
         - $ref: '#/components/parameters/LiveChannelConditionParam'
-        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
+        - $ref: '#/components/parameters/LiveChannelTimeoutStrategyParam'
       responses:
         '200':
           description: The definition was successfully retrieved.
@@ -2774,7 +2741,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/json:
@@ -2856,7 +2823,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/merge-patch+json:
@@ -2923,7 +2890,7 @@ paths:
         '412':
           $ref: '#/components/responses/PreconditionFailed'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
   '/things/{thingId}/features/{featureId}/properties':
     get:
       summary: List all properties of a feature
@@ -2940,7 +2907,7 @@ paths:
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
         - $ref: '#/components/parameters/LiveChannelConditionParam'
-        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
+        - $ref: '#/components/parameters/LiveChannelTimeoutStrategyParam'
       responses:
         '200':
           description: The properties were successfully retrieved.
@@ -3066,7 +3033,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/json:
@@ -3158,7 +3125,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/merge-patch+json:
@@ -3233,7 +3200,7 @@ paths:
         '412':
           $ref: '#/components/responses/PreconditionFailed'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
   '/things/{thingId}/features/{featureId}/properties/{propertyPath}':
     get:
       summary: Retrieve a specific property of a feature
@@ -3257,7 +3224,7 @@ paths:
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
         - $ref: '#/components/parameters/LiveChannelConditionParam'
-        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
+        - $ref: '#/components/parameters/LiveChannelTimeoutStrategyParam'
       responses:
         '200':
           description: The property was successfully retrieved.
@@ -3381,7 +3348,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         $ref: '#/components/requestBodies/Value'
     patch:
@@ -3458,7 +3425,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         $ref: '#/components/requestBodies/PatchValue'
     delete:
@@ -3521,7 +3488,7 @@ paths:
         '412':
           $ref: '#/components/responses/PreconditionFailed'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
   '/things/{thingId}/features/{featureId}/desiredProperties':
     get:
       summary: List all desired properties of a feature
@@ -3538,7 +3505,7 @@ paths:
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
         - $ref: '#/components/parameters/LiveChannelConditionParam'
-        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
+        - $ref: '#/components/parameters/LiveChannelTimeoutStrategyParam'
       responses:
         '200':
           description: The desired properties were successfully retrieved.
@@ -3670,7 +3637,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/json:
@@ -3762,7 +3729,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         content:
           application/merge-patch+json:
@@ -3837,7 +3804,7 @@ paths:
         '412':
           $ref: '#/components/responses/PreconditionFailed'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
   '/things/{thingId}/features/{featureId}/desiredProperties/{propertyPath}':
     get:
       summary: Retrieve a specific desired property of a feature
@@ -3862,7 +3829,7 @@ paths:
         - $ref: '#/components/parameters/ConditionParam'
         - $ref: '#/components/parameters/ChannelParam'
         - $ref: '#/components/parameters/LiveChannelConditionParam'
-        - $ref: '#/components/parameters/OnLiveChannelTimeoutParam'
+        - $ref: '#/components/parameters/LiveChannelTimeoutStrategyParam'
       responses:
         '200':
           description: The desired property was successfully retrieved.
@@ -3987,7 +3954,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         $ref: '#/components/requestBodies/Value'
     patch:
@@ -4063,7 +4030,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         $ref: '#/components/requestBodies/PatchValue'
     delete:
@@ -4129,7 +4096,7 @@ paths:
         '412':
           $ref: '#/components/responses/PreconditionFailed'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
   '/things/{thingId}/inbox/claim':
     post:
       summary: Initiates claiming a specific thing in order to gain access
@@ -4216,7 +4183,7 @@ paths:
         '413':
           $ref: '#/components/responses/MessageTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
         '429':
           description: |-
             The user has sent too many requests in a given amount of time ("rate
@@ -4316,7 +4283,7 @@ paths:
         '413':
           $ref: '#/components/responses/MessageTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/outbox/messages/{messageSubject}':
@@ -4395,7 +4362,7 @@ paths:
         '413':
           $ref: '#/components/responses/MessageTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
@@ -4478,7 +4445,7 @@ paths:
         '413':
           $ref: '#/components/responses/MessageTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
@@ -4559,7 +4526,7 @@ paths:
         '413':
           $ref: '#/components/responses/MessageTooLarge'
         '424':
-          $ref: '#/paths/~1things/post/responses/424'
+          $ref: '#/components/responses/DependencyFailed'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
   '/policies/{policyId}':
@@ -6631,6 +6598,39 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/AdvancedError'
+    DependencyFailed:
+      description: |-
+        One or more acknowledgement requests in the parameter `requested-acks`
+        were not fulfilled.
+      content:
+        application/json:
+          schema:
+            properties:
+              acknowledgementLabel1:
+                properties:
+                  status:
+                    type: integer
+                    description: The HTTP status of the acknowledgement
+                  payload:
+                    oneOf:
+                      - type: object
+                      - type: string
+                      - type: number
+                      - type: array
+                      - type: boolean
+                    description: The payload of the acknowledgement
+                required:
+                  - status
+                example:
+                  status: 200
+                  payload: OK
+            example:
+              acknowledgementLabel1:
+                status: 200
+                payload: OK
+              acknnowledgementLabelN:
+                status: 403
+                payload: Forbidden
   parameters:
     AllowPolicyLockoutParam:
       name: allow-policy-lockout
@@ -6688,7 +6688,7 @@ components:
       in: query
       description: |-
         Defines to which channel to route the command: `twin` (digital twin) or `live` (the device).
-        * If setting the channel parameter is omitted, the `twin` channel is set by default and the command is routed to the digital representation of a thing in Bosch IoT Things backend.
+        * If setting the channel parameter is omitted, the `twin` channel is set by default and the command is routed to the persisted representation of a thing in Eclipse Ditto.
         * When using the `live` channel, the command/message is sent towards the device.
       required: false
       schema:
@@ -6700,33 +6700,40 @@ components:
       name: condition
       in: query
       description: |-
-        Defines that the request should only be applied to a thing if the given condition is met. The condition can be specified using RQL syntax, e.g. if the temperature is not 23.9 update it to 23.9.
+        Defines that the request should only be applied to a thing if the given condition is met. The condition can be specified using RQL syntax. 
+        #### Examples
+        E.g. if the temperature is not 23.9 update it to 23.9:
+        * ```PUT /api/2/things/{thingId}/features/temperature/properties/value?condition=ne(features/temperature/properties/value,23.9)```
 
-         ```PUT /api/2/things/org.eclipse.ditto:my-fancy-car-1/features/temperature/properties/value?condition=ne(features/temperature/properties/value,23.9)```
+           `body: 23.9`
 
-         `body: 23.9`
-
-        Further condition examples:
-        * ```eq(features/temperature/properties/unit,"Celsius")```
-        * ```ge(features/temperature/properties/lastModified,"2021-08-22T19:45:00")```
-        * ```gt(_modified,"2021-08-05T12:17")```
-        * ```exists(features/temperature/properties/value)```
-        * ```and(gt(features/temperature/properties/value,18.5),lt(features/temperature/properties/value,25.2))```
-        * ```or(gt(features/temperature/properties/value,18.5),not(exists(features/temperature/properties/value))```
+        Further example conditions:
+        * ```?condition=eq(features/temperature/properties/unit,"Celsius")```
+        * ```?condition=ge(features/temperature/properties/lastModified,"2021-08-22T19:45:00Z")```
+        * ```?condition=gt(_modified,"2021-08-05T12:17:00Z")```
+        * ```?condition=exists(features/temperature/properties/value)```
+        * ```?condition=and(gt(features/temperature/properties/value,18.5),lt(features/temperature/properties/value,25.2))```
+        * ```?condition=or(gt(features/temperature/properties/value,18.5),not(exists(features/temperature/properties/value))```
       required: false
       schema:
         type: string
     LiveChannelConditionParam:
       name: live-channel-condition
       in: query
-      description: Defines that the request should fetch thing data via live channel if the given condition is met. The condition can be specified using RQL syntax.
+      description: |-
+        Defines that the request should fetch thing data via `live` channel if the given condition is met. The condition can be specified using RQL syntax.
+        #### Examples
+
+          * ```?live-channel-condition=lt(_modified,"2021-12-24T12:23:42Z")```
+
+          * ```?live-channel-condition=ge(features/ConnectionStatus/properties/status/readyUntil,time:now)```
       required: false
       schema:
         type: string
-    OnLiveChannelTimeoutParam:
-      name: on-live-channel-timeout
+    LiveChannelTimeoutStrategyParam:
+      name: live-channel-timeout-strategy
       in: query
-      description: Defines a strategy how to handle timeouts of a live response to a request sent with a matching live-channel-condition.
+      description: Defines a strategy how to handle timeouts of a live response to a request sent via `channel=true` or with a matching  live-channel-condition.
       required: false
       schema:
         enum:

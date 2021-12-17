@@ -8,10 +8,11 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
-name: on-live-channel-timeout
+name: live-channel-timeout-strategy
 in: query
 description: >-
-  Defines a strategy how to handle timeouts of a live response to a request sent with a matching live-channel-condition.
+  Defines a strategy how to handle timeouts of a live response to a request sent via `channel=true` or with a matching 
+  live-channel-condition.
 
 required: false
 schema:

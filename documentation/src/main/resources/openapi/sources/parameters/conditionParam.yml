@@ -12,25 +12,29 @@ name: condition
 in: query
 description: >-
   Defines that the request should only be applied to a thing if the given condition is met.
-  The condition can be specified using RQL syntax, e.g. if the temperature is not 23.9 update it to 23.9.
+  The condition can be specified using RQL syntax. 
 
-   ```PUT /api/2/things/org.eclipse.ditto:my-fancy-car-1/features/temperature/properties/value?condition=ne(features/temperature/properties/value,23.9)```
+  #### Examples
+  
+  E.g. if the temperature is not 23.9 update it to 23.9:
 
-   `body: 23.9`
+  * ```PUT /api/2/things/{thingId}/features/temperature/properties/value?condition=ne(features/temperature/properties/value,23.9)```
+  
+     `body: 23.9`
+  
+  Further example conditions:
 
-  Further condition examples:
+  * ```?condition=eq(features/temperature/properties/unit,"Celsius")```
 
-  * ```eq(features/temperature/properties/unit,"Celsius")```
+  * ```?condition=ge(features/temperature/properties/lastModified,"2021-08-22T19:45:00Z")```
+  
+  * ```?condition=gt(_modified,"2021-08-05T12:17:00Z")```
 
-  * ```ge(features/temperature/properties/lastModified,"2021-08-22T19:45:00")```
+  * ```?condition=exists(features/temperature/properties/value)```
 
-  * ```gt(_modified,"2021-08-05T12:17")```
+  * ```?condition=and(gt(features/temperature/properties/value,18.5),lt(features/temperature/properties/value,25.2))```
 
-  * ```exists(features/temperature/properties/value)```
-
-  * ```and(gt(features/temperature/properties/value,18.5),lt(features/temperature/properties/value,25.2))```
-
-  * ```or(gt(features/temperature/properties/value,18.5),not(exists(features/temperature/properties/value))```
+  * ```?condition=or(gt(features/temperature/properties/value,18.5),not(exists(features/temperature/properties/value))```
 
 required: false
 schema:
