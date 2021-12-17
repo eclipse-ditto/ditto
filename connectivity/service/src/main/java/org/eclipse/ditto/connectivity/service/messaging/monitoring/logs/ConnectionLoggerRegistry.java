@@ -506,22 +506,35 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         }
     }
 
-    private ConnectionLogger newLogger(final ConnectionId connectionId, final LogCategory logCategory,
+    private ConnectionLogger newLogger(final ConnectionId connectionId,
+            final LogCategory logCategory,
             final LogType logType,
             @Nullable final String address) {
 
-        final ConnectionLogger evictingLogger = ConnectionLoggerFactory.newEvictingLogger(
-                successCapacity, failureCapacity, logCategory, logType, address);
-        final MuteableConnectionLogger muteableLogger = ConnectionLoggerFactory.newMuteableLogger(
-                connectionId, evictingLogger);
+        final ConnectionLogger result;
+        final var evictingLogger = ConnectionLoggerFactory.newEvictingLogger(successCapacity,
+                failureCapacity,
+                logCategory,
+                logType,
+                address);
+        final var muteableLogger = ConnectionLoggerFactory.newMuteableLogger(connectionId, evictingLogger);
+        if (isActiveForConnection(connectionId)) {
+            muteableLogger.unmute();
+        } else {
+            muteableLogger.mute();
+        }
 
         if (null != fluentPublishingConnectionLoggerContext) {
-            final FluentPublishingConnectionLogger publishingLogger = ConnectionLoggerFactory.newPublishingLogger(
-                    connectionId, logCategory, logType, address, fluentPublishingConnectionLoggerContext);
-            return new CompoundConnectionLogger(List.of(muteableLogger, publishingLogger));
+            final var publishingLogger = ConnectionLoggerFactory.newPublishingLogger(connectionId,
+                    logCategory,
+                    logType,
+                    address,
+                    fluentPublishingConnectionLoggerContext);
+            result = new CompoundConnectionLogger(List.of(muteableLogger, publishingLogger));
         } else {
-            return muteableLogger;
+            result = muteableLogger;
         }
+        return result;
     }
 
     @Override
