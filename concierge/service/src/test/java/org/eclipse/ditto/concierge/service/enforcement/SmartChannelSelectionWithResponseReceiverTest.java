@@ -155,7 +155,7 @@ public final class SmartChannelSelectionWithResponseReceiverTest {
                     ThingIdInvalidException.newBuilder(retrieveThing.getEntityId())
                             .dittoHeaders(retrieveThing.getDittoHeaders().toBuilder().channel("live").build())
                             .build()), ActorRef.noSender());
-            final var receivedError= expectMsgClass(ThingIdInvalidException.class);
+            final var receivedError = expectMsgClass(ThingIdInvalidException.class);
             assertLiveChannel(receivedError);
         }};
     }
@@ -175,7 +175,7 @@ public final class SmartChannelSelectionWithResponseReceiverTest {
     }
 
     private RetrieveThing getRetrieveThing(final Consumer<DittoHeadersBuilder<?, ?>> headerModifier) {
-        final DittoHeadersBuilder<?, ?> builder = headers().toBuilder().randomCorrelationId();
+        final DittoHeadersBuilder<?, ?> builder = headers().toBuilder();
         headerModifier.accept(builder);
         return RetrieveThing.of(TestSetup.THING_ID, builder.build());
     }

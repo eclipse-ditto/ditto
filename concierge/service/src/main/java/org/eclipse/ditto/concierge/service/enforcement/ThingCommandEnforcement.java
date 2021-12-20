@@ -129,7 +129,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
+import akka.actor.ActorSystem;
 import akka.pattern.AskTimeoutException;
 
 /**
@@ -161,8 +161,9 @@ public final class ThingCommandEnforcement
     private final PreEnforcer preEnforcer;
     private final PolicyIdReferencePlaceholderResolver policyIdReferencePlaceholderResolver;
     private final LiveSignalPub liveSignalPub;
-    private final ActorRefFactory actorRefFactory;
+    private final ActorSystem actorSystem;
     private final EnforcementConfig enforcementConfig;
+    private final ResponseReceiverCache responseReceiverCache;
 
     private ThingCommandEnforcement(final Contextual<ThingCommand<?>> data,
             final ActorRef thingsShardRegion,
@@ -171,8 +172,9 @@ public final class ThingCommandEnforcement
             final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
             final PreEnforcer preEnforcer,
             final LiveSignalPub liveSignalPub,
-            final ActorRefFactory actorRefFactory,
-            final EnforcementConfig enforcementConfig) {
+            final ActorSystem actorSystem,
+            final EnforcementConfig enforcementConfig,
+            final ResponseReceiverCache responseReceiverCache) {
 
         super(data, ThingQueryCommandResponse.class);
         this.thingsShardRegion = requireNonNull(thingsShardRegion);
@@ -180,7 +182,7 @@ public final class ThingCommandEnforcement
         this.thingIdCache = requireNonNull(thingIdCache);
         this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
         this.preEnforcer = preEnforcer;
-        this.actorRefFactory = actorRefFactory;
+        this.actorSystem = actorSystem;
         this.enforcementConfig = enforcementConfig;
         thingEnforcerRetriever = PolicyEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache);
         policyEnforcerRetriever = new EnforcerRetriever<>(IdentityCache.INSTANCE, policyEnforcerCache);
@@ -188,6 +190,7 @@ public final class ThingCommandEnforcement
                 PolicyIdReferencePlaceholderResolver.of(conciergeForwarder(), getAskWithRetryConfig(),
                         context.getScheduler(), context.getExecutor());
         this.liveSignalPub = liveSignalPub;
+        this.responseReceiverCache = responseReceiverCache;
     }
 
     @Override
@@ -347,7 +350,7 @@ public final class ThingCommandEnforcement
         final var pub = liveSignalPub.command();
         final var liveResponseForwarder = startLiveResponseForwarder(liveCommand);
         if (enforcementConfig.shouldDispatchGlobally(liveCommand)) {
-            return ResponseReceiverCache.getDefaultInstance().insertResponseReceiverConflictFreeWithFuture(
+            return responseReceiverCache.insertResponseReceiverConflictFreeWithFuture(
                     liveCommand,
                     newCommand -> liveResponseForwarder,
                     (newCommand, forwarder) -> adjustTimeoutAndFilterLiveQueryResponse(this, newCommand,
@@ -362,7 +365,7 @@ public final class ThingCommandEnforcement
     private ActorRef startLiveResponseForwarder(final ThingQueryCommand<?> signal) {
         final var pub = liveSignalPub.command();
         final var props = LiveResponseAndAcknowledgementForwarder.props(signal, pub.getPublisher(), sender());
-        return actorRefFactory.actorOf(props);
+        return actorSystem.actorOf(props);
     }
 
     private Function<Object, CompletionStage<ThingQueryCommandResponse<?>>> getFallbackResponseCaster(
@@ -406,7 +409,6 @@ public final class ThingCommandEnforcement
 
     private static <T extends DittoHeadersSettable<?>> T setAdditionalHeaders(final T settable,
             final DittoHeaders commandHeaders) {
-        // TODO: ensure pre-enforcer headers in responses
         final DittoHeaders dittoHeaders = settable.getDittoHeaders();
         final DittoHeadersSettable<?> theSettable = settable.setDittoHeaders(dittoHeaders
                 .toBuilder()
@@ -1324,8 +1326,9 @@ public final class ThingCommandEnforcement
         private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
         private final PreEnforcer preEnforcer;
         private final LiveSignalPub liveSignalPub;
-        private final ActorRefFactory actorRefFactory;
+        private final ActorSystem actorSystem;
         private final EnforcementConfig enforcementConfig;
+        private final ResponseReceiverCache responseReceiverCache;
 
         /**
          * Constructor.
@@ -1336,7 +1339,7 @@ public final class ThingCommandEnforcement
          * @param policyEnforcerCache the policy-enforcer cache.
          * @param preEnforcer pre-enforcer function to block undesirable messages to policies shard region.
          * @param liveSignalPub publisher of live signals.
-         * @param actorRefFactory factory with which to create actors.
+         * @param actorSystem factory with which to create actors.
          * @param enforcementConfig the enforcement config.
          */
         @SuppressWarnings("NullableProblems")
@@ -1346,7 +1349,7 @@ public final class ThingCommandEnforcement
                 final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
                 @Nullable final PreEnforcer preEnforcer,
                 final LiveSignalPub liveSignalPub,
-                final ActorRefFactory actorRefFactory,
+                final ActorSystem actorSystem,
                 final EnforcementConfig enforcementConfig) {
 
             this.thingsShardRegion = checkNotNull(thingsShardRegion, "thingShardRegion");
@@ -1355,8 +1358,9 @@ public final class ThingCommandEnforcement
             this.policyEnforcerCache = checkNotNull(policyEnforcerCache, "policyEnforcerCache");
             this.preEnforcer = Objects.requireNonNullElseGet(preEnforcer, () -> CompletableFuture::completedFuture);
             this.liveSignalPub = checkNotNull(liveSignalPub, "liveSignalPub");
-            this.actorRefFactory = actorRefFactory;
+            this.actorSystem = actorSystem;
             this.enforcementConfig = enforcementConfig;
+            responseReceiverCache = ResponseReceiverCache.lookup(actorSystem);
         }
 
         @Override
@@ -1387,8 +1391,9 @@ public final class ThingCommandEnforcement
                     policyEnforcerCache,
                     preEnforcer,
                     liveSignalPub,
-                    actorRefFactory,
-                    enforcementConfig);
+                    actorSystem,
+                    enforcementConfig,
+                    responseReceiverCache);
         }
 
     }
