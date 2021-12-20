@@ -134,12 +134,12 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * Header definition for "live" {@link #CHANNEL} commands defining the {@link LiveChannelTimeoutStrategy} to apply
      * when a live command timed out.
      * <p>
-     * Key: {@code "on-live-channel-timeout"}, Java type: {@code String}.
+     * Key: {@code "live-channel-timeout-strategy"}, Java type: {@code String}.
      * </p>
      *
      * @since 2.3.0
      */
-    ON_LIVE_CHANNEL_TIMEOUT("on-live-channel-timeout", LiveChannelTimeoutStrategy.class, String.class, true, false,
+    LIVE_CHANNEL_TIMEOUT_STRATEGY("live-channel-timeout-strategy", LiveChannelTimeoutStrategy.class, String.class, true, false,
             HeaderValueValidators.getEnumValidator(LiveChannelTimeoutStrategy.values())),
 
     /**
@@ -445,7 +445,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @param readFromExternalHeaders whether Ditto reads this header from headers sent by externals.
      * @param writeToExternalHeaders whether Ditto publishes this header to externals.
      */
-    private DittoHeaderDefinition(final String theKey,
+    DittoHeaderDefinition(final String theKey,
             final Class<?> theType,
             final boolean readFromExternalHeaders,
             final boolean writeToExternalHeaders,
@@ -461,7 +461,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @param readFromExternalHeaders whether Ditto reads this header from headers sent by externals.
      * @param writeToExternalHeaders whether Ditto publishes this header to externals.
      */
-    private DittoHeaderDefinition(final String theKey,
+    DittoHeaderDefinition(final String theKey,
             final Class<?> theType,
             final Class<?> serializationType,
             final boolean readFromExternalHeaders,

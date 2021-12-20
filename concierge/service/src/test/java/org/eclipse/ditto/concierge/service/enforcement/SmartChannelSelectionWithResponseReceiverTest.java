@@ -127,7 +127,7 @@ public final class SmartChannelSelectionWithResponseReceiverTest {
         new TestKit(system) {{
             final ActorRef underTest = newEnforcerActor(getRef());
             final var retrieveThing = getRetrieveThing(headers -> headers.liveChannelCondition("exists(thingId)")
-                    .putHeader(DittoHeaderDefinition.ON_LIVE_CHANNEL_TIMEOUT.getKey(), "use-twin"));
+                    .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY.getKey(), "use-twin"));
             final var twinResponse = getRetrieveThingResponse(retrieveThing, b -> {});
             mockEntitiesActorInstance.setReply(THING, twinResponse);
             underTest.tell(retrieveThing, getRef());
@@ -146,7 +146,7 @@ public final class SmartChannelSelectionWithResponseReceiverTest {
         new TestKit(system) {{
             final ActorRef underTest = newEnforcerActor(getRef());
             final var retrieveThing = getRetrieveThing(headers -> headers.channel("live")
-                    .putHeader(DittoHeaderDefinition.ON_LIVE_CHANNEL_TIMEOUT.getKey(), "use-twin"));
+                    .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY.getKey(), "use-twin"));
             final var twinResponse = getRetrieveThingResponse(retrieveThing, b -> {});
             mockEntitiesActorInstance.setReply(THING, twinResponse);
             underTest.tell(retrieveThing, getRef());

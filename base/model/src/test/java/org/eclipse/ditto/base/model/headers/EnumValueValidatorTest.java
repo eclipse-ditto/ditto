@@ -30,7 +30,7 @@ public final class EnumValueValidatorTest {
     private static final EnumValueValidator underTest = EnumValueValidator.getInstance(FancyTestEnum.values());
 
     private static final DittoHeaderDefinition KNOWN_HEADER_DEFINITION =
-            DittoHeaderDefinition.ON_LIVE_CHANNEL_TIMEOUT;
+            DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY;
 
     @Test
     public void assertImmutability() {
@@ -79,7 +79,7 @@ public final class EnumValueValidatorTest {
                 underTest.validateValue(KNOWN_HEADER_DEFINITION, "what")
         )
                 .isInstanceOf(DittoHeaderInvalidException.class)
-                .hasMessage("The value 'what' of the header 'on-live-channel-timeout' is not a valid enum value of " +
+                .hasMessage("The value 'what' of the header 'live-channel-timeout-strategy' is not a valid enum value of " +
                         "type 'FancyTestEnum'.")
                 .matches(ex -> ((DittoHeaderInvalidException) ex).getDescription()
                         .filter(desc -> desc.equals("The value must be one of: <foo|bar|baz-bar>."))

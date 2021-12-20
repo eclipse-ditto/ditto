@@ -1205,7 +1205,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             // query: live channel condition matched with twin fallback
             final var propertiesPointer = JsonPointer.of("/status/minRangeValue");
             final var withTwinFallback = matchingHeaders.toBuilder()
-                    .putHeader(DittoHeaderDefinition.ON_LIVE_CHANNEL_TIMEOUT.getKey(), "use-twin")
+                    .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY.getKey(), "use-twin")
                     .build();
             final var command2 =
                     RetrieveFeatureProperty.of(thingId, gyroscopeFeatureId, propertiesPointer, withTwinFallback);

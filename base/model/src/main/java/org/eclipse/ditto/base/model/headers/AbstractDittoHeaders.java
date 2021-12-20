@@ -346,7 +346,7 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
 
     @Override
     public Optional<LiveChannelTimeoutStrategy> getLiveChannelTimeoutStrategy() {
-        return getStringForDefinition(DittoHeaderDefinition.ON_LIVE_CHANNEL_TIMEOUT)
+        return getStringForDefinition(DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY)
                 .flatMap(LiveChannelTimeoutStrategy::forHeaderValue);
     }
 
