@@ -14,6 +14,9 @@ package org.eclipse.ditto.policies.model;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -21,9 +24,6 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Represents a single Resource (a {@link JsonPointer}) in the {@link Resources} of a {@link PolicyEntry}.
@@ -120,9 +120,9 @@ public interface Resource extends Jsonifiable.WithFieldSelectorAndPredicate<Json
     EffectedPermissions getEffectedPermissions();
 
     /**
-     * Returns all non hidden marked fields of this Resource.
+     * Returns all non-hidden marked fields of this Resource.
      *
-     * @return a JSON object representation of this Resource including only non hidden marked fields.
+     * @return a JSON object representation of this Resource including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {
@@ -142,10 +142,16 @@ public interface Resource extends Jsonifiable.WithFieldSelectorAndPredicate<Json
 
         /**
          * JSON field containing the {@link JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.3.0 this field definition is not used anymore.
          */
-        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
+        @Deprecated
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION = JsonFactory.newIntFieldDefinition(
+                JsonSchemaVersion.getJsonKey(),
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2
+        );
 
         private JsonFields() {
             throw new AssertionError();

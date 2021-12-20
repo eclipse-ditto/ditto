@@ -21,7 +21,9 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collection;
+import java.util.List;
 
+import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -32,6 +34,7 @@ import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -53,114 +56,143 @@ public final class DefaultMuteableConnectionLoggerTest {
     private static final ThingId THING_ID = ThingId.of("the:thing");
     private static final Signal<?> SIGNAL =
             RetrieveConnectionLogs.of(TestConstants.createRandomConnectionId(), DittoHeaders.empty());
-    private static final DittoRuntimeException DITTO_RUNTIME_EXCEPTION =
-            ThingIdInvalidException.newBuilder("invalid").build();
+    private static final DittoRuntimeException DITTO_RUNTIME_EXCEPTION = new ThingIdInvalidException("invalid");
     private static final Exception EXCEPTION = new IllegalArgumentException();
 
     @Mock
     private ConnectionLogger delegate;
 
+    private DefaultMuteableConnectionLogger underTest;
+
+    @Before
+    public void before() {
+        underTest = new DefaultMuteableConnectionLogger(TestConstants.createRandomConnectionId(), delegate);
+    }
+
+    @Test
+    public void testEqualsAndHashcode() {
+        EqualsVerifier.forClass(DefaultMuteableConnectionLogger.class)
+                .suppress(Warning.NONFINAL_FIELDS)
+                .withIgnoredFields("logger")
+                .verify();
+    }
+
     @Test
     public void mute() {
-        final MuteableConnectionLogger logger = logger();
-        logger.mute();
-        assertThat(logger.isMuted()).isTrue();
+        underTest.mute();
+
+        assertThat(underTest.isMuted()).isTrue();
     }
 
     @Test
     public void unmute() {
-        final MuteableConnectionLogger logger = logger();
-        logger.unmute();
-        assertThat(logger.isMuted()).isFalse();
+        underTest.unmute();
+
+        assertThat(underTest.isMuted()).isFalse();
     }
 
     @Test
     public void testMutingAndUnmuting() {
-        final MuteableConnectionLogger logger = logger();
+
         // initially should be muted
-        assertThat(logger.isMuted()).isTrue();
+        assertThat(underTest.isMuted()).isTrue();
+
         // can be unmuted
-        logger.unmute();
-        assertThat(logger.isMuted()).isFalse();
+        underTest.unmute();
+        assertThat(underTest.isMuted()).isFalse();
+
         // and be muted again
-        logger.mute();
-        assertThat(logger.isMuted()).isTrue();
+        underTest.mute();
+        assertThat(underTest.isMuted()).isTrue();
     }
 
     @Test
     public void mutedLoggerShouldNotCallDelegate() {
-        final MuteableConnectionLogger logger = logger();
-
-        logger.success(INFO_PROVIDER);
-        logger.success(INFO_PROVIDER, MESSAGE, MESSAGE_ARGUMENTS);
-        logger.failure(INFO_PROVIDER, DITTO_RUNTIME_EXCEPTION);
-        logger.failure(SIGNAL, DITTO_RUNTIME_EXCEPTION);
-        logger.failure(INFO_PROVIDER);
-        logger.failure(INFO_PROVIDER, MESSAGE, MESSAGE_ARGUMENTS);
-        logger.exception(INFO_PROVIDER, EXCEPTION);
-        logger.exception(INFO_PROVIDER);
-        logger.exception(INFO_PROVIDER, MESSAGE, MESSAGE_ARGUMENTS);
-        logger.getLogs();
+        underTest.mute();
+        underTest.success(INFO_PROVIDER);
+        underTest.success(INFO_PROVIDER, MESSAGE, MESSAGE_ARGUMENTS);
+        underTest.failure(INFO_PROVIDER, DITTO_RUNTIME_EXCEPTION);
+        underTest.failure(SIGNAL, DITTO_RUNTIME_EXCEPTION);
+        underTest.failure(INFO_PROVIDER);
+        underTest.failure(INFO_PROVIDER, MESSAGE, MESSAGE_ARGUMENTS);
+        underTest.exception(INFO_PROVIDER, EXCEPTION);
+        underTest.exception(INFO_PROVIDER);
+        underTest.exception(INFO_PROVIDER, MESSAGE, MESSAGE_ARGUMENTS);
+        underTest.getLogs();
 
         verifyZeroInteractions(delegate);
     }
 
     @Test
     public void success() {
-        final DefaultMuteableConnectionLogger unmuted = unmuted();
+        underTest.unmute();
 
-        unmuted.success(INFO_PROVIDER);
+        underTest.success(INFO_PROVIDER);
+
         verify(delegate).success(INFO_PROVIDER);
     }
 
     @Test
     public void success1() {
-        final DefaultMuteableConnectionLogger unmuted = unmuted();
+        underTest.unmute();
 
-        unmuted.success(INFO_PROVIDER, MESSAGE, THING_ID);
+        underTest.success(INFO_PROVIDER, MESSAGE, THING_ID);
+
         verify(delegate).success(INFO_PROVIDER, MESSAGE, THING_ID);
     }
 
     @Test
     public void failure() {
-        final DefaultMuteableConnectionLogger unmuted = unmuted();
+        underTest.unmute();
 
-        unmuted.failure(INFO_PROVIDER, DITTO_RUNTIME_EXCEPTION);
+        underTest.failure(INFO_PROVIDER, DITTO_RUNTIME_EXCEPTION);
+
         verify(delegate).failure(INFO_PROVIDER, DITTO_RUNTIME_EXCEPTION);
     }
 
     @Test
     public void failure1() {
-        final DefaultMuteableConnectionLogger unmuted = unmuted();
+        underTest.unmute();
 
-        unmuted.failure(INFO_PROVIDER, MESSAGE, THING_ID);
+        underTest.failure(INFO_PROVIDER, MESSAGE, THING_ID);
+
         verify(delegate).failure(INFO_PROVIDER, MESSAGE, THING_ID);
     }
 
     @Test
     public void exception() {
-        final DefaultMuteableConnectionLogger unmuted = unmuted();
+        underTest.unmute();
 
-        unmuted.exception(INFO_PROVIDER, DITTO_RUNTIME_EXCEPTION);
+        underTest.exception(INFO_PROVIDER, DITTO_RUNTIME_EXCEPTION);
+
         verify(delegate).exception(INFO_PROVIDER, DITTO_RUNTIME_EXCEPTION);
     }
 
     @Test
     public void exception1() {
-        final DefaultMuteableConnectionLogger unmuted = unmuted();
+        underTest.unmute();
 
-        unmuted.exception(INFO_PROVIDER, MESSAGE, THING_ID);
+        underTest.exception(INFO_PROVIDER, MESSAGE, THING_ID);
+
         verify(delegate).exception(INFO_PROVIDER, MESSAGE, THING_ID);
     }
 
     @Test
-    public void getLogs() {
-        final DefaultMuteableConnectionLogger unmuted = unmuted();
+    public void getLogsFromMuted() {
+        underTest.mute();
 
-        final Collection<LogEntry> entries = Mockito.mock(Collection.class);
+        assertThat(underTest.getLogs()).isEmpty();
+        verify(delegate, Mockito.never()).getLogs();
+    }
+
+    @Test
+    public void getLogsFromUnmuted() {
+        underTest.unmute();
+
+        final Collection<LogEntry> entries = List.of(Mockito.mock(LogEntry.class));
         when(delegate.getLogs()).thenReturn(entries);
 
-        assertThat(unmuted.getLogs()).isEqualTo(entries);
+        assertThat(underTest.getLogs()).isEqualTo(entries);
         verify(delegate).getLogs();
     }
 
@@ -179,28 +211,42 @@ public final class DefaultMuteableConnectionLoggerTest {
         assertThat(underTest).as("delegate changes to ExceptionalConnectionLogger").isEqualTo(expected);
     }
 
-    @Test
-    public void testEqualsAndHashcode() {
-        EqualsVerifier.forClass(DefaultMuteableConnectionLogger.class)
-                .suppress(Warning.NONFINAL_FIELDS)
-                .withIgnoredFields("logger")
-                .verify();
-    }
-
-    private DefaultMuteableConnectionLogger unmuted() {
-        final DefaultMuteableConnectionLogger logger = logger();
-        logger.unmute();
-        return logger;
-    }
-
-    private DefaultMuteableConnectionLogger logger() {
-        return new DefaultMuteableConnectionLogger(TestConstants.createRandomConnectionId(), delegate);
-    }
-
     private static DefaultMuteableConnectionLogger logger(final ConnectionId connectionId,
             final ConnectionLogger delegate) {
 
         return new DefaultMuteableConnectionLogger(connectionId, delegate);
+    }
+
+    @Test
+    public void logEntryWithNullLogEntryOnUnmutedLoggerThrowsException() {
+        underTest.unmute();
+
+        Assertions.assertThatNullPointerException()
+                .isThrownBy(() -> underTest.logEntry(null))
+                .withMessage("The logEntry must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void logEntryInUnmutedStateDelegates() {
+        underTest.unmute();
+
+        final var logEntry = Mockito.mock(LogEntry.class);
+
+        underTest.logEntry(logEntry);
+
+        verify(delegate).logEntry(Mockito.eq(logEntry));
+    }
+
+    @Test
+    public void logEntryInMutedStateDoesNotDelegate() {
+        underTest.mute();
+
+        final var logEntry = Mockito.mock(LogEntry.class);
+
+        underTest.logEntry(logEntry);
+
+        verify(delegate, Mockito.never()).logEntry(Mockito.eq(logEntry));
     }
 
 }

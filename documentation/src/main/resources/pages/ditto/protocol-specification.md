@@ -124,7 +124,7 @@ The JSON value to apply at the specified path.
 
 ## Status
 
-Some protocol messages (for example **responses**) contain a HTTP status code which is stored in this field.
+Some protocol messages (for example **responses**) contain an HTTP status code which is stored in this field.
 
 ## Extra
 

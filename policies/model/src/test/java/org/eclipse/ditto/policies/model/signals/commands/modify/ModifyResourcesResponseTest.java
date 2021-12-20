@@ -17,10 +17,9 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Resources;
@@ -33,15 +32,14 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResourcesResponse}.
  */
-public class ModifyResourcesResponseTest {
+public final class ModifyResourcesResponseTest {
 
-    private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
+    private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, ModifyResourcesResponse.TYPE)
             .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatus.NO_CONTENT.getCode())
             .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(ModifyResourcesResponse.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .build();
-
 
     @Test
     public void assertImmutability() {
@@ -50,25 +48,24 @@ public class ModifyResourcesResponseTest {
                 provided(Label.class, Resources.class, PolicyId.class).areAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ModifyResourcesResponse.class)
                 .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
 
-
     @Test
     public void toJsonReturnsExpected() {
-        final ModifyResourcesResponse underTestUpdated =
-                ModifyResourcesResponse.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+        final ModifyResourcesResponse underTestUpdated = ModifyResourcesResponse.of(TestConstants.Policy.POLICY_ID,
+                TestConstants.Policy.LABEL,
+                TestConstants.EMPTY_DITTO_HEADERS);
+
         final JsonObject actualJsonUpdated = underTestUpdated.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJsonUpdated).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

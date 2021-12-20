@@ -29,7 +29,7 @@ public enum ThingsParameter {
 
     private final String parameterValue;
 
-    private ThingsParameter(final String parameterValue) {
+    ThingsParameter(final String parameterValue) {
         this.parameterValue = parameterValue;
     }
 

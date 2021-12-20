@@ -19,6 +19,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
@@ -57,10 +58,10 @@ public final class DefaultKafkaPublisherActorFactory implements KafkaPublisherAc
             final SendProducerFactory sendProducerFactory,
             final boolean dryRun,
             final String clientId,
+            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver,
-
-final ConnectivityConfig connectivityConfig) {
-        return KafkaPublisherActor.props(connection, sendProducerFactory, dryRun, clientId,
+            final ConnectivityConfig connectivityConfig) {
+        return KafkaPublisherActor.props(connection, sendProducerFactory, dryRun, clientId, proxyActor,
                 connectivityStatusResolver, connectivityConfig);
     }
 

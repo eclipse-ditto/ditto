@@ -18,20 +18,21 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.json.Jsonifiable;
-import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
-import org.eclipse.ditto.connectivity.model.ResourceStatus;
-import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
-import org.eclipse.ditto.internal.models.streaming.BatchedEntityIdWithRevisions;
-import org.eclipse.ditto.things.api.ThingsMappingStrategies;
-import org.eclipse.ditto.internal.utils.cluster.MappingStrategies;
-import org.eclipse.ditto.internal.utils.cluster.MappingStrategiesBuilder;
 import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.eclipse.ditto.base.model.signals.JsonParsable;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
+import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.AddConnectionLogEntry;
+import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
+import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.ResourceStatus;
+import org.eclipse.ditto.internal.models.streaming.BatchedEntityIdWithRevisions;
+import org.eclipse.ditto.internal.utils.cluster.MappingStrategies;
+import org.eclipse.ditto.internal.utils.cluster.MappingStrategiesBuilder;
+import org.eclipse.ditto.policies.api.PoliciesMappingStrategies;
+import org.eclipse.ditto.things.api.ThingsMappingStrategies;
 
 /**
  * {@link MappingStrategies} for the Connectivity service containing all {@link Jsonifiable} types known to this
@@ -94,6 +95,7 @@ public final class ConnectivityMappingStrategies extends MappingStrategies {
                 .add(OutboundSignal.class,
                         jsonObject -> OutboundSignalFactory.outboundSignalFromJson(jsonObject, strategies)) // do not replace with lambda!
                 .add(InboundSignal.class, jsonObject -> InboundSignal.fromJson(jsonObject, strategies))
+                .add(AddConnectionLogEntry.class, jsonObject -> AddConnectionLogEntry.fromJson(jsonObject))
                 .add("UnmappedOutboundSignal",
                         jsonObject -> OutboundSignalFactory.outboundSignalFromJson(jsonObject, strategies))
                 .build();// do not replace with lambda!

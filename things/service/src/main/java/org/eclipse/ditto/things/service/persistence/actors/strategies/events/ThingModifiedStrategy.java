@@ -25,7 +25,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingModified;
 @Immutable
 final class ThingModifiedStrategy extends AbstractThingEventStrategy<ThingModified> {
 
-    protected ThingModifiedStrategy() {
+    ThingModifiedStrategy() {
         super();
     }
 

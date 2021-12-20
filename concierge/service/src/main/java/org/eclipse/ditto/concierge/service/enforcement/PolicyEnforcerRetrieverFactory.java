@@ -12,11 +12,10 @@
  */
 package org.eclipse.ditto.concierge.service.enforcement;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.HashMap;
 import java.util.Map;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
@@ -39,12 +38,14 @@ final class PolicyEnforcerRetrieverFactory {
      * @param idCache the id-cache.
      * @param policyEnforcerCache the policy-enforcer-cache.
      * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static EnforcerRetriever<Enforcer> create(
             final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> idCache,
-            final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache) {
-        requireNonNull(idCache);
-        requireNonNull(policyEnforcerCache);
+            final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache
+    ) {
+        ConditionChecker.checkNotNull(idCache, "idCache");
+        ConditionChecker.checkNotNull(policyEnforcerCache, "policyEnforcerCache");
 
         final Map<EntityType, Cache<EnforcementCacheKey, Entry<Enforcer>>> mapping = new HashMap<>();
         mapping.put(PolicyConstants.ENTITY_TYPE, policyEnforcerCache);

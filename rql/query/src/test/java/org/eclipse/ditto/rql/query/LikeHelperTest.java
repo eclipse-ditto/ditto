@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.rql.query;
 
+import java.util.regex.Pattern;
+
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.util.regex.Pattern;
 
 public final class LikeHelperTest {
 

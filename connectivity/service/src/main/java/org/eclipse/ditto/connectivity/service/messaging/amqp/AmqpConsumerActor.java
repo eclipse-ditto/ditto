@@ -90,7 +90,7 @@ final class AmqpConsumerActor extends LegacyBaseConsumerActor
     private final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory;
     private final ActorRef backOffActor;
 
-    private MessageRateLimiter<String> messageRateLimiter;
+    private final MessageRateLimiter<String> messageRateLimiter;
 
     // Access to the actor who performs JMS tasks in own thread
     private final ActorRef jmsActor;

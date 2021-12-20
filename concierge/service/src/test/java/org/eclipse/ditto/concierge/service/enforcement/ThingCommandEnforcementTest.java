@@ -14,6 +14,7 @@ package org.eclipse.ditto.concierge.service.enforcement;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.base.model.json.JsonSchemaVersion.V_2;
+import static org.eclipse.ditto.concierge.service.enforcement.TestSetup.newThingWithPolicyId;
 import static org.eclipse.ditto.policies.model.SubjectIssuer.GOOGLE;
 
 import java.time.Instant;
@@ -91,6 +92,9 @@ import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 import scala.concurrent.duration.Duration;
 
+/**
+ * Tests {@link ThingCommandEnforcement} in context of an {@link EnforcerActor}.
+ */
 @SuppressWarnings({"squid:S3599", "squid:S1171"})
 public final class ThingCommandEnforcementTest {
 
@@ -252,19 +256,19 @@ public final class ThingCommandEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
 
-            final ThingCommand write = getModifyCommand();
+            final ThingCommand<?> write = getModifyCommand();
             mockEntitiesActorInstance.setReply(write);
             underTest.tell(write, getRef());
             assertThat((CharSequence) TestSetup.fishForMsgClass(this, write.getClass()).getEntityId())
                     .isEqualTo(write.getEntityId());
 
-            final ThingCommand read = getReadCommand();
+            final ThingCommand<?> read = getReadCommand();
             final RetrieveThingResponse retrieveThingResponse =
                     RetrieveThingResponse.of(TestSetup.THING_ID, JsonFactory.newObject(), DittoHeaders.empty());
             mockEntitiesActorInstance.setReply(retrieveThingResponse);
             underTest.tell(read, getRef());
-            assertThat((CharSequence) expectMsgClass(retrieveThingResponse.getClass()).getEntityId()).isEqualTo(
-                    read.getEntityId());
+            assertThat((CharSequence) expectMsgClass(retrieveThingResponse.getClass()).getEntityId())
+                    .isEqualTo(read.getEntityId());
         }};
     }
 
@@ -294,7 +298,7 @@ public final class ThingCommandEnforcementTest {
 
             final ActorRef underTest = newEnforcerActor(getRef());
 
-            final ThingCommand modifyCommand = getModifyCommand();
+            final ThingCommand<?> modifyCommand = getModifyCommand();
             mockEntitiesActorInstance.setReply(modifyCommand);
             underTest.tell(modifyCommand, getRef());
             assertThat((CharSequence) TestSetup.fishForMsgClass(this, modifyCommand.getClass()).getEntityId())
@@ -747,15 +751,8 @@ public final class ThingCommandEnforcementTest {
     }
 
     private ActorRef newEnforcerActor(final ActorRef testActorRef, final ActorRef conciergeForwarderRef) {
-        return new TestSetup.EnforcerActorBuilder(system, testActorRef, mockEntitiesActor).setConciergeForwarder(
-                conciergeForwarderRef).build();
-    }
-
-    private static JsonObject newThingWithPolicyId(final CharSequence policyId) {
-        return newThing()
-                .setPolicyId(PolicyId.of(policyId))
-                .build()
-                .toJson(V_2, FieldType.all());
+        return new TestSetup.EnforcerActorBuilder(system, testActorRef, mockEntitiesActor, mockEntitiesActor)
+                .setConciergeForwarder(conciergeForwarderRef).build();
     }
 
     private DittoHeaders headers(final JsonSchemaVersion schemaVersion) {

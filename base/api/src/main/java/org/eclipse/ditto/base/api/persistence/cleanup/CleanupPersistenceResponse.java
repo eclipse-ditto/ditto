@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.base.api.persistence.cleanup;
 
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -27,6 +28,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -45,12 +47,34 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
      */
     public static final String TYPE = TYPE_PREFIX + CleanupPersistence.NAME;
 
+    private static final CommandResponseJsonDeserializer<CleanupPersistenceResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final var jsonObject = context.getJsonObject();
+
+                        final var entityType = EntityTypeJsonDeserializer.deserializeEntityType(jsonObject,
+                                CleanupCommandResponse.JsonFields.ENTITY_TYPE);
+                        final var entityId = EntityIdJsonDeserializer.deserializeEntityId(jsonObject,
+                                CleanupCommandResponse.JsonFields.ENTITY_ID,
+                                entityType);
+
+                        return new CleanupPersistenceResponse(entityId,
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders());
+                    });
+
+
     private final EntityId entityId;
 
-    private CleanupPersistenceResponse(final EntityId entityId, final HttpStatus httpStatus,
+    private CleanupPersistenceResponse(final EntityId entityId,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, httpStatus, dittoHeaders);
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Arrays.asList(HttpStatus.OK, HttpStatus.INTERNAL_SERVER_ERROR),
+                        CleanupPersistenceResponse.class),
+                dittoHeaders);
         this.entityId = ConditionChecker.checkNotNull(entityId, "entityId");
     }
 
@@ -107,16 +131,7 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
      * format.
      */
     public static CleanupPersistenceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<CleanupPersistenceResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> new CleanupPersistenceResponse(deserializeEntityId(jsonObject), httpStatus, dittoHeaders)
-        );
-    }
-
-    private static EntityId deserializeEntityId(final JsonObject jsonObject) {
-        return EntityIdJsonDeserializer.deserializeEntityId(jsonObject,
-                CleanupCommandResponse.JsonFields.ENTITY_ID,
-                EntityTypeJsonDeserializer.deserializeEntityType(jsonObject,
-                        CleanupCommandResponse.JsonFields.ENTITY_TYPE));
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -130,7 +145,7 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
         if (!super.equals(o)) {
             return false;
         }
-        final CleanupPersistenceResponse that = (CleanupPersistenceResponse) o;
+        final var that = (CleanupPersistenceResponse) o;
         return entityId.equals(that.entityId);
     }
 

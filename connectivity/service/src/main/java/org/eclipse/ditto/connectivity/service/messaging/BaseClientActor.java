@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -61,6 +62,7 @@ import org.eclipse.ditto.base.model.signals.WithType;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
+import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.LogEntryFactory;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
@@ -109,6 +111,7 @@ import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelActor;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
@@ -138,7 +141,7 @@ import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.pubsub.DistributedPubSub;
-import akka.dispatch.MessageDispatcher;
+import akka.http.javadsl.ConnectionContext;
 import akka.japi.Pair;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FSMStateFunctionBuilder;
@@ -157,24 +160,26 @@ import akka.stream.javadsl.Sink;
 public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientState, BaseClientData> {
 
     /**
+     * Common logger for all sub-classes of BaseClientActor as its MDC already contains the connection ID.
+     */
+    protected final ThreadSafeDittoLoggingAdapter logger;
+    protected static final Status.Success DONE = new Status.Success(Done.getInstance());
+
+    protected ConnectionContext connectionContext;
+    protected final ConnectionLogger connectionLogger;
+    protected final ConnectivityStatusResolver connectivityStatusResolver;
+
+    /**
      * The name of the dispatcher that will be used for async mapping.
      */
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
-
     private static final Pattern EXCLUDED_ADDRESS_REPORTING_CHILD_NAME_PATTERN = Pattern.compile(
             OutboundMappingProcessorActor.ACTOR_NAME + "|" + OutboundDispatchingActor.ACTOR_NAME + "|" +
                     "StreamSupervisor-.*|subscriptionManager");
-
-    protected static final Status.Success DONE = new Status.Success(Done.getInstance());
-
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
     private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
             "Closed because of unknown/failure/misconfiguration status in client.";
-    /**
-     * Common logger for all sub-classes of BaseClientActor as its MDC already contains the connection ID.
-     */
-    protected final ThreadSafeDittoLoggingAdapter logger;
 
     private final Connection connection;
     private final ConnectivityConfig connectivityConfig;
@@ -192,21 +197,19 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ProtocolAdapter protocolAdapter;
     private final ConnectivityCounterRegistry connectionCounterRegistry;
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
-    protected final ConnectionLogger connectionLogger;
-    protected final ConnectivityStatusResolver connectivityStatusResolver;
     private final boolean dryRun;
-
-    private Sink<Object, NotUsed> inboundMappingSink;
-    private ActorRef outboundDispatchingActor;
-    private ActorRef outboundMappingProcessorActor;
-    private ActorRef subscriptionManager;
-    private ActorRef tunnelActor;
+    private final ActorRef proxyActor;
 
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
 
+    private Sink<Object, NotUsed> inboundMappingSink;
+    private ActorRef outboundDispatchingActor;
+    private ActorRef subscriptionManager;
+    private ActorRef tunnelActor;
+
     protected BaseClientActor(final Connection connection,
-            @Nullable final ActorRef proxyActor,
+            final ActorRef proxyActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
@@ -217,6 +220,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final Config withOverwrites = connectivityConfigOverwrites.withFallback(config);
         this.connectivityConfig = ConnectivityConfig.of(withOverwrites);
         this.connectionActor = connectionActor;
+        this.proxyActor = proxyActor;
+
         // this is retrieve via the extension for each baseClientActor in order to not pass it as constructor arg
         //  as all constructor arguments need to be serializable as the BaseClientActor is started behind a cluster
         //  router
@@ -289,10 +294,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         when(TESTING, inTestingState());
 
         // start with UNKNOWN state but send self OpenConnection because client actors are never created closed
-        final BaseClientData startingData =
-                BaseClientData.BaseClientDataBuilder.from(connection.getId(), connection, ConnectivityStatus.UNKNOWN,
-                                ConnectivityStatus.OPEN, "initialized", Instant.now())
-                        .build();
+        final var startingData = BaseClientData.BaseClientDataBuilder.from(connection.getId(),
+                        connection,
+                        ConnectivityStatus.UNKNOWN,
+                        ConnectivityStatus.OPEN,
+                        "initialized",
+                        Instant.now())
+                .build();
         startWith(UNKNOWN, startingData);
 
         onTransition(this::onTransition);
@@ -304,7 +312,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // inform connection actor of my presence if there are other client actors
         if (connection.getClientCount() > 1 && !dryRun) {
             connectionActor.tell(getSelf(), getSelf());
-            startTimerWithFixedDelay(Control.REFRESH_CLIENT_ACTOR_REFS.name(), Control.REFRESH_CLIENT_ACTOR_REFS,
+            startTimerWithFixedDelay(Control.REFRESH_CLIENT_ACTOR_REFS.name(),
+                    Control.REFRESH_CLIENT_ACTOR_REFS,
                     clientActorRefsNotificationDelay);
         }
         clientActorRefs.add(getSelf());
@@ -322,12 +331,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * Initialize child actors.
      */
     protected void init() {
-        final Pair<ActorRef, ActorRef> actorPair = startOutboundActors(protocolAdapter);
+        final var actorPair = startOutboundActors(protocolAdapter);
         outboundDispatchingActor = actorPair.first();
-        outboundMappingProcessorActor = actorPair.second();
 
-        final Sink<Object, NotUsed> inboundDispatchingSink =
-                getInboundDispatchingSink(connection, protocolAdapter, outboundMappingProcessorActor);
+        final var inboundDispatchingSink = getInboundDispatchingSink(actorPair.second());
         inboundMappingSink = getInboundMappingSink(protocolAdapter, inboundDispatchingSink);
         subscriptionManager = startSubscriptionManager(proxyActorSelection, connectivityConfig().getClientConfig());
 
@@ -400,6 +407,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      */
     protected String getDefaultClientId() {
         return getClientId(connection.getId());
+    }
+
+    /**
+     * Get the proxyActor reference.
+     *
+     * @return the proxyActor ref.
+     */
+    protected ActorRef getProxyActor() {
+        return proxyActor;
     }
 
     private FSM.State<BaseClientState, BaseClientData> completeInitialization() {
@@ -739,10 +755,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSM.State<BaseClientState, BaseClientData> publishMappedMessage(final PublishMappedMessage message,
             final BaseClientData data) {
 
-        if (getPublisherActor() != null) {
-            getPublisherActor().forward(message.getOutboundSignal(), getContext());
+        final var publisherActor = getPublisherActor();
+        final var outboundSignal = message.getOutboundSignal();
+        if (publisherActor != null) {
+            publisherActor.forward(outboundSignal, getContext());
         } else {
-            logger.withCorrelationId(message.getOutboundSignal().getSource())
+            logger.withCorrelationId(outboundSignal.getSource())
                     .error("No publisher actor available, dropping message: {}", message);
         }
         return stay();
@@ -1699,8 +1717,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
 
-    private Pair<ActorRef, ActorRef> startOutboundActors(
-            final ProtocolAdapter protocolAdapter) {
+    private Pair<ActorRef, ActorRef> startOutboundActors(final ProtocolAdapter protocolAdapter) {
         final OutboundMappingSettings settings;
         final OutboundMappingProcessor outboundMappingProcessor;
         try {
@@ -1738,12 +1755,24 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @return the ref to the started {@link InboundDispatchingSink}
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
-    private Sink<Object, NotUsed> getInboundDispatchingSink(final Connection connection,
-            final ProtocolAdapter protocolAdapter,
-            final ActorRef outboundMappingProcessorActor) {
+    private Sink<Object, NotUsed> getInboundDispatchingSink(final ActorRef outboundMappingProcessorActor) {
+        return InboundDispatchingSink.createSink(connection,
+                protocolAdapter.headerTranslator(),
+                proxyActorSelection,
+                connectionActor,
+                outboundMappingProcessorActor,
+                getSelf(),
+                getContext(),
+                connectivityConfig,
+                getResponseValidationFailureConsumer());
+    }
 
-        return InboundDispatchingSink.createSink(connection, protocolAdapter.headerTranslator(), proxyActorSelection,
-                connectionActor, outboundMappingProcessorActor, getSelf(), getContext(), connectivityConfig);
+    private Consumer<MatchingValidationResult.Failure> getResponseValidationFailureConsumer() {
+        return failure -> connectionLogger.logEntry(
+                LogEntryFactory.getLogEntryForFailedCommandResponseRoundTrip(failure.getCommand(),
+                        failure.getCommandResponse(),
+                        failure.getDetailMessage())
+        );
     }
 
     /**
@@ -1754,16 +1783,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @return the Sink.
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
-    private Sink<Object, NotUsed> getInboundMappingSink(
-            final ProtocolAdapter protocolAdapter,
+    private Sink<Object, NotUsed> getInboundMappingSink(final ProtocolAdapter protocolAdapter,
             final Sink<Object, NotUsed> inboundDispatchingSink) {
 
         final InboundMappingProcessor inboundMappingProcessor;
+        final var context = getContext();
+        final var actorSystem = context.getSystem();
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
             inboundMappingProcessor =
-                    InboundMappingProcessor.of(connection, connectivityConfig, getContext().getSystem(),
-                            protocolAdapter, logger);
+                    InboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {0}", dre.getMessage());
             logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
@@ -1774,16 +1803,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final int processorPoolSize = connection.getProcessorPoolSize();
         logger.debug("Starting inbound mapping processor actors with pool size of <{}>.", processorPoolSize);
 
-        final var mappingConfig = connectivityConfig().getMappingConfig();
-        final MessageDispatcher messageMappingProcessorDispatcher =
-                getContext().system().dispatchers().lookup(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
         return InboundMappingSink.createSink(inboundMappingProcessor,
                 connection.getId(),
                 processorPoolSize,
                 inboundDispatchingSink,
-                mappingConfig,
+                connectivityConfig.getMappingConfig(),
                 getThrottlingConfig().orElse(null),
-                messageMappingProcessorDispatcher);
+                actorSystem.dispatchers().lookup(MESSAGE_MAPPING_PROCESSOR_DISPATCHER));
     }
 
     protected Optional<ConnectionThrottlingConfig> getThrottlingConfig() {

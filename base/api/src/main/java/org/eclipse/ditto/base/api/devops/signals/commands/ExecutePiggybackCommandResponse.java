@@ -24,7 +24,6 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -45,7 +44,20 @@ public final class ExecutePiggybackCommandResponse
     public static final String TYPE = TYPE_PREFIX + ExecutePiggybackCommand.NAME;
 
     private static final JsonFieldDefinition<JsonValue> JSON_RESPONSE =
-            JsonFactory.newJsonValueFieldDefinition("response", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonValue("response", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final CommandResponseJsonDeserializer<ExecutePiggybackCommandResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final var jsonObject = context.getJsonObject();
+                        return ExecutePiggybackCommandResponse.of(
+                                jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME).orElse(null),
+                                jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE).orElse(null),
+                                context.getDeserializedHttpStatus(),
+                                jsonObject.getValueOrThrow(JSON_RESPONSE),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final JsonValue response;
 
@@ -90,7 +102,7 @@ public final class ExecutePiggybackCommandResponse
      * format.
      */
     public static ExecutePiggybackCommandResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -105,16 +117,8 @@ public final class ExecutePiggybackCommandResponse
      */
     public static ExecutePiggybackCommandResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ExecutePiggybackCommandResponse>(TYPE, jsonObject).deserialize(
-                status -> {
-                    final String serviceName =
-                            jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME)
-                                    .orElse(null);
-                    final String instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
-                            .orElse(null);
-                    final JsonValue response = jsonObject.getValueOrThrow(JSON_RESPONSE);
-                    return ExecutePiggybackCommandResponse.of(serviceName, instance, status, response, dittoHeaders);
-                });
+
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     /**
@@ -132,12 +136,13 @@ public final class ExecutePiggybackCommandResponse
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
 
-        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+        final var predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_RESPONSE, response, predicate);
     }
 
@@ -150,7 +155,7 @@ public final class ExecutePiggybackCommandResponse
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final ExecutePiggybackCommandResponse that = (ExecutePiggybackCommandResponse) o;
+        final var that = (ExecutePiggybackCommandResponse) o;
         return that.canEqual(this) && Objects.equals(response, that.response) && super.equals(that);
     }
 
@@ -168,4 +173,5 @@ public final class ExecutePiggybackCommandResponse
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", successful=" + response + "]";
     }
+
 }

@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -21,7 +22,14 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -30,16 +38,9 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 /**
@@ -56,12 +57,37 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
     public static final String TYPE = ThingCommandResponse.TYPE_PREFIX + RetrieveThing.NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_THING =
-            JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonObject("thing", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_THING_PLAIN_JSON =
-            JsonFactory.newStringFieldDefinition("thingPlainJson", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("thingPlainJson", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<RetrieveThingResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+
+                        final JsonObject thingJsonObject = jsonObject.getValue(JSON_THING).orElse(null);
+                        final String thingPlainJsonString = jsonObject.getValue(JSON_THING_PLAIN_JSON)
+                                .orElseGet(() -> {
+                                    if (null == thingJsonObject) {
+                                        throw JsonMissingFieldException.newBuilder()
+                                                .fieldName(JSON_THING.getPointer())
+                                                .build();
+                                    }
+                                    return thingJsonObject.toString();
+                                });
+
+                        return newInstance(
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                thingJsonObject,
+                                thingPlainJsonString,
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final ThingId thingId;
     private final String thingPlainJson;
@@ -69,14 +95,14 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
     @Nullable private JsonObject thing;
 
     private RetrieveThingResponse(final ThingId thingId,
-            final HttpStatus httpStatus,
             @Nullable final JsonObject thing,
             final String thingPlainJson,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, httpStatus, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "thing ID");
-        this.thingPlainJson = checkNotNull(thingPlainJson, "Thing plain JSON");
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.thingPlainJson = checkNotNull(thingPlainJson, "thingPlainJson");
         this.thing = thing; // lazy init - might be null
     }
 
@@ -89,10 +115,12 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveThingResponse of(final ThingId thingId, final JsonObject thing,
+    public static RetrieveThingResponse of(final ThingId thingId,
+            final JsonObject thing,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveThingResponse(thingId, HttpStatus.OK, thing, thing.toString(), dittoHeaders);
+        checkNotNull(thingId, "thingId");
+        return newInstance(thingId, thing, thing.toString(), HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -107,7 +135,7 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
     public static RetrieveThingResponse of(final ThingId thingId, final String thingPlainJson,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveThingResponse(thingId, HttpStatus.OK, null, thingPlainJson, dittoHeaders);
+        return newInstance(thingId, null, thingPlainJson, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -121,15 +149,21 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveThingResponse of(final ThingId thingId, final Thing thing,
-            @Nullable final JsonFieldSelector fieldSelector, @Nullable final Predicate<JsonField> predicate,
+    public static RetrieveThingResponse of(final ThingId thingId,
+            final Thing thing,
+            @Nullable final JsonFieldSelector fieldSelector,
+            @Nullable final Predicate<JsonField> predicate,
             final DittoHeaders dittoHeaders) {
-        final JsonObject thingJson = toThingJson(checkNotNull(thing, "Thing"), fieldSelector, predicate, dittoHeaders);
-        return new RetrieveThingResponse(thingId, HttpStatus.OK, thingJson, thingJson.toString(), dittoHeaders);
+
+        final JsonObject thingJson = toThingJson(checkNotNull(thing, "thing"), fieldSelector, predicate, dittoHeaders);
+        return newInstance(thingId, thingJson, thingJson.toString(), HTTP_STATUS, dittoHeaders);
     }
 
-    private static JsonObject toThingJson(final Thing thing, @Nullable final JsonFieldSelector fieldSelector,
-            @Nullable final Predicate<JsonField> predicate, final DittoHeaders dittoHeaders) {
+    private static JsonObject toThingJson(final Thing thing,
+            @Nullable final JsonFieldSelector fieldSelector,
+            @Nullable final Predicate<JsonField> predicate,
+            final DittoHeaders dittoHeaders) {
+
         final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
         if (fieldSelector != null) {
             return predicate != null
@@ -140,6 +174,34 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
                     ? thing.toJson(schemaVersion, predicate)
                     : thing.toJson(schemaVersion);
         }
+    }
+
+    /**
+     * Returns a new instance of {@code RetrieveThingResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing.
+     * @param thing the retrieved Thing or {@code null} if only {@code thingPlainJson} is available.
+     * @param thingPlainJson the retrieved Thing as plain JSON string.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code RetrieveThingResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code RetrieveThingResponse}.
+     * @since 2.3.0
+     */
+    public static RetrieveThingResponse newInstance(final ThingId thingId,
+            @Nullable final JsonObject thing,
+            final String thingPlainJson,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new RetrieveThingResponse(thingId,
+                thing,
+                thingPlainJson,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveThingResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -154,7 +216,7 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
      * format.
      */
     public static RetrieveThingResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -168,23 +230,7 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
      * format.
      */
     public static RetrieveThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveThingResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
-            final ThingId thingId = ThingId.of(extractedThingId);
-            final JsonObject extractedThing = jsonObject.getValue(JSON_THING).orElse(null);
-            final String extractedThingPlainJson = jsonObject.getValue(JSON_THING_PLAIN_JSON)
-                    .orElseGet(() -> {
-                        if (null == extractedThing) {
-                            throw JsonMissingFieldException.newBuilder()
-                                    .fieldName(JSON_THING.getPointer())
-                                    .build();
-                        }
-                        return extractedThing.toString();
-                    });
-
-            return new RetrieveThingResponse(thingId, httpStatus, extractedThing, extractedThingPlainJson,
-                    dittoHeaders);
-        });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -213,7 +259,7 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
 
     private JsonObject lazyLoadThingJsonObject() {
         if (thing == null) {
-            thing = JsonFactory.readFrom(thingPlainJson).asObject();
+            thing = JsonObject.of(thingPlainJson);
         }
         return thing;
     }
@@ -226,7 +272,7 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
 
     @Override
     public RetrieveThingResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, thingPlainJson, dittoHeaders);
+        return newInstance(thingId, thing, thingPlainJson, getHttpStatus(), dittoHeaders);
     }
 
     @Override
@@ -235,7 +281,8 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

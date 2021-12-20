@@ -448,9 +448,8 @@ final class ImmutablePolicy implements Policy {
         checkNotNull(thePredicate, "predicate");
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
-        jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
+        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         if (null != lifecycle) {
             jsonObjectBuilder.set(JsonFields.LIFECYCLE, lifecycle.name(), predicate);
         }

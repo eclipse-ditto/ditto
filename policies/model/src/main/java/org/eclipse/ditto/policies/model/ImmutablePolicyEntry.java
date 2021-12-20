@@ -107,7 +107,6 @@ final class ImmutablePolicyEntry implements PolicyEntry {
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         return JsonFactory.newObjectBuilder()
-                .set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate)
                 .set(JsonFields.SUBJECTS, subjects.toJson(schemaVersion, thePredicate), predicate)
                 .set(JsonFields.RESOURCES, resources.toJson(schemaVersion, thePredicate), predicate)
                 .build();

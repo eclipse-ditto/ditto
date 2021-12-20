@@ -22,7 +22,6 @@ import org.eclipse.ditto.base.model.common.DittoConstants;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
-import org.eclipse.ditto.connectivity.model.ConnectivityConstants;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;

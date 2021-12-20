@@ -77,23 +77,6 @@ public final class MongoClientExtension implements Extension {
         return updaterClient;
     }
 
-    @Nullable
-    private static CommandListener getCommandListenerOrNull(final MongoDbConfig.MonitoringConfig monitoringConfig,
-            final String prefix) {
-
-        return monitoringConfig.isCommandsEnabled() ? new KamonCommandListener(prefix) : null;
-    }
-
-    @Nullable
-    private static ConnectionPoolListener getConnectionPoolListenerOrNull(
-            final MongoDbConfig.MonitoringConfig monitoringConfig,
-            final String prefix) {
-
-        return monitoringConfig.isConnectionPoolEnabled()
-                ? new KamonConnectionPoolListener(prefix)
-                : null;
-    }
-
     private static final class Id extends AbstractExtensionId<MongoClientExtension> {
 
         @Override
@@ -112,5 +95,22 @@ public final class MongoClientExtension implements Extension {
                     .build();
             return new MongoClientExtension(searchClient, updaterClient);
         }
+
+        @Nullable
+        private static CommandListener getCommandListenerOrNull(final MongoDbConfig.MonitoringConfig monitoringConfig,
+                final String prefix) {
+
+            return monitoringConfig.isCommandsEnabled() ? new KamonCommandListener(prefix) : null;
+        }
+
+        @Nullable
+        private static ConnectionPoolListener getConnectionPoolListenerOrNull(
+                final MongoDbConfig.MonitoringConfig monitoringConfig,
+                final String prefix
+        ) {
+            return monitoringConfig.isConnectionPoolEnabled() ? new KamonConnectionPoolListener(prefix) : null;
+        }
+
     }
+
 }

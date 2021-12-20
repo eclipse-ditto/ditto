@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -106,9 +107,10 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     @SuppressWarnings("unused")
     private RabbitMQPublisherActor(final Connection connection,
             final String clientId,
+            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
-        super(connection, clientId, connectivityStatusResolver, connectivityConfig);
+        super(connection, clientId, proxyActor, connectivityStatusResolver, connectivityConfig);
         pendingAckTTL = connectivityConfig
                 .getConnectionConfig()
                 .getAmqp091Config()
@@ -120,15 +122,15 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
      *
      * @param connection the connection this publisher belongs to
      * @param clientId identifier of the client actor.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connection connection, final String clientId,
+    static Props props(final Connection connection, final String clientId, final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver, final ConnectivityConfig connectivityConfig) {
-
-        return Props.create(RabbitMQPublisherActor.class, connection, clientId, connectivityStatusResolver,
+        return Props.create(RabbitMQPublisherActor.class, connection, clientId, proxyActor, connectivityStatusResolver,
                 connectivityConfig);
     }
 
@@ -160,7 +162,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
             final RabbitMQTarget publishTarget,
             final ExternalMessage message,
             final int maxTotalMessageSize,
-            final int ackSizeQuota) {
+            final int ackSizeQuota,
+            @Nullable final AuthorizationContext targetAuthorizationContext) {
 
         if (channelActor == null) {
             return sendFailedFuture(signal, "No channel available, dropping response.");

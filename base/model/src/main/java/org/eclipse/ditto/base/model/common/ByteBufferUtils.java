@@ -98,7 +98,7 @@ public final class ByteBufferUtils {
      * @return the string or {@code null} if {@code value} was null.
      */
     @Nullable
-    public static String toString(final ByteBuffer value, final Charset charset) {
+    public static String toString(@Nullable final ByteBuffer value, final Charset charset) {
         if (null == value) {
             return null;
         }

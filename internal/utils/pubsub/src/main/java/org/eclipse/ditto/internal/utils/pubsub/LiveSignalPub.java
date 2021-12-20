@@ -47,4 +47,5 @@ public interface LiveSignalPub {
      * @return Distributed-pub access for messages.
      */
     DistributedPub<SignalWithEntityId<?>> message();
+
 }

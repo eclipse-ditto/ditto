@@ -12,19 +12,16 @@
  */
 package org.eclipse.ditto.gateway.service.endpoints.routes.things;
 
-
-import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.service.UriEncoding;
+import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.MessageConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
-import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
-import org.eclipse.ditto.base.service.UriEncoding;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeature;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatureDefinition;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatureDesiredProperties;
@@ -48,8 +45,6 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProp
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatures;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
@@ -72,29 +67,19 @@ final class FeaturesRoute extends AbstractRoute {
     private final MessagesRoute messagesRoute;
 
     /**
-     * Constructs the {@code /features} route builder.
+     * Constructs a {@code FeaturesRoute} object.
      *
-     * @param proxyActor an actor selection of the command delegating actor.
-     * @param actorSystem the ActorSystem to use.
+     * @param routeBaseProperties the base properties of the route.
      * @param messageConfig the MessageConfig.
      * @param claimMessageConfig the MessageConfig for claim messages.
-     * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
-     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
-     * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    FeaturesRoute(final ActorRef proxyActor,
-            final ActorSystem actorSystem,
-            final HttpConfig httpConfig,
-            final CommandConfig commandConfig,
+    FeaturesRoute(final RouteBaseProperties routeBaseProperties,
             final MessageConfig messageConfig,
-            final MessageConfig claimMessageConfig,
-            final HeaderTranslator headerTranslator) {
+            final MessageConfig claimMessageConfig) {
 
-        super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
-
-        messagesRoute = new MessagesRoute(proxyActor, actorSystem, httpConfig, commandConfig, messageConfig,
-                claimMessageConfig, headerTranslator);
+        super(routeBaseProperties);
+        messagesRoute = new MessagesRoute(routeBaseProperties, messageConfig, claimMessageConfig);
     }
 
     /**
@@ -134,18 +119,18 @@ final class FeaturesRoute extends AbstractRoute {
                         ),
                         // PUT /features
                         put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
-                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                        featuresJson -> ModifyFeatures.of(thingId,
-                                                ThingsModelFactory.newFeatures(featuresJson),
-                                                dittoHeaders))
+                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                featuresJson -> ModifyFeatures.of(thingId,
+                                                        ThingsModelFactory.newFeatures(featuresJson),
+                                                        dittoHeaders))
                                 )
                         ),
                         // PATCH /features
                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
-                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                        featuresJson -> MergeThing.withFeatures(thingId,
-                                                ThingsModelFactory.newFeatures(featuresJson),
-                                                dittoHeaders))
+                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                featuresJson -> MergeThing.withFeatures(thingId,
+                                                        ThingsModelFactory.newFeatures(featuresJson),
+                                                        dittoHeaders))
                                 )
                         ),
                         // DELETE /features
@@ -165,31 +150,31 @@ final class FeaturesRoute extends AbstractRoute {
                         concat(
                                 // GET /features/{featureId}?fields=<fieldsString>
                                 get(() -> parameterOptional(ThingsParameter.FIELDS.toString(),
-                                        fieldsString -> handlePerRequest(ctx, RetrieveFeature.of(thingId, featureId,
-                                                calculateSelectedFields(fieldsString).orElse(null),
-                                                dittoHeaders))
+                                                fieldsString -> handlePerRequest(ctx, RetrieveFeature.of(thingId, featureId,
+                                                        calculateSelectedFields(fieldsString).orElse(null),
+                                                        dittoHeaders))
                                         )
                                 ),
                                 // PUT /features/<featureId>
                                 put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
-                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                featureJson ->
-                                                        ModifyFeature.of(thingId,
-                                                                ThingsModelFactory
-                                                                        .newFeatureBuilder(featureJson)
-                                                                        .useId(featureId)
-                                                                        .build(),
-                                                                dittoHeaders))
+                                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                        featureJson ->
+                                                                ModifyFeature.of(thingId,
+                                                                        ThingsModelFactory
+                                                                                .newFeatureBuilder(featureJson)
+                                                                                .useId(featureId)
+                                                                                .build(),
+                                                                        dittoHeaders))
                                         )
                                 ),
                                 // PATCH /features/<featureId>
                                 patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
-                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                featureJson -> MergeThing.withFeature(thingId,
-                                                        ThingsModelFactory.newFeatureBuilder(featureJson)
-                                                                .useId(featureId)
-                                                                .build(),
-                                                        dittoHeaders))
+                                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                        featureJson -> MergeThing.withFeature(thingId,
+                                                                ThingsModelFactory.newFeatureBuilder(featureJson)
+                                                                        .useId(featureId)
+                                                                        .build(),
+                                                                dittoHeaders))
                                         )
                                 ),
                                 // DELETE /features/<featureId>
@@ -206,7 +191,6 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route featuresEntryDefinition(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(PathMatchers.slash().concat(PATH_DEFINITION), () ->
                         pathEndOrSingleSlash(() ->
@@ -217,22 +201,22 @@ final class FeaturesRoute extends AbstractRoute {
                                         ),
                                         // PUT /features/{featureId}/definition
                                         put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
-                                                dittoHeaders, payloadSource -> handlePerRequest(ctx, dittoHeaders,
-                                                        payloadSource, definitionJson ->
-                                                                ModifyFeatureDefinition.of(thingId,
-                                                                        featureId,
-                                                                        ThingsModelFactory.newFeatureDefinition(
-                                                                                definitionJson),
-                                                                        dittoHeaders))
+                                                        dittoHeaders, payloadSource -> handlePerRequest(ctx, dittoHeaders,
+                                                                payloadSource, definitionJson ->
+                                                                        ModifyFeatureDefinition.of(thingId,
+                                                                                featureId,
+                                                                                ThingsModelFactory.newFeatureDefinition(
+                                                                                        definitionJson),
+                                                                                dittoHeaders))
                                                 )
                                         ),
                                         // PATCH /features/{featureId}/definition
                                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx,
-                                                dittoHeaders, payloadSource -> handlePerRequest(ctx, dittoHeaders,
-                                                        payloadSource, definitionJson ->
-                                                                MergeThing.withFeatureDefinition(thingId, featureId,
-                                                                        ThingsModelFactory.newFeatureDefinition(
-                                                                                definitionJson), dittoHeaders))
+                                                        dittoHeaders, payloadSource -> handlePerRequest(ctx, dittoHeaders,
+                                                                payloadSource, definitionJson ->
+                                                                        MergeThing.withFeatureDefinition(thingId, featureId,
+                                                                                ThingsModelFactory.newFeatureDefinition(
+                                                                                        definitionJson), dittoHeaders))
                                                 )
                                         ),
                                         // DELETE /features/{featureId}/definition
@@ -252,36 +236,35 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route featuresEntryProperties(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(PathMatchers.slash().concat(PATH_PROPERTIES), () ->
                         pathEndOrSingleSlash(() ->
                                 concat(
                                         // GET /features/{featureId}/properties?fields=<fieldsString>
                                         get(() -> parameterOptional(ThingsParameter.FIELDS.toString(),
-                                                fieldsString -> handlePerRequest(ctx,
-                                                        RetrieveFeatureProperties.of(thingId, featureId,
-                                                                calculateSelectedFields(fieldsString).orElse(null),
-                                                                dittoHeaders))
+                                                        fieldsString -> handlePerRequest(ctx,
+                                                                RetrieveFeatureProperties.of(thingId, featureId,
+                                                                        calculateSelectedFields(fieldsString).orElse(null),
+                                                                        dittoHeaders))
                                                 )
                                         ),
                                         // PUT /features/{featureId}/properties
                                         put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
-                                                dittoHeaders,
-                                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        propertiesJson -> ModifyFeatureProperties.of(thingId,
-                                                                featureId,
-                                                                ThingsModelFactory.newFeatureProperties(propertiesJson),
-                                                                dittoHeaders))
+                                                        dittoHeaders,
+                                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                                propertiesJson -> ModifyFeatureProperties.of(thingId,
+                                                                        featureId,
+                                                                        ThingsModelFactory.newFeatureProperties(propertiesJson),
+                                                                        dittoHeaders))
                                                 )
                                         ),
                                         // PATCH /features/{featureId}/properties
                                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
-                                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        propertiesJson -> MergeThing.withFeatureProperties(thingId,
-                                                                featureId,
-                                                                ThingsModelFactory.newFeatureProperties(propertiesJson),
-                                                                dittoHeaders))
+                                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                                propertiesJson -> MergeThing.withFeatureProperties(thingId,
+                                                                        featureId,
+                                                                        ThingsModelFactory.newFeatureProperties(propertiesJson),
+                                                                        dittoHeaders))
                                                 )
                                         ),
                                         // DELETE /features/{featureId}/properties
@@ -301,7 +284,6 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route featuresEntryPropertiesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(PathMatchers.slash()
                                 .concat(PATH_PROPERTIES)
@@ -317,24 +299,24 @@ final class FeaturesRoute extends AbstractRoute {
                                         ),
                                         // PUT /features/{featureId}/properties/<propertyJsonPointerStr>
                                         put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
-                                                dittoHeaders,
-                                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        propertyJson -> ModifyFeatureProperty.of(thingId, featureId,
-                                                                JsonFactory.newPointer(jsonPointerString),
-                                                                DittoJsonException.wrapJsonRuntimeException(
-                                                                        () -> JsonFactory.readFrom(propertyJson)),
-                                                                dittoHeaders))
+                                                        dittoHeaders,
+                                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                                propertyJson -> ModifyFeatureProperty.of(thingId, featureId,
+                                                                        JsonFactory.newPointer(jsonPointerString),
+                                                                        DittoJsonException.wrapJsonRuntimeException(
+                                                                                () -> JsonFactory.readFrom(propertyJson)),
+                                                                        dittoHeaders))
                                                 )
                                         ),
                                         // PATCH /features/{featureId}/properties/<propertyJsonPointerStr>
                                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx,
-                                                dittoHeaders,
-                                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        propertyJson -> MergeThing.withFeatureProperty(thingId,
-                                                                featureId, JsonFactory.newPointer(jsonPointerString),
-                                                                DittoJsonException.wrapJsonRuntimeException(
-                                                                        () -> JsonFactory.readFrom(propertyJson)),
-                                                                dittoHeaders))
+                                                        dittoHeaders,
+                                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                                propertyJson -> MergeThing.withFeatureProperty(thingId,
+                                                                        featureId, JsonFactory.newPointer(jsonPointerString),
+                                                                        DittoJsonException.wrapJsonRuntimeException(
+                                                                                () -> JsonFactory.readFrom(propertyJson)),
+                                                                        dittoHeaders))
                                                 )
                                         ),
                                         // DELETE /features/{featureId}/properties/<propertyJsonPointerStr>
@@ -353,38 +335,37 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route featuresEntryDesiredProperties(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(PathMatchers.slash().concat(PATH_DESIRED_PROPERTIES), () ->
                         pathEndOrSingleSlash(() ->
                                 concat(
                                         // GET /features/{featureId}/desiredProperties?fields=<fieldsString>
                                         get(() -> parameterOptional(ThingsParameter.FIELDS.toString(),
-                                                fieldsString -> handlePerRequest(ctx,
-                                                        RetrieveFeatureDesiredProperties.of(thingId, featureId,
-                                                                calculateSelectedFields(fieldsString).orElse(null),
-                                                                dittoHeaders))
+                                                        fieldsString -> handlePerRequest(ctx,
+                                                                RetrieveFeatureDesiredProperties.of(thingId, featureId,
+                                                                        calculateSelectedFields(fieldsString).orElse(null),
+                                                                        dittoHeaders))
                                                 )
                                         ),
                                         // PUT /features/{featureId}/desiredProperties
                                         put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
-                                                dittoHeaders,
-                                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        propertiesJson -> ModifyFeatureDesiredProperties.of(thingId,
-                                                                featureId,
-                                                                ThingsModelFactory.newFeatureProperties(propertiesJson),
-                                                                dittoHeaders))
+                                                        dittoHeaders,
+                                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                                propertiesJson -> ModifyFeatureDesiredProperties.of(thingId,
+                                                                        featureId,
+                                                                        ThingsModelFactory.newFeatureProperties(propertiesJson),
+                                                                        dittoHeaders))
                                                 )
                                         ),
                                         // PATCH /features/{featureId}/desiredProperties
                                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx,
-                                                dittoHeaders,
-                                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        propertiesJson -> MergeThing.withFeatureDesiredProperties(
-                                                                thingId,
-                                                                featureId,
-                                                                ThingsModelFactory.newFeatureProperties(propertiesJson),
-                                                                dittoHeaders))
+                                                        dittoHeaders,
+                                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                                propertiesJson -> MergeThing.withFeatureDesiredProperties(
+                                                                        thingId,
+                                                                        featureId,
+                                                                        ThingsModelFactory.newFeatureProperties(propertiesJson),
+                                                                        dittoHeaders))
                                                 )
                                         ),
                                         // DELETE /features/{featureId}/desiredProperties
@@ -404,7 +385,6 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route featuresEntryDesiredPropertiesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
                 rawPathPrefix(PathMatchers.slash()
                                 .concat(PATH_DESIRED_PROPERTIES)
@@ -422,25 +402,25 @@ final class FeaturesRoute extends AbstractRoute {
                                         ),
                                         // PUT /features/{featureId}/desiredProperties/<desiredPropertyJsonPointerStr>
                                         put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
-                                                dittoHeaders,
-                                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        propertyJson -> ModifyFeatureDesiredProperty.of(thingId,
-                                                                featureId,
-                                                                JsonFactory.newPointer(jsonPointerString),
-                                                                DittoJsonException.wrapJsonRuntimeException(
-                                                                        () -> JsonFactory.readFrom(propertyJson)),
-                                                                dittoHeaders))
+                                                        dittoHeaders,
+                                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                                propertyJson -> ModifyFeatureDesiredProperty.of(thingId,
+                                                                        featureId,
+                                                                        JsonFactory.newPointer(jsonPointerString),
+                                                                        DittoJsonException.wrapJsonRuntimeException(
+                                                                                () -> JsonFactory.readFrom(propertyJson)),
+                                                                        dittoHeaders))
                                                 )
                                         ),
                                         // PATCH /features/{featureId}/desiredProperties/<desiredPropertyJsonPointerStr>
                                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx,
-                                                dittoHeaders,
-                                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        propertyJson -> MergeThing.withFeatureDesiredProperty(thingId,
-                                                                featureId, JsonFactory.newPointer(jsonPointerString),
-                                                                DittoJsonException.wrapJsonRuntimeException(
-                                                                        () -> JsonFactory.readFrom(propertyJson)),
-                                                                dittoHeaders))
+                                                        dittoHeaders,
+                                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                                propertyJson -> MergeThing.withFeatureDesiredProperty(thingId,
+                                                                        featureId, JsonFactory.newPointer(jsonPointerString),
+                                                                        DittoJsonException.wrapJsonRuntimeException(
+                                                                                () -> JsonFactory.readFrom(propertyJson)),
+                                                                        dittoHeaders))
                                                 )
                                         ),
                                         // DELETE /features/{featureId}/desiredProperties/<desiredPropertyJsonPointerStr>
@@ -461,7 +441,6 @@ final class FeaturesRoute extends AbstractRoute {
      */
     private Route featuresEntryInboxOutbox(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-
         // POST /features/{featureId}/<inbox|outbox>
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), featureId ->
                 messagesRoute.buildFeaturesInboxOutboxRoute(ctx, dittoHeaders, thingId, featureId)

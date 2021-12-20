@@ -47,7 +47,7 @@ public final class HiveMqtt3ClientActor
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private HiveMqtt3ClientActor(final Connection connection,
-            @Nullable final ActorRef proxyActor,
+            final ActorRef proxyActor,
             final ActorRef connectionActor,
             final HiveMqtt3ClientFactory clientFactory,
             final DittoHeaders dittoHeaders,
@@ -57,7 +57,7 @@ public final class HiveMqtt3ClientActor
     }
 
     @SuppressWarnings("unused") // used by `props` via reflection
-    private HiveMqtt3ClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
+    private HiveMqtt3ClientActor(final Connection connection, final ActorRef proxyActor,
             final ActorRef connectionActor, final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
         super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
@@ -80,7 +80,7 @@ public final class HiveMqtt3ClientActor
      * @param connectivityConfigOverwrites the overwrites for the connectivity config for the given connection.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
+    public static Props props(final Connection connection, final ActorRef proxyActor,
             final ActorRef connectionActor, final HiveMqtt3ClientFactory clientFactory,
             final DittoHeaders dittoHeaders, final Config connectivityConfigOverwrites) {
         return Props.create(HiveMqtt3ClientActor.class, connection, proxyActor, connectionActor, clientFactory,
@@ -96,7 +96,7 @@ public final class HiveMqtt3ClientActor
      * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
+    public static Props props(final Connection connection, final ActorRef proxyActor,
             final ActorRef connectionActor, final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
         return Props.create(HiveMqtt3ClientActor.class, connection, proxyActor, connectionActor, dittoHeaders,
@@ -128,7 +128,7 @@ public final class HiveMqtt3ClientActor
     @Override
     ActorRef startPublisherActor(final Connection connection, final Mqtt3AsyncClient client) {
         final Props publisherActorProps =
-                HiveMqtt3PublisherActor.props(connection, client, isDryRun(), getDefaultClientId(),
+                HiveMqtt3PublisherActor.props(connection, client, isDryRun(), getDefaultClientId(), getProxyActor(),
                         connectivityStatusResolver, connectivityConfig());
         return startChildActorConflictFree(HiveMqtt3PublisherActor.NAME, publisherActorProps);
     }

@@ -16,13 +16,13 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Interface for accessing configuration of Loggers.
@@ -44,9 +44,9 @@ public interface LoggerConfig extends Jsonifiable.WithPredicate<JsonObject, Json
     Optional<String> getLogger();
 
     /**
-     * Returns all non hidden marked fields of this object.
+     * Returns all non-hidden marked fields of this object.
      *
-     * @return a JSON object representation of this object including only non hidden marked fields.
+     * @return a JSON object representation of this object including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {

@@ -14,6 +14,8 @@
 
  import java.util.Optional;
 
+ import javax.annotation.Nullable;
+
  import org.eclipse.ditto.json.JsonFactory;
  import org.eclipse.ditto.json.JsonPointer;
  import org.eclipse.ditto.base.model.common.HttpStatus;
@@ -88,7 +90,7 @@
          retrieveThingsResponseFromAdaptable(null);
      }
 
-     private void retrieveThingsResponseFromAdaptable(final String namespace) {
+     private void retrieveThingsResponseFromAdaptable(@Nullable final String namespace) {
          final RetrieveThingsResponse expected = RetrieveThingsResponse.of(JsonFactory.newArray()
                          .add(TestConstants.THING.toJsonString())
                          .add(TestConstants.THING2.toJsonString()),
@@ -104,10 +106,14 @@
 
          final JsonPointer path = JsonPointer.empty();
          final Adaptable adaptable = Adaptable.newBuilder(topicPath)
-                 .withPayload(Payload.newBuilder(path).withValue(JsonFactory.newArray()
+                 .withPayload(Payload.newBuilder(path)
+                         .withValue(JsonFactory.newArray()
                          .add(TestConstants.THING.toJsonString())
-                         .add(TestConstants.THING2.toJsonString())).build())
-                 .withHeaders(TestConstants.HEADERS_V_2).build();
+                         .add(TestConstants.THING2.toJsonString()))
+                         .withStatus(HttpStatus.OK)
+                         .build())
+                 .withHeaders(TestConstants.HEADERS_V_2)
+                 .build();
 
          final RetrieveThingsResponse actual = underTest.fromAdaptable(adaptable);
 

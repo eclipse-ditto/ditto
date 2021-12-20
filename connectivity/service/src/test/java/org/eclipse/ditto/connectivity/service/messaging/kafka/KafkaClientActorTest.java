@@ -38,7 +38,6 @@ import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnecti
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
-import org.eclipse.ditto.connectivity.service.config.KafkaProducerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
@@ -237,6 +236,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
                             final SendProducerFactory producerFactory,
                             final boolean dryRun,
                             final String clientId,
+                            final ActorRef proxyActor,
                             final ConnectivityStatusResolver connectivityStatusResolver,
                             final ConnectivityConfig connectivityConfig) {
                         return MockKafkaPublisherActor.props(ref, status);

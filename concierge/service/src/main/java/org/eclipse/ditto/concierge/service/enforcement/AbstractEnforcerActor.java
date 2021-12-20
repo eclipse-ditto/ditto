@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.concierge.service.enforcement;
 
-import java.time.Duration;
-
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
@@ -23,15 +21,12 @@ import org.eclipse.ditto.concierge.service.common.EnforcementConfig;
 import org.eclipse.ditto.internal.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CacheKey;
-import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.EnforcementCacheKey;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.policies.api.PolicyTag;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
-
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
@@ -69,24 +64,29 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
 
         super(WithDittoHeaders.class);
 
+        final var actorContext = getContext();
+        final var actorSystem = actorContext.getSystem();
         final ConciergeConfig conciergeConfig = DittoConciergeConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
+                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
         );
         enforcementConfig = conciergeConfig.getEnforcementConfig();
 
         this.thingIdCache = thingIdCache;
         this.policyEnforcerCache = policyEnforcerCache;
 
-        contextual = Contextual.forActor(getSelf(), getContext().getSystem(),
-                pubSubMediator, conciergeForwarder, enforcementConfig.getAskWithRetryConfig(),
-                logger, createResponseReceiverCache(conciergeConfig)
-        );
+        final var self = getSelf();
+        contextual = Contextual.forActor(self,
+                actorSystem,
+                pubSubMediator,
+                conciergeForwarder,
+                enforcementConfig.getAskWithRetryConfig(),
+                logger);
 
         // register for sending messages via pub/sub to this enforcer
         // used for receiving cache invalidations from brother concierge nodes
-        pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
+        pubSubMediator.tell(DistPubSubAccess.put(self), self);
         // register for receiving invalidate policy enforcers
-        pubSubMediator.tell(DistPubSubAccess.subscribe(PolicyTag.PUB_SUB_TOPIC_INVALIDATE_ENFORCERS, self()),
+        pubSubMediator.tell(DistPubSubAccess.subscribe(PolicyTag.PUB_SUB_TOPIC_INVALIDATE_ENFORCERS, self),
                 ActorRef.noSender());
     }
 
@@ -127,15 +127,6 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     @Override
     protected Contextual<WithDittoHeaders> mapMessage(final WithDittoHeaders message) {
         return contextual.withReceivedMessage(message, getSender());
-    }
-
-    @Nullable
-    private static Cache<String, ActorRef> createResponseReceiverCache(final ConciergeConfig conciergeConfig) {
-        if (conciergeConfig.getEnforcementConfig().shouldDispatchLiveResponsesGlobally()) {
-            return CaffeineCache.of(Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(120L)));
-        } else {
-            return null;
-        }
     }
 
 }

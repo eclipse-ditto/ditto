@@ -78,6 +78,11 @@ final class CompoundConnectionLogger implements ConnectionLogger, MuteableConnec
     }
 
     @Override
+    public void logEntry(final LogEntry logEntry) {
+        connectionLoggers.forEach(logger -> logEntry(logEntry));
+    }
+
+    @Override
     public void clear() {
         connectionLoggers.forEach(ConnectionLogger::clear);
     }

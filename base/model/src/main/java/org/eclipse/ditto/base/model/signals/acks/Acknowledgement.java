@@ -59,7 +59,12 @@ import org.eclipse.ditto.json.JsonValue;
 public final class Acknowledgement implements CommandResponse<Acknowledgement>, WithOptionalEntity, WithEntityType,
         SignalWithEntityId<Acknowledgement> {
 
-    static final String TYPE = "acknowledgement";
+    /**
+     * The type of {@code Acknowledgement} signals.
+     * @since 2.3.0
+     */
+    public static final String TYPE = "acknowledgement";
+
     private static final String TRUE_STRING = Boolean.TRUE.toString();
 
     private final AcknowledgementLabel label;
@@ -329,9 +334,9 @@ public final class Acknowledgement implements CommandResponse<Acknowledgement>, 
     }
 
     /**
-     * Returns all non hidden marked fields of this Acknowledgement.
+     * Returns all non-hidden marked fields of this Acknowledgement.
      *
-     * @return a JSON object representation of this Acknowledgement including only non hidden marked fields.
+     * @return a JSON object representation of this Acknowledgement including only non-hidden marked fields.
      */
     @Override
     public JsonObject toJson() {

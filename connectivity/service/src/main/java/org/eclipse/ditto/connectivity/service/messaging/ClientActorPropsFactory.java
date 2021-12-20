@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 
@@ -38,7 +36,7 @@ public interface ClientActorPropsFactory {
      * @param dittoHeaders Ditto headers of the command that caused the client actors to be created.
      * @return the actor props
      */
-    Props getActorPropsForType(Connection connection, @Nullable ActorRef proxyActor, ActorRef connectionActor,
+    Props getActorPropsForType(Connection connection, ActorRef proxyActor, ActorRef connectionActor,
             ActorSystem actorSystem, DittoHeaders dittoHeaders, Config connectivityConfigOverwrites);
 
 }

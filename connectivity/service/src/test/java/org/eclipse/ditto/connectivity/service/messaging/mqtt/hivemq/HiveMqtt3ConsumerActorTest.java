@@ -43,7 +43,6 @@ import com.hivemq.client.internal.mqtt.message.publish.MqttPublish;
 import com.hivemq.client.internal.mqtt.message.publish.mqtt3.Mqtt3PublishView;
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
-import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
 import akka.actor.Props;

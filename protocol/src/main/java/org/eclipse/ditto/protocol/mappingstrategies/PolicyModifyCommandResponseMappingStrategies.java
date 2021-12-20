@@ -12,16 +12,15 @@
  */
 package org.eclipse.ditto.protocol.mappingstrategies;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.policies.model.Resource;
-import org.eclipse.ditto.policies.model.ResourceKey;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.JsonifiableMapper;
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyResponse;
@@ -35,32 +34,36 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyResourcesR
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubjectsResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.PolicyModifyCommandResponse;
+import org.eclipse.ditto.protocol.JsonifiableMapper;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for policy modify command responses.
  */
-final class PolicyModifyCommandResponseMappingStrategies
-        extends AbstractPolicyMappingStrategies<PolicyModifyCommandResponse<?>> {
+final class PolicyModifyCommandResponseMappingStrategies implements MappingStrategies<PolicyModifyCommandResponse<?>> {
 
     private static final PolicyModifyCommandResponseMappingStrategies INSTANCE =
             new PolicyModifyCommandResponseMappingStrategies();
 
+    private final Map<String, JsonifiableMapper<? extends PolicyModifyCommandResponse<?>>> mappingStrategies;
+
     private PolicyModifyCommandResponseMappingStrategies() {
-        super(initMappingStrategies());
+        mappingStrategies = Collections.unmodifiableMap(initMappingStrategies());
     }
 
-    private static Map<String, JsonifiableMapper<PolicyModifyCommandResponse<?>>> initMappingStrategies() {
-        final Map<String, JsonifiableMapper<PolicyModifyCommandResponse<?>>> mappingStrategies = new HashMap<>();
+    private static Map<String, AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> initMappingStrategies() {
+        final Stream.Builder<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> streamBuilder =
+                Stream.builder();
 
-        addTopLevelResponses(mappingStrategies);
+        addTopLevelResponses(streamBuilder);
 
-        addPolicyEntryResponses(mappingStrategies);
+        addPolicyEntryResponses(streamBuilder);
 
-        addPolicyEntryResourceResponses(mappingStrategies);
+        addPolicyEntryResourceResponses(streamBuilder);
 
-        addPolicyEntrySubjectResponses(mappingStrategies);
+        addPolicyEntrySubjectResponses(streamBuilder);
 
-        return mappingStrategies;
+        final Stream<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> mappers = streamBuilder.build();
+        return mappers.collect(Collectors.toMap(AdaptableToSignalMapper::getSignalType, Function.identity()));
     }
 
     static PolicyModifyCommandResponseMappingStrategies getInstance() {
@@ -68,118 +71,102 @@ final class PolicyModifyCommandResponseMappingStrategies
     }
 
     private static void addTopLevelResponses(
-            final Map<String, JsonifiableMapper<PolicyModifyCommandResponse<?>>> mappingStrategies) {
-        mappingStrategies.put(CreatePolicyResponse.TYPE,
-                adaptable -> CreatePolicyResponse.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        policyFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+            final Consumer<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> streamBuilder
+    ) {
+        streamBuilder.accept(AdaptableToSignalMapper.of(CreatePolicyResponse.TYPE,
+                mappingContext -> CreatePolicyResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getPolicy().orElse(null),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
 
-        mappingStrategies.put(ModifyPolicyResponse.TYPE,
-                adaptable -> isCreated(adaptable) ? policyCreated(adaptable) : policyModified(adaptable));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyPolicyResponse.TYPE,
+                mappingContext -> ModifyPolicyResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getPolicy().orElse(null),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
 
-        mappingStrategies.put(DeletePolicyResponse.TYPE,
-                adaptable -> DeletePolicyResponse.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        dittoHeadersFrom(adaptable)));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeletePolicyResponse.TYPE,
+                mappingContext -> DeletePolicyResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
     }
 
     private static void addPolicyEntryResponses(
-            final Map<String, JsonifiableMapper<PolicyModifyCommandResponse<?>>> mappingStrategies) {
+            final Consumer<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> streamBuilder
+    ) {
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyPolicyEntryResponse.TYPE,
+                mappingContext -> ModifyPolicyEntryResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getPolicyEntry().orElse(null),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
 
-        mappingStrategies.put(ModifyPolicyEntryResponse.TYPE,
-                adaptable -> isCreated(adaptable) ? entryCreated(adaptable) : entryModified(adaptable));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeletePolicyEntryResponse.TYPE,
+                mappingContext -> DeletePolicyEntryResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
 
-        mappingStrategies.put(DeletePolicyEntryResponse.TYPE,
-                adaptable -> DeletePolicyEntryResponse.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        labelFrom(adaptable), dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(ModifyPolicyEntriesResponse.TYPE,
-                adaptable -> ModifyPolicyEntriesResponse.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        dittoHeadersFrom(adaptable)));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyPolicyEntriesResponse.TYPE,
+                mappingContext -> ModifyPolicyEntriesResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
     }
 
     private static void addPolicyEntryResourceResponses(
-            final Map<String, JsonifiableMapper<PolicyModifyCommandResponse<?>>> mappingStrategies) {
+            final Consumer<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> streamBuilder
+    ) {
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyResourceResponse.TYPE,
+                mappingContext -> ModifyResourceResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getResourceKeyOrThrow(),
+                        mappingContext.getResource().orElse(null),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
 
-        mappingStrategies.put(ModifyResourceResponse.TYPE,
-                adaptable -> isCreated(adaptable) ? resourceCreated(adaptable) : resourceModified(adaptable));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyResourcesResponse.TYPE,
+                mappingContext -> ModifyResourcesResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
 
-        mappingStrategies.put(ModifyResourcesResponse.TYPE, adaptable -> ModifyResourcesResponse.of(
-                policyIdFromTopicPath(adaptable.getTopicPath()), labelFrom(adaptable), dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(DeleteResourceResponse.TYPE, adaptable -> DeleteResourceResponse.of(
-                policyIdFromTopicPath(adaptable.getTopicPath()),
-                labelFrom(adaptable), entryResourceKeyFromPath(adaptable.getPayload().getPath()),
-                dittoHeadersFrom(adaptable)));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteResourceResponse.TYPE,
+                mappingContext -> DeleteResourceResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getResourceKeyOrThrow(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
     }
 
     private static void addPolicyEntrySubjectResponses(
-            final Map<String, JsonifiableMapper<PolicyModifyCommandResponse<?>>> mappingStrategies) {
+            final Consumer<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> streamBuilder
+    ) {
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifySubjectResponse.TYPE,
+                mappingContext -> ModifySubjectResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getSubjectIdOrThrow(),
+                        mappingContext.getSubject().orElse(null),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
 
-        mappingStrategies.put(ModifySubjectResponse.TYPE,
-                adaptable -> isCreated(adaptable) ? subjectCreated(adaptable) : subjectModified(adaptable));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifySubjectsResponse.TYPE,
+                mappingContext -> ModifySubjectsResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
 
-        mappingStrategies.put(ModifySubjectsResponse.TYPE,
-                adaptable -> ModifySubjectsResponse.of(policyIdFromTopicPath(adaptable.getTopicPath()),
-                        labelFrom(adaptable), dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(DeleteSubjectResponse.TYPE,
-                adaptable -> DeleteSubjectResponse.of(
-                        policyIdFromTopicPath(adaptable.getTopicPath()),
-                        labelFrom(adaptable),
-                        entrySubjectIdFromPath(adaptable.getPayload().getPath()),
-                        dittoHeadersFrom(adaptable)));
-
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteSubjectResponse.TYPE,
+                mappingContext -> DeleteSubjectResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getSubjectIdOrThrow(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
     }
 
-    private static ModifyPolicyResponse policyCreated(final Adaptable adaptable) {
-        return ModifyPolicyResponse.created(policyIdFromTopicPath(adaptable.getTopicPath()),
-                policyFrom(adaptable), dittoHeadersFrom(adaptable));
+    @Nullable
+    @Override
+    public JsonifiableMapper<PolicyModifyCommandResponse<?>> find(final String type) {
+        return (JsonifiableMapper<PolicyModifyCommandResponse<?>>) mappingStrategies.get(type);
     }
 
-    private static ModifyPolicyResponse policyModified(final Adaptable adaptable) {
-        return ModifyPolicyResponse.modified(policyIdFromTopicPath(adaptable.getTopicPath()),
-                dittoHeadersFrom(adaptable));
-    }
-
-    private static ModifyPolicyEntryResponse entryCreated(final Adaptable adaptable) {
-        final PolicyId policyId = policyIdFromTopicPath(adaptable.getTopicPath());
-        return ModifyPolicyEntryResponse.created(policyId, policyEntryFrom(adaptable), dittoHeadersFrom(adaptable));
-    }
-
-    private static ModifyPolicyEntryResponse entryModified(final Adaptable adaptable) {
-        final PolicyId policyId = policyIdFromTopicPath(adaptable.getTopicPath());
-        return ModifyPolicyEntryResponse.modified(policyId, labelFrom(adaptable), dittoHeadersFrom(adaptable));
-    }
-
-    private static ModifyResourceResponse resourceCreated(final Adaptable adaptable) {
-        final PolicyId policyId = policyIdFromTopicPath(adaptable.getTopicPath());
-        final ResourceKey resourceKey = entryResourceKeyFromPath(adaptable.getPayload().getPath());
-        final JsonValue effectedPermissions =
-                adaptable.getPayload().getValue().orElseThrow(() -> JsonParseException.newBuilder().build());
-        final Resource resourceCreated = Resource.newInstance(resourceKey, effectedPermissions);
-        return ModifyResourceResponse.created(policyId, labelFrom(adaptable), resourceCreated,
-                dittoHeadersFrom(adaptable));
-    }
-
-    private static ModifyResourceResponse resourceModified(final Adaptable adaptable) {
-        final PolicyId policyId = policyIdFromTopicPath(adaptable.getTopicPath());
-        return ModifyResourceResponse.modified(policyId, labelFrom(adaptable),
-                entryResourceKeyFromPath(adaptable.getPayload().getPath()), dittoHeadersFrom(adaptable));
-    }
-
-    private static ModifySubjectResponse subjectCreated(final Adaptable adaptable) {
-        return ModifySubjectResponse.created(
-                policyIdFromTopicPath(adaptable.getTopicPath()),
-                labelFrom(adaptable),
-                subjectFrom(adaptable),
-                dittoHeadersFrom(adaptable));
-    }
-
-    private static ModifySubjectResponse subjectModified(final Adaptable adaptable) {
-        return ModifySubjectResponse.modified(
-                policyIdFromTopicPath(adaptable.getTopicPath()),
-                labelFrom(adaptable),
-                entrySubjectIdFromPath(adaptable.getPayload().getPath()),
-                dittoHeadersFrom(adaptable));
-    }
 }

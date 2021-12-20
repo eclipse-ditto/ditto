@@ -16,33 +16,29 @@ import static akka.http.javadsl.model.ContentTypes.APPLICATION_JSON;
 
 import java.util.List;
 
-import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
-import org.eclipse.ditto.gateway.service.security.authentication.DefaultAuthenticationResult;
-import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResult;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.common.DittoDuration;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
+import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
+import org.eclipse.ditto.gateway.service.security.authentication.DefaultAuthenticationResult;
+import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResult;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.SubjectAnnouncement;
 import org.eclipse.ditto.policies.model.SubjectExpiry;
 import org.eclipse.ditto.policies.model.SubjectId;
-import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
-import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.policies.model.signals.commands.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.policies.model.signals.commands.actions.TopLevelPolicyActionCommand;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyActionFailedException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
-import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.testkit.TestRoute;
@@ -73,29 +69,18 @@ public final class PoliciesRouteTest extends EndpointTestBase {
             "    }\n" +
             "  }";
 
-    @Rule
-    public final TestName testName = new TestName();
-
-    private DittoHeaders dittoHeaders;
     private PoliciesRoute policiesRoute;
 
     @Before
     public void setUp() {
-        final ActorSystem actorSystem = system();
-        final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
-
-        policiesRoute = new PoliciesRoute(createDummyResponseActor(), actorSystem, httpConfig, commandConfig,
-                adapterProvider.getHttpHeaderTranslator(),
+        policiesRoute = new PoliciesRoute(routeBaseProperties,
                 OAuthTokenIntegrationSubjectIdFactory.of(authConfig.getOAuthConfig()));
-
-        dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
-
     }
 
     @Test
     public void putPolicy() {
         getRoute(getPreAuthResult()).run(HttpRequest.PUT("/policies/org.eclipse.ditto%3Adummy")
-                .withEntity(APPLICATION_JSON, DUMMY_POLICY))
+                        .withEntity(APPLICATION_JSON, DUMMY_POLICY))
                 .assertStatusCode(StatusCodes.OK);
     }
 
@@ -114,7 +99,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     @Test
     public void postPolicy() {
         getRoute(getPreAuthResult()).run(HttpRequest.POST("/policies")
-                .withEntity(APPLICATION_JSON, DUMMY_POLICY))
+                        .withEntity(APPLICATION_JSON, DUMMY_POLICY))
                 .assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
@@ -123,7 +108,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
         getRoute(getPreAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/activateTokenIntegration/"))
                 .assertStatusCode(StatusCodes.BAD_REQUEST)
                 .assertEntity(PolicyActionFailedException.newBuilderForInappropriateAuthenticationMethod(
-                        "activateTokenIntegration")
+                                "activateTokenIntegration")
                         .build()
                         .toJsonString());
     }
@@ -133,7 +118,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
         getRoute(getPreAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/deactivateTokenIntegration"))
                 .assertStatusCode(StatusCodes.BAD_REQUEST)
                 .assertEntity(PolicyActionFailedException.newBuilderForInappropriateAuthenticationMethod(
-                        "deactivateTokenIntegration")
+                                "deactivateTokenIntegration")
                         .build()
                         .toJsonString());
     }
@@ -195,7 +180,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
                 .set("announcement", subjectAnnouncement.toJson())
                 .build();
         getRoute(getTokenAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/activateTokenIntegration/")
-                .withEntity(APPLICATION_JSON, requestPayload.toString()))
+                        .withEntity(APPLICATION_JSON, requestPayload.toString()))
                 .assertStatusCode(StatusCodes.OK)
                 .assertEntity(TopLevelPolicyActionCommand.of(
                         ActivateTokenIntegration.of(PolicyId.of("ns:n"),
@@ -233,7 +218,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     @Test
     public void activateTokenIntegrationForEntry() {
         getRoute(getTokenAuthResult()).run(HttpRequest.POST(
-                "/policies/ns%3An/entries/label/actions/activateTokenIntegration/"))
+                        "/policies/ns%3An/entries/label/actions/activateTokenIntegration/"))
                 .assertStatusCode(StatusCodes.OK)
                 .assertEntity(ActivateTokenIntegration.of(PolicyId.of("ns:n"),
                         Label.of("label"),
@@ -251,8 +236,8 @@ public final class PoliciesRouteTest extends EndpointTestBase {
                 .set("announcement", subjectAnnouncement.toJson())
                 .build();
         getRoute(getTokenAuthResult()).run(HttpRequest.POST(
-                "/policies/ns%3An/entries/label/actions/activateTokenIntegration/")
-                .withEntity(APPLICATION_JSON, requestPayload.toString()))
+                                "/policies/ns%3An/entries/label/actions/activateTokenIntegration/")
+                        .withEntity(APPLICATION_JSON, requestPayload.toString()))
                 .assertStatusCode(StatusCodes.OK)
                 .assertEntity(ActivateTokenIntegration.of(PolicyId.of("ns:n"),
                         Label.of("label"),
@@ -267,7 +252,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     @Test
     public void deactivateTokenIntegrationForEntry() {
         getRoute(getTokenAuthResult()).run(HttpRequest.POST(
-                "/policies/ns%3An/entries/label/actions/deactivateTokenIntegration"))
+                        "/policies/ns%3An/entries/label/actions/deactivateTokenIntegration"))
                 .assertStatusCode(StatusCodes.OK)
                 .assertEntity(DeactivateTokenIntegration.of(PolicyId.of("ns:n"),
                         Label.of("label"),

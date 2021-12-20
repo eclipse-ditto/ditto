@@ -12,16 +12,17 @@
  */
 package org.eclipse.ditto.internal.utils.test.mongo;
 
+import java.util.Arrays;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.ContainerNetwork;
 import com.github.dockerjava.api.model.ContainerNetworkSettings;
 import com.github.dockerjava.api.model.ContainerPort;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Arrays;
-import java.util.Optional;
 
 /**
  * Provides an easy way to start, stop and remove the once created docker container.

@@ -31,7 +31,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link CleanupPersistenceResponse}.
  */
-public class CleanupPersistenceResponseTest {
+public final class CleanupPersistenceResponseTest {
 
     private static final EntityId ID = EntityId.of(EntityType.of("thing"), "eclipse:ditto");
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
@@ -57,15 +57,19 @@ public class CleanupPersistenceResponseTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonObject jsonObject = CleanupPersistenceResponse.success(ID, DittoHeaders.empty()).toJson();
-        assertThat(jsonObject).isEqualTo(KNOWN_JSON);
+        final var underTest = CleanupPersistenceResponse.success(ID, DittoHeaders.empty());
+
+        assertThat(underTest.toJson()).isEqualTo(KNOWN_JSON);
     }
 
     @Test
     public void fromJsonReturnsExpected() {
-        final CleanupPersistenceResponse commandFromJson = CleanupPersistenceResponse.fromJson(KNOWN_JSON, HEADERS);
-        final CleanupPersistenceResponse expectedCommand = CleanupPersistenceResponse.success(ID, HEADERS);
-        assertThat(commandFromJson).isEqualTo(expectedCommand);
+        final var cleanupPersistenceResponse = CleanupPersistenceResponse.success(ID, HEADERS);
+
+        final var deserialized = CleanupPersistenceResponse.fromJson(cleanupPersistenceResponse.toJson(),
+                cleanupPersistenceResponse.getDittoHeaders());
+
+        assertThat(deserialized).isEqualTo(cleanupPersistenceResponse);
     }
 
 }

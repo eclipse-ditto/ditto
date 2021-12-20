@@ -82,7 +82,6 @@ public final class ThingMongoEventAdapterTest {
                 "                \"_metadata\" : null,\n" +
                 "                \"thingId\" : \"pap.th.tMJyAjktUVP:YlmZXbTQ\",\n" +
                 "                \"thing\" : {\n" +
-                "                    \"__schemaVersion\" : 2,\n" +
                 "                    \"__lifecycle\" : \"ACTIVE\",\n" +
                 "                    \"_revision\" : 1,\n" +
                 "                    \"_modified\" : \"2021-02-24T14:17:37.581679843Z\",\n" +
@@ -115,7 +114,6 @@ public final class ThingMongoEventAdapterTest {
                 "                \"_metadata\" : null,\n" +
                 "                \"thingId\" : \"pap.th.tMJyAjktUVP:YlmZXbTQ\",\n" +
                 "                \"thing\" : {\n" +
-                "                    \"__schemaVersion\" : 2,\n" +
                 "                    \"__lifecycle\" : \"ACTIVE\",\n" +
                 "                    \"_revision\" : 1,\n" +
                 "                    \"_modified\" : \"2021-02-24T14:17:37.581679843Z\",\n" +

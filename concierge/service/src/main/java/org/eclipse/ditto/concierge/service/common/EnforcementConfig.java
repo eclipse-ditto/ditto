@@ -46,7 +46,7 @@ public interface EnforcementConfig {
      *
      * @return whether global live response dispatching is enabled.
      */
-    boolean shouldDispatchLiveResponsesGlobally();
+    boolean isDispatchLiveResponsesGlobally();
 
     /**
      * Returns a list of namespaces for which a special usage logging should be enabled in enforcement.
@@ -76,7 +76,7 @@ public interface EnforcementConfig {
         /**
          * Whether to enable dispatching live responses from channels other than the subscribers.
          */
-        GLOBAL_LIVE_RESPONSE_DISPATCHING("global-live-response-dispatching", false),
+        GLOBAL_LIVE_RESPONSE_DISPATCHING("global-live-response-dispatching", true),
 
         /**
          * List of namespaces for which a special usage logging should be enabled in enforcement.

@@ -87,7 +87,6 @@ public final class ImmutablePolicyEntryTest {
     public void testFromJsonWithTwoEntriesGivesOnlyFirst() {
         final JsonObject jsonObject = JsonFactory.newObjectBuilder()
                 .set(LABEL_END_USER, JsonFactory.newObjectBuilder()
-                        .set(PolicyEntry.JsonFields.SCHEMA_VERSION, JsonSchemaVersion.V_2.toInt())
                         .set(PolicyEntry.JsonFields.SUBJECTS,
                                 Subjects.newInstance(TestConstants.Policy.SUBJECT).toJson())
                         .set(PolicyEntry.JsonFields.RESOURCES,
@@ -98,7 +97,6 @@ public final class ImmutablePolicyEntryTest {
                                         .toJson())
                         .build())
                 .set("Support", JsonFactory.newObjectBuilder()
-                        .set(PolicyEntry.JsonFields.SCHEMA_VERSION, JsonSchemaVersion.V_2.toInt())
                         .set(PolicyEntry.JsonFields.SUBJECTS,
                                 Subjects.newInstance(TestConstants.Policy.SUBJECT).toJson())
                         .set(PolicyEntry.JsonFields.RESOURCES,

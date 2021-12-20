@@ -14,14 +14,12 @@ package org.eclipse.ditto.internal.utils.cacheloaders;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
-import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.cache.entry.Entry;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
@@ -52,14 +50,15 @@ public final class ThingEnforcementIdCacheLoader
      * @param shardRegionProxy the shard-region-proxy.
      */
     public ThingEnforcementIdCacheLoader(final AskWithRetryConfig askWithRetryConfig,
-            final Scheduler scheduler, final ActorRef shardRegionProxy) {
-        final BiFunction<EntityId, EnforcementContext, Command<?>> commandCreator =
-                ThingCommandFactory::sudoRetrieveThing;
-        final BiFunction<Object, EnforcementContext, Entry<EnforcementCacheKey>> responseTransformer =
-                ThingEnforcementIdCacheLoader::handleSudoRetrieveThingResponse;
+            final Scheduler scheduler,
+            final ActorRef shardRegionProxy) {
 
-        delegate = ActorAskCacheLoader.forShard(askWithRetryConfig, scheduler, ThingConstants.ENTITY_TYPE,
-                shardRegionProxy, commandCreator, responseTransformer);
+        delegate = ActorAskCacheLoader.forShard(askWithRetryConfig,
+                scheduler,
+                ThingConstants.ENTITY_TYPE,
+                shardRegionProxy,
+                (entityId, enforcementContext) -> ThingCommandFactory.sudoRetrieveThing(entityId),
+                ThingEnforcementIdCacheLoader::handleSudoRetrieveThingResponse);
     }
 
     @Override

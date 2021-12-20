@@ -17,10 +17,10 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
@@ -34,7 +34,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ModifyThingDefinitionResponse}.
  */
-public class ModifyThingDefinitionResponseTest {
+public final class ModifyThingDefinitionResponseTest {
 
     private static final ThingDefinition KNOWN_DEFINITION = ThingsModelFactory.newDefinition(
             "example:test:definition");
@@ -52,26 +52,27 @@ public class ModifyThingDefinitionResponseTest {
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .build();
 
-
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ModifyThingDefinitionResponse.class, areImmutable(),
+        assertInstancesOf(ModifyThingDefinitionResponse.class,
+                areImmutable(),
                 provided(ThingId.class, ThingDefinition.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ModifyThingDefinitionResponse.class)
                 .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
 
-
     @Test
     public void toJsonReturnsExpected() {
-        final ModifyThingDefinitionResponse underTestCreated = ModifyThingDefinitionResponse
-                .created(TestConstants.Thing.THING_ID, KNOWN_DEFINITION, TestConstants.EMPTY_DITTO_HEADERS);
+        final ModifyThingDefinitionResponse underTestCreated =
+                ModifyThingDefinitionResponse.created(TestConstants.Thing.THING_ID,
+                        KNOWN_DEFINITION,
+                        TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJsonCreated = underTestCreated.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJsonCreated).isEqualTo(KNOWN_JSON_CREATED);
@@ -82,7 +83,6 @@ public class ModifyThingDefinitionResponseTest {
 
         assertThat(actualJsonUpdated).isEqualTo(KNOWN_JSON_UPDATED);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

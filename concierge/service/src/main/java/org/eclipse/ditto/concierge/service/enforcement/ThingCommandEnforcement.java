@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -46,6 +47,7 @@ import org.eclipse.ditto.concierge.service.common.ConciergeConfig;
 import org.eclipse.ditto.concierge.service.common.DittoConciergeConfig;
 import org.eclipse.ditto.concierge.service.enforcement.placeholders.references.PolicyIdReferencePlaceholderResolver;
 import org.eclipse.ditto.concierge.service.enforcement.placeholders.references.ReferencePlaceholder;
+import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.cache.Cache;
@@ -519,7 +521,7 @@ public final class ThingCommandEnforcement
      * @param enforcer the enforcer.
      * @return response with view on entity restricted by enforcer.
      */
-    private static <T extends ThingQueryCommandResponse<T>> T buildJsonViewForThingQueryCommandResponse(
+    static <T extends ThingQueryCommandResponse<T>> T buildJsonViewForThingQueryCommandResponse(
             final ThingQueryCommandResponse<T> response, final Enforcer enforcer) {
 
         final JsonValue entity = response.getEntity();
@@ -1203,8 +1205,9 @@ public final class ThingCommandEnforcement
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
             this.thingIdCache = requireNonNull(thingIdCache);
             this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
-            this.preEnforcer = Optional.ofNullable(preEnforcer).orElse(CompletableFuture::completedFuture);
-            this.creationRestrictionEnforcer = Optional.ofNullable(creationRestrictionEnforcer).orElse(CreationRestrictionEnforcer.NULL);
+            this.preEnforcer = Objects.requireNonNullElseGet(preEnforcer, () -> CompletableFuture::completedFuture);
+            this.creationRestrictionEnforcer = Optional.ofNullable(creationRestrictionEnforcer)
+                    .orElse(CreationRestrictionEnforcer.NULL);
         }
 
         @Override
@@ -1215,9 +1218,10 @@ public final class ThingCommandEnforcement
 
         @Override
         public boolean isApplicable(final ThingCommand<?> command) {
+
             // live commands are not applicable for thing command enforcement
             // because they should never be forwarded to things shard region
-            return !LiveSignalEnforcement.isLiveSignal(command);
+            return !SignalInformationPoint.isChannelLive(command);
         }
 
         @Override
@@ -1227,8 +1231,14 @@ public final class ThingCommandEnforcement
 
         @Override
         public AbstractEnforcement<ThingCommand<?>> createEnforcement(final Contextual<ThingCommand<?>> context) {
-            return new ThingCommandEnforcement(context, actorSystem, thingsShardRegion, policiesShardRegion, thingIdCache,
-                    policyEnforcerCache, preEnforcer, creationRestrictionEnforcer);
+            return new ThingCommandEnforcement(context,
+                    actorSystem,
+                    thingsShardRegion,
+                    policiesShardRegion,
+                    thingIdCache,
+                    policyEnforcerCache,
+                    preEnforcer,
+                    creationRestrictionEnforcer);
         }
 
     }

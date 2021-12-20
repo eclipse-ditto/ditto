@@ -12,13 +12,16 @@
  */
 package org.eclipse.ditto.base.model.namespaces.signals.commands;
 
+import java.util.Collections;
+
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Response to {@link UnblockNamespace}.
@@ -31,10 +34,32 @@ public final class UnblockNamespaceResponse extends AbstractNamespaceCommandResp
      */
     public static final String TYPE = TYPE_PREFIX + UnblockNamespace.NAME;
 
-    private UnblockNamespaceResponse(final CharSequence namespace, final CharSequence resourceType,
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<UnblockNamespaceResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new UnblockNamespaceResponse(
+                                jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.NAMESPACE),
+                                jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.RESOURCE_TYPE),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
+
+    private UnblockNamespaceResponse(final CharSequence namespace,
+            final CharSequence resourceType,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(namespace, resourceType, TYPE, HttpStatus.OK, dittoHeaders);
+        super(namespace,
+                resourceType,
+                TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        UnblockNamespaceResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -47,17 +72,18 @@ public final class UnblockNamespaceResponse extends AbstractNamespaceCommandResp
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code namespace} or {@code resourceType} is empty.
      */
-    public static UnblockNamespaceResponse getInstance(final CharSequence namespace, final CharSequence resourceType,
+    public static UnblockNamespaceResponse getInstance(final CharSequence namespace,
+            final CharSequence resourceType,
             final DittoHeaders dittoHeaders) {
 
-        return new UnblockNamespaceResponse(namespace, resourceType, dittoHeaders);
+        return new UnblockNamespaceResponse(namespace, resourceType, HTTP_STATUS, dittoHeaders);
     }
 
     /**
      * Creates a new {@code UnblockNamespaceResponse} from the given JSON object.
      *
      * @param jsonObject the JSON object of which the UnblockNamespaceResponse is to be created.
-     * @param headers the headers.
+     * @param dittoHeaders the dittoHeaders.
      * @return the deserialized response.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} was not in the expected format.
@@ -67,20 +93,13 @@ public final class UnblockNamespaceResponse extends AbstractNamespaceCommandResp
      * <li>{@link org.eclipse.ditto.base.model.namespaces.signals.commands.NamespaceCommandResponse.JsonFields#RESOURCE_TYPE}.</li>
      * </ul>
      */
-    public static UnblockNamespaceResponse fromJson(final JsonObject jsonObject, final DittoHeaders headers) {
-        return new CommandResponseJsonDeserializer<UnblockNamespaceResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final String namespace = jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.NAMESPACE);
-                    final String resourceType =
-                            jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.RESOURCE_TYPE);
-
-                    return new UnblockNamespaceResponse(namespace, resourceType, headers);
-                });
+    public static UnblockNamespaceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
     public UnblockNamespaceResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new UnblockNamespaceResponse(getNamespace(), getResourceType(), dittoHeaders);
+        return new UnblockNamespaceResponse(getNamespace(), getResourceType(), getHttpStatus(), dittoHeaders);
     }
 
     @Override

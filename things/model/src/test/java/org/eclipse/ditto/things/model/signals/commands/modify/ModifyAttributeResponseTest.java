@@ -36,7 +36,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ModifyAttributeResponse}.
  */
-public class ModifyAttributeResponseTest {
+public final class ModifyAttributeResponseTest {
 
     private static final JsonObject KNOWN_JSON_CREATED = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, ModifyAttributeResponse.TYPE)
@@ -112,4 +112,5 @@ public class ModifyAttributeResponseTest {
         ModifyAttributeResponse.modified(TestConstants.Thing.THING_ID, TestConstants.Pointer.EMPTY_JSON_POINTER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
+
 }

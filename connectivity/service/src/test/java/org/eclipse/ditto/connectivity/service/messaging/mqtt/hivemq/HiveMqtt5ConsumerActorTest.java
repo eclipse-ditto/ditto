@@ -45,7 +45,6 @@ import com.hivemq.client.internal.checkpoint.Confirmable;
 import com.hivemq.client.internal.mqtt.message.publish.MqttPublish;
 import com.hivemq.client.mqtt.mqtt5.datatypes.Mqtt5UserProperties;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
-import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
 import akka.actor.Props;

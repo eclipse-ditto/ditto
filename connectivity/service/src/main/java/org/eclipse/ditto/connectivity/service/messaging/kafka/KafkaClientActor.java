@@ -26,7 +26,6 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.service.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
@@ -65,7 +64,7 @@ public final class KafkaClientActor extends BaseClientActor {
     private final KafkaConfig kafkaConfig;
 
     private KafkaClientActor(final Connection connection,
-            @Nullable final ActorRef proxyActor,
+            final ActorRef proxyActor,
             final ActorRef connectionActor,
             final KafkaPublisherActorFactory publisherActorFactory,
             final DittoHeaders dittoHeaders,
@@ -81,7 +80,7 @@ public final class KafkaClientActor extends BaseClientActor {
 
     @SuppressWarnings("unused") // used by `props` via reflection
     private KafkaClientActor(final Connection connection,
-            @Nullable final ActorRef proxyActor,
+            final ActorRef proxyActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
@@ -101,7 +100,7 @@ public final class KafkaClientActor extends BaseClientActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final Connection connection,
-            @Nullable final ActorRef proxyActor,
+            final ActorRef proxyActor,
             final ActorRef connectionActor,
             final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
@@ -111,7 +110,7 @@ public final class KafkaClientActor extends BaseClientActor {
     }
 
     static Props propsForTests(final Connection connection,
-            @Nullable final ActorRef proxyActor,
+            final ActorRef proxyActor,
             final ActorRef connectionActor,
             final KafkaPublisherActorFactory factory,
             final DittoHeaders dittoHeaders) {
@@ -206,7 +205,7 @@ public final class KafkaClientActor extends BaseClientActor {
                         getContext().getSystem());
         final Props publisherActorProps =
                 publisherActorFactory.props(connection(), producerFactory, dryRun,
-                        getDefaultClientId(), connectivityStatusResolver, connectivityConfig());
+                        getDefaultClientId(), getProxyActor(), connectivityStatusResolver, connectivityConfig());
         kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.getActorName(), publisherActorProps);
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
     }

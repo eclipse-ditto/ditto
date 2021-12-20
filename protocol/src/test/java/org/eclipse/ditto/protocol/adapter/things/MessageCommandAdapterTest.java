@@ -25,33 +25,33 @@ import java.util.Collection;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonKey;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.KnownMessageSubjects;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageBuilder;
 import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.messages.model.MessagesModelFactory;
-import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
-import org.eclipse.ditto.protocol.Payload;
-import org.eclipse.ditto.protocol.PayloadBuilder;
-import org.eclipse.ditto.protocol.adapter.ProtocolAdapterTest;
-import org.eclipse.ditto.protocol.TestConstants;
-import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.Payload;
+import org.eclipse.ditto.protocol.PayloadBuilder;
+import org.eclipse.ditto.protocol.TestConstants;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocol.adapter.ProtocolAdapterTest;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -235,6 +235,7 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
 
     private DittoHeaders expectedDittoHeaders(final CharSequence contentType) {
         final DittoHeadersBuilder<?, ?> headersBuilder = DittoHeaders.newBuilder()
+                .channel(TopicPath.Channel.LIVE.getName())
                 .correlationId(TestConstants.CORRELATION_ID)
                 .schemaVersion(version);
         if (contentType != null) {
@@ -250,6 +251,7 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
         headersBuilder.putHeaders(MessageHeaders.newBuilder(direction, TestConstants.THING_ID, subject)
                 .featureId(SendFeatureMessage.TYPE.equals(type) ? FEATURE_ID : null)
                 .build());
+        headersBuilder.channel(TopicPath.Channel.LIVE.getName());
         headersBuilder.correlationId(TestConstants.CORRELATION_ID);
         headersBuilder.schemaVersion(version);
         if (contentType != null) {

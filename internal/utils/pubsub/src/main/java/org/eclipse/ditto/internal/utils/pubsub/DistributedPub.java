@@ -14,9 +14,9 @@ package org.eclipse.ditto.internal.utils.pubsub;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.internal.utils.pubsub.extractors.PubSubTopicExtractor;
-import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 
 import akka.actor.ActorRef;
 
@@ -94,4 +94,5 @@ public interface DistributedPub<T> {
             final PubSubTopicExtractor<T> topicExtractor) {
         return new DistributedPubImpl<>(pubSupervisor, topicExtractor);
     }
+
 }

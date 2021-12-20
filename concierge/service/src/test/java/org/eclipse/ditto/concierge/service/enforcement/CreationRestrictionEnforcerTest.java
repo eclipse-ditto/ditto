@@ -12,7 +12,12 @@
  */
 package org.eclipse.ditto.concierge.service.enforcement;
 
-import com.typesafe.config.ConfigFactory;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
@@ -25,11 +30,7 @@ import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import com.typesafe.config.ConfigFactory;
 
 public final class CreationRestrictionEnforcerTest {
 

@@ -14,12 +14,10 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import java.time.Duration;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;

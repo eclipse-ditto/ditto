@@ -28,7 +28,6 @@ import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayDuplicateHeaderException;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.TopicPath;
 
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpMessage;
@@ -170,7 +169,6 @@ final class RootRouteHeadersStepBuilder {
             avoidConflictingHeaders(headersFromQueryParameters);
             dittoHeadersBuilder.putHeaders(filteredExternalHeaders);
             dittoHeadersBuilder.putHeaders(headersFromQueryParameters);
-            setLiveChannelName(queryParameters);
 
             return new BuildStep(dittoHeadersBuilder, requestContext);
         }
@@ -190,18 +188,6 @@ final class RootRouteHeadersStepBuilder {
                     .message(MessageFormat.format(msgPattern, headerKey))
                     .dittoHeaders(dittoHeadersBuilder.build())
                     .build();
-        }
-
-        /*
-         * If the "live" query param was set - no matter what the value was - use live channel.
-         */
-        private void setLiveChannelName(final Map<String, String> queryParameters) {
-            final String liveChannelName = TopicPath.Channel.LIVE.getName();
-            if (null != queryParameters.get(liveChannelName)) {
-                dittoHeadersBuilder.channel(liveChannelName);
-            } else {
-                dittoHeadersBuilder.channel(null);
-            }
         }
 
     }

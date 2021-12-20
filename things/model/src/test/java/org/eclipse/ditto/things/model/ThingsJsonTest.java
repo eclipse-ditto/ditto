@@ -154,22 +154,6 @@ public final class ThingsJsonTest {
         assertThat(actual).isEqualTo(expected);
     }
 
-    /**
-     *
-     */
-    @Test
-    public void toJsonWithOnlySchemaVersionSelected() {
-        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector(Thing.JsonFields.SCHEMA_VERSION);
-
-        final JsonObject expectedJson = JsonFactory.newObjectBuilder()
-                .set(Thing.JsonFields.SCHEMA_VERSION.getPointer(), JsonSchemaVersion.V_2.toInt())
-                .build();
-
-        final JsonObject actualJson = TestConstants.Thing.THING_V2.toJson(JsonSchemaVersion.V_2, fieldSelector);
-
-        assertThat(actualJson).isEqualToIgnoringFieldDefinitions(expectedJson);
-    }
-
     @Test
     public void toJsonWithOnlyLifecycleSelected() {
         final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector(Thing.JsonFields.LIFECYCLE);
@@ -300,7 +284,6 @@ public final class ThingsJsonTest {
     @Test
     public void toJsonWithSpecialFieldTypePredicateReturnsExpected() {
         final JsonObject expectedJson = JsonFactory.newObjectBuilder()
-                .set(Thing.JsonFields.SCHEMA_VERSION, JsonSchemaVersion.V_2.toInt())
                 .set(Thing.JsonFields.LIFECYCLE, TestConstants.Thing.LIFECYCLE.name())
                 .set(Thing.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
                 .set(Thing.JsonFields.NAMESPACE, "example.com")

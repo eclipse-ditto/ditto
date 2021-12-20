@@ -55,8 +55,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
     }
 
     @Override
-    public Props getActorPropsForType(final Connection connection,
-            @Nullable final ActorRef proxyActor,
+    public Props getActorPropsForType(final Connection connection, final ActorRef proxyActor,
             final ActorRef connectionActor,
             final ActorSystem actorSystem,
             final DittoHeaders dittoHeaders,
@@ -86,7 +85,7 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
                         connectivityConfigOverwrites);
                 break;
             case HTTP_PUSH:
-                result = HttpPushClientActor.props(connection, connectionActor, dittoHeaders,
+                result = HttpPushClientActor.props(connection, proxyActor, connectionActor, dittoHeaders,
                         connectivityConfigOverwrites);
                 break;
             default:

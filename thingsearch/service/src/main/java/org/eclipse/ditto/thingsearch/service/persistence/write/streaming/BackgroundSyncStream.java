@@ -101,7 +101,7 @@ public final class BackgroundSyncStream {
                 .flatMapConcat(this::filterForInconsistency);
     }
 
-    private boolean isInsideToleranceWindow(final Metadata metadata, final Instant toleranceCutOff) {
+    private static boolean isInsideToleranceWindow(final Metadata metadata, final Instant toleranceCutOff) {
         return metadata.getModified()
                 .map(modified -> modified.isAfter(toleranceCutOff))
                 .orElse(false);

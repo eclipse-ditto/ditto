@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.base.api.devops.signals.commands;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -24,21 +23,21 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.api.devops.ImmutableLoggerConfig;
 import org.eclipse.ditto.base.api.devops.LoggerConfig;
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.base.model.signals.commands.WithEntity;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Response to the {@link RetrieveLoggerConfig} command.
@@ -46,7 +45,7 @@ import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveLoggerConfigResponse.TYPE)
 public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandResponse<RetrieveLoggerConfigResponse>
-    implements WithEntity<RetrieveLoggerConfigResponse> {
+        implements WithEntity<RetrieveLoggerConfigResponse> {
 
     /**
      * Type of this response.
@@ -54,18 +53,47 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
     public static final String TYPE = TYPE_PREFIX + RetrieveLoggerConfig.NAME;
 
     public static final JsonFieldDefinition<JsonArray> JSON_LOGGER_CONFIGS =
-            JsonFactory.newJsonArrayFieldDefinition("loggerConfigs", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonArray("loggerConfigs", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<RetrieveLoggerConfigResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final var jsonObject = context.getJsonObject();
+
+                        final var loggerConfigsJsonArray = jsonObject.getValueOrThrow(JSON_LOGGER_CONFIGS);
+                        final var loggerConfigs = loggerConfigsJsonArray.stream()
+                                .filter(JsonValue::isObject)
+                                .map(JsonValue::asObject)
+                                .map(ImmutableLoggerConfig::fromJson)
+                                .collect(Collectors.toList());
+
+                        return new RetrieveLoggerConfigResponse(
+                                jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME).orElse(null),
+                                jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE).orElse(null),
+                                loggerConfigs,
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final List<LoggerConfig> loggerConfigs;
 
     private RetrieveLoggerConfigResponse(@Nullable final String serviceName,
             @Nullable final String instance,
             final List<LoggerConfig> loggerConfigs,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, serviceName, instance, HttpStatus.OK, dittoHeaders);
-        this.loggerConfigs = Collections.unmodifiableList(new ArrayList<>(loggerConfigs));
+        super(TYPE,
+                serviceName,
+                instance,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveLoggerConfigResponse.class),
+                dittoHeaders);
+        this.loggerConfigs = List.copyOf(loggerConfigs);
     }
 
     /**
@@ -82,7 +110,7 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
             final List<LoggerConfig> loggerConfigs,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveLoggerConfigResponse(serviceName, instance, loggerConfigs, dittoHeaders);
+        return new RetrieveLoggerConfigResponse(serviceName, instance, loggerConfigs, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -97,7 +125,7 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
      * format.
      */
     public static RetrieveLoggerConfigResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -111,21 +139,7 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
      * format.
      */
     public static RetrieveLoggerConfigResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveLoggerConfigResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final String serviceName = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME)
-                            .orElse(null);
-                    final String instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)
-                            .orElse(null);
-                    final JsonArray loggerConfigsJsonArray = jsonObject.getValueOrThrow(JSON_LOGGER_CONFIGS);
-                    final List<LoggerConfig> loggerConfigs = loggerConfigsJsonArray.stream()
-                            .filter(JsonValue::isObject)
-                            .map(JsonValue::asObject)
-                            .map(ImmutableLoggerConfig::fromJson)
-                            .collect(Collectors.toList());
-
-                    return of(serviceName, instance, loggerConfigs, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -144,11 +158,15 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
 
     @Override
     public RetrieveLoggerConfigResponse setEntity(final JsonValue entity) {
-        return of(getServiceName().orElse(null), getInstance().orElse(null), entity.asArray().stream()
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .map(ImmutableLoggerConfig::fromJson)
-                .collect(Collectors.toList()), getDittoHeaders());
+        final var entityJsonArray = entity.asArray();
+        return of(getServiceName().orElse(null),
+                getInstance().orElse(null),
+                entityJsonArray.stream()
+                        .filter(JsonValue::isObject)
+                        .map(JsonValue::asObject)
+                        .map(ImmutableLoggerConfig::fromJson)
+                        .collect(Collectors.toList()),
+                getDittoHeaders());
     }
 
     @Override
@@ -159,16 +177,14 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
 
-        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JSON_LOGGER_CONFIGS, loggerConfigs.stream()
-                .map(LoggerConfig::toJson)
-                .collect(JsonCollectors.valuesToArray()), predicate)
-                .build();
+        final var predicate = schemaVersion.and(thePredicate);
+        jsonObjectBuilder.set(JSON_LOGGER_CONFIGS, getEntity(schemaVersion).asArray(), predicate);
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")
@@ -180,7 +196,7 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final RetrieveLoggerConfigResponse that = (RetrieveLoggerConfigResponse) o;
+        final var that = (RetrieveLoggerConfigResponse) o;
         return that.canEqual(this) && Objects.equals(loggerConfigs, that.loggerConfigs) && super.equals(that);
     }
 

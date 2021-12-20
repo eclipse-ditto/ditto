@@ -73,6 +73,24 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
                 .thenApply(response -> filterJsonView(response, enforcer));
     }
 
+    @SuppressWarnings("unchecked")
+    protected CompletionStage<R> askAndBuildJsonView(
+            final ActorRef actorToAsk,
+            final C commandWithReadSubjects,
+            final Object publish,
+            final Enforcer enforcer,
+            final Scheduler scheduler,
+            final Executor executor) {
+
+        return ask(actorToAsk, commandWithReadSubjects, publish, "before building JsonView", scheduler, executor)
+                .thenApply(response -> filterJsonView((R) response.setDittoHeaders(
+                        response.getDittoHeaders()
+                                .toBuilder()
+                                .authorizationContext(commandWithReadSubjects.getDittoHeaders().getAuthorizationContext())
+                                .build()
+                ), enforcer));
+    }
+
     /**
      * Asks the given {@code actorToAsk} for a response by telling {@code commandWithReadSubjects}.
      *
@@ -84,7 +102,6 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
      * @return A completion stage which either completes with a filtered response of type {@link R} or fails with a
      * {@link DittoRuntimeException}.
      */
-    @SuppressWarnings("unchecked") // We can ignore this warning since it is tested that response class is assignable
     protected CompletionStage<R> ask(
             final ActorRef actorToAsk,
             final C commandWithReadSubjects,
@@ -92,7 +109,20 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
             final Scheduler scheduler,
             final Executor executor) {
 
-        return AskWithRetry.askWithRetry(actorToAsk, wrapBeforeAsk(commandWithReadSubjects),
+        final var publish = wrapBeforeAsk(commandWithReadSubjects);
+        return ask(actorToAsk, commandWithReadSubjects, publish, hint, scheduler, executor);
+    }
+
+    @SuppressWarnings("unchecked") // We can ignore this warning since it is tested that response class is assignable
+    protected CompletionStage<R> ask(
+            final ActorRef actorToAsk,
+            final C signal,
+            final Object publish,
+            final String hint,
+            final Scheduler scheduler,
+            final Executor executor) {
+
+        return AskWithRetry.askWithRetry(actorToAsk, publish,
                 getAskWithRetryConfig(), scheduler, executor,
                 response -> {
                     if (responseClass.isAssignableFrom(response.getClass())) {
@@ -100,9 +130,9 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
                     } else if (response instanceof ErrorResponse) {
                         throw ((ErrorResponse<?>) response).getDittoRuntimeException();
                     } else if (response instanceof AskException) {
-                        throw handleAskTimeoutForCommand(commandWithReadSubjects, (Throwable) response);
+                        throw handleAskTimeoutForCommand(signal, (Throwable) response);
                     } else if (response instanceof AskTimeoutException) {
-                        throw handleAskTimeoutForCommand(commandWithReadSubjects, (Throwable) response);
+                        throw handleAskTimeoutForCommand(signal, (Throwable) response);
                     } else {
                         throw reportErrorOrResponse(hint, response, null);
                     }
@@ -110,11 +140,11 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
         ).exceptionally(throwable -> {
             final DittoRuntimeException dre = DittoRuntimeException.asDittoRuntimeException(throwable, cause ->
                     AskException.newBuilder()
-                            .dittoHeaders(commandWithReadSubjects.getDittoHeaders())
+                            .dittoHeaders(signal.getDittoHeaders())
                             .cause(cause)
                             .build());
             if (dre instanceof AskException) {
-                throw handleAskTimeoutForCommand(commandWithReadSubjects, throwable);
+                throw handleAskTimeoutForCommand(signal, throwable);
             } else {
                 throw dre;
             }

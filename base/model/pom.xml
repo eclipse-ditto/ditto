@@ -66,6 +66,7 @@
                         <configuration>
                             <includes>
                                 <include>org/eclipse/ditto/base/model/assertions/*</include>
+                                <include>org/eclipse/ditto/base/model/correlationid/*</include>
                                 <include>org/eclipse/ditto/base/model/entity/id/restriction/*</include>
                                 <include>org/eclipse/ditto/base/model/signals/*</include>
                                 <include>org/eclipse/ditto/base/model/signals/assertions/*</include>

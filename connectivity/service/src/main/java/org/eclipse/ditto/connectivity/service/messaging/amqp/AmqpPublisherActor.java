@@ -42,6 +42,7 @@ import javax.jms.Session;
 
 import org.apache.qpid.jms.message.JmsMessage;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
@@ -114,10 +115,11 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private AmqpPublisherActor(final Connection connection,
             final Session session,
             final String clientId,
+            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
-        super(connection, clientId, connectivityStatusResolver, connectivityConfig);
+        super(connection, clientId, proxyActor, connectivityStatusResolver, connectivityConfig);
         this.session = checkNotNull(session, "session");
 
         final Executor jmsDispatcher = JMSConnectionHandlingActor.getOwnDispatcher(getContext().system());
@@ -127,7 +129,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         final Pair<SourceQueueWithComplete<Pair<ExternalMessage, AmqpMessageContext>>, UniqueKillSwitch> materialized =
                 Source.<Pair<ExternalMessage, AmqpMessageContext>>queue(config.getPublisherConfig().getMaxQueueSize(),
                                 OverflowStrategy.dropNew())
-                        .mapAsync(config.getPublisherConfig().getParallelism(), msg -> triggerPublishAsync(msg, jmsDispatcher))
+                        .mapAsync(config.getPublisherConfig().getParallelism(),
+                                msg -> triggerPublishAsync(msg, jmsDispatcher))
                         .recover(new PFBuilder<Throwable, Object>()
                                 // the "Done" instance is not used, this just means to not fail the stream for any Throwables
                                 .matchAny(x -> Done.getInstance())
@@ -173,15 +176,25 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      * @param connection the connection this publisher belongs to
      * @param session the jms session
      * @param clientId identifier of the client actor.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the connectivity configuration including potential overwrites.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connection connection, final Session session, final String clientId,
+    static Props props(final Connection connection,
+            final Session session,
+            final String clientId,
+            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
-        return Props.create(AmqpPublisherActor.class, connection, session, clientId, connectivityStatusResolver,
+
+        return Props.create(AmqpPublisherActor.class,
+                connection,
+                session,
+                clientId,
+                proxyActor,
+                connectivityStatusResolver,
                 connectivityConfig);
     }
 
@@ -320,7 +333,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             final AmqpTarget publishTarget,
             final ExternalMessage message,
             final int maxTotalMessageSize,
-            final int ackSizeQuota) {
+            final int ackSizeQuota,
+            @Nullable final AuthorizationContext targetAuthorizationContext) {
 
         if (!isInBackOffMode) {
             final CompletableFuture<SendResult> resultFuture = new CompletableFuture<>();
@@ -566,4 +580,5 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
          */
         START_PRODUCER
     }
+
 }

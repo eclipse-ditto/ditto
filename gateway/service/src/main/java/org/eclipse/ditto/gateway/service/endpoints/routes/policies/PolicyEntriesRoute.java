@@ -21,9 +21,8 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
@@ -58,10 +57,7 @@ import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResource;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveResources;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubject;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrieveSubjects;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
@@ -79,24 +75,16 @@ final class PolicyEntriesRoute extends AbstractRoute {
     private final TokenIntegrationSubjectIdFactory tokenIntegrationSubjectIdFactory;
 
     /**
-     * Constructs the {@code /entries} route builder.
+     * Constructs a {@code PolicyEntriesRoute} object.
      *
-     * @param proxyActor an actor selection of the command delegating actor.
-     * @param actorSystem the ActorSystem to use.
-     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
-     * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
-     * @param headerTranslator translates headers from external sources or to external sources.
+     * @param routeBaseProperties the base properties of the route.
      * @param tokenIntegrationSubjectIdFactory factory of token integration subject IDs.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    PolicyEntriesRoute(final ActorRef proxyActor,
-            final ActorSystem actorSystem,
-            final HttpConfig httpConfig,
-            final CommandConfig commandConfig,
-            final HeaderTranslator headerTranslator,
+    PolicyEntriesRoute(final RouteBaseProperties routeBaseProperties,
             final TokenIntegrationSubjectIdFactory tokenIntegrationSubjectIdFactory) {
 
-        super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
+        super(routeBaseProperties);
         this.tokenIntegrationSubjectIdFactory = tokenIntegrationSubjectIdFactory;
     }
 
@@ -105,8 +93,11 @@ final class PolicyEntriesRoute extends AbstractRoute {
      *
      * @return the {@code /entries} route.
      */
-    Route buildPolicyEntriesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId,
+    Route buildPolicyEntriesRoute(final RequestContext ctx,
+            final DittoHeaders dittoHeaders,
+            final PolicyId policyId,
             final AuthenticationResult authResult) {
+
         return concat(
                 policyEntries(ctx, dittoHeaders, policyId),
                 policyEntry(ctx, dittoHeaders, policyId),
@@ -253,8 +244,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
                                                                 handlePerRequest(ctx, dittoHeaders,
                                                                         payloadSource,
                                                                         subjectJson -> ModifySubject
-                                                                                .of(policyId, Label.of(
-                                                                                        label),
+                                                                                .of(policyId, Label.of(label),
                                                                                         createSubjectForPut(subjectJson,
                                                                                                 subjectId),
                                                                                         dittoHeaders))
@@ -371,17 +361,27 @@ final class PolicyEntriesRoute extends AbstractRoute {
                         // POST /entries/<label>/actions/activateTokenIntegration
                         rawPathPrefix(PathMatchers.slash().concat(ActivateTokenIntegration.NAME), () ->
                                 pathEndOrSingleSlash(() ->
-                                        PoliciesRoute.extractJwt(dittoHeaders, authResult, ActivateTokenIntegration.NAME, jwt ->
-                                                post(() -> PoliciesRoute.handleSubjectAnnouncement(this, dittoHeaders, sa ->
-                                                        activateTokenIntegration(dittoHeaders, policyId, label,
-                                                                jwt, sa))
-                                                )
+                                        PoliciesRoute.extractJwt(dittoHeaders,
+                                                authResult,
+                                                ActivateTokenIntegration.NAME,
+                                                jwt ->
+                                                        post(() -> PoliciesRoute.handleSubjectAnnouncement(this,
+                                                                dittoHeaders,
+                                                                sa ->
+                                                                        activateTokenIntegration(dittoHeaders,
+                                                                                policyId,
+                                                                                label,
+                                                                                jwt,
+                                                                                sa))
+                                                        )
                                         )
                                 )),
                         // POST /entries/<label>/actions/deactivateTokenIntegration
                         rawPathPrefix(PathMatchers.slash().concat(DeactivateTokenIntegration.NAME), () ->
                                 pathEndOrSingleSlash(() ->
-                                        PoliciesRoute.extractJwt(dittoHeaders, authResult, DeactivateTokenIntegration.NAME,
+                                        PoliciesRoute.extractJwt(dittoHeaders,
+                                                authResult,
+                                                DeactivateTokenIntegration.NAME,
                                                 jwt ->
                                                         post(() -> handlePerRequest(ctx,
                                                                 deactivateTokenIntegration(

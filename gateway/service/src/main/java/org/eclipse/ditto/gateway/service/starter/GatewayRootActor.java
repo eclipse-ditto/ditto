@@ -16,18 +16,17 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.base.model.headers.DittoHeadersSizeChecker;
-import org.eclipse.ditto.gateway.service.security.authentication.jwt.DittoJwtAuthorizationSubjectsProvider;
-import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
-import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthorizationSubjectsProviderFactory;
-import org.eclipse.ditto.gateway.service.security.utils.DefaultHttpClientFacade;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.base.service.actors.DittoRootActor;
 import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
+import org.eclipse.ditto.concierge.api.actors.ConciergeEnforcerClusterRouterFactory;
+import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
+import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RootRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.health.CachingHealthRoute;
@@ -48,21 +47,22 @@ import org.eclipse.ditto.gateway.service.health.GatewayHttpReadinessCheck;
 import org.eclipse.ditto.gateway.service.health.StatusAndHealthProvider;
 import org.eclipse.ditto.gateway.service.proxy.actors.AbstractProxyActor;
 import org.eclipse.ditto.gateway.service.proxy.actors.ProxyActor;
+import org.eclipse.ditto.gateway.service.security.authentication.jwt.DittoJwtAuthorizationSubjectsProvider;
+import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
+import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthorizationSubjectsProviderFactory;
+import org.eclipse.ditto.gateway.service.security.utils.DefaultHttpClientFacade;
 import org.eclipse.ditto.gateway.service.streaming.actors.StreamingActor;
 import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.gateway.service.util.config.health.HealthCheckConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.AuthenticationConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.gateway.service.util.config.streaming.GatewaySignalEnrichmentConfig;
-import org.eclipse.ditto.gateway.service.util.config.streaming.StreamingConfig;
-import org.eclipse.ditto.concierge.api.actors.ConciergeEnforcerClusterRouterFactory;
-import org.eclipse.ditto.concierge.api.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
 import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.internal.utils.config.LocalHostAddressSupplier;
 import org.eclipse.ditto.internal.utils.health.DefaultHealthCheckingActorFactory;
@@ -71,6 +71,7 @@ import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.internal.utils.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.protocol.HeaderTranslator;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
@@ -198,7 +199,6 @@ final class GatewayRootActor extends DittoRootActor {
      * @return the Akka configuration Props object.
      */
     static Props props(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator) {
-
         return Props.create(GatewayRootActor.class, gatewayConfig, pubSubMediator);
     }
 
@@ -206,9 +206,9 @@ final class GatewayRootActor extends DittoRootActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .matchEquals(GatewayHttpReadinessCheck.READINESS_ASK_MESSAGE, msg -> {
-                    final ActorRef sender = getSender();
-                    httpBinding.thenAccept(binding -> sender.tell(
-                            GatewayHttpReadinessCheck.READINESS_ASK_MESSAGE_RESPONSE, ActorRef.noSender()));
+                    final var sender = getSender();
+                    httpBinding.thenAccept(binding -> sender.tell(GatewayHttpReadinessCheck.READINESS_ASK_MESSAGE_RESPONSE,
+                            ActorRef.noSender()));
                 })
                 .build()
                 .orElse(super.createReceive());
@@ -251,36 +251,44 @@ final class GatewayRootActor extends DittoRootActor {
 
         final HttpConfig httpConfig = gatewayConfig.getHttpConfig();
 
-        final GatewaySignalEnrichmentConfig signalEnrichmentConfig =
-                gatewayConfig.getStreamingConfig().getSignalEnrichmentConfig();
-        final GatewaySignalEnrichmentProvider signalEnrichmentProvider =
-                signalEnrichmentProvider(signalEnrichmentConfig, actorSystem);
+        final var streamingConfig = gatewayConfig.getStreamingConfig();
+        final var signalEnrichmentConfig = streamingConfig.getSignalEnrichmentConfig();
+        final var signalEnrichmentProvider = signalEnrichmentProvider(signalEnrichmentConfig, actorSystem);
 
-        final StreamingConfig streamingConfig = gatewayConfig.getStreamingConfig();
-        final CommandConfig commandConfig = gatewayConfig.getCommandConfig();
+        final var commandConfig = gatewayConfig.getCommandConfig();
+
+        final var connectivityShardRegionProxyActor =
+                getConnectivityShardRegionProxyActor(actorSystem, gatewayConfig.getClusterConfig());
+
+        final var routeBaseProperties = RouteBaseProperties.newBuilder()
+                .actorSystem(actorSystem)
+                .proxyActor(proxyActor)
+                .httpConfig(httpConfig)
+                .commandConfig(commandConfig)
+                .headerTranslator(headerTranslator)
+                .connectivityShardRegionProxy(connectivityShardRegionProxyActor)
+                .build();
 
         return RootRoute.getBuilder(httpConfig)
-                .statsRoute(new StatsRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator,
-                        devopsAuthenticationDirective))
+                .statsRoute(new StatsRoute(routeBaseProperties, devopsAuthenticationDirective))
                 .statusRoute(new StatusRoute(clusterStateSupplier, healthCheckingActor, actorSystem))
-                .overallStatusRoute(new OverallStatusRoute(clusterStateSupplier, statusAndHealthProvider,
+                .overallStatusRoute(new OverallStatusRoute(clusterStateSupplier,
+                        statusAndHealthProvider,
                         statusAuthenticationDirective))
-                .cachingHealthRoute(
-                        new CachingHealthRoute(statusAndHealthProvider, gatewayConfig.getPublicHealthConfig()))
-                .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
-                        headerTranslator, devopsAuthenticationDirective))
-                .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator,
+                .cachingHealthRoute(new CachingHealthRoute(statusAndHealthProvider,
+                        gatewayConfig.getPublicHealthConfig()))
+                .devopsRoute(new DevOpsRoute(routeBaseProperties, devopsAuthenticationDirective))
+                .policiesRoute(new PoliciesRoute(routeBaseProperties,
                         OAuthTokenIntegrationSubjectIdFactory.of(authConfig.getOAuthConfig())))
                 .sseThingsRoute(ThingsSseRouteBuilder.getInstance(streamingActor, streamingConfig, pubSubMediator)
                         .withProxyActor(proxyActor)
                         .withSignalEnrichmentProvider(signalEnrichmentProvider))
-                .thingsRoute(new ThingsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
-                        gatewayConfig.getMessageConfig(), gatewayConfig.getClaimMessageConfig(), headerTranslator))
-                .thingSearchRoute(
-                        new ThingSearchRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
-                .whoamiRoute(new WhoamiRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
-                .cloudEventsRoute(new CloudEventsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
-                        headerTranslator, gatewayConfig.getCloudEventsConfig()))
+                .thingsRoute(new ThingsRoute(routeBaseProperties,
+                        gatewayConfig.getMessageConfig(),
+                        gatewayConfig.getClaimMessageConfig()))
+                .thingSearchRoute(new ThingSearchRoute(routeBaseProperties))
+                .whoamiRoute(new WhoamiRoute(routeBaseProperties))
+                .cloudEventsRoute(new CloudEventsRoute(routeBaseProperties, gatewayConfig.getCloudEventsConfig()))
                 .websocketRoute(WebSocketRoute.getInstance(streamingActor, streamingConfig, materializer)
                         .withSignalEnrichmentProvider(signalEnrichmentProvider)
                         .withHeaderTranslator(headerTranslator))
@@ -310,6 +318,14 @@ final class GatewayRootActor extends DittoRootActor {
 
         return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, null));
+    }
+
+    private static ActorRef getConnectivityShardRegionProxyActor(final ActorSystem actorSystem,
+            final ClusterConfig clusterConfig) {
+
+        final var shardRegionProxyActorFactory = ShardRegionProxyActorFactory.newInstance(actorSystem, clusterConfig);
+        return shardRegionProxyActorFactory.getShardRegionProxyActor(ConnectivityMessagingConstants.CLUSTER_ROLE,
+                ConnectivityMessagingConstants.SHARD_REGION);
     }
 
 }

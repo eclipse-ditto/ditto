@@ -30,7 +30,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.service.config.DittoServiceConfig;
 import org.eclipse.ditto.base.service.config.http.DefaultHttpProxyConfig;
 import org.eclipse.ditto.base.service.config.http.HttpProxyConfig;

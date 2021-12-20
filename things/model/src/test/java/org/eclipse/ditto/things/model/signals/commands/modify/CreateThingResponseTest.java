@@ -39,13 +39,6 @@ public final class CreateThingResponseTest {
             .set(CreateThingResponse.JSON_THING, TestConstants.Thing.THING.toJson(FieldType.regularOrSpecial()))
             .build();
 
-    private static final JsonObject KNOWN_JSON_UPDATED = JsonFactory.newObjectBuilder()
-            .set(ThingCommandResponse.JsonFields.TYPE, CreateThingResponse.TYPE)
-            .set(CreateThingResponse.JSON_THING, TestConstants.Thing.THING.toJson(FieldType.regularOrSpecial()))
-            .set(ThingCommandResponse.JsonFields.STATUS, HttpStatus.NO_CONTENT.getCode())
-            .build();
-
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(CreateThingResponse.class,
@@ -53,24 +46,23 @@ public final class CreateThingResponseTest {
                 provided(Thing.class).isAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(CreateThingResponse.class)
                 .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
         final CreateThingResponse underTestCreated =
                 CreateThingResponse.of(TestConstants.Thing.THING, TestConstants.EMPTY_DITTO_HEADERS);
+
         final JsonObject actualJsonCreated = underTestCreated.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJsonCreated).isEqualTo(KNOWN_JSON_CREATED);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {
@@ -79,12 +71,6 @@ public final class CreateThingResponseTest {
 
         assertThat(underTestCreated).isNotNull();
         assertThat(underTestCreated.getThingCreated()).contains(TestConstants.Thing.THING);
-
-        final CreateThingResponse underTestUpdated =
-                CreateThingResponse.fromJson(KNOWN_JSON_UPDATED, TestConstants.EMPTY_DITTO_HEADERS);
-
-        assertThat(underTestUpdated).isNotNull();
-        assertThat(underTestUpdated.getThingCreated()).contains(TestConstants.Thing.THING);
     }
 
 }

@@ -12,40 +12,38 @@
  */
 package org.eclipse.ditto.concierge.service.actors;
 
-import java.util.Optional;
-
 import org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants;
+import org.eclipse.ditto.internal.utils.cluster.ShardRegionProxyActorFactory;
+import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.policies.api.PoliciesMessagingConstants;
 import org.eclipse.ditto.things.api.ThingsMessagingConstants;
-import org.eclipse.ditto.internal.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.internal.utils.cluster.config.ClusterConfig;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.cluster.sharding.ClusterSharding;
 
 /**
  * Create and retrieve shard region proxies.
  */
 public final class ShardRegions {
 
-    private final ClusterSharding clusterSharding;
-    private final ShardRegionExtractor extractor;
+    private final ShardRegionProxyActorFactory shardRegionProxyActorFactory;
     private final ActorRef policies;
     private final ActorRef things;
     private final ActorRef connections;
 
-    private ShardRegions(final ActorSystem system, final ClusterConfig clusterConfig) {
-        clusterSharding = ClusterSharding.get(system);
-        extractor = ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), system);
-        policies = startShardRegionProxy(clusterSharding, extractor, PoliciesMessagingConstants.CLUSTER_ROLE,
-                PoliciesMessagingConstants.SHARD_REGION);
+    private ShardRegions(final ShardRegionProxyActorFactory shardRegionProxyActorFactory) {
+        this.shardRegionProxyActorFactory = shardRegionProxyActorFactory;
+        policies =
+                startShardRegionProxy(PoliciesMessagingConstants.CLUSTER_ROLE, PoliciesMessagingConstants.SHARD_REGION);
 
-        things = startShardRegionProxy(clusterSharding, extractor, ThingsMessagingConstants.CLUSTER_ROLE,
-                ThingsMessagingConstants.SHARD_REGION);
+        things = startShardRegionProxy(ThingsMessagingConstants.CLUSTER_ROLE, ThingsMessagingConstants.SHARD_REGION);
 
-        connections = startShardRegionProxy(clusterSharding, extractor, ConnectivityMessagingConstants.CLUSTER_ROLE,
+        connections = startShardRegionProxy(ConnectivityMessagingConstants.CLUSTER_ROLE,
                 ConnectivityMessagingConstants.SHARD_REGION);
+    }
+
+    private ActorRef startShardRegionProxy(final CharSequence clusterRole, final CharSequence shardRegionName) {
+        return shardRegionProxyActorFactory.getShardRegionProxyActor(clusterRole, shardRegionName);
     }
 
     /**
@@ -54,13 +52,14 @@ public final class ShardRegions {
      * @param actorSystem the actor system.
      * @param clusterConfig the cluster config of the actor system.
      * @return a new ShardRegions object.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ShardRegions of(final ActorSystem actorSystem, final ClusterConfig clusterConfig) {
-        return new ShardRegions(actorSystem, clusterConfig);
+        return new ShardRegions(ShardRegionProxyActorFactory.newInstance(actorSystem, clusterConfig));
     }
 
     /**
-     * Return the policies shard region proxy.
+     * Return the policies' shard region proxy.
      *
      * @return policies shard region proxy.
      */
@@ -69,7 +68,7 @@ public final class ShardRegions {
     }
 
     /**
-     * Return the things shard region proxy.
+     * Return the things' shard region proxy.
      *
      * @return things shard region proxy.
      */
@@ -78,7 +77,7 @@ public final class ShardRegions {
     }
 
     /**
-     * Return the connections shard region proxy.
+     * Return the connections' shard region proxy.
      *
      * @return connections shard region proxy.
      */
@@ -86,20 +85,4 @@ public final class ShardRegions {
         return connections;
     }
 
-    /**
-     * Start proxy of a shard region of one's choosing. The actor reference is not cached.
-     *
-     * @param shardRegionName name of the shard region.
-     * @param clusterRole role of cluster members where the shard region resides.
-     * @return reference of the shard region proxy.
-     */
-    public ActorRef startProxy(final String shardRegionName, final String clusterRole) {
-        return startShardRegionProxy(clusterSharding, extractor, clusterRole, shardRegionName);
-    }
-
-    private static ActorRef startShardRegionProxy(final ClusterSharding clusterSharding,
-            final ShardRegionExtractor extractor, final String clusterRole, final String shardRegionName) {
-
-        return clusterSharding.startProxy(shardRegionName, Optional.of(clusterRole), extractor);
-    }
 }

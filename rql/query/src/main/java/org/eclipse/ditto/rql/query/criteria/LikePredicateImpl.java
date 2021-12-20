@@ -12,10 +12,10 @@
  */
 package org.eclipse.ditto.rql.query.criteria;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.rql.query.LikeHelper;
 import org.eclipse.ditto.rql.query.criteria.visitors.PredicateVisitor;
-
-import javax.annotation.Nullable;
 
 /**
  * Like predicate.

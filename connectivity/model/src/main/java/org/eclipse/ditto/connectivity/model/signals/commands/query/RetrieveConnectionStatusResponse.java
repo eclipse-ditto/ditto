@@ -38,6 +38,7 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
@@ -48,7 +49,6 @@ import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonArrayBuilder;
 import org.eclipse.ditto.json.JsonCollectors;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -70,14 +70,34 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveConnectionStatus.NAME;
 
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<RetrieveConnectionStatusResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new RetrieveConnectionStatusResponse(
+                                ConnectionId.of(jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID)),
+                                jsonObject,
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
+
     private final ConnectionId connectionId;
     private final JsonObject jsonObject;
 
-    private RetrieveConnectionStatusResponse(final ConnectionId connectionId, final JsonObject jsonObject,
+    private RetrieveConnectionStatusResponse(final ConnectionId connectionId,
+            final JsonObject jsonObject,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatus.OK, dittoHeaders);
-        this.connectionId = checkNotNull(connectionId, "Connection ID");
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveConnectionStatusResponse.class),
+                dittoHeaders);
+        this.connectionId = checkNotNull(connectionId, "connectionId");
         this.jsonObject = jsonObject;
     }
 
@@ -92,7 +112,8 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     public static RetrieveConnectionStatusResponse of(final ConnectionId connectionId,
             final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new RetrieveConnectionStatusResponse(connectionId, jsonObject, dittoHeaders);
+
+        return new RetrieveConnectionStatusResponse(connectionId, jsonObject, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -114,7 +135,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
             final String statusDetails,
             final DittoHeaders dittoHeaders) {
 
-        checkNotNull(connectionId, "Connection ID");
+        checkNotNull(connectionId, "connectionId");
         checkNotNull(connectionClosedAt, "connectionClosedAt");
         final ResourceStatus resourceStatus =
                 ConnectivityModelFactory.newClientStatus(client, clientStatus, statusDetails, connectionClosedAt);
@@ -141,7 +162,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
      * format.
      */
     public static RetrieveConnectionStatusResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -157,14 +178,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     public static RetrieveConnectionStatusResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new CommandResponseJsonDeserializer<RetrieveConnectionStatusResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final String readConnectionId =
-                            jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-                    final ConnectionId connectionId = ConnectionId.of(readConnectionId);
-
-                    return of(connectionId, jsonObject, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     private static List<ResourceStatus> readAddressStatus(final JsonArray jsonArray) {
@@ -228,13 +242,14 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID,
+                connectionId.toString(),
                 predicate);
-
         jsonObjectBuilder.setAll(jsonObject);
     }
 
@@ -311,25 +326,25 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
     public static final class JsonFields extends CommandResponse.JsonFields {
 
         public static final JsonFieldDefinition<String> CONNECTION_STATUS =
-                JsonFactory.newStringFieldDefinition("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
+                JsonFieldDefinition.ofString("connectionStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         public static final JsonFieldDefinition<String> LIVE_STATUS =
-                JsonFactory.newStringFieldDefinition("liveStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
+                JsonFieldDefinition.ofString("liveStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         public static final JsonFieldDefinition<String> CONNECTED_SINCE =
-                JsonFactory.newStringFieldDefinition("connectedSince", FieldType.REGULAR, JsonSchemaVersion.V_2);
+                JsonFieldDefinition.ofString("connectedSince", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         public static final JsonFieldDefinition<JsonArray> CLIENT_STATUS =
-                JsonFactory.newJsonArrayFieldDefinition("clientStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
+                JsonFieldDefinition.ofJsonArray("clientStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         public static final JsonFieldDefinition<JsonArray> SOURCE_STATUS =
-                JsonFactory.newJsonArrayFieldDefinition("sourceStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
+                JsonFieldDefinition.ofJsonArray("sourceStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         public static final JsonFieldDefinition<JsonArray> TARGET_STATUS =
-                JsonFactory.newJsonArrayFieldDefinition("targetStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
+                JsonFieldDefinition.ofJsonArray("targetStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         public static final JsonFieldDefinition<JsonArray> SSH_TUNNEL_STATUS =
-                JsonFactory.newJsonArrayFieldDefinition("sshTunnelStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
+                JsonFieldDefinition.ofJsonArray("sshTunnelStatus", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     }
 
@@ -395,7 +410,6 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         }
 
         public Builder withAddressStatus(final ResourceStatus resourceStatus) {
-
             switch (resourceStatus.getResourceType()) {
                 case SOURCE:
                     sourceStatus = addToList(sourceStatus, resourceStatus);
@@ -416,21 +430,23 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
         public Builder withMissingResources(final Map<ResourceStatus.ResourceType, Integer> missingResources,
                 final int configuredClientCount,
                 final boolean clusterConnectivitySizeSufficientForClientCount) {
+
             this.missingResources = missingResources;
             this.configuredClientCount = configuredClientCount;
             this.clusterConnectivitySizeSufficientForClientCount = clusterConnectivitySizeSufficientForClientCount;
             return this;
         }
 
-        private List<ResourceStatus> addToList(@Nullable final List<ResourceStatus> existing,
+        private static List<ResourceStatus> addToList(@Nullable final List<ResourceStatus> existing,
                 final ResourceStatus resourceStatus) {
+
             final List<ResourceStatus> list = existing == null ? new ArrayList<>() : new ArrayList<>(existing);
             list.add(resourceStatus);
             return list;
         }
 
         public RetrieveConnectionStatusResponse build() {
-            final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
+            final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
             jsonObjectBuilder.set(CommandResponse.JsonFields.TYPE, TYPE);
             jsonObjectBuilder.set(CommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode());
             jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID,
@@ -455,8 +471,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                         .collect(JsonCollectors.valuesToArray());
             }
             clientStatusJsonArray = addMissingResourcesToResourcesArray(clientStatusJsonArray,
-                    ResourceStatus.ResourceType.CLIENT
-            );
+                    ResourceStatus.ResourceType.CLIENT);
             if (!clientStatusJsonArray.isEmpty()) {
                 jsonObjectBuilder.set(JsonFields.CLIENT_STATUS, clientStatusJsonArray);
             }
@@ -500,7 +515,10 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                 jsonObjectBuilder.set(JsonFields.SSH_TUNNEL_STATUS, sshTunnelStatusJsonArray);
             }
 
-            return new RetrieveConnectionStatusResponse(connectionId, jsonObjectBuilder.build(), dittoHeaders);
+            return new RetrieveConnectionStatusResponse(connectionId,
+                    jsonObjectBuilder.build(),
+                    HTTP_STATUS,
+                    dittoHeaders);
         }
 
         private JsonArray addMissingResourcesToResourcesArray(final JsonArray jsonArray,
@@ -540,6 +558,7 @@ public final class RetrieveConnectionStatusResponse extends AbstractCommandRespo
                 return jsonArrayBuilder.build();
             }
         }
+
     }
 
 }

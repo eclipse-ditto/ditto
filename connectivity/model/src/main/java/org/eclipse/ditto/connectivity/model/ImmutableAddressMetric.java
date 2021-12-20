@@ -72,14 +72,14 @@ final class ImmutableAddressMetric implements AddressMetric {
         } else {
             final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
             final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
-            jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
             final List<Measurement> sortedMeasurements = new ArrayList<>(measurements);
             sortedMeasurements.sort(getMeasurementComparator());
             for (final Measurement measurement : sortedMeasurements) {
                 final JsonPointer pointer = JsonFactory.newPointer(
                         JsonFactory.newKey(measurement.getMetricType().getName()),
                         measurement.isSuccess() ? SUCCESS_KEY : FAILURE_KEY);
-                jsonObjectBuilder.set(pointer, measurement.toJson().getValue(pointer).orElse(JsonFactory.newObject()));
+                jsonObjectBuilder.set(pointer,
+                        measurement.toJson(predicate).getValue(pointer).orElse(JsonFactory.newObject()));
             }
             return jsonObjectBuilder.build();
         }
@@ -114,7 +114,7 @@ final class ImmutableAddressMetric implements AddressMetric {
 
         if (idx1 < idx2) {
             return -score;
-        } else if (idx1 == idx2)  {
+        } else if (idx1 == idx2) {
             return m1.isSuccess() ? -1 : 1;
         } else {
             return score;
@@ -147,8 +147,12 @@ final class ImmutableAddressMetric implements AddressMetric {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {return true;}
-        if (!(o instanceof ImmutableAddressMetric)) {return false;}
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof ImmutableAddressMetric)) {
+            return false;
+        }
         final ImmutableAddressMetric that = (ImmutableAddressMetric) o;
         return Objects.equals(measurements, that.measurements);
     }
@@ -176,4 +180,5 @@ final class ImmutableAddressMetric implements AddressMetric {
         final String nonemptyKey = key.isEmpty() ? "<empty>" : key;
         return JsonFactory.newField(JsonKey.of(nonemptyKey), metric.toJson());
     }
+
 }
