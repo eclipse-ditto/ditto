@@ -14,27 +14,28 @@ package org.eclipse.ditto.policies.api.commands.sudo;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.policies.model.PolicyId;
 
 /**
  * Response to a {@link SudoRetrievePolicyRevisionResponse} command.
@@ -52,16 +53,36 @@ public final class SudoRetrievePolicyRevisionResponse
     public static final String TYPE = TYPE_PREFIX + SudoRetrievePolicyRevision.NAME;
 
     static final JsonFieldDefinition<Long> JSON_REVISION =
-            JsonFactory.newLongFieldDefinition("payload/revision", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofLong("payload/revision", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<SudoRetrievePolicyRevisionResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final var jsonObject = context.getJsonObject();
+                        return new SudoRetrievePolicyRevisionResponse(
+                                PolicyId.of(jsonObject.getValueOrThrow(SudoCommandResponse.JsonFields.JSON_POLICY_ID)),
+                                jsonObject.getValueOrThrow(JSON_REVISION),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final PolicyId policyId;
     private final long revision;
 
-    private SudoRetrievePolicyRevisionResponse(final PolicyId policyId, final long revision,
+    private SudoRetrievePolicyRevisionResponse(final PolicyId policyId,
+            final long revision,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatus.OK, dittoHeaders);
-        this.policyId = checkNotNull(policyId, "Policy ID");
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        SudoRetrievePolicyRevisionResponse.class),
+                dittoHeaders);
+        this.policyId = checkNotNull(policyId, "policyId");
         this.revision = revision;
     }
 
@@ -73,10 +94,11 @@ public final class SudoRetrievePolicyRevisionResponse
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      */
-    public static SudoRetrievePolicyRevisionResponse of(final PolicyId policyId, final long revision,
+    public static SudoRetrievePolicyRevisionResponse of(final PolicyId policyId,
+            final long revision,
             final DittoHeaders dittoHeaders) {
 
-        return new SudoRetrievePolicyRevisionResponse(policyId, revision, dittoHeaders);
+        return new SudoRetrievePolicyRevisionResponse(policyId, revision, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -93,7 +115,7 @@ public final class SudoRetrievePolicyRevisionResponse
     public static SudoRetrievePolicyRevisionResponse fromJson(final String jsonString,
             final DittoHeaders dittoHeaders) {
 
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -109,15 +131,7 @@ public final class SudoRetrievePolicyRevisionResponse
     public static SudoRetrievePolicyRevisionResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new CommandResponseJsonDeserializer<SudoRetrievePolicyRevisionResponse>(TYPE, jsonObject)
-                .deserialize(httpStatus -> {
-                    final var extractedPolicyId =
-                            jsonObject.getValueOrThrow(SudoCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final var policyId = PolicyId.of(extractedPolicyId);
-                    final long revision = jsonObject.getValueOrThrow(JSON_REVISION);
-
-                    return of(policyId, revision, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -151,10 +165,11 @@ public final class SudoRetrievePolicyRevisionResponse
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
-        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+        final var predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(SudoCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_REVISION, revision, predicate);
     }
@@ -172,7 +187,7 @@ public final class SudoRetrievePolicyRevisionResponse
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final SudoRetrievePolicyRevisionResponse that = (SudoRetrievePolicyRevisionResponse) o;
+        final var that = (SudoRetrievePolicyRevisionResponse) o;
         return that.canEqual(this) &&
                 Objects.equals(policyId, that.policyId) &&
                 revision == that.revision &&

@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.TemporalAmount;
@@ -25,8 +26,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -41,17 +44,20 @@ import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.LogType;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.config.FluencyLoggerPublisherConfig;
+import org.eclipse.ditto.connectivity.service.config.LoggerPublisherConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
+import org.komamitsu.fluency.Fluency;
 import org.slf4j.Logger;
 
 /**
- * This registry holds loggers for the connectivity service. The loggers are identified by the connection ID, a {@link
- * org.eclipse.ditto.connectivity.model.LogType}, a {@link org.eclipse.ditto.connectivity.model.LogCategory} and an
- * address. The public methods of this class should not throw exceptions since this can lead to crashing connections.
+ * This registry holds loggers for the connectivity service. The loggers are identified by the connection ID,
+ * a {@link org.eclipse.ditto.connectivity.model.LogType}, a {@link org.eclipse.ditto.connectivity.model.LogCategory}
+ * and an address. The public methods of this class should not throw exceptions since this can lead to crashing connections.
  */
 public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry<ConnectionLogger> {
 
@@ -60,7 +66,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
 
     private static final String MDC_CONNECTION_ID = ConnectivityMdcEntryKey.CONNECTION_ID.toString();
 
-    private static final ConcurrentMap<MapKey, MuteableConnectionLogger> LOGGERS = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<MapKey, ConnectionLogger> LOGGERS = new ConcurrentHashMap<>();
     private static final ConcurrentMap<EntityId, LogMetadata> METADATA = new ConcurrentHashMap<>();
 
     // artificial internal address for responses
@@ -70,16 +76,32 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     private final int failureCapacity;
     private final TemporalAmount loggingDuration;
     private final long maximumLogSizeInByte;
+    @Nullable private final FluentPublishingConnectionLoggerContext fluentPublishingConnectionLoggerContext;
 
     private ConnectionLoggerRegistry(final int successCapacity,
             final int failureCapacity,
             final long maximumLogSizeInByte,
-            final Duration loggingDuration) {
+            final Duration loggingDuration,
+            final LoggerPublisherConfig loggerPublisherConfig) {
 
         this.successCapacity = successCapacity;
         this.failureCapacity = failureCapacity;
         this.maximumLogSizeInByte = maximumLogSizeInByte;
         this.loggingDuration = checkNotNull(loggingDuration);
+
+        if (loggerPublisherConfig.isEnabled()) {
+            final FluencyLoggerPublisherConfig fluencyConfig = loggerPublisherConfig.getFluencyLoggerPublisherConfig();
+            final Fluency fluency = fluencyConfig.buildFluencyLoggerPublisher();
+            fluentPublishingConnectionLoggerContext = ConnectionLoggerFactory.newPublishingLoggerContext(fluency,
+                    fluencyConfig.getWaitUntilAllBufferFlushedDurationOnClose(),
+                    loggerPublisherConfig.getLogLevels(),
+                    loggerPublisherConfig.isLogHeadersAndPayload(),
+                    loggerPublisherConfig.getLogTag().orElse(null),
+                    loggerPublisherConfig.getAdditionalLogContext()
+            );
+        } else {
+            fluentPublishingConnectionLoggerContext = null;
+        }
     }
 
     /**
@@ -91,7 +113,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     public static ConnectionLoggerRegistry fromConfig(final MonitoringLoggerConfig config) {
         checkNotNull(config);
         return new ConnectionLoggerRegistry(config.successCapacity(), config.failureCapacity(),
-                config.maxLogSizeInBytes(), config.logDuration());
+                config.maxLogSizeInBytes(), config.logDuration(), config.getLoggerPublisherConfig());
     }
 
     /**
@@ -132,7 +154,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             final ConnectionId connectionId) {
 
         logger.trace("Logging is enabled, will aggregate logs for connection <{}>", connectionId);
-        final List<LogEntry> allLogs = streamLoggers(connectionId)
+        final List<LogEntry> allLogs = loggersForConnectionId(connectionId)
                 .map(ConnectionLogger::getLogs)
                 .flatMap(Collection::stream)
                 .sorted(Comparator.comparing(LogEntry::getTimestamp).reversed())
@@ -161,6 +183,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             currentSize = sizeWithNextEntry;
         }
         Collections.reverse(restrictedLogs);
+
         return restrictedLogs;
     }
 
@@ -170,12 +193,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @param connectionId the connection to check.
      * @return true if logging is currently enabled for the connection.
      */
-    protected static boolean isActiveForConnection(final ConnectionId connectionId) {
-        final boolean muted = streamLoggers(connectionId)
-                .findFirst()
-                .map(MuteableConnectionLogger::isMuted)
-                .orElse(true);
-        return !muted;
+    static boolean isActiveForConnection(final ConnectionId connectionId) {
+        return muteableLoggersForConnectionId(connectionId).anyMatch(Predicate.not(MuteableConnectionLogger::isMuted));
     }
 
     /**
@@ -190,6 +209,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         if (enabledUntil == null || timestamp.isAfter(enabledUntil)) {
             LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
                     .debug("Logging for connection <{}> expired.", connectionId);
+
             return true;
         }
 
@@ -207,8 +227,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 .info("Muting loggers for connection <{}>.", connectionId);
 
         try {
-            streamLoggers(connectionId)
-                    .forEach(MuteableConnectionLogger::mute);
+            muteableLoggersForConnectionId(connectionId).forEach(MuteableConnectionLogger::mute);
             stopMetadata(connectionId);
             resetForConnectionId(connectionId);
         } catch (final Exception e) {
@@ -226,21 +245,43 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     public void unmuteForConnection(final ConnectionId connectionId) {
         LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
                 .info("Unmuting loggers for connection <{}>.", connectionId);
+        tryToUnmuteLoggersForConnection(connectionId);
+        startMetadata(connectionId);
+    }
 
+    private static void tryToUnmuteLoggersForConnection(final ConnectionId connectionId) {
         try {
-            streamLoggers(connectionId)
-                    .forEach(MuteableConnectionLogger::unmute);
-            startMetadata(connectionId);
+            unmuteLoggersForConnection(connectionId);
         } catch (final Exception e) {
             LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
                     .error("Failed unmuting loggers for connection <{}>. Reason: <{}>.", connectionId, e);
         }
     }
 
-    private static Stream<MuteableConnectionLogger> streamLoggers(final ConnectionId connectionId) {
-        return LOGGERS.entrySet()
-                .stream()
-                .filter(e -> e.getKey().connectionId.equals(connectionId))
+    private static void unmuteLoggersForConnection(final ConnectionId connectionId) {
+        final var amountUnmutedLoggers = muteableLoggersForConnectionId(connectionId)
+                .mapToInt(logger -> {
+                    logger.unmute();
+                    return 1;
+                })
+                .sum();
+        LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
+                .info("Unmuted <{}> loggers for connection <{}>.", amountUnmutedLoggers, connectionId);
+    }
+
+    private static Stream<MuteableConnectionLogger> muteableLoggersForConnectionId(final ConnectionId connectionId) {
+        return loggersForConnectionId(connectionId)
+                .filter(MuteableConnectionLogger.class::isInstance)
+                .map(MuteableConnectionLogger.class::cast);
+    }
+
+    private static Stream<ConnectionLogger> loggersForConnectionId(final ConnectionId connectionId) {
+        final var connectionLoggerEntries = LOGGERS.entrySet();
+        return connectionLoggerEntries.stream()
+                .filter(e -> {
+                    final var connectionLoggerMapKey = e.getKey();
+                    return connectionId.equals(connectionLoggerMapKey.connectionId);
+                })
                 .map(Map.Entry::getValue);
     }
 
@@ -252,6 +293,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     @Override
     public void initForConnection(final Connection connection) {
         final ConnectionId connectionId = connection.getId();
+        invalidateLoggers(connectionId);
         LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
                 .info("Initializing loggers for connection <{}>.", connectionId);
 
@@ -273,6 +315,25 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         }
     }
 
+    private void invalidateLoggers(final ConnectionId connectionId) {
+        LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
+                .info("Invalidating loggers for connection <{}>.", connectionId);
+        final Set<MapKey> mapsKeysToDelete = LOGGERS.keySet().stream()
+                .filter(mapKey -> mapKey.connectionId.equals(connectionId))
+                .collect(Collectors.toSet());
+
+        mapsKeysToDelete.forEach(loggerKey -> {
+            // flush logs before removing from loggers:
+            try {
+                LOGGERS.get(loggerKey).close();
+            } catch (final IOException e) {
+                LOGGER.warn("Exception during closing logger <{}>: <{}>: {}", loggerKey, e.getClass().getSimpleName(),
+                        e.getMessage());
+            }
+            LOGGERS.remove(loggerKey);
+        });
+    }
+
     private void initLogger(final ConnectionId connectionId) {
         initLogger(connectionId, LogCategory.CONNECTION, null);
     }
@@ -283,7 +344,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 .filter(logType -> logType.supportsCategory(logCategory))
                 .forEach(logType -> {
                     final MapKey key = new MapKey(connectionId, logCategory, logType, address);
-                    LOGGERS.computeIfAbsent(key, m -> newMuteableLogger(connectionId, logCategory, logType, address));
+                    LOGGERS.computeIfAbsent(key, m -> newLogger(connectionId, logCategory, logType, address));
                 });
     }
 
@@ -302,8 +363,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     }
 
     private static void resetForConnectionId(final ConnectionId connectionId) {
-        streamLoggers(connectionId)
-                .forEach(MuteableConnectionLogger::clear);
+        loggersForConnectionId(connectionId)
+                .forEach(ConnectionLogger::clear);
     }
 
     private LogMetadata refreshMetadata(final EntityId connectionId) {
@@ -381,6 +442,11 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     }
 
     @Override
+    public ConnectionLogger forInboundThrottled(final Connection connection, final String source) {
+        return getLogger(connection.getId(), LogCategory.SOURCE, LogType.THROTTLED, source);
+    }
+
+    @Override
     public ConnectionLogger forResponseDispatched(final Connection connection) {
         return getLogger(connection.getId(), LogCategory.RESPONSE, LogType.DISPATCHED, RESPONSES_ADDRESS);
     }
@@ -432,7 +498,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
 
         try {
             final MapKey key = new MapKey(connectionId, logCategory, logType, address);
-            return LOGGERS.computeIfAbsent(key, m -> newMuteableLogger(connectionId, logCategory, logType, address));
+            return LOGGERS.computeIfAbsent(key, m -> newLogger(connectionId, logCategory, logType, address));
         } catch (final Exception e) {
             LOGGER.error("Encountered exception: <{}> getting connection logger <{}:{}:{}:{}>", e, connectionId,
                     logCategory, logType, address);
@@ -440,14 +506,35 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         }
     }
 
-    private MuteableConnectionLogger newMuteableLogger(final ConnectionId connectionId, final LogCategory logCategory,
+    private ConnectionLogger newLogger(final ConnectionId connectionId,
+            final LogCategory logCategory,
             final LogType logType,
             @Nullable final String address) {
 
-        final ConnectionLogger logger =
-                ConnectionLoggerFactory.newEvictingLogger(successCapacity, failureCapacity, logCategory, logType,
-                        address);
-        return ConnectionLoggerFactory.newMuteableLogger(connectionId, logger);
+        final ConnectionLogger result;
+        final var evictingLogger = ConnectionLoggerFactory.newEvictingLogger(successCapacity,
+                failureCapacity,
+                logCategory,
+                logType,
+                address);
+        final var muteableLogger = ConnectionLoggerFactory.newMuteableLogger(connectionId, evictingLogger);
+        if (isActiveForConnection(connectionId)) {
+            muteableLogger.unmute();
+        } else {
+            muteableLogger.mute();
+        }
+
+        if (null != fluentPublishingConnectionLoggerContext) {
+            final var publishingLogger = ConnectionLoggerFactory.newPublishingLogger(connectionId,
+                    logCategory,
+                    logType,
+                    address,
+                    fluentPublishingConnectionLoggerContext);
+            result = new CompoundConnectionLogger(List.of(muteableLogger, publishingLogger));
+        } else {
+            result = muteableLogger;
+        }
+        return result;
     }
 
     @Override
@@ -462,12 +549,14 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         return successCapacity == that.successCapacity &&
                 failureCapacity == that.failureCapacity &&
                 maximumLogSizeInByte == that.maximumLogSizeInByte &&
-                Objects.equals(loggingDuration, that.loggingDuration);
+                Objects.equals(loggingDuration, that.loggingDuration) &&
+                Objects.equals(fluentPublishingConnectionLoggerContext, that.fluentPublishingConnectionLoggerContext);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(successCapacity, failureCapacity, loggingDuration, maximumLogSizeInByte);
+        return Objects.hash(successCapacity, failureCapacity, loggingDuration, maximumLogSizeInByte,
+                fluentPublishingConnectionLoggerContext);
     }
 
     @Override
@@ -477,6 +566,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 ", failureCapacity=" + failureCapacity +
                 ", loggingDuration=" + loggingDuration +
                 ", maximumLogSizeInByte=" + maximumLogSizeInByte +
+                ", fluentPublishingConnectionLoggerContext=" + fluentPublishingConnectionLoggerContext +
                 "]";
     }
 
@@ -552,7 +642,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         @Override
         public String toString() {
             return getClass().getSimpleName() + " [" +
-                    ", enabledSince=" + enabledSince +
+                    "enabledSince=" + enabledSince +
                     ", enabledUntil=" + enabledUntil +
                     ", logs=" + logs +
                     "]";
@@ -612,7 +702,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         @Override
         public String toString() {
             return getClass().getSimpleName() + " [" +
-                    ", connectionId=" + connectionId +
+                    "connectionId=" + connectionId +
                     ", category=" + category +
                     ", type=" + type +
                     ", address=" + address +
@@ -683,7 +773,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         @Override
         public String toString() {
             return getClass().getSimpleName() + " [" +
-                    ", enabledSince=" + enabledSince +
+                    "enabledSince=" + enabledSince +
                     ", enabledUntil=" + enabledUntil +
                     "]";
         }

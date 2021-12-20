@@ -15,10 +15,6 @@ package org.eclipse.ditto.connectivity.service;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.base.model.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
-import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigUnavailableException;
-import org.eclipse.ditto.connectivity.service.messaging.kafka.MessageRejectedException;
-import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.base.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.base.model.signals.JsonTypeNotParsableException;
 import org.eclipse.ditto.base.model.signals.UnsupportedSchemaVersionException;
@@ -31,7 +27,9 @@ import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionTimeoutException;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfigUnavailableException;
+import org.eclipse.ditto.connectivity.service.messaging.kafka.MessageRejectedException;
 import org.eclipse.ditto.internal.utils.test.GlobalErrorRegistryTestCases;
+import org.eclipse.ditto.jwt.model.JwtInvalidException;
 import org.eclipse.ditto.messages.model.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.placeholders.PlaceholderFunctionSignatureInvalidException;
 import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
@@ -39,6 +37,7 @@ import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
 import org.eclipse.ditto.protocol.UnknownCommandException;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
+import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.thingsearch.model.signals.commands.exceptions.InvalidNamespacesException;
@@ -71,7 +70,9 @@ public final class ConnectivityServiceGlobalErrorRegistryTest extends GlobalErro
                 ConnectivityConfigUnavailableException.class,
                 PathUnknownException.class,
                 UnknownTopicPathException.class,
-                MessageRejectedException.class);
+                MessageRejectedException.class,
+                JwtInvalidException.class,
+                IllegalAdaptableException.class);
     }
 
 }

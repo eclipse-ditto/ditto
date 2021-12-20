@@ -27,11 +27,11 @@ interface MetricsAlert {
      * Evaluates if the given action {@link #triggerAction} should be called.
      *
      * @param window the window in which the new measurement occurred
-     * @param timestamp the timestamp of the new measurement
+     * @param slot the time slot when the alert occurred
      * @param value the updated value
      * @return {@code true} if the condition was met, {@code false} otherwise
      */
-    boolean evaluateCondition(final MeasurementWindow window, final long timestamp, final long value);
+    boolean evaluateCondition(final MeasurementWindow window, final long slot, final long value);
 
     /**
      * Is executed if the condition ({@link #evaluateCondition}) was met.
@@ -46,7 +46,8 @@ interface MetricsAlert {
      */
     enum Key {
 
-        CONSUMED_INBOUND(MetricDirection.INBOUND, MetricType.CONSUMED);
+        CONSUMED_INBOUND(MetricDirection.INBOUND, MetricType.CONSUMED),
+        THROTTLED_INBOUND(MetricDirection.INBOUND, MetricType.THROTTLED);
 
         private final MetricDirection metricDirection;
         private final MetricType metricType;

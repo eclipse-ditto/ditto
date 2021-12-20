@@ -40,4 +40,9 @@ interface KafkaConsumerStream {
      */
     CompletionStage<Done> stop();
 
+    /**
+     * Triggers report of metrics to DittoMetrics.
+     */
+    void reportMetrics();
+
 }

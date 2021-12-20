@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Instant;
 
+import org.assertj.core.api.SoftAssertions;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.id.WithEntityId;
@@ -29,6 +30,10 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.model.LogCategory;
 import org.eclipse.ditto.connectivity.model.LogLevel;
 import org.eclipse.ditto.connectivity.model.LogType;
+import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -54,6 +59,9 @@ public final class LogEntryFactoryTest {
     @Mock
     private CommandResponse<?> commandResponse;
 
+    @Mock
+    private Adaptable adaptable;
+
     private DittoHeaders dittoHeadersWithCorrelationId;
 
     @Before
@@ -64,6 +72,7 @@ public final class LogEntryFactoryTest {
         final var emptyDittoHeaders = DittoHeaders.empty();
         Mockito.when(command.getDittoHeaders()).thenReturn(emptyDittoHeaders);
         Mockito.when(commandResponse.getDittoHeaders()).thenReturn(emptyDittoHeaders);
+        Mockito.when(adaptable.getDittoHeaders()).thenReturn(dittoHeadersWithCorrelationId);
     }
 
     @Test
@@ -232,6 +241,61 @@ public final class LogEntryFactoryTest {
                 DETAIL_MESSAGE_FAILURE);
 
         assertThat(logEntry.getEntityId()).hasValue(entityId);
+    }
+
+    @Test
+    public void getLogEntryForIllegalCommandResponseAdaptableWithNullIllegalAdaptableExceptionThrowsException() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> LogEntryFactory.getLogEntryForIllegalCommandResponseAdaptable(null,
+                        DETAIL_MESSAGE_FAILURE))
+                .withMessage("The illegalAdaptableException must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void getLogEntryForIllegalCommandResponseAdaptableWithNullDetailMessageThrowsException() {
+        final var illegalAdaptableException = IllegalAdaptableException.newInstance(DETAIL_MESSAGE_FAILURE, adaptable);
+
+        assertThatNullPointerException()
+                .isThrownBy(() -> LogEntryFactory.getLogEntryForIllegalCommandResponseAdaptable(
+                        illegalAdaptableException,
+                        null))
+                .withMessage("The detailMessage must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void getLogEntryForIllegalCommandResponseAdaptableWithBlankDetailMessageThrowsException() {
+        final var illegalAdaptableException = IllegalAdaptableException.newInstance(DETAIL_MESSAGE_FAILURE, adaptable);
+
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> LogEntryFactory.getLogEntryForIllegalCommandResponseAdaptable(
+                        illegalAdaptableException,
+                        " "))
+                .withMessage("The detailMessage must not be blank.")
+                .withNoCause();
+    }
+
+    @Test
+    public void getLogEntryForIllegalCommandResponseAdaptableReturnsExpected() {
+        final var thingId = ThingId.generateRandom();
+        final var topicPath = TopicPath.newBuilder(thingId).live().things().commands().modify().build();
+        Mockito.when(adaptable.getTopicPath()).thenReturn(topicPath);
+        final var illegalAdaptableException = IllegalAdaptableException.newInstance(DETAIL_MESSAGE_FAILURE, adaptable);
+        final var logEntry = LogEntryFactory.getLogEntryForIllegalCommandResponseAdaptable(illegalAdaptableException,
+                illegalAdaptableException.getMessage());
+
+        final var instantNow = Instant.now();
+        final var softly = new SoftAssertions();
+        softly.assertThat(logEntry.getCorrelationId())
+                .as("correlation ID")
+                .isEqualTo(String.valueOf(testNameCorrelationId.getCorrelationId()));
+        softly.assertThat(logEntry.getTimestamp()).as("timestamp").isBetween(instantNow.minusMillis(500L), instantNow);
+        softly.assertThat(logEntry.getLogCategory()).as("log category").isEqualTo(LogCategory.RESPONSE);
+        softly.assertThat(logEntry.getLogType()).as("log type").isEqualTo(LogType.DROPPED);
+        softly.assertThat(logEntry.getLogLevel()).as("log level").isEqualTo(LogLevel.FAILURE);
+        softly.assertThat(logEntry.getEntityId()).as("entity ID").contains(thingId);
+        softly.assertAll();
     }
 
 }

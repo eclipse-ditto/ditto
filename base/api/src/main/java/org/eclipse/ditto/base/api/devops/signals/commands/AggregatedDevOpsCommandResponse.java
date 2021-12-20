@@ -49,11 +49,19 @@ public final class AggregatedDevOpsCommandResponse
     public static final String TYPE = TYPE_PREFIX + "aggregatedResponse";
 
     private static final JsonFieldDefinition<String> JSON_RESPONSES_TYPE =
-            JsonFactory.newStringFieldDefinition("responsesType", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("responsesType", FieldType.REGULAR, JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<JsonObject> JSON_AGGREGATED_RESPONSES =
-            JsonFactory.newJsonObjectFieldDefinition("responses", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonObject("responses", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final CommandResponseJsonDeserializer<AggregatedDevOpsCommandResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final var jsonObject = context.getJsonObject();
+                        return new AggregatedDevOpsCommandResponse(jsonObject.getValueOrThrow(JSON_AGGREGATED_RESPONSES),
+                                jsonObject.getValueOrThrow(JSON_RESPONSES_TYPE),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders());
+                    });
 
     private final JsonObject aggregatedResponses;
     private final String responsesType;
@@ -83,7 +91,7 @@ public final class AggregatedDevOpsCommandResponse
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        final JsonObject jsonRepresentation = buildJsonRepresentation(commandResponses, dittoHeaders);
+        final var jsonRepresentation = buildJsonRepresentation(commandResponses, dittoHeaders);
         return new AggregatedDevOpsCommandResponse(jsonRepresentation, responsesType, httpStatus, dittoHeaders);
     }
 
@@ -133,12 +141,7 @@ public final class AggregatedDevOpsCommandResponse
     public static AggregatedDevOpsCommandResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new CommandResponseJsonDeserializer<AggregatedDevOpsCommandResponse>(TYPE, jsonObject)
-                .deserialize(httpStatus -> {
-                    final JsonObject aggregatedResponsesJsonObj = jsonObject.getValueOrThrow(JSON_AGGREGATED_RESPONSES);
-                    final String theResponsesType = jsonObject.getValueOrThrow(JSON_RESPONSES_TYPE);
-                    return of(aggregatedResponsesJsonObj, theResponsesType, httpStatus, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -164,12 +167,13 @@ public final class AggregatedDevOpsCommandResponse
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
 
-        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+        final var predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_RESPONSES_TYPE, responsesType, predicate);
         jsonObjectBuilder.set(JSON_AGGREGATED_RESPONSES, aggregatedResponses, predicate);
     }
@@ -177,12 +181,12 @@ public final class AggregatedDevOpsCommandResponse
     private static JsonObject buildJsonRepresentation(final List<CommandResponse<?>> commandResponses,
             final DittoHeaders dittoHeaders) {
 
-        final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
-        final JsonObjectBuilder builder = JsonObject.newBuilder();
+        final var schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
+        final var builder = JsonObject.newBuilder();
 
-        int i = 0;
-        for (final CommandResponse<?> cmdR : commandResponses) {
-            final String key = String.format("/%s/%s", calculateServiceName(cmdR), calculateInstance(cmdR, i++));
+        var i = 0;
+        for (final var cmdR : commandResponses) {
+            final var key = String.format("/%s/%s", calculateServiceName(cmdR), calculateInstance(cmdR, i++));
             // include both regular and special fields for devops command responses
             final JsonValue responseJson;
             if (cmdR instanceof ExecutePiggybackCommandResponse) {
@@ -201,20 +205,25 @@ public final class AggregatedDevOpsCommandResponse
     }
 
     private static String calculateServiceName(final CommandResponse<?> commandResponse) {
+        final String result;
         if (commandResponse instanceof DevOpsCommandResponse) {
-            return ((DevOpsCommandResponse<?>) commandResponse).getServiceName().orElse("?");
+            result = ((DevOpsCommandResponse<?>) commandResponse).getServiceName().orElse("?");
         } else {
-            return "?";
+            result = "?";
         }
+        return result;
     }
 
     private static String calculateInstance(final CommandResponse<?> commandResponse, final int i) {
+        final String result;
+        final var fallBackValue = "?" + (i == 0 ? "" : String.valueOf(i));
         if (commandResponse instanceof DevOpsCommandResponse) {
-            return ((DevOpsCommandResponse<?>) commandResponse).getInstance()
-                    .orElse("?" + (i == 0 ? "" : String.valueOf(i)));
+            result = ((DevOpsCommandResponse<?>) commandResponse).getInstance()
+                    .orElse(fallBackValue);
         } else {
-            return "?" + (i == 0 ? "" : String.valueOf(i));
+            result = fallBackValue;
         }
+        return result;
     }
 
     @SuppressWarnings("squid:MethodCyclomaticComplexity")
@@ -229,7 +238,7 @@ public final class AggregatedDevOpsCommandResponse
         if (!super.equals(o)) {
             return false;
         }
-        final AggregatedDevOpsCommandResponse that = (AggregatedDevOpsCommandResponse) o;
+        final var that = (AggregatedDevOpsCommandResponse) o;
         return that.canEqual(this) &&
                 Objects.equals(responsesType, that.responsesType) &&
                 Objects.equals(aggregatedResponses, that.aggregatedResponses) &&

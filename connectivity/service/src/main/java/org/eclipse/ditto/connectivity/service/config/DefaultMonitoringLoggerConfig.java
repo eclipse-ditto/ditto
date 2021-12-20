@@ -36,6 +36,7 @@ public final class DefaultMonitoringLoggerConfig implements MonitoringLoggerConf
     private final long maxLogSizeInBytes;
     private final Duration logDuration;
     private final Duration loggingActiveCheckInterval;
+    private final LoggerPublisherConfig loggerPublisherConfig;
 
     private DefaultMonitoringLoggerConfig(final ConfigWithFallback config) {
         successCapacity = config.getNonNegativeIntOrThrow(MonitoringLoggerConfigValue.SUCCESS_CAPACITY);
@@ -44,6 +45,7 @@ public final class DefaultMonitoringLoggerConfig implements MonitoringLoggerConf
         logDuration = config.getNonNegativeAndNonZeroDurationOrThrow(MonitoringLoggerConfigValue.LOG_DURATION);
         loggingActiveCheckInterval =
                 config.getNonNegativeAndNonZeroDurationOrThrow(MonitoringLoggerConfigValue.LOGGING_ACTIVE_CHECK_INTERVAL);
+        loggerPublisherConfig = DefaultLoggerPublisherConfig.of(config);
     }
 
     /**
@@ -84,6 +86,11 @@ public final class DefaultMonitoringLoggerConfig implements MonitoringLoggerConf
     }
 
     @Override
+    public LoggerPublisherConfig getLoggerPublisherConfig() {
+        return loggerPublisherConfig;
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
@@ -96,23 +103,25 @@ public final class DefaultMonitoringLoggerConfig implements MonitoringLoggerConf
                 failureCapacity == that.failureCapacity &&
                 maxLogSizeInBytes == that.maxLogSizeInBytes &&
                 Objects.equals(logDuration, that.logDuration) &&
-                Objects.equals(loggingActiveCheckInterval, that.loggingActiveCheckInterval);
+                Objects.equals(loggingActiveCheckInterval, that.loggingActiveCheckInterval) &&
+                Objects.equals(loggerPublisherConfig, that.loggerPublisherConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(successCapacity, failureCapacity, maxLogSizeInBytes, logDuration,
-                loggingActiveCheckInterval);
+                loggingActiveCheckInterval, loggerPublisherConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", successCapacity=" + successCapacity +
+                "successCapacity=" + successCapacity +
                 ", failureCapacity=" + failureCapacity +
                 ", maxLogSizeInBytes=" + maxLogSizeInBytes +
                 ", logDuration=" + logDuration +
                 ", loggingActiveCheckInterval=" + loggingActiveCheckInterval +
+                ", loggerPublisherConfig=" + loggerPublisherConfig +
                 "]";
     }
 

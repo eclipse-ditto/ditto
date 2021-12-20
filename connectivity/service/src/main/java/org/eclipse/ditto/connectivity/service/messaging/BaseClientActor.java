@@ -68,6 +68,8 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.FilteredTopic;
+import org.eclipse.ditto.connectivity.model.MetricDirection;
+import org.eclipse.ditto.connectivity.model.MetricType;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
@@ -103,6 +105,7 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.Connecti
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ThrottledLoggerMetricsAlert;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelActor;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
@@ -138,7 +141,6 @@ import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.pubsub.DistributedPubSub;
-import akka.dispatch.MessageDispatcher;
 import akka.http.javadsl.ConnectionContext;
 import akka.japi.Pair;
 import akka.japi.pf.DeciderBuilder;
@@ -245,8 +247,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         connectionCounterRegistry = ConnectivityCounterRegistry.newInstance(connectivityConfig);
         connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
         connectionLoggerRegistry.initForConnection(connection);
-        connectionCounterRegistry.initForConnection(connection);
         connectionLogger = connectionLoggerRegistry.forConnection(connection.getId());
+        connectionCounterRegistry.registerAlertFactory(MetricType.THROTTLED, MetricDirection.INBOUND,
+                ThrottledLoggerMetricsAlert.getFactory(
+                        address -> connectionLoggerRegistry.forInboundThrottled(connection, address)));
+        connectionCounterRegistry.initForConnection(connection);
         clientGauge = DittoMetrics.gauge("connection_client")
                 .tag("id", connectionId.toString())
                 .tag("type", connection.getConnectionType().getName());
@@ -335,7 +340,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         if (connection.getSshTunnel().map(SshTunnel::isEnabled).orElse(false)) {
             tunnelActor = startChildActor(SshTunnelActor.ACTOR_NAME, SshTunnelActor.props(connection,
-                    connectivityStatusResolver));
+                    connectivityStatusResolver, connectionLogger));
         } else {
             tunnelActor = null;
         }
@@ -367,6 +372,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         clientConnectingGauge.reset();
         stopChildActor(tunnelActor);
         logger.debug("Stopped client with id - <{}>", getDefaultClientId());
+        try {
+            connectionLogger.close();
+        } catch (final IOException e) {
+            logger.warning("Exception during closing connection logger <{}>: {}", e.getClass().getSimpleName(),
+                    e.getMessage());
+        }
         try {
             super.postStop();
         } catch (final Exception e) {
@@ -945,12 +956,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private void reconnect() {
-        logger.debug("Trying to reconnect.");
-        connectionLogger.success("Trying to reconnect.");
+        logger.debug("Trying to reconnect");
+        connectionLogger.success("Trying to reconnect");
         if (canConnectViaSocket(connection)) {
             doConnectClient(connection, null);
         } else {
-            logger.info("Socket is closed, scheduling a reconnect.");
+            logger.info("Socket is closed, scheduling a reconnect");
             cleanupResourcesForConnection();
             throw newConnectionFailedException(DittoHeaders.empty());
         }
@@ -1042,10 +1053,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                                 .setConnectionStatusDetails(timeoutMessage + " Will try to reconnect."));
             } else {
                 connectionLogger.failure(
-                        "Connection timed out. Reached maximum tries and thus will no longer try to reconnect.");
+                        "Connection timed out. Reached maximum tries and thus will no longer try to reconnect");
                 logger.info(
                         "Connection <{}> - connection timed out - " +
-                                "reached maximum retries for reconnecting and thus will no longer try to reconnect.",
+                                "reached maximum retries for reconnecting and thus will no longer try to reconnect",
                         connectionId());
 
                 return goTo(INITIALIZED)
@@ -1196,7 +1207,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final BaseClientData data) {
         if (data.getFailureCount() == 0) {
             logger.info("Initialization of consumers, publisher and subscriptions successful, going to CONNECTED.");
-            connectionLogger.success("Connection successful.");
+            connectionLogger.success("Connection successful");
             data.getSessionSenders().forEach(origin -> origin.first().tell(new Status.Success(CONNECTED), getSelf()));
             return goTo(CONNECTED).using(data.resetSession()
                     .resetFailureCount()
@@ -1240,7 +1251,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private State<BaseClientState, BaseClientData> clientDisconnected(final ClientDisconnected event,
             final BaseClientData data) {
 
-        connectionLogger.success("Disconnected successfully.");
+        connectionLogger.success("Disconnected successfully");
 
         cleanupResourcesForConnection();
         tellTunnelActor(SshTunnelActor.TunnelControl.STOP_TUNNEL);
@@ -1305,14 +1316,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 if (data.getFailureCount() > 1) {
                     connectionLogger.failure(
                             "Received {0} subsequent failures during backoff: {1}. Reconnect after backoff was " +
-                                    "already triggered.", data.getFailureCount(), event.getFailureDescription());
-                    logger.info("Received {} subsequent failures during backoff: {}. Reconnect was already triggered.",
+                                    "already triggered", data.getFailureCount(), event.getFailureDescription());
+                    logger.info("Received {} subsequent failures during backoff: {}. Reconnect was already triggered",
                             data.getFailureCount(), event);
                     return stay();
                 } else {
                     final Duration nextBackoff = reconnectTimeoutStrategy.getNextBackoff();
                     final var errorMessage =
-                            String.format("Connection failed due to: {0}. Will reconnect after %s.", nextBackoff);
+                            String.format("Connection failed due to: {0}. Will reconnect after %s", nextBackoff);
                     connectionLogger.failure(errorMessage, event.getFailureDescription());
                     final ConnectivityStatus resolvedStatus = connectivityStatusResolver.resolve(event);
                     logger.info("Connection failed: {}. Reconnect after: {}. Resolved status: {}. " +
@@ -1324,11 +1335,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 }
             } else {
                 connectionLogger.failure(
-                        "Connection failed due to: {0}. Reached maximum tries and thus will no longer try to reconnect.",
+                        "Connection failed due to: {0}. Reached maximum tries and thus will no longer try to reconnect",
                         event.getFailureDescription());
                 logger.info(
                         "Connection <{}> - backoff after failure - " +
-                                "reached maximum retries for reconnecting and thus will no longer try to reconnect.",
+                                "reached maximum retries for reconnecting and thus will no longer try to reconnect",
                         connectionId());
 
                 // stay in INITIALIZED state until re-opened manually
@@ -1343,7 +1354,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             }
         }
 
-        connectionLogger.failure("Connection failed due to: {0}.", event.getFailureDescription());
+        connectionLogger.failure("Connection failed due to: {0}", event.getFailureDescription());
         return goTo(INITIALIZED)
                 .using(data.resetSession()
                         .setConnectionStatus(connectivityStatusResolver.resolve(event))
@@ -1715,7 +1726,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     proxyActorSelection, protocolAdapter, logger);
             outboundMappingProcessor = OutboundMappingProcessor.of(settings);
         } catch (final DittoRuntimeException dre) {
-            connectionLogger.failure("Failed to start message mapping processor due to: {0}.", dre.getMessage());
+            connectionLogger.failure("Failed to start message mapping processor due to: {0}", dre.getMessage());
             logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
                     dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
             throw dre;
@@ -1724,7 +1735,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final int processorPoolSize = connection.getProcessorPoolSize();
         logger.debug("Starting mapping processor actors with pool size of <{}>.", processorPoolSize);
         final Props outboundMappingProcessorActorProps =
-                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connection, processorPoolSize);
+                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connection, connectivityConfig,
+                        processorPoolSize);
 
         final ActorRef processorActor =
                 getContext().actorOf(outboundMappingProcessorActorProps, OutboundMappingProcessorActor.ACTOR_NAME);
@@ -1744,17 +1756,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
     private Sink<Object, NotUsed> getInboundDispatchingSink(final ActorRef outboundMappingProcessorActor) {
-        final var actorContext = getContext();
-        final var actorSystem = actorContext.getSystem();
-
         return InboundDispatchingSink.createSink(connection,
                 protocolAdapter.headerTranslator(),
                 proxyActorSelection,
                 connectionActor,
                 outboundMappingProcessorActor,
                 getSelf(),
-                actorContext,
-                actorSystem.settings().config(),
+                getContext(),
+                connectivityConfig,
                 getResponseValidationFailureConsumer());
     }
 
@@ -1774,18 +1783,18 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @return the Sink.
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
-    private Sink<Object, NotUsed> getInboundMappingSink(
-            final ProtocolAdapter protocolAdapter,
+    private Sink<Object, NotUsed> getInboundMappingSink(final ProtocolAdapter protocolAdapter,
             final Sink<Object, NotUsed> inboundDispatchingSink) {
 
         final InboundMappingProcessor inboundMappingProcessor;
+        final var context = getContext();
+        final var actorSystem = context.getSystem();
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
             inboundMappingProcessor =
-                    InboundMappingProcessor.of(connection, connectivityConfig, getContext().getSystem(),
-                            protocolAdapter, logger);
+                    InboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
         } catch (final DittoRuntimeException dre) {
-            connectionLogger.failure("Failed to start message mapping processor due to: {0}.", dre.getMessage());
+            connectionLogger.failure("Failed to start message mapping processor due to: {0}", dre.getMessage());
             logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
                     dre.getClass().getSimpleName(), dre.getMessage(), dre.getDescription().orElse(""));
             throw dre;
@@ -1794,16 +1803,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final int processorPoolSize = connection.getProcessorPoolSize();
         logger.debug("Starting inbound mapping processor actors with pool size of <{}>.", processorPoolSize);
 
-        final var mappingConfig = connectivityConfig().getMappingConfig();
-        final MessageDispatcher messageMappingProcessorDispatcher =
-                getContext().system().dispatchers().lookup(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
         return InboundMappingSink.createSink(inboundMappingProcessor,
                 connection.getId(),
                 processorPoolSize,
                 inboundDispatchingSink,
-                mappingConfig,
+                connectivityConfig.getMappingConfig(),
                 getThrottlingConfig().orElse(null),
-                messageMappingProcessorDispatcher);
+                actorSystem.dispatchers().lookup(MESSAGE_MAPPING_PROCESSOR_DISPATCHER));
     }
 
     protected Optional<ConnectionThrottlingConfig> getThrottlingConfig() {

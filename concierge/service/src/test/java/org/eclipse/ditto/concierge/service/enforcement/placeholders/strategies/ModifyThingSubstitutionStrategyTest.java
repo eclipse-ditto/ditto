@@ -18,8 +18,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.Collections;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyEntry;
@@ -64,9 +64,9 @@ public class ModifyThingSubstitutionStrategyTest extends AbstractSubstitutionStr
     }
 
     @Test
-    public void applyReturnsTheSameCommandInstanceWhenInvalidInlinePolicyIsSpecified() {
+    public void applyReturnsTheSameCommandInstanceWhenEmptyInlinePolicyIsSpecified() {
         final ModifyThing commandWithoutInlinePolicy =
-                ModifyThing.of(THING_ID, THING, JsonObject.newBuilder().set("_modified", "bar").build(), DITTO_HEADERS);
+                ModifyThing.of(THING_ID, THING, JsonObject.newBuilder().set("entries", JsonObject.empty()).build(), DITTO_HEADERS);
 
         final WithDittoHeaders response = applyBlocking(commandWithoutInlinePolicy);
 

@@ -137,6 +137,9 @@ automatically created [message response](protocol-specification-things-messages.
 The specific configuration properties contain the following optional keys:
 * `parallelism` (optional): Configures how many parallel requests per connection to perform, each takes one outgoing 
 TCP connection. Default (if not provided): 1
+* `omitRequestBody` (optional): Configures for which HTTP methods, provided as a comma separated list, the request 
+body is omitted for requests made via this connection. Default (if not provided): `GET,DELETE`. Leave empty to 
+always send the request body.
 
 ## Establishing connecting to an HTTP endpoint
 
@@ -192,7 +195,7 @@ Here is an example HTTP connection that checks the server certificate and authen
     "connectionType": "http-push",
     "connectionStatus": "open",
     "failoverEnabled": true,
-    "uri": "https://localhost:80",
+    "uri": "https://localhost:443",
     "validateCertificates": true,
     "ca": "-----BEGIN CERTIFICATE-----\n<localhost certificate>\n-----END CERTIFICATE-----",
     "credentials": {
@@ -225,3 +228,64 @@ Here is an example HTTP connection that checks the server certificate and authen
 
 Ditto supports HMAC request signing for HTTP push connections. Find detailed information on this in 
 [Connectivity API > HMAC request signing](connectivity-hmac-signing.html).
+
+### OAuth2 client credentials flow
+
+HTTP push connections can authenticate themselves via OAuth2 client credentials flow as described in
+[section 4.4 of RFC-6749](https://datatracker.ietf.org/doc/html/rfc6749#section-4.4).
+To configure OAuth2 credentials:
+- Set `type` to `oauth-client-credentials`
+- Set `tokenEndpoint` to the URI of the access token request endpoint
+- Set `clientId` to the client ID to include in access token requests
+- Set `clientSecret` to the client secret to include in access token requests
+- Set `requestedScopes` to the scopes to request in access token requests
+
+This is an example connection with OAuth2 credentials.
+```json
+{
+  "connection": {
+    "id": "http-example-connection-124",
+    "connectionType": "http-push",
+    "connectionStatus": "open",
+    "uri": "https://localhost:443/event-publication",
+    "credentials": {
+      "type": "oauth-client-credentials",
+      "tokenEndpoint": "https://localhost:443/oauth2/token",
+      "clientId": "my-client-id",
+      "clientSecret": "my-client-secret",
+      "requestedScopes": "user-scope-1 role-scope-2"
+    },
+    ...
+}
+```
+
+Each HTTP request to `https://localhost:443/event-publication` includes a bearer token issued by
+`https://localhost:443/oauth2/token`. The HTTP connection will obtain a new token before the old token expires
+according to a configured `max-clock-skew`. To prevent looping access token requests, each token is used once even if
+the token endpoint responds with expired tokens. Rejected or malformed access token responses are considered
+misconfiguration errors.
+
+It is possible to configure `max-clock-skew` and whether to enforce HTTPS for token endpoints in
+`connectivity-extension.conf` or by environment variables.
+```hocon
+ditto {
+  connectivity {
+    connection {
+      http-push {
+        oauth2 {
+          # Maximum clock skew of OAuth2 token endpoints.
+          # Access tokens are refreshed this long before expiration.
+          max-clock-skew = 60s
+          max-clock-skew = ${?CONNECTIVITY_HTTP_OAUTH2_MAX_CLOCK_SKEW}
+
+          # Whether to enforce HTTPS for OAuth2 token endpoints.
+          # Should be `true` for production environments
+          # in order not to transmit client secrets in plain text.
+          enforce-https = true
+          enforce-https = ${?CONNECTIVITY_HTTP_OAUTH2_ENFORCE_HTTPS}
+        }
+      }
+    }
+  }
+}
+```

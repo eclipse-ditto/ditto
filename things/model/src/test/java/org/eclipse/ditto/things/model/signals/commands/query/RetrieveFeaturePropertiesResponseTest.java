@@ -18,11 +18,11 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
@@ -34,7 +34,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link RetrieveFeaturePropertiesResponse}.
  */
-public class RetrieveFeaturePropertiesResponseTest {
+public final class RetrieveFeaturePropertiesResponseTest {
 
     private static final JsonSchemaVersion KNOWN_SCHEMA_VERSION = JsonSchemaVersion.V_2;
 
@@ -47,41 +47,41 @@ public class RetrieveFeaturePropertiesResponseTest {
                     TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJson(KNOWN_SCHEMA_VERSION))
             .build();
 
-
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveFeaturePropertiesResponse.class, areImmutable(),
+        assertInstancesOf(RetrieveFeaturePropertiesResponse.class,
+                areImmutable(),
                 provided(FeatureProperties.class, ThingId.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(RetrieveFeaturePropertiesResponse.class)
                 .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
 
-
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeatureProperties() {
-        RetrieveFeaturePropertiesResponse.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+        RetrieveFeaturePropertiesResponse.of(TestConstants.Thing.THING_ID,
+                TestConstants.Feature.FLUX_CAPACITOR_ID,
                 null,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
         final RetrieveFeaturePropertiesResponse underTest =
                 RetrieveFeaturePropertiesResponse.of(TestConstants.Thing.THING_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_ID,
-                        TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES, TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES,
+                        TestConstants.EMPTY_DITTO_HEADERS);
+
         final String actualJsonString = underTest.toJson(FieldType.regularOrSpecial()).toString();
 
         Assertions.assertThat(actualJsonString).isEqualTo(KNOWN_JSON.toString());
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

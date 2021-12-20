@@ -33,7 +33,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ModifyFeaturePropertiesResponse}.
  */
-public class ModifyFeaturePropertiesResponseTest {
+public final class ModifyFeaturePropertiesResponseTest {
 
     private static final JsonObject KNOWN_JSON_CREATED = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, ModifyFeaturePropertiesResponse.TYPE)
@@ -51,7 +51,6 @@ public class ModifyFeaturePropertiesResponseTest {
             .set(ModifyFeaturePropertiesResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ModifyFeaturePropertiesResponse.class,
@@ -59,14 +58,12 @@ public class ModifyFeaturePropertiesResponseTest {
                 provided(FeatureProperties.class, ThingId.class).isAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ModifyFeaturePropertiesResponse.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -85,7 +82,6 @@ public class ModifyFeaturePropertiesResponseTest {
 
         DittoJsonAssertions.assertThat(actualJsonUpdated).isEqualTo(KNOWN_JSON_UPDATED);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

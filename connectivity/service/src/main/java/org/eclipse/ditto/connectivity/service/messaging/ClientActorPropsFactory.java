@@ -37,6 +37,6 @@ public interface ClientActorPropsFactory {
      * @return the actor props
      */
     Props getActorPropsForType(Connection connection, ActorRef proxyActor, ActorRef connectionActor,
-            ActorSystem actorSystem, final DittoHeaders dittoHeaders, final Config connectivityConfigOverwrites);
+            ActorSystem actorSystem, DittoHeaders dittoHeaders, Config connectivityConfigOverwrites);
 
 }

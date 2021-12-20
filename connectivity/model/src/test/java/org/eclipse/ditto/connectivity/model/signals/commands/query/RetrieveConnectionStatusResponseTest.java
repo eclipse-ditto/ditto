@@ -175,7 +175,7 @@ public final class RetrieveConnectionStatusResponseTest {
                                 .sourceStatus(Collections.emptyList())
                                 .targetStatus(Collections.emptyList())
                                 .build())
-                .withMessage("The %s must not be null!", "Connection ID")
+                .withMessage("The %s must not be null!", "connectionId")
                 .withNoCause();
     }
 

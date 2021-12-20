@@ -61,7 +61,7 @@ public final class ResetConnectionMetricsResponseTest {
     public void createInstanceWithNullConnectionId() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> ResetConnectionMetricsResponse.of(null, DittoHeaders.empty()))
-                .withMessage("The %s must not be null!", "Connection ID")
+                .withMessage("The %s must not be null!", "connectionId")
                 .withNoCause();
     }
 

@@ -62,8 +62,9 @@
         <commons-net.version>3.8.0</commons-net.version>
 
         <slf4j.version>1.7.31</slf4j.version>
-        <logback.version>1.2.6</logback.version>
+        <logback.version>1.2.8</logback.version>
         <logstash-logback-encoder.version>6.6</logstash-logback-encoder.version>
+        <fluency.version>2.6.0</fluency.version>
         <janino.version>2.7.8</janino.version>
 
         <!-- ### Metrics and Tracing -->
@@ -407,6 +408,16 @@
                 <artifactId>janino</artifactId>
                 <version>${janino.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.komamitsu</groupId>
+                <artifactId>fluency-core</artifactId>
+                <version>${fluency.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.komamitsu</groupId>
+                <artifactId>fluency-fluentd</artifactId>
+                <version>${fluency.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>io.kamon</groupId>
@@ -505,6 +516,11 @@
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-rql-parser</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-rql-search-option-parser</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -798,6 +814,12 @@
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-params</artifactId>
+                <version>${junit-jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.vintage</groupId>
+                <artifactId>junit-vintage-engine</artifactId>
                 <version>${junit-jupiter.version}</version>
                 <scope>test</scope>
             </dependency>

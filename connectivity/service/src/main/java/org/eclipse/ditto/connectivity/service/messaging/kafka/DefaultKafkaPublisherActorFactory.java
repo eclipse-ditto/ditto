@@ -16,7 +16,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.connectivity.model.Connection;
-import org.eclipse.ditto.connectivity.service.config.KafkaProducerConfig;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 
 import akka.actor.ActorRef;
@@ -55,14 +55,14 @@ public final class DefaultKafkaPublisherActorFactory implements KafkaPublisherAc
 
     @Override
     public Props props(final Connection connection,
-            final KafkaProducerConfig config,
             final SendProducerFactory sendProducerFactory,
             final boolean dryRun,
             final String clientId,
             final ActorRef proxyActor,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
-        return KafkaPublisherActor.props(connection, config, sendProducerFactory, dryRun, clientId, proxyActor,
-                connectivityStatusResolver);
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
+        return KafkaPublisherActor.props(connection, sendProducerFactory, dryRun, clientId, proxyActor,
+                connectivityStatusResolver, connectivityConfig);
     }
 
 }

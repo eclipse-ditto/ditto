@@ -11,7 +11,7 @@ toc: true
 ---
 
 After the added option to target the [live channel](protocol-twinlive.html#live) by adding the `channel=live` to HTTP
-requests (see also [blog post about "HTTP live channel"](2021-11-26-http-live-channel.html)), Eclipse Ditto 
+requests (see also [blog post about "HTTP live channel"](2021-12-20-http-live-channel.html)), Eclipse Ditto 
 **version 2.3.0** will in addition support to define a 
 [live channel condition](basic-conditional-requests.html#live-channel-condition), which, when evaluating to `true`, 
 will retrieve data from a device via the live channel, or fall back to the persisted [twin](protocol-twinlive.html#twin) 
@@ -19,7 +19,7 @@ otherwise.
 
 ## Relying on conditions
 
-Ditto 2.2.0 added support for [conditional requests](basic-conditional-requests.html) by e.g. specifying a `condition`
+Ditto 2.1.0 added support for [conditional requests](basic-conditional-requests.html) by e.g. specifying a `condition`
 query parameter for HTTP API calls.
 
 This `condition` mechanism can now additionally be used to formulate a condition when data shall be retrieved via the 

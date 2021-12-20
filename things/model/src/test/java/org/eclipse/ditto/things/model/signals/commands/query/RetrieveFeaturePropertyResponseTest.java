@@ -17,14 +17,16 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
@@ -35,7 +37,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link RetrieveFeaturePropertyResponse}.
  */
-public class RetrieveFeaturePropertyResponseTest {
+public final class RetrieveFeaturePropertyResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveFeaturePropertyResponse.TYPE)
@@ -49,7 +51,8 @@ public class RetrieveFeaturePropertyResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveFeaturePropertyResponse.class, areImmutable(),
+        assertInstancesOf(RetrieveFeaturePropertyResponse.class,
+                areImmutable(),
                 provided(JsonPointer.class, JsonValue.class, ThingId.class).areAlsoImmutable());
     }
 
@@ -57,21 +60,28 @@ public class RetrieveFeaturePropertyResponseTest {
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(RetrieveFeaturePropertyResponse.class)
                 .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeatureProperty() {
-        RetrieveFeaturePropertyResponse.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
-                TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER, null, TestConstants.EMPTY_DITTO_HEADERS);
+        RetrieveFeaturePropertyResponse.of(TestConstants.Thing.THING_ID,
+                TestConstants.Feature.FLUX_CAPACITOR_ID,
+                TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER,
+                null,
+                TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final RetrieveFeaturePropertyResponse underTest = RetrieveFeaturePropertyResponse.of(
-                TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
-                TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER,
-                TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_VALUE, TestConstants.EMPTY_DITTO_HEADERS);
+        final RetrieveFeaturePropertyResponse underTest =
+                RetrieveFeaturePropertyResponse.of(TestConstants.Thing.THING_ID,
+                        TestConstants.Feature.FLUX_CAPACITOR_ID,
+                        TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER,
+                        TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_VALUE,
+                        TestConstants.EMPTY_DITTO_HEADERS);
+
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         DittoJsonAssertions.assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -93,11 +103,17 @@ public class RetrieveFeaturePropertyResponseTest {
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-    @Test(expected = JsonKeyInvalidException.class)
+    @Test
     public void createInstanceFromInvalidJson() {
         final JsonObject invalidJson = KNOWN_JSON.toBuilder()
-                .set(RetrieveFeatureProperty.JSON_PROPERTY_JSON_POINTER, TestConstants.Pointer.INVALID_JSON_POINTER.toString())
+                .set(RetrieveFeatureProperty.JSON_PROPERTY_JSON_POINTER,
+                        TestConstants.Pointer.INVALID_JSON_POINTER.toString())
                 .build();
-        RetrieveFeaturePropertyResponse.fromJson(invalidJson, TestConstants.EMPTY_DITTO_HEADERS);
+
+        Assertions.assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> RetrieveFeaturePropertyResponse.fromJson(invalidJson,
+                        TestConstants.EMPTY_DITTO_HEADERS))
+                .withCauseInstanceOf(JsonKeyInvalidException.class);
     }
+
 }

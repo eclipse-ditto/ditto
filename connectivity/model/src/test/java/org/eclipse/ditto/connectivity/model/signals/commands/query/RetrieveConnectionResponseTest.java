@@ -51,7 +51,8 @@ public final class RetrieveConnectionResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveConnectionResponse.class, areImmutable(),
+        assertInstancesOf(RetrieveConnectionResponse.class,
+                areImmutable(),
                 provided(JsonObject.class, MappingContext.class).isAlsoImmutable());
     }
 
@@ -59,7 +60,7 @@ public final class RetrieveConnectionResponseTest {
     public void retrieveInstanceWithNullConnection() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> RetrieveConnectionResponse.of(null, DittoHeaders.empty()))
-                .withMessage("The %s must not be null!", "Connection")
+                .withMessage("The %s must not be null!", "connection")
                 .withNoCause();
     }
 
@@ -76,10 +77,10 @@ public final class RetrieveConnectionResponseTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonObject actual =
-                RetrieveConnectionResponse.of(TestConstants.CONNECTION.toJson(), DittoHeaders.empty()).toJson();
+        final RetrieveConnectionResponse underTest =
+                RetrieveConnectionResponse.of(TestConstants.CONNECTION.toJson(), DittoHeaders.empty());
 
-        assertThat(actual).isEqualTo(KNOWN_JSON);
+        assertThat(underTest.toJson()).isEqualTo(KNOWN_JSON);
     }
 
     @Test

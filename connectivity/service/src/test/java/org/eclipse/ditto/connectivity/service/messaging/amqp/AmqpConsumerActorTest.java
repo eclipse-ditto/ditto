@@ -326,7 +326,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                 testRef,
                 TestProbe.apply(actorSystem).ref(),
                 actorSystem,
-                actorSystem.settings().config(),
+                ConnectivityConfig.of(actorSystem.settings().config()),
                 null);
 
         return InboundMappingSink.createSink(inboundMappingProcessor,

@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.concierge.service.common;
 
+import java.util.List;
+import java.util.Set;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.signals.Signal;
@@ -48,6 +51,20 @@ public interface EnforcementConfig {
     boolean isDispatchLiveResponsesGlobally();
 
     /**
+     * Returns a list of namespaces for which a special usage logging should be enabled in enforcement.
+     *
+     * @return list of namespaces which should be inspected.
+     */
+    Set<String> getSpecialLoggingInspectedNamespaces();
+
+    /**
+     * Returns the configuration for the entity creation restrictions.
+     *
+     * @return the configuration.
+     */
+    EntityCreationConfig getEntityCreation();
+
+    /**
      * Check if global dispatch of a signal should be supported.
      *
      * @param signal the signal.
@@ -73,7 +90,12 @@ public interface EnforcementConfig {
         /**
          * Whether to enable dispatching live responses from channels other than the subscribers.
          */
-        GLOBAL_LIVE_RESPONSE_DISPATCHING("global-live-response-dispatching", true);
+        GLOBAL_LIVE_RESPONSE_DISPATCHING("global-live-response-dispatching", true),
+
+        /**
+         * List of namespaces for which a special usage logging should be enabled in enforcement.
+         */
+        SPECIAL_LOGGING_INSPECTED_NAMESPACES("special-logging-inspected-namespaces", List.of());
 
         private final String path;
         private final Object defaultValue;

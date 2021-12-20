@@ -32,6 +32,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorWithAcknowledgementsTest;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
@@ -74,7 +75,8 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorWithAc
                         .build(),
                 channel,
                 CONNECTION,
-                mock(ConnectivityStatusResolver.class));
+                mock(ConnectivityStatusResolver.class),
+                ConnectivityConfig.of(actorSystem.settings().config()));
     }
 
     @Override
@@ -94,7 +96,8 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorWithAc
                         .build(),
                 channel,
                 CONNECTION,
-                mock(ConnectivityStatusResolver.class));
+                mock(ConnectivityStatusResolver.class),
+                ConnectivityConfig.of(actorSystem.settings().config()));
     }
 
     @Override

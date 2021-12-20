@@ -146,7 +146,7 @@ public final class SlidingWindowCounter {
         for (final MeasurementWindow window : windowsForRecording) {
             final long slot = getSlot(ts, window.getResolution().toMillis());
             final long newValue = measurements.compute(slot, (key, value) -> (value == null) ? 1 : value + 1);
-            if (metricsAlert != null && metricsAlert.evaluateCondition(window, ts, newValue)) {
+            if (metricsAlert != null && metricsAlert.evaluateCondition(window, slot, newValue)) {
                 metricsAlert.triggerAction(ts, newValue);
             }
         }

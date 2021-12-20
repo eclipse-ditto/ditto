@@ -715,7 +715,8 @@ public interface Thing extends Entity<ThingRevision> {
          * JSON field containing the Thing's Policy ID.
          */
         public static final JsonFieldDefinition<String> POLICY_ID =
-                JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR,
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Thing's definition.

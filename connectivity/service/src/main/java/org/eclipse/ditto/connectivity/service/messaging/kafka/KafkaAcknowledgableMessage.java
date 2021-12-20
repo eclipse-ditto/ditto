@@ -49,10 +49,10 @@ final class KafkaAcknowledgableMessage {
                 },
                 shouldRedeliver -> {
                     if (shouldRedeliver) {
-                        ackMonitor.exception(message, "Message was rejected and redelivery is requested.");
+                        ackMonitor.exception(message, "Message was rejected and redelivery is requested");
                         acknowledgementFuture.completeExceptionally(MessageRejectedException.getInstance());
                     } else {
-                        ackMonitor.exception(message, "Message was rejected and no redelivery is requested.");
+                        ackMonitor.exception(message, "Message was rejected and no redelivery is requested");
                         acknowledgementFuture.complete(committableOffset);
                     }
                 });

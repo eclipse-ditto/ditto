@@ -14,14 +14,13 @@ package org.eclipse.ditto.messages.model.signals.commands;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 
 /**
  * Command to send a Claim response {@link org.eclipse.ditto.messages.model.Message} <em>FROM</em> a Thing.
@@ -41,12 +40,53 @@ public final class SendClaimMessageResponse<T> extends AbstractMessageCommandRes
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
+    private static final CommandResponseJsonDeserializer<SendClaimMessageResponse<?>> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new SendClaimMessageResponse<>(
+                                ThingId.of(jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID)),
+                                deserializeMessageFromJson(jsonObject),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
+
     private SendClaimMessageResponse(final ThingId thingId,
             final Message<T> message,
-            final HttpStatus responseHttpStatus,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, thingId, message, responseHttpStatus, dittoHeaders);
+        super(TYPE, thingId, message, httpStatus, dittoHeaders);
+    }
+
+    /**
+     * Creates a new {@code SendClaimMessageResponse} from a JSON string.
+     *
+     * @param jsonString the JSON string of which the SendClaimMessageResponse is to be created.
+     * @param dittoHeaders the headers.
+     * @return the command.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code jsonString} is empty.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected format.
+     */
+    public static SendClaimMessageResponse<?> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
+    }
+
+    /**
+     * Creates a new {@code SendClaimMessageResponse} from a JSON object.
+     *
+     * @param jsonObject the JSON object of which the SendClaimMessageResponse is to be created.
+     * @param dittoHeaders the headers.
+     * @return the command.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected format.
+     */
+    public static SendClaimMessageResponse<?> fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -72,40 +112,6 @@ public final class SendClaimMessageResponse<T> extends AbstractMessageCommandRes
             final DittoHeaders dittoHeaders) {
 
         return new SendClaimMessageResponse<>(thingId, message, responseHttpStatus, dittoHeaders);
-    }
-
-    /**
-     * Creates a new {@code SendClaimMessageResponse} from a JSON string.
-     *
-     * @param jsonString the JSON string of which the SendClaimMessageResponse is to be created.
-     * @param dittoHeaders the headers.
-     * @return the command.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code jsonString} is empty.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected format.
-     */
-    public static SendClaimMessageResponse<?> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
-    }
-
-    /**
-     * Creates a new {@code SendClaimMessageResponse} from a JSON object.
-     *
-     * @param jsonObject the JSON object of which the SendClaimMessageResponse is to be created.
-     * @param dittoHeaders the headers.
-     * @return the command.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected format.
-     */
-    public static SendClaimMessageResponse<?> fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
-
-        return new CommandResponseJsonDeserializer<SendClaimMessageResponse<?>>(TYPE, jsonObject).deserialize(
-                httpStatus -> of(
-                        ThingId.of(jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID)),
-                        deserializeMessageFromJson(jsonObject),
-                        httpStatus,
-                        dittoHeaders));
     }
 
     @Override

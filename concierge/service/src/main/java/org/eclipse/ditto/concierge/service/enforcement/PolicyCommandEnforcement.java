@@ -20,6 +20,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
@@ -78,14 +80,17 @@ public final class PolicyCommandEnforcement
     private final ActorRef policiesShardRegion;
     private final EnforcerRetriever<PolicyEnforcer> enforcerRetriever;
     private final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> enforcerCache;
+    private final CreationRestrictionEnforcer creationRestrictionEnforcer;
 
     private PolicyCommandEnforcement(final Contextual<PolicyCommand<?>> context, final ActorRef policiesShardRegion,
-            final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> enforcerCache) {
+            final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> enforcerCache,
+            final CreationRestrictionEnforcer creationRestrictionEnforcer) {
 
         super(context, PolicyQueryCommandResponse.class);
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
         this.enforcerCache = requireNonNull(enforcerCache);
-        enforcerRetriever = new EnforcerRetriever<>(IdentityCache.INSTANCE, enforcerCache);
+        this.enforcerRetriever = new EnforcerRetriever<>(IdentityCache.INSTANCE, enforcerCache);
+        this.creationRestrictionEnforcer = creationRestrictionEnforcer;
     }
 
     /**
@@ -94,18 +99,29 @@ public final class PolicyCommandEnforcement
      * @param <T> type of the policy-command.
      * @param policyEnforcer the policy enforcer.
      * @param command the command to authorize.
+     * @param creationRestrictionEnforcer the enforcer for restricting entity creation.
      * @return optionally the authorized command.
      */
     public static <T extends PolicyCommand<?>> Optional<T> authorizePolicyCommand(final T command,
-            final PolicyEnforcer policyEnforcer) {
+            final PolicyEnforcer policyEnforcer,
+            final CreationRestrictionEnforcer creationRestrictionEnforcer
+    ) {
 
         final var enforcer = policyEnforcer.getEnforcer();
         final var policyResourceKey = PoliciesResourceType.policyResource(command.getResourcePath());
         final var authorizationContext = command.getDittoHeaders().getAuthorizationContext();
         final Optional<T> authorizedCommand;
         if (command instanceof CreatePolicy) {
-            if (command.getDittoHeaders().isAllowPolicyLockout() ||
-                    hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)) {
+            final var enforcerContext = new CreationRestrictionEnforcer.Context(command.getResourceType(),
+                    command.getEntityId().getNamespace(),
+                    command.getDittoHeaders()
+            );
+            if (creationRestrictionEnforcer.canCreate(enforcerContext)
+                    && (
+                    command.getDittoHeaders().isAllowPolicyLockout()
+                            || hasUnrestrictedWritePermission(enforcer, policyResourceKey, authorizationContext)
+            )
+            ) {
                 authorizedCommand = Optional.of(command);
             } else {
                 authorizedCommand = Optional.empty();
@@ -250,7 +266,7 @@ public final class PolicyCommandEnforcement
     private Contextual<WithDittoHeaders> enforcePolicyCommandByEnforcer(final PolicyEnforcer policyEnforcer) {
         final PolicyCommand<?> policyCommand = signal();
         final Optional<? extends PolicyCommand<?>> authorizedCommandOpt =
-                authorizePolicyCommand(policyCommand, policyEnforcer);
+                authorizePolicyCommand(policyCommand, policyEnforcer, this.creationRestrictionEnforcer);
         if (authorizedCommandOpt.isPresent()) {
             final PolicyCommand<?> authorizedCommand = authorizedCommandOpt.get();
             if (authorizedCommand instanceof PolicyQueryCommand) {
@@ -277,7 +293,7 @@ public final class PolicyCommandEnforcement
             final var createPolicy = (CreatePolicy) policyCommand;
             final var enforcer = PolicyEnforcers.defaultEvaluator(createPolicy.getPolicy());
             final Optional<CreatePolicy> authorizedCommand =
-                    authorizePolicyCommand(createPolicy, PolicyEnforcer.of(enforcer));
+                    authorizePolicyCommand(createPolicy, PolicyEnforcer.of(enforcer), this.creationRestrictionEnforcer);
             if (authorizedCommand.isPresent()) {
                 return createPolicy;
             } else {
@@ -321,9 +337,9 @@ public final class PolicyCommandEnforcement
         final var entityId = EnforcementCacheKey.of(policyId);
         enforcerCache.invalidate(entityId);
         pubSubMediator().tell(DistPubSubAccess.sendToAll(
-                ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
-                InvalidateCacheEntry.of(entityId),
-                true),
+                        ConciergeMessagingConstants.ENFORCER_ACTOR_PATH,
+                        InvalidateCacheEntry.of(entityId),
+                        true),
                 self());
     }
 
@@ -366,17 +382,23 @@ public final class PolicyCommandEnforcement
 
         private final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> enforcerCache;
         private final ActorRef policiesShardRegion;
+        private final CreationRestrictionEnforcer creationRestrictionEnforcer;
 
         /**
          * Constructor.
          *
          * @param policiesShardRegion the ActorRef to the Policies shard region.
          * @param enforcerCache the enforcer cache.
+         * @param creationRestrictionEnforcer the enforcer for restricting entity creation.
          */
         public Provider(final ActorRef policiesShardRegion,
-                final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> enforcerCache) {
+                final Cache<EnforcementCacheKey, Entry<PolicyEnforcer>> enforcerCache,
+                @Nullable final CreationRestrictionEnforcer creationRestrictionEnforcer
+        ) {
             this.policiesShardRegion = requireNonNull(policiesShardRegion);
             this.enforcerCache = requireNonNull(enforcerCache);
+            this.creationRestrictionEnforcer = Optional.ofNullable(creationRestrictionEnforcer)
+                    .orElse(CreationRestrictionEnforcer.NULL);
         }
 
         @Override
@@ -392,7 +414,7 @@ public final class PolicyCommandEnforcement
 
         @Override
         public AbstractEnforcement<PolicyCommand<?>> createEnforcement(final Contextual<PolicyCommand<?>> context) {
-            return new PolicyCommandEnforcement(context, policiesShardRegion, enforcerCache);
+            return new PolicyCommandEnforcement(context, policiesShardRegion, enforcerCache, creationRestrictionEnforcer);
         }
 
     }

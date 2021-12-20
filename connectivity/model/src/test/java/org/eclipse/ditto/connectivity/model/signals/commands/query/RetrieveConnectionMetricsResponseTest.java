@@ -21,20 +21,20 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.Collections;
 import java.util.HashMap;
 
-import org.eclipse.ditto.connectivity.model.signals.commands.TestConstants;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.SourceMetrics;
 import org.eclipse.ditto.connectivity.model.TargetMetrics;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
+import org.eclipse.ditto.connectivity.model.signals.commands.TestConstants;
 import org.eclipse.ditto.connectivity.model.signals.commands.query.RetrieveConnectionMetricsResponse.JsonFields;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -73,20 +73,20 @@ public final class RetrieveConnectionMetricsResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveConnectionMetricsResponse.class, areImmutable(),
+        assertInstancesOf(RetrieveConnectionMetricsResponse.class,
+                areImmutable(),
                 provided(JsonObject.class, ConnectionId.class).isAlsoImmutable());
     }
 
     @Test
     public void retrieveInstanceWithNullConnectionId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(
-                        () -> RetrieveConnectionMetricsResponse.getBuilder(null, DittoHeaders.empty())
-                                .connectionMetrics(METRICS)
-                                .sourceMetrics(EMPTY_SOURCE_METRICS)
-                                .targetMetrics(EMPTY_TARGET_METRICS)
-                                .build())
-                .withMessage("The %s must not be null!", "Connection ID")
+                .isThrownBy(() -> RetrieveConnectionMetricsResponse.getBuilder(null, DittoHeaders.empty())
+                        .connectionMetrics(METRICS)
+                        .sourceMetrics(EMPTY_SOURCE_METRICS)
+                        .targetMetrics(EMPTY_TARGET_METRICS)
+                        .build())
+                .withMessage("The %s must not be null!", "connectionId")
                 .withNoCause();
     }
 
@@ -107,27 +107,25 @@ public final class RetrieveConnectionMetricsResponseTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonObject actual =
-                RetrieveConnectionMetricsResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
-                        .connectionMetrics(TestConstants.Metrics.CONNECTION_METRICS)
-                        .sourceMetrics(TestConstants.Metrics.SOURCE_METRICS1)
-                        .targetMetrics(TestConstants.Metrics.TARGET_METRICS1)
-                        .build().toJson();
+        final JsonObject actual = RetrieveConnectionMetricsResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
+                .connectionMetrics(TestConstants.Metrics.CONNECTION_METRICS)
+                .sourceMetrics(TestConstants.Metrics.SOURCE_METRICS1)
+                .targetMetrics(TestConstants.Metrics.TARGET_METRICS1)
+                .build().toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
 
     @Test
     public void getResourcePathReturnsExpected() {
-        final JsonPointer expectedResourcePath =
-                JsonFactory.newPointer("/metrics");
+        final JsonPointer expectedResourcePath = JsonFactory.newPointer("/metrics");
 
         final RetrieveConnectionMetricsResponse underTest =
                 RetrieveConnectionMetricsResponse.getBuilder(TestConstants.ID, DittoHeaders.empty())
-                .connectionMetrics(TestConstants.Metrics.CONNECTION_METRICS)
-                .sourceMetrics(TestConstants.Metrics.SOURCE_METRICS1)
-                 .targetMetrics(TestConstants.Metrics.TARGET_METRICS1)
-                .build();
+                        .connectionMetrics(TestConstants.Metrics.CONNECTION_METRICS)
+                        .sourceMetrics(TestConstants.Metrics.SOURCE_METRICS1)
+                        .targetMetrics(TestConstants.Metrics.TARGET_METRICS1)
+                        .build();
 
         assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }

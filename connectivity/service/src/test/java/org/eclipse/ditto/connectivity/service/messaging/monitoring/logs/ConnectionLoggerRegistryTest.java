@@ -49,9 +49,11 @@ import org.eclipse.ditto.connectivity.model.LogLevel;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.config.DefaultMonitoringLoggerConfig;
 import org.eclipse.ditto.connectivity.service.config.MonitoringLoggerConfig;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.junit.Test;
+import org.komamitsu.fluency.Fluency;
+import org.komamitsu.fluency.fluentd.FluencyBuilderForFluentd;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -404,8 +406,10 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void testEqualsAndHashcode() {
-        forClass(ConnectionLoggerRegistry.class)
-                .verify();
+        final Fluency red = new FluencyBuilderForFluentd().build();
+        final Fluency black = new FluencyBuilderForFluentd().build("localhost", 9999);
+
+        forClass(ConnectionLoggerRegistry.class).withPrefabValues(Fluency.class, red, black).verify();
     }
 
     private ConnectionId connectionId() {

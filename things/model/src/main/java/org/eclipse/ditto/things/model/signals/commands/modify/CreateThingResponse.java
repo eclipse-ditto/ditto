@@ -15,6 +15,7 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -22,7 +23,14 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -30,16 +38,9 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 
 /**
  * Response to a {@link CreateThing} command.
@@ -55,14 +56,35 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
     public static final String TYPE = TYPE_PREFIX + CreateThing.NAME;
 
     static final JsonFieldDefinition<JsonValue> JSON_THING =
-            JsonFactory.newJsonValueFieldDefinition("thing", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonValue("thing", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.CREATED;
+
+    private static final CommandResponseJsonDeserializer<CreateThingResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return newInstance(
+                                jsonObject.getValue(JSON_THING)
+                                        .map(JsonValue::asObject)
+                                        .map(ThingsModelFactory::newThing)
+                                        .orElseThrow(() -> new JsonParseException(MessageFormat.format(
+                                                "JSON object <{0}> does not represent a Thing!",
+                                                jsonObject)
+                                        )),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final Thing createdThing;
 
-    private CreateThingResponse(final Thing createdThing, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatus.CREATED, dittoHeaders);
-        this.createdThing = checkNotNull(createdThing, "created Thing");
+    private CreateThingResponse(final Thing createdThing,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE, httpStatus, dittoHeaders);
+        this.createdThing = checkNotNull(createdThing, "createdThing");
     }
 
     /**
@@ -75,7 +97,29 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static CreateThingResponse of(final Thing thing, final DittoHeaders dittoHeaders) {
-        return new CreateThingResponse(thing, dittoHeaders);
+        return newInstance(thing, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code CreateThingResponse} for the specified arguments.
+     *
+     * @param createdThing the created thing.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code CreateThingResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code CreateThingResponse}.
+     * @since 2.3.0
+     */
+    public static CreateThingResponse newInstance(final Thing createdThing,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new CreateThingResponse(createdThing,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        CreateThingResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -90,7 +134,7 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
      * format.
      */
     public static CreateThingResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -104,16 +148,7 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
      * format.
      */
     public static CreateThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<CreateThingResponse>(TYPE, jsonObject)
-                .deserialize(httpStatus -> {
-                    final Thing extractedCreatedThing = jsonObject.getValue(JSON_THING)
-                            .map(JsonValue::asObject)
-                            .map(ThingsModelFactory::newThing)
-                            .orElseThrow(() -> new JsonParseException(MessageFormat.format(
-                                    "JSON object <{0}> does not represent a Thing!",
-                                    jsonObject)));
-                    return of(extractedCreatedThing, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     /**
@@ -142,7 +177,8 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
@@ -151,7 +187,7 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
 
     @Override
     public CreateThingResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(createdThing, dittoHeaders);
+        return newInstance(createdThing, getHttpStatus(), dittoHeaders);
     }
 
     @Override

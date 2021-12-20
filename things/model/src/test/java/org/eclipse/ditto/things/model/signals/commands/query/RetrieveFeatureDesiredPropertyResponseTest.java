@@ -17,14 +17,16 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
@@ -35,7 +37,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link RetrieveFeatureDesiredPropertyResponse}.
  */
-public class RetrieveFeatureDesiredPropertyResponseTest {
+public final class RetrieveFeatureDesiredPropertyResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveFeatureDesiredPropertyResponse.TYPE)
@@ -50,7 +52,8 @@ public class RetrieveFeatureDesiredPropertyResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveFeatureDesiredPropertyResponse.class, areImmutable(),
+        assertInstancesOf(RetrieveFeatureDesiredPropertyResponse.class,
+                areImmutable(),
                 provided(JsonPointer.class, JsonValue.class, ThingId.class).areAlsoImmutable());
     }
 
@@ -58,13 +61,13 @@ public class RetrieveFeatureDesiredPropertyResponseTest {
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(RetrieveFeatureDesiredPropertyResponse.class)
                 .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeatureProperty() {
-        RetrieveFeatureDesiredPropertyResponse.of(
-                TestConstants.Thing.THING_ID,
+        RetrieveFeatureDesiredPropertyResponse.of(TestConstants.Thing.THING_ID,
                 TestConstants.Feature.HOVER_BOARD_ID,
                 TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTY_POINTER,
                 null,
@@ -73,12 +76,12 @@ public class RetrieveFeatureDesiredPropertyResponseTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final RetrieveFeatureDesiredPropertyResponse underTest = RetrieveFeatureDesiredPropertyResponse.of(
-                TestConstants.Thing.THING_ID,
-                TestConstants.Feature.HOVER_BOARD_ID,
-                TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTY_POINTER,
-                TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTY_VALUE,
-                TestConstants.EMPTY_DITTO_HEADERS);
+        final RetrieveFeatureDesiredPropertyResponse underTest =
+                RetrieveFeatureDesiredPropertyResponse.of(TestConstants.Thing.THING_ID,
+                        TestConstants.Feature.HOVER_BOARD_ID,
+                        TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTY_POINTER,
+                        TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTY_VALUE,
+                        TestConstants.EMPTY_DITTO_HEADERS);
 
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
@@ -87,13 +90,13 @@ public class RetrieveFeatureDesiredPropertyResponseTest {
 
     @Test
     public void createInstanceFromValidJson() {
-        final RetrieveFeatureDesiredPropertyResponse underTest =
-                RetrieveFeatureDesiredPropertyResponse.fromJson(KNOWN_JSON.toString(),
-                        TestConstants.EMPTY_DITTO_HEADERS);
+        final RetrieveFeatureDesiredPropertyResponse underTest = RetrieveFeatureDesiredPropertyResponse.fromJson(
+                KNOWN_JSON.toString(),
+                TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getDesiredPropertyValue()).isEqualTo(
-                TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTY_VALUE);
+        assertThat(underTest.getDesiredPropertyValue())
+                .isEqualTo(TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTY_VALUE);
     }
 
     @Test(expected = JsonKeyInvalidException.class)
@@ -105,11 +108,18 @@ public class RetrieveFeatureDesiredPropertyResponseTest {
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-    @Test(expected = JsonKeyInvalidException.class)
+    @Test
     public void createInstanceFromInvalidJson() {
         final JsonObject invalidJson = KNOWN_JSON.toBuilder()
-                .set(RetrieveFeatureDesiredProperty.JSON_DESIRED_PROPERTY_POINTER, TestConstants.Pointer.INVALID_JSON_POINTER.toString())
+                .set(RetrieveFeatureDesiredProperty.JSON_DESIRED_PROPERTY_POINTER,
+                        TestConstants.Pointer.INVALID_JSON_POINTER.toString())
                 .build();
-        RetrieveFeatureDesiredPropertyResponse.fromJson(invalidJson, TestConstants.EMPTY_DITTO_HEADERS);
+
+        Assertions.assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> RetrieveFeatureDesiredPropertyResponse.fromJson(invalidJson, TestConstants.EMPTY_DITTO_HEADERS))
+                .withMessage("Failed to deserialize JSON object to a command response of type <%s>:" +
+                        " The JSON key <äöü> is invalid!", RetrieveFeatureDesiredPropertyResponse.TYPE)
+                .withCauseInstanceOf(JsonKeyInvalidException.class);
     }
+
 }

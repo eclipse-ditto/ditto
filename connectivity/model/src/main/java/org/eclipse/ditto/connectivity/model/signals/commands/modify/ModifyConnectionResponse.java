@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -21,21 +22,19 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.connectivity.model.ConnectionId;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 
 /**
  * Response to a {@link ModifyConnection} command.
@@ -50,15 +49,31 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
      */
     public static final String TYPE = TYPE_PREFIX + ModifyConnection.NAME;
 
-    static final JsonFieldDefinition<JsonObject> JSON_CONNECTION =
-            JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+    private static final HttpStatus HTTP_STATUS = HttpStatus.NO_CONTENT;
+
+    private static final CommandResponseJsonDeserializer<ModifyConnectionResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new ModifyConnectionResponse(
+                                ConnectionId.of(jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID)),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final ConnectionId connectionId;
 
-    private ModifyConnectionResponse(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
-        this.connectionId = checkNotNull(connectionId, "Connection ID");
+    private ModifyConnectionResponse(final ConnectionId connectionId,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        ModifyConnectionResponse.class),
+                dittoHeaders);
+        this.connectionId = checkNotNull(connectionId, "connectionId");
     }
 
     /**
@@ -71,7 +86,7 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyConnectionResponse of(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
-        return new ModifyConnectionResponse(connectionId, dittoHeaders);
+        return new ModifyConnectionResponse(connectionId, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -86,7 +101,7 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
      * format.
      */
     public static ModifyConnectionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -100,12 +115,7 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
      * format.
      */
     public static ModifyConnectionResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifyConnectionResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final String readConnectionId =
-                            jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-                    return new ModifyConnectionResponse(ConnectionId.of(readConnectionId), dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -114,7 +124,8 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
 
-        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID,
+                connectionId.toString(),
                 predicate);
     }
 

@@ -36,7 +36,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Tests {@link MergeThingResponse}.
  */
-public class MergeThingResponseTest {
+public final class MergeThingResponseTest {
 
     private static final DittoHeaders DITTO_HEADERS =
             DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();

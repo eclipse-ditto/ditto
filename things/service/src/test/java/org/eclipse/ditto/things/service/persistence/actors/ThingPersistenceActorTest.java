@@ -166,7 +166,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 // retrieve created thing
                 final RetrieveThing retrieveThing = RetrieveThing.of(thingId, dittoHeadersV2);
                 underTest.tell(retrieveThing, getRef());
-                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, thing.toJson(), dittoHeadersV2));
+                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, null, dittoHeadersV2));
 
                 // terminate thing persistence actor
                 final String thingActorPath = String.format("akka://AkkaTestSystem/user/%s/pa", thingId);
@@ -328,7 +328,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
-    public void modifyThingKeepsOverwritesExistingFirstLevelFieldsWhenExplicitlySpecifiedV2() {
+    public void modifyThingOverwritesExistingFirstLevelFieldsWhenExplicitlySpecifiedV2() {
         final Thing thingWithFirstLevelFields = createThingV2WithRandomId();
         final Thing thingWithDifferentFirstLevelFields = Thing.newBuilder()
                 .setId(getIdOrThrow(thingWithFirstLevelFields))
@@ -384,25 +384,28 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
-    public void modifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwrittenV2() {
+    public void modifyThingOverwritesExistingFirstLevelFieldsWhenNotExplicitlySpecifiedV2() {
         final Thing thingWithFirstLevelFields = createThingV2WithRandomId();
-        doTestModifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwritten(thingWithFirstLevelFields,
+        doTestModifyThingOverwritesExistingFirstLevelFieldsWhenNotExplicitlySpecified(thingWithFirstLevelFields,
                 dittoHeadersV2);
     }
 
-    private void doTestModifyThingKeepsAlreadyExistingFirstLevelFieldsWhenNotExplicitlyOverwritten(
+    private void doTestModifyThingOverwritesExistingFirstLevelFieldsWhenNotExplicitlySpecified(
             final Thing thingWithFirstLevelFields, final DittoHeaders dittoHeaders) {
 
         final ThingId thingId = getIdOrThrow(thingWithFirstLevelFields);
 
         final Thing minimalThing = Thing.newBuilder()
                 .setId(thingId)
+                .setPolicyId(PolicyId.of(thingId))
                 .build();
+
+        final Thing expectedThing = minimalThing.toBuilder().setPolicyId(PolicyId.of(thingId)).build();
+
         final ModifyThing modifyThingCommand = ModifyThing.of(thingId, minimalThing, null, dittoHeaders);
 
         new TestKit(actorSystem) {
             {
-                final TestKit pubSub = new TestKit(actorSystem);
                 final ActorRef underTest = createPersistenceActorFor(thingWithFirstLevelFields);
 
                 final CreateThing createThing = CreateThing.of(thingWithFirstLevelFields, null, dittoHeaders);
@@ -411,18 +414,14 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thingWithFirstLevelFields);
 
-                assertPublishEvent(ThingCreated.of(thingWithFirstLevelFields, 1L, TIMESTAMP, dittoHeaders,
-                        null));
+                assertPublishEvent(ThingCreated.of(thingWithFirstLevelFields, 1L, TIMESTAMP, dittoHeaders, null));
 
                 underTest.tell(modifyThingCommand, getRef());
 
-                expectMsgEquals(
-                        ETagTestUtils.modifyThingResponse(thingWithFirstLevelFields, minimalThing, dittoHeaders,
+                expectMsgEquals(ETagTestUtils.modifyThingResponse(thingWithFirstLevelFields, minimalThing, dittoHeaders,
                                 false));
 
-                // we expect that in the Event the minimalThing was merged with thingWithFirstLevelFields:
-                assertPublishEvent(ThingModified.of(thingWithFirstLevelFields, 2L, TIMESTAMP, dittoHeaders,
-                        null));
+                assertPublishEvent(ThingModified.of(expectedThing, 2L, TIMESTAMP, dittoHeaders, null));
 
                 final RetrieveThing retrieveThing = RetrieveThing.getBuilder(thingId, dittoHeaders)
                         .withSelectedFields(ALL_FIELDS_SELECTOR)
@@ -430,7 +429,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 underTest.tell(retrieveThing, getRef());
 
                 final RetrieveThingResponse retrieveThingResponse = expectMsgClass(RetrieveThingResponse.class);
-                assertThingInResponse(retrieveThingResponse.getThing(), thingWithFirstLevelFields);
+                assertThingInResponse(retrieveThingResponse.getThing(), expectedThing);
             }
         };
     }
@@ -487,7 +486,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing);
 
                 underTest.tell(retrieveThingCommand, getRef());
-                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, thing.toJson(), dittoHeadersV2));
+                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thing, null, dittoHeadersV2));
             }
         };
     }
@@ -904,7 +903,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         .build();
                 underTest.tell(retrieveThing, getRef());
                 expectMsgEquals(
-                        ETagTestUtils.retrieveThingResponse(thingExpected, thingExpected.toJson(versionFieldSelector),
+                        ETagTestUtils.retrieveThingResponse(thingExpected, versionFieldSelector,
                                 dittoHeadersV2));
             }
         };
@@ -952,7 +951,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                 Awaitility.await().atMost(10L, TimeUnit.SECONDS).untilAsserted(() -> {
                     underTestAfterRestart.tell(retrieveThing, getRef());
                     expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected,
-                            thingExpected.toJson(versionFieldSelector),
+                            versionFieldSelector,
                             dittoHeadersV2));
                 });
             }

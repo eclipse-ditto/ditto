@@ -116,7 +116,7 @@ public final class Audience {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", principles=" + principles +
+                "principles=" + principles +
                 "]";
     }
 

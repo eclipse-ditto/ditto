@@ -39,14 +39,21 @@ import org.eclipse.ditto.connectivity.service.messaging.BaseClientActor;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 
 import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.http.javadsl.model.HttpRequest;
+import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.Uri;
+import akka.japi.Pair;
+import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
+import scala.util.Try;
 
 /**
  * Client actor for HTTP-push.
@@ -56,7 +63,6 @@ public final class HttpPushClientActor extends BaseClientActor {
     private static final int PROXY_CONNECT_TIMEOUT_SECONDS = 15;
 
     private final HttpPushFactory factory;
-    private final ConnectionLogger clientConnectionLogger;
     private final HttpPushConfig httpPushConfig;
 
     @Nullable private ActorRef httpPublisherActor;
@@ -67,8 +73,7 @@ public final class HttpPushClientActor extends BaseClientActor {
         super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);
         httpPushConfig = connectivityConfig().getConnectionConfig().getHttpPushConfig();
         final MonitoringLoggerConfig loggerConfig = connectivityConfig().getMonitoringConfig().logger();
-        clientConnectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
-        factory = HttpPushFactory.of(connection, httpPushConfig, clientConnectionLogger, this::getSshTunnelState);
+        factory = HttpPushFactory.of(connection, httpPushConfig, connectionLogger, this::getSshTunnelState);
     }
 
     /**
@@ -103,12 +108,16 @@ public final class HttpPushClientActor extends BaseClientActor {
     protected CompletionStage<Status.Status> doTestConnection(final TestConnection testConnectionCommand) {
         final Connection connectionToBeTested = testConnectionCommand.getConnection();
         final Uri uri = Uri.create(connectionToBeTested.getUri());
+        final var credentialsTest = testCredentials(connectionToBeTested);
         if (HttpPushValidator.isSecureScheme(uri.getScheme())) {
-            return testSSL(connectionToBeTested, uri.getHost().address(), uri.port());
+            return credentialsTest.thenCompose(unused ->
+                    testSSL(connectionToBeTested, uri.getHost().address(), uri.port()));
         } else {
             // non-secure HTTP without test request; succeed after TCP connection.
-            return statusSuccessFuture("TCP connection to '%s:%d' established successfully",
-                    uri.getHost().address(), uri.getPort());
+            return credentialsTest.thenCompose(unused ->
+                    statusSuccessFuture("TCP connection to '%s:%d' established successfully",
+                            uri.getHost().address(), uri.getPort())
+            );
         }
     }
 
@@ -145,11 +154,20 @@ public final class HttpPushClientActor extends BaseClientActor {
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         stopChildActor(httpPublisherActor);
         final Props props = HttpPublisherActor.props(connection(), factory, getDefaultClientId(), getProxyActor(),
-                connectivityStatusResolver);
+                connectivityStatusResolver, connectivityConfig());
         httpPublisherActor = startChildActorConflictFree(HttpPublisherActor.ACTOR_NAME, props);
         future.complete(DONE);
 
         return future;
+    }
+
+    private CompletionStage<?> testCredentials(final Connection connection) {
+        final var actorSystem = getContext().getSystem();
+        final var config = connectivityConfig().getConnectionConfig().getHttpPushConfig();
+        return Source.single(Pair.<HttpRequest, HttpPushContext>create(HttpRequest.create(), new TestHttpPushContext()))
+                .concat(Source.never())
+                .via(ClientCredentialsFlowVisitor.eval(actorSystem, config, connection))
+                .runWith(Sink.head(), actorSystem);
     }
 
     private CompletionStage<Status.Status> testSSL(final Connection connection, final String hostWithoutLookup,
@@ -161,7 +179,7 @@ public final class HttpPushClientActor extends BaseClientActor {
         } else {
             // check without HTTP proxy
             final SSLContextCreator sslContextCreator =
-                    SSLContextCreator.fromConnection(connection, DittoHeaders.empty(), clientConnectionLogger);
+                    SSLContextCreator.fromConnection(connection, DittoHeaders.empty(), connectionLogger);
             final SSLSocketFactory socketFactory = connection.getCredentials()
                     .map(credentials -> credentials.accept(sslContextCreator))
                     .orElse(sslContextCreator.withoutClientCertificate()).getSocketFactory();
@@ -236,6 +254,19 @@ public final class HttpPushClientActor extends BaseClientActor {
 
     private static CompletionStage<Status.Status> statusFailureFuture(final Throwable error) {
         return CompletableFuture.completedFuture(new Status.Failure(error));
+    }
+
+    private static class TestHttpPushContext implements HttpPushContext {
+
+        @Override
+        public ConnectionMonitor.InfoProvider getInfoProvider() {
+            return InfoProviderFactory.empty();
+        }
+
+        @Override
+        public void onResponse(final Try<HttpResponse> response) {
+            // no-op
+        }
     }
 
 }

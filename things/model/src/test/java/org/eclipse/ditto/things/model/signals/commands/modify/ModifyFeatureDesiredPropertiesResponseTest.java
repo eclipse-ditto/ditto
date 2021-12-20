@@ -33,7 +33,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ModifyFeatureDesiredPropertiesResponse}.
  */
-public class ModifyFeatureDesiredPropertiesResponseTest {
+public final class ModifyFeatureDesiredPropertiesResponseTest {
 
     private static final JsonObject KNOWN_JSON_CREATED = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, ModifyFeatureDesiredPropertiesResponse.TYPE)

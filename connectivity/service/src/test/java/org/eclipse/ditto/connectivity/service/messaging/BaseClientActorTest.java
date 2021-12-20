@@ -135,7 +135,7 @@ public final class BaseClientActorTest {
 
     @Test
     public void reconnectsInConnectingStateAfterBackoffWhenMultipleFailuresAreReceived() {
-        // expect reconnects after 100ms + 200ms + 400ms + 400ms = 1100ms backoff in total
+        // expect reconnects after 100ms + 200ms + 400ms + 400ms = 1100ms
         final long expectedTotalBackoffMs = 1100L;
         reconnectsAfterBackoffWhenMultipleFailuresReceived(false, expectedTotalBackoffMs);
     }

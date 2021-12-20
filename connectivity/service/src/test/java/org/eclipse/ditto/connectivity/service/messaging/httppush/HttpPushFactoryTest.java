@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -37,9 +39,12 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.service.config.DefaultConnectionConfig;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
+import org.eclipse.ditto.connectivity.service.config.OAuth2Config;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.junit.After;
@@ -171,6 +176,16 @@ public final class HttpPushFactoryTest {
             @Override
             public Map<String, String> getHmacAlgorithms() {
                 return Map.of();
+            }
+
+            @Override
+            public OAuth2Config getOAuth2Config() {
+                return OAuth2Config.of(ConfigFactory.empty());
+            }
+
+            @Override
+            public List<String> getOmitRequestBodyMethods() {
+                return Collections.emptyList();
             }
         }, mock(ConnectionLogger.class), SshTunnelState::disabled);
         final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
@@ -329,14 +344,26 @@ public final class HttpPushFactoryTest {
     }
 
     private Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> newSourceSinkQueues(
-            final Flow<Pair<HttpRequest, Object>, Pair<Try<HttpResponse>, Object>, ?> flow) {
+            final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?> flow) {
 
         return Source.<HttpRequest>queue(10, OverflowStrategy.dropNew())
-                .map(r -> Pair.create(r, null))
+                .<Pair<HttpRequest, HttpPushContext>>map(r -> Pair.create(r, new TestHttpPushContext()))
                 .viaMat(flow, Keep.left())
                 .map(Pair::first)
                 .toMat(Sink.queue(), Keep.both())
                 .run(actorSystem);
+    }
+
+    static class TestHttpPushContext implements HttpPushContext {
+        @Override
+        public ConnectionMonitor.InfoProvider getInfoProvider() {
+            return InfoProviderFactory.empty();
+        }
+
+        @Override
+        public void onResponse(final Try<HttpResponse> response) {
+            // no-op
+        }
     }
 
     private Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> newSourceSinkQueues(

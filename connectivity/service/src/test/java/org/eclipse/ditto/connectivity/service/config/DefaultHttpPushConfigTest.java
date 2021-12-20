@@ -31,7 +31,7 @@ import com.typesafe.config.ConfigFactory;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
-public class DefaultHttpPushConfigTest {
+public final class DefaultHttpPushConfigTest {
 
     private static Config config;
 
@@ -47,8 +47,9 @@ public class DefaultHttpPushConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultHttpPushConfig.class,
                 areImmutable(),
-                provided(HttpPushConfig.class).isAlsoImmutable(),
-                assumingFields("hmacAlgorithms").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
+                provided(HttpProxyConfig.class, OAuth2Config.class).areAlsoImmutable(),
+                assumingFields("hmacAlgorithms", "omitRequestBodyMethods")
+                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

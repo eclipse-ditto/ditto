@@ -35,6 +35,7 @@ import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.HeaderMapping;
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
 import org.eclipse.ditto.connectivity.model.ReplyTarget;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractConsumerActorWithAcknowledgementsTest;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
@@ -86,7 +87,8 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorWithA
                         .address("foo")
                         .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                         .build())
-                .build(), false, SPECIFIC_CONFIG, mock(ConnectivityStatusResolver.class));
+                .build(), false, SPECIFIC_CONFIG, mock(ConnectivityStatusResolver.class),
+                ConnectivityConfig.of(actorSystem.settings().config()));
     }
 
     @Override
@@ -118,7 +120,8 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorWithA
                         .address("foo")
                         .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                         .build())
-                .build(), false, SPECIFIC_CONFIG, mock(ConnectivityStatusResolver.class));
+                .build(), false, SPECIFIC_CONFIG, mock(ConnectivityStatusResolver.class),
+                ConnectivityConfig.of(actorSystem.settings().config()));
     }
 
     @Override

@@ -102,8 +102,6 @@ public final class ThingsRootActor extends DittoRootActor {
         final ActorRef healthCheckingActor = startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions, MongoHealthChecker.props()));
 
-        final ActorRef eventStreamingActor =
-                ThingsPersistenceStreamingActorCreator.startEventStreamingActor(this::startChildActor);
         final ActorRef snapshotStreamingActor =
                 ThingsPersistenceStreamingActorCreator.startSnapshotStreamingActor(this::startChildActor);
 
@@ -113,7 +111,6 @@ public final class ThingsRootActor extends DittoRootActor {
         startChildActor(PersistenceCleanupActor.NAME, cleanupActorProps);
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
-        pubSubMediator.tell(DistPubSubAccess.put(eventStreamingActor), getSelf());
         pubSubMediator.tell(DistPubSubAccess.put(snapshotStreamingActor), getSelf());
 
         bindHttpStatusRoute(thingsConfig.getHttpConfig(), healthCheckingActor);

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.base.model.common;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 import javax.annotation.Nullable;
@@ -54,23 +55,54 @@ public final class ByteBufferUtils {
 
     /**
      * Creates an empty ByteBuffer of size 0.
+     *
      * @return an empty ByteBuffer.
      */
     public static ByteBuffer empty() {
         return ByteBuffer.allocate(0);
     }
 
+
     /**
-     * Creates a string from the ByteBuffer.
+     * Transforms the given String to a ByteBuffer assuming UTF-8 charset.
+     *
+     * @param string the string to transform.
+     * @return the bytebuffer.
+     */
+    @Nullable
+    public static ByteBuffer fromUtf8String(@Nullable final String string) {
+        if (null == string) {
+            return null;
+        }
+        return ByteBuffer.wrap(string.getBytes(StandardCharsets.UTF_8));
+    }
+
+
+    /**
+     * Creates a string from the ByteBuffer assuming UTF-8 charset.
+     *
      * @param byteBuffer the ByteBuffer to decode.
      * @return the ByteBuffer in UTF-8 representation or {@code null} if it was null.
      */
     @Nullable
     public static String toUtf8String(@Nullable final ByteBuffer byteBuffer) {
-        if (null == byteBuffer) {
+        return toString(byteBuffer, StandardCharsets.UTF_8);
+    }
+
+
+    /**
+     * Creates a string from the ByteBuffer using the given charset.
+     *
+     * @param value the ByteBuffer to decode.
+     * @param charset the charset to use for decoding.
+     * @return the string or {@code null} if {@code value} was null.
+     */
+    @Nullable
+    public static String toString(@Nullable final ByteBuffer value, final Charset charset) {
+        if (null == value) {
             return null;
         }
-        return StandardCharsets.UTF_8.decode(byteBuffer.asReadOnlyBuffer()).toString();
+        return charset.decode(value.asReadOnlyBuffer()).toString();
     }
 
 }

@@ -12,25 +12,28 @@
  */
 package org.eclipse.ditto.base.api.devops.signals.commands;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
-import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 
 /**
  * Response to a {@link RetrieveStatistics} command containing a {@link org.eclipse.ditto.json.JsonObject} of the retrieved Statistics.
@@ -46,14 +49,33 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
     public static final String TYPE = TYPE_PREFIX + RetrieveStatistics.NAME;
 
     private static final JsonFieldDefinition<JsonObject> JSON_STATISTICS =
-            JsonFactory.newJsonObjectFieldDefinition("statistics", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonObject("statistics", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<RetrieveStatisticsResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final var jsonObject = context.getJsonObject();
+                        return new RetrieveStatisticsResponse(jsonObject.getValueOrThrow(JSON_STATISTICS),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders());
+                    });
 
     private final JsonObject statistics;
 
-    private RetrieveStatisticsResponse(final JsonObject statistics, final DittoHeaders dittoHeaders) {
-        super(TYPE, null, null, HttpStatus.OK, dittoHeaders);
-        this.statistics = Objects.requireNonNull(statistics, "The statistics JSON must not be null!");
+    private RetrieveStatisticsResponse(final JsonObject statistics,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE,
+                null,
+                null,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveStatisticsResponse.class),
+                dittoHeaders);
+        this.statistics = ConditionChecker.checkNotNull(statistics, "statistics");
     }
 
     /**
@@ -65,7 +87,7 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static RetrieveStatisticsResponse of(final JsonObject statistics, final DittoHeaders dittoHeaders) {
-        return new RetrieveStatisticsResponse(statistics, dittoHeaders);
+        return new RetrieveStatisticsResponse(statistics, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -94,11 +116,7 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
      * format.
      */
     public static RetrieveStatisticsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveStatisticsResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final JsonObject statistics = jsonObject.getValueOrThrow(JSON_STATISTICS);
-                    return RetrieveStatisticsResponse.of(statistics, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     /**
@@ -121,12 +139,13 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         super.appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
 
-        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+        final var predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_STATISTICS, statistics, predicate);
     }
 
@@ -138,13 +157,12 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
     @SuppressWarnings("squid:S109")
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = super.hashCode();
+        final var prime = 31;
+        var result = super.hashCode();
         result = prime * result + Objects.hashCode(statistics);
         return result;
     }
 
-    @SuppressWarnings("squid:MethodCyclomaticComplexity")
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
@@ -153,7 +171,7 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final RetrieveStatisticsResponse that = (RetrieveStatisticsResponse) o;
+        final var that = (RetrieveStatisticsResponse) o;
         return that.canEqual(this) && Objects.equals(statistics, that.statistics) && super.equals(that);
     }
 

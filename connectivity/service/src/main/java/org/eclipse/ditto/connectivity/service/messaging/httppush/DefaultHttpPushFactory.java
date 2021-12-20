@@ -17,17 +17,19 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.internal.utils.akka.controlflow.TimeoutFlow;
@@ -101,7 +103,16 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
             final SSLContext sslContext = connection.getCredentials()
                     .map(credentials -> credentials.accept(sslContextCreator))
                     .orElse(sslContextCreator.withoutClientCertificate());
-            httpsConnectionContext = ConnectionContext.httpsClient(sslContext);
+            if (connection.isValidateCertificates()) {
+                httpsConnectionContext = ConnectionContext.httpsClient(sslContext);
+            } else {
+                httpsConnectionContext = ConnectionContext.httpsClient((host, port) -> {
+                    // This creates an SSL Engine without hostname verification.
+                    final SSLEngine engine = sslContext.createSSLEngine(host, port);
+                    engine.setUseClientMode(true);
+                    return engine;
+                });
+            }
         } else {
             httpsConnectionContext = null;
         }
@@ -158,33 +169,34 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
     }
 
     @Override
-    public <T> Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> createFlow(final ActorSystem system,
+    public Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?> createFlow(
+            final ActorSystem system,
             final LoggingAdapter log,
             final Duration requestTimeout,
             @Nullable final PreparedTimer timer,
-            @Nullable final Consumer<Duration> durationConsumer) {
+            @Nullable final BiConsumer<Duration, ConnectionMonitor.InfoProvider> durationConsumer) {
 
         final Http http = Http.get(system);
         final ConnectionPoolSettings poolSettings = getConnectionPoolSettings(system);
-        final Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> flow;
+        final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?> flow;
         final Uri baseUri = getBaseUri();
         if (null != httpsConnectionContext) {
             final ConnectHttp connectHttpsWithCustomSSLContext =
                     ConnectHttp.toHostHttps(baseUri).withCustomHttpsContext(httpsConnectionContext);
             // explicitly added <T> as in (some?) IntelliJ idea the line would show an error:
-            flow = http.<T>cachedHostConnectionPoolHttps(connectHttpsWithCustomSSLContext, poolSettings, log);
+            flow = http.cachedHostConnectionPoolHttps(connectHttpsWithCustomSSLContext, poolSettings, log);
         } else {
             // explicitly added <T> as in (some?) IntelliJ idea the line would show an error:
             // no SSL, hence no need for SSLContextCreator
-            flow = http.<T>cachedHostConnectionPool(ConnectHttp.toHost(baseUri), poolSettings, log);
+            flow = http.cachedHostConnectionPool(ConnectHttp.toHost(baseUri), poolSettings, log);
         }
 
         // make requests in parallel
-        return Flow.<Pair<HttpRequest, T>>create().flatMapMerge(parallelism, request -> {
+        return Flow.<Pair<HttpRequest, HttpPushContext>>create().flatMapMerge(parallelism, request -> {
             final var startedTimer = timer != null ? timer.start() : null;
             return TimeoutFlow.single(request, flow, requestTimeout, DefaultHttpPushFactory::onRequestTimeout)
                     .map(pair -> {
-                        stopTimer(startedTimer, durationConsumer, log);
+                        stopTimer(startedTimer, durationConsumer, pair.second().getInfoProvider(), log);
                         return pair;
                     })
                     .async(DISPATCHER_NAME, parallelism);
@@ -192,14 +204,15 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
     }
 
     private void stopTimer(@Nullable final StartedTimer startedTimer,
-            @Nullable final Consumer<Duration> durationConsumer,
+            @Nullable final BiConsumer<Duration, ConnectionMonitor.InfoProvider> durationConsumer,
+            final ConnectionMonitor.InfoProvider infoProvider,
             final LoggingAdapter log) {
 
         try {
             if (startedTimer != null) {
                 final var stoppedTimer = startedTimer.stop();
                 if (durationConsumer != null) {
-                    durationConsumer.accept(stoppedTimer.getDuration());
+                    durationConsumer.accept(stoppedTimer.getDuration(), infoProvider);
                 }
             }
         } catch (final IllegalStateException e) {

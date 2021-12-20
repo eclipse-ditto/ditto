@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -21,23 +22,23 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandResponse;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Response to a {@link CreateConnection} command.
@@ -53,13 +54,32 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
     public static final String TYPE = ConnectivityCommandResponse.TYPE_PREFIX + CreateConnection.NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_CONNECTION =
-            JsonFactory.newJsonObjectFieldDefinition("connection", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonObject("connection", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.CREATED;
+
+    private static final CommandResponseJsonDeserializer<CreateConnectionResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new CreateConnectionResponse(
+                                ConnectivityModelFactory.connectionFromJson(jsonObject.getValueOrThrow(JSON_CONNECTION)),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final Connection connection;
 
-    private CreateConnectionResponse(final Connection connection, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatus.CREATED, dittoHeaders);
+    private CreateConnectionResponse(final Connection connection,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        CreateConnectionResponse.class),
+                dittoHeaders);
         this.connection = connection;
     }
 
@@ -72,8 +92,7 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static CreateConnectionResponse of(final Connection connection, final DittoHeaders dittoHeaders) {
-        checkNotNull(connection, "Connection");
-        return new CreateConnectionResponse(connection, dittoHeaders);
+        return new CreateConnectionResponse(checkNotNull(connection, "connection"), HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -88,7 +107,7 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
      * format.
      */
     public static CreateConnectionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -102,13 +121,7 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
      * format.
      */
     public static CreateConnectionResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<CreateConnectionResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final JsonObject jsonConnection = jsonObject.getValueOrThrow(JSON_CONNECTION);
-                    final Connection readConnection = ConnectivityModelFactory.connectionFromJson(jsonConnection);
-
-                    return of(readConnection, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     /**
@@ -126,8 +139,10 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_CONNECTION, connection.toJson(schemaVersion, thePredicate), predicate);
     }

@@ -38,9 +38,9 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.things.api.ThingTag;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
@@ -159,7 +159,6 @@ final class ThingUpdater extends AbstractActorWithStash {
         return shutdownBehaviour.createReceive()
                 .match(ThingEvent.class, this::processThingEvent)
                 .match(AbstractWriteModel.class, this::onNextWriteModel)
-                .match(ThingTag.class, this::processThingTag)
                 .match(PolicyReferenceTag.class, this::processPolicyReferenceTag)
                 .match(UpdateThing.class, this::updateThing)
                 .match(UpdateThingResponse.class, this::processUpdateThingResponse)
@@ -249,28 +248,15 @@ final class ThingUpdater extends AbstractActorWithStash {
 
     /**
      * Push metadata of this updater to the queue of thing-changes to be streamed into the persistence.
+     *
+     * @param updateReason the reason why the search index is updated.
      */
-    private void enqueueMetadata() {
-        enqueueMetadata(exportMetadata(null, null));
+    private void enqueueMetadata(final UpdateReason updateReason) {
+        enqueueMetadata(exportMetadata(null, null).withUpdateReason(updateReason));
     }
 
     private void enqueueMetadata(final Metadata metadata) {
         changeQueueActor.tell(metadata.withOrigin(getSelf()), getSelf());
-    }
-
-    private void processThingTag(final ThingTag thingTag) {
-        log.debug("Received new Thing Tag for thing <{}> with revision <{}>: <{}>.",
-                thingId, thingRevision, thingTag.asIdentifierString());
-
-        if (thingTag.getRevision() > thingRevision) {
-            log.debug("The Thing Tag for the thing <{}> has the revision {} which is greater than the current actor's"
-                    + " sequence number <{}>.", thingId, thingTag.getRevision(), thingRevision);
-            thingRevision = thingTag.getRevision();
-            enqueueMetadata();
-        } else {
-            log.debug("Dropping <{}> because my thingRevision=<{}>", thingTag, thingRevision);
-        }
-        acknowledge(thingTag);
     }
 
     private void updateThing(final UpdateThing updateThing) {
@@ -280,7 +266,8 @@ final class ThingUpdater extends AbstractActorWithStash {
             lastWriteModel = null;
         }
         final Metadata metadata = exportMetadata(null, null)
-                .invalidateCaches(updateThing.shouldInvalidateThing(), updateThing.shouldInvalidatePolicy());
+                .invalidateCaches(updateThing.shouldInvalidateThing(), updateThing.shouldInvalidatePolicy())
+                .withUpdateReason(updateThing.getUpdateReason());
         if (updateThing.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST)) {
             enqueueMetadata(metadata.withSender(getSender()));
         } else {
@@ -296,7 +283,7 @@ final class ThingUpdater extends AbstractActorWithStash {
             log.warning("Got negative acknowledgement for <{}>; updating to <{}>.",
                     Metadata.fromResponse(response),
                     metadata);
-            enqueueMetadata(metadata);
+            enqueueMetadata(metadata.withUpdateReason(UpdateReason.RETRY));
         }
     }
 
@@ -312,7 +299,7 @@ final class ThingUpdater extends AbstractActorWithStash {
         if (!Objects.equals(policyId, policyIdOfTag) || policyRevision < policyTag.getRevision()) {
             this.policyId = policyIdOfTag;
             policyRevision = policyTag.getRevision();
-            enqueueMetadata();
+            enqueueMetadata(UpdateReason.POLICY_UPDATE);
         } else {
             log.debug("Dropping <{}> because my policyId=<{}> and policyRevision=<{}>",
                     policyReferenceTag, policyId, policyRevision);
@@ -341,7 +328,9 @@ final class ThingUpdater extends AbstractActorWithStash {
                     .start();
             DittoTracing.wrapTimer(DittoTracing.extractTraceContext(thingEvent), timer);
             ConsistencyLag.startS0InUpdater(timer);
-            enqueueMetadata(exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), timer));
+            enqueueMetadata(
+                    exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), timer).withUpdateReason(
+                            UpdateReason.THING_UPDATE));
         }
     }
 

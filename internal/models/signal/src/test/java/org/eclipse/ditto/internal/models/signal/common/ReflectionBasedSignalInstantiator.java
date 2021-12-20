@@ -17,10 +17,10 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.text.MessageFormat;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -111,15 +111,22 @@ final class ReflectionBasedSignalInstantiator {
         try {
             return new Success<>(instantiateSignal(signalImplementationClass));
         } catch (final Exception e) {
+            Throwable exception = e;
+            if (null == e.getMessage()) {
+                final var cause = e.getCause();
+                if (null != cause) {
+                    exception = cause;
+                }
+            }
             LOGGER.warn("Failed to instantiate Signal for <{}>: {}",
                     signalImplementationClass.getName(),
-                    e.getMessage(),
-                    e);
+                    exception.getMessage(),
+                    exception);
             final var instantiationExceptionMessage = MessageFormat.format("Failed to instantiate <{0}>: {1}",
                     signalImplementationClass.getName(),
-                    e.getMessage());
+                    exception.getMessage());
             final var instantiationException = new InstantiationException(instantiationExceptionMessage);
-            instantiationException.initCause(e);
+            instantiationException.initCause(exception);
             return new Failure<>(instantiationException);
         }
     }
@@ -137,19 +144,28 @@ final class ReflectionBasedSignalInstantiator {
     }
 
     private static Method getStaticFactoryMethodOrThrow(final Class<?> clazz) {
-        final var acceptedStaticFactoryMethodNames = List.of("of", "newInstance", "getInstance", "created", "modified");
+        final var acceptedStaticFactoryMethodNames = List.of("of", "created", "modified", "newInstance", "getInstance");
+        final var declaredMethods = getDeclaredMethodsByName(clazz);
+
+        for (final var acceptedStaticFactoryMethodName : acceptedStaticFactoryMethodNames) {
+            @Nullable final var declaredMethodsByName = declaredMethods.get(acceptedStaticFactoryMethodName);
+            if (null != declaredMethodsByName) {
+                return declaredMethodsByName.get(0);
+            }
+        }
+        final var pattern = "Found no static factory method with any name of {0}.";
+        throw new NoSuchElementException(MessageFormat.format(pattern, acceptedStaticFactoryMethodNames));
+    }
+
+    private static Map<String, List<Method>> getDeclaredMethodsByName(final Class<?> clazz) {
         return Stream.of(clazz.getDeclaredMethods())
-                .sorted(Comparator.comparing(Method::getName)) // to match the order of the accepted static factory method names
-                .filter(method -> acceptedStaticFactoryMethodNames.contains(method.getName()))
-                .filter(method -> {
-                    final var modifiers = method.getModifiers();
-                    return Modifier.isPublic(modifiers) && Modifier.isStatic(modifiers);
-                })
-                .findAny()
-                .orElseThrow(() -> {
-                    final var pattern = "Found no static factory method with any name of {0}.";
-                    return new NoSuchElementException(MessageFormat.format(pattern, acceptedStaticFactoryMethodNames));
-                });
+                .filter(ReflectionBasedSignalInstantiator::isPublicStatic)
+                .collect(Collectors.groupingBy(Method::getName, Collectors.toList()));
+    }
+
+    private static boolean isPublicStatic(final Method method) {
+        final var modifiers = method.getModifiers();
+        return Modifier.isPublic(modifiers) && Modifier.isStatic(modifiers);
     }
 
     @Nullable

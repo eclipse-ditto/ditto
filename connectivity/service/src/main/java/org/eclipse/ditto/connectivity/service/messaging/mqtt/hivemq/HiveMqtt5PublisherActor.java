@@ -22,6 +22,7 @@ import org.eclipse.ditto.base.model.common.ByteBufferUtils;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.Connection;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
@@ -52,8 +53,9 @@ public final class HiveMqtt5PublisherActor extends AbstractMqttPublisherActor<Mq
 
     @SuppressWarnings("squid:UnusedPrivateConstructor") // used by akka
     private HiveMqtt5PublisherActor(final Connection connection, final Mqtt5Client client, final boolean dryRun,
-            final String clientId, final ActorRef proxyActor, final ConnectivityStatusResolver connectivityStatusResolver) {
-        super(connection, client.toAsync()::publish, dryRun, clientId, proxyActor, connectivityStatusResolver);
+            final String clientId, final ActorRef proxyActor, final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
+        super(connection, client.toAsync()::publish, dryRun, clientId, proxyActor, connectivityStatusResolver, connectivityConfig);
     }
 
     /**
@@ -66,13 +68,15 @@ public final class HiveMqtt5PublisherActor extends AbstractMqttPublisherActor<Mq
      * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
+     * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @return the Props object.
      */
     public static Props props(final Connection connection, final Mqtt5Client client, final boolean dryRun,
             final String clientId, final ActorRef proxyActor,
-            final ConnectivityStatusResolver connectivityStatusResolver) {
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
         return Props.create(HiveMqtt5PublisherActor.class, connection, client, dryRun, clientId, proxyActor,
-                connectivityStatusResolver);
+                connectivityStatusResolver, connectivityConfig);
     }
 
     @Override

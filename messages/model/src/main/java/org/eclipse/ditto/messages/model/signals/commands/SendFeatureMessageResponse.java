@@ -19,25 +19,25 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.WithFeatureId;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.messages.model.FeatureIdInvalidException;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.WithFeatureId;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 
 /**
- * Command to send a response {@link org.eclipse.ditto.messages.model.Message} <em>FROM</em> a Feature answering to a {@link SendFeatureMessage}.
+ * Command to send a response {@link org.eclipse.ditto.messages.model.Message} <em>FROM</em> a Feature answering to a
+ * {@link SendFeatureMessage}.
  *
  * @param <T> the type of the message's payload.
  */
@@ -57,18 +57,30 @@ public final class SendFeatureMessageResponse<T>
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     private static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("featureId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final CommandResponseJsonDeserializer<SendFeatureMessageResponse<?>> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new SendFeatureMessageResponse<>(
+                                ThingId.of(jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID)),
+                                jsonObject.getValueOrThrow(JSON_FEATURE_ID),
+                                deserializeMessageFromJson(jsonObject),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final String featureId;
 
     private SendFeatureMessageResponse(final ThingId thingId,
             final String featureId,
             final Message<T> message,
-            final HttpStatus responseStatus,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, thingId, message, responseStatus, dittoHeaders);
+        super(TYPE, thingId, message, httpStatus, dittoHeaders);
         this.featureId = ConditionChecker.checkNotNull(featureId, "featureId");
         validateMessageFeatureId(this.featureId, message, dittoHeaders);
     }
@@ -112,7 +124,7 @@ public final class SendFeatureMessageResponse<T>
      * format.
      */
     public static SendFeatureMessageResponse<?> fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -126,16 +138,11 @@ public final class SendFeatureMessageResponse<T>
      * format.
      */
     public static SendFeatureMessageResponse<?> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<SendFeatureMessageResponse<?>>(TYPE, jsonObject).deserialize(
-                httpStatus -> of(
-                        ThingId.of(jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID)),
-                        jsonObject.getValueOrThrow(JSON_FEATURE_ID),
-                        deserializeMessageFromJson(jsonObject),
-                        httpStatus,
-                        dittoHeaders));
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
-    private static void validateMessageFeatureId(final String expectedFeatureId, final Message<?> message,
+    private static void validateMessageFeatureId(final String expectedFeatureId,
+            final Message<?> message,
             final DittoHeaders dittoHeaders) {
 
         final Optional<String> messageFeatureIdOptional = message.getFeatureId();
@@ -162,7 +169,8 @@ public final class SendFeatureMessageResponse<T>
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
 
         super.appendPayload(jsonObjectBuilder, schemaVersion, predicate);

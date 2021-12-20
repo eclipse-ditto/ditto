@@ -324,9 +324,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         stopChildActor(amqpPublisherActor);
         if (null != jmsSession) {
-            final Props props = AmqpPublisherActor.props(connection(), jmsSession,
-                    connectivityConfig().getConnectionConfig(), getDefaultClientId(),
-                    getProxyActor(), connectivityStatusResolver);
+            final Props props = AmqpPublisherActor.props(connection(), jmsSession, getDefaultClientId(),
+                    getProxyActor(), connectivityStatusResolver, connectivityConfig());
             amqpPublisherActor = startChildActorConflictFree(AmqpPublisherActor.ACTOR_NAME_PREFIX, props);
             Patterns.ask(amqpPublisherActor, AmqpPublisherActor.Control.INITIALIZE, clientAskTimeout)
                     .whenComplete((result, error) -> {
@@ -408,11 +407,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                     .map(ref -> identity.thenCompose(done -> Patterns.ask(ref, RetrieveAddressStatus.getInstance(),
                             initialConsumerResourceStatusAskTimeout)))
                     .reduce(identity, (done, reply) -> done.thenCombine(reply, (x, y) -> x));
-            connectionLogger.success("Subscriptions {0} initialized successfully.", consumers);
+            connectionLogger.success("Subscriptions {0} initialized successfully", consumers);
             logger.info("Subscribed Connection <{}> to sources: {}", connectionId(), consumers);
             return completionStage.thenApply(object -> Done.getInstance()).exceptionally(t -> Done.getInstance());
         } else {
-            logger.debug("Not starting consumers, no sources were configured.");
+            logger.debug("Not starting consumers, no sources were configured");
             return CompletableFuture.completedStage(Done.getInstance());
         }
     }
@@ -541,17 +540,17 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private FSM.State<BaseClientState, BaseClientData> handleSessionClosed(final SessionClosedStatusReport statusReport,
             final BaseClientData currentData) {
 
-        connectionLogger.failure("Session has been closed.");
+        connectionLogger.failure("Session has been closed");
         if (recoverSessionOnSessionClosed) {
             recoverSession(statusReport.getSession());
         } else {
-            logger.debug("Not recovering session after session was closed.");
+            logger.debug("Not recovering session after session was closed");
         }
         return stay().using(currentData);
     }
 
     private void recoverSession(@Nullable final Session session) {
-        connectionLogger.failure("Trying to recover the session.");
+        connectionLogger.failure("Trying to recover the session");
         logger.info("Recovering closed AMQP 1.0 session.");
         // first stop all child actors, they relied on the closed/corrupt session
         stopCommandConsumers();
@@ -576,7 +575,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final CompletionStage<Status.Status> publisherReady = startPublisherActor();
         startCommandConsumers(sessionRecovered.getConsumerList(), jmsActor);
 
-        publisherReady.thenRun(() -> connectionLogger.success("Session has been recovered successfully."))
+        publisherReady.thenRun(() -> connectionLogger.success("Session has been recovered successfully"))
                 .exceptionally(t -> {
                     final ConnectionFailure failure = ConnectionFailure.of(null, t, "failed to recover session");
                     getSelf().tell(failure, getSelf());
@@ -813,7 +812,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         @Override
         public void onConnectionInterrupted(final URI remoteURI) {
-            connectionLogger.failure("Connection was interrupted.");
+            connectionLogger.failure("Connection was interrupted");
             logger.warning("Connection interrupted: {}", remoteURI);
             final ConnectionFailure failure =
                     ConnectionFailure.userRelated(ActorRef.noSender(), null, "JMS Interrupted");
@@ -822,7 +821,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         @Override
         public void onConnectionRestored(final URI remoteURI) {
-            connectionLogger.success("Connection was restored.");
+            connectionLogger.success("Connection was restored");
             logger.info("Connection restored: {}", remoteURI);
             self.tell(ConnectionRestoredStatusReport.get(), ActorRef.noSender());
         }

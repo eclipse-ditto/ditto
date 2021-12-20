@@ -14,28 +14,28 @@ package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.policies.model.Label;
-import org.eclipse.ditto.policies.model.PoliciesModelFactory;
-import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.policies.model.Label;
+import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 
 /**
@@ -52,7 +52,21 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
     public static final String TYPE = TYPE_PREFIX + ModifySubjects.NAME;
 
     static final JsonFieldDefinition<String> JSON_LABEL =
-            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.NO_CONTENT;
+
+    private static final CommandResponseJsonDeserializer<ModifySubjectsResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return newInstance(
+                                PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID)),
+                                Label.of(jsonObject.getValueOrThrow(JSON_LABEL)),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final PolicyId policyId;
     private final Label label;
@@ -63,8 +77,8 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, httpStatus, dittoHeaders);
-        this.policyId = checkNotNull(policyId, "Policy ID");
-        this.label = checkNotNull(label, "Label");
+        this.policyId = checkNotNull(policyId, "policyId");
+        this.label = checkNotNull(label, "label");
     }
 
     /**
@@ -76,9 +90,36 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifySubjectsResponse of(final PolicyId policyId, final Label label,
+    public static ModifySubjectsResponse of(final PolicyId policyId,
+            final Label label,
             final DittoHeaders dittoHeaders) {
-        return new ModifySubjectsResponse(policyId, label, HttpStatus.NO_CONTENT, dittoHeaders);
+
+        return newInstance(policyId, label, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code ModifySubjectsResponse} for the specified arguments.
+     *
+     * @param policyId the Policy ID of the modified subjects.
+     * @param label the Label of the PolicyEntry.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code ModifySubjectsResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code ModifySubjectsResponse}.
+     * @since 2.3.0
+     */
+    public static ModifySubjectsResponse newInstance(final PolicyId policyId,
+            final Label label,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new ModifySubjectsResponse(policyId,
+                label,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singletonList(HTTP_STATUS),
+                        ModifySubjectsResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -93,7 +134,7 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
      * format.
      */
     public static ModifySubjectsResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -107,14 +148,7 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
      * format.
      */
     public static ModifySubjectsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifySubjectsResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
-            final String extractedPolicyId =
-                    jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
-            final PolicyId policyId = PolicyId.of(extractedPolicyId);
-            final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
-
-            return new ModifySubjectsResponse(policyId, label, httpStatus, dittoHeaders);
-        });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -133,12 +167,12 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
 
     @Override
     public JsonPointer getResourcePath() {
-        final String path = "/entries/" + label + "/subjects";
-        return JsonPointer.of(path);
+        return JsonPointer.of("/entries/" + label + "/subjects");
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
@@ -148,7 +182,7 @@ public final class ModifySubjectsResponse extends AbstractCommandResponse<Modify
 
     @Override
     public ModifySubjectsResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(policyId, label, dittoHeaders);
+        return newInstance(policyId, label, getHttpStatus(), dittoHeaders);
     }
 
     @Override

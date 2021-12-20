@@ -14,30 +14,32 @@ package org.eclipse.ditto.things.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 /**
@@ -54,12 +56,25 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
     public static final String TYPE = TYPE_PREFIX + RetrieveFeatureDefinition.NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("featureId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonArray> JSON_DEFINITION =
-            JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonArray("definition", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<RetrieveFeatureDefinitionResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return newInstance(
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                jsonObject.getValueOrThrow(JSON_FEATURE_ID),
+                                jsonObject.getValueOrThrow(JSON_DEFINITION),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final ThingId thingId;
     private final String featureId;
@@ -68,12 +83,13 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
     private RetrieveFeatureDefinitionResponse(final ThingId thingId,
             final String featureId,
             final JsonArray definition,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatus.OK, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = thingId;
-        this.featureId = checkNotNull(featureId, "Feature ID");
-        this.definition = checkNotNull(definition, "Feature Definition");
+        this.featureId = checkNotNull(featureId, "featureId");
+        this.definition = checkNotNull(definition, "definition");
     }
 
     /**
@@ -92,7 +108,7 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
             final DittoHeaders dittoHeaders) {
 
         checkNotNull(definition, "Definition");
-        return new RetrieveFeatureDefinitionResponse(thingId, featureId, definition.toJson(), dittoHeaders);
+        return newInstance(thingId, featureId, definition.toJson(), HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -110,7 +126,36 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
             final JsonArray definitionJsonArray,
             final DittoHeaders dittoHeaders) {
 
-        return of(thingId, featureId, FeatureDefinition.fromJson(definitionJsonArray), dittoHeaders);
+        return newInstance(thingId, featureId, definitionJsonArray, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code RetrieveFeatureDefinitionResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the feature definition belong to.
+     * @param featureId the identifier of the Feature whose Definition was retrieved.
+     * @param definitionJsonArray the retrieved FeatureDefinition JSON array.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code RetrieveFeatureDefinitionResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a
+     * {@code RetrieveFeatureDefinitionResponse}.
+     * @since 2.3.0
+     */
+    public static RetrieveFeatureDefinitionResponse newInstance(final ThingId thingId,
+            final String featureId,
+            final JsonArray definitionJsonArray,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new RetrieveFeatureDefinitionResponse(thingId,
+                featureId,
+                definitionJsonArray,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveFeatureDefinitionResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -134,7 +179,7 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
      * {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#ID_REGEX}.
      */
     public static RetrieveFeatureDefinitionResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -159,10 +204,7 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
     public static RetrieveFeatureDefinitionResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new CommandResponseJsonDeserializer<RetrieveFeatureDefinitionResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> of(ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
-                        jsonObject.getValueOrThrow(JSON_FEATURE_ID),
-                        jsonObject.getValueOrThrow(JSON_DEFINITION), dittoHeaders));
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -196,22 +238,25 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
     @Override
     public RetrieveFeatureDefinitionResponse setEntity(final JsonValue entity) {
         checkNotNull(entity, "entity");
-        return of(thingId, featureId, entity.asArray(), getDittoHeaders());
+        if (!entity.isArray()) {
+            throw new IllegalArgumentException(MessageFormat.format("Entity is not a JSON array but <{0}>.", entity));
+        }
+        return newInstance(thingId, featureId, entity.asArray(), getHttpStatus(), getDittoHeaders());
     }
 
     @Override
     public RetrieveFeatureDefinitionResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, featureId, definition, dittoHeaders);
+        return newInstance(thingId, featureId, definition, getHttpStatus(), dittoHeaders);
     }
 
     @Override
     public JsonPointer getResourcePath() {
-        final String path = "/features/" + featureId + "/definition";
-        return JsonPointer.of(path);
+        return JsonPointer.of("/features/" + featureId + "/definition");
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

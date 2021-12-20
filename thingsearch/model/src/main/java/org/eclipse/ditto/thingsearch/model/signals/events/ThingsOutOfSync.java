@@ -22,6 +22,13 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
+import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableEvent;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
@@ -30,14 +37,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.entity.id.NamespacedEntityId;
-import org.eclipse.ditto.base.model.entity.metadata.Metadata;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableEvent;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.events.Event;
 
 /**
  * Event to report out-of-sync things in the search index.
@@ -64,8 +64,7 @@ public final class ThingsOutOfSync implements Event<ThingsOutOfSync> {
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     private static final JsonFieldDefinition<JsonArray> JSON_THING_IDS =
-            JsonFactory.newJsonArrayFieldDefinition("thingIds", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFactory.newJsonArrayFieldDefinition("thingIds", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final Collection<ThingId> thingIds;
     private final DittoHeaders dittoHeaders;
@@ -103,6 +102,7 @@ public final class ThingsOutOfSync implements Event<ThingsOutOfSync> {
                         .map(JsonValue::asString)
                         .map(ThingId::of)
                         .collect(Collectors.toList());
+
         return of(thingIds, dittoHeaders);
     }
 
@@ -186,6 +186,7 @@ public final class ThingsOutOfSync implements Event<ThingsOutOfSync> {
                 .map(NamespacedEntityId::toString)
                 .map(JsonFactory::newValue)
                 .collect(JsonCollectors.valuesToArray());
+
         return JsonFactory.newObjectBuilder()
                 // TYPE is included unconditionally
                 .set(JsonFields.TYPE, TYPE)

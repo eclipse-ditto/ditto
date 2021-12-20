@@ -12,17 +12,18 @@ those IDs often need to be set in the path of HTTP requests, we have restricted 
 
 The namespace must conform to the following notation:
 * must start with a lower- or uppercase character from a-z
-* may use dots (`.`) to separate characters
-* a dot must be followed by a lower- or uppercase character from a-z
+* may use dots (`.`) or dashes (`-`) to separate characters
+* a dot or dash must be followed by a lower- or uppercase character from a-z
 * numbers may be used
 * underscore may be used
-	
-When writing a Java application, you can use the following regex to validate your namespaces: <br/>
-    ``(?<ns>|(?:(?:[a-zA-Z]\w*+)(?:\.[a-zA-Z]\w*+)*+))``
-    (see [RegexPatterns#NAMESPACE_REGEX](https://github.com/eclipse/ditto/blob/master/model/base/src/main/java/org/eclipse/ditto/model/base/entity/id/RegexPatterns.java)).
+
+When writing a Java application, you can use the following regex to validate your namespaces:  
+    ``(?<ns>|(?:(?:[a-zA-Z]\\w*+)(?:([.\\-])[a-zA-Z]\\w*+)*+))``
+    (see [RegexPatterns#NAMESPACE_REGEX](https://github.com/eclipse/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java)).
 	
 Examples for valid namespaces:
 * `org.eclipse.ditto`,
+* `com.some-domain`,
 * `com.google`,
 * `foo.bar_42`
 
@@ -33,10 +34,10 @@ The name must conform to the following notation:
 * may not contain `/` (slash)
 * may not contain control characters
 
-When writing a Java application, you can use the following regex to validate your thing name: <br/>
+When writing a Java application, you can use the following regex to validate your thing name:  
     ``(?<name>(?:[[^\\x00-\\x1F\\x7F-\\xFF/]]|%\\p{XDigit}{2})(?:[[^\\x00-\\x1F\\x7F-\\xFF/]$]|%\\p{XDigit}{2})*+)``
     ``(!"$%&()=?`*+~'#_-:.;,|<>\{}[]^)`` 
-    (see [RegexPatterns#ENTITY_NAME_REGEX](https://github.com/eclipse/ditto/blob/master/model/base/src/main/java/org/eclipse/ditto/model/base/entity/id/RegexPatterns.java)).
+    (see [RegexPatterns#ENTITY_NAME_REGEX](https://github.com/eclipse/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java)).
 
 Examples for valid names:
     * `ditto`,
@@ -44,8 +45,6 @@ Examples for valid names:
     * `foo%2Fbar`
     * `foo bar`
     * `foo+bar%20`
-    
-
 
 ## Namespaced ID
 
@@ -53,14 +52,15 @@ A namespaced ID must conform to the following expectations:
 * namespace and name separated by a `:` (colon)
 * have a maximum length of 256 characters
 
-When writing a Java application, you can use the following regex to validate your namespaced IDs: <br/>
-	``(?<ns>|(?:(?:[a-zA-Z]\\w*+)(?:\\.[a...\\x00-\\x1F\\x7F-\\xFF/]]|%\\p{XDigit}{2})(?:[[^\\x00-\\x1F\\x7F-\\xFF/]$]|%\\p{XDigit}{2})*+)`` 
-	(see [RegexPatterns#ID_REGEX](https://github.com/eclipse/ditto/blob/master/model/base/src/main/java/org/eclipse/ditto/model/base/entity/id/RegexPatterns.java)).
+When writing a Java application, you can use the following regex to validate your namespaced IDs:  
+	``(?<ns>|(?:(?:[a-zA-Z]\\w*+)(?:([.\\...\\x00-\\x1F\\x7F-\\xFF/]]|%\\p{XDigit}{2})(?:[[^\\x00-\\x1F\\x7F-\\xFF/]$]|%\\p{XDigit}{2})*+)`` 
+	(see [RegexPatterns#ID_REGEX](https://github.com/eclipse/ditto/blob/master/base/model/src/main/java/org/eclipse/ditto/base/model/entity/id/RegexPatterns.java)).
 
 Examples for valid IDs:
 * `org.eclipse.ditto:smart-coffee-1`,
 * `foo:bar`,
 * `org.eclipse.ditto_42:smart-coffeee`,
+* `com.some-domain.ditto-rocks:foobar`,
 * `org.eclipse:admin-policy`,
 * `org.eclipse:admin policy`
 

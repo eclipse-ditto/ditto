@@ -34,6 +34,7 @@ import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.Target;
+import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
@@ -125,7 +126,7 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected Props getPublisherActorProps() {
         return RabbitMQPublisherActor.props(TestConstants.createConnection(), "clientId",
-                proxyActor, mock(ConnectivityStatusResolver.class));
+                proxyActor, mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
     }
 
     @Override

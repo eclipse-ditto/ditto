@@ -28,7 +28,9 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.timer.Timers;
  */
 public final class DittoMetrics {
 
-    private DittoMetrics() {}
+    private DittoMetrics() {
+        throw new AssertionError();
+    }
 
     /**
      * Creates a new timer object for a metric with the given name.
@@ -74,7 +76,6 @@ public final class DittoMetrics {
     public static Gauge gauge(final String name) {
         return KamonGauge.newGauge(name);
     }
-
 
     /**
      * Creates a {@link org.eclipse.ditto.internal.utils.metrics.instruments.histogram.Histogram} with the given name.

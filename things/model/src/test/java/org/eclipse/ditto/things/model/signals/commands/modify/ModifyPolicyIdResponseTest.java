@@ -17,11 +17,11 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
@@ -33,7 +33,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ModifyPolicyIdResponse}.
  */
-public class ModifyPolicyIdResponseTest {
+public final class ModifyPolicyIdResponseTest {
 
     private static final PolicyId KNOWN_POLICY_ID = PolicyId.of("namespace:policyId");
 
@@ -50,26 +50,26 @@ public class ModifyPolicyIdResponseTest {
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .build();
 
-
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ModifyPolicyIdResponse.class, areImmutable(),
+        assertInstancesOf(ModifyPolicyIdResponse.class,
+                areImmutable(),
                 provided(ThingId.class, PolicyId.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ModifyPolicyIdResponse.class)
                 .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
 
-
     @Test
     public void toJsonReturnsExpected() {
-        final ModifyPolicyIdResponse underTestCreated = ModifyPolicyIdResponse
-                .created(TestConstants.Thing.THING_ID, KNOWN_POLICY_ID, TestConstants.EMPTY_DITTO_HEADERS);
+        final ModifyPolicyIdResponse underTestCreated = ModifyPolicyIdResponse.created(TestConstants.Thing.THING_ID,
+                KNOWN_POLICY_ID,
+                TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJsonCreated = underTestCreated.toJson(FieldType.regularOrSpecial());
 
         DittoJsonAssertions.assertThat(actualJsonCreated).isEqualTo(KNOWN_JSON_CREATED);
@@ -80,7 +80,6 @@ public class ModifyPolicyIdResponseTest {
 
         DittoJsonAssertions.assertThat(actualJsonUpdated).isEqualTo(KNOWN_JSON_UPDATED);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

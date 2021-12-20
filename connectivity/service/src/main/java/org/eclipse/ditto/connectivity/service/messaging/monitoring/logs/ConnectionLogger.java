@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 
+import java.io.Closeable;
 import java.util.Collection;
 
 import javax.annotation.Nullable;
@@ -26,7 +27,7 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
 /**
  * Logger for connections that provides log messages for end users.
  */
-public interface ConnectionLogger {
+public interface ConnectionLogger extends Closeable {
 
     /**
      * Gets the connection logger for the given connection ID.

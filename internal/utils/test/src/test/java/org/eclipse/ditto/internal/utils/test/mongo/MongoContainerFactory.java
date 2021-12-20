@@ -44,7 +44,7 @@ final class MongoContainerFactory {
 
     private static final MongoContainerFactory INSTANCE = new MongoContainerFactory();
     private static final String UNIX_DOCKER_HOST = "unix:///var/run/docker.sock";
-    private static final String WINDOWS_DOCKER_HOST = "tcp://localhost:2375";
+    private static final String WINDOWS_DOCKER_HOST = "npipe:////./pipe/docker_engine";
 
     private final DockerClient dockerClient;
 

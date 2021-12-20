@@ -33,6 +33,7 @@ import org.eclipse.ditto.policies.model.PolicyEntryInvalidException;
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConflictException;
 import org.eclipse.ditto.protocol.UnknownSignalException;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
+import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.FeatureDefinitionEmptyException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
@@ -64,7 +65,8 @@ public final class ThingSearchServiceGlobalErrorRegistryTest extends GlobalError
                 ConnectionIdInvalidException.class,
                 ConnectionConflictException.class,
                 UnknownTopicPathException.class,
-                UnknownSignalException.class);
+                UnknownSignalException.class,
+                IllegalAdaptableException.class);
     }
 
 }

@@ -48,6 +48,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
 import org.eclipse.ditto.connectivity.model.ConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
@@ -82,6 +83,7 @@ import org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushValidat
 import org.eclipse.ditto.connectivity.service.messaging.kafka.KafkaValidator;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLoggerRegistry;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.RetrieveConnectionLogsAggregatorActor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.RetrieveConnectionMetricsAggregatorActor;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.RetrieveConnectionStatusAggregatorActor;
@@ -104,6 +106,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.streaming.MongoReadJournal;
@@ -168,6 +171,7 @@ public final class ConnectionPersistenceActor
     private final ClientActorPropsFactory propsFactory;
     private final ActorRef pubSubMediator;
     private final boolean allClientActorsOnOneNode;
+    private final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final ConnectionLogger connectionLogger;
     private final Duration clientActorAskTimeout;
     private final Duration checkLoggingActiveInterval;
@@ -207,9 +211,8 @@ public final class ConnectionPersistenceActor
         connectionPriorityProvider = connectionPriorityProviderFactory.newProvider(self(), log);
         clientActorAskTimeout = connectionConfig.getClientActorAskTimeout();
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
-        final ConnectionLoggerRegistry loggerRegistry =
-                ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
-        connectionLogger = loggerRegistry.forConnection(connectionId);
+        connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
+        connectionLogger = connectionLoggerRegistry.forConnection(connectionId);
 
         loggingEnabledDuration = monitoringConfig.logger().logDuration();
         checkLoggingActiveInterval = monitoringConfig.logger().loggingActiveCheckInterval();
@@ -456,11 +459,17 @@ public final class ConnectionPersistenceActor
                     if (response instanceof RetrieveConnectionStatusResponse) {
                         final RetrieveConnectionStatusResponse rcsResp = (RetrieveConnectionStatusResponse) response;
                         final ConnectivityStatus liveStatus = rcsResp.getLiveStatus();
+                        final String connectionType = Optional.ofNullable(entity)
+                                .map(Connection::getConnectionType).map(Object::toString).orElse("?");
+                        DittoMetrics.counter("connection_live_status_reported")
+                                .tag("connectionId", String.valueOf(entityId))
+                                .tag("connectionType", connectionType)
+                                .tag("status", liveStatus.getName())
+                                .increment();
                         final DittoDiagnosticLoggingAdapter l = log
                                 .withMdcEntries(
                                         ConnectivityMdcEntryKey.CONNECTION_ID, entityId,
-                                        ConnectivityMdcEntryKey.CONNECTION_TYPE, Optional.ofNullable(entity)
-                                                .map(Connection::getConnectionType).map(Object::toString).orElse("?"),
+                                        ConnectivityMdcEntryKey.CONNECTION_TYPE, connectionType,
                                         CommonMdcEntryKey.DITTO_LOG_TAG,
                                         "connection-live-status-" + liveStatus.getName()
                                 )
@@ -618,7 +627,15 @@ public final class ConnectionPersistenceActor
     private void handleAddConnectionLogEntry(final AddConnectionLogEntry addConnectionLogEntry) {
         final var logEntry = addConnectionLogEntry.getLogEntry();
         log.withCorrelationId(logEntry.getCorrelationId()).debug("Handling <{}>.", addConnectionLogEntry);
-        connectionLogger.logEntry(logEntry);
+        final var logger = getAppropriateLogger(addConnectionLogEntry.getEntityId(), logEntry);
+        logger.logEntry(logEntry);
+    }
+
+    private ConnectionLogger getAppropriateLogger(final ConnectionId connectionId, final LogEntry logEntry) {
+        return connectionLoggerRegistry.getLogger(connectionId,
+                logEntry.getLogCategory(),
+                logEntry.getLogType(),
+                logEntry.getAddress().orElse(null));
     }
 
     @Override
@@ -937,7 +954,8 @@ public final class ConnectionPersistenceActor
         if (sendExceptionResponse && origin != null) {
             origin.tell(dre, getSelf());
         }
-        connectionLogger.failure("Operation {0} failed due to {1}", action, dre.getMessage());
+        connectionLogger.failure(InfoProviderFactory.forHeaders(dre.getDittoHeaders()),
+                "Operation {0} failed due to {1}", action, dre.getMessage());
         log.warning("Operation <{}> on connection <{}> failed due to {}: {}.", action, entityId,
                 dre.getClass().getSimpleName(), dre.getMessage());
         return null;
@@ -1093,7 +1111,7 @@ public final class ConnectionPersistenceActor
                         Mqtt3Validator.newInstance(mqttConfig),
                         Mqtt5Validator.newInstance(mqttConfig),
                         KafkaValidator.getInstance(),
-                        HttpPushValidator.newInstance());
+                        HttpPushValidator.newInstance(connectivityConfig.getConnectionConfig().getHttpPushConfig()));
 
         final DittoConnectivityCommandValidator dittoCommandValidator =
                 new DittoConnectivityCommandValidator(propsFactory, proxyActor, getSelf(), connectionValidator,

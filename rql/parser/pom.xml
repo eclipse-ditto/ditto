@@ -35,7 +35,7 @@
         <!-- ### Compile ### -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-thingsearch-model</artifactId>
+            <artifactId>ditto-base-model</artifactId>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -146,7 +146,6 @@
                         </Import-Package>
                         <Export-Package>
                             !org.eclipse.ditto.rql.parser.internal,
-                            !org.eclipse.ditto.rql.parser.thingsearch.internal,
                             org.eclipse.ditto.rql.parser.*
                         </Export-Package>
                     </instructions>
@@ -157,7 +156,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
-                    <excludePackageNames>org.eclipse.ditto.rql.parser,org.eclipse.ditto.rql.parser.thingsearch</excludePackageNames>
+                    <excludePackageNames>org.eclipse.ditto.rql.parser</excludePackageNames>
                 </configuration>
                 <executions>
                     <execution>
@@ -175,7 +174,8 @@
                         <excludes>
                             <!-- Always exclude the 'internal' package -->
                             <exclude>org.eclipse.ditto.rql.parser.internal</exclude>
-                            <exclude>org.eclipse.ditto.rql.parser.thingsearch.internal</exclude>
+                            <!-- thingsearch package was moved to its own module "ditto-rql-search-option-parser" -->
+                            <exclude>org.eclipse.ditto.rql.parser.thingsearch</exclude>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
                         </excludes>

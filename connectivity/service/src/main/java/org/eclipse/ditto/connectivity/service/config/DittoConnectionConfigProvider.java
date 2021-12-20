@@ -43,16 +43,6 @@ public class DittoConnectionConfigProvider implements ConnectionConfigProvider {
     }
 
     @Override
-    public CompletionStage<ConnectivityConfig> getConnectivityConfig(final ConnectionId connectionId) {
-        return getConnectivityConfigOverwrites(connectionId)
-                .thenApply(overwrites -> {
-                    final Config defaultConfig = actorSystem.settings().config();
-                    final Config withOverwrites = overwrites.withFallback(defaultConfig);
-                    return ConnectivityConfig.of(withOverwrites);
-                });
-    }
-
-    @Override
     public CompletionStage<Void> registerForConnectivityConfigChanges(final ConnectionId connectionId,
             final ActorRef subscriber) {
         // nothing to do, config changes are not supported by the default implementation
