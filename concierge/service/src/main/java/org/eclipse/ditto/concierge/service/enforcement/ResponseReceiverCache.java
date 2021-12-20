@@ -113,14 +113,14 @@ final class ResponseReceiverCache implements Extension {
     }
 
     /**
-     * Puts the specified response receiver for the correlation ID of the signal's correlation ID.
+     * Caches the specified response receiver for the correlation ID of the signal's correlation ID.
      *
      * @param signal the signal to extract the correlation ID from used for the cache key.
      * @param responseReceiver the ActorRef of the response receiver to cache for the correlation ID.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if the headers of {@code signal} do not contain a correlation ID.
      */
-    public void putCommand(final Signal<?> signal, final ActorRef responseReceiver) {
+    public void cacheSignalResponseReceiver(final Signal<?> signal, final ActorRef responseReceiver) {
         cache.put(getCorrelationIdKeyForInsertion(checkNotNull(signal, "signal")),
                 checkNotNull(responseReceiver, "responseReceiver"));
     }
@@ -191,7 +191,7 @@ final class ResponseReceiverCache implements Extension {
         return setUniqueCorrelationIdForGlobalDispatching(signal, false)
                 .thenCompose(commandWithUniqueCorrelationId -> {
                     final ActorRef receiver = receiverCreator.apply(commandWithUniqueCorrelationId);
-                    putCommand(commandWithUniqueCorrelationId, receiver);
+                    cacheSignalResponseReceiver(commandWithUniqueCorrelationId, receiver);
                     return responseHandler.apply(commandWithUniqueCorrelationId, receiver);
                 });
     }

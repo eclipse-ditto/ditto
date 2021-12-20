@@ -73,24 +73,24 @@ public final class ResponseReceiverCacheTest {
     }
 
     @Test
-    public void putNullCommandThrowsException() {
+    public void cacheNullSignalThrowsException() {
         final var underTest = ResponseReceiverCache.newInstance();
 
         assertThatNullPointerException()
-                .isThrownBy(() -> underTest.putCommand(null, null))
-                .withMessage("The command must not be null!")
+                .isThrownBy(() -> underTest.cacheSignalResponseReceiver(null, null))
+                .withMessage("The signal must not be null!")
                 .withNoCause();
     }
 
     @Test
-    public void putNullResponseReceiverThrowsException() {
+    public void cacheNullResponseReceiverThrowsException() {
         final var underTest = ResponseReceiverCache.newInstance();
         final var command = Mockito.mock(Command.class);
         Mockito.when(command.getDittoHeaders())
                 .thenReturn(DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build());
 
         assertThatNullPointerException()
-                .isThrownBy(() -> underTest.putCommand(command, null))
+                .isThrownBy(() -> underTest.cacheSignalResponseReceiver(command, null))
                 .withMessage("The responseReceiver must not be null!")
                 .withNoCause();
     }
@@ -135,7 +135,7 @@ public final class ResponseReceiverCacheTest {
         final var underTest = ResponseReceiverCache.newInstance();
 
         final var mockReceiver = Mockito.mock(ActorRef.class);
-        underTest.putCommand(command, mockReceiver);
+        underTest.cacheSignalResponseReceiver(command, mockReceiver);
 
         final var cacheEntryFuture = underTest.get(correlationId.toString());
 
@@ -151,7 +151,7 @@ public final class ResponseReceiverCacheTest {
                 .thenReturn(getDittoHeadersWithCorrelationIdAndTimeout(correlationId, expiry));
         final var underTest = ResponseReceiverCache.newInstance();
 
-        underTest.putCommand(command, Mockito.mock(ActorRef.class));
+        underTest.cacheSignalResponseReceiver(command, Mockito.mock(ActorRef.class));
 
         final var cacheEntryFuture = Awaitility.await("get expired cache entry")
                 .pollDelay(expiry.plusMillis(250L))
@@ -197,7 +197,7 @@ public final class ResponseReceiverCacheTest {
 
         final var underTest = ResponseReceiverCache.newInstance();
         IntStream.range(0, expirySequence.size())
-                .forEach(index -> underTest.putCommand(commands.get(index), responseReceivers.get(index)));
+                .forEach(index -> underTest.cacheSignalResponseReceiver(commands.get(index), responseReceivers.get(index)));
 
         Awaitility.await()
                 .pollDelay(shortExpiry.plusMillis(100L))

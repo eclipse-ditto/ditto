@@ -62,6 +62,7 @@ import org.eclipse.ditto.things.model.ThingBuilder;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.FeatureNotModifiableException;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.LiveChannelConditionNotAllowedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionInvalidException;
@@ -385,6 +386,49 @@ public final class ThingCommandEnforcementTest {
 
             // THEN: The command is rejected
             expectMsgClass(ThingConditionFailedException.class);
+        }};
+    }
+
+    @Test
+    public void enforceLiveChannelConditionOnModifyCommandFails() {
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final JsonObject thing = newThingWithAttributeWithPolicyId(policyId)
+                .toBuilder()
+                .build();
+
+        final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                .setRevision(1L)
+                .forLabel("authorize-self")
+                .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
+                .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
+                        Permissions.newInstance(Permission.READ, Permission.WRITE))
+                .build()
+                .toJson(FieldType.all());
+
+        final SudoRetrieveThingResponse sudoRetrieveThingResponse =
+                SudoRetrieveThingResponse.of(thing, DittoHeaders.empty());
+        final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
+                SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+
+        new TestKit(system) {{
+            mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
+            mockEntitiesActorInstance.setReply(TestSetup.POLICY_SUDO, sudoRetrievePolicyResponse);
+
+            final ActorRef underTest = newEnforcerActor(getRef());
+
+            // WHEN: Live channel condition is set on an unreadable feature
+            final DittoHeaders dittoHeaders = headers().toBuilder()
+                    .liveChannelCondition("exists(thingId)")
+                    .build();
+
+            final ThingCommand<?> modifyCommand = getModifyCommand(dittoHeaders);
+            mockEntitiesActorInstance.setReply(modifyCommand);
+            underTest.tell(modifyCommand, getRef());
+
+            // THEN: The command is rejected
+            final DittoRuntimeException response = TestSetup.fishForMsgClass(this, DittoRuntimeException.class);
+            assertThat(response.getErrorCode()).isEqualTo(LiveChannelConditionNotAllowedException.ERROR_CODE);
+            assertThat(response.getHttpStatus()).isEqualTo(HttpStatus.METHOD_NOT_ALLOWED);
         }};
     }
 

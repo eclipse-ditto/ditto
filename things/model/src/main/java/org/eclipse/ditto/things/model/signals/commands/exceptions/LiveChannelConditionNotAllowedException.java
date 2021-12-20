@@ -13,7 +13,6 @@
 package org.eclipse.ditto.things.model.signals.commands.exceptions;
 
 import java.net.URI;
-import java.text.MessageFormat;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -28,58 +27,57 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.ThingException;
 
 /**
- * Thrown when validating the condition is failing.
+ * Thrown when the live channel condition was used for e.g. modify commands where it is not supported.
  *
- * @since 2.2.0
+ * @since 2.3.0
  */
 @Immutable
-@JsonParsableException(errorCode = ThingConditionInvalidException.ERROR_CODE)
-public final class ThingConditionInvalidException extends DittoRuntimeException implements ThingException {
+@JsonParsableException(errorCode = LiveChannelConditionNotAllowedException.ERROR_CODE)
+public final class LiveChannelConditionNotAllowedException extends DittoRuntimeException implements ThingException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "condition.invalid";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "live.channelcondition.notallowed";
 
-    private static final String MESSAGE_TEMPLATE =
-            "The specified condition ''{0}'' is invalid.";
+    private static final String DEFAULT_MESSAGE =
+            "The specified 'live-channel-condition' is only allowed to be used for retrieving API calls.";
 
-    private static final String DEFAULT_DESCRIPTION = "The provided condition is not valid. " +
-            "Please check the value of your condition header.";
+    private static final String DEFAULT_DESCRIPTION = "For modifying API calls the 'live-channel-condition' cannot " +
+            "be used, please remove the condition.";
 
-    private static final long serialVersionUID = -973529278462389259L;
+    private static final long serialVersionUID = 1239673920456383015L;
 
-    private ThingConditionInvalidException(final DittoHeaders dittoHeaders,
+    private LiveChannelConditionNotAllowedException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.METHOD_NOT_ALLOWED, dittoHeaders, message, description, cause, href);
     }
 
     /**
-     * A mutable builder for a {@link ThingConditionInvalidException}.
+     * A mutable builder for a {@link LiveChannelConditionNotAllowedException}.
      *
-     * @param condition the condition to apply for the request.
      * @return the builder.
      */
-    public static Builder newBuilder(final String condition, final String description) {
-        return new Builder(condition, description);
+    public static Builder newBuilder() {
+        return new Builder();
     }
 
     /**
-     * Constructs a new {@link ThingConditionInvalidException}
+     * Constructs a new {@link LiveChannelConditionNotAllowedException}
      * object with the exception message extracted from the given JSON object.
      *
      * @param jsonObject the JSON to read the {@link DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new {@link ThingConditionInvalidException}.
+     * @return the new {@link LiveChannelConditionNotAllowedException}.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static ThingConditionInvalidException fromJson(final JsonObject jsonObject,
+    public static LiveChannelConditionNotAllowedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
@@ -96,31 +94,30 @@ public final class ThingConditionInvalidException extends DittoRuntimeException 
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link ThingConditionInvalidException}.
+     * A mutable builder with a fluent API for a {@link LiveChannelConditionNotAllowedException}.
      */
     @NotThreadSafe
     public static final class Builder
-            extends DittoRuntimeExceptionBuilder<ThingConditionInvalidException> {
+            extends DittoRuntimeExceptionBuilder<LiveChannelConditionNotAllowedException> {
 
         private Builder() {
-            description(DEFAULT_DESCRIPTION);
+            this(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final String condition, final String description) {
-            this();
-            message(MessageFormat.format(MESSAGE_TEMPLATE, condition));
+        private Builder(final String description) {
+            message(DEFAULT_MESSAGE);
             if (!description.equals("")) {
                 description(description);
             }
         }
 
         @Override
-        protected ThingConditionInvalidException doBuild(final DittoHeaders dittoHeaders,
+        protected LiveChannelConditionNotAllowedException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new ThingConditionInvalidException(dittoHeaders, message, description, cause, href);
+            return new LiveChannelConditionNotAllowedException(dittoHeaders, message, description, cause, href);
         }
     }
 

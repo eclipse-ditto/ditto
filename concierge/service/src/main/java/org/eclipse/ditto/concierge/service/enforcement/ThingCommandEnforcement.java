@@ -109,6 +109,7 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.exceptions.LiveChannelConditionNotAllowedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyIdNotAllowedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.PolicyInvalidException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingCommandToAccessExceptionRegistry;
@@ -330,6 +331,10 @@ public final class ThingCommandEnforcement
                                 doSmartChannelSelection(thingQueryCommand, response, startTime, enforcer))
                 );
             }
+        } else if (commandWithReadSubjects.getDittoHeaders().getLiveChannelCondition().isPresent()) {
+            throw LiveChannelConditionNotAllowedException.newBuilder()
+                    .dittoHeaders(commandWithReadSubjects.getDittoHeaders())
+                    .build();
         } else {
             result = forwardToThingsShardRegion(commandWithReadSubjects);
         }
