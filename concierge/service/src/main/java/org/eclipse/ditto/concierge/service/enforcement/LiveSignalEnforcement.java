@@ -138,7 +138,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
          *
          * @param thingIdCache the thing-id-cache.
          * @param policyEnforcerCache the policy-enforcer cache.
-         * @param actorSystem the actor ref factory to create new actors with.
+         * @param actorSystem the actor system to create new actors with and lookup extensions.
          * @param liveSignalPub distributed-pub access for live signal publication.
          * @param enforcementConfig configuration properties for enforcement.
          * @throws NullPointerException if any argument but is {@code null}.
@@ -152,7 +152,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
             this.thingIdCache = ConditionChecker.checkNotNull(thingIdCache, "thingIdCache");
             this.policyEnforcerCache = ConditionChecker.checkNotNull(policyEnforcerCache, "policyEnforcerCache");
             this.liveSignalPub = ConditionChecker.checkNotNull(liveSignalPub, "liveSignalPub");
-            this.actorSystem = ConditionChecker.checkNotNull(actorSystem, "actorRefFactory");
+            this.actorSystem = ConditionChecker.checkNotNull(actorSystem, "actorSystem");
             this.enforcementConfig = ConditionChecker.checkNotNull(enforcementConfig, "enforcementConfig");
             responseReceiverCache = ResponseReceiverCache.lookup(actorSystem);
         }
@@ -423,11 +423,10 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
     }
 
     private Contextual<WithDittoHeaders> askAndBuildJsonViewWithReceiverActor(
-            final Command<?> command,
+            final ThingCommand<?> thingCommand,
             final ActorRef receiver,
             final Enforcer enforcer) {
 
-        final var thingCommand = (ThingCommand<?>) command;
         final var startTime = Instant.now();
         final var pub = liveSignalPub.command();
         final var responseCaster = getResponseCaster(thingCommand, "before building JsonView")

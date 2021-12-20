@@ -108,20 +108,20 @@ final class ResponseReceiverCache implements Extension {
         return new ResponseReceiverCache(fallBackEntryExpiry, createCache(fallBackEntryExpiry));
     }
 
-    private static Cache<CorrelationIdKey, ActorRef> createCache(
-            final Duration fallBackEntryExpiry
-    ) {
+    private static Cache<CorrelationIdKey, ActorRef> createCache(final Duration fallBackEntryExpiry) {
         return CaffeineCache.of(Caffeine.newBuilder().expireAfter(new CorrelationIdKeyExpiry(fallBackEntryExpiry)));
     }
 
     /**
      * Puts the specified response receiver for the correlation ID of the signal's correlation ID.
      *
+     * @param signal the signal to extract the correlation ID from used for the cache key.
+     * @param responseReceiver the ActorRef of the response receiver to cache for the correlation ID.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if the headers of {@code signal} do not contain a correlation ID.
      */
     public void putCommand(final Signal<?> signal, final ActorRef responseReceiver) {
-        cache.put(getCorrelationIdKeyForInsertion(checkNotNull(signal, "command")),
+        cache.put(getCorrelationIdKeyForInsertion(checkNotNull(signal, "signal")),
                 checkNotNull(responseReceiver, "responseReceiver"));
     }
 
@@ -150,7 +150,7 @@ final class ResponseReceiverCache implements Extension {
      * @throws IllegalArgumentException if {@code correlationId} is empty or blank.
      */
     public CompletableFuture<Optional<ActorRef>> get(final CharSequence correlationId) {
-        final var correlationIdString = String.valueOf(checkNotNull(correlationId, "correlationId"));
+        final var correlationIdString = checkNotNull(correlationId, "correlationId").toString();
         ConditionChecker.checkArgument(correlationIdString,
                 Predicate.not(String::isBlank),
                 () -> "The correlationId must not be blank.");
@@ -161,34 +161,34 @@ final class ResponseReceiverCache implements Extension {
     /**
      * Insert a response receiver for a live or message command.
      *
-     * @param command the command.
+     * @param signal the live or message command.
      * @param receiverCreator creator of the receiver actor.
      * @param responseHandler handler of the response.
      * @param <T> type of results of the response handler.
      * @return the result of the response handler.
      */
-    public <S extends Signal<?>, T> CompletionStage<T> insertResponseReceiverConflictFree(final S command,
+    public <S extends Signal<?>, T> CompletionStage<T> insertResponseReceiverConflictFree(final S signal,
             final Function<S, ActorRef> receiverCreator,
             final BiFunction<S, ActorRef, T> responseHandler) {
 
-        return insertResponseReceiverConflictFreeWithFuture(command, receiverCreator,
+        return insertResponseReceiverConflictFreeWithFuture(signal, receiverCreator,
                 responseHandler.andThen(CompletableFuture::completedStage));
     }
 
     /**
      * Insert a response receiver for a live or message command.
      *
-     * @param command the command.
+     * @param signal the live or message command.
      * @param receiverCreator creator of the receiver actor.
      * @param responseHandler handler of the response.
      * @param <T> type of results of the response handler.
      * @return the result of the response handler.
      */
-    public <S extends Signal<?>, T> CompletionStage<T> insertResponseReceiverConflictFreeWithFuture(final S command,
+    public <S extends Signal<?>, T> CompletionStage<T> insertResponseReceiverConflictFreeWithFuture(final S signal,
             final Function<S, ActorRef> receiverCreator,
             final BiFunction<S, ActorRef, CompletionStage<T>> responseHandler) {
 
-        return setUniqueCorrelationIdForGlobalDispatching(command, false)
+        return setUniqueCorrelationIdForGlobalDispatching(signal, false)
                 .thenCompose(commandWithUniqueCorrelationId -> {
                     final ActorRef receiver = receiverCreator.apply(commandWithUniqueCorrelationId);
                     putCommand(commandWithUniqueCorrelationId, receiver);
