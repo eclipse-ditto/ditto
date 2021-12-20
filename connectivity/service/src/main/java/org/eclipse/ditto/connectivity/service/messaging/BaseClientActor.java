@@ -66,8 +66,6 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.FilteredTopic;
-import org.eclipse.ditto.connectivity.model.MetricDirection;
-import org.eclipse.ditto.connectivity.model.MetricType;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
@@ -103,7 +101,6 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.Connecti
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ConnectivityCounterRegistry;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ThrottledLoggerMetricsAlert;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelActor;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
@@ -190,8 +187,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final int subscriptionIdPrefixLength;
     private final String actorUUID;
     private final ProtocolAdapter protocolAdapter;
-    private final ConnectivityCounterRegistry connectionCounterRegistry;
-    private final ConnectionLoggerRegistry connectionLoggerRegistry;
+    protected final ConnectivityCounterRegistry connectionCounterRegistry;
+    protected final ConnectionLoggerRegistry connectionLoggerRegistry;
     protected final ConnectionLogger connectionLogger;
     protected final ConnectivityStatusResolver connectivityStatusResolver;
     private final boolean dryRun;
@@ -215,7 +212,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final ActorSystem system = getContext().getSystem();
         final Config config = system.settings().config();
         final Config withOverwrites = connectivityConfigOverwrites.withFallback(config);
-        this.connectivityConfig = ConnectivityConfig.of(withOverwrites);
+        connectivityConfig = ConnectivityConfig.of(withOverwrites);
         this.connectionActor = connectionActor;
         // this is retrieve via the extension for each baseClientActor in order to not pass it as constructor arg
         //  as all constructor arguments need to be serializable as the BaseClientActor is started behind a cluster
@@ -243,9 +240,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
         connectionLoggerRegistry.initForConnection(connection);
         connectionLogger = connectionLoggerRegistry.forConnection(connection.getId());
-        connectionCounterRegistry.registerAlertFactory(MetricType.THROTTLED, MetricDirection.INBOUND,
-                ThrottledLoggerMetricsAlert.getFactory(
-                        address -> connectionLoggerRegistry.forInboundThrottled(connection, address)));
         connectionCounterRegistry.initForConnection(connection);
         clientGauge = DittoMetrics.gauge("connection_client")
                 .tag("id", connectionId.toString())

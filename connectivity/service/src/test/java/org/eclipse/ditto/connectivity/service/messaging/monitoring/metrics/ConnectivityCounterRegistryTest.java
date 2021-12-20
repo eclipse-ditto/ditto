@@ -232,7 +232,7 @@ public class ConnectivityCounterRegistryTest {
 
         final ConnectivityCounterRegistry counterRegistry =
                 ConnectivityCounterRegistry.newInstance(mockConnectivityConfig(1, Duration.ofSeconds(10)));
-        counterRegistry.registerAlertFactory(THROTTLED, INBOUND,
+        counterRegistry.registerAlertFactory(CONNECTION_TYPE, THROTTLED, INBOUND,
                 ThrottledLoggerMetricsAlert.getFactory(address -> logger));
         counterRegistry.initForConnection(connection);
 

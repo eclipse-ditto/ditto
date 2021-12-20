@@ -43,7 +43,10 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.connectivity.model.ConnectionType;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.MetricDirection;
+import org.eclipse.ditto.connectivity.model.MetricType;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.Amqp10Config;
@@ -65,6 +68,7 @@ import org.eclipse.ditto.connectivity.service.messaging.internal.DisconnectClien
 import org.eclipse.ditto.connectivity.service.messaging.internal.RecoverSession;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ThrottledLoggerMetricsAlert;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -133,6 +137,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         recoverSessionOnConnectionRestored = isRecoverSessionOnConnectionRestoredEnabled(connection);
         clientAskTimeout = connectionConfig.getClientActorAskTimeout();
         initialConsumerResourceStatusAskTimeout = amqp10Config.getInitialConsumerStatusAskTimeout();
+
+        connectionCounterRegistry.registerAlertFactory(ConnectionType.AMQP_10, MetricType.THROTTLED,
+                MetricDirection.INBOUND,
+                ThrottledLoggerMetricsAlert.getFactory(
+                        address -> connectionLoggerRegistry.forInboundThrottled(connection, address)));
     }
 
     /*

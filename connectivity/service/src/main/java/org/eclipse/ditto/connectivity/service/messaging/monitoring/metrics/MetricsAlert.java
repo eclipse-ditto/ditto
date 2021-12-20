@@ -47,6 +47,7 @@ interface MetricsAlert {
     enum Key {
 
         CONSUMED_INBOUND(MetricDirection.INBOUND, MetricType.CONSUMED),
+        MAPPED_INBOUND(MetricDirection.INBOUND, MetricType.MAPPED),
         THROTTLED_INBOUND(MetricDirection.INBOUND, MetricType.THROTTLED);
 
         private final MetricDirection metricDirection;
