@@ -13,8 +13,11 @@
 package org.eclipse.ditto.protocol.mappingstrategies;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -65,181 +68,161 @@ final class ThingModifyCommandResponseMappingStrategies implements MappingStrate
     }
 
     private static Map<String, JsonifiableMapper<? extends ThingModifyCommandResponse<?>>> initMappingStrategies() {
-        final Map<String, JsonifiableMapper<? extends ThingModifyCommandResponse<?>>> result = new HashMap<>();
-        result.putAll(getTopLevelResponseMappers());
-        result.putAll(getAttributeResponseMappers());
-        result.putAll(getDefinitionResponseMappers());
-        result.putAll(getFeatureResponseMappers());
-        return result;
+        final Stream.Builder<AdaptableToSignalMapper<? extends ThingModifyCommandResponse<?>>> streamBuilder =
+                Stream.builder();
+
+        addTopLevelResponseMappers(streamBuilder);
+        addAttributeResponseMappers(streamBuilder);
+        addDefinitionResponseMappers(streamBuilder);
+        addFeatureResponseMappers(streamBuilder);
+
+        final Stream<AdaptableToSignalMapper<? extends ThingModifyCommandResponse<?>>> mappers = streamBuilder.build();
+        return mappers.collect(Collectors.toMap(AdaptableToSignalMapper::getSignalType, Function.identity()));
     }
 
-    private static Map<String, JsonifiableMapper<? extends ThingModifyCommandResponse<?>>> getTopLevelResponseMappers() {
-        final Map<String, JsonifiableMapper<? extends ThingModifyCommandResponse<?>>> result = new HashMap<>();
-        result.put(CreateThingResponse.TYPE,
-                AdaptableToSignalMapper.of(CreateThingResponse.class,
-                        context -> CreateThingResponse.newInstance(context.getThingOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(ModifyThingResponse.TYPE,
-                AdaptableToSignalMapper.of(ModifyThingResponse.class,
-                        context -> ModifyThingResponse.newInstance(context.getThingId(),
-                                context.getThing().orElse(null),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(DeleteThingResponse.TYPE,
-                AdaptableToSignalMapper.of(DeleteThingResponse.class,
-                        context -> DeleteThingResponse.newInstance(context.getThingId(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(ModifyPolicyIdResponse.TYPE,
-                AdaptableToSignalMapper.of(ModifyPolicyIdResponse.class,
-                        context -> ModifyPolicyIdResponse.newInstance(context.getThingId(),
-                                context.getPolicyId().orElse(null),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        return result;
+    private static void addTopLevelResponseMappers(
+            final Consumer<AdaptableToSignalMapper<? extends ThingModifyCommandResponse<?>>> streamBuilder
+    ) {
+        streamBuilder.accept(AdaptableToSignalMapper.of(CreateThingResponse.TYPE,
+                context -> CreateThingResponse.newInstance(context.getThingOrThrow(),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyThingResponse.TYPE,
+                context -> ModifyThingResponse.newInstance(context.getThingId(),
+                        context.getThing().orElse(null),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteThingResponse.TYPE,
+                context -> DeleteThingResponse.newInstance(context.getThingId(),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyPolicyIdResponse.TYPE,
+                context -> ModifyPolicyIdResponse.newInstance(context.getThingId(),
+                        context.getPolicyId().orElse(null),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
     }
 
-    private static Map<String, JsonifiableMapper<? extends ThingModifyCommandResponse<?>>> getAttributeResponseMappers() {
-        final Map<String, JsonifiableMapper<? extends ThingModifyCommandResponse<?>>> result = new HashMap<>();
-        result.put(ModifyAttributesResponse.TYPE,
-                AdaptableToSignalMapper.of(ModifyAttributesResponse.class,
-                        context -> ModifyAttributesResponse.newInstance(context.getThingId(),
-                                context.getAttributes().orElseGet(ThingsModelFactory::nullAttributes),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(DeleteAttributesResponse.TYPE,
-                AdaptableToSignalMapper.of(DeleteAttributesResponse.class,
-                        context -> DeleteAttributesResponse.newInstance(context.getThingId(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(ModifyAttributeResponse.TYPE,
-                AdaptableToSignalMapper.of(ModifyAttributeResponse.class,
-                        context -> ModifyAttributeResponse.newInstance(context.getThingId(),
-                                context.getAttributePointerOrThrow(),
-                                context.getAttributeValue().orElse(null),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(DeleteAttributeResponse.TYPE,
-                AdaptableToSignalMapper.of(DeleteAttributeResponse.class,
-                        context -> DeleteAttributeResponse.newInstance(context.getThingId(),
-                                context.getAttributePointerOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        return result;
+    private static void addAttributeResponseMappers(
+            final Consumer<AdaptableToSignalMapper<? extends ThingModifyCommandResponse<?>>> streamBuilder
+    ) {
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyAttributesResponse.TYPE,
+                context -> ModifyAttributesResponse.newInstance(context.getThingId(),
+                        context.getAttributes().orElseGet(ThingsModelFactory::nullAttributes),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteAttributesResponse.TYPE,
+                context -> DeleteAttributesResponse.newInstance(context.getThingId(),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyAttributeResponse.TYPE,
+                context -> ModifyAttributeResponse.newInstance(context.getThingId(),
+                        context.getAttributePointerOrThrow(),
+                        context.getAttributeValue().orElse(null),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteAttributeResponse.TYPE,
+                context -> DeleteAttributeResponse.newInstance(context.getThingId(),
+                        context.getAttributePointerOrThrow(),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
     }
 
-    private static Map<String, JsonifiableMapper<? extends ThingModifyCommandResponse<?>>> getDefinitionResponseMappers() {
-        final Map<String, JsonifiableMapper<? extends ThingModifyCommandResponse<?>>> result = new HashMap<>();
-        result.put(ModifyThingDefinitionResponse.TYPE,
-                AdaptableToSignalMapper.of(ModifyThingDefinitionResponse.class,
-                        context -> ModifyThingDefinitionResponse.newInstance(context.getThingId(),
-                                context.getThingDefinition().orElse(null),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(DeleteThingDefinitionResponse.TYPE,
-                AdaptableToSignalMapper.of(DeleteThingDefinitionResponse.class,
-                        context -> DeleteThingDefinitionResponse.newInstance(context.getThingId(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        return result;
+    private static void addDefinitionResponseMappers(
+            final Consumer<AdaptableToSignalMapper<? extends ThingModifyCommandResponse<?>>> streamBuilder
+    ) {
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyThingDefinitionResponse.TYPE,
+                context -> ModifyThingDefinitionResponse.newInstance(context.getThingId(),
+                        context.getThingDefinition().orElse(null),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteThingDefinitionResponse.TYPE,
+                context -> DeleteThingDefinitionResponse.newInstance(context.getThingId(),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
     }
 
-    private static Map<String, JsonifiableMapper<? extends ThingModifyCommandResponse<?>>> getFeatureResponseMappers() {
-        final Map<String, JsonifiableMapper<? extends ThingModifyCommandResponse<?>>> result = new HashMap<>();
-        result.put(ModifyFeaturesResponse.TYPE,
-                AdaptableToSignalMapper.of(ModifyFeaturesResponse.class,
-                        context -> ModifyFeaturesResponse.newInstance(context.getThingId(),
-                                context.getFeatures().orElseGet(ThingsModelFactory::nullFeatures),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(DeleteFeaturesResponse.TYPE,
-                AdaptableToSignalMapper.of(DeleteFeaturesResponse.class,
-                        context -> DeleteFeaturesResponse.newInstance(context.getThingId(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(ModifyFeatureResponse.TYPE,
-                AdaptableToSignalMapper.of(ModifyFeatureResponse.class,
-                        context -> ModifyFeatureResponse.newInstance(context.getThingId(),
-                                context.getFeature().orElse(null),
-                                context.getFeatureIdOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(DeleteFeatureResponse.TYPE,
-                AdaptableToSignalMapper.of(DeleteFeatureResponse.class,
-                        context -> DeleteFeatureResponse.newInstance(context.getThingId(),
-                                context.getFeatureIdOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(ModifyFeatureDefinitionResponse.TYPE,
-                AdaptableToSignalMapper.of(ModifyFeatureDefinitionResponse.class,
-                        context -> ModifyFeatureDefinitionResponse.newInstance(context.getThingId(),
-                                context.getFeatureIdOrThrow(),
-                                context.getFeatureDefinition().orElse(null),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(DeleteFeatureDefinitionResponse.TYPE,
-                AdaptableToSignalMapper.of(DeleteFeatureDefinitionResponse.class,
-                        context -> DeleteFeatureDefinitionResponse.newInstance(context.getThingId(),
-                                context.getFeatureIdOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(ModifyFeaturePropertiesResponse.TYPE,
-                AdaptableToSignalMapper.of(ModifyFeaturePropertiesResponse.class,
-                        context -> ModifyFeaturePropertiesResponse.newInstance(context.getThingId(),
-                                context.getFeatureIdOrThrow(),
-                                context.getFeatureProperties().orElse(null),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(DeleteFeaturePropertiesResponse.TYPE,
-                AdaptableToSignalMapper.of(DeleteFeaturePropertiesResponse.class,
-                        context -> DeleteFeaturePropertiesResponse.of(context.getThingId(),
-                                context.getFeatureIdOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(ModifyFeatureDesiredPropertiesResponse.TYPE,
-                AdaptableToSignalMapper.of(ModifyFeatureDesiredPropertiesResponse.class,
-                        context -> ModifyFeatureDesiredPropertiesResponse.newInstance(context.getThingId(),
-                                context.getFeatureIdOrThrow(),
-                                context.getFeatureProperties().orElse(null),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(DeleteFeatureDesiredPropertiesResponse.TYPE,
-                AdaptableToSignalMapper.of(DeleteFeatureDesiredPropertiesResponse.class,
-                        context -> DeleteFeatureDesiredPropertiesResponse.newInstance(context.getThingId(),
-                                context.getFeatureIdOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(ModifyFeaturePropertyResponse.TYPE,
-                AdaptableToSignalMapper.of(ModifyFeaturePropertyResponse.class,
-                        context -> ModifyFeaturePropertyResponse.newInstance(context.getThingId(),
-                                context.getFeatureIdOrThrow(),
-                                context.getFeaturePropertyPointerOrThrow(),
-                                context.getFeaturePropertyValue().orElse(null),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(DeleteFeaturePropertyResponse.TYPE,
-                AdaptableToSignalMapper.of(DeleteFeaturePropertyResponse.class,
-                        context -> DeleteFeaturePropertyResponse.newInstance(context.getThingId(),
-                                context.getFeatureIdOrThrow(),
-                                context.getFeaturePropertyPointerOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(ModifyFeatureDesiredPropertyResponse.TYPE,
-                AdaptableToSignalMapper.of(ModifyFeatureDesiredPropertyResponse.class,
-                        context -> ModifyFeatureDesiredPropertyResponse.newInstance(context.getThingId(),
-                                context.getFeatureIdOrThrow(),
-                                context.getFeatureDesiredPropertyPointerOrThrow(),
-                                context.getFeaturePropertyValue().orElse(null),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(DeleteFeatureDesiredPropertyResponse.TYPE,
-                AdaptableToSignalMapper.of(DeleteFeatureDesiredPropertyResponse.class,
-                        context -> DeleteFeatureDesiredPropertyResponse.newInstance(context.getThingId(),
-                                context.getFeatureIdOrThrow(),
-                                context.getFeatureDesiredPropertyPointerOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        return result;
+    private static void addFeatureResponseMappers(
+            final Consumer<AdaptableToSignalMapper<? extends ThingModifyCommandResponse<?>>> streamBuilder
+    ) {
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyFeaturesResponse.TYPE,
+                context -> ModifyFeaturesResponse.newInstance(context.getThingId(),
+                        context.getFeatures().orElseGet(ThingsModelFactory::nullFeatures),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteFeaturesResponse.TYPE,
+                context -> DeleteFeaturesResponse.newInstance(context.getThingId(),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyFeatureResponse.TYPE,
+                context -> ModifyFeatureResponse.newInstance(context.getThingId(),
+                        context.getFeature().orElse(null),
+                        context.getFeatureIdOrThrow(),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteFeatureResponse.TYPE,
+                context -> DeleteFeatureResponse.newInstance(context.getThingId(),
+                        context.getFeatureIdOrThrow(),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyFeatureDefinitionResponse.TYPE,
+                context -> ModifyFeatureDefinitionResponse.newInstance(context.getThingId(),
+                        context.getFeatureIdOrThrow(),
+                        context.getFeatureDefinition().orElse(null),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteFeatureDefinitionResponse.TYPE,
+                context -> DeleteFeatureDefinitionResponse.newInstance(context.getThingId(),
+                        context.getFeatureIdOrThrow(),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyFeaturePropertiesResponse.TYPE,
+                context -> ModifyFeaturePropertiesResponse.newInstance(context.getThingId(),
+                        context.getFeatureIdOrThrow(),
+                        context.getFeatureProperties().orElse(null),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteFeaturePropertiesResponse.TYPE,
+                context -> DeleteFeaturePropertiesResponse.of(context.getThingId(),
+                        context.getFeatureIdOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyFeatureDesiredPropertiesResponse.TYPE,
+                context -> ModifyFeatureDesiredPropertiesResponse.newInstance(context.getThingId(),
+                        context.getFeatureIdOrThrow(),
+                        context.getFeatureProperties().orElse(null),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteFeatureDesiredPropertiesResponse.TYPE,
+                context -> DeleteFeatureDesiredPropertiesResponse.newInstance(context.getThingId(),
+                        context.getFeatureIdOrThrow(),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyFeaturePropertyResponse.TYPE,
+                context -> ModifyFeaturePropertyResponse.newInstance(context.getThingId(),
+                        context.getFeatureIdOrThrow(),
+                        context.getFeaturePropertyPointerOrThrow(),
+                        context.getFeaturePropertyValue().orElse(null),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteFeaturePropertyResponse.TYPE,
+                context -> DeleteFeaturePropertyResponse.newInstance(context.getThingId(),
+                        context.getFeatureIdOrThrow(),
+                        context.getFeaturePropertyPointerOrThrow(),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyFeatureDesiredPropertyResponse.TYPE,
+                context -> ModifyFeatureDesiredPropertyResponse.newInstance(context.getThingId(),
+                        context.getFeatureIdOrThrow(),
+                        context.getFeatureDesiredPropertyPointerOrThrow(),
+                        context.getFeaturePropertyValue().orElse(null),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteFeatureDesiredPropertyResponse.TYPE,
+                context -> DeleteFeatureDesiredPropertyResponse.newInstance(context.getThingId(),
+                        context.getFeatureIdOrThrow(),
+                        context.getFeatureDesiredPropertyPointerOrThrow(),
+                        context.getHttpStatusOrThrow(),
+                        context.getDittoHeaders())));
     }
 
     @Nullable

@@ -38,16 +38,16 @@ final class ThingMergeCommandResponseMappingStrategies implements MappingStrateg
     }
 
     private static Map<String, JsonifiableMapper<MergeThingResponse>> initMappingStrategies() {
-        return Collections.singletonMap(MergeThingResponse.TYPE,
-                AdaptableToSignalMapper.of(MergeThingResponse.class,
-                        context -> {
-                            final Adaptable adaptable = context.getAdaptable();
-                            final Payload payload = adaptable.getPayload();
-                            return MergeThingResponse.newInstance(context.getThingId(),
-                                    JsonPointer.of(String.valueOf(payload.getPath())), // to satisfy equals of JsonPointer vs. MessagePath
-                                    context.getHttpStatusOrThrow(),
-                                    context.getDittoHeaders());
-                        }));
+        final AdaptableToSignalMapper<MergeThingResponse> mapper = AdaptableToSignalMapper.of(MergeThingResponse.TYPE,
+                context -> {
+                    final Adaptable adaptable = context.getAdaptable();
+                    final Payload payload = adaptable.getPayload();
+                    return MergeThingResponse.newInstance(context.getThingId(),
+                            JsonPointer.of(String.valueOf(payload.getPath())), // to satisfy equals of JsonPointer vs. MessagePath
+                            context.getHttpStatusOrThrow(),
+                            context.getDittoHeaders());
+                });
+        return Collections.singletonMap(mapper.getSignalType(), mapper);
     }
 
     static ThingMergeCommandResponseMappingStrategies getInstance() {

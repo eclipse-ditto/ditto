@@ -13,8 +13,10 @@
 package org.eclipse.ditto.protocol.mappingstrategies;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -54,96 +56,86 @@ final class ThingQueryCommandResponseMappingStrategies implements MappingStrateg
     }
 
     private static Map<String, JsonifiableMapper<? extends ThingQueryCommandResponse<?>>> initMappingStrategies() {
-        final Map<String, JsonifiableMapper<? extends ThingQueryCommandResponse<?>>> result = new HashMap<>();
-        result.put(RetrieveThingResponse.TYPE,
-                AdaptableToSignalMapper.of(RetrieveThingResponse.class,
-                        context -> {
-                            final JsonObject thingJsonObject = context.getPayloadValueAsJsonObjectOrThrow();
-                            return RetrieveThingResponse.newInstance(context.getThingId(),
-                                    thingJsonObject,
-                                    thingJsonObject.toString(),
-                                    context.getHttpStatusOrThrow(),
-                                    context.getDittoHeaders());
-                        }));
-        result.put(RetrieveAttributesResponse.TYPE,
-                AdaptableToSignalMapper.of(RetrieveAttributesResponse.class,
-                        context -> RetrieveAttributesResponse.newInstance(context.getThingId(),
-                                context.getAttributesOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(RetrieveAttributeResponse.TYPE,
-                AdaptableToSignalMapper.of(RetrieveAttributeResponse.class,
-                        context -> RetrieveAttributeResponse.newInstance(context.getThingId(),
-                                context.getAttributePointerOrThrow(),
-                                context.getAttributeValueOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(RetrieveThingDefinitionResponse.TYPE,
-                AdaptableToSignalMapper.of(RetrieveThingDefinitionResponse.class,
-                        context -> RetrieveThingDefinitionResponse.newInstance(context.getThingId(),
-                                context.getThingDefinitionOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(RetrieveFeaturesResponse.TYPE,
-                AdaptableToSignalMapper.of(RetrieveFeaturesResponse.class,
-                        context -> RetrieveFeaturesResponse.newInstance(context.getThingId(),
-                                context.getFeaturesOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(RetrieveFeatureResponse.TYPE,
-                AdaptableToSignalMapper.of(RetrieveFeatureResponse.class,
-                        context -> RetrieveFeatureResponse.newInstance(context.getThingId(),
-                                context.getFeatureOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(RetrieveFeatureDefinitionResponse.TYPE,
-                AdaptableToSignalMapper.of(RetrieveFeatureDefinitionResponse.class,
-                        context -> {
-                            final FeatureDefinition featureDefinition = context.getFeatureDefinitionOrThrow();
-                            return RetrieveFeatureDefinitionResponse.newInstance(context.getThingId(),
-                                    context.getFeatureIdOrThrow(),
-                                    featureDefinition.toJson(),
-                                    context.getHttpStatusOrThrow(),
-                                    context.getDittoHeaders());
-                        }));
-        result.put(RetrieveFeaturePropertiesResponse.TYPE,
-                AdaptableToSignalMapper.of(RetrieveFeaturePropertiesResponse.class,
-                        context -> RetrieveFeaturePropertiesResponse.newInstance(context.getThingId(),
-                                context.getFeatureIdOrThrow(),
-                                context.getFeaturePropertiesOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(RetrieveFeatureDesiredPropertiesResponse.TYPE,
-                AdaptableToSignalMapper.of(RetrieveFeatureDesiredPropertiesResponse.class,
-                        context -> RetrieveFeatureDesiredPropertiesResponse.newInstance(context.getThingId(),
-                                context.getFeatureIdOrThrow(),
-                                context.getFeaturePropertiesOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(RetrieveFeaturePropertyResponse.TYPE,
-                AdaptableToSignalMapper.of(RetrieveFeaturePropertyResponse.class,
-                        context -> RetrieveFeaturePropertyResponse.newInstance(context.getThingId(),
-                                context.getFeatureIdOrThrow(),
-                                context.getFeaturePropertyPointerOrThrow(),
-                                context.getFeaturePropertyValueOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(RetrieveFeatureDesiredPropertyResponse.TYPE,
-                AdaptableToSignalMapper.of(RetrieveFeatureDesiredPropertyResponse.class,
-                        context -> RetrieveFeatureDesiredPropertyResponse.newInstance(context.getThingId(),
-                                context.getFeatureIdOrThrow(),
-                                context.getFeatureDesiredPropertyPointerOrThrow(),
-                                context.getFeaturePropertyValueOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
-        result.put(RetrievePolicyIdResponse.TYPE,
-                AdaptableToSignalMapper.of(RetrievePolicyIdResponse.class,
-                        context -> RetrievePolicyIdResponse.newInstance(context.getThingId(),
-                                context.getPolicyIdOrThrow(),
-                                context.getHttpStatusOrThrow(),
-                                context.getDittoHeaders())));
+        final Stream<AdaptableToSignalMapper<? extends ThingQueryCommandResponse<?>>> mappers =
+                Stream.<AdaptableToSignalMapper<? extends ThingQueryCommandResponse<?>>>builder()
+                        .add(AdaptableToSignalMapper.of(RetrieveThingResponse.TYPE,
+                                context -> {
+                                    final JsonObject thingJsonObject = context.getPayloadValueAsJsonObjectOrThrow();
+                                    return RetrieveThingResponse.newInstance(context.getThingId(),
+                                            thingJsonObject,
+                                            thingJsonObject.toString(),
+                                            context.getHttpStatusOrThrow(),
+                                            context.getDittoHeaders());
+                                }))
+                        .add(AdaptableToSignalMapper.of(RetrieveAttributesResponse.TYPE,
+                                context -> RetrieveAttributesResponse.newInstance(context.getThingId(),
+                                        context.getAttributesOrThrow(),
+                                        context.getHttpStatusOrThrow(),
+                                        context.getDittoHeaders())))
+                        .add(AdaptableToSignalMapper.of(RetrieveAttributeResponse.TYPE,
+                                context -> RetrieveAttributeResponse.newInstance(context.getThingId(),
+                                        context.getAttributePointerOrThrow(),
+                                        context.getAttributeValueOrThrow(),
+                                        context.getHttpStatusOrThrow(),
+                                        context.getDittoHeaders())))
+                        .add(AdaptableToSignalMapper.of(RetrieveThingDefinitionResponse.TYPE,
+                                context -> RetrieveThingDefinitionResponse.newInstance(context.getThingId(),
+                                        context.getThingDefinitionOrThrow(),
+                                        context.getHttpStatusOrThrow(),
+                                        context.getDittoHeaders())))
+                        .add(AdaptableToSignalMapper.of(RetrieveFeaturesResponse.TYPE,
+                                context -> RetrieveFeaturesResponse.newInstance(context.getThingId(),
+                                        context.getFeaturesOrThrow(),
+                                        context.getHttpStatusOrThrow(),
+                                        context.getDittoHeaders())))
+                        .add(AdaptableToSignalMapper.of(RetrieveFeatureResponse.TYPE,
+                                context -> RetrieveFeatureResponse.newInstance(context.getThingId(),
+                                        context.getFeatureOrThrow(),
+                                        context.getHttpStatusOrThrow(),
+                                        context.getDittoHeaders())))
+                        .add(AdaptableToSignalMapper.of(RetrieveFeatureDefinitionResponse.TYPE,
+                                context -> {
+                                    final FeatureDefinition featureDefinition = context.getFeatureDefinitionOrThrow();
+                                    return RetrieveFeatureDefinitionResponse.newInstance(context.getThingId(),
+                                            context.getFeatureIdOrThrow(),
+                                            featureDefinition.toJson(),
+                                            context.getHttpStatusOrThrow(),
+                                            context.getDittoHeaders());
+                                }))
+                        .add(AdaptableToSignalMapper.of(RetrieveFeaturePropertiesResponse.TYPE,
+                                context -> RetrieveFeaturePropertiesResponse.newInstance(context.getThingId(),
+                                        context.getFeatureIdOrThrow(),
+                                        context.getFeaturePropertiesOrThrow(),
+                                        context.getHttpStatusOrThrow(),
+                                        context.getDittoHeaders())))
+                        .add(AdaptableToSignalMapper.of(RetrieveFeatureDesiredPropertiesResponse.TYPE,
+                                context -> RetrieveFeatureDesiredPropertiesResponse.newInstance(context.getThingId(),
+                                        context.getFeatureIdOrThrow(),
+                                        context.getFeaturePropertiesOrThrow(),
+                                        context.getHttpStatusOrThrow(),
+                                        context.getDittoHeaders())))
+                        .add(AdaptableToSignalMapper.of(RetrieveFeaturePropertyResponse.TYPE,
+                                context -> RetrieveFeaturePropertyResponse.newInstance(context.getThingId(),
+                                        context.getFeatureIdOrThrow(),
+                                        context.getFeaturePropertyPointerOrThrow(),
+                                        context.getFeaturePropertyValueOrThrow(),
+                                        context.getHttpStatusOrThrow(),
+                                        context.getDittoHeaders())))
+                        .add(AdaptableToSignalMapper.of(RetrieveFeatureDesiredPropertyResponse.TYPE,
+                                context -> RetrieveFeatureDesiredPropertyResponse.newInstance(context.getThingId(),
+                                        context.getFeatureIdOrThrow(),
+                                        context.getFeatureDesiredPropertyPointerOrThrow(),
+                                        context.getFeaturePropertyValueOrThrow(),
+                                        context.getHttpStatusOrThrow(),
+                                        context.getDittoHeaders())))
+                        .add(AdaptableToSignalMapper.of(RetrievePolicyIdResponse.TYPE,
+                                context -> RetrievePolicyIdResponse.newInstance(context.getThingId(),
+                                        context.getPolicyIdOrThrow(),
+                                        context.getHttpStatusOrThrow(),
+                                        context.getDittoHeaders())))
+                        .build();
 
-        return result;
+        return mappers.collect(Collectors.toMap(AdaptableToSignalMapper::getSignalType, Function.identity()));
     }
 
     @Nullable

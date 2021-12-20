@@ -13,7 +13,7 @@
 package org.eclipse.ditto.protocol.mappingstrategies;
 
 import java.text.MessageFormat;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
@@ -39,10 +39,8 @@ public final class RetrieveThingsCommandResponseMappingStrategies
     }
 
     private static Map<String, JsonifiableMapper<RetrieveThingsResponse>> initMappingStrategies() {
-        final Map<String, JsonifiableMapper<RetrieveThingsResponse>> mappingStrategies = new HashMap<>();
-
-        mappingStrategies.put(RetrieveThingsResponse.TYPE,
-                AdaptableToSignalMapper.of(RetrieveThingsResponse.class,
+        final AdaptableToSignalMapper<RetrieveThingsResponse> adaptableToSignalMapper =
+                AdaptableToSignalMapper.of(RetrieveThingsResponse.TYPE,
                         context -> {
                             final JsonArray thingsJsonArray = getThingsArrayOrThrow(context);
                             return RetrieveThingsResponse.newInstance(thingsJsonArray,
@@ -50,9 +48,9 @@ public final class RetrieveThingsCommandResponseMappingStrategies
                                     context.getNamespace().orElse(null),
                                     context.getHttpStatusOrThrow(),
                                     context.getDittoHeaders());
-                        }));
+                        });
 
-        return mappingStrategies;
+        return Collections.singletonMap(adaptableToSignalMapper.getSignalType(), adaptableToSignalMapper);
     }
 
     private static JsonArray getThingsArrayOrThrow(final MappingContext mappingContext) {
@@ -64,14 +62,14 @@ public final class RetrieveThingsCommandResponseMappingStrategies
             if (jsonValue.isArray()) {
                 return jsonValue.asArray();
             } else {
-                throw new IllegalAdaptableException(
+                throw IllegalAdaptableException.newInstance(
                         MessageFormat.format("Payload value is not a JSON array of things but <{0}>.", jsonValue),
                         "Please ensure that the payload contains a valid JSON array of things as value.",
                         adaptable
                 );
             }
         } else {
-            throw new IllegalAdaptableException(
+            throw IllegalAdaptableException.newInstance(
                     "Payload does not contain an array of things because it has no value at all.",
                     "Please ensure that the payload contains a valid JSON array of things as value.",
                     adaptable

@@ -13,11 +13,12 @@
 package org.eclipse.ditto.protocol.mappingstrategies;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import java.util.function.Function;
 
-import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.protocol.Adaptable;
@@ -32,6 +33,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
  * Unit test for {@link AdaptableToSignalMapper}.
@@ -53,17 +56,40 @@ public final class AdaptableToSignalMapperTest {
     }
 
     @Test
-    public void getInstanceWithNullTargetTypeThrowsException() {
+    public void testHashCodeAndEquals() {
+        EqualsVerifier.forClass(AdaptableToSignalMapper.class)
+                .usingGetClass()
+                .verify();
+    }
+
+    @Test
+    public void getInstanceWithNullSignalTypeThrowsException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> AdaptableToSignalMapper.of(null, mappingFunction))
-                .withMessage("The targetType must not be null!")
+                .isThrownBy(() -> AdaptableToSignalMapper.of((String) null, mappingFunction))
+                .withMessage("The signalType must not be null!")
+                .withNoCause();
+    }
+
+    @Test
+    public void getInstanceWithEmptySignalTypeThrowsException() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> AdaptableToSignalMapper.of("", mappingFunction))
+                .withMessage("The signalType must not be blank.")
+                .withNoCause();
+    }
+
+    @Test
+    public void getInstanceWithBlankSignalTypeThrowsException() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> AdaptableToSignalMapper.of(" ", mappingFunction))
+                .withMessage("The signalType must not be blank.")
                 .withNoCause();
     }
 
     @Test
     public void getInstanceWithNullMappingFunctionThrowsException() {
         assertThatNullPointerException()
-                .isThrownBy(() -> AdaptableToSignalMapper.of(CreateThing.class, null))
+                .isThrownBy(() -> AdaptableToSignalMapper.of(CreateThing.TYPE, null))
                 .withMessage("The mappingFunction must not be null!")
                 .withNoCause();
     }
@@ -71,7 +97,7 @@ public final class AdaptableToSignalMapperTest {
     @Test
     public void getInstanceWithValidArgumentsReturnsNotNull() {
         final AdaptableToSignalMapper<CreateThingResponse> instance =
-                AdaptableToSignalMapper.of(CreateThingResponse.class, mappingFunction);
+                AdaptableToSignalMapper.of(CreateThingResponse.TYPE, mappingFunction);
 
         assertThat(instance).isNotNull();
     }
@@ -81,7 +107,7 @@ public final class AdaptableToSignalMapperTest {
         final CreateThingResponse createThingResponse = CreateThingResponse.of(Mockito.mock(Thing.class), dittoHeaders);
         Mockito.when(mappingFunction.apply(Mockito.any(MappingContext.class))).thenReturn(createThingResponse);
         final AdaptableToSignalMapper<CreateThingResponse> underTest =
-                AdaptableToSignalMapper.of(createThingResponse.getClass(), mappingFunction);
+                AdaptableToSignalMapper.of(createThingResponse.getType(), mappingFunction);
 
         assertThat(underTest.map(Mockito.mock(Adaptable.class))).isEqualTo(createThingResponse);
     }
@@ -92,7 +118,7 @@ public final class AdaptableToSignalMapperTest {
                 ArgumentCaptor.forClass(MappingContext.class);
         final Adaptable adaptable = Mockito.mock(Adaptable.class);
         final AdaptableToSignalMapper<CreateThingResponse> underTest =
-                AdaptableToSignalMapper.of(CreateThingResponse.class, mappingFunction);
+                AdaptableToSignalMapper.of(CreateThingResponse.TYPE, mappingFunction);
 
         underTest.map(adaptable);
 
@@ -104,20 +130,23 @@ public final class AdaptableToSignalMapperTest {
     public void mapAdaptableThrowsIllegalAdaptableExceptionIfMappingFunctionThrowsDittoRuntimeException() {
         final Adaptable adaptable = Mockito.mock(Adaptable.class);
         Mockito.when(adaptable.getDittoHeaders()).thenReturn(dittoHeaders);
-        final IllegalAdaptableException illegalAdaptableException =
-                new IllegalAdaptableException("This is a message.", "This is a description.", adaptable);
-        Mockito.when(mappingFunction.apply(Mockito.any(MappingContext.class))).thenThrow(illegalAdaptableException);
-        final Class<CreateThingResponse> targetType = CreateThingResponse.class;
+        final IllegalAdaptableException cause =
+                IllegalAdaptableException.newInstance("This is a message.", "This is a description.", adaptable);
+        Mockito.when(mappingFunction.apply(Mockito.any(MappingContext.class))).thenThrow(cause);
+        final String signalType = CreateThingResponse.TYPE;
         final AdaptableToSignalMapper<CreateThingResponse> underTest =
-                AdaptableToSignalMapper.of(targetType, mappingFunction);
+                AdaptableToSignalMapper.of(signalType, mappingFunction);
 
-        Assertions.assertThatExceptionOfType(IllegalAdaptableException.class)
+        assertThatExceptionOfType(IllegalAdaptableException.class)
                 .isThrownBy(() -> underTest.map(adaptable))
-                .withMessage("Failed to get <%s> for <%s>: %s",
-                        targetType.getSimpleName(),
+                .withMessage("Failed to get Signal of type <%s> for <%s>: %s",
+                        signalType,
                         adaptable,
-                        illegalAdaptableException.getMessage())
-                .withCause(illegalAdaptableException);
+                        cause.getMessage())
+                .satisfies(illegalAdaptableException -> assertThat(illegalAdaptableException.getSignalType())
+                        .as("signal type")
+                        .contains(signalType))
+                .withCause(cause);
     }
 
     @Test
@@ -126,17 +155,30 @@ public final class AdaptableToSignalMapperTest {
         Mockito.when(adaptable.getDittoHeaders()).thenReturn(dittoHeaders);
         final IllegalArgumentException illegalArgumentException = new IllegalArgumentException("This is a message.");
         Mockito.when(mappingFunction.apply(Mockito.any(MappingContext.class))).thenThrow(illegalArgumentException);
-        final Class<CreateThingResponse> targetType = CreateThingResponse.class;
+        final String targetSignalType = CreateThingResponse.TYPE;
         final AdaptableToSignalMapper<CreateThingResponse> underTest =
-                AdaptableToSignalMapper.of(targetType, mappingFunction);
+                AdaptableToSignalMapper.of(targetSignalType, mappingFunction);
 
-        Assertions.assertThatExceptionOfType(IllegalAdaptableException.class)
+        assertThatExceptionOfType(IllegalAdaptableException.class)
                 .isThrownBy(() -> underTest.map(adaptable))
-                .withMessage("Failed to get <%s> for <%s>: %s",
-                        targetType.getSimpleName(),
+                .withMessage("Failed to get Signal of type <%s> for <%s>: %s",
+                        targetSignalType,
                         adaptable,
                         illegalArgumentException.getMessage())
+                .satisfies(illegalAdaptableException -> assertThat(illegalAdaptableException.getSignalType())
+                        .as("signal type")
+                        .contains(targetSignalType))
                 .withCause(illegalArgumentException);
+    }
+
+    @Test
+    public void getSignalTypeReturnsExpected() {
+        final CreateThingResponse createThingResponse = CreateThingResponse.of(Mockito.mock(Thing.class), dittoHeaders);
+        final String signalType = createThingResponse.getType();
+        final AdaptableToSignalMapper<CreateThingResponse> underTest =
+                AdaptableToSignalMapper.of(signalType, mappingFunction);
+
+        assertThat(underTest.getSignalType()).isEqualTo(signalType);
     }
 
 }

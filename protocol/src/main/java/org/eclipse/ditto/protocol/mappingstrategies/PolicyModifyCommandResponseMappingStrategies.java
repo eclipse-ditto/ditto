@@ -12,8 +12,14 @@
  */
 package org.eclipse.ditto.protocol.mappingstrategies;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicyEntryResponse;
@@ -33,28 +39,31 @@ import org.eclipse.ditto.protocol.JsonifiableMapper;
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for policy modify command responses.
  */
-final class PolicyModifyCommandResponseMappingStrategies
-        extends AbstractPolicyMappingStrategies<PolicyModifyCommandResponse<?>> {
+final class PolicyModifyCommandResponseMappingStrategies implements MappingStrategies<PolicyModifyCommandResponse<?>> {
 
     private static final PolicyModifyCommandResponseMappingStrategies INSTANCE =
             new PolicyModifyCommandResponseMappingStrategies();
 
+    private final Map<String, JsonifiableMapper<? extends PolicyModifyCommandResponse<?>>> mappingStrategies;
+
     private PolicyModifyCommandResponseMappingStrategies() {
-        super(initMappingStrategies());
+        mappingStrategies = Collections.unmodifiableMap(initMappingStrategies());
     }
 
-    private static Map<String, JsonifiableMapper<PolicyModifyCommandResponse<?>>> initMappingStrategies() {
-        final Map<String, JsonifiableMapper<PolicyModifyCommandResponse<?>>> mappingStrategies = new HashMap<>();
+    private static Map<String, AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> initMappingStrategies() {
+        final Stream.Builder<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> streamBuilder =
+                Stream.builder();
 
-        addTopLevelResponses(mappingStrategies);
+        addTopLevelResponses(streamBuilder);
 
-        addPolicyEntryResponses(mappingStrategies);
+        addPolicyEntryResponses(streamBuilder);
 
-        addPolicyEntryResourceResponses(mappingStrategies);
+        addPolicyEntryResourceResponses(streamBuilder);
 
-        addPolicyEntrySubjectResponses(mappingStrategies);
+        addPolicyEntrySubjectResponses(streamBuilder);
 
-        return mappingStrategies;
+        final Stream<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> mappers = streamBuilder.build();
+        return mappers.collect(Collectors.toMap(AdaptableToSignalMapper::getSignalType, Function.identity()));
     }
 
     static PolicyModifyCommandResponseMappingStrategies getInstance() {
@@ -62,108 +71,102 @@ final class PolicyModifyCommandResponseMappingStrategies
     }
 
     private static void addTopLevelResponses(
-            final Map<String, JsonifiableMapper<PolicyModifyCommandResponse<?>>> mappingStrategies) {
-
-        mappingStrategies.put(CreatePolicyResponse.TYPE, (AdaptableToSignalMapper) AdaptableToSignalMapper.of(
-                        CreatePolicyResponse.class, mappingContext ->
-                        CreatePolicyResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
-                                        mappingContext.getPolicy().orElse(null),
-                                        mappingContext.getHttpStatusOrThrow(),
-                                        mappingContext.getDittoHeaders())));
-
-        mappingStrategies.put(ModifyPolicyResponse.TYPE, (AdaptableToSignalMapper) AdaptableToSignalMapper.of(
-                ModifyPolicyResponse.class, mappingContext ->
-                        ModifyPolicyResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+            final Consumer<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> streamBuilder
+    ) {
+        streamBuilder.accept(AdaptableToSignalMapper.of(CreatePolicyResponse.TYPE,
+                mappingContext -> CreatePolicyResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
                         mappingContext.getPolicy().orElse(null),
                         mappingContext.getHttpStatusOrThrow(),
                         mappingContext.getDittoHeaders())));
 
-        mappingStrategies.put(DeletePolicyResponse.TYPE, (AdaptableToSignalMapper) AdaptableToSignalMapper.of(
-                DeletePolicyResponse.class, mappingContext ->
-                        DeletePolicyResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
-                                mappingContext.getHttpStatusOrThrow(),
-                                mappingContext.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyPolicyResponse.TYPE,
+                mappingContext -> ModifyPolicyResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getPolicy().orElse(null),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
+
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeletePolicyResponse.TYPE,
+                mappingContext -> DeletePolicyResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
     }
 
     private static void addPolicyEntryResponses(
-            final Map<String, JsonifiableMapper<PolicyModifyCommandResponse<?>>> mappingStrategies) {
+            final Consumer<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> streamBuilder
+    ) {
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyPolicyEntryResponse.TYPE,
+                mappingContext -> ModifyPolicyEntryResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getPolicyEntry().orElse(null),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
 
-        mappingStrategies.put(ModifyPolicyEntryResponse.TYPE, (AdaptableToSignalMapper) AdaptableToSignalMapper.of(
-                ModifyPolicyEntryResponse.class, mappingContext ->
-                        ModifyPolicyEntryResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
-                                mappingContext.getPolicyEntry().orElse(null),
-                                mappingContext.getLabelOrThrow(),
-                                mappingContext.getHttpStatusOrThrow(),
-                                mappingContext.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeletePolicyEntryResponse.TYPE,
+                mappingContext -> DeletePolicyEntryResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
 
-        mappingStrategies.put(DeletePolicyEntryResponse.TYPE, (AdaptableToSignalMapper) AdaptableToSignalMapper.of(
-                DeletePolicyEntryResponse.class, mappingContext ->
-                        DeletePolicyEntryResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
-                                mappingContext.getLabelOrThrow(),
-                                mappingContext.getHttpStatusOrThrow(),
-                                mappingContext.getDittoHeaders())));
-
-        mappingStrategies.put(ModifyPolicyEntriesResponse.TYPE, (AdaptableToSignalMapper) AdaptableToSignalMapper.of(
-                ModifyPolicyEntriesResponse.class, mappingContext ->
-                        ModifyPolicyEntriesResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
-                                mappingContext.getHttpStatusOrThrow(),
-                                mappingContext.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyPolicyEntriesResponse.TYPE,
+                mappingContext -> ModifyPolicyEntriesResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
     }
 
     private static void addPolicyEntryResourceResponses(
-            final Map<String, JsonifiableMapper<PolicyModifyCommandResponse<?>>> mappingStrategies) {
+            final Consumer<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> streamBuilder
+    ) {
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyResourceResponse.TYPE,
+                mappingContext -> ModifyResourceResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getResourceKeyOrThrow(),
+                        mappingContext.getResource().orElse(null),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
 
-        mappingStrategies.put(ModifyResourceResponse.TYPE, (AdaptableToSignalMapper) AdaptableToSignalMapper.of(
-                ModifyResourceResponse.class, mappingContext ->
-                        ModifyResourceResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
-                                mappingContext.getLabelOrThrow(),
-                                mappingContext.getResourceKeyOrThrow(),
-                                mappingContext.getResource().orElse(null),
-                                mappingContext.getHttpStatusOrThrow(),
-                                mappingContext.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifyResourcesResponse.TYPE,
+                mappingContext -> ModifyResourcesResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
 
-        mappingStrategies.put(ModifyResourcesResponse.TYPE, (AdaptableToSignalMapper) AdaptableToSignalMapper.of(
-                ModifyResourcesResponse.class, mappingContext ->
-                        ModifyResourcesResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
-                                mappingContext.getLabelOrThrow(),
-                                mappingContext.getHttpStatusOrThrow(),
-                                mappingContext.getDittoHeaders())));
-
-        mappingStrategies.put(DeleteResourceResponse.TYPE, (AdaptableToSignalMapper) AdaptableToSignalMapper.of(
-                DeleteResourceResponse.class, mappingContext ->
-                        DeleteResourceResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
-                                mappingContext.getLabelOrThrow(),
-                                mappingContext.getResourceKeyOrThrow(),
-                                mappingContext.getHttpStatusOrThrow(),
-                                mappingContext.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteResourceResponse.TYPE,
+                mappingContext -> DeleteResourceResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getResourceKeyOrThrow(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
     }
 
     private static void addPolicyEntrySubjectResponses(
-            final Map<String, JsonifiableMapper<PolicyModifyCommandResponse<?>>> mappingStrategies) {
+            final Consumer<AdaptableToSignalMapper<? extends PolicyModifyCommandResponse<?>>> streamBuilder
+    ) {
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifySubjectResponse.TYPE,
+                mappingContext -> ModifySubjectResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getSubjectIdOrThrow(),
+                        mappingContext.getSubject().orElse(null),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
 
-        mappingStrategies.put(ModifySubjectResponse.TYPE, (AdaptableToSignalMapper) AdaptableToSignalMapper.of(
-                ModifySubjectResponse.class, mappingContext ->
-                        ModifySubjectResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
-                                mappingContext.getLabelOrThrow(),
-                                mappingContext.getSubjectIdOrThrow(),
-                                mappingContext.getSubject().orElse(null),
-                                mappingContext.getHttpStatusOrThrow(),
-                                mappingContext.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(ModifySubjectsResponse.TYPE,
+                mappingContext -> ModifySubjectsResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
 
-        mappingStrategies.put(ModifySubjectsResponse.TYPE, (AdaptableToSignalMapper) AdaptableToSignalMapper.of(
-                ModifySubjectsResponse.class, mappingContext ->
-                        ModifySubjectsResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
-                                mappingContext.getLabelOrThrow(),
-                                mappingContext.getHttpStatusOrThrow(),
-                                mappingContext.getDittoHeaders())));
+        streamBuilder.accept(AdaptableToSignalMapper.of(DeleteSubjectResponse.TYPE,
+                mappingContext -> DeleteSubjectResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
+                        mappingContext.getLabelOrThrow(),
+                        mappingContext.getSubjectIdOrThrow(),
+                        mappingContext.getHttpStatusOrThrow(),
+                        mappingContext.getDittoHeaders())));
+    }
 
-        mappingStrategies.put(DeleteSubjectResponse.TYPE, (AdaptableToSignalMapper) AdaptableToSignalMapper.of(
-                DeleteSubjectResponse.class, mappingContext ->
-                        DeleteSubjectResponse.newInstance(mappingContext.getPolicyIdFromTopicPath(),
-                                mappingContext.getLabelOrThrow(),
-                                mappingContext.getSubjectIdOrThrow(),
-                                mappingContext.getHttpStatusOrThrow(),
-                                mappingContext.getDittoHeaders())));
+    @Nullable
+    @Override
+    public JsonifiableMapper<PolicyModifyCommandResponse<?>> find(final String type) {
+        return (JsonifiableMapper<PolicyModifyCommandResponse<?>>) mappingStrategies.get(type);
     }
 
 }

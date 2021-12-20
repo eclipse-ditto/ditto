@@ -141,7 +141,6 @@ import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.actor.Terminated;
 import akka.cluster.pubsub.DistributedPubSub;
-import akka.dispatch.MessageDispatcher;
 import akka.http.javadsl.ConnectionContext;
 import akka.japi.Pair;
 import akka.japi.pf.DeciderBuilder;
@@ -1757,16 +1756,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
     private Sink<Object, NotUsed> getInboundDispatchingSink(final ActorRef outboundMappingProcessorActor) {
-        final var actorContext = getContext();
-        final var actorSystem = actorContext.getSystem();
-
         return InboundDispatchingSink.createSink(connection,
                 protocolAdapter.headerTranslator(),
                 proxyActorSelection,
                 connectionActor,
                 outboundMappingProcessorActor,
                 getSelf(),
-                actorContext,
+                getContext(),
                 connectivityConfig,
                 getResponseValidationFailureConsumer());
     }
@@ -1787,16 +1783,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @return the Sink.
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
-    private Sink<Object, NotUsed> getInboundMappingSink(
-            final ProtocolAdapter protocolAdapter,
+    private Sink<Object, NotUsed> getInboundMappingSink(final ProtocolAdapter protocolAdapter,
             final Sink<Object, NotUsed> inboundDispatchingSink) {
 
         final InboundMappingProcessor inboundMappingProcessor;
+        final var context = getContext();
+        final var actorSystem = context.getSystem();
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
             inboundMappingProcessor =
-                    InboundMappingProcessor.of(connection, connectivityConfig, getContext().getSystem(),
-                            protocolAdapter, logger);
+                    InboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {0}", dre.getMessage());
             logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
@@ -1807,16 +1803,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final int processorPoolSize = connection.getProcessorPoolSize();
         logger.debug("Starting inbound mapping processor actors with pool size of <{}>.", processorPoolSize);
 
-        final var mappingConfig = connectivityConfig().getMappingConfig();
-        final MessageDispatcher messageMappingProcessorDispatcher =
-                getContext().system().dispatchers().lookup(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
         return InboundMappingSink.createSink(inboundMappingProcessor,
                 connection.getId(),
                 processorPoolSize,
                 inboundDispatchingSink,
-                mappingConfig,
+                connectivityConfig.getMappingConfig(),
                 getThrottlingConfig().orElse(null),
-                messageMappingProcessorDispatcher);
+                actorSystem.dispatchers().lookup(MESSAGE_MAPPING_PROCESSOR_DISPATCHER));
     }
 
     protected Optional<ConnectionThrottlingConfig> getThrottlingConfig() {

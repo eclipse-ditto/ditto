@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.protocol.mappingstrategies;
 
-import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.Objects;
@@ -21,7 +19,9 @@ import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -49,34 +49,49 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
     /**
      * Error code of {@code IllegalAdaptableException}.
      */
-    static final String ERROR_CODE = "things.protocol.adapter:adaptable.illegal";
+    public static final String ERROR_CODE = "things.protocol.adapter:adaptable.illegal";
 
-    private static final HttpStatus HTTP_STATUS = HttpStatus.UNPROCESSABLE_ENTITY;
+    /**
+     * Generic default description of an {@code IllegalAdaptableException}.
+     */
+    static final String DEFAULT_DESCRIPTION = "Please ensure that the Adaptable matches the expectations.";
 
-    private static final String DEFAULT_DESCRIPTION = "Please ensure that the Adaptable matches the expectations.";
+    /**
+     * HTTP status of an {@code IllegalAdaptableException}.
+     */
+    static final HttpStatus HTTP_STATUS = HttpStatus.UNPROCESSABLE_ENTITY;
 
-    private static final JsonFieldDefinition<JsonObject> JSON_FIELD_ADAPTABLE =
+    static final JsonFieldDefinition<JsonObject> JSON_FIELD_ADAPTABLE =
             JsonFieldDefinition.ofJsonObject("adaptable", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    static final JsonFieldDefinition<String> JSON_FIELD_SIGNAL_TYPE =
+            JsonFieldDefinition.ofString("signalType", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private static final long serialVersionUID = 1552465013185426687L;
 
     private final transient Adaptable adaptable;
 
+    @SuppressWarnings({"java:S3077", "java:S1165"})
+    @Nullable
+    private transient volatile JsonObject adaptableJsonObject;
+
+    @Nullable private final transient CharSequence signalType;
+
     private IllegalAdaptableException(final String errorCode,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders,
-            @Nullable final String message,
-            @Nullable final String description,
-            @Nullable final Throwable cause,
-            @Nullable final URI href,
-            final Adaptable adaptable) {
+            final Builder builder) {
 
-        super(errorCode, httpStatus, dittoHeaders, message, description, cause, href);
-        this.adaptable = checkAdaptableNotNull(adaptable);
-    }
-
-    private static Adaptable checkAdaptableNotNull(final Adaptable adaptable) {
-        return checkNotNull(adaptable, "adaptable");
+        super(errorCode,
+                httpStatus,
+                dittoHeaders,
+                builder.message,
+                builder.description,
+                builder.cause,
+                builder.href);
+        adaptable = builder.adaptable;
+        adaptableJsonObject = null;
+        signalType = builder.signalType;
     }
 
     /**
@@ -84,25 +99,11 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
      *
      * @param message the detail message of the exception.
      * @param adaptable the illegal {@code Adaptable}.
-     * @throws NullPointerException if {@code adaptable} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code message} is blank.
      */
-    public IllegalAdaptableException(final String message, final Adaptable adaptable) {
-        this(message, DEFAULT_DESCRIPTION, adaptable);
-    }
-
-    /**
-     * Returns a new instance of {@code IllegalAdaptableException}.
-     *
-     * @param message the detail message of the exception.
-     * @param description the description of the exception.
-     * @param adaptable the illegal {@code Adaptable}.
-     * @throws NullPointerException if {@code adaptable} is {@code null}.
-     */
-    public IllegalAdaptableException(@Nullable final String message,
-            @Nullable final String description,
-            final Adaptable adaptable) {
-
-        this(message, description, null, adaptable);
+    public static IllegalAdaptableException newInstance(final String message, final Adaptable adaptable) {
+        return newInstance(message, DEFAULT_DESCRIPTION, adaptable);
     }
 
     /**
@@ -110,23 +111,28 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
      *
      * @param message the detail message of the exception.
      * @param description the description of the exception.
-     * @param cause the cause of the exception.
      * @param adaptable the illegal {@code Adaptable}.
-     * @throws NullPointerException if {@code adaptable} is {@code null}.
+     * @throws NullPointerException if any argument but {@code description} is {@code null}.
+     * @throws IllegalArgumentException if {@code message} is blank.
      */
-    public IllegalAdaptableException(@Nullable final String message,
+    public static IllegalAdaptableException newInstance(final String message,
             @Nullable final String description,
-            @Nullable final Throwable cause,
             final Adaptable adaptable) {
 
-        this(ERROR_CODE,
-                HTTP_STATUS,
-                checkAdaptableNotNull(adaptable).getDittoHeaders(),
-                message,
-                description,
-                cause,
-                null,
-                adaptable);
+        return newBuilder(message, adaptable).withDescription(description).build();
+    }
+
+    /**
+     * Returns a mutable builder with a fluent API for constructing an instance of {@code IllegalAdaptableException}.
+     *
+     * @param message the detail message of the exception.
+     * @param adaptable the illegal {@code Adaptable} that is subject to the exception.
+     * @return the builder.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code message} is blank.
+     */
+    public static Builder newBuilder(final String message, final Adaptable adaptable) {
+        return new Builder(message, adaptable);
     }
 
     /**
@@ -141,17 +147,16 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
      * @throws JsonParseException if {@code jsonObject} was not in the expected format.
      */
     public static IllegalAdaptableException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        checkNotNull(jsonObject, "jsonObject");
+        ConditionChecker.checkNotNull(jsonObject, "jsonObject");
         try {
             return new IllegalAdaptableException(
                     deserializeErrorCode(jsonObject),
                     deserializeHttpStatus(jsonObject),
                     dittoHeaders,
-                    jsonObject.getValue(JsonFields.MESSAGE).orElse(null),
-                    jsonObject.getValue(JsonFields.DESCRIPTION).orElse(null),
-                    null,
-                    deserializeHref(jsonObject).orElse(null),
-                    deserializeAdaptable(jsonObject)
+                    newBuilder(jsonObject.getValueOrThrow(JsonFields.MESSAGE), deserializeAdaptable(jsonObject))
+                            .withSignalType(deserializeSignalType(jsonObject).orElse(null))
+                            .withDescription(jsonObject.getValue(JsonFields.DESCRIPTION).orElse(null))
+                            .withHref(deserializeHref(jsonObject).orElse(null))
             );
         } catch (final Exception e) {
             throw JsonParseException.newBuilder()
@@ -192,6 +197,28 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
         }
     }
 
+    private static Adaptable deserializeAdaptable(final JsonObject jsonObject) {
+        return ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject.getValueOrThrow(JSON_FIELD_ADAPTABLE));
+    }
+
+    private static Optional<String> deserializeSignalType(final JsonObject jsonObject) {
+        final Optional<String> result;
+        final JsonFieldDefinition<String> fieldDefinition = JSON_FIELD_SIGNAL_TYPE;
+        final Optional<String> deserializedSignalTypeOptional = jsonObject.getValue(fieldDefinition);
+        if (deserializedSignalTypeOptional.isPresent() && isBlank(deserializedSignalTypeOptional.get())) {
+            throw new JsonParseException(
+                    MessageFormat.format("Value of field <{0}> must not be blank.", fieldDefinition.getPointer())
+            );
+        } else {
+            result = deserializedSignalTypeOptional;
+        }
+        return result;
+    }
+
+    private static boolean isBlank(final CharSequence charSequence) {
+        return 0 == charSequence.chars().filter(ch -> !Character.isWhitespace(ch)).count();
+    }
+
     private static Optional<URI> deserializeHref(final JsonObject jsonObject) {
         final JsonFieldDefinition<String> fieldDefinition = JsonFields.HREF;
         try {
@@ -206,30 +233,56 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
         }
     }
 
-    private static Adaptable deserializeAdaptable(final JsonObject jsonObject) {
-        return ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject.getValueOrThrow(JSON_FIELD_ADAPTABLE));
-    }
-
+    /**
+     * Returns the illegal {@code Adaptable} that is subject to this exception.
+     *
+     * @return the illegal {@code Adaptable}.
+     */
     public Adaptable getAdaptable() {
         return adaptable;
     }
 
+    /**
+     * Returns the signal type if available.
+     * The signal type is the {@code TYPE} of the {@link org.eclipse.ditto.base.model.signals.Signal} that
+     * corresponds to the illegal {@code Adaptable}.
+     *
+     * @return the optional signal type.
+     */
+    public Optional<String> getSignalType() {
+        return Optional.ofNullable(signalType).map(CharSequence::toString);
+    }
+
     @Override
     public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new IllegalAdaptableException(getErrorCode(),
+        return new IllegalAdaptableException(
+                getErrorCode(),
                 getHttpStatus(),
                 dittoHeaders,
-                getMessage(),
-                getDescription().orElse(null),
-                getCause(),
-                getHref().orElse(null),
-                adaptable);
+                newBuilder(getMessage(), adaptable)
+                        .withSignalType(signalType)
+                        .withDescription(getDescription().orElse(null))
+                        .withCause(getCause())
+                        .withHref(getHref().orElse(null))
+        );
     }
 
     @Override
     protected void appendToJson(final JsonObjectBuilder jsonObjectBuilder, final Predicate<JsonField> predicate) {
-        final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
-        jsonObjectBuilder.set(JSON_FIELD_ADAPTABLE, jsonifiableAdaptable.toJson());
+        jsonObjectBuilder.set(JSON_FIELD_ADAPTABLE, getAdaptableJsonObject());
+        if (null != signalType) {
+            jsonObjectBuilder.set(JSON_FIELD_SIGNAL_TYPE, signalType.toString());
+        }
+    }
+
+    private JsonObject getAdaptableJsonObject() {
+        JsonObject result = adaptableJsonObject;
+        if (null == result) {
+            final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
+            result = jsonifiableAdaptable.toJson();
+            adaptableJsonObject = result;
+        }
+        return result;
     }
 
     @Override
@@ -244,12 +297,106 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
             return false;
         }
         final IllegalAdaptableException that = (IllegalAdaptableException) o;
-        return Objects.equals(adaptable, that.adaptable);
+        return Objects.equals(getAdaptableJsonObject(), that.getAdaptableJsonObject()) &&
+                Objects.equals(signalType, that.signalType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), adaptable);
+        return Objects.hash(super.hashCode(), getAdaptableJsonObject(), signalType);
+    }
+
+    /**
+     * A mutable builder with a fluent API for constructing an {@code IllegalAdaptableException}.
+     */
+    @NotThreadSafe
+    public static final class Builder {
+
+        private final String message;
+        private final Adaptable adaptable;
+        @Nullable private CharSequence signalType;
+        @Nullable private String description;
+        @Nullable private Throwable cause;
+        @Nullable private URI href;
+
+        private Builder(final String message, final Adaptable adaptable) {
+            this.message = checkCharSequenceArgumentNotBlank(message, "message");
+            this.adaptable = ConditionChecker.checkNotNull(adaptable, "adaptable");
+        }
+
+        private static <T extends CharSequence> T checkCharSequenceArgumentNotBlank(final T charSequence,
+                final String argumentName) {
+
+            return ConditionChecker.checkArgument(ConditionChecker.checkNotNull(charSequence, argumentName),
+                    argument -> !isBlank(charSequence),
+                    () -> MessageFormat.format("The {0} must not be blank.", argumentName));
+        }
+
+        /**
+         * Sets the specified CharSequence argument as signal type.
+         * The signal type is the {@code TYPE} of the {@link org.eclipse.ditto.base.model.signals.Signal} that
+         * corresponds to the illegal {@code Adaptable}.
+         *
+         * @param signalType the signal type.
+         * @return this builder instance for method chaining.
+         * @throws IllegalArgumentException if {@code signalType} is blank.
+         */
+        public Builder withSignalType(@Nullable final CharSequence signalType) {
+            if (null != signalType) {
+                checkCharSequenceArgumentNotBlank(signalType, "signalType");
+            }
+            this.signalType = signalType;
+            return this;
+        }
+
+        /**
+         * Sets the specified string argument as description.
+         * The description provides further information about the cause or possible solution for the failure.
+         * If this method is omitted, the constructed {@code IllegalAdaptableException} has a generic default
+         * description.
+         *
+         * @param description the description or {@code null} if explicitly no description is available.
+         * @return this builder instance for method chaining.
+         */
+        public Builder withDescription(@Nullable final String description) {
+            this.description = description;
+            return this;
+        }
+
+        /**
+         * Sets the specified Throwable argument as cause.
+         *
+         * @param cause the cause of the constructed {@code IllegalAdaptableException} or {@code null} if the cause
+         * is unknown.
+         * @return this builder instance for method chaining.
+         */
+        public Builder withCause(@Nullable final Throwable cause) {
+            this.cause = cause;
+            return this;
+        }
+
+        /**
+         * Sets the specified URI argument as HREF.
+         * The HREF is a link to a resource which provides further information about the exception to be built.
+         *
+         * @param href the HREF.
+         * @return this builder instance for method chaining.
+         */
+        public Builder withHref(@Nullable final URI href) {
+            this.href = href;
+            return this;
+        }
+
+        /**
+         * Returns a new instance of {@code IllegalAdaptableException}.
+         * This is a terminal operation and the builder should not be used anymore after calling this method.
+         *
+         * @return the new {@code IllegalAdaptableException}.
+         */
+        public IllegalAdaptableException build() {
+            return new IllegalAdaptableException(ERROR_CODE, HTTP_STATUS, adaptable.getDittoHeaders(), this);
+        }
+
     }
 
 }

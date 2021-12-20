@@ -15,6 +15,7 @@ package org.eclipse.ditto.internal.models.signal.type;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.List;
 
@@ -59,14 +60,15 @@ public final class SemanticSignalTypeTest {
         @Test
         public void parseEmptyCharSequenceThrowsException() {
             Assertions.assertThatExceptionOfType(SignalTypeFormatException.class)
-                    .isThrownBy(() -> SemanticSignalType.parseSemanticSignalType(""))
-                    .withMessage("<\"\"> is not a valid signal type.")
+                    .isThrownBy(() -> SemanticSignalType.parseSemanticSignalType(" "))
+                    .withMessage("Signal type must not be blank.")
                     .withNoCause();
         }
 
         @Test
         public void parseCharSequenceWithInvalidDomainDelimiterIndexThrowsException() {
             final var signalType = ".commands:myCommand";
+
             Assertions.assertThatExceptionOfType(SignalTypeFormatException.class)
                     .isThrownBy(() -> SemanticSignalType.parseSemanticSignalType(signalType))
                     .withMessage("Signal type <%s> has wrong index of domain delimiter <%s>: 0",
@@ -76,8 +78,22 @@ public final class SemanticSignalTypeTest {
         }
 
         @Test
+        public void parseCharSequenceWithUnknownSignalTypeCategoryThrowsException() {
+            final var unknownSignalTypeCategoryString = "zoiglfrex";
+            final var signalType = MessageFormat.format("things.{0}:modifyAttributes", unknownSignalTypeCategoryString);
+
+            Assertions.assertThatExceptionOfType(SignalTypeFormatException.class)
+                    .isThrownBy(() -> SemanticSignalType.parseSemanticSignalType(signalType))
+                    .withMessage("Signal type <%s> has unknown category <%s>.",
+                            signalType,
+                            unknownSignalTypeCategoryString)
+                    .withNoCause();
+        }
+
+        @Test
         public void parseCharSequenceWithInvalidNameDelimiterIndexThrowsException() {
             final var signalType = "domain.commands:myCommand:";
+
             Assertions.assertThatExceptionOfType(SignalTypeFormatException.class)
                     .isThrownBy(() -> SemanticSignalType.parseSemanticSignalType(signalType))
                     .withMessage("Signal type <%s> has wrong index of name delimiter <%s>: %d",
@@ -102,35 +118,97 @@ public final class SemanticSignalTypeTest {
         public String expectedSignalDomain;
 
         @Parameterized.Parameter(2)
+        public SignalTypeCategory expectedSignalTypeCategory;
+
+        @Parameterized.Parameter(3)
         public String expectedSignalName;
 
         @Parameterized.Parameters(name = "{0}")
         public static List<Object[]> parameters() {
-            return Arrays.asList(new String[][]{
-                    {"cleanup.commands:cleanupPersistence", "cleanup", "cleanupPersistence"},
-                    {"cleanup.responses:cleanupPersistence", "cleanup", "cleanupPersistence"},
-                    {"connectivity.commands:resetConnectionLogs", "connectivity", "resetConnectionLogs"},
-                    {"connectivity.responses:resetConnectionLogs", "connectivity", "resetConnectionLogs"},
-                    {"devops.commands:changeLogLevel", "devops", "changeLogLevel"},
-                    {"devops.responses:changeLogLevel", "devops", "changeLogLevel"},
-                    {"messages.commands:featureMessage", "messages", "featureMessage"},
-                    {"messages.responses:featureResponseMessage", "messages", "featureResponseMessage"},
-                    {"namespaces.commands:blockNamespace", "namespaces", "blockNamespace"},
-                    {"namespaces.responses:blockNamespace", "namespaces", "blockNamespace"},
-                    {"policies.commands:modifyPolicy", "policies", "modifyPolicy"},
-                    {"policies.responses:modifyPolicy", "policies", "modifyPolicy"},
-                    {"policies.sudo.commands:sudoRetrievePolicy", "policies.sudo", "sudoRetrievePolicy"},
-                    {"policies.sudo.responses:sudoRetrievePolicy", "policies.sudo", "sudoRetrievePolicy"},
-                    {"things.commands:modifyAttributes", "things", "modifyAttributes"},
-                    {"things.responses:modifyAttributes", "things", "modifyAttributes"},
-                    {"things.sudo.commands:sudoRetrieveThing", "things.sudo", "sudoRetrieveThing"},
-                    {"things.sudo.responses:sudoRetrieveThingResponse", "things.sudo", "sudoRetrieveThingResponse"},
-                    {"thing-search.commands:countThings", "thing-search", "countThings"},
-                    {"thing-search.responses:countThings", "thing-search", "countThings"},
-                    {"thing-search.sudo.commands:sudoRetrieveNamespaceReport", "thing-search.sudo",
-                            "sudoRetrieveNamespaceReport"},
-                    {"thing-search.sudo.responses:sudoRetrieveNamespaceReport", "thing-search.sudo",
-                            "sudoRetrieveNamespaceReport"}
+            return Arrays.asList(new Object[][]{
+                    {
+                            "cleanup.commands:cleanupPersistence",
+                            "cleanup",
+                            SignalTypeCategory.COMMAND,
+                            "cleanupPersistence"
+                    },
+                    {
+                            "cleanup.responses:cleanupPersistence",
+                            "cleanup",
+                            SignalTypeCategory.RESPONSE,
+                            "cleanupPersistence"
+                    },
+                    {"connectivity.announcements:opened", "connectivity", SignalTypeCategory.ANNOUNCEMENT, "opened"},
+                    {
+                            "connectivity.commands:resetConnectionLogs",
+                            "connectivity",
+                            SignalTypeCategory.COMMAND,
+                            "resetConnectionLogs"
+                    },
+                    {
+                            "connectivity.responses:resetConnectionLogs",
+                            "connectivity",
+                            SignalTypeCategory.RESPONSE,
+                            "resetConnectionLogs"
+                    },
+                    {"devops.commands:changeLogLevel", "devops", SignalTypeCategory.COMMAND, "changeLogLevel"},
+                    {"devops.responses:changeLogLevel", "devops", SignalTypeCategory.RESPONSE, "changeLogLevel"},
+                    {"messages.commands:featureMessage", "messages", SignalTypeCategory.COMMAND, "featureMessage"},
+                    {
+                        "messages.responses:featureResponseMessage",
+                            "messages",
+                            SignalTypeCategory.RESPONSE,
+                            "featureResponseMessage"
+                    },
+                    {"namespaces.commands:blockNamespace", "namespaces", SignalTypeCategory.COMMAND, "blockNamespace"},
+                    {
+                        "namespaces.responses:blockNamespace",
+                            "namespaces",
+                            SignalTypeCategory.RESPONSE,
+                            "blockNamespace"
+                    },
+                    {"policies.commands:modifyPolicy", "policies", SignalTypeCategory.COMMAND, "modifyPolicy"},
+                    {"policies.events:policyCreated", "policies", SignalTypeCategory.EVENT, "policyCreated"},
+                    {"policies.responses:modifyPolicy", "policies", SignalTypeCategory.RESPONSE, "modifyPolicy"},
+                    {"policies.sudo.commands:sudoRetrievePolicy",
+                            "policies.sudo",
+                            SignalTypeCategory.COMMAND,
+                            "sudoRetrievePolicy"
+                    },
+                    {
+                        "policies.sudo.responses:sudoRetrievePolicy",
+                            "policies.sudo",
+                            SignalTypeCategory.RESPONSE,
+                            "sudoRetrievePolicy"
+                    },
+                    {"things.commands:modifyAttributes", "things", SignalTypeCategory.COMMAND, "modifyAttributes"},
+                    {"things.responses:modifyAttributes", "things", SignalTypeCategory.RESPONSE, "modifyAttributes"},
+                    {
+                        "things.sudo.commands:sudoRetrieveThing",
+                            "things.sudo",
+                            SignalTypeCategory.COMMAND,
+                            "sudoRetrieveThing"
+                    },
+                    {
+                        "things.sudo.responses:sudoRetrieveThingResponse",
+                            "things.sudo",
+                            SignalTypeCategory.RESPONSE,
+                            "sudoRetrieveThingResponse"
+                    },
+                    {"thing-search.commands:countThings", "thing-search", SignalTypeCategory.COMMAND, "countThings"},
+                    {"thing-search.responses:countThings", "thing-search", SignalTypeCategory.RESPONSE, "countThings"},
+                    {
+                        "thing-search.sudo.commands:sudoRetrieveNamespaceReport",
+                            "thing-search.sudo",
+                            SignalTypeCategory.COMMAND,
+                            "sudoRetrieveNamespaceReport"
+                    },
+                    {
+                        "thing-search.sudo.responses:sudoRetrieveNamespaceReport",
+                            "thing-search.sudo",
+                            SignalTypeCategory.RESPONSE,
+                            "sudoRetrieveNamespaceReport"
+                    }
             });
         }
 
@@ -139,6 +217,9 @@ public final class SemanticSignalTypeTest {
             final var underTest = SemanticSignalType.parseSemanticSignalType(signalTypeCharSequence);
 
             softly.assertThat(underTest.getSignalDomain()).as("signal domain").isEqualTo(expectedSignalDomain);
+            softly.assertThat(underTest.getSignalTypeCategory())
+                    .as("signal type category")
+                    .isEqualTo(expectedSignalTypeCategory);
             softly.assertThat(underTest.getSignalName()).as("signal name").isEqualTo(expectedSignalName);
         }
 

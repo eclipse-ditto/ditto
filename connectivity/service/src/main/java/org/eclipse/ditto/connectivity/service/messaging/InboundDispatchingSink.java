@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,9 +51,13 @@ import org.eclipse.ditto.base.service.config.limits.LimitsConfig;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.MappedInboundExternalMessage;
+import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.LogEntryFactory;
 import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityInternalErrorException;
+import org.eclipse.ditto.connectivity.model.LogType;
+import org.eclipse.ditto.connectivity.model.MetricDirection;
+import org.eclipse.ditto.connectivity.model.MetricType;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityErrorResponse;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
@@ -67,6 +72,9 @@ import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStar
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
+import org.eclipse.ditto.internal.models.signal.type.SemanticSignalType;
+import org.eclipse.ditto.internal.models.signal.type.SignalTypeCategory;
+import org.eclipse.ditto.internal.models.signal.type.SignalTypeFormatException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
@@ -78,6 +86,7 @@ import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.TopicPathBuilder;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
+import org.eclipse.ditto.protocol.mappingstrategies.IllegalAdaptableException;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
@@ -325,37 +334,21 @@ public final class InboundDispatchingSink
             @Nullable final TopicPath topicPath,
             @Nullable final ExternalMessage message) {
 
+        final Optional<Signal<?>> result;
         logger.debug("OnError mapperId=<{}> exception=<{}> topicPath=<{}> message=<{}>",
                 mapperId, e, topicPath, message);
         if (e instanceof DittoRuntimeException) {
-            final DittoRuntimeException dittoRuntimeException = (DittoRuntimeException) e;
-            final ErrorResponse<?> errorResponse = toErrorResponseFunction.apply(dittoRuntimeException, topicPath);
-            final DittoHeaders mappedHeaders;
-            if (message != null) {
-                final AuthorizationContext authorizationContext = getAuthorizationContext(message).orElse(null);
-                final String source = getAddress(message);
-                final ConnectionMonitor mappedMonitor =
-                        connectionMonitorRegistry.forInboundMapped(connection, source);
-                mappedMonitor.getLogger()
-                        .failure(InfoProviderFactory.forExternalMessage(message),
-                                "Got exception <{0}> when processing external message with mapper <{1}>: {2}",
-                                dittoRuntimeException.getErrorCode(),
-                                mapperId,
-                                e.getMessage());
-                mappedHeaders = applyInboundHeaderMapping(errorResponse, message, authorizationContext,
-                        message.getTopicPath().orElse(null), message.getInternalHeaders());
-                final ThreadSafeDittoLogger l = logger.withCorrelationId(mappedHeaders);
-                l.info("Got exception <{}> when processing external message with mapper <{}>: <{}>",
-                        dittoRuntimeException.getErrorCode(),
-                        mapperId,
-                        e.getMessage());
-                l.info("Resolved mapped headers of {} : with HeaderMapping {} : and external headers {}",
-                        mappedHeaders, message.getHeaderMapping(), message.getHeaders());
+            final var dittoRuntimeException = (DittoRuntimeException) e;
+            if (isIllegalAdaptableException(dittoRuntimeException)) {
+                final var illegalAdaptableException = (IllegalAdaptableException) dittoRuntimeException;
+                if (isAboutInvalidLiveResponse(illegalAdaptableException)) {
+                    result = handleIllegalAdaptableExceptionForLiveResponse(illegalAdaptableException, message);
+                } else {
+                    result = handleGenericDittoRuntimeException(dittoRuntimeException, topicPath, message, mapperId);
+                }
             } else {
-                mappedHeaders = dittoRuntimeException.getDittoHeaders();
+                result = handleGenericDittoRuntimeException(dittoRuntimeException, topicPath, message, mapperId);
             }
-            outboundMessageMappingProcessorActor.tell(errorResponse.setDittoHeaders(mappedHeaders),
-                    ActorRef.noSender());
         } else if (e != null) {
             if (null != message) {
                 responseMappedMonitor.getLogger()
@@ -370,12 +363,117 @@ public final class InboundDispatchingSink
                     .orElseGet(DittoHeaders::empty)
             ).warn("Got unknown exception <{}> when processing external message with mapper <{}>: <{}>",
                     e.getClass().getSimpleName(), mapperId, e.getMessage());
+            result = Optional.empty();
+        } else {
+            result = Optional.empty();
         }
-        return Optional.empty();
+        return result;
+    }
+
+    private static boolean isIllegalAdaptableException(final DittoRuntimeException dittoRuntimeException) {
+        return IllegalAdaptableException.ERROR_CODE.equals(dittoRuntimeException.getErrorCode());
+    }
+
+    private boolean isAboutInvalidLiveResponse(final IllegalAdaptableException illegalAdaptableException) {
+        return SignalInformationPoint.isChannelLive(illegalAdaptableException) &&
+                isAboutResponse(illegalAdaptableException);
+    }
+
+    private boolean isAboutResponse(final IllegalAdaptableException illegalAdaptableException) {
+        return illegalAdaptableException.getSignalType()
+                .flatMap(this::tryToGetSemanticSignalType)
+                .map(SemanticSignalType::getSignalTypeCategory)
+                .filter(SignalTypeCategory.RESPONSE::equals)
+                .isPresent();
+    }
+
+    private Optional<SemanticSignalType> tryToGetSemanticSignalType(final CharSequence signalType) {
+        try {
+            return Optional.of(SemanticSignalType.parseSemanticSignalType(signalType));
+        } catch (final SignalTypeFormatException e) {
+            logger.error("Failed to get {}: {}", SemanticSignalType.class.getSimpleName(), e.getMessage(), e);
+            return Optional.empty();
+        }
+    }
+
+    private Optional<Signal<?>> handleIllegalAdaptableExceptionForLiveResponse(
+            final IllegalAdaptableException illegalAdaptableException,
+            @Nullable final ExternalMessage inboundMessage
+    ) {
+        final Optional<Signal<?>> result;
+        countAndLogIllegalAdaptableExceptionForLiveResponse(illegalAdaptableException, inboundMessage);
+        final var adaptable = illegalAdaptableException.getAdaptable();
+        if (isResponseRequired(adaptable)) {
+            result = Optional.of(toErrorResponseFunction.apply(illegalAdaptableException, adaptable.getTopicPath()));
+        } else {
+            result = Optional.empty();
+        }
+        return result;
+    }
+
+    private void countAndLogIllegalAdaptableExceptionForLiveResponse(
+            final IllegalAdaptableException illegalAdaptableException,
+            @Nullable final ExternalMessage inboundMessage
+    ) {
+        final var logEntry = LogEntryFactory.getLogEntryForIllegalCommandResponseAdaptable(
+                illegalAdaptableException,
+                MessageFormat.format("Live response is invalid: {0}", illegalAdaptableException.getMessage())
+        );
+        final var connectionMonitor = connectionMonitorRegistry.getMonitor(connection,
+                getMetricTypeOrThrow(logEntry.getLogType()),
+                MetricDirection.INBOUND,
+                logEntry.getLogType(),
+                logEntry.getLogCategory(),
+                logEntry.getAddress().orElseGet(() -> getAddress(inboundMessage)));
+        final var counter = connectionMonitor.getCounter();
+        counter.recordFailure();
+        final var connectionLogger = connectionMonitor.getLogger();
+        connectionLogger.logEntry(logEntry);
+    }
+
+    private static MetricType getMetricTypeOrThrow(final LogType logType) {
+        return MetricType.forName(logType.getType()).orElseThrow();
     }
 
     private static String getAddress(final ExternalMessage incomingMessage) {
         return incomingMessage.getSourceAddress().orElse("unknown");
+    }
+
+    private static boolean isResponseRequired(final WithDittoHeaders withDittoHeaders) {
+        final var dittoHeaders = withDittoHeaders.getDittoHeaders();
+        return dittoHeaders.isResponseRequired();
+    }
+
+    private Optional<Signal<?>> handleGenericDittoRuntimeException(final DittoRuntimeException dittoRuntimeException,
+            @Nullable final TopicPath topicPath,
+            @Nullable final ExternalMessage message,
+            final String mapperId) {
+
+        final var errorResponse = toErrorResponseFunction.apply(dittoRuntimeException, topicPath);
+        final DittoHeaders mappedHeaders;
+        if (message != null) {
+            final var authorizationContext = getAuthorizationContext(message).orElse(null);
+            final var mappedMonitor = connectionMonitorRegistry.forInboundMapped(connection, getAddress(message));
+            mappedMonitor.getLogger()
+                    .failure(InfoProviderFactory.forExternalMessage(message),
+                            "Got exception <{0}> when processing external message with mapper <{1}>: {2}",
+                            dittoRuntimeException.getErrorCode(),
+                            mapperId,
+                            dittoRuntimeException.getMessage());
+            mappedHeaders = applyInboundHeaderMapping(errorResponse, message, authorizationContext,
+                    message.getTopicPath().orElse(null), message.getInternalHeaders());
+            final var l = logger.withCorrelationId(mappedHeaders);
+            l.info("Got exception <{}> when processing external message with mapper <{}>: <{}>",
+                    dittoRuntimeException.getErrorCode(),
+                    mapperId,
+                    dittoRuntimeException.getMessage());
+            l.info("Resolved mapped headers of {} : with HeaderMapping {} : and external headers {}",
+                    mappedHeaders, message.getHeaderMapping(), message.getHeaders());
+        } else {
+            mappedHeaders = dittoRuntimeException.getDittoHeaders();
+        }
+        outboundMessageMappingProcessorActor.tell(errorResponse.setDittoHeaders(mappedHeaders), ActorRef.noSender());
+        return Optional.empty();
     }
 
     private PartialFunction<Signal<?>, Stream<IncomingSignal>> dispatchResponsesAndSearchCommands(final ActorRef sender,

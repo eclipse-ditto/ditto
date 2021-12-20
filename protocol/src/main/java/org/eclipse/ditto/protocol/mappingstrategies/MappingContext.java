@@ -99,7 +99,7 @@ final class MappingContext {
     HttpStatus getHttpStatusOrThrow() {
         final Payload payload = adaptable.getPayload();
         return payload.getHttpStatus()
-                .orElseThrow(() -> new IllegalAdaptableException("Payload does not contain a HTTP status.",
+                .orElseThrow(() -> IllegalAdaptableException.newInstance("Payload does not contain a HTTP status.",
                         "Please ensure that the payload of the Adaptable contains an expected HTTP status.",
                         adaptable));
     }
@@ -117,7 +117,7 @@ final class MappingContext {
             if (jsonValue.isObject()) {
                 result = Optional.of(ThingsModelFactory.newThing(jsonValue.asObject()));
             } else {
-                throw new IllegalAdaptableException(
+                throw IllegalAdaptableException.newInstance(
                         MessageFormat.format("Payload value is not a Thing as JSON object but <{0}>.", jsonValue),
                         "Please ensure that the payload value is a valid Thing JSON object representation.",
                         adaptable
@@ -135,7 +135,7 @@ final class MappingContext {
     }
 
     Thing getThingOrThrow() {
-        return getThing().orElseThrow(() -> new IllegalAdaptableException(
+        return getThing().orElseThrow(() -> IllegalAdaptableException.newInstance(
                 "Payload does not contain a Thing as JSON object because it has no value at all.",
                 "Please ensure that the payload contains a valid Thing JSON object as value.",
                 adaptable
@@ -149,14 +149,14 @@ final class MappingContext {
             if (jsonValue.isObject()) {
                 return jsonValue.asObject();
             } else {
-                throw new IllegalAdaptableException(
+                throw IllegalAdaptableException.newInstance(
                         MessageFormat.format("Payload value is not a JSON object but <{0}>.", jsonValue),
                         "Please ensure that the payload value is a valid JSON object.",
                         adaptable
                 );
             }
         } else {
-            throw new IllegalAdaptableException(
+            throw IllegalAdaptableException.newInstance(
                     "Payload does not contain a JSON object value because it has no value at all.",
                     "Please ensure that the payload value contains a valid JSON object as value.",
                     adaptable
@@ -178,7 +178,7 @@ final class MappingContext {
     }
 
     private IllegalAdaptableException newMessagePathInvalidPrefixException(final CharSequence expectedPrefix) {
-        return new IllegalAdaptableException(
+        return IllegalAdaptableException.newInstance(
                 MessageFormat.format("Message path of payload does not start with <{0}>.", expectedPrefix),
                 MessageFormat.format("Please ensure that the message path of the Adaptable starts with <{0}>.",
                         expectedPrefix),
@@ -192,7 +192,7 @@ final class MappingContext {
 
     JsonValue getAttributeValueOrThrow() {
         return getAttributeValue()
-                .orElseThrow(() -> new IllegalAdaptableException("Payload does not contain an attribute value.",
+                .orElseThrow(() -> IllegalAdaptableException.newInstance("Payload does not contain an attribute value.",
                         "Please ensure that the payload of the Adaptable contains an attribute value.",
                         adaptable));
     }
@@ -205,7 +205,7 @@ final class MappingContext {
             if (jsonValue.isObject()) {
                 result = Optional.of(ThingsModelFactory.newAttributes(jsonValue.asObject()));
             } else {
-                throw new IllegalAdaptableException(
+                throw IllegalAdaptableException.newInstance(
                         MessageFormat.format("Payload value is not an {0} as JSON object but <{1}>.",
                                 Attributes.class.getSimpleName(),
                                 jsonValue),
@@ -219,7 +219,7 @@ final class MappingContext {
     }
 
     Attributes getAttributesOrThrow() {
-        return getAttributes().orElseThrow(() -> new IllegalAdaptableException(
+        return getAttributes().orElseThrow(() -> IllegalAdaptableException.newInstance(
                 "Payload does not contain an Attributes as JSON object because it has no value at all.",
                 "Please ensure that the payload contains a valid Attributes JSON object as value.",
                 adaptable
@@ -245,7 +245,7 @@ final class MappingContext {
     private IllegalAdaptableException newPayloadValueNotJsonObjectException(final Class<?> targetType,
             final JsonValue jsonValue) {
 
-        return new IllegalAdaptableException(
+        return IllegalAdaptableException.newInstance(
                 MessageFormat.format("Payload value is not a {0} as JSON object but <{1}>.",
                         targetType.getSimpleName(),
                         jsonValue),
@@ -256,7 +256,7 @@ final class MappingContext {
     }
 
     Features getFeaturesOrThrow() {
-        return getFeatures().orElseThrow(() -> new IllegalAdaptableException(
+        return getFeatures().orElseThrow(() -> IllegalAdaptableException.newInstance(
                 "Payload does not contain a Features as JSON string object it has no value at all.",
                 "Please ensure that the payload contains a valid Features JSON object as value.",
                 adaptable
@@ -270,7 +270,7 @@ final class MappingContext {
         } else {
             return messagePath.get(1)
                     .map(JsonKey::toString)
-                    .orElseThrow(() -> new IllegalAdaptableException(
+                    .orElseThrow(() -> IllegalAdaptableException.newInstance(
                                     "Message path of payload does not contain a feature ID.",
                                     MessageFormat.format("Please ensure that the message path of the payload consists" +
                                                     " of two segments, starting with {0}/ and ending with" +
@@ -306,7 +306,7 @@ final class MappingContext {
     }
 
     Feature getFeatureOrThrow() {
-        return getFeature().orElseThrow(() -> new IllegalAdaptableException(
+        return getFeature().orElseThrow(() -> IllegalAdaptableException.newInstance(
                 "Payload does not contain a Feature as JSON object it has no value at all.",
                 "Please ensure that the payload contains a valid Feature JSON object as value.",
                 adaptable
@@ -321,7 +321,7 @@ final class MappingContext {
             if (jsonValue.isString()) {
                 result = Optional.of(ThingsModelFactory.newDefinition(jsonValue.asString()));
             } else {
-                throw new IllegalAdaptableException(
+                throw IllegalAdaptableException.newInstance(
                         MessageFormat.format("Payload value is not a {0} as JSON string but <{1}>.",
                                 ThingDefinition.class.getSimpleName(),
                                 jsonValue),
@@ -335,7 +335,7 @@ final class MappingContext {
     }
 
     ThingDefinition getThingDefinitionOrThrow() {
-        return getThingDefinition().orElseThrow(() -> new IllegalAdaptableException(
+        return getThingDefinition().orElseThrow(() -> IllegalAdaptableException.newInstance(
                 "Payload does not contain a ThingDefinition as JSON string because it has no value at all.",
                 "Please ensure that the payload contains a valid ThingDefinition JSON string as value.",
                 adaptable
@@ -350,7 +350,7 @@ final class MappingContext {
             if (jsonValue.isArray()) {
                 result = Optional.of(ThingsModelFactory.newFeatureDefinition(jsonValue.asArray()));
             } else {
-                throw new IllegalAdaptableException(
+                throw IllegalAdaptableException.newInstance(
                         MessageFormat.format("Payload value is not a {0} as JSON array but <{1}>.",
                                 FeatureDefinition.class.getSimpleName(),
                                 jsonValue),
@@ -364,7 +364,7 @@ final class MappingContext {
     }
 
     FeatureDefinition getFeatureDefinitionOrThrow() {
-        return getFeatureDefinition().orElseThrow(() -> new IllegalAdaptableException(
+        return getFeatureDefinition().orElseThrow(() -> IllegalAdaptableException.newInstance(
                 "Payload does not contain a FeatureDefinition as JSON array because it has no value at all.",
                 "Please ensure that the payload contains a valid FeatureDefinition JSON array as value.",
                 adaptable
@@ -388,7 +388,7 @@ final class MappingContext {
     }
 
     FeatureProperties getFeaturePropertiesOrThrow() {
-        return getFeatureProperties().orElseThrow(() -> new IllegalAdaptableException(
+        return getFeatureProperties().orElseThrow(() -> IllegalAdaptableException.newInstance(
                 "Payload does not contain a FeatureProperties as JSON object it has no value at all.",
                 "Please ensure that the payload contains a valid FeatureProperties JSON object as value.",
                 adaptable
@@ -409,7 +409,7 @@ final class MappingContext {
 
         final MessagePath messagePath = getMessagePath();
         return messagePath.getSubPointer(FEATURE_PROPERTY_PATH_LEVEL)
-                .orElseThrow(() -> new IllegalAdaptableException(
+                .orElseThrow(() -> IllegalAdaptableException.newInstance(
                         MessageFormat.format("Message path of payload does not contain a sub-pointer" +
                                 " at level <{0,number}>.", FEATURE_PROPERTY_PATH_LEVEL),
                         MessageFormat.format("Please ensure that the message path complies to schema {0}.", schema),
@@ -436,7 +436,7 @@ final class MappingContext {
                             actualJsonKey
                     );
                 }
-                throw new IllegalAdaptableException(message,
+                throw IllegalAdaptableException.newInstance(message,
                         MessageFormat.format("Please ensure that the message path complies to schema {0}.", schema),
                         adaptable);
             }
@@ -452,7 +452,7 @@ final class MappingContext {
     }
 
     JsonValue getFeaturePropertyValueOrThrow() {
-        return getFeaturePropertyValue().orElseThrow(() -> new IllegalAdaptableException(
+        return getFeaturePropertyValue().orElseThrow(() -> IllegalAdaptableException.newInstance(
                 "Payload does not contain a feature property value because it has no value at all.",
                 "Please ensure that the payload contains a JSON value as value.",
                 adaptable
@@ -479,7 +479,7 @@ final class MappingContext {
             if (jsonValue.isString()) {
                 result = Optional.of(PolicyId.of(jsonValue.asString()));
             } else {
-                throw new IllegalAdaptableException(
+                throw IllegalAdaptableException.newInstance(
                         MessageFormat.format("Payload value is not a {0} as JSON string but <{1}>.",
                                 PolicyId.class.getSimpleName(),
                                 jsonValue),
@@ -493,7 +493,7 @@ final class MappingContext {
     }
 
     PolicyId getPolicyIdOrThrow() {
-        return getPolicyId().orElseThrow(() -> new IllegalAdaptableException(
+        return getPolicyId().orElseThrow(() -> IllegalAdaptableException.newInstance(
                 "Payload does not contain a PolicyId as JSON string because it has no value at all.",
                 "Please ensure that the payload contains a valid PolicyId JSON string value as value.",
                 adaptable
@@ -548,7 +548,7 @@ final class MappingContext {
 
         return labelSubPath.getRoot()
                 .map(PoliciesModelFactory::newLabel)
-                .orElseThrow(() -> new IllegalAdaptableException("Path does not contain a policy label.",
+                .orElseThrow(() -> IllegalAdaptableException.newInstance("Path does not contain a policy label.",
                         "Please ensure that the path of the Adaptable contains a policy label.",
                         adaptable));
     }
@@ -565,7 +565,7 @@ final class MappingContext {
         final MessagePath messagePath = getMessagePath();
         return messagePath.getSubPointer(RESOURCE_PATH_LEVEL)
                 .map(PoliciesModelFactory::newResourceKey)
-                .orElseThrow(() -> new IllegalAdaptableException(
+                .orElseThrow(() -> IllegalAdaptableException.newInstance(
                         MessageFormat.format("Message messagePath of payload does have resource key " +
                                 "at level <{0,number}>.", RESOURCE_PATH_LEVEL),
                         "Please ensure that the message path complies to schema " + schema + ".",
@@ -589,7 +589,7 @@ final class MappingContext {
         final MessagePath messagePath = getMessagePath();
         return messagePath.get(SUBJECT_PATH_LEVEL)
                 .map(PoliciesModelFactory::newSubjectId)
-                .orElseThrow(() -> new IllegalAdaptableException(
+                .orElseThrow(() -> IllegalAdaptableException.newInstance(
                         MessageFormat.format("Message path of payload does not contain a subject ID" +
                                 " at level <{0,number}>.", SUBJECT_PATH_LEVEL),
                         "Please ensure that message path complies to schema " + schema + ".",
