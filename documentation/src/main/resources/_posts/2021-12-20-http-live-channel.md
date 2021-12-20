@@ -1,7 +1,7 @@
 ---
 title: "Sending live channel commands via HTTP to devices"
 published: true
-permalink: 2021-11-26-http-live-channel.html
+permalink: 2021-12-20-http-live-channel.html
 layout: post
 author: stefan_maute
 tags: [blog, http, live]
