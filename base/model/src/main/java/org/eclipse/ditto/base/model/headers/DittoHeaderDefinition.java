@@ -137,7 +137,11 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 2.3.0
      */
-    LIVE_CHANNEL_TIMEOUT_STRATEGY("live-channel-timeout-strategy", LiveChannelTimeoutStrategy.class, String.class, true, false,
+    LIVE_CHANNEL_TIMEOUT_STRATEGY("live-channel-timeout-strategy",
+            LiveChannelTimeoutStrategy.class,
+            String.class,
+            true,
+            false,
             HeaderValueValidators.getEnumValidator(LiveChannelTimeoutStrategy.values())),
 
     /**
@@ -417,7 +421,10 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 2.3.0
      */
-    LIVE_CHANNEL_CONDITION("live-channel-condition", String.class, true, false,
+    LIVE_CHANNEL_CONDITION("live-channel-condition",
+            String.class,
+            true,
+            false,
             HeaderValueValidators.getNoOpValidator()),
 
     /**
@@ -432,10 +439,11 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 2.3.0
      */
-    LIVE_CHANNEL_CONDITION_MATCHED("live-channel-condition-matched", Boolean.class,
-            false, true, HeaderValueValidators.getBooleanValidator())
-
-    ;
+    LIVE_CHANNEL_CONDITION_MATCHED("live-channel-condition-matched",
+            Boolean.class,
+            false,
+            true,
+            HeaderValueValidators.getBooleanValidator());
 
     /**
      * Map to speed up lookup of header definition by key.
@@ -456,7 +464,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @param readFromExternalHeaders whether Ditto reads this header from headers sent by externals.
      * @param writeToExternalHeaders whether Ditto publishes this header to externals.
      */
-    DittoHeaderDefinition(final String theKey,
+    private DittoHeaderDefinition(final String theKey,
             final Class<?> theType,
             final boolean readFromExternalHeaders,
             final boolean writeToExternalHeaders,
@@ -472,7 +480,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @param readFromExternalHeaders whether Ditto reads this header from headers sent by externals.
      * @param writeToExternalHeaders whether Ditto publishes this header to externals.
      */
-    DittoHeaderDefinition(final String theKey,
+    private DittoHeaderDefinition(final String theKey,
             final Class<?> theType,
             final Class<?> serializationType,
             final boolean readFromExternalHeaders,
