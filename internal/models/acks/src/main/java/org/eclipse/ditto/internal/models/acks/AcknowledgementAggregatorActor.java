@@ -420,7 +420,10 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
     private static AcknowledgementLabel getAckLabelOfResponse(final Signal<?> signal) {
         // check originating signal for ack label of response
         // because live commands may generate twin responses due to live timeout fallback strategy
-        return SignalInformationPoint.isChannelLive(signal) ? LIVE_RESPONSE : TWIN_PERSISTED;
+        // smart channel commands are treated as live channel commands
+        final var isChannelLive = SignalInformationPoint.isChannelLive(signal);
+        final var isChannelSmart = SignalInformationPoint.isChannelSmart(signal);
+        return isChannelLive || isChannelSmart ? LIVE_RESPONSE : TWIN_PERSISTED;
     }
 
     private static Duration getTimeout(final Signal<?> originatingSignal, final Duration maxTimeout,

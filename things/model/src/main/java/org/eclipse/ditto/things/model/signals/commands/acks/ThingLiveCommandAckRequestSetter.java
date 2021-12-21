@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.base.model.acks.AbstractCommandAckRequestSetter;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 
 /**
  * This UnaryOperator accepts a ThingCommand and checks whether its DittoHeaders should be extended by an
@@ -50,7 +51,7 @@ public final class ThingLiveCommandAckRequestSetter extends AbstractCommandAckRe
     @Override
     public boolean isApplicable(final ThingCommand<?> command) {
         checkNotNull(command, "command");
-        return isLiveChannelCommand(command);
+        return isLiveChannelCommand(command) || isSmartChannelCommand(command);
     }
 
     @Override
@@ -62,5 +63,9 @@ public final class ThingLiveCommandAckRequestSetter extends AbstractCommandAckRe
     @Override
     protected boolean isBindResponseRequiredToAddingRemovingImplicitLabel() {
         return true;
+    }
+
+    private static boolean isSmartChannelCommand(final ThingCommand<?> command) {
+        return command instanceof ThingQueryCommand && command.getDittoHeaders().getLiveChannelCondition().isPresent();
     }
 }
