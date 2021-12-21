@@ -17,10 +17,13 @@ import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.
 import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.KNOWN_THING_ID;
 import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
-import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
+import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessage;
+import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessageResponse;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.FeatureProperties;
@@ -28,17 +31,14 @@ import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperties;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TestName;
 
-import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpEntities;
+import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.model.StatusCodes;
-import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.TestRoute;
 import akka.http.javadsl.testkit.TestRouteResult;
 
@@ -69,26 +69,20 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     private static final String FEATURE_ENTRY_INBOX_MESSAGES_PATH =
             FEATURE_ENTRY_PATH + "/" + MessagesRoute.PATH_INBOX + "/" + MessagesRoute.PATH_MESSAGES;
 
-    @Rule
-    public final TestName testName = new TestName();
-
-    private FeaturesRoute featuresRoute;
-
     private TestRoute underTest;
 
     @Before
     public void setUp() {
-        final ActorSystem actorSystem = system();
-        final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
+        final var featuresRoute = new FeaturesRoute(routeBaseProperties,
+                messageConfig,
+                claimMessageConfig);
+        underTest = getTestRoute(featuresRoute, dittoHeaders);
+    }
 
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName())
-                .build();
-
-        featuresRoute = new FeaturesRoute(createDummyResponseActor(), actorSystem, httpConfig, commandConfig,
-                messageConfig, claimMessageConfig, adapterProvider.getHttpHeaderTranslator());
-        final Route route = extractRequestContext(
-                ctx -> featuresRoute.buildFeaturesRoute(ctx, dittoHeaders, KNOWN_THING_ID));
-        underTest = testRoute(route);
+    private TestRoute getTestRoute(final FeaturesRoute featuresRoute, final DittoHeaders dittoHeaders) {
+        return testRoute(extractRequestContext(ctx -> featuresRoute.buildFeaturesRoute(ctx,
+                dittoHeaders,
+                KNOWN_THING_ID)));
     }
 
     @Test
@@ -109,7 +103,7 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     public void putFeatures() {
         final Features features = ThingsModelFactory.emptyFeatures();
         final TestRouteResult result = underTest.run(HttpRequest.PUT(FEATURES_PATH)
-                        .withEntity(ContentTypes.APPLICATION_JSON, features.toJsonString()));
+                .withEntity(ContentTypes.APPLICATION_JSON, features.toJsonString()));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
@@ -352,11 +346,30 @@ public final class FeaturesRouteTest extends EndpointTestBase {
 
     @Test
     public void postFeatureEntryInboxMessage() {
-        final String messageContent = "messageContent";
-        final TestRouteResult result = underTest.run(HttpRequest.POST(FEATURE_ENTRY_INBOX_MESSAGES_PATH + "/" +
-                KNOWN_SUBJECT)
-                .withEntity(messageContent));
-        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        final var proxyActor = startEchoActor(
+                SendFeatureMessage.class,
+                sendFeatureMessage -> SendFeatureMessageResponse.of(sendFeatureMessage.getEntityId(),
+                        sendFeatureMessage.getFeatureId(),
+                        sendFeatureMessage.getMessage(),
+                        HttpStatus.OK,
+                        sendFeatureMessage.getDittoHeaders())
+        );
+
+        final var routeBaseProperties = RouteBaseProperties.newBuilder(this.routeBaseProperties)
+                .proxyActor(proxyActor)
+                .build();
+
+        underTest =
+                getTestRoute(new FeaturesRoute(routeBaseProperties, messageConfig, claimMessageConfig), dittoHeaders);
+
+        final var result = underTest.run(
+                HttpRequest.create()
+                        .withMethod(HttpMethods.POST)
+                        .withUri(FEATURE_ENTRY_INBOX_MESSAGES_PATH + "/" + KNOWN_SUBJECT)
+                        .withEntity("messageContent")
+        );
+
+        result.assertStatusCode(StatusCodes.OK);
     }
 
     @Test
@@ -440,8 +453,8 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     public void patchPropertiesSuccessfully() {
         final String featurePropertiesJson = "{\"property\":\"value1\"}";
         final TestRouteResult result = underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_PROPERTIES_PATH)
-                        .withEntity(HttpEntities.create(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(),
-                                featurePropertiesJson)));
+                .withEntity(HttpEntities.create(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(),
+                        featurePropertiesJson)));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
@@ -511,4 +524,5 @@ public final class FeaturesRouteTest extends EndpointTestBase {
                 .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), featureDefinition));
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
+
 }

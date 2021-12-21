@@ -36,7 +36,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ModifyThingResponse}.
  */
-public class ModifyThingResponseTest {
+public final class ModifyThingResponseTest {
 
     private static final JsonObject KNOWN_JSON_CREATED = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, ModifyThingResponse.TYPE)
@@ -52,7 +52,6 @@ public class ModifyThingResponseTest {
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ModifyThingResponse.class,
@@ -60,14 +59,13 @@ public class ModifyThingResponseTest {
                 provided(Thing.class, ThingId.class).isAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(ModifyThingResponse.class)
                 .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -83,7 +81,6 @@ public class ModifyThingResponseTest {
 
         DittoJsonAssertions.assertThat(actualJsonUpdated).isEqualTo(KNOWN_JSON_UPDATED);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {
@@ -106,7 +103,7 @@ public class ModifyThingResponseTest {
                 ModifyThingResponse.created(TestConstants.Thing.THING, TestConstants.DITTO_HEADERS);
         final JsonObject jsonObject = commandResponse.toJson(FieldType.regularOrSpecial());
 
-        final CommandResponse parsedCommandResponse =
+        final CommandResponse<?> parsedCommandResponse =
                 GlobalCommandResponseRegistry.getInstance().parse(jsonObject, TestConstants.DITTO_HEADERS);
 
         ThingCommandAssertions.assertThat(parsedCommandResponse).isEqualTo(commandResponse);

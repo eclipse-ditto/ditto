@@ -20,10 +20,10 @@ import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 
 /**
  * This class helps to deserialize JSON to a sub-class of {@link Command}. Hereby this class extracts the values
@@ -84,8 +84,8 @@ public final class CommandJsonDeserializer<T extends Command> {
      * @throws NullPointerException if {@code commandSupplier} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the JSON object did not contain a field for
      * {@link org.eclipse.ditto.base.model.signals.commands.Command.JsonFields#TYPE}.
-     * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if the JSON object did not contain the expected value for
-     * {@link org.eclipse.ditto.base.model.signals.commands.Command.JsonFields#TYPE}.
+     * @throws org.eclipse.ditto.base.model.exceptions.DittoJsonException if the JSON object did not contain
+     * the expected value for {@link org.eclipse.ditto.base.model.signals.commands.Command.JsonFields#TYPE}.
      */
     public T deserialize(final Supplier<T> commandSupplier) {
         checkNotNull(commandSupplier, "supplier for a command object");

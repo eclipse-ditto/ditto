@@ -140,7 +140,7 @@ This maps to the following HTTP API endpoints:
 
 ## Partial updates
 
-As a benefit of the above mentioned mechanism that an API is automatically available based on the JSON structure, the
+As a benefit of the above-mentioned mechanism that an API is automatically available based on the JSON structure, the
 "partial update" pattern can be applied when modifying data.
 
 The benefit of this is a reduction in payload to be transferred. Further, it is beneficial because other parts of the

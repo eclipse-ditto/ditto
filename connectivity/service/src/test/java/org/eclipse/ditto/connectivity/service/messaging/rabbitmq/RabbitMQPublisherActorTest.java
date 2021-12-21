@@ -126,7 +126,7 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected Props getPublisherActorProps() {
         return RabbitMQPublisherActor.props(TestConstants.createConnection(), "clientId",
-                mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
+                proxyActor, mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
     }
 
     @Override

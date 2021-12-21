@@ -46,6 +46,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProp
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeaturePropertyResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeaturesResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrievePolicyIdResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingDefinitionResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
@@ -233,6 +234,48 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
                 RetrieveThingDefinitionResponse.of(THING_ID, TestConstants.THING_DEFINITION,
                         TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveDefinition, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void retrievePolicyIdResponseFromAdaptable() {
+        final RetrievePolicyIdResponse expected =
+                RetrievePolicyIdResponse.of(THING_ID, TestConstants.POLICY_ID, DITTO_HEADERS_V_2);
+
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
+        final JsonPointer path = JsonPointer.of("/policyId");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatus.OK)
+                        .withValue(JsonValue.of(TestConstants.POLICY_ID))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void retrievePolicyIdResponseToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/policyId");
+
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatus.OK)
+                        .withValue(JsonValue.of(TestConstants.POLICY_ID))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final RetrievePolicyIdResponse retrievePolicyIdResponse =
+                RetrievePolicyIdResponse.of(THING_ID, TestConstants.POLICY_ID,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+        final Adaptable actual = underTest.toAdaptable(retrievePolicyIdResponse, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }

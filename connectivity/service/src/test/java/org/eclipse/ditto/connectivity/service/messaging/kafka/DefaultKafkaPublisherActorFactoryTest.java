@@ -19,6 +19,8 @@ import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolv
 import org.junit.Before;
 import org.junit.Test;
 
+import akka.actor.ActorRef;
+
 /**
  * Unit test for {@link KafkaPublisherActorFactory}.
  */
@@ -39,7 +41,7 @@ public final class DefaultKafkaPublisherActorFactoryTest {
     @Test
     public void testProps() {
         assertThat(underTest.props(null, null, false, "clientId",
-                mock(ConnectivityStatusResolver.class), null)).isNotNull();
+                ActorRef.noSender(), mock(ConnectivityStatusResolver.class), null)).isNotNull();
     }
 
 }

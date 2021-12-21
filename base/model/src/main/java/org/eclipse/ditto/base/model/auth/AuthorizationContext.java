@@ -20,14 +20,14 @@ import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 
 /**
@@ -161,7 +161,7 @@ public interface AuthorizationContext
     boolean isAuthorized(Collection<AuthorizationSubject> granted, Collection<AuthorizationSubject> revoked);
 
     /**
-     * Returns all non hidden marked fields of this authorization context.
+     * Returns all non-hidden marked fields of this authorization context.
      *
      * @return a JSON object representation of this authorization context including only {@link org.eclipse.ditto.base.model.json.FieldType#REGULAR}
      * marked fields.

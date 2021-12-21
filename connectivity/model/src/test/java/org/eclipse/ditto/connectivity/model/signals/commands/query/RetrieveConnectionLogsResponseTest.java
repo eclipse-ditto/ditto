@@ -43,10 +43,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Test for {@link RetrieveConnectionLogsResponse}.
  */
-public class RetrieveConnectionLogsResponseTest {
+public final class RetrieveConnectionLogsResponseTest {
 
     private static final DittoHeaders EMPTY_HEADERS = DittoHeaders.empty();
-
     private static final Instant ENABLED_SINCE = Instant.now().minus(15, ChronoUnit.MINUTES);
     private static final Instant ENABLED_UNTIL = Instant.now().plus(1, ChronoUnit.DAYS);
 
@@ -62,37 +61,34 @@ public class RetrieveConnectionLogsResponseTest {
     @Test
     public void retrieveInstanceWithNullConnectionId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(
-                        () -> RetrieveConnectionLogsResponse.of(null,
-                                TestConstants.Logs.ENTRIES,
-                                ENABLED_SINCE,
-                                ENABLED_UNTIL,
-                                EMPTY_HEADERS))
-                .withMessage("The %s must not be null!", "Connection ID")
+                .isThrownBy(() -> RetrieveConnectionLogsResponse.of(null,
+                        TestConstants.Logs.ENTRIES,
+                        ENABLED_SINCE,
+                        ENABLED_UNTIL,
+                        EMPTY_HEADERS))
+                .withMessage("The %s must not be null!", "connectionId")
                 .withNoCause();
     }
 
     @Test
     public void retrieveInstanceWithNullLogs() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(
-                        () -> RetrieveConnectionLogsResponse.of(TestConstants.ID,
-                                null,
-                                ENABLED_SINCE,
-                                ENABLED_UNTIL,
-                                EMPTY_HEADERS))
-                .withMessage("The %s must not be null!", "Connection Logs")
+                .isThrownBy(() -> RetrieveConnectionLogsResponse.of(TestConstants.ID,
+                        null,
+                        ENABLED_SINCE,
+                        ENABLED_UNTIL,
+                        EMPTY_HEADERS))
+                .withMessage("The %s must not be null!", "connectionLogs")
                 .withNoCause();
     }
 
     @Test
     public void fromJsonWithStringReturnsExpected() {
-        final RetrieveConnectionLogsResponse expected =
-                RetrieveConnectionLogsResponse.of(TestConstants.ID,
-                        TestConstants.Logs.ENTRIES,
-                        ENABLED_SINCE,
-                        ENABLED_UNTIL,
-                        EMPTY_HEADERS);
+        final RetrieveConnectionLogsResponse expected = RetrieveConnectionLogsResponse.of(TestConstants.ID,
+                TestConstants.Logs.ENTRIES,
+                ENABLED_SINCE,
+                ENABLED_UNTIL,
+                EMPTY_HEADERS);
 
         final RetrieveConnectionLogsResponse actual =
                 RetrieveConnectionLogsResponse.fromJson(KNOWN_JSON.toString(), EMPTY_HEADERS);
@@ -102,12 +98,11 @@ public class RetrieveConnectionLogsResponseTest {
 
     @Test
     public void fromJsonReturnsExpected() {
-        final RetrieveConnectionLogsResponse expected =
-                RetrieveConnectionLogsResponse.of(TestConstants.ID,
-                        TestConstants.Logs.ENTRIES,
-                        ENABLED_SINCE,
-                        ENABLED_UNTIL,
-                        EMPTY_HEADERS);
+        final RetrieveConnectionLogsResponse expected = RetrieveConnectionLogsResponse.of(TestConstants.ID,
+                TestConstants.Logs.ENTRIES,
+                ENABLED_SINCE,
+                ENABLED_UNTIL,
+                EMPTY_HEADERS);
 
         final RetrieveConnectionLogsResponse actual =
                 RetrieveConnectionLogsResponse.fromJson(KNOWN_JSON, EMPTY_HEADERS);
@@ -120,22 +115,20 @@ public class RetrieveConnectionLogsResponseTest {
         final JsonObject json = KNOWN_JSON.toBuilder()
                 .set(RetrieveConnectionLogsResponse.JsonFields.ENABLED_SINCE, "not-a-date")
                 .build();
+
         assertThatExceptionOfType(JsonParseException.class)
-                .isThrownBy(
-                        () -> RetrieveConnectionLogsResponse.fromJson(json,
-                                EMPTY_HEADERS))
-                .withMessage("The JSON object's field <%s> is not in ISO-8601 format as expected!",
+                .isThrownBy(() -> RetrieveConnectionLogsResponse.fromJson(json, EMPTY_HEADERS))
+                .withMessageContaining("The JSON object's field <%s> is not in ISO-8601 format as expected!",
                         RetrieveConnectionLogsResponse.JsonFields.ENABLED_SINCE.getPointer());
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonObject actual =
-                RetrieveConnectionLogsResponse.of(TestConstants.ID,
-                        TestConstants.Logs.ENTRIES,
-                        ENABLED_SINCE,
-                        ENABLED_UNTIL,
-                        EMPTY_HEADERS).toJson();
+        final JsonObject actual = RetrieveConnectionLogsResponse.of(TestConstants.ID,
+                TestConstants.Logs.ENTRIES,
+                ENABLED_SINCE,
+                ENABLED_UNTIL,
+                EMPTY_HEADERS).toJson();
 
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
@@ -185,7 +178,8 @@ public class RetrieveConnectionLogsResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveConnectionLogsResponse.class, areImmutable(),
+        assertInstancesOf(RetrieveConnectionLogsResponse.class,
+                areImmutable(),
                 provided(LogEntry.class, ConnectionId.class).areAlsoImmutable());
     }
 

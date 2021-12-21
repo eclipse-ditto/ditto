@@ -149,6 +149,11 @@ final class FluentPublishingConnectionLogger
         emitLogEntry(infoProvider, message, messageArguments, LogLevel.FAILURE);
     }
 
+    @Override
+    public void logEntry(final LogEntry logEntry) {
+        emitLogEntry(logEntry);
+    }
+
     private void emitLogEntry(final ConnectionMonitor.InfoProvider infoProvider, final String message,
             final Object[] messageArguments, final LogLevel logLevel) {
         final String formattedMessage = formatMessage(infoProvider, message, messageArguments);

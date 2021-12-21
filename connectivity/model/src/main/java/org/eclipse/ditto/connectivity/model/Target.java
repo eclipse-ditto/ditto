@@ -17,17 +17,17 @@ import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * A {@link Connection} target contains one address to publish to and several topics of Ditto signals for which to
@@ -94,9 +94,9 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     PayloadMapping getPayloadMapping();
 
     /**
-     * Returns all non hidden marked fields of this {@code Connection}.
+     * Returns all non-hidden marked fields of this {@code Connection}.
      *
-     * @return a JSON object representation of this Target including only non hidden marked fields
+     * @return a JSON object representation of this Target including only non-hidden marked fields
      */
     @Override
     default JsonObject toJson() {
@@ -116,62 +116,66 @@ public interface Target extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
 
         /**
          * JSON field containing the {@code JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.3.0 this field definition is not used anymore.
          */
+        @Deprecated
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
+                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(),
+                        FieldType.SPECIAL,
+                        FieldType.HIDDEN,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Target} address.
          */
         public static final JsonFieldDefinition<String> ADDRESS =
-                JsonFactory.newStringFieldDefinition("address", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("address", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Target} topics.
          */
         public static final JsonFieldDefinition<JsonArray> TOPICS =
-                JsonFactory.newJsonArrayFieldDefinition("topics", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("topics", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Target} qos.
          */
         public static final JsonFieldDefinition<Integer> QOS =
-                JsonFactory.newIntFieldDefinition("qos", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newIntFieldDefinition("qos", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Target} authorization context (list of authorization subjects).
          */
         public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
-                JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
+                JsonFactory.newJsonArrayFieldDefinition("authorizationContext",
+                        FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Target} acknowledgement label of an automatically issued acknowledgement.
          */
         public static final JsonFieldDefinition<String> ISSUED_ACKNOWLEDGEMENT_LABEL =
-                JsonFactory.newStringFieldDefinition("issuedAcknowledgementLabel", FieldType.REGULAR,
+                JsonFactory.newStringFieldDefinition("issuedAcknowledgementLabel",
+                        FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Target} header mapping.
          */
         public static final JsonFieldDefinition<JsonObject> HEADER_MAPPING =
-                JsonFactory.newJsonObjectFieldDefinition("headerMapping", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("headerMapping", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Target} payload mapping.
          */
         public static final JsonFieldDefinition<JsonArray> PAYLOAD_MAPPING =
-                JsonFactory.newJsonArrayFieldDefinition("payloadMapping", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("payloadMapping", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-        JsonFields() {
+        private JsonFields() {
             throw new AssertionError();
         }
+
     }
+
 }

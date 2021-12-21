@@ -18,7 +18,8 @@ info:
     The Eclipse Ditto HTTP API uses response status codes (see [RFC 7231](https://tools.ietf.org/html/rfc7231#section-6))
     to indicate whether a specific request has been successfully completed, or not.
 
-    The information Ditto provides additionally to the status code (e.g. in API docs, or error codes like. "things:thing.tooLarge") might change without advance notice. These are not be considered as official API, and must therefore not be applied in your applications or tests.
+    The information Ditto provides additionally to the status code (e.g. in API docs, or error codes like. "things:thing.tooLarge") might change without advance notice.
+    These are not be considered as official API, and must therefore not be applied in your applications or tests.
 
 servers:
   - url: https://ditto.eclipseprojects.io/api/2
@@ -175,6 +176,10 @@ components:
       $ref: "./parameters/attributePathPathParam.yml"
     AttributesFieldsQueryParam:
       $ref: "./parameters/attributesFieldsQueryParam.yml"
+    ChannelParam:
+      $ref: "./parameters/channelParam.yml"
+    ConditionParam:
+      $ref: "./parameters/conditionParam.yml"
     DesiredPropertiesFieldsQueryParam:
       $ref: "./parameters/desiredPropertiesFieldsQueryParam.yml"
     FeatureFieldsQueryParam:

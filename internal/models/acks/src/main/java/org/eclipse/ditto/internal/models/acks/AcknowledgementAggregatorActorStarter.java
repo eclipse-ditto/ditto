@@ -13,7 +13,6 @@
 package org.eclipse.ditto.internal.models.acks;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.internal.models.acks.AcknowledgementForwarderActorStarter.isLiveSignal;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -24,23 +23,24 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.acks.AbstractCommandAckRequestSetter;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
-import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
+import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
-import akka.actor.Props;
 import akka.japi.pf.PFBuilder;
 import scala.PartialFunction;
 
@@ -52,22 +52,25 @@ import scala.PartialFunction;
  */
 public final class AcknowledgementAggregatorActorStarter {
 
-    protected final ActorRefFactory actorRefFactory;
-    protected final Duration maxTimeout;
-    protected final HeaderTranslator headerTranslator;
-    protected final PartialFunction<Signal<?>, Signal<?>> ackRequestSetter;
-
-    private int childCounter = 0;
+    private final ActorRefFactory actorRefFactory;
+    private final Duration maxTimeout;
+    private final HeaderTranslator headerTranslator;
+    private final PartialFunction<Signal<?>, Signal<?>> ackRequestSetter;
+    @Nullable private final Consumer<MatchingValidationResult.Failure> matchingValidationFailureConsumer;
+    private int childCounter;
 
     private AcknowledgementAggregatorActorStarter(final ActorRefFactory actorRefFactory,
             final Duration maxTimeout,
             final HeaderTranslator headerTranslator,
+            @Nullable final Consumer<MatchingValidationResult.Failure> matchingValidationFailureConsumer,
             final PartialFunction<Signal<?>, Signal<?>> ackRequestSetter) {
 
         this.actorRefFactory = checkNotNull(actorRefFactory, "actorRefFactory");
-        this.ackRequestSetter = ackRequestSetter;
         this.maxTimeout = checkNotNull(maxTimeout, "maxTimeout");
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
+        this.matchingValidationFailureConsumer = matchingValidationFailureConsumer;
+        this.ackRequestSetter = ackRequestSetter;
+        childCounter = 0;
     }
 
     /**
@@ -77,15 +80,20 @@ public final class AcknowledgementAggregatorActorStarter {
      * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
      * @param headerTranslator translates headers from external sources or to external sources.
      * response over a channel to the user.
+     * @param matchingValidationFailureConsumer optional handler for response validation failures.
      * @return a means to start an acknowledgement forwarder actor.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code responseValidationFailureContextConsumer} is {@code null}.
      */
     public static AcknowledgementAggregatorActorStarter of(final ActorRefFactory actorRefFactory,
             final AcknowledgementConfig acknowledgementConfig,
             final HeaderTranslator headerTranslator,
+            @Nullable final Consumer<MatchingValidationResult.Failure> matchingValidationFailureConsumer,
             final AbstractCommandAckRequestSetter<?>... ackRequestSetters) {
 
-        return of(actorRefFactory, acknowledgementConfig.getForwarderFallbackTimeout(), headerTranslator,
+        return of(actorRefFactory,
+                acknowledgementConfig.getForwarderFallbackTimeout(),
+                headerTranslator,
+                matchingValidationFailureConsumer,
                 ackRequestSetters);
     }
 
@@ -96,42 +104,49 @@ public final class AcknowledgementAggregatorActorStarter {
      * @param maxTimeout the maximum timeout.
      * @param headerTranslator translates headers from external sources or to external sources.
      * response over a channel to the user.
+     * @param matchingValidationFailureConsumer optional handler for response validation failures.
      * @return a means to start an acknowledgement forwarder actor.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code responseValidationFailureContextConsumer} is {@code null}.
      */
     public static AcknowledgementAggregatorActorStarter of(final ActorRefFactory actorRefFactory,
             final Duration maxTimeout,
             final HeaderTranslator headerTranslator,
+            @Nullable final Consumer<MatchingValidationResult.Failure> matchingValidationFailureConsumer,
             final AbstractCommandAckRequestSetter<?>... ackRequestSetters) {
 
-        return new AcknowledgementAggregatorActorStarter(actorRefFactory, maxTimeout, headerTranslator,
+        return new AcknowledgementAggregatorActorStarter(actorRefFactory,
+                maxTimeout,
+                headerTranslator,
+                matchingValidationFailureConsumer,
                 buildAckRequestSetter(ackRequestSetters));
     }
 
     /**
      * Start an acknowledgement aggregator actor if needed.
      *
-     * @param signal the signal to start the aggregator actor for.
+     * @param command the command to start the aggregator actor for.
      * @param responseSignalConsumer consumer of the aggregated response or error.
      * @param ackregatorStartedFunction what to do if the aggregator actor started. The first argument is
-     * the signal after setting requested-acks and response-required.
+     * the command after setting requested-acks and response-required.
      * @param ackregatorNotStartedFunction what to do if the aggregator actor did not start.
      * @param <T> type of the result.
      * @return the result.
      */
-    public <T> T start(final Signal<?> signal,
+    public <T> T start(final Command<?> command,
             final Function<Object, T> responseSignalConsumer,
             final BiFunction<Signal<?>, ActorRef, T> ackregatorStartedFunction,
             final Function<Signal<?>, T> ackregatorNotStartedFunction) {
 
-        return preprocess(signal,
-                (s, shouldStart) -> {
-                    final Optional<EntityId> entityIdOptional = WithEntityId.getEntityIdOfType(EntityId.class, s);
+        return preprocess(command,
+                (originatingSignal, shouldStart) -> {
+                    final var entityIdOptional = SignalInformationPoint.getEntityId(command);
                     if (shouldStart && entityIdOptional.isPresent()) {
-                        return doStart(entityIdOptional.get(), s.getDittoHeaders(), responseSignalConsumer::apply,
-                                ackregator -> ackregatorStartedFunction.apply(s, ackregator));
+                        return doStart(entityIdOptional.get(),
+                                originatingSignal,
+                                responseSignalConsumer::apply,
+                                ackregator -> ackregatorStartedFunction.apply(originatingSignal, ackregator));
                     } else {
-                        return ackregatorNotStartedFunction.apply(s);
+                        return ackregatorNotStartedFunction.apply(originatingSignal);
                     }
                 },
                 responseSignalConsumer
@@ -151,8 +166,10 @@ public final class AcknowledgementAggregatorActorStarter {
     public <T> T preprocess(final Signal<?> signal,
             final BiFunction<Signal<?>, Boolean, T> preprocessor,
             final Function<? super DittoHeaderInvalidException, T> onInvalidHeader) {
-        final Signal<?> signalToForward = ackRequestSetter.apply(signal);
-        final Optional<DittoHeaderInvalidException> headerInvalid = getDittoHeaderInvalidException(signalToForward);
+
+        final var signalToForward = ackRequestSetter.apply(signal);
+        final var headerInvalid = getDittoHeaderInvalidException(signalToForward);
+
         return headerInvalid.map(onInvalidHeader)
                 .orElseGet(() -> preprocessor.apply(signalToForward, shouldStartForIncoming(signalToForward)));
     }
@@ -160,77 +177,113 @@ public final class AcknowledgementAggregatorActorStarter {
     /**
      * Start an acknowledgement aggregator actor for a signal with acknowledgement requests.
      *
-     * @param entityId the entity ID of the originating signal signal.
-     * @param dittoHeaders The headers of the originating signal. Must have nonempty acknowledgement requests.
+     * @param <T> type of results.
+     * @param entityId the entity ID of the originating signal.
+     * @param signal the originating signal. Must have nonempty acknowledgement requests.
      * @param responseSignalConsumer consumer of the aggregated response or error.
      * @param forwarderStartedFunction what to do after the aggregator actor started.
-     * @param <T> type of results.
      * @return the result.
      */
     public <T> T doStart(final EntityId entityId,
-            final DittoHeaders dittoHeaders,
+            final Signal<?> signal,
             final Consumer<Object> responseSignalConsumer,
             final Function<ActorRef, T> forwarderStartedFunction) {
-        return forwarderStartedFunction.apply(startAckAggregatorActor(entityId, dittoHeaders, responseSignalConsumer));
+
+        return forwarderStartedFunction.apply(startAckAggregatorActor(entityId, signal, responseSignalConsumer));
     }
 
-    private ActorRef startAckAggregatorActor(final EntityId entityId, final DittoHeaders dittoHeaders,
+    private ActorRef startAckAggregatorActor(final EntityId entityId,
+            final Signal<?> signal,
             final Consumer<Object> responseSignalConsumer) {
-        final Props props = AcknowledgementAggregatorActor.props(entityId, dittoHeaders, maxTimeout, headerTranslator,
-                responseSignalConsumer);
-        final String actorName = getNextActorName(dittoHeaders);
-        return actorRefFactory.actorOf(props, actorName);
+
+        final var props = AcknowledgementAggregatorActor.props(entityId,
+                signal,
+                maxTimeout,
+                headerTranslator,
+                responseSignalConsumer,
+                matchingValidationFailureConsumer);
+
+        return actorRefFactory.actorOf(props, getNextActorName(signal.getDittoHeaders()));
     }
 
     private String getNextActorName(final DittoHeaders dittoHeaders) {
-        final String correlationId = dittoHeaders
-                .getCorrelationId()
+        final var correlationId = dittoHeaders.getCorrelationId()
                 .map(cid -> URLEncoder.encode(cid, StandardCharsets.UTF_8))
                 .orElse("_");
+
         return String.format("ackr%x-%s", childCounter++, correlationId);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes", "java:S3740"})
     private static PartialFunction<Signal<?>, Signal<?>> buildAckRequestSetter(
             final AbstractCommandAckRequestSetter<?>... ackRequestSetters) {
+
         PFBuilder<Signal<?>, Signal<?>> pfBuilder = new PFBuilder<>();
         // unavoidable raw type due to the lack of existential type
         for (final AbstractCommandAckRequestSetter ackRequestSetter : ackRequestSetters) {
-            pfBuilder = pfBuilder.match(ackRequestSetter.getMatchedClass(), ackRequestSetter::isApplicable,
+            pfBuilder = pfBuilder.match(ackRequestSetter.getMatchedClass(),
+                    ackRequestSetter::isApplicable,
                     s -> (Signal<?>) ackRequestSetter.apply(s));
         }
+
         return pfBuilder.matchAny(x -> x).build();
     }
 
     private static Optional<DittoHeaderInvalidException> getDittoHeaderInvalidException(final Signal<?> signal) {
-        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-        final boolean isTimeoutZero = dittoHeaders.getTimeout().map(Duration::isZero).orElse(false);
-        final boolean isTimeoutHeaderInvalid = isTimeoutZero &&
-                (dittoHeaders.isResponseRequired() || !dittoHeaders.getAcknowledgementRequests().isEmpty());
-        if (isTimeoutHeaderInvalid) {
+        final Optional<DittoHeaderInvalidException> result;
+
+        final var dittoHeaders = signal.getDittoHeaders();
+        if (isTimeoutHeaderInvalid(dittoHeaders)) {
             final var invalidHeaderKey = DittoHeaderDefinition.TIMEOUT.getKey();
-            final String message = String.format("The value of the header '%s' must not be zero if " +
+            final var message = String.format("The value of the header '%s' must not be zero if " +
                     "response or acknowledgements are requested.", invalidHeaderKey);
-            return Optional.of(DittoHeaderInvalidException.newBuilder()
+            result = Optional.of(DittoHeaderInvalidException.newBuilder()
                     .withInvalidHeaderKey(invalidHeaderKey)
                     .message(message)
                     .description("Please provide a positive timeout.")
                     .dittoHeaders(dittoHeaders)
                     .build());
         } else {
-            return Optional.empty();
+            result = Optional.empty();
         }
+
+        return result;
     }
 
-    static boolean shouldStartForIncoming(final Signal<?> signal) {
-        final boolean isLiveSignal = isLiveSignal(signal);
+    private static boolean isTimeoutHeaderInvalid(final DittoHeaders dittoHeaders) {
+        final boolean result;
+
+        final var isTimeoutZero = dittoHeaders.getTimeout().filter(Duration::isZero).isPresent();
+        if (isTimeoutZero) {
+            if (dittoHeaders.isResponseRequired()) {
+                result = true;
+            } else {
+                final var acknowledgementRequests = dittoHeaders.getAcknowledgementRequests();
+                result = !acknowledgementRequests.isEmpty();
+            }
+        } else {
+            result = false;
+        }
+
+        return result;
+    }
+
+    private static boolean shouldStartForIncoming(final Signal<?> signal) {
+        final boolean result;
+
+        final var isLiveSignal = SignalInformationPoint.isChannelLive(signal);
         final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
         if (signal instanceof ThingModifyCommand && !isLiveSignal) {
-            return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotLiveResponse);
-        } else if (signal instanceof MessageCommand || (isLiveSignal && signal instanceof ThingCommand)) {
-            return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted);
+            result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotLiveResponse);
+        } else if (SignalInformationPoint.isMessageCommand(signal) ||
+                isLiveSignal && SignalInformationPoint.isThingCommand(signal)) {
+
+            result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted);
         } else {
-            return false;
+            result = false;
         }
+
+        return result;
     }
+
 }

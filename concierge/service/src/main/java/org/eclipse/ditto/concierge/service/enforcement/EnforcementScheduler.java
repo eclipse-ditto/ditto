@@ -121,6 +121,7 @@ final class EnforcementScheduler extends AbstractActor {
             // message does not exist; nothing to dispatch
             enforcementResult.getLog().debug("Not dispatching due to lack of message: {}", enforcementResult);
         }
+
         return null;
     }
 

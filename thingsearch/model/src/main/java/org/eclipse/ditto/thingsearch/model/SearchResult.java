@@ -17,6 +17,9 @@ import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -24,9 +27,6 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * This entity represents the results of a search query. The found items are returned as JSON array containing the
@@ -111,9 +111,9 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
     Stream<JsonValue> stream();
 
     /**
-     * Returns all non hidden marked fields of this object.
+     * Returns all non-hidden marked fields of this object.
      *
-     * @return a JSON object representation of this object including only non hidden marked fields.
+     * @return a JSON object representation of this object including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {
@@ -133,31 +133,34 @@ public interface SearchResult extends Iterable<JsonValue>, Jsonifiable.WithField
 
         /**
          * JSON field containing the {@link JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.3.0 this field definition is not used anymore.
          */
-        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
+        @Deprecated
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION = JsonFactory.newIntFieldDefinition(
+                JsonSchemaVersion.getJsonKey(),
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2
+        );
 
         /**
          * JSON field containing the items.
          */
         public static final JsonFieldDefinition<JsonArray> ITEMS =
-                JsonFactory.newJsonArrayFieldDefinition("items", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("items", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the nextPageOffset.
          */
         public static final JsonFieldDefinition<Long> NEXT_PAGE_OFFSET =
-                JsonFactory.newLongFieldDefinition("nextPageOffset", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newLongFieldDefinition("nextPageOffset", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the cursor.
          */
         public static final JsonFieldDefinition<String> CURSOR =
-                JsonFactory.newStringFieldDefinition("cursor", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("cursor", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

@@ -32,7 +32,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse}.
  */
-public class CreatePolicyResponseTest {
+public final class CreatePolicyResponseTest {
 
     private static final JsonObject KNOWN_JSON_CREATED = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, CreatePolicyResponse.TYPE)
@@ -42,13 +42,6 @@ public class CreatePolicyResponseTest {
                     TestConstants.Policy.POLICY.toJson(FieldType.regularOrSpecial()))
             .build();
 
-    private static final JsonObject KNOWN_JSON_UPDATED = JsonFactory.newObjectBuilder()
-            .set(PolicyCommandResponse.JsonFields.TYPE, CreatePolicyResponse.TYPE)
-            .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatus.NO_CONTENT.getCode())
-            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
-            .build();
-
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(CreatePolicyResponse.class,
@@ -56,14 +49,12 @@ public class CreatePolicyResponseTest {
                 provided(Policy.class, PolicyId.class).isAlsoImmutable());
     }
 
-
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(CreatePolicyResponse.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -75,7 +66,6 @@ public class CreatePolicyResponseTest {
         assertThat(actualJsonCreated).isEqualTo(KNOWN_JSON_CREATED);
     }
 
-
     @Test
     public void createInstanceFromValidJson() {
         final CreatePolicyResponse underTestCreated =
@@ -83,12 +73,6 @@ public class CreatePolicyResponseTest {
 
         assertThat(underTestCreated).isNotNull();
         assertThat(underTestCreated.getPolicyCreated()).hasValue(TestConstants.Policy.POLICY);
-
-        final CreatePolicyResponse underTestUpdated =
-                CreatePolicyResponse.fromJson(KNOWN_JSON_UPDATED, TestConstants.EMPTY_DITTO_HEADERS);
-
-        assertThat(underTestUpdated).isNotNull();
-        assertThat(underTestUpdated.getPolicyCreated()).isEmpty();
     }
 
 }

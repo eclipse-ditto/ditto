@@ -17,14 +17,16 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
@@ -35,7 +37,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link RetrieveAttributeResponse}.
  */
-public class RetrieveAttributeResponseTest {
+public final class RetrieveAttributeResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveAttributeResponse.TYPE)
@@ -47,7 +49,8 @@ public class RetrieveAttributeResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveAttributeResponse.class, areImmutable(),
+        assertInstancesOf(RetrieveAttributeResponse.class,
+                areImmutable(),
                 provided(JsonPointer.class, JsonValue.class, ThingId.class).areAlsoImmutable());
     }
 
@@ -55,21 +58,24 @@ public class RetrieveAttributeResponseTest {
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(RetrieveAttributeResponse.class)
                 .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullAttribute() {
-        RetrieveAttributeResponse.of(TestConstants.Thing.THING_ID, TestConstants.Thing.LOCATION_ATTRIBUTE_POINTER, null,
+        RetrieveAttributeResponse.of(TestConstants.Thing.THING_ID,
+                TestConstants.Thing.LOCATION_ATTRIBUTE_POINTER,
+                null,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final RetrieveAttributeResponse underTest =
-                RetrieveAttributeResponse.of(TestConstants.Thing.THING_ID,
-                        TestConstants.Thing.LOCATION_ATTRIBUTE_POINTER,
-                        TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE, TestConstants.EMPTY_DITTO_HEADERS);
+        final RetrieveAttributeResponse underTest = RetrieveAttributeResponse.of(TestConstants.Thing.THING_ID,
+                TestConstants.Thing.LOCATION_ATTRIBUTE_POINTER,
+                TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE,
+                TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         DittoJsonAssertions.assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -84,17 +90,27 @@ public class RetrieveAttributeResponseTest {
         assertThat(underTest.getAttributeValue()).isEqualTo(TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE);
     }
 
-    @Test(expected = JsonKeyInvalidException.class)
+    @Test
     public void createInstanceFromInvalidJson() {
         final JsonObject invalidJson = KNOWN_JSON.toBuilder()
                 .set(RetrieveAttribute.JSON_ATTRIBUTE, TestConstants.Pointer.INVALID_JSON_POINTER.toString())
                 .build();
-        RetrieveAttributeResponse.fromJson(invalidJson, TestConstants.EMPTY_DITTO_HEADERS);
+
+        Assertions.assertThatExceptionOfType(JsonParseException.class)
+                .isThrownBy(() -> RetrieveAttributeResponse.fromJson(invalidJson, TestConstants.EMPTY_DITTO_HEADERS))
+                .withMessage(
+                        "Failed to deserialize JSON object to a command response of type <%s>:" +
+                                " The JSON key <äöü> is invalid!",
+                        RetrieveAttributeResponse.TYPE)
+                .withCauseInstanceOf(JsonKeyInvalidException.class);
     }
 
     @Test(expected = JsonKeyInvalidException.class)
     public void createInstanceFromInvalidArguments() {
-        RetrieveAttributeResponse.of(TestConstants.Thing.THING_ID, TestConstants.Pointer.INVALID_JSON_POINTER,
-                TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE, TestConstants.EMPTY_DITTO_HEADERS);
+        RetrieveAttributeResponse.of(TestConstants.Thing.THING_ID,
+                TestConstants.Pointer.INVALID_JSON_POINTER,
+                TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE,
+                TestConstants.EMPTY_DITTO_HEADERS);
     }
+
 }

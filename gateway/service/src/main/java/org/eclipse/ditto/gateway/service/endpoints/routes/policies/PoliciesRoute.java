@@ -25,10 +25,9 @@ import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationResult;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -51,10 +50,7 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyIdNotE
 import org.eclipse.ditto.policies.model.signals.commands.modify.DeletePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifyPolicy;
 import org.eclipse.ditto.policies.model.signals.commands.query.RetrievePolicy;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
@@ -78,29 +74,18 @@ public final class PoliciesRoute extends AbstractRoute {
     private final TokenIntegrationSubjectIdFactory tokenIntegrationSubjectIdFactory;
 
     /**
-     * Constructs the {@code /policies} route builder.
+     * Constructs a {@code PoliciesRoute} object.
      *
-     * @param proxyActor an actor selection of the command delegating actor.
-     * @param actorSystem the ActorSystem to use.
-     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
-     * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
-     * @param headerTranslator translates headers from external sources or to external sources.
+     * @param routeBaseProperties the base properties of the route.
      * @param tokenIntegrationSubjectIdFactory factory of resolvers for placeholders.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public PoliciesRoute(final ActorRef proxyActor,
-            final ActorSystem actorSystem,
-            final HttpConfig httpConfig,
-            final CommandConfig commandConfig,
-            final HeaderTranslator headerTranslator,
+    public PoliciesRoute(final RouteBaseProperties routeBaseProperties,
             final TokenIntegrationSubjectIdFactory tokenIntegrationSubjectIdFactory) {
 
-        super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
+        super(routeBaseProperties);
+        policyEntriesRoute = new PolicyEntriesRoute(routeBaseProperties, tokenIntegrationSubjectIdFactory);
         this.tokenIntegrationSubjectIdFactory = tokenIntegrationSubjectIdFactory;
-
-        policyEntriesRoute =
-                new PolicyEntriesRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator,
-                        tokenIntegrationSubjectIdFactory);
     }
 
     /**
@@ -143,8 +128,8 @@ public final class PoliciesRoute extends AbstractRoute {
                                                 handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         policyJson -> ModifyPolicy
                                                                 .of(policyId, PoliciesModelFactory.newPolicy(
-                                                                        createPolicyJsonObjectForPut(policyJson,
-                                                                                policyId)),
+                                                                                createPolicyJsonObjectForPut(policyJson,
+                                                                                        policyId)),
                                                                         dittoHeaders)
                                                 )
                                 )

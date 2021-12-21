@@ -22,7 +22,7 @@ import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 /**
  * Enumeration of the protocol message types used to control emitting of events and messages via WebSocket.
  */
-enum ProtocolMessageType {
+public enum ProtocolMessageType {
 
     /**
      * Message indicating that the Websocket should start emitting twin events.
@@ -92,7 +92,7 @@ enum ProtocolMessageType {
      * @param identifier the string identifier that is sent over the wire
      * @param streamingType the associated {@link StreamingType}
      */
-    private ProtocolMessageType(final String identifier, @Nullable final StreamingType streamingType) {
+    ProtocolMessageType(final String identifier, @Nullable final StreamingType streamingType) {
         this.identifier = identifier;
         this.streamingType = streamingType;
     }

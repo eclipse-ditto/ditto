@@ -12,30 +12,31 @@
  */
 package org.eclipse.ditto.things.model.signals.commands.modify;
 
-import static org.eclipse.ditto.base.model.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 /**
@@ -55,10 +56,25 @@ public final class DeleteFeatureDesiredPropertyResponse
     public static final String TYPE = TYPE_PREFIX + DeleteFeatureDesiredProperty.NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("featureId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_DESIRED_PROPERTY =
-            JsonFactory.newStringFieldDefinition("desiredProperty", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("desiredProperty", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.NO_CONTENT;
+
+    private static final CommandResponseJsonDeserializer<DeleteFeatureDesiredPropertyResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return newInstance(
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                jsonObject.getValueOrThrow(JSON_FEATURE_ID),
+                                JsonPointer.of(jsonObject.getValueOrThrow(JSON_DESIRED_PROPERTY)),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final ThingId thingId;
     private final String featureId;
@@ -67,11 +83,14 @@ public final class DeleteFeatureDesiredPropertyResponse
     private DeleteFeatureDesiredPropertyResponse(final ThingId thingId,
             final CharSequence featureId,
             final JsonPointer desiredPropertyPointer,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "Thing ID");
-        this.featureId = argumentNotEmpty(featureId, "featureId").toString();
+        super(TYPE, httpStatus, dittoHeaders);
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.featureId = ConditionChecker.checkArgument(checkNotNull(featureId, "featureId").toString(),
+                featureIdArgument -> !featureIdArgument.trim().isEmpty(),
+                () -> "The featureId must neither be empty nor blank.");
         this.desiredPropertyPointer = checkDesiredPropertyPointer(desiredPropertyPointer);
     }
 
@@ -97,7 +116,36 @@ public final class DeleteFeatureDesiredPropertyResponse
             final JsonPointer desiredPropertyPointer,
             final DittoHeaders dittoHeaders) {
 
-        return new DeleteFeatureDesiredPropertyResponse(thingId, featureId, desiredPropertyPointer, dittoHeaders);
+        return newInstance(thingId, featureId, desiredPropertyPointer, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code DeleteFeatureDesiredPropertyResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing of which the desired feature property was deleted from.
+     * @param featureId ID of the feature of which the desired property was deleted.
+     * @param desiredPropertyPointer the JSON pointer of the deleted desired property.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code DeleteFeatureDesiredPropertyResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code featureId} is empty or blank or if {@code httpStatus} is not allowed
+     * for a {@code DeleteFeatureDesiredPropertyResponse}.
+     * @since 2.3.0
+     */
+    public static DeleteFeatureDesiredPropertyResponse newInstance(final ThingId thingId,
+            final CharSequence featureId,
+            final JsonPointer desiredPropertyPointer,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new DeleteFeatureDesiredPropertyResponse(thingId,
+                featureId,
+                desiredPropertyPointer,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        DeleteFeatureDesiredPropertyResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -116,7 +164,7 @@ public final class DeleteFeatureDesiredPropertyResponse
     public static DeleteFeatureDesiredPropertyResponse fromJson(final String jsonString,
             final DittoHeaders dittoHeaders) {
 
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -134,11 +182,7 @@ public final class DeleteFeatureDesiredPropertyResponse
     public static DeleteFeatureDesiredPropertyResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new CommandResponseJsonDeserializer<DeleteFeatureDesiredPropertyResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> of(ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
-                        jsonObject.getValueOrThrow(JSON_FEATURE_ID),
-                        JsonFactory.newPointer(jsonObject.getValueOrThrow(JSON_DESIRED_PROPERTY)),
-                        dittoHeaders));
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -176,11 +220,12 @@ public final class DeleteFeatureDesiredPropertyResponse
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonFactory.newPointer("/features/" + featureId + "/desiredProperties" + desiredPropertyPointer);
+        return JsonPointer.of("/features/" + featureId + "/desiredProperties" + desiredPropertyPointer);
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
 
         final Predicate<JsonField> p = schemaVersion.and(predicate);
@@ -191,7 +236,7 @@ public final class DeleteFeatureDesiredPropertyResponse
 
     @Override
     public DeleteFeatureDesiredPropertyResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, featureId, desiredPropertyPointer, dittoHeaders);
+        return newInstance(thingId, featureId, desiredPropertyPointer, getHttpStatus(), dittoHeaders);
     }
 
     @Override

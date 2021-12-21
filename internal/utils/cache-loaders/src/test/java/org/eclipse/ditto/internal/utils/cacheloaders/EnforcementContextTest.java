@@ -17,8 +17,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.api.persistence.PersistenceLifecycle;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

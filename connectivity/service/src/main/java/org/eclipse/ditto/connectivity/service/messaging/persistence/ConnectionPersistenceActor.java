@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.persistence;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.connectivity.api.ConnectivityMessagingConstants.CLUSTER_ROLE;
 
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
@@ -40,12 +41,14 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
+import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.AddConnectionLogEntry;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectionLifecycle;
 import org.eclipse.ditto.connectivity.model.ConnectionMetrics;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
+import org.eclipse.ditto.connectivity.model.LogEntry;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommand;
 import org.eclipse.ditto.connectivity.model.signals.commands.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.connectivity.model.signals.commands.exceptions.ConnectionFailedException;
@@ -168,6 +171,7 @@ public final class ConnectionPersistenceActor
     private final ClientActorPropsFactory propsFactory;
     private final ActorRef pubSubMediator;
     private final boolean allClientActorsOnOneNode;
+    private final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final ConnectionLogger connectionLogger;
     private final Duration clientActorAskTimeout;
     private final Duration checkLoggingActiveInterval;
@@ -207,9 +211,8 @@ public final class ConnectionPersistenceActor
         connectionPriorityProvider = connectionPriorityProviderFactory.newProvider(self(), log);
         clientActorAskTimeout = connectionConfig.getClientActorAskTimeout();
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
-        final ConnectionLoggerRegistry loggerRegistry =
-                ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
-        connectionLogger = loggerRegistry.forConnection(connectionId);
+        connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
+        connectionLogger = connectionLoggerRegistry.forConnection(connectionId);
 
         loggingEnabledDuration = monitoringConfig.logger().logDuration();
         checkLoggingActiveInterval = monitoringConfig.logger().loggingActiveCheckInterval();
@@ -616,8 +619,23 @@ public final class ConnectionPersistenceActor
                 // maintain client actor refs
                 .match(ActorRef.class, this::addClientActor)
                 .match(Terminated.class, this::removeClientActor)
+                .match(AddConnectionLogEntry.class, this::handleAddConnectionLogEntry)
                 .build()
                 .orElse(super.matchAnyAfterInitialization());
+    }
+
+    private void handleAddConnectionLogEntry(final AddConnectionLogEntry addConnectionLogEntry) {
+        final var logEntry = addConnectionLogEntry.getLogEntry();
+        log.withCorrelationId(logEntry.getCorrelationId()).debug("Handling <{}>.", addConnectionLogEntry);
+        final var logger = getAppropriateLogger(addConnectionLogEntry.getEntityId(), logEntry);
+        logger.logEntry(logEntry);
+    }
+
+    private ConnectionLogger getAppropriateLogger(final ConnectionId connectionId, final LogEntry logEntry) {
+        return connectionLoggerRegistry.getLogger(connectionId,
+                logEntry.getLogCategory(),
+                logEntry.getLogType(),
+                logEntry.getAddress().orElse(null));
     }
 
     @Override
@@ -661,13 +679,14 @@ public final class ConnectionPersistenceActor
         augmentWithPrefixAndForward(command, entity.getClientCount(), clientActorRouter);
     }
 
-    private void augmentWithPrefixAndForward(final CreateSubscription createSubscription, final int clientCount,
+    private void augmentWithPrefixAndForward(final CreateSubscription createSubscription,
+            final int clientCount,
             final ActorRef clientActorRouter) {
+
         subscriptionCounter = (subscriptionCounter + 1) % Math.max(1, clientCount);
-        final int prefixLength = getSubscriptionPrefixLength(clientCount);
-        final String prefix = String.format("%0" + prefixLength + "X", subscriptionCounter);
-        final Optional<ActorRef> receiver = clientActorRefs.get(subscriptionCounter);
-        final CreateSubscription commandWithPrefix = createSubscription.setPrefix(prefix);
+        final var prefix = getPrefix(getSubscriptionPrefixLength(clientCount), subscriptionCounter);
+        final var receiver = clientActorRefs.get(subscriptionCounter);
+        final var commandWithPrefix = createSubscription.setPrefix(prefix);
         if (clientCount == 1) {
             clientActorRouter.tell(consistentHashableEnvelope(commandWithPrefix, prefix), ActorRef.noSender());
         } else if (receiver.isPresent()) {
@@ -675,6 +694,11 @@ public final class ConnectionPersistenceActor
         } else {
             logDroppedSignal(createSubscription, createSubscription.getType(), "Client actor not ready.");
         }
+    }
+
+    private static String getPrefix(final int prefixLength, final int subscriptionCounter) {
+        final var prefixPattern = MessageFormat.format("%0{0,number}X", prefixLength);
+        return String.format(prefixPattern, subscriptionCounter);
     }
 
     private void checkLoggingEnabled(final Control message) {
@@ -1137,15 +1161,6 @@ public final class ConnectionPersistenceActor
          * Indicates the the priority of the connection should get updated
          */
         TRIGGER_UPDATE_PRIORITY
-    }
-
-    private static final class InitializationFailure {
-
-        private final Throwable cause;
-
-        private InitializationFailure(final Throwable cause) {
-            this.cause = cause;
-        }
     }
 
     /**

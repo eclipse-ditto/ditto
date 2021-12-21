@@ -12,16 +12,18 @@
  */
 package org.eclipse.ditto.concierge.service.common;
 
-import com.typesafe.config.Config;
-import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
-import org.eclipse.ditto.rql.query.LikeHelper;
-
-import javax.annotation.concurrent.Immutable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import javax.annotation.concurrent.Immutable;
+
+import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.rql.query.LikeHelper;
+
+import com.typesafe.config.Config;
 
 /**
  * This class implements {@link CreationRestrictionConfig} for Ditto's Concierge service.

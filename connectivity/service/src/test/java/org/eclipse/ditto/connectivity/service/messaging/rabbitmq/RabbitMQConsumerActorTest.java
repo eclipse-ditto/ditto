@@ -42,7 +42,6 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
-import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
 import akka.actor.Props;

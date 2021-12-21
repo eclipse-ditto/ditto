@@ -19,15 +19,12 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
-import java.util.List;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.junit.Test;
@@ -37,9 +34,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link RetrieveThingsResponse}.
  */
-public class RetrieveThingsResponseTest {
+public final class RetrieveThingsResponseTest {
 
-    private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
+    private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveThingsResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
             .set(RetrieveThingsResponse.JSON_THINGS_PLAIN_JSON, "[" + TestConstants.Thing.THING.toJsonString() + "]")
@@ -48,7 +45,9 @@ public class RetrieveThingsResponseTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveThingsResponse.class, areImmutable(), provided(JsonArray.class).isAlsoImmutable(),
+        assertInstancesOf(RetrieveThingsResponse.class,
+                areImmutable(),
+                provided(JsonArray.class).isAlsoImmutable(),
                 assumingFields("things").areModifiedAsPartOfAnUnobservableCachingStrategy());
     }
 
@@ -56,12 +55,15 @@ public class RetrieveThingsResponseTest {
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(RetrieveThingsResponse.class)
                 .withRedefinedSuperclass()
+                .usingGetClass()
                 .verify();
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThings() {
-        RetrieveThingsResponse.of((List<Thing>) null, FieldType.notHidden(), "some.namespace",
+        RetrieveThingsResponse.of(null,
+                FieldType.notHidden(),
+                "some.namespace",
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -72,9 +74,12 @@ public class RetrieveThingsResponseTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final RetrieveThingsResponse underTest = RetrieveThingsResponse
-                .of(Collections.singletonList(TestConstants.Thing.THING), FieldType.notHidden(), "example.com",
+        final RetrieveThingsResponse underTest =
+                RetrieveThingsResponse.of(Collections.singletonList(TestConstants.Thing.THING),
+                        FieldType.notHidden(),
+                        "example.com",
                         TestConstants.EMPTY_DITTO_HEADERS);
+
         final JsonObject actualJson = underTest.toJson();
 
         DittoJsonAssertions.assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -83,8 +88,10 @@ public class RetrieveThingsResponseTest {
     @Test
     public void createInstanceWithNullNamespaces() {
         final RetrieveThingsResponse retrieveThingsResponse =
-                RetrieveThingsResponse.of(Collections.singletonList(TestConstants.Thing.THING), FieldType.notHidden(),
-                        null, TestConstants.EMPTY_DITTO_HEADERS);
+                RetrieveThingsResponse.of(Collections.singletonList(TestConstants.Thing.THING),
+                        FieldType.notHidden(),
+                        null,
+                        TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(retrieveThingsResponse.getNamespace()).isEmpty();
     }

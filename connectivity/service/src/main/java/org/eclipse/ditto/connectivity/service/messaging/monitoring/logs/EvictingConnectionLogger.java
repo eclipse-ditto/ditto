@@ -13,6 +13,8 @@
 
 package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -69,33 +71,72 @@ final class EvictingConnectionLogger extends AbstractConnectionLogger<EvictingCo
     }
 
     @Override
-    public void success(final ConnectionMonitor.InfoProvider infoProvider, final String message,
+    public void success(final ConnectionMonitor.InfoProvider infoProvider,
+            final String message,
             final Object... messageArguments) {
-        final StartedTimer logTimer = DittoMetrics.timer("connection_log").start();
-        final String formattedMessage = formatMessage(infoProvider, message, messageArguments);
+
+        final var logTimer = startConnectionLogTimer();
+        final var formattedMessage = formatMessage(infoProvider, message, messageArguments);
         logTimer.startNewSegment("message_prepared");
-        logTraceWithCorrelationId(infoProvider.getCorrelationId(), "success", infoProvider, formattedMessage);
+        final var logEntry = getLogEntry(infoProvider, formattedMessage, LogLevel.SUCCESS);
+        logTraceWithCorrelationId(logEntry);
         logTimer.startNewSegment("message_internally_logged");
-        successLogs.add(getLogEntry(infoProvider, formattedMessage, LogLevel.SUCCESS));
+        successLogs.add(logEntry);
         logTimer.stop();
     }
 
-    @Override
-    public void failure(final ConnectionMonitor.InfoProvider infoProvider, final String message,
-            final Object... messageArguments) {
+    private static StartedTimer startConnectionLogTimer() {
+        final var timer = DittoMetrics.timer("connection_log");
+        return timer.start();
+    }
 
-        final String formattedMessage = formatMessage(infoProvider, message, messageArguments);
-        logTraceWithCorrelationId(infoProvider.getCorrelationId(), "failure", infoProvider, formattedMessage);
-        failureLogs.add(getLogEntry(infoProvider, formattedMessage, LogLevel.FAILURE));
+    private static void logTraceWithCorrelationId(final LogEntry logEntry) {
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.withCorrelationId(logEntry.getCorrelationId())
+                    .trace("Saving {} log at <{}> for entity <{}> with message: {}",
+                            logEntry.getLogLevel(),
+                            logEntry.getTimestamp(),
+                            logEntry.getEntityId().orElse(null),
+                            logEntry.getMessage());
+        }
     }
 
     @Override
-    public void exception(final ConnectionMonitor.InfoProvider infoProvider, final String message,
+    public void failure(final ConnectionMonitor.InfoProvider infoProvider,
+            final String message,
             final Object... messageArguments) {
 
-        final String formattedMessage = formatMessage(infoProvider, message, messageArguments);
-        logTraceWithCorrelationId(infoProvider.getCorrelationId(), "exception", infoProvider, formattedMessage);
+        logFailureEntry(getLogEntry(infoProvider,
+                formatMessage(infoProvider, message, messageArguments),
+                LogLevel.FAILURE));
+    }
+
+    private void logFailureEntry(final LogEntry logEntry) {
+        logTraceWithCorrelationId(logEntry);
+        failureLogs.add(logEntry);
+    }
+
+    @Override
+    public void exception(final ConnectionMonitor.InfoProvider infoProvider,
+            final String message,
+            final Object... messageArguments) {
+
+        final var formattedMessage = formatMessage(infoProvider, message, messageArguments);
+        logTraceExceptionWithCorrelationId(infoProvider.getCorrelationId(), infoProvider, formattedMessage);
         failureLogs.add(getLogEntry(infoProvider, formattedMessage, LogLevel.FAILURE));
+    }
+
+    private static void logTraceExceptionWithCorrelationId(final CharSequence correlationId,
+            final ConnectionMonitor.InfoProvider infoProvider,
+            final String message) {
+
+        if (LOGGER.isTraceEnabled()) {
+            LOGGER.withCorrelationId(correlationId)
+                    .trace("Saving exception log at <{}> for entity <{}> with message: {}",
+                            infoProvider.getTimestamp(),
+                            infoProvider.getEntityId(),
+                            message);
+        }
     }
 
     @Override
@@ -108,6 +149,20 @@ final class EvictingConnectionLogger extends AbstractConnectionLogger<EvictingCo
     @Override
     public void close() throws IOException {
         clear();
+    }
+
+    @Override
+    public void logEntry(final LogEntry logEntry) {
+        checkNotNull(logEntry, "logEntry");
+        if (LogLevel.SUCCESS == logEntry.getLogLevel()) {
+            final var logTimer = startConnectionLogTimer();
+            logTraceWithCorrelationId(logEntry);
+            logTimer.startNewSegment("message_internally_logged");
+            successLogs.add(logEntry);
+            logTimer.stop();
+        } else {
+            logFailureEntry(logEntry);
+        }
     }
 
     @Override
@@ -148,18 +203,6 @@ final class EvictingConnectionLogger extends AbstractConnectionLogger<EvictingCo
                 ", successLogs=" + successLogs +
                 ", failureLogs=" + failureLogs +
                 "]";
-    }
-
-    private static void logTraceWithCorrelationId(final CharSequence correlationId,
-            final String level,
-            final ConnectionMonitor.InfoProvider infoProvider,
-            final String message) {
-
-        if (LOGGER.isTraceEnabled()) {
-            LOGGER.withCorrelationId(correlationId)
-                    .trace("Saving {} log at <{}> for entity <{}> with message: {}", level, infoProvider.getTimestamp(),
-                            infoProvider.getEntityId(), message);
-        }
     }
 
     /**

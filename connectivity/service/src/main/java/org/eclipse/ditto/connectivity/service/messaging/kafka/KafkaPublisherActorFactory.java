@@ -16,6 +16,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
@@ -37,13 +38,14 @@ public interface KafkaPublisherActorFactory {
      * @param producerFactory a factory to create a kafka SendProducer.
      * @param dryRun if the publisher actor should be started in dry-run mode.
      * @param clientId identifier of the client actor.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @return the {@code Props} to create the publisher actor.
      */
     Props props(Connection connection, SendProducerFactory producerFactory, boolean dryRun,
-            String clientId, ConnectivityStatusResolver connectivityStatusResolver,
+            String clientId, ActorRef proxyActor, ConnectivityStatusResolver connectivityStatusResolver,
             ConnectivityConfig connectivityConfig);
 
 }

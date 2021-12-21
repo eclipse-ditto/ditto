@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.protocol.adapter.things;
 
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
@@ -65,6 +67,27 @@ public class ThingErrorResponseAdapterTest implements ProtocolAdapterTest {
         final ThingErrorResponse actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void testFromAdaptableWithChannelLive() {
+        final ThingErrorResponse expected =
+                ThingErrorResponse.of(TestConstants.THING_ID, dittoRuntimeException);
+
+        final TopicPath topicPath =
+                TopicPath.newBuilder(TestConstants.THING_ID).things().live().errors().build();
+        final JsonPointer path = JsonPointer.empty();
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(dittoRuntimeException.toJson(FieldType.regularOrSpecial()))
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingErrorResponse actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+        assertThat(actual.getDittoHeaders().getChannel()).hasValue("live");
     }
 
     @Test

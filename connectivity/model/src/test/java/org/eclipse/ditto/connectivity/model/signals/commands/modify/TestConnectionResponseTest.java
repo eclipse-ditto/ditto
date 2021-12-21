@@ -64,7 +64,7 @@ public final class TestConnectionResponseTest {
     public void createInstanceWithNullConnectionId() {
         assertThatExceptionOfType(NullPointerException.class)
                 .isThrownBy(() -> TestConnectionResponse.success(null, "connected", DittoHeaders.empty()))
-                .withMessage("The %s must not be null!", "ConnectionId")
+                .withMessage("The %s must not be null!", "connectionId")
                 .withNoCause();
     }
 
@@ -81,10 +81,10 @@ public final class TestConnectionResponseTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonObject actual =
-                TestConnectionResponse.success(TestConstants.CONNECTION.getId(), "connected", DittoHeaders.empty()).toJson();
+        final TestConnectionResponse underTest =
+                TestConnectionResponse.success(TestConstants.CONNECTION.getId(), "connected", DittoHeaders.empty());
 
-        assertThat(actual).isEqualTo(KNOWN_JSON);
+        assertThat(underTest.toJson()).isEqualTo(KNOWN_JSON);
     }
 
     @Test

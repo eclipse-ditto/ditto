@@ -70,8 +70,8 @@ public final class UnblockNamespaceResponseTest {
         final UnblockNamespaceResponse responseFromJson =
                 UnblockNamespaceResponse.fromJson(knownJsonRepresentation, dittoHeaders);
 
-        assertThat(responseFromJson).isEqualTo(
-                UnblockNamespaceResponse.getInstance(NAMESPACE, RESOURCE_TYPE, dittoHeaders));
+        assertThat(responseFromJson)
+                .isEqualTo(UnblockNamespaceResponse.getInstance(NAMESPACE, RESOURCE_TYPE, dittoHeaders));
     }
 
     @Test
@@ -92,4 +92,5 @@ public final class UnblockNamespaceResponseTest {
                 .contains(NAMESPACE)
                 .contains(RESOURCE_TYPE);
     }
+
 }

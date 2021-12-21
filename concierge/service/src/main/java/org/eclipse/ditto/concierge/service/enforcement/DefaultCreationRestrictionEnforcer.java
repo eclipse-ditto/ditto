@@ -12,15 +12,16 @@
  */
 package org.eclipse.ditto.concierge.service.enforcement;
 
+import java.util.List;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.concierge.service.common.CreationRestrictionConfig;
 import org.eclipse.ditto.concierge.service.common.EntityCreationConfig;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
-
-import javax.annotation.concurrent.Immutable;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Pattern;
 
 /**
  * Default implementation for {@link CreationRestrictionEnforcer} based on the configuration from {@link EntityCreationConfig}.

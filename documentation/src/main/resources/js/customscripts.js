@@ -43,17 +43,19 @@ $(function () {
 function changeSelectedDocVersionDropdownSelection(element) {
     var pathName = window.location.pathname;
 
-    var versionOptions = element.options;
-    for (var i = 0; i < versionOptions.length; i++) {
-        var versionValue = versionOptions[i].value;
-        if ((versionValue !== "") && pathName.startsWith("/ditto/"+versionValue+"/")) {
-            $("#docVersion").val(versionValue).change();
-            return;
+    if (element) {
+        var versionOptions = element.options;
+        for (var i = 0; i < versionOptions.length; i++) {
+            var versionValue = versionOptions[i].value;
+            if ((versionValue !== "") && pathName.startsWith("/ditto/"+versionValue+"/")) {
+                $("#docVersion").val(versionValue).change();
+                return;
+            }
         }
+        // fallback: dev with "empty" version value:
+        $("#docVersion").val("").change();
+        $("#dev-warning").show();
     }
-    // fallback: dev with "empty" version value:
-    $("#docVersion").val("").change();
-    $("#dev-warning").show();
 }
 
 function changeSelectedDocVersion() {

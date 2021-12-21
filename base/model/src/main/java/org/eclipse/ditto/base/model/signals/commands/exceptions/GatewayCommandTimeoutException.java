@@ -45,7 +45,7 @@ public final class GatewayCommandTimeoutException extends DittoRuntimeException 
 
     private static final String MESSAGE_TEMPLATE = "The Command reached the specified timeout of {0}ms.";
 
-    private static final String DEFAULT_DESCRIPTION = "Try increasing the command timeout";
+    private static final String DEFAULT_DESCRIPTION = "Try increasing the command timeout.";
 
     private static final long serialVersionUID = -3732435554989623073L;
 

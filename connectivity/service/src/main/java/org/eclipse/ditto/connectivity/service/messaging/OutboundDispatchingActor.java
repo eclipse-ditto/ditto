@@ -29,14 +29,16 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
-import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
@@ -115,8 +117,7 @@ final class OutboundDispatchingActor extends AbstractActor {
         logger.debug("Forwarding signal <{}> to client actor with targets: {}.", signalToForward.getType(),
                 subscribedAndAuthorizedTargets);
 
-        final OutboundSignal outbound =
-                OutboundSignalFactory.newOutboundSignal(signalToForward, subscribedAndAuthorizedTargets);
+        final var outbound = OutboundSignalFactory.newOutboundSignal(signalToForward, subscribedAndAuthorizedTargets);
 
         outboundMappingProcessorActor.tell(outbound, getSender());
     }
@@ -131,11 +132,6 @@ final class OutboundDispatchingActor extends AbstractActor {
                 sender);
     }
 
-    private void denyNonSourceDeclaredAck(final Acknowledgement ack) {
-        getSender().tell(AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders()),
-                ActorRef.noSender());
-    }
-
     private boolean isNotSourceDeclaredAck(final Acknowledgement acknowledgement) {
         return !settings.getSourceDeclaredAcks().contains(acknowledgement.getLabel());
     }
@@ -146,15 +142,16 @@ final class OutboundDispatchingActor extends AbstractActor {
 
     private Signal<?> adjustSignalAndStartAckForwarder(final Signal<?> signal, final EntityId entityId) {
         final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
-        if (ackRequests.isEmpty()) {
-            return signal;
-        }
         final Predicate<AcknowledgementLabel> isSourceDeclaredAck = settings.getSourceDeclaredAcks()::contains;
-        final Set<AcknowledgementLabel> targetIssuedAcks = settings.getTargetIssuedAcks();
         final boolean hasSourceDeclaredAcks = ackRequests.stream()
                 .map(AcknowledgementRequest::getLabel)
                 .anyMatch(isSourceDeclaredAck);
-        if (hasSourceDeclaredAcks) {
+        final boolean liveCommandExpectingResponse = isLiveCommandExpectingResponse(signal);
+        if (!liveCommandExpectingResponse && ackRequests.isEmpty()) {
+            return signal;
+        }
+        final Set<AcknowledgementLabel> targetIssuedAcks = settings.getTargetIssuedAcks();
+        if (hasSourceDeclaredAcks || liveCommandExpectingResponse) {
             // start ackregator for source declared acks
             return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
                     entityId,
@@ -172,29 +169,58 @@ final class OutboundDispatchingActor extends AbstractActor {
         }
     }
 
-    private void handleInboundResponseOrAcknowledgement(final WithDittoHeaders responseOrAck) {
-        if (responseOrAck instanceof Acknowledgement) {
-            final Acknowledgement ack = (Acknowledgement) responseOrAck;
-            if (isNotSourceDeclaredAck(ack)) {
-                denyNonSourceDeclaredAck(ack);
+    private boolean isLiveCommandExpectingResponse(final Signal<?> signal) {
+        final var headers = signal.getDittoHeaders();
+        return signal instanceof Command &&
+                headers.isResponseRequired() &&
+                (TopicPath.Channel.LIVE.getName().equals(headers.getChannel().orElse("")));
+    }
+
+    private void handleInboundResponseOrAcknowledgement(final Signal<?> responseOrAck) {
+        if (Acknowledgement.TYPE.equals(responseOrAck.getType())) {
+            final var acknowledgement = (Acknowledgement) responseOrAck;
+            if (isNotSourceDeclaredAck(acknowledgement)) {
+                denyNonSourceDeclaredAck(acknowledgement);
                 return;
             }
         }
 
-        final ActorContext context = getContext();
-        final Consumer<ActorRef> action = forwarder -> forwarder.forward(responseOrAck, context);
-        final Runnable emptyAction = () -> {
-            final String template = "No AcknowledgementForwarderActor found, forwarding to concierge: <{}>";
-            if (logger.isDebugEnabled()) {
-                logger.withCorrelationId(responseOrAck).debug(template, responseOrAck);
+        final var context = getContext();
+        final var proxyActor = settings.getProxyActor();
+        final Consumer<ActorRef> forwardAck = acknowledgementForwarder -> {
+            if (responseOrAck instanceof ThingQueryCommandResponse && isLiveResponse(responseOrAck)) {
+                // forward live command responses to concierge to filter response
+                proxyActor.tell(responseOrAck, getSender());
             } else {
-                logger.withCorrelationId(responseOrAck).info(template, responseOrAck.getClass().getCanonicalName());
+                acknowledgementForwarder.forward(responseOrAck, context);
             }
-            settings.getProxyActor().tell(responseOrAck, ActorRef.noSender());
+        };
+
+        final Runnable forwardToConcierge = () -> {
+            final var forwarderActorClassName = AcknowledgementForwarderActor.class.getSimpleName();
+            final var template = "No {} found. Forwarding signal to concierge. <{}>";
+            if (logger.isDebugEnabled()) {
+                logger.withCorrelationId(responseOrAck).debug(template, forwarderActorClassName, responseOrAck);
+            } else {
+                logger.withCorrelationId(responseOrAck)
+                        .info(template, forwarderActorClassName, responseOrAck.getClass().getCanonicalName());
+            }
+            proxyActor.tell(responseOrAck, ActorRef.noSender());
         };
 
         context.findChild(AcknowledgementForwarderActor.determineActorName(responseOrAck.getDittoHeaders()))
-                .ifPresentOrElse(action, emptyAction);
+                .ifPresentOrElse(forwardAck, forwardToConcierge);
+    }
+
+    private void denyNonSourceDeclaredAck(final Acknowledgement ack) {
+        final var sender = getSender();
+        sender.tell(AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders()),
+                ActorRef.noSender());
+    }
+
+    private static boolean isLiveResponse(final WithDittoHeaders response) {
+        final var dittoHeaders = response.getDittoHeaders();
+        return dittoHeaders.getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
 }

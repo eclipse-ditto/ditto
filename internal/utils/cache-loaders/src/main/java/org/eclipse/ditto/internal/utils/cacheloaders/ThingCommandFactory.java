@@ -14,8 +14,6 @@ package org.eclipse.ditto.internal.utils.cacheloaders;
 
 import java.util.UUID;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
@@ -39,22 +37,20 @@ final class ThingCommandFactory {
      * Creates a sudo command for retrieving a thing.
      *
      * @param thingId the thingId.
-     * @param context the context to apply when doing the cache lookup.
      * @return the created command.
      */
-    static SudoRetrieveThing sudoRetrieveThing(final EntityId thingId, @Nullable final EnforcementContext context) {
-        return sudoRetrieveThing(ThingId.of(thingId), context);
+    static SudoRetrieveThing sudoRetrieveThing(final EntityId thingId) {
+        return sudoRetrieveThing(ThingId.of(thingId));
     }
 
     /**
      * Creates a sudo command for retrieving a thing.
      *
      * @param thingId the thingId.
-     * @param context the context to apply when doing the cache lookup.
      * @return the created command.
      */
-    static SudoRetrieveThing sudoRetrieveThing(final ThingId thingId, @Nullable final EnforcementContext context) {
-        LOGGER.debug("Sending SudoRetrieveThing for Thing with ID <{}>", thingId);
+    static SudoRetrieveThing sudoRetrieveThing(final ThingId thingId) {
+        LOGGER.debug("Sending SudoRetrieveThing for Thing with ID <{}>.", thingId);
         return SudoRetrieveThing.withOriginalSchemaVersion(thingId, DittoHeaders.newBuilder()
                 .correlationId("sudoRetrieveThing-" + UUID.randomUUID())
                 .putHeader(DittoHeaderDefinition.DITTO_RETRIEVE_DELETED.getKey(), Boolean.TRUE.toString())

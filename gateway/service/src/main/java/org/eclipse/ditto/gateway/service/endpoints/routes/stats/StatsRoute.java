@@ -15,15 +15,14 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.stats;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestActor;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.SudoCountThings;
@@ -31,8 +30,6 @@ import org.eclipse.ditto.base.api.devops.signals.commands.DevOpsCommand;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatistics;
 import org.eclipse.ditto.base.api.devops.signals.commands.RetrieveStatisticsDetails;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.server.Directives;
@@ -61,25 +58,18 @@ public final class StatsRoute extends AbstractRoute {
     private final DevopsAuthenticationDirective devOpsAuthenticationDirective;
 
     /**
-     * Constructs the {@code /stats} route builder.
+     * Constructs a {@code StatsRoute} object.
      *
-     * @param proxyActor an actor selection of the command delegating actor.
-     * @param actorSystem the akka actor system.
-     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
-     * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
-     * @param headerTranslator translates headers from external sources or to external sources.
+     * @param routeBaseProperties the base properties of the route.
      * @param devOpsAuthenticationDirective the authentication handler for the Devops directive.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public StatsRoute(final ActorRef proxyActor,
-            final ActorSystem actorSystem,
-            final HttpConfig httpConfig,
-            final CommandConfig commandConfig,
-            final HeaderTranslator headerTranslator,
+    public StatsRoute(final RouteBaseProperties routeBaseProperties,
             final DevopsAuthenticationDirective devOpsAuthenticationDirective) {
 
-        super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
-        this.devOpsAuthenticationDirective = devOpsAuthenticationDirective;
+        super(routeBaseProperties);
+        this.devOpsAuthenticationDirective =
+                ConditionChecker.checkNotNull(devOpsAuthenticationDirective, "devOpsAuthenticationDirective");
     }
 
     /*

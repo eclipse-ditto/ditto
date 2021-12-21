@@ -32,9 +32,6 @@ import org.eclipse.ditto.base.model.json.Jsonifiable;
 @Immutable
 public final class SearchNamespaceResultEntry implements Jsonifiable.WithPredicate<JsonObject, JsonField> {
 
-    private static final JsonFieldDefinition<Integer> SCHEMA_VERSION_JSON_FIELD =
-            JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, JsonSchemaVersion.V_2);
-
     private static final JsonFieldDefinition<String> NAMESPACE_JSON_FIELD =
             JsonFactory.newStringFieldDefinition("namespace", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
@@ -93,10 +90,11 @@ public final class SearchNamespaceResultEntry implements Jsonifiable.WithPredica
 
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> predicate) {
+        final var eventualPredicate = schemaVersion.and(predicate);
+
         return JsonFactory.newObjectBuilder()
-                .set(SCHEMA_VERSION_JSON_FIELD, schemaVersion.toInt(), predicate)
-                .set(NAMESPACE_JSON_FIELD, namespace, predicate)
-                .set(COUNT_JSON_FIELD, count, predicate)
+                .set(NAMESPACE_JSON_FIELD, namespace, eventualPredicate)
+                .set(COUNT_JSON_FIELD, count, eventualPredicate)
                 .build();
     }
 
@@ -107,11 +105,13 @@ public final class SearchNamespaceResultEntry implements Jsonifiable.WithPredica
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o)
+        if (this == o) {
             return true;
-        if (o == null || getClass() != o.getClass())
+        }
+        if (o == null || getClass() != o.getClass()) {
             return false;
-        final SearchNamespaceResultEntry that = (SearchNamespaceResultEntry) o;
+        }
+        final var that = (SearchNamespaceResultEntry) o;
         return count == that.count && Objects.equals(namespace, that.namespace);
     }
 
@@ -136,15 +136,6 @@ public final class SearchNamespaceResultEntry implements Jsonifiable.WithPredica
      */
     public String getNamespace() {
         return namespace;
-    }
-
-    /**
-     * Get the Json Schema Version of this Report.
-     *
-     * @return the SCHEMA_VERSION.
-     */
-    public JsonFieldDefinition getSchemaVersion() {
-        return SCHEMA_VERSION_JSON_FIELD;
     }
 
     @Override

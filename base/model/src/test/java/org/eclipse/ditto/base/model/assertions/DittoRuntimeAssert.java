@@ -40,9 +40,9 @@ public final class DittoRuntimeAssert extends AbstractAssert<DittoRuntimeAssert,
         isNotNull();
 
         final String actualErrorCode = actual.getErrorCode();
-        assertThat(actualErrorCode) //
+        assertThat(actualErrorCode)
                 .overridingErrorMessage("Expected error code of DittoRuntimeException to be \n<%s> but it was \n<%s>",
-                        expectedErrorCode, actualErrorCode) //
+                        expectedErrorCode, actualErrorCode)
                 .isEqualTo(expectedErrorCode);
 
         return this;
@@ -77,6 +77,7 @@ public final class DittoRuntimeAssert extends AbstractAssert<DittoRuntimeAssert,
                 .overridingErrorMessage("Expected status code of DittoRuntimeException to be\n<%s> but it was\n<%s>",
                         expectedValue, actualStatusCode)
                 .isEqualTo(expectedValue);
+
         return myself;
     }
 
@@ -84,10 +85,10 @@ public final class DittoRuntimeAssert extends AbstractAssert<DittoRuntimeAssert,
         isNotNull();
 
         final DittoHeaders actualDittoHeaders = actual.getDittoHeaders();
-        assertThat(actualDittoHeaders) //
+        assertThat(actualDittoHeaders)
                 .overridingErrorMessage(
                         "Expected command headers of DittoRuntimeException to be \n<%s> but they were " + "\n<%s>",
-                        expectedDittoHeaders, actualDittoHeaders) //
+                        expectedDittoHeaders, actualDittoHeaders)
                 .isEqualTo(expectedDittoHeaders);
 
         return this;
@@ -106,9 +107,9 @@ public final class DittoRuntimeAssert extends AbstractAssert<DittoRuntimeAssert,
         isNotNull();
 
         final String actualMessage = actual.getMessage();
-        assertThat(actualMessage) //
+        assertThat(actualMessage)
                 .overridingErrorMessage("Expected message of DittoRuntimeException to be \n<%s> but it was \n<%s>",
-                        expectedMessage, actualMessage) //
+                        expectedMessage, actualMessage)
                 .isEqualTo(expectedMessage);
 
         return this;
@@ -118,11 +119,19 @@ public final class DittoRuntimeAssert extends AbstractAssert<DittoRuntimeAssert,
         isNotNull();
 
         final Throwable actualCause = actual.getCause();
-        assertThat(actualCause) //
+        assertThat(actualCause)
                 .overridingErrorMessage("Expected cause of DittoRuntimeException to be \n<%s> but it was \n<%s>",
-                        expectedCause,
-                        actualCause) //
+                        expectedCause, actualCause)
                 .isEqualTo(expectedCause);
+
+        return this;
+    }
+
+    public DittoRuntimeAssert hasNoCause() {
+        isNotNull();
+
+        final Throwable actualCause = actual.getCause();
+        assertThat(actualCause).as("Expected no cause").isNull();
 
         return this;
     }

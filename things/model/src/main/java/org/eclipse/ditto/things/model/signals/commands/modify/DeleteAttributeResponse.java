@@ -14,27 +14,29 @@ package org.eclipse.ditto.things.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.AttributesModelFactory;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePointerInvalidException;
 
@@ -43,8 +45,8 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.AttributePoint
  */
 @Immutable
 @JsonParsableCommandResponse(type = DeleteAttributeResponse.TYPE)
-public final class DeleteAttributeResponse extends AbstractCommandResponse<DeleteAttributeResponse> implements
-        ThingModifyCommandResponse<DeleteAttributeResponse> {
+public final class DeleteAttributeResponse extends AbstractCommandResponse<DeleteAttributeResponse>
+        implements ThingModifyCommandResponse<DeleteAttributeResponse> {
 
     /**
      * Type of this response.
@@ -52,16 +54,31 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
     public static final String TYPE = TYPE_PREFIX + DeleteAttribute.NAME;
 
     static final JsonFieldDefinition<String> JSON_ATTRIBUTE =
-            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("attribute", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.NO_CONTENT;
+
+    private static final CommandResponseJsonDeserializer<DeleteAttributeResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return newInstance(
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                JsonFactory.newPointer(jsonObject.getValueOrThrow(JSON_ATTRIBUTE)),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final ThingId thingId;
     private final JsonPointer attributePointer;
 
-    private DeleteAttributeResponse(final ThingId thingId, final JsonPointer attributePointer,
+    private DeleteAttributeResponse(final ThingId thingId,
+            final JsonPointer attributePointer,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
         this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
     }
@@ -91,10 +108,36 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
      * according to pattern {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
-    public static DeleteAttributeResponse of(final ThingId thingId, final JsonPointer attributePointer,
+    public static DeleteAttributeResponse of(final ThingId thingId,
+            final JsonPointer attributePointer,
             final DittoHeaders dittoHeaders) {
 
-        return new DeleteAttributeResponse(thingId, attributePointer, dittoHeaders);
+        return newInstance(thingId, attributePointer, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code DeleteAttributeResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the attributes were deleted from.
+     * @param attributePointer the JSON pointer of the deleted attribute.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code DeleteAttributeResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code DeleteAttributeResponse}.
+     * @since 2.3.0
+     */
+    public static DeleteAttributeResponse newInstance(final ThingId thingId,
+            final JsonPointer attributePointer,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new DeleteAttributeResponse(thingId,
+                attributePointer,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        DeleteAttributeResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -127,16 +170,7 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
      * according to pattern {@link org.eclipse.ditto.base.model.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static DeleteAttributeResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<DeleteAttributeResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
-                    final ThingId thingId = ThingId.of(extractedThingId);
-                    final String extractedPointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
-                    final JsonPointer extractedPointer = JsonFactory.newPointer(extractedPointerString);
-
-                    return of(thingId, extractedPointer, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -159,7 +193,8 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
@@ -169,7 +204,7 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
 
     @Override
     public DeleteAttributeResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, attributePointer, dittoHeaders);
+        return newInstance(thingId, attributePointer, getHttpStatus(), dittoHeaders);
     }
 
     @Override

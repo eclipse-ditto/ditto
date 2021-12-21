@@ -14,29 +14,32 @@ package org.eclipse.ditto.policies.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.policies.model.PolicyId;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 
 /**
@@ -53,53 +56,76 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
     public static final String TYPE = TYPE_PREFIX + RetrievePolicyEntries.NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_POLICY_ENTRIES =
-            JsonFactory.newJsonObjectFieldDefinition("policyEntries", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonObject("policyEntries", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<RetrievePolicyEntriesResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new RetrievePolicyEntriesResponse(
+                                PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID)),
+                                jsonObject.getValueOrThrow(JSON_POLICY_ENTRIES),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final PolicyId policyId;
     private final JsonObject policyEntries;
 
     private RetrievePolicyEntriesResponse(final PolicyId policyId,
+            final JsonObject policyEntries,
             final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrievePolicyEntriesResponse.class),
+                dittoHeaders);
+        this.policyId = checkNotNull(policyId, "policyId");
+        this.policyEntries = checkNotNull(policyEntries, "policyEntry");
+    }
+
+    /**
+     * Creates a response to a {@code RetrievePolicyEntries} command.
+     *
+     * @param policyId the Policy ID of the retrieved policy entries.
+     * @param policyEntries the retrieved Policy entries.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrievePolicyEntriesResponse of(final PolicyId policyId,
+            final Iterable<PolicyEntry> policyEntries,
+            final DittoHeaders dittoHeaders) {
+
+        checkNotNull(policyEntries, "policyEntries");
+
+        final JsonObject policyEntriesJsonObject = StreamSupport.stream(policyEntries.spliterator(), false)
+                .map(entry -> JsonField.newInstance(entry.getLabel(),
+                        entry.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST))))
+                .collect(JsonCollectors.fieldsToObject());
+
+        return of(policyId, policyEntriesJsonObject, dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@code RetrievePolicyEntries} command.
+     *
+     * @param policyId the Policy ID of the retrieved policy entries.
+     * @param policyEntries the retrieved Policy entries.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrievePolicyEntriesResponse of(final PolicyId policyId,
             final JsonObject policyEntries,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, httpStatus, dittoHeaders);
-        this.policyId = checkNotNull(policyId, "Policy ID");
-        this.policyEntries = checkNotNull(policyEntries, "Policy entry");
-    }
-
-    /**
-     * Creates a response to a {@code RetrievePolicyEntries} command.
-     *
-     * @param policyId the Policy ID of the retrieved policy entries.
-     * @param policyEntries the retrieved Policy entries.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static RetrievePolicyEntriesResponse of(final PolicyId policyId, final Iterable<PolicyEntry> policyEntries,
-            final DittoHeaders dittoHeaders) {
-
-        final JsonObjectBuilder objectBuilder = JsonFactory.newObjectBuilder();
-        checkNotNull(policyEntries, "Policy Entries").forEach(entry -> objectBuilder
-                .set(entry.getLabel().toString(),
-                        entry.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST))));
-        return of(policyId, objectBuilder.build(), dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@code RetrievePolicyEntries} command.
-     *
-     * @param policyId the Policy ID of the retrieved policy entries.
-     * @param policyEntries the retrieved Policy entries.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     */
-    public static RetrievePolicyEntriesResponse of(final PolicyId policyId, final JsonObject policyEntries,
-            final DittoHeaders dittoHeaders) {
-
-        return new RetrievePolicyEntriesResponse(policyId, HttpStatus.OK, policyEntries, dittoHeaders);
+        return new RetrievePolicyEntriesResponse(policyId, policyEntries, HttpStatus.OK, dittoHeaders);
     }
 
     /**
@@ -113,7 +139,7 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected format.
      */
     public static RetrievePolicyEntriesResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -128,15 +154,7 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
     public static RetrievePolicyEntriesResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new CommandResponseJsonDeserializer<RetrievePolicyEntriesResponse>(TYPE, jsonObject)
-                .deserialize(httpStatus -> {
-                    final String extractedPolicyId =
-                            jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
-                    final JsonObject extractedPolicyEntries = jsonObject.getValueOrThrow(JSON_POLICY_ENTRIES);
-
-                    return of(policyId, extractedPolicyEntries, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -175,7 +193,8 @@ public final class RetrievePolicyEntriesResponse extends AbstractCommandResponse
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

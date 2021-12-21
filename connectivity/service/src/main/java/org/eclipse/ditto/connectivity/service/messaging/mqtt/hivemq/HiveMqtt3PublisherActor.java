@@ -26,6 +26,7 @@ import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
@@ -37,9 +38,9 @@ public final class HiveMqtt3PublisherActor extends AbstractMqttPublisherActor<Mq
 
     @SuppressWarnings("squid:UnusedPrivateConstructor") // used by akka
     private HiveMqtt3PublisherActor(final Connection connection, final Mqtt3Client client, final boolean dryRun,
-            final String clientId, final ConnectivityStatusResolver connectivityStatusResolver,
+            final String clientId, final ActorRef proxyActor, final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
-        super(connection, client.toAsync()::publish, dryRun, clientId, connectivityStatusResolver, connectivityConfig);
+        super(connection, client.toAsync()::publish, dryRun, clientId, proxyActor, connectivityStatusResolver, connectivityConfig);
     }
 
     /**
@@ -49,15 +50,17 @@ public final class HiveMqtt3PublisherActor extends AbstractMqttPublisherActor<Mq
      * @param client the HiveMQ client.
      * @param dryRun whether this publisher is only created for a test or not.
      * @param clientId identifier of the client actor.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @return the Props object.
      */
     public static Props props(final Connection connection, final Mqtt3Client client, final boolean dryRun,
-            final String clientId, final ConnectivityStatusResolver connectivityStatusResolver,
+            final String clientId, final ActorRef proxyActor,
+            final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
-        return Props.create(HiveMqtt3PublisherActor.class, connection, client, dryRun, clientId,
+        return Props.create(HiveMqtt3PublisherActor.class, connection, client, dryRun, clientId, proxyActor,
                 connectivityStatusResolver, connectivityConfig);
     }
 

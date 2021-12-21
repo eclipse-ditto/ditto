@@ -14,6 +14,7 @@ package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.text.MessageFormat;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -21,40 +22,41 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
-import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
 import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.DefaultUserInformation;
+import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
+import org.eclipse.ditto.gateway.service.util.config.DittoGatewayConfig;
+import org.eclipse.ditto.gateway.service.util.config.GatewayConfig;
+import org.eclipse.ditto.internal.utils.akka.ActorSystemResource;
+import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageDirection;
 import org.eclipse.ditto.messages.model.MessageHeaderDefinition;
 import org.eclipse.ditto.messages.model.MessageHeaders;
-import org.eclipse.ditto.policies.model.SubjectId;
-import org.eclipse.ditto.policies.model.SubjectIssuer;
-import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.DefaultUserInformation;
-import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.UserInformation;
-import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.Whoami;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessageResponse;
+import org.eclipse.ditto.policies.model.SubjectId;
+import org.eclipse.ditto.policies.model.SubjectIssuer;
+import org.eclipse.ditto.protocol.HeaderTranslator;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
 
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
@@ -64,33 +66,29 @@ import akka.http.javadsl.model.StatusCode;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.headers.RawHeader;
 import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
 import akka.util.ByteString;
 
 /**
- * Abstract class to setup the infrastructure to test HttpRequestActor.
+ * Abstract class to set up the infrastructure to test HttpRequestActor.
  */
 public abstract class AbstractHttpRequestActorTest {
 
-    static final HeaderTranslator HEADER_TRANSLATOR = HeaderTranslator.of(
-            DittoHeaderDefinition.values(),
+    @ClassRule
+    public static final ActorSystemResource ACTOR_SYSTEM_RESOURCE = ActorSystemResource.newInstance();
+
+    static final HeaderTranslator HEADER_TRANSLATOR = HeaderTranslator.of(DittoHeaderDefinition.values(),
             MessageHeaderDefinition.values());
 
-    static ActorSystem system;
-    static GatewayConfig gatewayConfig;
+    protected static GatewayConfig gatewayConfig;
+    protected static TestProbe connectivityShardRegionProxy;
+
+    @Rule
+    public final TestNameCorrelationId testNameCorrelationId = TestNameCorrelationId.newInstance();
 
     @BeforeClass
     public static void beforeClass() {
-        system = ActorSystem.create();
-        final DefaultScopedConfig dittoConfig = DefaultScopedConfig.dittoScoped(ConfigFactory.load("test.conf"));
-        gatewayConfig = DittoGatewayConfig.of(dittoConfig);
-    }
-
-    @AfterClass
-    public static void afterClass() {
-        if (null != system) {
-            TestKit.shutdownActorSystem(system);
-        }
+        gatewayConfig = DittoGatewayConfig.of(DefaultScopedConfig.dittoScoped(ConfigFactory.load("test.conf")));
+        connectivityShardRegionProxy = ACTOR_SYSTEM_RESOURCE.newTestProbe();
     }
 
     void testThingModifyCommand(final ThingId thingId,
@@ -102,36 +100,39 @@ public abstract class AbstractHttpRequestActorTest {
             final StatusCode expectedHttpStatusCode,
             final DittoHeaders expectedResponseHeaders) throws InterruptedException, ExecutionException {
 
-        final TestProbe proxyActorProbe = TestProbe.apply(system);
+        final var proxyActorProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
+        final var modifyAttribute = ModifyAttribute.of(thingId, attributePointer, JsonValue.of("bar"), dittoHeaders);
+        final var responseFuture = new CompletableFuture<HttpResponse>();
+        final var underTest =
+                createHttpRequestActor(proxyActorProbe.ref(), getHttpRequest(modifyAttribute), responseFuture);
 
-        final ModifyAttribute modifyAttribute = ModifyAttribute.of(
-                thingId, attributePointer, JsonValue.of("bar"), dittoHeaders);
-
-        final HttpRequest request =
-                HttpRequest.PUT("/api/2/things/" + thingId.toString() + "/attributes/" + attributeName);
-        final CompletableFuture<HttpResponse> responseFuture = new CompletableFuture<>();
-
-        final ActorRef underTest = createHttpRequestActor(proxyActorProbe.ref(), request, responseFuture);
         underTest.tell(modifyAttribute, ActorRef.noSender());
 
-        final ModifyAttribute expectedModifyAttribute = modifyAttribute.setDittoHeaders(expectedHeaders);
+        final var expectedModifyAttribute = modifyAttribute.setDittoHeaders(expectedHeaders);
         proxyActorProbe.expectMsg(expectedModifyAttribute);
 
         if (null != probeResponse) {
             proxyActorProbe.reply(probeResponse);
         }
 
-        final HttpResponse response = responseFuture.get();
-        assertThat(response.status()).isEqualTo(expectedHttpStatusCode);
+        final var httpResponse = responseFuture.get();
+        assertThat(httpResponse.status()).isEqualTo(expectedHttpStatusCode);
+
         if (expectedResponseHeaders != null) {
-            final List<HttpHeader> expectedHttpResponseHeaders =
-                    HEADER_TRANSLATOR.toExternalHeaders(expectedResponseHeaders)
-                            .entrySet()
-                            .stream()
-                            .map(e -> RawHeader.create(e.getKey(), e.getValue()))
-                            .collect(Collectors.toList());
-            assertThat(response.getHeaders()).isEqualTo(expectedHttpResponseHeaders);
+            final var expectedHttpResponseHeaders = HEADER_TRANSLATOR.toExternalHeaders(expectedResponseHeaders)
+                    .entrySet()
+                    .stream()
+                    .map(e -> RawHeader.create(e.getKey(), e.getValue()))
+                    .collect(Collectors.toList());
+
+            assertThat(httpResponse.getHeaders()).isEqualTo(expectedHttpResponseHeaders);
         }
+    }
+
+    protected static HttpRequest getHttpRequest(final ModifyAttribute modifyAttribute) {
+        return HttpRequest.PUT(MessageFormat.format("/api/2/things/{0}/attributes{1}",
+                modifyAttribute.getEntityId(),
+                modifyAttribute.getAttributePointer()));
     }
 
     void testMessageCommand(final ThingId thingId,
@@ -143,7 +144,7 @@ public abstract class AbstractHttpRequestActorTest {
             final DittoHeaders expectedResponseHeaders,
             @Nullable final ResponseEntity expectedHttpResponseEntity) throws InterruptedException, ExecutionException {
 
-        HttpResponse expectedHttpResponse = HttpResponse.create().withStatus(expectedHttpStatusCode);
+        var expectedHttpResponse = HttpResponse.create().withStatus(expectedHttpStatusCode);
         if (expectedResponseHeaders != null) {
             final List<HttpHeader> expectedHttpResponseHeaders =
                     HEADER_TRANSLATOR.toExternalHeaders(expectedResponseHeaders)
@@ -166,25 +167,23 @@ public abstract class AbstractHttpRequestActorTest {
             final DittoHeaders expectedHeaders,
             @Nullable final SendThingMessageResponse<?> probeResponse) throws InterruptedException, ExecutionException {
 
-        final TestProbe proxyActorProbe = TestProbe.apply(system);
+        final var proxyActorProbe = ACTOR_SYSTEM_RESOURCE.newTestProbe();
 
-        final Message<?> message = Message.newBuilder(
-                MessageHeaders.newBuilder(MessageDirection.TO, thingId, messageSubject)
-                        .contentType("application/json")
-                        .build()
-        )
+        final var messageHeaders = MessageHeaders.newBuilder(MessageDirection.TO, thingId, messageSubject)
+                .contentType("application/json")
+                .build();
+        final Message<?> message = Message.newBuilder(messageHeaders)
                 .payload(JsonValue.of("ping"))
                 .build();
-        final SendThingMessage<?> sendThingMessage = SendThingMessage.of(thingId, message, dittoHeaders);
+        final var sendThingMessage = SendThingMessage.of(thingId, message, dittoHeaders);
 
-        final HttpRequest request =
-                HttpRequest.PUT("/api/2/things/" + thingId.toString() + "/inbox/messages/" + messageSubject);
-        final CompletableFuture<HttpResponse> responseFuture = new CompletableFuture<>();
+        final var httpRequest = HttpRequest.PUT("/api/2/things/" + thingId + "/inbox/messages/" + messageSubject);
+        final var responseFuture = new CompletableFuture<HttpResponse>();
 
-        final ActorRef underTest = createHttpRequestActor(proxyActorProbe.ref(), request, responseFuture);
+        final var underTest = createHttpRequestActor(proxyActorProbe.ref(), httpRequest, responseFuture);
         underTest.tell(sendThingMessage, ActorRef.noSender());
 
-        final SendThingMessage<?> expectedSendThingMessage = sendThingMessage.setDittoHeaders(expectedHeaders);
+        final var expectedSendThingMessage = sendThingMessage.setDittoHeaders(expectedHeaders);
         proxyActorProbe.expectMsg(expectedSendThingMessage);
 
         if (null != probeResponse) {
@@ -199,48 +198,53 @@ public abstract class AbstractHttpRequestActorTest {
             final DittoHeaders expectedHeaders,
             final String contentType,
             final JsonValue responsePayload) {
+
         final Message<?> responseMessage = Message.newBuilder(
-                MessageHeaders.newBuilder(MessageDirection.TO, thingId, messageSubject)
-                        .httpStatus(HttpStatus.IM_USED)
-                        .contentType(contentType)
-                        .build()
-        )
+                        MessageHeaders.newBuilder(MessageDirection.TO, thingId, messageSubject)
+                                .httpStatus(HttpStatus.IM_USED)
+                                .contentType(contentType)
+                                .build()
+                )
                 .payload(responsePayload)
                 .build();
+
         return SendThingMessageResponse.of(thingId, responseMessage, HttpStatus.IM_USED, expectedHeaders);
     }
 
-    ActorRef createHttpRequestActor(final ActorRef proxyActorRef, final HttpRequest request,
+    ActorRef createHttpRequestActor(final ActorRef proxyActorRef,
+            final HttpRequest request,
             final CompletableFuture<HttpResponse> response) {
-        return system.actorOf(HttpRequestActor.props(
-                proxyActorRef,
-                HEADER_TRANSLATOR,
-                request,
-                response,
-                gatewayConfig.getHttpConfig(),
-                gatewayConfig.getCommandConfig()
-        ));
+
+        return ACTOR_SYSTEM_RESOURCE.newActor(HttpRequestActor.props(
+                        proxyActorRef,
+                        HEADER_TRANSLATOR,
+                        request,
+                        response,
+                        gatewayConfig.getHttpConfig(),
+                        gatewayConfig.getCommandConfig(),
+                        connectivityShardRegionProxy.ref()
+                )
+        );
     }
 
     DittoHeaders createAuthorizedHeaders() {
-        final AuthorizationContext context = AuthorizationContext.newInstance(DittoAuthorizationContextType.JWT,
+        final var context = AuthorizationContext.newInstance(DittoAuthorizationContextType.JWT,
                 AuthorizationSubject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "any-google-user")),
-                AuthorizationSubject.newInstance(
-                        SubjectId.newInstance(SubjectIssuer.INTEGRATION, "any-integration-subject")));
+                AuthorizationSubject.newInstance(SubjectId.newInstance(SubjectIssuer.INTEGRATION,
+                        "any-integration-subject")));
         return DittoHeaders.newBuilder()
-                .randomCorrelationId()
+                .correlationId(testNameCorrelationId.getCorrelationId())
                 .authorizationContext(context)
                 .build();
     }
 
     HttpResponse createExpectedWhoamiResponse(final Whoami whoami) {
-        final AuthorizationContext authContext =
-                getAuthContextWithPrefixedSubjectsFromHeaders(whoami.getDittoHeaders());
-        final UserInformation userInformation = DefaultUserInformation.fromAuthorizationContext(authContext);
+        final var authContext = getAuthContextWithPrefixedSubjectsFromHeaders(whoami.getDittoHeaders());
+        final var userInformation = DefaultUserInformation.fromAuthorizationContext(authContext);
         final List<HttpHeader> expectedHeaders = HEADER_TRANSLATOR.toExternalHeaders(whoami.getDittoHeaders()
-                .toBuilder()
-                .responseRequired(false)
-                .build())
+                        .toBuilder()
+                        .responseRequired(false)
+                        .build())
                 .entrySet()
                 .stream()
                 .map(e -> RawHeader.create(e.getKey(), e.getValue()))
@@ -251,8 +255,8 @@ public abstract class AbstractHttpRequestActorTest {
     }
 
     static AuthorizationContext getAuthContextWithPrefixedSubjectsFromHeaders(final DittoHeaders headers) {
-        final String authContextString = headers.get(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey());
-        final JsonObject authContextJson = authContextString == null ?
+        final var authContextString = headers.get(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey());
+        final var authContextJson = authContextString == null ?
                 JsonObject.empty() :
                 JsonObject.of(authContextString);
         return AuthorizationModelFactory.newAuthContext(authContextJson);

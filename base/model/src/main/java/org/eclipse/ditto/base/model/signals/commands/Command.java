@@ -17,14 +17,14 @@ import java.util.function.Predicate;
 import javax.annotation.concurrent.Immutable;
 
 import org.atteo.classindex.IndexSubclasses;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Base Interface for all commands which are understood by Ditto.
@@ -62,9 +62,9 @@ public interface Command<T extends Command<T>> extends Signal<T> {
     }
 
     /**
-     * Returns all non hidden marked fields of this command.
+     * Returns all non-hidden marked fields of this command.
      *
-     * @return a JSON object representation of this command including only non hidden marked fields.
+     * @return a JSON object representation of this command including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {

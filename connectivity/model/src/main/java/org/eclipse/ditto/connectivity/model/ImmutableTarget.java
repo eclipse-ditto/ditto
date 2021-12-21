@@ -127,9 +127,8 @@ final class ImmutableTarget implements Target {
     @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
-        jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
+        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
         jsonObjectBuilder.set(JsonFields.ADDRESS, address, predicate);
         jsonObjectBuilder.set(JsonFields.TOPICS, topics.stream()
                 .map(FilteredTopic::toString)
@@ -169,7 +168,6 @@ final class ImmutableTarget implements Target {
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} is not an appropriate JSON object.
      */
     public static Target fromJson(final JsonObject jsonObject) {
-
         final Set<FilteredTopic> readTopics = jsonObject.getValue(JsonFields.TOPICS)
                 .map(array -> array.stream()
                         .map(JsonValue::asString)
@@ -232,8 +230,14 @@ final class ImmutableTarget implements Target {
 
     @Override
     public int hashCode() {
-        return Objects.hash(address, topics, qos, authorizationContext, originalAddress, issuedAcknowledgementLabel,
-                headerMapping, payloadMapping);
+        return Objects.hash(address,
+                topics,
+                qos,
+                authorizationContext,
+                originalAddress,
+                issuedAcknowledgementLabel,
+                headerMapping,
+                payloadMapping);
     }
 
     @Override
@@ -360,6 +364,7 @@ final class ImmutableTarget implements Target {
             checkNotNull(originalAddress, "originalAddress");
             return new ImmutableTarget(this);
         }
+
     }
 
 }

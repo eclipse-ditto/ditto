@@ -44,7 +44,7 @@ import akka.actor.ActorSystem;
 @Immutable
 public abstract class MappingStrategies implements Map<String, JsonParsable<Jsonifiable<?>>> {
 
-    private static final String CONFIG_KEY_DITTO_MAPPING_STRATEGY_IMPLEMENTATION =
+    static final String CONFIG_KEY_DITTO_MAPPING_STRATEGY_IMPLEMENTATION =
             "ditto.mapping-strategy.implementation";
 
     private final Map<String, JsonParsable<Jsonifiable<?>>> strategies;

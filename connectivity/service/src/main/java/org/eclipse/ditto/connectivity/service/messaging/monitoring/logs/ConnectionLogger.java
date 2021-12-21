@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.connectivity.service.messaging.monitoring.logs;
 
 import java.io.Closeable;
@@ -164,5 +163,14 @@ public interface ConnectionLogger extends Closeable {
     default void exception(final ConnectionMonitor.InfoProvider infoProvider) {
         exception(infoProvider, null);
     }
+
+    /**
+     * Logs the specified {@code LogEntry} argument.
+     *
+     * @param logEntry the entry to be logged.
+     * @throws NullPointerException if {@code logEntry} is {@code null}.
+     * @since 2.3.0
+     */
+    void logEntry(LogEntry logEntry);
 
 }

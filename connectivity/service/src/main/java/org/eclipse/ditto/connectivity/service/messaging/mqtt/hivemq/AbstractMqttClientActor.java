@@ -87,7 +87,7 @@ abstract class AbstractMqttClientActor<S, P, Q extends MqttClient, R> extends Ba
     @Nullable private ActorRef publisherActor;
     private final MqttConfig mqttConfig;
 
-    AbstractMqttClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
+    AbstractMqttClientActor(final Connection connection, final ActorRef proxyActor,
             final ActorRef connectionActor, final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
         super(connection, proxyActor, connectionActor, dittoHeaders, connectivityConfigOverwrites);

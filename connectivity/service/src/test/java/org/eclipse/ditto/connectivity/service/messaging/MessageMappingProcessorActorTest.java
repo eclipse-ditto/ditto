@@ -394,7 +394,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             // WHEN: message sent valid topic and invalid topic+path combination
             final String messageContent = "{  \n" +
                     "   \"topic\":\"Testspace/octopus/things/twin/commands/retrieve\",\n" +
-                    "   \"path\":\"/policyId\",\n" +
+                    "   \"path\":\"/invalid\",\n" +
                     "   \"headers\":{  \n" +
                     "      \"correlation-id\":\"" + correlationId + "\"\n" +
                     "   }\n" +
@@ -452,7 +452,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
 
             // WHEN: message sent with valid topic and invalid topic+path combination
             final String topicPrefix = "Testspace/octopus/things/live/";
-            final String topic = topicPrefix + "commands/retrieve";
+            final String topic = topicPrefix + "commands/merge";
             final String path = "/policyId";
             final String messageContent = "{  \n" +
                     "   \"topic\":\"" + topic + "\",\n" +

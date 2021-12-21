@@ -71,8 +71,7 @@ import akka.stream.javadsl.Flow;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests error handling of {@link HttpPublisherActor}
- * against {@link HttpPushFactory}.
+ * Tests error handling of {@link HttpPublisherActor} against {@link HttpPushFactory}.
  */
 public final class HttpPublisherErrorTest {
 
@@ -113,7 +112,7 @@ public final class HttpPublisherErrorTest {
             final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
                     mock(ConnectionLogger.class), SshTunnelState::disabled);
             final Props props = HttpPublisherActor.props(connection, factory, "clientId",
-                    mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
+                    actorSystem.deadLetters(), mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
             final ActorRef underTest = watch(childActorOf(props));
 
             // WHEN: it is asked to publish events with delay between them larger than connection pool timeout
@@ -146,7 +145,7 @@ public final class HttpPublisherErrorTest {
             final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
                     mock(ConnectionLogger.class), SshTunnelState::disabled);
             final Props props = HttpPublisherActor.props(connection, factory, "clientId",
-                    mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
+                    actorSystem.deadLetters(), mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
             final ActorRef underTest = watch(childActorOf(props));
 
             // GIVEN: The connection is working.

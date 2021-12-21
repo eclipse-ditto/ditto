@@ -126,7 +126,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
     @Override
     protected Props createClientActor(final ActorRef proxyActor, final Connection connection) {
-        return HttpPushClientActor.props(connection, proxyActor, dittoHeaders, ConfigFactory.empty());
+        return HttpPushClientActor.props(connection, proxyActor, proxyActor, dittoHeaders, ConfigFactory.empty());
     }
 
     @Override

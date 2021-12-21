@@ -78,7 +78,6 @@ import org.eclipse.ditto.connectivity.service.messaging.amqp.status.ConsumerClos
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.connectivity.service.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
@@ -94,7 +93,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.dispatch.MessageDispatcher;
 import akka.stream.javadsl.Sink;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -321,23 +319,28 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorWithAcknow
                 AbstractConsumerActorTest.actorSystem,
                 protocolAdapter,
                 logger);
-        final Sink<Object, NotUsed> inboundDispatchingSink =
-                InboundDispatchingSink.createSink(CONNECTION, protocolAdapter.headerTranslator(),
-                        ActorSelection.apply(testRef, ""), connectionActorProbe.ref(),
-                        testRef,
-                        TestProbe.apply(actorSystem).ref(),
-                        actorSystem,
-                        ConnectivityConfig.of(actorSystem.settings().config()));
+        final var inboundDispatchingSink = InboundDispatchingSink.createSink(CONNECTION,
+                protocolAdapter.headerTranslator(),
+                ActorSelection.apply(testRef, ""),
+                connectionActorProbe.ref(),
+                testRef,
+                TestProbe.apply(actorSystem).ref(),
+                actorSystem,
+                ConnectivityConfig.of(actorSystem.settings().config()),
+                null);
 
-        final MessageDispatcher messageDispatcher = actorSystem.dispatchers().defaultGlobalDispatcher();
-        return InboundMappingSink.createSink(inboundMappingProcessor, CONNECTION_ID, 99, inboundDispatchingSink,
-                TestConstants.MAPPING_CONFIG, null, messageDispatcher);
+        return InboundMappingSink.createSink(inboundMappingProcessor,
+                CONNECTION_ID,
+                99,
+                inboundDispatchingSink,
+                TestConstants.MAPPING_CONFIG,
+                null,
+                actorSystem.dispatchers().defaultGlobalDispatcher());
     }
 
     @Test
     public void jmsMessageWithNullPropertyAndNullContentTypeTest() throws JMSException {
         new TestKit(actorSystem) {{
-
             final ActorRef testActor = getTestActor();
             final Sink<Object, NotUsed> mappingSink = setupMappingSink(testActor, null, actorSystem);
 

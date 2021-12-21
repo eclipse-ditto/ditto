@@ -14,10 +14,10 @@ package org.eclipse.ditto.gateway.service.endpoints.actors;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -36,9 +36,16 @@ public final class HttpRequestActor extends AbstractHttpRequestActor {
             final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture,
             final HttpConfig httpConfig,
-            final CommandConfig commandConfig) {
+            final CommandConfig commandConfig,
+            final ActorRef connectivityShardRegionProxy) {
 
-        super(proxyActor, headerTranslator, request, httpResponseFuture, httpConfig, commandConfig);
+        super(proxyActor,
+                headerTranslator,
+                request,
+                httpResponseFuture,
+                httpConfig,
+                commandConfig,
+                connectivityShardRegionProxy);
     }
 
     /**
@@ -52,6 +59,7 @@ public final class HttpRequestActor extends AbstractHttpRequestActor {
      * @param httpResponseFuture the completable future which is completed with a HTTP response.
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @param commandConfig the configuration settings for incoming commands (via HTTP requests) in the gateway.
+     * @param connectivityShardRegionProxy proxy actor reference for Connectivity's cluster shard region.
      * @return the configuration object.
      */
     public static Props props(final ActorRef proxyActor,
@@ -59,10 +67,17 @@ public final class HttpRequestActor extends AbstractHttpRequestActor {
             final HttpRequest request,
             final CompletableFuture<HttpResponse> httpResponseFuture,
             final HttpConfig httpConfig,
-            final CommandConfig commandConfig) {
+            final CommandConfig commandConfig,
+            final ActorRef connectivityShardRegionProxy) {
 
-        return Props.create(HttpRequestActor.class, proxyActor, headerTranslator, request, httpResponseFuture,
-                httpConfig, commandConfig);
+        return Props.create(HttpRequestActor.class,
+                proxyActor,
+                headerTranslator,
+                request,
+                httpResponseFuture,
+                httpConfig,
+                commandConfig,
+                connectivityShardRegionProxy);
     }
 
 }

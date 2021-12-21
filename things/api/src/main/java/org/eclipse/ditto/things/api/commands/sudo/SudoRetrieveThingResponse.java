@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.api.commands.sudo;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -27,8 +28,8 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -56,16 +57,31 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_THING =
-            JsonFactory.newJsonObjectFieldDefinition("payload/thing", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonObject("payload/thing", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<SudoRetrieveThingResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final var jsonObject = context.getJsonObject();
+                        return new SudoRetrieveThingResponse(jsonObject.getValueOrThrow(JSON_THING),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders());
+                    });
 
     private final JsonObject thing;
 
-    private SudoRetrieveThingResponse(final HttpStatus httpStatus, final JsonObject thing,
+    private SudoRetrieveThingResponse(final JsonObject thing,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, httpStatus, dittoHeaders);
-        this.thing = checkNotNull(thing, "Thing");
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        SudoRetrieveThingResponse.class),
+                dittoHeaders);
+        this.thing = checkNotNull(thing, "thing");
     }
 
     /**
@@ -77,7 +93,7 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static SudoRetrieveThingResponse of(final JsonObject thing, final DittoHeaders dittoHeaders) {
-        return new SudoRetrieveThingResponse(HttpStatus.OK, thing, dittoHeaders);
+        return new SudoRetrieveThingResponse(thing, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -91,7 +107,7 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
      * 'SudoRetrieveThingResponse' format.
      */
     public static SudoRetrieveThingResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        final var jsonObject = DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+        final var jsonObject = DittoJsonException.wrapJsonRuntimeException(() -> JsonObject.of(jsonString));
         return fromJson(jsonObject, dittoHeaders);
     }
 
@@ -106,8 +122,7 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
      * 'SudoRetrieveThingResponse' format.
      */
     public static SudoRetrieveThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<SudoRetrieveThingResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> of(jsonObject.getValueOrThrow(JSON_THING), dittoHeaders));
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     /**
@@ -136,10 +151,11 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
-        final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
+        final var predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_THING, thing, predicate);
     }
 
@@ -148,7 +164,6 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
         return Objects.hash(super.hashCode(), thing);
     }
 
-    @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "pmd:SimplifyConditional"})
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
@@ -157,7 +172,7 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final SudoRetrieveThingResponse that = (SudoRetrieveThingResponse) o;
+        final var that = (SudoRetrieveThingResponse) o;
         return that.canEqual(this) && Objects.equals(thing, that.thing) && super.equals(that);
     }
 

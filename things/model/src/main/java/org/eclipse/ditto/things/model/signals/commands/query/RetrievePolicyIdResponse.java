@@ -14,28 +14,30 @@ package org.eclipse.ditto.things.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 
 /**
@@ -52,19 +54,33 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     public static final String TYPE = TYPE_PREFIX + RetrievePolicyId.NAME;
 
     static final JsonFieldDefinition<String> JSON_POLICY_ID =
-            JsonFactory.newStringFieldDefinition("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("policyId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<RetrievePolicyIdResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return newInstance(
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                PolicyId.of(jsonObject.getValueOrThrow(JSON_POLICY_ID)),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final ThingId thingId;
     private final PolicyId policyId;
 
     private RetrievePolicyIdResponse(final ThingId thingId,
-            final HttpStatus httpStatus,
             final PolicyId policyId,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, httpStatus, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "thing ID");
-        this.policyId = checkNotNull(policyId, "Policy ID");
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.policyId = checkNotNull(policyId, "policyId");
     }
 
     /**
@@ -76,10 +92,36 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrievePolicyIdResponse of(final ThingId thingId, final PolicyId policyId,
+    public static RetrievePolicyIdResponse of(final ThingId thingId,
+            final PolicyId policyId,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrievePolicyIdResponse(thingId, HttpStatus.OK, policyId, dittoHeaders);
+        return newInstance(thingId, policyId, HTTP_STATUS, dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code RetrievePolicyIdResponse} for the specified arguments.
+     *
+     * @param thingId the ID of the thing the policy ID belongs to.
+     * @param policyId the retrieved Policy ID.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code RetrievePolicyIdResponse} instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code RetrievePolicyIdResponse}.
+     * @since 2.3.0
+     */
+    public static RetrievePolicyIdResponse newInstance(final ThingId thingId,
+            final PolicyId policyId,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new RetrievePolicyIdResponse(thingId,
+                policyId,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrievePolicyIdResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -94,7 +136,7 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
      * format.
      */
     public static RetrievePolicyIdResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -108,16 +150,7 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
      * format.
      */
     public static RetrievePolicyIdResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrievePolicyIdResponse>(TYPE, jsonObject)
-                .deserialize(httpStatus -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
-                    final ThingId thingId = ThingId.of(extractedThingId);
-                    final String readPolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
-                    final PolicyId policyId = PolicyId.of(readPolicyId);
-
-                    return of(thingId, policyId, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     /**
@@ -152,12 +185,15 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     @Override
     public RetrievePolicyIdResponse setEntity(final JsonValue entity) {
         checkNotNull(entity, "entity");
-        return of(thingId, PolicyId.of(entity.asString()), getDittoHeaders());
+        if (!entity.isString()) {
+            throw new IllegalArgumentException(MessageFormat.format("Entity is not a JSON string but <{0}>.", entity));
+        }
+        return newInstance(thingId, PolicyId.of(entity.asString()), getHttpStatus(), getDittoHeaders());
     }
 
     @Override
     public RetrievePolicyIdResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, policyId, dittoHeaders);
+        return newInstance(thingId, policyId, getHttpStatus(), dittoHeaders);
     }
 
     @Override
@@ -166,7 +202,8 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

@@ -380,7 +380,6 @@ final class ImmutableConnection implements Connection {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
-        jsonObjectBuilder.set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate);
         if (null != lifecycle) {
             jsonObjectBuilder.set(JsonFields.LIFECYCLE, lifecycle.name(), predicate);
         }

@@ -38,9 +38,15 @@ public interface HttpRequestActorPropsFactory {
      * @param httpResponseFuture promise of an HTTP response to be fulfilled by the actor.
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @param commandConfig the configuration settings for incoming commands (via HTTP requests) in the gateway.
+     * @param connectivityShardRegionProxy proxy actor reference for Connectivity's cluster shard region.
      * @return Props of the actor.
      */
-    Props props(ActorRef proxyActor, HeaderTranslator headerTranslator, HttpRequest httpRequest,
-            CompletableFuture<HttpResponse> httpResponseFuture, HttpConfig httpConfig,
-            CommandConfig commandConfig);
+    Props props(ActorRef proxyActor,
+            HeaderTranslator headerTranslator,
+            HttpRequest httpRequest,
+            CompletableFuture<HttpResponse> httpResponseFuture,
+            HttpConfig httpConfig,
+            CommandConfig commandConfig,
+            ActorRef connectivityShardRegionProxy);
+
 }

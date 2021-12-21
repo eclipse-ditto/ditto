@@ -12,13 +12,17 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors;
 
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureDefinition;
@@ -28,7 +32,6 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingRevision;
-import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttributesResponse;
@@ -67,9 +70,9 @@ public final class ETagTestUtils {
     // Thing
 
     public static RetrieveThingResponse retrieveThingResponse(final Thing expectedThing,
-            final JsonObject expectedJsonRepresentation, final DittoHeaders dittoHeaders) {
+            @Nullable final JsonFieldSelector thingFieldSelector, final DittoHeaders dittoHeaders) {
         final DittoHeaders dittoHeadersWithETag = appendETagToDittoHeaders(expectedThing, dittoHeaders);
-        return RetrieveThingResponse.of(expectedThing.getEntityId().get(), expectedJsonRepresentation.toString(),
+        return RetrieveThingResponse.of(expectedThing.getEntityId().get(), expectedThing, thingFieldSelector, null,
                 dittoHeadersWithETag);
     }
 

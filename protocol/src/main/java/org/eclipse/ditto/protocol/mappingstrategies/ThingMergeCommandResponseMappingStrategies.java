@@ -12,39 +12,55 @@
  */
 package org.eclipse.ditto.protocol.mappingstrategies;
 
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.Map;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.protocol.Adaptable;
 import org.eclipse.ditto.protocol.JsonifiableMapper;
+import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.things.model.signals.commands.modify.MergeThingResponse;
 
 /**
  * Defines mapping strategies (map from signal type to JsonifiableMapper) for thing modify command responses.
  */
-final class ThingMergeCommandResponseMappingStrategies
-        extends AbstractThingMappingStrategies<MergeThingResponse> {
+final class ThingMergeCommandResponseMappingStrategies implements MappingStrategies<MergeThingResponse> {
 
     private static final ThingMergeCommandResponseMappingStrategies INSTANCE =
             new ThingMergeCommandResponseMappingStrategies();
 
+    private final Map<String, JsonifiableMapper<MergeThingResponse>> mappingStrategies;
+
     private ThingMergeCommandResponseMappingStrategies() {
-        super(new HashMap<>());
+        mappingStrategies = initMappingStrategies();
     }
 
-    @Override
-    public JsonifiableMapper<MergeThingResponse> find(final String type) {
-        return ThingMergeCommandResponseMappingStrategies::mergeThing;
+    private static Map<String, JsonifiableMapper<MergeThingResponse>> initMappingStrategies() {
+        final AdaptableToSignalMapper<MergeThingResponse> mapper = AdaptableToSignalMapper.of(MergeThingResponse.TYPE,
+                context -> {
+                    final Adaptable adaptable = context.getAdaptable();
+                    final Payload payload = adaptable.getPayload();
+                    return MergeThingResponse.newInstance(context.getThingId(),
+                            JsonPointer.of(String.valueOf(payload.getPath())), // to satisfy equals of JsonPointer vs. MessagePath
+                            context.getHttpStatusOrThrow(),
+                            context.getDittoHeaders());
+                });
+        return Collections.singletonMap(mapper.getSignalType(), mapper);
     }
 
     static ThingMergeCommandResponseMappingStrategies getInstance() {
         return INSTANCE;
     }
 
-    private static MergeThingResponse mergeThing(final Adaptable adaptable) {
-        return MergeThingResponse.of(thingIdFrom(adaptable),
-                JsonPointer.of(adaptable.getPayload().getPath().toString()),
-                dittoHeadersFrom(adaptable));
+    @Nullable
+    @Override
+    public JsonifiableMapper<MergeThingResponse> find(final String type) {
+
+        // Deliberately ignore the specified type argument as it is not the
+        // actual CommandResponse type for .
+        return mappingStrategies.get(MergeThingResponse.TYPE);
     }
 
 }

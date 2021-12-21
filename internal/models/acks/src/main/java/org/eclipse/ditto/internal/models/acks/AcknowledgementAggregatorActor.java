@@ -15,35 +15,39 @@ package org.eclipse.ditto.internal.models.acks;
 import static org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel.LIVE_RESPONSE;
 import static org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel.TWIN_PERSISTED;
 
+import java.text.MessageFormat;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
-import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
+import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
+import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandResponseMatchingValidator;
+import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommandResponse;
 import org.eclipse.ditto.protocol.HeaderTranslator;
-import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.things.model.WithThingId;
 import org.eclipse.ditto.things.model.signals.acks.ThingAcknowledgementFactory;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.ThingErrorResponse;
@@ -63,29 +67,39 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final String correlationId;
-    private final DittoHeaders requestCommandHeaders;
+    private final Signal<?> originatingSignal;
     private final AcknowledgementAggregator ackregator;
     private final Consumer<Object> responseSignalConsumer;
     private final Duration timeout;
+    private final Consumer<MatchingValidationResult.Failure> matchingValidationFailureConsumer;
+    private Function<Acknowledgements, ThingErrorResponse> getAsTimeoutErrorResponse;
 
+    @SuppressWarnings("java:S1144")
     private AcknowledgementAggregatorActor(final EntityId entityId,
-            final DittoHeaders dittoHeaders,
+            final Signal<?> originatingSignal,
             final Duration maxTimeout,
             final HeaderTranslator headerTranslator,
-            final Consumer<Object> responseSignalConsumer) {
+            final Consumer<Object> responseSignalConsumer,
+            @Nullable final Consumer<MatchingValidationResult.Failure> matchingValidationFailureConsumer) {
 
         this.responseSignalConsumer = responseSignalConsumer;
-        requestCommandHeaders = dittoHeaders;
-        correlationId = requestCommandHeaders.getCorrelationId()
+        this.originatingSignal = originatingSignal;
+        final var signalDittoHeaders = originatingSignal.getDittoHeaders();
+        correlationId = signalDittoHeaders.getCorrelationId()
                 .orElseGet(() ->
                         // fall back using the actor name which also contains the correlation-id
                         getSelf().path().name()
                 );
 
-        timeout = getTimeout(requestCommandHeaders, maxTimeout);
+        timeout = getTimeout(signalDittoHeaders, maxTimeout);
+        this.matchingValidationFailureConsumer = Objects.requireNonNullElseGet(
+                matchingValidationFailureConsumer,
+                this::getDefaultMatchingValidationFailureConsumer
+        );
         timers().startSingleTimer(Control.WAITING_FOR_ACKS_TIMED_OUT, Control.WAITING_FOR_ACKS_TIMED_OUT, timeout);
+        getAsTimeoutErrorResponse = getDefaultGetAsTimeoutErrorResponse();
 
-        final Set<AcknowledgementRequest> acknowledgementRequests = requestCommandHeaders.getAcknowledgementRequests();
+        final var acknowledgementRequests = signalDittoHeaders.getAcknowledgementRequests();
         ackregator = AcknowledgementAggregator.getInstance(entityId, correlationId, timeout, headerTranslator);
         ackregator.addAcknowledgementRequests(acknowledgementRequests);
         log.withCorrelationId(correlationId)
@@ -93,48 +107,82 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
                         acknowledgementRequests, timeout);
     }
 
-    /**
-     * Creates Akka configuration object Props for this AcknowledgementAggregatorActor.
-     *
-     * @param entityId the entity ID of the originating signal.
-     * @param dittoHeaders the ditto headers of the originating signal.
-     * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
-     * @param headerTranslator translates headers from external sources or to external sources.
-     * @param responseSignalConsumer a consumer which is invoked with the response signal, e.g. in order to send the
-     * response over a channel to the user.
-     * @return the Akka configuration Props object.
-     * @throws org.eclipse.ditto.base.model.acks.AcknowledgementRequestParseException if a contained acknowledgement
-     * request could not be parsed.
-     */
-    static Props props(final EntityId entityId,
-            final DittoHeaders dittoHeaders,
-            final AcknowledgementConfig acknowledgementConfig,
-            final HeaderTranslator headerTranslator,
-            final Consumer<Object> responseSignalConsumer) {
-        return Props.create(AcknowledgementAggregatorActor.class, entityId, dittoHeaders,
-                acknowledgementConfig.getForwarderFallbackTimeout(), headerTranslator, responseSignalConsumer);
+    private Function<Acknowledgements, ThingErrorResponse> getDefaultGetAsTimeoutErrorResponse() {
+        return aggregatedAcknowledgements -> {
+            final var thingId = ThingId.of(aggregatedAcknowledgements.getEntityId());
+            final var gatewayCommandTimeoutException = GatewayCommandTimeoutException.newBuilder(timeout)
+                    .dittoHeaders(aggregatedAcknowledgements.getDittoHeaders())
+                    .build();
+
+            return ThingErrorResponse.of(thingId, gatewayCommandTimeoutException);
+        };
+    }
+
+    private Consumer<MatchingValidationResult.Failure> getDefaultMatchingValidationFailureConsumer() {
+        return failure -> log.withCorrelationId(originatingSignal)
+                .warning("No {} consumer provided." +
+                                " Thus no further processing of response validation failure is going to happen.",
+                        MatchingValidationResult.Failure.class.getSimpleName());
     }
 
     /**
      * Creates Akka configuration object Props for this AcknowledgementAggregatorActor.
      *
      * @param entityId the entity ID of the originating signal.
-     * @param dittoHeaders the ditto headers of the originating signal.
-     * @param maxTimeout the maximum timeout of acknowledgement aggregation.
+     * @param signal the originating signal.
+     * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
      * @param headerTranslator translates headers from external sources or to external sources.
      * @param responseSignalConsumer a consumer which is invoked with the response signal, e.g. in order to send the
      * response over a channel to the user.
+     * @param matchingValidationFailureConsumer optional handler for response validation failures.
      * @return the Akka configuration Props object.
      * @throws org.eclipse.ditto.base.model.acks.AcknowledgementRequestParseException if a contained acknowledgement
      * request could not be parsed.
      */
     static Props props(final EntityId entityId,
-            final DittoHeaders dittoHeaders,
+            final Signal<?> signal,
+            final AcknowledgementConfig acknowledgementConfig,
+            final HeaderTranslator headerTranslator,
+            final Consumer<Object> responseSignalConsumer,
+            @Nullable final Consumer<MatchingValidationResult.Failure> matchingValidationFailureConsumer) {
+
+        return Props.create(AcknowledgementAggregatorActor.class,
+                entityId,
+                signal,
+                acknowledgementConfig.getForwarderFallbackTimeout(),
+                headerTranslator,
+                responseSignalConsumer,
+                matchingValidationFailureConsumer);
+    }
+
+    /**
+     * Creates Akka configuration object Props for this AcknowledgementAggregatorActor.
+     *
+     * @param entityId the entity ID of the originating signal.
+     * @param signal the originating signal.
+     * @param maxTimeout the maximum timeout of acknowledgement aggregation.
+     * @param headerTranslator translates headers from external sources or to external sources.
+     * @param responseSignalConsumer a consumer which is invoked with the response signal, e.g. in order to send the
+     * response over a channel to the user.
+     * @param matchingValidationFailureConsumer optional handler for response validation failures.
+     * @return the Akka configuration Props object.
+     * @throws org.eclipse.ditto.base.model.acks.AcknowledgementRequestParseException if a contained acknowledgement
+     * request could not be parsed.
+     */
+    static Props props(final EntityId entityId,
+            final Signal<?> signal,
             final Duration maxTimeout,
             final HeaderTranslator headerTranslator,
-            final Consumer<Object> responseSignalConsumer) {
-        return Props.create(AcknowledgementAggregatorActor.class, entityId, dittoHeaders, maxTimeout,
-                headerTranslator, responseSignalConsumer);
+            final Consumer<Object> responseSignalConsumer,
+            @Nullable final Consumer<MatchingValidationResult.Failure> matchingValidationFailureConsumer) {
+
+        return Props.create(AcknowledgementAggregatorActor.class,
+                entityId,
+                signal,
+                maxTimeout,
+                headerTranslator,
+                responseSignalConsumer,
+                matchingValidationFailureConsumer);
     }
 
     @Override
@@ -151,70 +199,147 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
     }
 
     private void handleThingCommandResponse(final ThingCommandResponse<?> thingCommandResponse) {
-        final boolean isLiveResponse = thingCommandResponse.getDittoHeaders().getChannel().stream()
-                .anyMatch(TopicPath.Channel.LIVE.getName()::equals);
-        addCommandResponse(thingCommandResponse, thingCommandResponse, isLiveResponse);
-    }
-
-    private void handleMessageCommandResponse(final MessageCommandResponse<?, ?> messageCommandResponse) {
-        addCommandResponse(messageCommandResponse, messageCommandResponse, true);
-    }
-
-    private void addCommandResponse(final CommandResponse<?> commandResponse, final WithThingId withThingId,
-            final boolean isLiveResponse) {
-        log.withCorrelationId(correlationId).debug("Received command response <{}>.", commandResponse);
-        final Acknowledgement acknowledgement;
-        if (isLiveResponse) {
-            acknowledgement = toLiveResponseAcknowledgement(commandResponse, withThingId);
+        log.withCorrelationId(correlationId).debug("Received thing command response <{}>.", thingCommandResponse);
+        final var commandResponseValidationResult = validateResponse(thingCommandResponse);
+        if (commandResponseValidationResult.isSuccess()) {
+            final var acknowledgementLabel =
+                    SignalInformationPoint.isChannelLive(thingCommandResponse) ? LIVE_RESPONSE : TWIN_PERSISTED;
+            addCommandResponse(thingCommandResponse, getAcknowledgement(thingCommandResponse, acknowledgementLabel));
         } else {
-            acknowledgement = toTwinPersistedAcknowledgement(commandResponse, withThingId);
+            handleMatchingValidationFailure(commandResponseValidationResult.asFailureOrThrow());
         }
+    }
+
+    private MatchingValidationResult validateResponse(final CommandResponse<?> commandResponse) {
+        final MatchingValidationResult result;
+        if (SignalInformationPoint.isLiveCommand(originatingSignal)) {
+            result = tryToValidateLiveResponse((Command<?>) originatingSignal, commandResponse);
+        } else {
+
+            // Non-live responses are supposed to be valid as they are generated by Ditto itself.
+            result = MatchingValidationResult.success();
+        }
+
+        return result;
+    }
+
+    private MatchingValidationResult tryToValidateLiveResponse(final Command<?> command,
+            final CommandResponse<?> commandResponse) {
+        try {
+            return validateLiveResponse(command, commandResponse);
+        } catch (final ConnectionIdInvalidException e) {
+
+            // This case is very unlikely as the connection ID gets set to
+            // response headers by Ditto itself.
+            log.withCorrelationId(command)
+                    .error("Headers of command response contain an invalid connection ID: {}." +
+                                    " Repeating validation without the invalid connection ID." +
+                                    " This means that the validation failure will not appear in connection log.",
+                            e.getMessage());
+            final var dittoHeadersWithoutConnectionId = DittoHeaders.newBuilder(commandResponse.getDittoHeaders())
+                    .removeHeader(DittoHeaderDefinition.CONNECTION_ID.getKey())
+                    .build();
+
+            return validateLiveResponse(command, commandResponse.setDittoHeaders(dittoHeadersWithoutConnectionId));
+        }
+    }
+
+    private static MatchingValidationResult validateLiveResponse(final Command<?> command,
+            final CommandResponse<?> commandResponse) {
+        final var responseMatchingValidator =
+                CommandAndCommandResponseMatchingValidator.getInstance();
+
+        return responseMatchingValidator.apply(command, commandResponse);
+    }
+
+    private static Acknowledgement getAcknowledgement(final ThingCommandResponse<?> thingCommandResponse,
+            final AcknowledgementLabel acknowledgementLabel) {
+
+        return ThingAcknowledgementFactory.newAcknowledgement(acknowledgementLabel,
+                thingCommandResponse.getEntityId(),
+                thingCommandResponse.getHttpStatus(),
+                thingCommandResponse.getDittoHeaders(),
+                getPayload(thingCommandResponse).orElse(null));
+    }
+
+    private static Optional<JsonValue> getPayload(final ThingCommandResponse<?> thingCommandResponse) {
+        final Optional<JsonValue> result;
+        if (thingCommandResponse instanceof WithOptionalEntity) {
+            final var withOptionalEntity = (WithOptionalEntity) thingCommandResponse;
+            result = withOptionalEntity.getEntity(thingCommandResponse.getImplementedSchemaVersion());
+        } else {
+            result = Optional.empty();
+        }
+
+        return result;
+    }
+
+    private void addCommandResponse(final CommandResponse<?> commandResponse, final Acknowledgement acknowledgement) {
         ackregator.addReceivedAcknowledgment(acknowledgement);
         potentiallyCompleteAcknowledgements(commandResponse);
     }
 
-    private static Acknowledgement toLiveResponseAcknowledgement(final CommandResponse<?> commandResponse,
-            final WithThingId withThingId) {
+    private void handleMatchingValidationFailure(final MatchingValidationResult.Failure matchingValidationFailure) {
+        final var detailMessage = matchingValidationFailure.getDetailMessage();
 
-        final DittoHeaders liveResponseAckHeaders;
-        if (commandResponse instanceof MessageCommandResponse) {
-            liveResponseAckHeaders = commandResponse.getDittoHeaders().toBuilder()
-                    .putHeaders(((MessageCommandResponse<?, ?>) commandResponse).getMessage().getHeaders())
+        log.withCorrelationId(originatingSignal)
+                .warning("Received invalid response. Reason: {} Response: {}.",
+                        detailMessage,
+                        matchingValidationFailure.getCommandResponse());
+
+        getAsTimeoutErrorResponse = getInvalidLiveResponseReceivedGetAsTimeoutErrorResponse(detailMessage);
+
+        matchingValidationFailureConsumer.accept(matchingValidationFailure);
+    }
+
+    private Function<Acknowledgements, ThingErrorResponse> getInvalidLiveResponseReceivedGetAsTimeoutErrorResponse(
+            final String detailMessage
+    ) {
+        return acknowledgements -> {
+            final var descriptionPattern = "Received no appropriate live response within the specified timeout." +
+                    " An invalid response was received, though: {0}";
+            final var gatewayCommandTimeoutException = GatewayCommandTimeoutException.newBuilder(timeout)
+                    .dittoHeaders(acknowledgements.getDittoHeaders())
+                    .description(MessageFormat.format(descriptionPattern, detailMessage))
                     .build();
-        } else {
-            liveResponseAckHeaders = commandResponse.getDittoHeaders();
-        }
+            return SignalInformationPoint.getEntityId(originatingSignal)
+                    .map(ThingId::of)
+                    .map(thingId -> ThingErrorResponse.of(thingId, gatewayCommandTimeoutException))
+                    .orElseGet(() -> ThingErrorResponse.of(gatewayCommandTimeoutException));
+        };
+    }
 
-        return ThingAcknowledgementFactory.newAcknowledgement(
-                LIVE_RESPONSE,
-                withThingId.getEntityId(),
-                commandResponse.getHttpStatus(),
+    private void handleMessageCommandResponse(final MessageCommandResponse<?, ?> messageCommandResponse) {
+        log.withCorrelationId(correlationId).debug("Received message command response <{}>.", messageCommandResponse);
+        final var commandResponseValidationResult = validateResponse(messageCommandResponse);
+        if (commandResponseValidationResult.isSuccess()) {
+            addCommandResponse(messageCommandResponse, getAcknowledgement(messageCommandResponse));
+        } else {
+            handleMatchingValidationFailure(commandResponseValidationResult.asFailureOrThrow());
+        }
+    }
+
+    private static Acknowledgement getAcknowledgement(final MessageCommandResponse<?, ?> messageCommandResponse) {
+        final var responseDittoHeaders = messageCommandResponse.getDittoHeaders();
+        final var message = messageCommandResponse.getMessage();
+        final var liveResponseAckHeaders = responseDittoHeaders.toBuilder()
+                .putHeaders(message.getHeaders())
+                .build();
+
+        return ThingAcknowledgementFactory.newAcknowledgement(LIVE_RESPONSE,
+                messageCommandResponse.getEntityId(),
+                messageCommandResponse.getHttpStatus(),
                 liveResponseAckHeaders,
-                getPayload(commandResponse).orElse(null));
+                getPayload(messageCommandResponse).orElse(null));
     }
 
-    private static Acknowledgement toTwinPersistedAcknowledgement(final CommandResponse<?> commandResponse,
-            final WithThingId withThingId) {
-        return ThingAcknowledgementFactory.newAcknowledgement(
-                TWIN_PERSISTED,
-                withThingId.getEntityId(),
-                commandResponse.getHttpStatus(),
-                commandResponse.getDittoHeaders(),
-                getPayload(commandResponse).orElse(null)
-        );
-    }
+    private static Optional<JsonValue> getPayload(final MessageCommandResponse<?, ?> messageCommandResponse) {
+        final var jsonMessagePointer = MessageCommandResponse.JsonFields.JSON_MESSAGE.getPointer();
+        final var jsonMessagePayloadPointer = MessageCommandResponse.JsonFields.JSON_MESSAGE_PAYLOAD.getPointer();
+        final var messagePayloadPointer = jsonMessagePointer.append(jsonMessagePayloadPointer);
+        final var messageCommandResponseJsonObject = messageCommandResponse.toJson();
 
-    private static Optional<JsonValue> getPayload(final CommandResponse<?> response) {
-        final Optional<JsonValue> result;
-        if (response instanceof WithOptionalEntity) {
-            result = ((WithOptionalEntity) response).getEntity(response.getImplementedSchemaVersion());
-        } else if (response instanceof MessageCommandResponse) {
-            result = response.toJson().getValue(MessageCommandResponse.JsonFields.JSON_MESSAGE.getPointer()
-                    .append(MessageCommandResponse.JsonFields.JSON_MESSAGE_PAYLOAD.getPointer()));
-        } else {
-            result = Optional.empty();
-        }
-        return result;
+        return messageCommandResponseJsonObject.getValue(messagePayloadPointer);
     }
 
     private void handleReceiveTimeout(final Control receiveTimeout) {
@@ -245,24 +370,25 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
     }
 
     private void potentiallyCompleteAcknowledgements(@Nullable final CommandResponse<?> response) {
-
         if (ackregator.receivedAllRequestedAcknowledgements()) {
             completeAcknowledgements(response);
         }
     }
 
     private void completeAcknowledgements(@Nullable final CommandResponse<?> response) {
-        final Acknowledgements aggregatedAcknowledgements =
-                ackregator.getAggregatedAcknowledgements(requestCommandHeaders);
-        final boolean builtInAcknowledgementOnly = containsOnlyTwinPersistedOrLiveResponse(aggregatedAcknowledgements);
+        final var aggregatedAcknowledgements =
+                ackregator.getAggregatedAcknowledgements(originatingSignal.getDittoHeaders());
+        final var builtInAcknowledgementOnly = containsOnlyTwinPersistedOrLiveResponse(aggregatedAcknowledgements);
         if (null != response && builtInAcknowledgementOnly) {
-            // in this case, only the implicit "twin-persisted" acknowledgement was asked for, respond with the signal:
+
+            // In this case, only the implicit "twin-persisted" acknowledgement was asked for, respond with the signal:
             handleSignal(response);
         } else if (builtInAcknowledgementOnly && !ackregator.receivedAllRequestedAcknowledgements()) {
-            // there is no response. send an error according to channel
-            handleSignal(asThingErrorResponse(aggregatedAcknowledgements));
+
+            // There is no response. Sending an error according to channel.
+            handleSignal(getAsTimeoutErrorResponse.apply(aggregatedAcknowledgements));
         } else {
-            log.withCorrelationId(requestCommandHeaders)
+            log.withCorrelationId(originatingSignal)
                     .debug("Completing with collected acknowledgements: {}", aggregatedAcknowledgements);
             handleSignal(aggregatedAcknowledgements);
         }
@@ -271,8 +397,9 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
 
     public static DittoHeadersSettable<?> restoreCommandConnectivityHeaders(final DittoHeadersSettable<?> signal,
             final DittoHeaders requestCommandHeaders) {
-        final DittoHeadersBuilder<?, ?> enhancedHeadersBuilder = signal.getDittoHeaders()
-                .toBuilder()
+
+        final var signalDittoHeaders = signal.getDittoHeaders();
+        final var enhancedHeadersBuilder = signalDittoHeaders.toBuilder()
                 .removeHeader(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey())
                 .removeHeader(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey())
                 .removeHeader(DittoHeaderDefinition.REPLY_TARGET.getKey());
@@ -281,34 +408,19 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
         }
         requestCommandHeaders.getInboundPayloadMapper().ifPresent(enhancedHeadersBuilder::inboundPayloadMapper);
         requestCommandHeaders.getReplyTarget().ifPresent(enhancedHeadersBuilder::replyTarget);
+
         return signal.setDittoHeaders(enhancedHeadersBuilder.build());
     }
 
     private void handleSignal(final DittoHeadersSettable<?> signal) {
-        responseSignalConsumer.accept(restoreCommandConnectivityHeaders(signal, requestCommandHeaders));
-    }
-
-    /**
-     * Convert aggregated acknowledgements to a single error response in case only built-in acknowledgements
-     * are requested.
-     *
-     * @param aggregatedAcknowledgements the aggregated acknowledgements.
-     * @return the error response.
-     */
-    private ThingErrorResponse asThingErrorResponse(final Acknowledgements aggregatedAcknowledgements) {
-        final ThingId thingId = ThingId.of(aggregatedAcknowledgements.getEntityId());
-        final DittoRuntimeException dittoRuntimeException = GatewayCommandTimeoutException.newBuilder(timeout)
-                .dittoHeaders(aggregatedAcknowledgements.getDittoHeaders())
-                .build();
-
-        return ThingErrorResponse.of(thingId, dittoRuntimeException);
+        responseSignalConsumer.accept(restoreCommandConnectivityHeaders(signal, originatingSignal.getDittoHeaders()));
     }
 
     private static boolean containsOnlyTwinPersistedOrLiveResponse(final Acknowledgements aggregatedAcknowledgements) {
         return aggregatedAcknowledgements.getSize() == 1 &&
                 aggregatedAcknowledgements.stream()
                         .anyMatch(ack -> {
-                            final AcknowledgementLabel label = ack.getLabel();
+                            final var label = ack.getLabel();
                             return TWIN_PERSISTED.equals(label) ||
                                     LIVE_RESPONSE.equals(label);
                         });

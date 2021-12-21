@@ -14,31 +14,32 @@ package org.eclipse.ditto.policies.model.signals.commands.query;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.Resources;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 
 /**
  * Response to a {@link RetrieveResources} command.
@@ -54,10 +55,25 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
     public static final String TYPE = TYPE_PREFIX + RetrieveResources.NAME;
 
     static final JsonFieldDefinition<String> JSON_LABEL =
-            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofString("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonObject> JSON_RESOURCES =
-            JsonFactory.newJsonObjectFieldDefinition("resources", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonObject("resources", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<RetrieveResourcesResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new RetrieveResourcesResponse(
+                                PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID)),
+                                Label.of(jsonObject.getValueOrThrow(JSON_LABEL)),
+                                jsonObject.getValueOrThrow(JSON_RESOURCES),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final PolicyId policyId;
     private final Label label;
@@ -69,10 +85,14 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, httpStatus, dittoHeaders);
-        this.policyId = checkNotNull(policyId, "Policy ID");
-        this.label = checkNotNull(label, "Label");
-        this.resources = checkNotNull(resources, "Resources");
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveResourcesResponse.class),
+                dittoHeaders);
+        this.policyId = checkNotNull(policyId, "policyId");
+        this.label = checkNotNull(label, "label");
+        this.resources = checkNotNull(resources, "resources");
     }
 
     /**
@@ -90,10 +110,11 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
             final Resources resources,
             final DittoHeaders dittoHeaders) {
 
-        final JsonObject jsonResources = checkNotNull(resources, "Resources")
-                .toJson(dittoHeaders.getSchemaVersion().orElse(resources.getLatestSchemaVersion()));
-
-        return of(policyId, label, jsonResources, dittoHeaders);
+        checkNotNull(resources, "resources");
+        return of(policyId,
+                label,
+                resources.toJson(dittoHeaders.getSchemaVersion().orElse(resources.getLatestSchemaVersion())),
+                dittoHeaders);
     }
 
     /**
@@ -111,7 +132,7 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
             final JsonObject resources,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveResourcesResponse(policyId, label, resources, HttpStatus.OK, dittoHeaders);
+        return new RetrieveResourcesResponse(policyId, label, resources, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -126,7 +147,7 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
      * format.
      */
     public static RetrieveResourcesResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -140,16 +161,7 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
      * format.
      */
     public static RetrieveResourcesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveResourcesResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> {
-                    final String extractedPolicyId =
-                            jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
-                    final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
-                    final JsonObject extractedResources = jsonObject.getValueOrThrow(JSON_RESOURCES);
-
-                    return of(policyId, label, extractedResources, dittoHeaders);
-                });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -193,12 +205,12 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
 
     @Override
     public JsonPointer getResourcePath() {
-        final String path = "/entries/" + label + "/resources";
-        return JsonPointer.of(path);
+        return JsonPointer.of("/entries/" + label + "/resources");
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);

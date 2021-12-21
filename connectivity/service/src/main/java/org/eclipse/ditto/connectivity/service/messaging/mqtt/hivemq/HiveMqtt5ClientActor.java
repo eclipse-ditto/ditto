@@ -101,7 +101,7 @@ public final class HiveMqtt5ClientActor
      * @param dittoHeaders headers of the command that caused this actor to be created.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
+    public static Props props(final Connection connection, final ActorRef proxyActor,
             final ActorRef connectionActor, final DittoHeaders dittoHeaders,
             final Config connectivityConfigOverwrites) {
         return Props.create(HiveMqtt5ClientActor.class, connection, proxyActor, connectionActor, dittoHeaders,
@@ -133,7 +133,7 @@ public final class HiveMqtt5ClientActor
     @Override
     ActorRef startPublisherActor(final Connection connection, final Mqtt5AsyncClient client) {
         final Props publisherActorProps =
-                HiveMqtt5PublisherActor.props(connection, client, isDryRun(), getDefaultClientId(),
+                HiveMqtt5PublisherActor.props(connection, client, isDryRun(), getDefaultClientId(), getProxyActor(),
                         connectivityStatusResolver, connectivityConfig());
         return startChildActorConflictFree(HiveMqtt5PublisherActor.NAME, publisherActorProps);
     }

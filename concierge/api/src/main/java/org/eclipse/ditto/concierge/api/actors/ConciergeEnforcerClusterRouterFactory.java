@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.concierge.api.actors;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -34,9 +32,8 @@ import akka.routing.ConsistentHashingGroup;
  */
 public final class ConciergeEnforcerClusterRouterFactory {
 
-    @SuppressWarnings("squid:S1075")
     private static final String CONCIERGE_SERVICE_ENFORCER_PATH = ConciergeMessagingConstants.ENFORCER_ACTOR_PATH;
-    private static final String CONCIERGE_ENFORCER_ROUTER_ACTORNAME = "conciergeEnforcerRouter";
+    private static final String CONCIERGE_ENFORCER_ROUTER_ACTOR_NAME = "conciergeEnforcerRouter";
 
     private ConciergeEnforcerClusterRouterFactory() {
         throw new AssertionError();
@@ -44,25 +41,25 @@ public final class ConciergeEnforcerClusterRouterFactory {
 
     /**
      * Creates a new {@link ClusterRouterGroup} for the {@code EnforcerActor} at path
-     * {@value #CONCIERGE_SERVICE_ENFORCER_PATH} for cluster role of {@value org.eclipse.ditto.concierge.api.ConciergeMessagingConstants#CLUSTER_ROLE}.
+     * {@value #CONCIERGE_SERVICE_ENFORCER_PATH} for cluster role of
+     * {@value org.eclipse.ditto.concierge.api.ConciergeMessagingConstants#CLUSTER_ROLE}.
      *
      * @param context the ActorContext in which to create the cluster router (e.g. a RootActor).
      * @param numberOfRoutees the number of routees to which to "dispatch" messages based on the hashing of the sent
      * messages.
-     * @return the ActorRef of the crated cluster router
+     * @return the ActorRef of the created cluster router
      */
     public static ActorRef createConciergeEnforcerClusterRouter(final ActorContext context, final int numberOfRoutees) {
+        final var routeesPaths = List.of(CONCIERGE_SERVICE_ENFORCER_PATH);
+        final var clusterRouterGroup = new ClusterRouterGroup(
+                new ConsistentHashingGroup(routeesPaths),
+                new ClusterRouterGroupSettings(numberOfRoutees,
+                        routeesPaths,
+                        true,
+                        Set.of(ConciergeMessagingConstants.CLUSTER_ROLE))
+        );
 
-        final List<String> routeesPaths = Collections.singletonList(CONCIERGE_SERVICE_ENFORCER_PATH);
-        final Set<String> clusterRoles =
-                new HashSet<>(Collections.singletonList(ConciergeMessagingConstants.CLUSTER_ROLE));
-
-        return context.actorOf(
-                new ClusterRouterGroup(
-                        new ConsistentHashingGroup(routeesPaths),
-                        new ClusterRouterGroupSettings(numberOfRoutees, routeesPaths,
-                                true, clusterRoles))
-                        .props(),
-                CONCIERGE_ENFORCER_ROUTER_ACTORNAME);
+        return context.actorOf(clusterRouterGroup.props(), CONCIERGE_ENFORCER_ROUTER_ACTOR_NAME);
     }
+
 }

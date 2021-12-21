@@ -16,14 +16,14 @@ import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
-import org.eclipse.ditto.base.model.json.Jsonifiable;
 
 /**
  * Contains metrics about a single {@link Source}.
@@ -36,9 +36,9 @@ public interface SourceMetrics extends Jsonifiable.WithFieldSelectorAndPredicate
     Map<String, AddressMetric> getAddressMetrics();
 
     /**
-     * Returns all non hidden marked fields of this {@code SourceMetrics}.
+     * Returns all non-hidden marked fields of this {@code SourceMetrics}.
      *
-     * @return a JSON object representation of this SourceMetrics including only non hidden marked fields.
+     * @return a JSON object representation of this SourceMetrics including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {
@@ -58,21 +58,27 @@ public interface SourceMetrics extends Jsonifiable.WithFieldSelectorAndPredicate
 
         /**
          * JSON field containing the {@code JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.3.0 this field definition is not used anymore.
          */
-        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_2);
+        @Deprecated
+        public static final JsonFieldDefinition<Integer> SCHEMA_VERSION = JsonFactory.newIntFieldDefinition(
+                JsonSchemaVersion.getJsonKey(),
+                FieldType.SPECIAL,
+                FieldType.HIDDEN,
+                JsonSchemaVersion.V_2
+        );
 
         /**
          * JSON field containing the {@code AddressMetrics} value.
          */
         public static final JsonFieldDefinition<JsonObject> ADDRESS_METRICS =
-                JsonFactory.newJsonObjectFieldDefinition("addressMetrics", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("addressMetrics", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
         }
 
     }
+
 }

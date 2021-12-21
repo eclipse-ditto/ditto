@@ -73,7 +73,7 @@ public final class DefaultEnforcementConfig implements EnforcementConfig {
     }
 
     @Override
-    public boolean shouldDispatchLiveResponsesGlobally() {
+    public boolean isDispatchLiveResponsesGlobally() {
         return globalLiveResponseDispatching;
     }
 

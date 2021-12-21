@@ -28,9 +28,9 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -49,14 +49,32 @@ public final class RetrieveAllConnectionIdsResponse extends AbstractCommandRespo
      * Type of this response.
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveAllConnectionIds.NAME;
+
     static final JsonFieldDefinition<JsonArray> CONNECTION_IDS =
-            JsonFactory.newJsonArrayFieldDefinition("connectionIds", FieldType.REGULAR,
-                    JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonArray("connectionIds", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
+
+    private static final CommandResponseJsonDeserializer<RetrieveAllConnectionIdsResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return new RetrieveAllConnectionIdsResponse(fromArray(jsonObject.getValueOrThrow(CONNECTION_IDS)),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders());
+                    });
 
     private final Set<String> connectionIds;
 
-    private RetrieveAllConnectionIdsResponse(final Set<String> connectionIds, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatus.OK, dittoHeaders);
+    private RetrieveAllConnectionIdsResponse(final Set<String> connectionIds,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        RetrieveAllConnectionIdsResponse.class),
+                dittoHeaders);
         this.connectionIds = Collections.unmodifiableSet(new LinkedHashSet<>(connectionIds));
     }
 
@@ -70,7 +88,8 @@ public final class RetrieveAllConnectionIdsResponse extends AbstractCommandRespo
      */
     public static RetrieveAllConnectionIdsResponse of(final Set<String> connectionIds,
             final DittoHeaders dittoHeaders) {
-        return new RetrieveAllConnectionIdsResponse(connectionIds, dittoHeaders);
+
+        return new RetrieveAllConnectionIdsResponse(connectionIds, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -85,7 +104,7 @@ public final class RetrieveAllConnectionIdsResponse extends AbstractCommandRespo
      * format.
      */
     public static RetrieveAllConnectionIdsResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -100,12 +119,13 @@ public final class RetrieveAllConnectionIdsResponse extends AbstractCommandRespo
      */
     public static RetrieveAllConnectionIdsResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveAllConnectionIdsResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> of(fromArray(jsonObject.getValueOrThrow(CONNECTION_IDS)), dittoHeaders));
+
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
@@ -115,7 +135,9 @@ public final class RetrieveAllConnectionIdsResponse extends AbstractCommandRespo
     /**
      * @return set of all connection ids.
      */
-    public Set<String> getAllConnectionIds() { return connectionIds; }
+    public Set<String> getAllConnectionIds() {
+        return connectionIds;
+    }
 
     @Override
     public RetrieveAllConnectionIdsResponse setEntity(final JsonValue entity) {
@@ -152,7 +174,9 @@ public final class RetrieveAllConnectionIdsResponse extends AbstractCommandRespo
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        if (!super.equals(o)) {return false;}
+        if (!super.equals(o)) {
+            return false;
+        }
         final RetrieveAllConnectionIdsResponse that = (RetrieveAllConnectionIdsResponse) o;
         return Objects.equals(connectionIds, that.connectionIds);
     }

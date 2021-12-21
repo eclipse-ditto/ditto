@@ -14,6 +14,7 @@ package org.eclipse.ditto.policies.model.signals.commands.modify;
 
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -21,24 +22,24 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseHttpStatusValidator;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.common.HttpStatus;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonParsableCommandResponse;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.policies.model.PoliciesModelFactory;
 import org.eclipse.ditto.policies.model.Policy;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.AbstractCommandResponse;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponseJsonDeserializer;
 
 /**
  * Response to a {@link CreatePolicy} command.
@@ -54,19 +55,61 @@ public final class CreatePolicyResponse extends AbstractCommandResponse<CreatePo
     public static final String TYPE = TYPE_PREFIX + CreatePolicy.NAME;
 
     static final JsonFieldDefinition<JsonValue> JSON_POLICY =
-            JsonFactory.newJsonValueFieldDefinition("policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
+            JsonFieldDefinition.ofJsonValue("policy", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    private static final HttpStatus HTTP_STATUS = HttpStatus.CREATED;
+
+    private static final CommandResponseJsonDeserializer<CreatePolicyResponse> JSON_DESERIALIZER =
+            CommandResponseJsonDeserializer.newInstance(TYPE,
+                    context -> {
+                        final JsonObject jsonObject = context.getJsonObject();
+                        return newInstance(
+                                PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID)),
+                                jsonObject.getValue(JSON_POLICY)
+                                        .map(JsonValue::asObject)
+                                        .map(PoliciesModelFactory::newPolicy)
+                                        .orElse(null),
+                                context.getDeserializedHttpStatus(),
+                                context.getDittoHeaders()
+                        );
+                    });
 
     private final PolicyId policyId;
     @Nullable private final Policy policyCreated;
 
     private CreatePolicyResponse(final PolicyId policyId,
-            final HttpStatus httpStatus,
             @Nullable final Policy policyCreated,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, httpStatus, dittoHeaders);
-        this.policyId = checkNotNull(policyId, "Policy ID");
+        this.policyId = checkNotNull(policyId, "policyId");
         this.policyCreated = policyCreated;
+    }
+
+    /**
+     * Returns a new instance of {@code CreatePolicyResponse} for the specified arguments.
+     *
+     * @param policyId the Policy ID of the created Policy
+     * @param policy the created Policy.
+     * @param httpStatus the status of the response.
+     * @param dittoHeaders the headers of the response.
+     * @return the {@code CreatePolicyResponse} instance.
+     * @throws NullPointerException if any argument is {@code null} except the {@code policy}.
+     * @throws IllegalArgumentException if {@code httpStatus} is not allowed for a {@code CreatePolicyResponse}.
+     * @since 2.3.0
+     */
+    public static CreatePolicyResponse newInstance(final PolicyId policyId,
+            @Nullable final Policy policy,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new CreatePolicyResponse(policyId,
+                policy,
+                CommandResponseHttpStatusValidator.validateHttpStatus(httpStatus,
+                        Collections.singleton(HTTP_STATUS),
+                        CreatePolicyResponse.class),
+                dittoHeaders);
     }
 
     /**
@@ -79,10 +122,11 @@ public final class CreatePolicyResponse extends AbstractCommandResponse<CreatePo
      * @return a command response for a created Policy.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static CreatePolicyResponse of(final PolicyId policyId, @Nullable final Policy policy,
+    public static CreatePolicyResponse of(final PolicyId policyId,
+            @Nullable final Policy policy,
             final DittoHeaders dittoHeaders) {
 
-        return new CreatePolicyResponse(policyId, HttpStatus.CREATED, policy, dittoHeaders);
+        return new CreatePolicyResponse(policyId, policy, HTTP_STATUS, dittoHeaders);
     }
 
     /**
@@ -97,7 +141,7 @@ public final class CreatePolicyResponse extends AbstractCommandResponse<CreatePo
      * format.
      */
     public static CreatePolicyResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
+        return fromJson(JsonObject.of(jsonString), dittoHeaders);
     }
 
     /**
@@ -111,17 +155,7 @@ public final class CreatePolicyResponse extends AbstractCommandResponse<CreatePo
      * format.
      */
     public static CreatePolicyResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<CreatePolicyResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
-            final String extractedPolicyId =
-                    jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
-            final PolicyId policyId = PolicyId.of(extractedPolicyId);
-            final Policy extractedPolicyCreated = jsonObject.getValue(JSON_POLICY)
-                    .map(JsonValue::asObject)
-                    .map(PoliciesModelFactory::newPolicy)
-                    .orElse(null);
-
-            return new CreatePolicyResponse(policyId, httpStatus, extractedPolicyCreated, dittoHeaders);
-        });
+        return JSON_DESERIALIZER.deserialize(jsonObject, dittoHeaders);
     }
 
     @Override
@@ -149,7 +183,8 @@ public final class CreatePolicyResponse extends AbstractCommandResponse<CreatePo
     }
 
     @Override
-    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
+    protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder,
+            final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
@@ -161,7 +196,7 @@ public final class CreatePolicyResponse extends AbstractCommandResponse<CreatePo
 
     @Override
     public CreatePolicyResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(policyId, policyCreated, dittoHeaders);
+        return newInstance(policyId, policyCreated, getHttpStatus(), dittoHeaders);
     }
 
     @Override

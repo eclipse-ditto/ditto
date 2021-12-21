@@ -24,8 +24,9 @@ import java.util.regex.Pattern;
 import org.eclipse.ditto.base.model.exceptions.TimeoutInvalidException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.CommandConfig;
-import org.eclipse.ditto.gateway.service.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestActor;
+import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.MessageConfig;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.messages.model.MessageBuilder;
@@ -38,14 +39,9 @@ import org.eclipse.ditto.messages.model.signals.commands.MessageCommandSizeValid
 import org.eclipse.ditto.messages.model.signals.commands.SendClaimMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendFeatureMessage;
 import org.eclipse.ditto.messages.model.signals.commands.SendThingMessage;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.gateway.service.endpoints.actors.AbstractHttpRequestActor;
-import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.things.model.ThingId;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentType;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpCharset;
@@ -78,27 +74,18 @@ final class MessagesRoute extends AbstractRoute {
     private final Duration maxClaimTimeout;
 
     /**
-     * Constructs the MessagesService route builder.
+     * Constructs a {@code MessagesRoute} object.
      *
-     * @param proxyActor an actor selection of the command delegating actor.
-     * @param actorSystem the ActorSystem.
-     * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
+     * @param routeBaseProperties the base properties of the route.
      * @param messageConfig the MessageConfig.
      * @param claimMessageConfig the MessageConfig for claim messages.
-     * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
-     * @param headerTranslator translates headers from external sources or to external sources.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    MessagesRoute(final ActorRef proxyActor,
-            final ActorSystem actorSystem,
-            final HttpConfig httpConfig,
-            final CommandConfig commandConfig,
+    MessagesRoute(final RouteBaseProperties routeBaseProperties,
             final MessageConfig messageConfig,
-            final MessageConfig claimMessageConfig,
-            final HeaderTranslator headerTranslator) {
+            final MessageConfig claimMessageConfig) {
 
-        super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
-
+        super(routeBaseProperties);
         defaultMessageTimeout = messageConfig.getDefaultTimeout();
         maxMessageTimeout = messageConfig.getMaxTimeout();
         defaultClaimTimeout = claimMessageConfig.getDefaultTimeout();
@@ -114,10 +101,11 @@ final class MessagesRoute extends AbstractRoute {
             final ThingId thingId) {
 
         return concat(
-                claimMessages(ctx, dittoHeaders, thingId), // /inbox/claim
+                // /inbox/claim
+                claimMessages(ctx, dittoHeaders, thingId),
                 rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment(INBOX_OUTBOX_PATTERN)),
-                        inboxOutbox -> // /<inbox|outbox>
-                                post(() -> thingMessages(ctx, dittoHeaders, thingId, inboxOutbox))
+                        // /<inbox|outbox>
+                        inboxOutbox -> post(() -> thingMessages(ctx, dittoHeaders, thingId, inboxOutbox))
                 )
         );
     }
@@ -133,8 +121,8 @@ final class MessagesRoute extends AbstractRoute {
             final String featureId) {
 
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment(INBOX_OUTBOX_PATTERN)),
-                inboxOutbox -> // /<inbox|outbox>
-                        post(() -> featureMessages(ctx, dittoHeaders, thingId, featureId, inboxOutbox))
+                // /<inbox|outbox>
+                inboxOutbox -> post(() -> featureMessages(ctx, dittoHeaders, thingId, featureId, inboxOutbox))
         );
     }
 
@@ -299,6 +287,7 @@ final class MessagesRoute extends AbstractRoute {
         if (msgSubject.isEmpty() || "/".equals(msgSubject)) {
             throw SubjectInvalidException.newBuilder(msgSubject).build();
         }
+
         return msgSubject.charAt(0) == '/' ? msgSubject.substring(1) : msgSubject;
     }
 
@@ -318,7 +307,9 @@ final class MessagesRoute extends AbstractRoute {
                     .timestamp(OffsetDateTime.now())
                     .build();
 
-            final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers, ctx.getRequest());
+            final MessageBuilder<Object> messageBuilder =
+                    initMessageBuilder(payload, contentType, headers, ctx.getRequest());
+
             return SendClaimMessage.of(thingId, messageBuilder.build(), enhanceHeaders(dittoHeaders, timeout));
         };
     }
@@ -333,6 +324,7 @@ final class MessagesRoute extends AbstractRoute {
         } else {
             headersBuilder.timeout(timeout);
         }
+
         return headersBuilder.build();
     }
 
@@ -351,7 +343,8 @@ final class MessagesRoute extends AbstractRoute {
         return MessagesModelFactory.newMessageBuilder(headers);
     }
 
-    private static MessageBuilder<Object> createMessageBuilderWithPayload(final ByteBuffer payload, final ContentType contentType,  final MessageHeaders headers) {
+    private static MessageBuilder<Object> createMessageBuilderWithPayload(final ByteBuffer payload,
+            final ContentType contentType,  final MessageHeaders headers) {
         final ByteBuffer payloadWithoutOffset = ByteBuffer.wrap(payload.array());
 
         MessageCommandSizeValidator.getInstance().ensureValidSize(() ->
@@ -370,6 +363,7 @@ final class MessagesRoute extends AbstractRoute {
         } else if (ContentTypes.APPLICATION_JSON.equals(contentType)) {
             messageBuilder.payload(JsonFactory.readFrom(payloadString));
         }
+
         return messageBuilder;
     }
 
@@ -401,6 +395,7 @@ final class MessagesRoute extends AbstractRoute {
         if (timeout.isNegative() || timeout.getSeconds() > maxClaimTimeout.getSeconds()) {
             throw TimeoutInvalidException.newBuilder(timeout, maxClaimTimeout).build();
         }
+
         return timeout;
     }
 
@@ -410,12 +405,13 @@ final class MessagesRoute extends AbstractRoute {
      * it's dangerous to rely on the (non-)existence of a content-length" (see {@link RequestEntity#getContentLengthOption()}).
      *
      * @param request The request.
-     * @return {@code true} if the message contains Content-Length {@code 0}; {@code false} if no Content-Length is found or
-     * it isn't {@code 0}.
+     * @return {@code true} if the message contains Content-Length {@code 0}; {@code false} if no Content-Length is
+     * found or it isn't {@code 0}.
      * @see RequestEntity#getContentLengthOption()
      */
     private static boolean hasZeroContentLength(final HttpRequest request) {
         final OptionalLong contentLengthOption = request.entity().getContentLengthOption();
+
         return contentLengthOption.isPresent() && 0 == contentLengthOption.getAsLong();
     }
 

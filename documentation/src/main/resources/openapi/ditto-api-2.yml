@@ -8,7 +8,8 @@ info:
     The Eclipse Ditto HTTP API uses response status codes (see [RFC 7231](https://tools.ietf.org/html/rfc7231#section-6))
     to indicate whether a specific request has been successfully completed, or not.
 
-    The information Ditto provides additionally to the status code (e.g. in API docs, or error codes like. "things:thing.tooLarge") might change without advance notice. These are not be considered as official API, and must therefore not be applied in your applications or tests.
+    The information Ditto provides additionally to the status code (e.g. in API docs, or error codes like. "things:thing.tooLarge") might change without advance notice.
+    These are not be considered as official API, and must therefore not be applied in your applications or tests.
 servers:
   - url: 'https://ditto.eclipseprojects.io/api/2'
     description: online Ditto Sandbox
@@ -249,25 +250,22 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParam'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
-        - name: condition
+        - $ref: '#/components/parameters/ConditionParam'
+        - name: channel
           in: query
           description: |-
-            Defines that the request should only be applied to a thing if the given condition is met. The condition can be specified using RQL syntax, e.g. if the temperature is not 23.9 update it to 23.9.
+            Defines to which channel to route the command: `twin` (digital twin) or `live` (the device).
+            * If setting the channel parameter is omitted, the `twin` channel is set by default and the command is routed to the digital representation of a thing in Bosch IoT Things backend.
+            * When using the `live` channel, the command/message is sent towards the device.
 
-             ```PUT /api/2/things/org.eclipse.ditto:my-fancy-car-1/features/temperature/properties/value?condition=ne(features/temperature/properties/value,23.9)```
-
-             `body: 23.9`
-
-            Further condition examples:
-            * ```eq(features/temperature/properties/unit,"Celsius")```
-            * ```ge(features/temperature/properties/lastModified,"2021-08-22T19:45:00")```
-            * ```gt(_modified,"2021-08-05T12:17")```
-            * ```exists(features/temperature/properties/value)```
-            * ```and(gt(features/temperature/properties/value,18.5),lt(features/temperature/properties/value,25.2))```
-            * ```or(gt(features/temperature/properties/value,18.5),not(exists(features/temperature/properties/value))```
+            The option `live` is not available when a new thing should be created, only for updating an
+            existing thing.
           required: false
           schema:
             type: string
+            enum:
+              - twin
+              - live
       responses:
         '200':
           description: The request successfully returned the specific thing.
@@ -386,7 +384,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '201':
           description: The thing was successfully created.
@@ -622,7 +621,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The thing was successfully patched.
@@ -723,7 +723,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The thing was successfully deleted.
@@ -771,7 +772,8 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '200':
           description: The request successfully returned the definition of the specific thing.
@@ -835,7 +837,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '201':
           description: The definition was successfully created.
@@ -922,7 +925,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The definition was successfully patched.
@@ -1000,7 +1004,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The definition was successfully deleted.
@@ -1048,7 +1053,8 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '200':
           description: The request successfully returned the policy ID.
@@ -1104,7 +1110,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The policy ID was successfully updated.
@@ -1173,7 +1180,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: 'The policy ID was successfully patched. Note: You will need to create the policy content separately.'
@@ -1235,7 +1243,8 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '200':
           description: The attributes of the specific thing were successfully retrieved.
@@ -1290,7 +1299,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '201':
           description: The attributes were successfully created.
@@ -1376,7 +1386,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The attributes were successfully patched.
@@ -1455,7 +1466,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The attributes were successfully deleted.
@@ -1512,7 +1524,8 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '200':
           description: The attribute was successfully retrieved.
@@ -1573,7 +1586,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '201':
           description: The attribute was successfully created.
@@ -1660,7 +1674,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The attribute was successfully patched.
@@ -1728,7 +1743,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The attribute was successfully deleted.
@@ -1779,7 +1795,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '200':
           description: |-
@@ -1884,7 +1901,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '201':
           description: The features were successfully created.
@@ -2031,7 +2049,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The features were successfully patched.
@@ -2115,7 +2134,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The features were successfully deleted.
@@ -2169,7 +2189,8 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '200':
           description: The feature was successfully retrieved.
@@ -2245,7 +2266,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '201':
           description: The feature was successfully created.
@@ -2365,7 +2387,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The feature was successfully patched.
@@ -2445,7 +2468,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The feature was successfully deleted.
@@ -2494,7 +2518,8 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '200':
           description: The definition was successfully retrieved.
@@ -2553,7 +2578,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '201':
           description: The definition was successfully created.
@@ -2651,7 +2677,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The definition was successfully patched.
@@ -2725,7 +2752,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The definition was successfully deleted.
@@ -2777,7 +2805,8 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '200':
           description: The properties were successfully retrieved.
@@ -2835,7 +2864,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '201':
           description: The properties were successfully created.
@@ -2939,7 +2969,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The properties were successfully patched.
@@ -3021,7 +3052,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The properties were successfully deleted.
@@ -3080,7 +3112,8 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '200':
           description: The property was successfully retrieved.
@@ -3140,7 +3173,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '201':
           description: The property was successfully created.
@@ -3225,7 +3259,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The property was successfully patched.
@@ -3295,7 +3330,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The property was successfully deleted.
@@ -3347,7 +3383,8 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '200':
           description: The desired properties were successfully retrieved.
@@ -3411,7 +3448,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '201':
           description: The desired properties were successfully created.
@@ -3515,7 +3553,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The desired properties were successfully patched.
@@ -3597,7 +3636,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The desired properties were successfully deleted.
@@ -3657,7 +3697,8 @@ paths:
         - $ref: '#/components/parameters/IfMatchHeaderParamHash'
         - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
         - $ref: '#/components/parameters/TimeoutParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '200':
           description: The desired property was successfully retrieved.
@@ -3718,7 +3759,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '201':
           description: The desired property was successfully created.
@@ -3802,7 +3844,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The desired property was successfully patched.
@@ -3875,7 +3918,8 @@ paths:
         - $ref: '#/components/parameters/RequestedAcksParam'
         - $ref: '#/components/parameters/TimeoutParam'
         - $ref: '#/components/parameters/ResponseRequiredParam'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/5'
+        - $ref: '#/components/parameters/ConditionParam'
+        - $ref: '#/components/parameters/ChannelParam'
       responses:
         '204':
           description: The desired property was successfully deleted.
@@ -6464,6 +6508,39 @@ components:
         * `?fields=model,make,location(longitude,latitude)`
 
         * `?fields=listOfAddresses/postal(city,street))`
+      required: false
+      schema:
+        type: string
+    ChannelParam:
+      name: channel
+      in: query
+      description: |-
+        Defines to which channel to route the command: `twin` (digital twin) or `live` (the device).
+        * If setting the channel parameter is omitted, the `twin` channel is set by default and the command is routed to the digital representation of a thing in Bosch IoT Things backend.
+        * When using the `live` channel, the command/message is sent towards the device.
+      required: false
+      schema:
+        type: string
+        enum:
+          - twin
+          - live
+    ConditionParam:
+      name: condition
+      in: query
+      description: |-
+        Defines that the request should only be applied to a thing if the given condition is met. The condition can be specified using RQL syntax, e.g. if the temperature is not 23.9 update it to 23.9.
+
+         ```PUT /api/2/things/org.eclipse.ditto:my-fancy-car-1/features/temperature/properties/value?condition=ne(features/temperature/properties/value,23.9)```
+
+         `body: 23.9`
+
+        Further condition examples:
+        * ```eq(features/temperature/properties/unit,"Celsius")```
+        * ```ge(features/temperature/properties/lastModified,"2021-08-22T19:45:00")```
+        * ```gt(_modified,"2021-08-05T12:17")```
+        * ```exists(features/temperature/properties/value)```
+        * ```and(gt(features/temperature/properties/value,18.5),lt(features/temperature/properties/value,25.2))```
+        * ```or(gt(features/temperature/properties/value,18.5),not(exists(features/temperature/properties/value))```
       required: false
       schema:
         type: string

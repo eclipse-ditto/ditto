@@ -70,8 +70,8 @@ public final class BlockNamespaceResponseTest {
         final BlockNamespaceResponse responseFromJson =
                 BlockNamespaceResponse.fromJson(knownJsonRepresentation, dittoHeaders);
 
-        assertThat(responseFromJson).isEqualTo(
-                BlockNamespaceResponse.getInstance(NAMESPACE, RESOURCE_TYPE, dittoHeaders));
+        assertThat(responseFromJson)
+                .isEqualTo(BlockNamespaceResponse.getInstance(NAMESPACE, RESOURCE_TYPE, dittoHeaders));
     }
 
     @Test

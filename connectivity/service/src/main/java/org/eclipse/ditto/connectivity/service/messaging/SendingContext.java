@@ -19,6 +19,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.connectivity.model.GenericTarget;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
@@ -38,6 +39,7 @@ final class SendingContext {
     @Nullable private final ConnectionMonitor acknowledgedMonitor;
     private final ConnectionMonitor droppedMonitor;
     @Nullable private final Target autoAckTarget;
+    @Nullable private final AuthorizationContext targetAuthorizationContext;
 
     private SendingContext(final OutboundSignal.Mapped outboundSignal,
             final ExternalMessage externalMessage,
@@ -45,7 +47,8 @@ final class SendingContext {
             final ConnectionMonitor publishedMonitor,
             @Nullable final ConnectionMonitor acknowledgedMonitor,
             final ConnectionMonitor droppedMonitor,
-            @Nullable final Target autoAckTarget) {
+            @Nullable final Target autoAckTarget,
+            @Nullable final AuthorizationContext targetAuthorizationContext) {
 
         this.outboundSignal = outboundSignal;
         this.externalMessage = externalMessage;
@@ -54,6 +57,7 @@ final class SendingContext {
         this.acknowledgedMonitor = acknowledgedMonitor;
         this.droppedMonitor = droppedMonitor;
         this.autoAckTarget = autoAckTarget;
+        this.targetAuthorizationContext = targetAuthorizationContext;
     }
 
     private SendingContext(final Builder builder) {
@@ -64,6 +68,7 @@ final class SendingContext {
         acknowledgedMonitor = builder.acknowledgedMonitor;
         droppedMonitor = checkNotNull(builder.droppedMonitor, "droppedMonitor");
         autoAckTarget = builder.autoAckTarget;
+        targetAuthorizationContext = builder.targetAuthorizationContext;
     }
 
     static Builder newBuilder() {
@@ -98,6 +103,10 @@ final class SendingContext {
         return Optional.ofNullable(autoAckTarget);
     }
 
+    Optional<AuthorizationContext> getTargetAuthorizationContext() {
+        return Optional.ofNullable(targetAuthorizationContext);
+    }
+
     boolean shouldAcknowledge() {
         return null != autoAckTarget && null != acknowledgedMonitor;
     }
@@ -109,7 +118,8 @@ final class SendingContext {
                 publishedMonitor,
                 acknowledgedMonitor,
                 droppedMonitor,
-                autoAckTarget);
+                autoAckTarget,
+                targetAuthorizationContext);
     }
 
     /**
@@ -125,6 +135,7 @@ final class SendingContext {
         @Nullable private ConnectionMonitor acknowledgedMonitor;
         private ConnectionMonitor droppedMonitor;
         @Nullable private Target autoAckTarget;
+        @Nullable private AuthorizationContext targetAuthorizationContext;
 
         private Builder() {
             outboundSignal = null;
@@ -134,6 +145,7 @@ final class SendingContext {
             acknowledgedMonitor = null;
             droppedMonitor = null;
             autoAckTarget = null;
+            targetAuthorizationContext = null;
         }
 
         SendingContext build() {
@@ -172,6 +184,11 @@ final class SendingContext {
 
         Builder autoAckTarget(@Nullable final Target autoAckTarget) {
             this.autoAckTarget = autoAckTarget;
+            return this;
+        }
+
+        Builder targetAuthorizationContext(@Nullable final AuthorizationContext targetAuthorizationContext) {
+            this.targetAuthorizationContext = targetAuthorizationContext;
             return this;
         }
 

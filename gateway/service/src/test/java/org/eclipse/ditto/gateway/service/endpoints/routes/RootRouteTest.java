@@ -15,7 +15,6 @@ package org.eclipse.ditto.gateway.service.endpoints.routes;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.KNOWN_DOMAIN;
 import static org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants.UNKNOWN_PATH;
-import static org.mockito.Mockito.doAnswer;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -35,10 +34,8 @@ import org.eclipse.ditto.base.model.signals.commands.CommandHeaderInvalidExcepti
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayDuplicateHeaderException;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestBase;
 import org.eclipse.ditto.gateway.service.endpoints.EndpointTestConstants;
-import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
-import org.eclipse.ditto.gateway.service.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.gateway.service.endpoints.routes.cloudevents.CloudEventsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.health.CachingHealthRoute;
@@ -53,33 +50,27 @@ import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearc
 import org.eclipse.ditto.gateway.service.endpoints.routes.websocket.WebSocketRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.whoami.WhoamiRoute;
 import org.eclipse.ditto.gateway.service.health.DittoStatusAndHealthProviderFactory;
-import org.eclipse.ditto.gateway.service.health.StatusAndHealthProvider;
 import org.eclipse.ditto.gateway.service.security.HttpHeader;
 import org.eclipse.ditto.gateway.service.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.gateway.service.security.utils.HttpClientFacade;
-import org.eclipse.ditto.gateway.service.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.internal.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.internal.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.internal.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.things.model.ThingIdInvalidException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.headers.Location;
 import akka.http.javadsl.model.headers.RawHeader;
-import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.TestRoute;
 import akka.http.javadsl.testkit.TestRouteResult;
-import akka.stream.Materializer;
 import akka.stream.SystemMaterializer;
 
 /**
@@ -125,54 +116,49 @@ public final class RootRouteTest extends EndpointTestBase {
 
     @Before
     public void setUp() {
-        final ActorSystem actorSystem = system();
-        final Materializer materializer = SystemMaterializer.get(system()).materializer();
-        final ProtocolAdapterProvider protocolAdapterProvider =
-                ProtocolAdapterProvider.load(protocolConfig, actorSystem);
-        final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
-        doAnswer(invocation -> system()).when(httpClientFacade).getActorSystem();
-        final JwtAuthenticationFactory jwtAuthenticationFactory =
-                JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(), cacheConfig, httpClientFacade,
-                        authorizationSubjectsProviderFactory);
-        final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
+        Mockito.when(httpClientFacade.getActorSystem()).thenReturn(routeBaseProperties.getActorSystem());
+        final var jwtAuthenticationFactory = JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(),
+                cacheConfig,
+                httpClientFacade,
+                authorizationSubjectsProviderFactory);
+        final var authenticationDirectiveFactory =
                 new DittoGatewayAuthenticationDirectiveFactory(authConfig, jwtAuthenticationFactory, messageDispatcher);
 
-        final ActorRef proxyActor = createDummyResponseActor();
-
         final Supplier<ClusterStatus> clusterStatusSupplier = createClusterStatusSupplierMock();
-        final StatusAndHealthProvider statusAndHealthProvider =
-                DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStatusSupplier, healthCheckConfig);
-        final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
-        final DevopsAuthenticationDirectiveFactory devopsAuthenticationDirectiveFactory =
-                DevopsAuthenticationDirectiveFactory.newInstance(jwtAuthenticationFactory, devOpsConfig);
-        final DevopsAuthenticationDirective devOpsAuthenticationDirective =
-                devopsAuthenticationDirectiveFactory.devops();
-        final DevopsAuthenticationDirective statusAuthenticationDirective =
-                devopsAuthenticationDirectiveFactory.status();
-        final Route rootRoute = RootRoute.getBuilder(httpConfig)
-                .statsRoute(new StatsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
-                        headerTranslator, devOpsAuthenticationDirective))
-                .statusRoute(new StatusRoute(clusterStatusSupplier, createHealthCheckingActorMock(), actorSystem))
-                .overallStatusRoute(new OverallStatusRoute(clusterStatusSupplier, statusAndHealthProvider,
-                        statusAuthenticationDirective))
+        final var statusAndHealthProvider = DittoStatusAndHealthProviderFactory.of(routeBaseProperties.getActorSystem(),
+                clusterStatusSupplier,
+                healthCheckConfig);
+        final var devopsAuthenticationDirectiveFactory =
+                DevopsAuthenticationDirectiveFactory.newInstance(jwtAuthenticationFactory,
+                        authConfig.getDevOpsConfig());
+        final var devOpsAuthenticationDirective = devopsAuthenticationDirectiveFactory.devops();
+
+        final var rootRoute = RootRoute.getBuilder(httpConfig)
+                .statsRoute(new StatsRoute(routeBaseProperties, devOpsAuthenticationDirective))
+                .statusRoute(new StatusRoute(clusterStatusSupplier,
+                        createHealthCheckingActorMock(),
+                        routeBaseProperties.getActorSystem()))
+                .overallStatusRoute(new OverallStatusRoute(clusterStatusSupplier,
+                        statusAndHealthProvider,
+                        devopsAuthenticationDirectiveFactory.status()))
                 .cachingHealthRoute(new CachingHealthRoute(statusAndHealthProvider, publicHealthConfig))
-                .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
-                        headerTranslator, devOpsAuthenticationDirective))
-                .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator,
+                .devopsRoute(new DevOpsRoute(routeBaseProperties, devOpsAuthenticationDirective))
+                .policiesRoute(new PoliciesRoute(routeBaseProperties,
                         OAuthTokenIntegrationSubjectIdFactory.of(authConfig.getOAuthConfig())))
-                .sseThingsRoute(ThingsSseRouteBuilder.getInstance(proxyActor, streamingConfig, proxyActor))
-                .thingsRoute(new ThingsRoute(proxyActor, actorSystem, httpConfig, commandConfig, messageConfig,
-                        claimMessageConfig, headerTranslator))
-                .thingSearchRoute(
-                        new ThingSearchRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
-                .whoamiRoute(new WhoamiRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
-                .cloudEventsRoute(
-                        new CloudEventsRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator,
-                                cloudEventsConfig))
-                .websocketRoute(WebSocketRoute.getInstance(proxyActor, streamingConfig, materializer))
+                .sseThingsRoute(ThingsSseRouteBuilder.getInstance(routeBaseProperties.getProxyActor(),
+                        streamingConfig,
+                        routeBaseProperties.getProxyActor()))
+                .thingsRoute(new ThingsRoute(routeBaseProperties, messageConfig, claimMessageConfig))
+                .thingSearchRoute(new ThingSearchRoute(routeBaseProperties))
+                .whoamiRoute(new WhoamiRoute(routeBaseProperties))
+                .cloudEventsRoute(new CloudEventsRoute(routeBaseProperties, cloudEventsConfig))
+                .websocketRoute(WebSocketRoute.getInstance(routeBaseProperties.getProxyActor(),
+                        streamingConfig,
+                        SystemMaterializer.get(system()).materializer()))
                 .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())
-                .protocolAdapterProvider(protocolAdapterProvider)
-                .headerTranslator(headerTranslator)
+                .protocolAdapterProvider(ProtocolAdapterProvider.load(protocolConfig,
+                        routeBaseProperties.getActorSystem()))
+                .headerTranslator(httpHeaderTranslator)
                 .httpAuthenticationDirective(authenticationDirectiveFactory.buildHttpAuthentication())
                 .wsAuthenticationDirective(authenticationDirectiveFactory.buildWsAuthentication())
                 .dittoHeadersSizeChecker(DittoHeadersSizeChecker.of(4096, 20))

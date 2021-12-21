@@ -38,10 +38,12 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.common.CharsetDeterminer;
 import org.eclipse.ditto.base.model.common.Placeholders;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
@@ -79,6 +81,7 @@ import org.eclipse.ditto.internal.utils.tracing.instruments.trace.StartedTrace;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.ProtocolAdapter;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
@@ -102,6 +105,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     protected final ConnectionConfig connectionConfig;
     protected final ConnectionLogger connectionLogger;
     protected final ConnectivityStatusResolver connectivityStatusResolver;
+    protected final ExpressionResolver connectionIdResolver;
 
     /**
      * Common logger for all sub-classes of BasePublisherActor as its MDC already contains the connection ID.
@@ -115,14 +119,16 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private final List<Optional<ReplyTarget>> replyTargets;
     private final int acknowledgementSizeBudget;
     private final String clientId;
-    protected final ExpressionResolver connectionIdResolver;
+    private final ActorRef proxyActor;
 
     protected BasePublisherActor(final Connection connection,
             final String clientId,
+            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
         this.connection = checkNotNull(connection, "connection");
         this.clientId = checkNotNull(clientId, "clientId");
+        this.proxyActor = checkNotNull(proxyActor, "proxyActor");
         resourceStatusMap = new HashMap<>();
         final List<Target> targets = connection.getTargets();
         targets.forEach(target -> resourceStatusMap.put(target, getTargetResourceStatus(target)));
@@ -199,6 +205,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .exceptionally(e -> {
                     logger.withCorrelationId(multiMapped.getSource())
                             .error(e, "Message sending failed unexpectedly: <{}>", multiMapped);
+
                     return null;
                 });
     }
@@ -228,7 +235,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(multiMapped.getSource());
         if (!nonAcknowledgementsResponses.isEmpty() && sender != null) {
             nonAcknowledgementsResponses.forEach(response -> {
-                l.debug("CommandResponse created from HTTP response. Replying to <{}>: <{}>", sender, response);
+                l.debug("CommandResponse created from HTTP response. Replying to <{}>: <{}>", sender,
+                        response);
                 sender.tell(response, getSelf());
             });
         } else if (nonAcknowledgementsResponses.isEmpty()) {
@@ -236,6 +244,10 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         } else {
             l.error("CommandResponse created from HTTP response, but no sender: <{}>", multiMapped.getSource());
         }
+    }
+
+    private boolean isLiveResponse(final WithDittoHeaders response) {
+        return response.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
     /**
@@ -269,7 +281,6 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         return Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getHttpStatus(),
                 acknowledgements.getDittoHeaders());
     }
-
 
     /**
      * Appends the ConnectionId to the processed {@code commandResponse} payload.
@@ -411,6 +422,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 .droppedMonitor(droppedMonitor)
                 .acknowledgedMonitor(acknowledgedMonitor)
                 .autoAckTarget(autoAckTarget)
+                .targetAuthorizationContext(target.getAuthorizationContext())
                 .build();
     }
 
@@ -450,6 +462,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             l.debug("Publishing mapped message of type <{}> to PublishTarget <{}>: {}", outboundSource.getType(),
                     publishTarget, sendingContext.getExternalMessage());
             @Nullable final Target autoAckTarget = sendingContext.getAutoAckTarget().orElse(null);
+
             final HeaderMapping headerMapping = genericTarget.getHeaderMapping();
             final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping);
             final Context context = DittoTracing.extractTraceContext(mappedMessage.getHeaders());
@@ -461,12 +474,14 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             final ExternalMessage mappedMessageWithTraceContext =
                     DittoTracing.propagateContext(trace.getContext(), mappedMessage,
                             (msg, entry) -> msg.withHeader(entry.getKey(), entry.getValue()));
+
             final CompletionStage<SendResult> responsesFuture = publishMessage(outboundSource,
                     autoAckTarget,
                     publishTarget,
                     mappedMessageWithTraceContext,
                     maxTotalMessageSize,
-                    quota
+                    quota,
+                    sendingContext.getTargetAuthorizationContext().orElse(null)
             );
             responsesFuture.whenComplete((sr, throwable) -> trace.finish());
             // set the external message after header mapping for the result of header mapping to show up in log
@@ -530,7 +545,8 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
             T publishTarget,
             ExternalMessage message,
             int maxTotalMessageSize,
-            int ackSizeQuota);
+            int ackSizeQuota,
+            @Nullable AuthorizationContext targetAuthorizationContext);
 
     /**
      * Decode a byte buffer according to the charset specified in an external message.
@@ -578,9 +594,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @return the configured auto-ack label if any exists, or an empty optional.
      */
     protected Optional<AcknowledgementLabel> getAcknowledgementLabel(@Nullable final Target target) {
-        return Optional.ofNullable(target).flatMap(Target::getIssuedAcknowledgementLabel)
-                .flatMap(
-                        ackLabel -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel));
+        return Optional.ofNullable(target)
+                .flatMap(Target::getIssuedAcknowledgementLabel)
+                .flatMap(ackLbl -> ConnectionValidator.resolveConnectionIdPlaceholder(connectionIdResolver, ackLbl));
     }
 
     /**

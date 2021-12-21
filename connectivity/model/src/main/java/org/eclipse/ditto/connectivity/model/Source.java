@@ -17,18 +17,18 @@ import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonFieldSelector;
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonObject;
 
 /**
  * A {@link Connection} source contains several addresses to consume external messages from.
@@ -81,6 +81,7 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
      * Defines an optional header mapping e.g. rename, combine etc. headers for inbound message. Mapping is
      * applied after payload mapping is applied. The mapping may contain {@code thing:*} and {@code header:*}
      * placeholders.
+     *
      * @return the header mappings
      */
     HeaderMapping getHeaderMapping();
@@ -119,9 +120,9 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
     Set<AcknowledgementLabel> getDeclaredAcknowledgementLabels();
 
     /**
-     * Returns all non hidden marked fields of this {@code Source}.
+     * Returns all non-hidden marked fields of this {@code Source}.
      *
-     * @return a JSON object representation of this Source including only non hidden marked fields.
+     * @return a JSON object representation of this Source including only non-hidden marked fields.
      */
     @Override
     default JsonObject toJson() {
@@ -141,45 +142,47 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
 
         /**
          * JSON field containing the {@code JsonSchemaVersion}.
+         *
+         * @deprecated as of 2.3.0 this field definition is not used anymore.
          */
+        @Deprecated
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
-                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
+                JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(),
+                        FieldType.SPECIAL,
+                        FieldType.HIDDEN,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} addresses.
          */
         public static final JsonFieldDefinition<JsonArray> ADDRESSES =
-                JsonFactory.newJsonArrayFieldDefinition("addresses", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("addresses", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} consumer count.
          */
         public static final JsonFieldDefinition<Integer> CONSUMER_COUNT =
-                JsonFactory.newIntFieldDefinition("consumerCount", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newIntFieldDefinition("consumerCount", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} qos.
          */
         public static final JsonFieldDefinition<Integer> QOS =
-                JsonFactory.newIntFieldDefinition("qos", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newIntFieldDefinition("qos", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} authorization context (list of authorization subjects).
          */
         public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
-                JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
+                JsonFactory.newJsonArrayFieldDefinition("authorizationContext",
+                        FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} enforcement options.
          */
         public static final JsonFieldDefinition<JsonObject> ENFORCEMENT =
-                JsonFactory.newJsonObjectFieldDefinition("enforcement", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("enforcement", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} acknowledgements that are requested from messages consumed in this
@@ -188,29 +191,27 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          * @since 1.2.0
          */
         public static final JsonFieldDefinition<JsonObject> ACKNOWLEDGEMENT_REQUESTS =
-                JsonFactory.newJsonObjectFieldDefinition("acknowledgementRequests", FieldType.REGULAR,
+                JsonFactory.newJsonObjectFieldDefinition("acknowledgementRequests",
+                        FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} header mapping.
          */
         public static final JsonFieldDefinition<JsonObject> HEADER_MAPPING =
-                JsonFactory.newJsonObjectFieldDefinition("headerMapping", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("headerMapping", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} payload mapping.
          */
         public static final JsonFieldDefinition<JsonArray> PAYLOAD_MAPPING =
-                JsonFactory.newJsonArrayFieldDefinition("payloadMapping", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("payloadMapping", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the reply-target.
          */
         public static final JsonFieldDefinition<JsonObject> REPLY_TARGET =
-                JsonFactory.newJsonObjectFieldDefinition("replyTarget", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonObjectFieldDefinition("replyTarget", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field for whether reply-target is enabled. Set to false explicitly to disable reply sending.
@@ -219,8 +220,7 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          * Source instead.
          */
         public static final JsonFieldDefinition<Boolean> REPLY_TARGET_ENABLED =
-                JsonFactory.newBooleanFieldDefinition("replyTarget/enabled", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newBooleanFieldDefinition("replyTarget/enabled", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field for declared acknowledgement labels, namely the labels of acknowledgements the connection
@@ -229,12 +229,12 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          * @since 1.4.0
          */
         public static final JsonFieldDefinition<JsonArray> DECLARED_ACKS =
-                JsonFactory.newJsonArrayFieldDefinition("declaredAcks", FieldType.REGULAR,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonArrayFieldDefinition("declaredAcks", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-        JsonFields() {
+        private JsonFields() {
             throw new AssertionError();
         }
 
     }
+
 }
