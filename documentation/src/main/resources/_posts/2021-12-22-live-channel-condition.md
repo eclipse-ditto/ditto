@@ -26,8 +26,8 @@ otherwise.
 Ditto 2.1.0 added support for [conditional requests](basic-conditional-requests.html) by e.g. specifying a `condition`
 query parameter for HTTP API calls.
 
-This `condition` mechanism can now additionally be used to formulate a condition when data shall be retrieved via the 
-`live` channel from the device.
+This mechanism can now additionally be used to formulate a condition through the query parameter `live-channel-condition`
+whether data shall be retrieved via the `live` channel from the device.
 
 ## Optionally update twin automatically based on retrieved live data
 
