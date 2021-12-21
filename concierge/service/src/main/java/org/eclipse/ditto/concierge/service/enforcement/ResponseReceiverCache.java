@@ -171,7 +171,8 @@ final class ResponseReceiverCache implements Extension {
             final Function<S, ActorRef> receiverCreator,
             final BiFunction<S, ActorRef, T> responseHandler) {
 
-        return insertResponseReceiverConflictFreeWithFuture(signal, receiverCreator,
+        return insertResponseReceiverConflictFreeWithFuture(signal,
+                receiverCreator,
                 responseHandler.andThen(CompletableFuture::completedStage));
     }
 
@@ -197,8 +198,8 @@ final class ResponseReceiverCache implements Extension {
     }
 
     @SuppressWarnings("unchecked")
-    private <S extends Signal<?>> CompletionStage<S> setUniqueCorrelationIdForGlobalDispatching(
-            final S signal, final boolean refreshCorrelationId) {
+    private <S extends Signal<?>> CompletionStage<S> setUniqueCorrelationIdForGlobalDispatching(final S signal,
+            final boolean refreshCorrelationId) {
 
         final String correlationId;
         if (refreshCorrelationId) {
@@ -208,15 +209,20 @@ final class ResponseReceiverCache implements Extension {
                     .orElseGet(() -> UUID.randomUUID().toString());
         }
 
-        return get(correlationId).thenCompose(entry -> {
-            if (entry.isPresent()) {
-                return setUniqueCorrelationIdForGlobalDispatching(signal, true);
-            }
-            final S result = (S) signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
-                    .correlationId(correlationId)
-                    .build());
-            return CompletableFuture.completedStage(result);
-        });
+        return get(correlationId)
+                .thenCompose(entry -> {
+                    final CompletionStage<S> result;
+                    if (entry.isPresent()) {
+                        result = setUniqueCorrelationIdForGlobalDispatching(signal, true);
+                    } else {
+                        result = CompletableFuture.completedFuture(
+                                (S) signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
+                                        .correlationId(correlationId)
+                                        .build())
+                        );
+                    }
+                    return result;
+                });
     }
 
     @Immutable
@@ -267,6 +273,15 @@ final class ResponseReceiverCache implements Extension {
 
     }
 
+    static final class ExtensionId extends AbstractExtensionId<ResponseReceiverCache> {
+
+        @Override
+        public ResponseReceiverCache createExtension(final ExtendedActorSystem system) {
+            return newInstance();
+        }
+
+    }
+
     @Immutable
     private static final class CorrelationIdKeyExpiry implements Expiry<CorrelationIdKey, ActorRef> {
 
@@ -283,14 +298,18 @@ final class ResponseReceiverCache implements Extension {
         }
 
         @Override
-        public long expireAfterUpdate(final CorrelationIdKey key, final ActorRef value, final long currentTime,
+        public long expireAfterUpdate(final CorrelationIdKey key,
+                final ActorRef value,
+                final long currentTime,
                 final long currentDuration) {
 
             return currentDuration;
         }
 
         @Override
-        public long expireAfterRead(final CorrelationIdKey key, final ActorRef value, final long currentTime,
+        public long expireAfterRead(final CorrelationIdKey key,
+                final ActorRef value,
+                final long currentTime,
                 final long currentDuration) {
 
             return currentDuration;
@@ -298,11 +317,4 @@ final class ResponseReceiverCache implements Extension {
 
     }
 
-    static final class ExtensionId extends AbstractExtensionId<ResponseReceiverCache> {
-
-        @Override
-        public ResponseReceiverCache createExtension(final ExtendedActorSystem system) {
-            return newInstance();
-        }
-    }
 }

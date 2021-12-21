@@ -144,10 +144,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private HttpPublisherActor(final Connection connection,
             final HttpPushFactory factory,
             final String clientId,
-            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
-        super(connection, clientId, proxyActor, connectivityStatusResolver, connectivityConfig);
+
+        super(connection, clientId, connectivityStatusResolver, connectivityConfig);
         this.factory = factory;
         materializer = Materializer.createMaterializer(this::getContext);
         final var config = connectionConfig.getHttpPushConfig();
@@ -179,17 +179,23 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
      * @param connection the connection.
      * @param factory the http push factory to use.
      * @param clientId the client ID.
-     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connection connection, final HttpPushFactory factory, final String clientId,
-            final ActorRef proxyActor, final ConnectivityStatusResolver connectivityStatusResolver,
+    static Props props(final Connection connection,
+            final HttpPushFactory factory,
+            final String clientId,
+            final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
-        return Props.create(HttpPublisherActor.class, connection, factory, clientId, proxyActor,
-                connectivityStatusResolver, connectivityConfig);
+
+        return Props.create(HttpPublisherActor.class,
+                connection,
+                factory,
+                clientId,
+                connectivityStatusResolver,
+                connectivityConfig);
     }
 
     private static Uri setPathAndQuery(final Uri uri, @Nullable final String path, @Nullable final String query) {

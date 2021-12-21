@@ -265,7 +265,7 @@ final class ConnectionLoggerFactory {
                 break;
             case FILTERED:
                 final String message = MessageFormat.format(
-                        "Dropped response since requester did not require response via Header {1}",
+                        "Dropped response since requester did not require response via Header {0}",
                         DittoHeaderDefinition.RESPONSE_REQUIRED);
                 builder.withDefaultSuccessMessage(message);
                 break;

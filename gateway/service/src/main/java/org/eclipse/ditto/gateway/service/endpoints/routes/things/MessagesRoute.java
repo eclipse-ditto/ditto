@@ -68,9 +68,7 @@ final class MessagesRoute extends AbstractRoute {
 
     private static final Pattern INBOX_OUTBOX_PATTERN = Pattern.compile(PATH_INBOX + "|" + PATH_OUTBOX);
 
-    private final Duration defaultMessageTimeout;
     private final Duration maxMessageTimeout;
-    private final Duration defaultClaimTimeout;
     private final Duration maxClaimTimeout;
 
     /**
@@ -86,9 +84,7 @@ final class MessagesRoute extends AbstractRoute {
             final MessageConfig claimMessageConfig) {
 
         super(routeBaseProperties);
-        defaultMessageTimeout = messageConfig.getDefaultTimeout();
         maxMessageTimeout = messageConfig.getMaxTimeout();
-        defaultClaimTimeout = claimMessageConfig.getDefaultTimeout();
         maxClaimTimeout = claimMessageConfig.getMaxTimeout();
     }
 

@@ -147,24 +147,27 @@ public final class SignalInformationPoint {
     }
 
     /**
-     * Indicates whether the signal is a thing query command using smart channel selection.
+     * Indicates whether the specified {@code Signal} argument is a {@code ThingQueryCommand} using smart channel
+     * selection.
      *
      * @param signal the signal to be checked.
-     * @return {@code true} if the signal is handled by smart channel selection.
+     * @return {@code true} if {@code signal} is a {@code ThingQueryCommand} handled by smart channel selection.
      * @since 2.3.0
      */
     public static boolean isChannelSmart(@Nullable final WithDittoHeaders signal) {
+        final boolean result;
         if (signal instanceof ThingQueryCommand) {
             final var headers = signal.getDittoHeaders();
             if (isChannelLive(signal)) {
-                return LiveChannelTimeoutStrategy.USE_TWIN ==
+                result = LiveChannelTimeoutStrategy.USE_TWIN ==
                         headers.getLiveChannelTimeoutStrategy().orElse(LiveChannelTimeoutStrategy.FAIL);
             } else {
-                return headers.getLiveChannelCondition().isPresent();
+                result = headers.getLiveChannelCondition().isPresent();
             }
         } else {
-            return false;
+            result = false;
         }
+        return result;
     }
 
     /**

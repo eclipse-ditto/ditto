@@ -153,8 +153,11 @@ public final class HttpPushClientActor extends BaseClientActor {
     protected CompletionStage<Status.Status> startPublisherActor() {
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         stopChildActor(httpPublisherActor);
-        final Props props = HttpPublisherActor.props(connection(), factory, getDefaultClientId(), getProxyActor(),
-                connectivityStatusResolver, connectivityConfig());
+        final Props props = HttpPublisherActor.props(connection(),
+                factory,
+                getDefaultClientId(),
+                connectivityStatusResolver,
+                connectivityConfig());
         httpPublisherActor = startChildActorConflictFree(HttpPublisherActor.ACTOR_NAME, props);
         future.complete(DONE);
 

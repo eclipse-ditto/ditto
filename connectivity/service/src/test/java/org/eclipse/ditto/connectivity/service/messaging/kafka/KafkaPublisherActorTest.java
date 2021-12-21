@@ -49,7 +49,6 @@ import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.api.ExternalMessageFactory;
 import org.eclipse.ditto.connectivity.api.OutboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
-import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.MessageSendingFailedException;
 import org.eclipse.ditto.connectivity.model.Target;
@@ -103,17 +102,21 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        final Connection connection = TestConstants.createConnection();
-        final String clientId = UUID.randomUUID().toString();
-        return KafkaPublisherActor.props(connection, mockSendProducerFactory, false, clientId,
-                proxyActor, mock(ConnectivityStatusResolver.class), connectivityConfig);
+        return KafkaPublisherActor.props(TestConstants.createConnection(),
+                mockSendProducerFactory,
+                false,
+                UUID.randomUUID().toString(),
+                mock(ConnectivityStatusResolver.class),
+                connectivityConfig);
     }
 
     protected Props getPublisherActorPropsWithDebugEnabled() {
-        final Connection connectionWithDebugEnabled = TestConstants.createConnectionWithDebugEnabled();
-        final String clientId = UUID.randomUUID().toString();
-        return KafkaPublisherActor.props(connectionWithDebugEnabled, mockSendProducerFactory, false,
-                clientId, proxyActor, mock(ConnectivityStatusResolver.class), connectivityConfig);
+        return KafkaPublisherActor.props(TestConstants.createConnectionWithDebugEnabled(),
+                mockSendProducerFactory,
+                false,
+                UUID.randomUUID().toString(),
+                mock(ConnectivityStatusResolver.class),
+                connectivityConfig);
     }
 
     @Override

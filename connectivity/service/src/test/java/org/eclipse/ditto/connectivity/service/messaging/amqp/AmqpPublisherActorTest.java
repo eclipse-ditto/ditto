@@ -244,7 +244,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                             .build(),
                     session,
                     "clientId",
-                    proxyActor,
                     connectivityStatusResolver,
                     loadConnectivityConfig());
             final ActorRef publisherActor = actorSystem.actorOf(props);
@@ -307,7 +306,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                             .build(),
                     session,
                     "clientId",
-                    proxyActor,
                     connectivityStatusResolver,
                     loadConnectivityConfig());
             final ActorRef publisherActor = actorSystem.actorOf(props);
@@ -346,7 +344,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                 .build(),
                         session,
                         "clientId",
-                        proxyActor,
                         connectivityStatusResolver,
                         loadConnectivityConfig());
                 final ActorRef publisherActor = actorSystem.actorOf(props);
@@ -402,7 +399,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                             .build(),
                     session,
                     "clientId",
-                    proxyActor,
                     connectivityStatusResolver,
                     loadConnectivityConfig());
 
@@ -476,7 +472,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
     @Override
     protected Props getPublisherActorProps() {
         return AmqpPublisherActor.props(TestConstants.createConnection(), session, "clientId",
-                proxyActor, connectivityStatusResolver, loadConnectivityConfig());
+                connectivityStatusResolver, loadConnectivityConfig());
     }
 
     @Override

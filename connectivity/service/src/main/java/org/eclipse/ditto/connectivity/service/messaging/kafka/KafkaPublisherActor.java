@@ -59,7 +59,6 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 
 import akka.Done;
 import akka.NotUsed;
-import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
@@ -95,15 +94,16 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             final SendProducerFactory producerFactory,
             final boolean dryRun,
             final String clientId,
-            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
-        super(connection, clientId, proxyActor, connectivityStatusResolver, connectivityConfig);
+
+        super(connection, clientId, connectivityStatusResolver, connectivityConfig);
         this.dryRun = dryRun;
-        final Materializer materializer = Materializer.createMaterializer(this::getContext);
-        final KafkaProducerConfig producerConfig = connectivityConfig.getConnectionConfig().getKafkaConfig()
-                .getProducerConfig();
-        producerStream = new KafkaProducerStream(producerConfig, materializer, producerFactory);
+        final var connectionConfig = connectivityConfig.getConnectionConfig();
+        final var kafkaConfig = connectionConfig.getKafkaConfig();
+        producerStream = new KafkaProducerStream(kafkaConfig.getProducerConfig(),
+                Materializer.createMaterializer(this::getContext),
+                producerFactory);
     }
 
     /**
@@ -113,7 +113,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
      * @param producerFactory factory to create kafka SendProducer.
      * @param dryRun whether this publisher is only created for a test or not.
      * @param clientId identifier of the client actor.
-     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
@@ -123,12 +122,16 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             final SendProducerFactory producerFactory,
             final boolean dryRun,
             final String clientId,
-            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
-        return Props.create(KafkaPublisherActor.class, connection, producerFactory, dryRun, clientId,
-                proxyActor, connectivityStatusResolver, connectivityConfig);
+        return Props.create(KafkaPublisherActor.class,
+                connection,
+                producerFactory,
+                dryRun,
+                clientId,
+                connectivityStatusResolver,
+                connectivityConfig);
     }
 
     @Override

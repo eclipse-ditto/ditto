@@ -86,7 +86,7 @@ public abstract class AbstractRoute extends AllDirectives {
      * Timeout for Akka HTTP. Timeout is normally managed in HttpRequestActor and AcknowledgementAggregatorActor.
      * The Akka HTTP timeout is only there to prevent resource leak.
      */
-    private final static scala.concurrent.duration.Duration AKKA_HTTP_TIMEOUT =
+    private static final scala.concurrent.duration.Duration AKKA_HTTP_TIMEOUT =
             scala.concurrent.duration.Duration.create(2, TimeUnit.MINUTES);
 
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(AbstractRoute.class);

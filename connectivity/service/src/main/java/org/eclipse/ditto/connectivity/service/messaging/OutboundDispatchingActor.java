@@ -29,7 +29,6 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.connectivity.api.InboundSignal;
 import org.eclipse.ditto.connectivity.api.OutboundSignalFactory;
@@ -38,8 +37,6 @@ import org.eclipse.ditto.internal.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.protocol.TopicPath;
-import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
@@ -170,9 +167,9 @@ final class OutboundDispatchingActor extends AbstractActor {
         }
     }
 
-    private boolean isLiveCommandExpectingResponse(final Signal<?> signal) {
+    private static boolean isLiveCommandExpectingResponse(final Signal<?> signal) {
         final var headers = signal.getDittoHeaders();
-        return signal instanceof Command &&
+        return SignalInformationPoint.isCommand(signal) &&
                 headers.isResponseRequired() &&
                 SignalInformationPoint.isChannelLive(signal);
     }
@@ -211,11 +208,6 @@ final class OutboundDispatchingActor extends AbstractActor {
         final var sender = getSender();
         sender.tell(AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders()),
                 ActorRef.noSender());
-    }
-
-    private static boolean isLiveResponse(final WithDittoHeaders response) {
-        final var dittoHeaders = response.getDittoHeaders();
-        return dittoHeaders.getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
     }
 
 }

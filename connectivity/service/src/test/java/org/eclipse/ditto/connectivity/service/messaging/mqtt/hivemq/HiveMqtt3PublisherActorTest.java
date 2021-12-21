@@ -62,8 +62,12 @@ public class HiveMqtt3PublisherActorTest extends AbstractMqttPublisherActorTest 
 
     @Override
     protected Props getPublisherActorProps() {
-        return HiveMqtt3PublisherActor.props(TestConstants.createConnection(), mqtt3Client, false,
-                "clientId", proxyActor, mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
+        return HiveMqtt3PublisherActor.props(TestConstants.createConnection(),
+                mqtt3Client,
+                false,
+                "clientId",
+                mock(ConnectivityStatusResolver.class),
+                ConnectivityConfig.of(actorSystem.settings().config()));
     }
 
     @Override

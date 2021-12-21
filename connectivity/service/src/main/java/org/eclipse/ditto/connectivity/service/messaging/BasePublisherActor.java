@@ -117,16 +117,14 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private final List<Optional<ReplyTarget>> replyTargets;
     private final int acknowledgementSizeBudget;
     private final String clientId;
-    private final ActorRef proxyActor;
 
     protected BasePublisherActor(final Connection connection,
             final String clientId,
-            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
+
         this.connection = checkNotNull(connection, "connection");
         this.clientId = checkNotNull(clientId, "clientId");
-        this.proxyActor = checkNotNull(proxyActor, "proxyActor");
         resourceStatusMap = new HashMap<>();
         final List<Target> targets = connection.getTargets();
         targets.forEach(target -> resourceStatusMap.put(target, getTargetResourceStatus(target)));
@@ -134,7 +132,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         connectionConfig = connectivityConfig.getConnectionConfig();
         final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
         final MonitoringLoggerConfig loggerConfig = monitoringConfig.logger();
-        this.connectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
+        connectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
         this.connectivityStatusResolver = checkNotNull(connectivityStatusResolver, "connectivityStatusResolver");
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connection);
@@ -142,7 +140,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         responseAcknowledgedMonitor = connectionMonitorRegistry.forResponseAcknowledged(connection);
         replyTargets = connection.getSources().stream().map(Source::getReplyTarget).collect(Collectors.toList());
         acknowledgementSizeBudget = connectionConfig.getAcknowledgementConfig().getIssuedMaxBytes();
-        this.logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
+        logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
 
         connectionIdResolver = PlaceholderFactory.newExpressionResolver(
@@ -637,7 +635,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     private static boolean isLiveSignal(final Signal<?> signal) {
         return signal instanceof MessageCommand ||
-                (signal instanceof ThingCommand && ProtocolAdapter.isLiveSignal(signal));
+                signal instanceof ThingCommand && ProtocolAdapter.isLiveSignal(signal);
     }
 
     private static ResourceStatus getTargetResourceStatus(final Target target) {

@@ -360,8 +360,10 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     private ActorRef startRmqPublisherActor() {
         stopChildActor(rmqPublisherActor);
-        final Props publisherProps = RabbitMQPublisherActor.props(connection(), getDefaultClientId(), getProxyActor(),
-                connectivityStatusResolver, connectivityConfig());
+        final Props publisherProps = RabbitMQPublisherActor.props(connection(),
+                getDefaultClientId(),
+                connectivityStatusResolver,
+                connectivityConfig());
         return startChildActorConflictFree(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
     }
 
