@@ -35,6 +35,7 @@ import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatcher;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -392,23 +393,20 @@ public final class ThingCommandEnforcementTest {
     @Test
     public void enforceLiveChannelConditionOnModifyCommandFails() {
         final PolicyId policyId = PolicyId.of("policy:id");
-        final JsonObject thing = newThingWithAttributeWithPolicyId(policyId)
-                .toBuilder()
-                .build();
 
-        final JsonObject policy = PoliciesModelFactory.newPolicyBuilder(policyId)
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
                 .setRevision(1L)
                 .forLabel("authorize-self")
                 .setSubject(GOOGLE, TestSetup.SUBJECT_ID)
                 .setGrantedPermissions(PoliciesResourceType.thingResource(JsonPointer.empty()),
                         Permissions.newInstance(Permission.READ, Permission.WRITE))
-                .build()
-                .toJson(FieldType.all());
+                .build();
+        final JsonObject policyJsonObject = policy.toJson(FieldType.all());
 
         final SudoRetrieveThingResponse sudoRetrieveThingResponse =
-                SudoRetrieveThingResponse.of(thing, DittoHeaders.empty());
+                SudoRetrieveThingResponse.of(newThingWithAttributeWithPolicyId(policyId), DittoHeaders.empty());
         final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
-                SudoRetrievePolicyResponse.of(policyId, policy, DittoHeaders.empty());
+                SudoRetrievePolicyResponse.of(policyId, policyJsonObject, DittoHeaders.empty());
 
         new TestKit(system) {{
             mockEntitiesActorInstance.setReply(TestSetup.THING_SUDO, sudoRetrieveThingResponse);
@@ -417,18 +415,20 @@ public final class ThingCommandEnforcementTest {
             final ActorRef underTest = newEnforcerActor(getRef());
 
             // WHEN: Live channel condition is set on an unreadable feature
-            final DittoHeaders dittoHeaders = headers().toBuilder()
+            final DittoHeaders dittoHeadersWithLiveChannelCondition = DittoHeaders.newBuilder(headers())
                     .liveChannelCondition("exists(thingId)")
                     .build();
 
-            final ThingCommand<?> modifyCommand = getModifyCommand(dittoHeaders);
+            final ThingCommand<?> modifyCommand = getModifyCommand(dittoHeadersWithLiveChannelCondition);
             mockEntitiesActorInstance.setReply(modifyCommand);
             underTest.tell(modifyCommand, getRef());
 
             // THEN: The command is rejected
-            final DittoRuntimeException response = TestSetup.fishForMsgClass(this, DittoRuntimeException.class);
-            assertThat(response.getErrorCode()).isEqualTo(LiveChannelConditionNotAllowedException.ERROR_CODE);
-            assertThat(response.getHttpStatus()).isEqualTo(HttpStatus.METHOD_NOT_ALLOWED);
+            final LiveChannelConditionNotAllowedException response =
+                    TestSetup.fishForMsgClass(this, LiveChannelConditionNotAllowedException.class);
+
+            assertThat(SignalInformationPoint.getCorrelationId(response))
+                    .isEqualTo(SignalInformationPoint.getCorrelationId(modifyCommand));
         }};
     }
 
@@ -869,9 +869,9 @@ public final class ThingCommandEnforcementTest {
 
     private DittoHeaders headers() {
         return DittoHeaders.newBuilder()
-                .authorizationContext(
-                        AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED, TestSetup.SUBJECT,
-                                AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, TestSetup.SUBJECT_ID))))
+                .authorizationContext(AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                        TestSetup.SUBJECT,
+                        AuthorizationSubject.newInstance(String.format("%s:%s", GOOGLE, TestSetup.SUBJECT_ID))))
                 .correlationId(testName.getMethodName())
                 .schemaVersion(JsonSchemaVersion.V_2)
                 .build();
@@ -901,7 +901,7 @@ public final class ThingCommandEnforcementTest {
         return getModifyCommand(headers());
     }
 
-    private ThingCommand<?> getModifyCommand(final DittoHeaders dittoHeaders) {
+    private static ThingCommand<?> getModifyCommand(final DittoHeaders dittoHeaders) {
         return ModifyFeature.of(TestSetup.THING_ID, Feature.newBuilder().withId("x").build(), dittoHeaders);
     }
 

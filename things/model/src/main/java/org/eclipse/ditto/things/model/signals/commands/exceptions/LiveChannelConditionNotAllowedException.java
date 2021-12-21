@@ -53,6 +53,7 @@ public final class LiveChannelConditionNotAllowedException extends DittoRuntimeE
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
+
         super(ERROR_CODE, HttpStatus.METHOD_NOT_ALLOWED, dittoHeaders, message, description, cause, href);
     }
 
@@ -79,6 +80,7 @@ public final class LiveChannelConditionNotAllowedException extends DittoRuntimeE
      */
     public static LiveChannelConditionNotAllowedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
@@ -97,8 +99,7 @@ public final class LiveChannelConditionNotAllowedException extends DittoRuntimeE
      * A mutable builder with a fluent API for a {@link LiveChannelConditionNotAllowedException}.
      */
     @NotThreadSafe
-    public static final class Builder
-            extends DittoRuntimeExceptionBuilder<LiveChannelConditionNotAllowedException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<LiveChannelConditionNotAllowedException> {
 
         private Builder() {
             this(DEFAULT_DESCRIPTION);
@@ -117,8 +118,10 @@ public final class LiveChannelConditionNotAllowedException extends DittoRuntimeE
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new LiveChannelConditionNotAllowedException(dittoHeaders, message, description, cause, href);
         }
+
     }
 
 }

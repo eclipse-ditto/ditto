@@ -207,12 +207,12 @@ public final class SignalInformationPoint {
     }
 
     /**
-     * Returns the optional correlation ID of the specified {@code Signal} argument's headers.
+     * Returns the optional correlation ID of the specified argument's headers.
      *
      * @param signal the signal to get the optional correlation ID from.
      * @return the optional correlation ID. The optional is empty if {@code signal} is {@code null}.
      */
-    public static Optional<String> getCorrelationId(@Nullable final Signal<?> signal) {
+    public static Optional<String> getCorrelationId(@Nullable final WithDittoHeaders signal) {
         final Optional<String> result;
         if (null != signal) {
             final var signalDittoHeaders = signal.getDittoHeaders();
