@@ -17,6 +17,10 @@ requests (see also [blog post about "HTTP live channel"](2021-12-20-http-live-ch
 will retrieve data from a device via the live channel, or fall back to the persisted [twin](protocol-twinlive.html#twin) 
 otherwise.
 
+{% include note.html content="In order to use the live channel, the device receiving live commands must be able to understand
+    and answer in [Ditto Protocol messages](protocol-specification.html) with the
+[topic's channel being `live`](protocol-specification-topic.html#live-channel)." %}
+
 ## Relying on conditions
 
 Ditto 2.1.0 added support for [conditional requests](basic-conditional-requests.html) by e.g. specifying a `condition`
