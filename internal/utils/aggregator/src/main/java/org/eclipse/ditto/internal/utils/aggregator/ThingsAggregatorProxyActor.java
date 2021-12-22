@@ -27,11 +27,13 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.base.model.signals.commands.WithEntity;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -223,8 +225,12 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 final String json = response.getEntityPlainString().orElseGet(() ->
                         response.getEntity(response.getImplementedSchemaVersion()).toString());
                 return PlainJson.of(response.getEntityId(), json);
+            } else if (jsonifiable instanceof WithEntity && jsonifiable instanceof WithEntityId) {
+                final String json = ((WithEntity<?>) jsonifiable).getEntityPlainString().orElseGet(() ->
+                        ((WithEntity<?>) jsonifiable).getEntity(jsonifiable.getImplementedSchemaVersion()).toString());
+                return PlainJson.of(((WithEntityId) jsonifiable).getEntityId(), json);
             } else {
-                return null;
+                return PlainJson.empty();
             }
         };
     }

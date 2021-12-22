@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractCommandStrategies;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
@@ -22,24 +24,28 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
+import akka.actor.ActorSystem;
+
 /**
  * The collection of the command strategies of {@code ThingPersistenceActor}.
  */
 public final class ThingCommandStrategies
         extends AbstractCommandStrategies<Command<?>, Thing, ThingId, ThingEvent<?>> {
 
-    private static final ThingCommandStrategies INSTANCE = new ThingCommandStrategies();
+    @SuppressWarnings("java:S3077") // volatile because of double checked locking pattern
+    @Nullable
+    private static volatile ThingCommandStrategies instance;
 
     /**
      * Constructs a new {@code ThingCommandReceiveStrategy} object.
      */
-    private ThingCommandStrategies() {
+    private ThingCommandStrategies(final ActorSystem system) {
         super(Command.class);
-        addThingStrategies();
+        addThingStrategies(system);
         addPolicyStrategies();
         addAttributesStrategies();
         addDefinitionStrategies();
-        addFeaturesStrategies();
+        addFeaturesStrategies(system);
         addFeatureDefinitionStrategies();
         addFeaturePropertiesStrategies();
         addFeatureDesiredPropertiesStrategies();
@@ -49,25 +55,37 @@ public final class ThingCommandStrategies
     /**
      * Returns the <em>singleton</em> instance of {@code ThingReceiveStrategy}.
      *
+     * @param system the Akka ActorSystem to use in order to e.g. dynamically load classes.
      * @return the instance.
      */
-    public static ThingCommandStrategies getInstance() {
-        return INSTANCE;
+    public static ThingCommandStrategies getInstance(final ActorSystem system) {
+        ThingCommandStrategies localInstance = instance;
+        if (null == localInstance) {
+            synchronized (ThingCommandStrategies.class) {
+                localInstance = instance;
+                if (null == localInstance) {
+                    instance = localInstance = new ThingCommandStrategies(system);
+                }
+            }
+        }
+        return localInstance;
     }
 
     /**
-     * Returns the <em>singleton</em> instance of {@code CreateThingStrategy}.
+     * Returns a new instance of {@code CreateThingStrategy}.
      *
+     * @param system the ActorSystem to use.
      * @return the instance.
      */
-    public static CommandStrategy<CreateThing, Thing, ThingId, ThingEvent<?>> getCreateThingStrategy() {
-        return CreateThingStrategy.getInstance();
+    public static CommandStrategy<CreateThing, Thing, ThingId, ThingEvent<?>> getCreateThingStrategy(
+            final ActorSystem system) {
+        return new CreateThingStrategy(system);
     }
 
-    private void addThingStrategies() {
+    private void addThingStrategies(final ActorSystem system) {
         addStrategy(new ThingConflictStrategy());
         addStrategy(new ModifyThingStrategy());
-        addStrategy(new RetrieveThingStrategy());
+        addStrategy(new RetrieveThingStrategy(system));
         addStrategy(new DeleteThingStrategy());
         addStrategy(new MergeThingStrategy());
     }
@@ -92,11 +110,11 @@ public final class ThingCommandStrategies
         addStrategy(new DeleteThingDefinitionStrategy());
     }
 
-    private void addFeaturesStrategies() {
+    private void addFeaturesStrategies(final ActorSystem system) {
         addStrategy(new ModifyFeaturesStrategy());
         addStrategy(new ModifyFeatureStrategy());
         addStrategy(new RetrieveFeaturesStrategy());
-        addStrategy(new RetrieveFeatureStrategy());
+        addStrategy(new RetrieveFeatureStrategy(system));
         addStrategy(new DeleteFeaturesStrategy());
         addStrategy(new DeleteFeatureStrategy());
     }

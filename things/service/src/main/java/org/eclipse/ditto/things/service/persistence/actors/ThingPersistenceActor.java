@@ -162,12 +162,12 @@ public final class ThingPersistenceActor
 
     @Override
     protected ThingCommandStrategies getCreatedStrategy() {
-        return ThingCommandStrategies.getInstance();
+        return ThingCommandStrategies.getInstance(getContext().getSystem());
     }
 
     @Override
     protected CommandStrategy<CreateThing, Thing, ThingId, ThingEvent<?>> getDeletedStrategy() {
-        return ThingCommandStrategies.getCreateThingStrategy();
+        return ThingCommandStrategies.getCreateThingStrategy(getContext().getSystem());
     }
 
     @Override

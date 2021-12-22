@@ -168,6 +168,11 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     }
 
     @Override
+    public Optional<String> getAccept() {
+        return getStringForDefinition(DittoHeaderDefinition.ACCEPT);
+    }
+
+    @Override
     public Optional<ContentType> getDittoContentType() {
         return getContentType().map(ContentType::of);
     }

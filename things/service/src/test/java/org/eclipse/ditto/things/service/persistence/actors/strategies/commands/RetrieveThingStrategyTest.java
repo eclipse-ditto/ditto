@@ -14,6 +14,7 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.things.model.TestConstants.Thing.THING_V2;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -31,8 +32,13 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccess
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
+import org.eclipse.ditto.wot.integration.provider.WotThingDescriptionProvider;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.typesafe.config.ConfigFactory;
+
+import akka.actor.ActorSystem;
 
 /**
  * Unit test for {@link RetrieveThingStrategy}.
@@ -43,12 +49,14 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
 
     @Before
     public void setUp() {
-        underTest = new RetrieveThingStrategy();
+        final ActorSystem system = ActorSystem.create("test", ConfigFactory.load("test"));
+        underTest = new RetrieveThingStrategy(system);
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(RetrieveThingStrategy.class, areImmutable());
+        assertInstancesOf(RetrieveThingStrategy.class, areImmutable(),
+                provided(WotThingDescriptionProvider.class).areAlsoImmutable());
     }
 
     @Test

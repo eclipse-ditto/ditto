@@ -15,9 +15,9 @@ package org.eclipse.ditto.things.model;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,6 +27,8 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.json.FieldType;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -35,8 +37,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.base.model.json.FieldType;
-import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 
 /**
  * An immutable implementation of {@link Features}.
@@ -47,7 +47,7 @@ final class ImmutableFeatures implements Features {
     private final Map<String, Feature> features;
 
     private ImmutableFeatures(final Map<String, Feature> features) {
-        this.features = Collections.unmodifiableMap(new HashMap<>(checkNotNull(features, "features")));
+        this.features = Collections.unmodifiableMap(new LinkedHashMap<>(checkNotNull(features, "features")));
     }
 
     /**
@@ -56,7 +56,7 @@ final class ImmutableFeatures implements Features {
      * @return a new empty {@code ImmutableFeatures} instance.
      */
     public static ImmutableFeatures empty() {
-        return new ImmutableFeatures(new HashMap<>());
+        return new ImmutableFeatures(new LinkedHashMap<>());
     }
 
     /**
@@ -69,7 +69,7 @@ final class ImmutableFeatures implements Features {
     public static ImmutableFeatures of(final Iterable<Feature> features) {
         checkNotNull(features, "initial features");
 
-        final Map<String, Feature> featureMap = new HashMap<>();
+        final Map<String, Feature> featureMap = new LinkedHashMap<>();
         features.forEach(feature -> featureMap.put(feature.getId(), feature));
 
         return new ImmutableFeatures(featureMap);
@@ -87,7 +87,7 @@ final class ImmutableFeatures implements Features {
         checkNotNull(feature, "initial Feature");
         checkNotNull(additionalFeatures, "additional initial Features");
 
-        final Map<String, Feature> features = new HashMap<>(1 + additionalFeatures.length);
+        final Map<String, Feature> features = new LinkedHashMap<>(1 + additionalFeatures.length);
         features.put(feature.getId(), feature);
         for (final Feature additionalFeature : additionalFeatures) {
             features.put(additionalFeature.getId(), additionalFeature);
@@ -147,7 +147,7 @@ final class ImmutableFeatures implements Features {
     }
 
     private Map<String, Feature> copyFeatures() {
-        return new HashMap<>(features);
+        return new LinkedHashMap<>(features);
     }
 
     @Override
@@ -282,7 +282,7 @@ final class ImmutableFeatures implements Features {
 
     @Override
     public Iterator<Feature> iterator() {
-        return new HashSet<>(features.values()).iterator();
+        return new LinkedHashSet<>(features.values()).iterator();
     }
 
     @Override
