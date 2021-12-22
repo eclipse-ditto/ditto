@@ -38,7 +38,7 @@ final class KafkaBootstrapServerSpecificConfig implements KafkaSpecificConfig {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaBootstrapServerSpecificConfig.class);
 
     private static final Pattern BOOTSTRAP_SERVERS_PATTERN = Pattern.compile(
-            "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])(\\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9]))*:([1-9]|[1-5]?[0-9]{2,4}|6[1-4][0-9]{3}|65[1-4][0-9]{2}|655[1-2][0-9]|6553[1-5])[\\s,]*?)+$");
+            "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])(\\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9]))*\\.?:([1-9]|[1-5]?[0-9]{2,4}|6[1-4][0-9]{3}|65[1-4][0-9]{2}|655[1-2][0-9]|6553[1-5])[\\s,]*?)+$");
     private static final String INVALID_BOOTSTRAP_SERVERS =
             "The provided list of bootstrap servers ''{0}'' is not valid";
 

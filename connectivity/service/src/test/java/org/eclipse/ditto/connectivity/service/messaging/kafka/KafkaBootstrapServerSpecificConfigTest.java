@@ -55,6 +55,8 @@ public final class KafkaBootstrapServerSpecificConfigTest {
     private static final String BOOTSTRAP_SERVERS = String.join(",", BOOTSTRAP_SERVERS_ARRAY);
     private static final String BOOTSTRAP_SERVERS_CONFIG_KEY = "bootstrapServers";
 
+    private static final String DEFAULT_SERVER_ENDING_WITH_DOT = "org.apache.kafka.:9092";
+
     private static final Set<Connection> CONNECTIONS_WITH_EMPTY_SERVERS = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(
                     connectionWithBootstrapServers(null),
@@ -72,6 +74,8 @@ public final class KafkaBootstrapServerSpecificConfigTest {
                     connectionWithBootstrapServers(DEFAULT_SERVER),
                     connectionWithBootstrapServers(BOOTSTRAP_SERVERS)
             )));
+    private static final Connection CONNECTION_WITH_SERVER_ENDING_WITH_DOT =
+            connectionWithBootstrapServers(DEFAULT_SERVER_ENDING_WITH_DOT);
 
     private final KafkaBootstrapServerSpecificConfig bootstrapServerSpecificConfig =
             KafkaBootstrapServerSpecificConfig.getInstance();
@@ -81,6 +85,7 @@ public final class KafkaBootstrapServerSpecificConfigTest {
         CONNECTIONS_WITH_EMPTY_SERVERS.forEach(this::shouldBeApplicable);
         CONNECTIONS_WITH_INVALID_PATTERN.forEach(this::shouldBeApplicable);
         CONNECTIONS_WITH_CORRECT_SERVERS.forEach(this::shouldBeApplicable);
+        shouldBeApplicable(CONNECTION_WITH_SERVER_ENDING_WITH_DOT);
     }
 
     private void shouldBeApplicable(final Connection connection) {
@@ -104,7 +109,11 @@ public final class KafkaBootstrapServerSpecificConfigTest {
     @Test
     public void shouldBeValidForCorrectListOfBootstrapServers() {
         CONNECTIONS_WITH_CORRECT_SERVERS.forEach(this::shouldBeValid);
+    }
 
+    @Test
+    public void shouldBeValidForBootstrapEntryEndingWithDot() {
+        shouldBeValid(CONNECTION_WITH_SERVER_ENDING_WITH_DOT);
     }
 
     private void shouldBeValid(final Connection connection) {
