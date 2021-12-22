@@ -37,7 +37,7 @@
         <jackson-bom.version>2.11.4</jackson-bom.version>
         <typesafe-config.version>1.4.0</typesafe-config.version>
         <ssl-config-core.version>0.4.2</ssl-config-core.version>
-        <akka-bom.version>2.6.17</akka-bom.version>
+        <akka-bom.version>2.6.18</akka-bom.version>
         <akka-persistence-mongo.version>3.0.6</akka-persistence-mongo.version>
         <akka-http-bom.version>10.2.7</akka-http-bom.version>
         <akka-management.version>1.0.10</akka-management.version>
@@ -62,7 +62,7 @@
         <commons-net.version>3.8.0</commons-net.version>
 
         <slf4j.version>1.7.31</slf4j.version>
-        <logback.version>1.2.8</logback.version>
+        <logback.version>1.2.9</logback.version>
         <logstash-logback-encoder.version>6.6</logstash-logback-encoder.version>
         <fluency.version>2.6.0</fluency.version>
         <janino.version>2.7.8</janino.version>
