@@ -34,5 +34,18 @@
     "status",
     "error",
     "message"
-  ]
+  ],
+  "additionalProperties": {
+    "title": "Additional error information",
+    "description": "Additional error information helping to better classify the error.",
+    "type": [
+      "array",
+      "boolean",
+      "integer",
+      "number",
+      "object",
+      "string",
+      "null"
+    ]
+  }
 }
