@@ -121,8 +121,11 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return HttpPublisherActor.props(TestConstants.createConnection(), httpPushFactory, "clientId",
-                proxyActor, mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
+        return HttpPublisherActor.props(TestConstants.createConnection(),
+                httpPushFactory,
+                "clientId",
+                mock(ConnectivityStatusResolver.class),
+                ConnectivityConfig.of(actorSystem.settings().config()));
     }
 
     @Override
@@ -738,7 +741,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .credentials(hmacCredentials)
                     .build();
             final var props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
-                    proxyActor, mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
+                    mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
             final var publisherActor = childActorOf(props);
             publisherCreated(this, publisherActor);
 
@@ -805,7 +808,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     .credentials(hmacCredentials)
                     .build();
             final var props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
-                    proxyActor, mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
+                    mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
             final var publisherActor = childActorOf(props);
             publisherCreated(this, publisherActor);
 
@@ -930,7 +933,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final Connection connection =
                     TestConstants.createConnection().toBuilder().specificConfig(specificConfig).build();
             final Props props = HttpPublisherActor.props(connection, httpPushFactory, "clientId",
-                    proxyActor, mock(ConnectivityStatusResolver.class),
+                    mock(ConnectivityStatusResolver.class),
                     ConnectivityConfig.of(actorSystem.settings().config()));
             final ActorRef publisherActor = childActorOf(props);
 

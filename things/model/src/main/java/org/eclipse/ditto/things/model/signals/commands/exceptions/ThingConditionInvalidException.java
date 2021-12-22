@@ -29,6 +29,8 @@ import org.eclipse.ditto.things.model.ThingException;
 
 /**
  * Thrown when validating the condition is failing.
+ *
+ * @since 2.2.0
  */
 @Immutable
 @JsonParsableException(errorCode = ThingConditionInvalidException.ERROR_CODE)
@@ -45,6 +47,8 @@ public final class ThingConditionInvalidException extends DittoRuntimeException 
     private static final String DEFAULT_DESCRIPTION = "The provided condition is not valid. " +
             "Please check the value of your condition header.";
 
+    private static final long serialVersionUID = -973529278462389259L;
+
     private ThingConditionInvalidException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
@@ -54,7 +58,7 @@ public final class ThingConditionInvalidException extends DittoRuntimeException 
     }
 
     /**
-     * A mutable builder for a {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionInvalidException}.
+     * A mutable builder for a {@link ThingConditionInvalidException}.
      *
      * @param condition the condition to apply for the request.
      * @return the builder.
@@ -64,12 +68,12 @@ public final class ThingConditionInvalidException extends DittoRuntimeException 
     }
 
     /**
-     * Constructs a new {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionInvalidException}
+     * Constructs a new {@link ThingConditionInvalidException}
      * object with the exception message extracted from the given JSON object.
      *
-     * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
+     * @param jsonObject the JSON to read the {@link DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionInvalidException}.
+     * @return the new {@link ThingConditionInvalidException}.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
@@ -92,7 +96,7 @@ public final class ThingConditionInvalidException extends DittoRuntimeException 
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionInvalidException}.
+     * A mutable builder with a fluent API for a {@link ThingConditionInvalidException}.
      */
     @NotThreadSafe
     public static final class Builder

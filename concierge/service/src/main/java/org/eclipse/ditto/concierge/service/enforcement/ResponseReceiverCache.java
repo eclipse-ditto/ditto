@@ -17,32 +17,40 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.utils.cache.Cache;
 import org.eclipse.ditto.internal.utils.cache.CaffeineCache;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
 
+import akka.actor.AbstractExtensionId;
 import akka.actor.ActorRef;
-import akka.japi.Pair;
+import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
+import akka.actor.Extension;
 
 /**
  * A cache of response receivers and their associated correlation ID.
- *
+ * <p>
  * Each cache entry gets evicted after becoming expired.
- *
+ * <p>
  * To put a response receiver to this cache a {@link Command} has to be provided as key.
  * The command is necessary because of its headers.
  * The command headers are required to contain the mandatory correlation ID.
@@ -51,18 +59,28 @@ import akka.japi.Pair;
  * is used.
  */
 @NotThreadSafe
-final class ResponseReceiverCache {
+final class ResponseReceiverCache implements Extension {
 
+    private static final ExtensionId EXTENSION_ID = new ExtensionId();
     private static final Duration DEFAULT_ENTRY_EXPIRY = Duration.ofMinutes(2L);
 
     private final Duration fallBackEntryExpiry;
-    private final Cache<CorrelationIdKey, Pair<ActorRef, AuthorizationContext>> cache;
+    private final Cache<CorrelationIdKey, ActorRef> cache;
 
-    private ResponseReceiverCache(final Duration fallBackEntryExpiry,
-            final Cache<CorrelationIdKey, Pair<ActorRef, AuthorizationContext>> cache) {
-
+    private ResponseReceiverCache(final Duration fallBackEntryExpiry, final Cache<CorrelationIdKey, ActorRef> cache) {
         this.fallBackEntryExpiry = fallBackEntryExpiry;
         this.cache = cache;
+    }
+
+    /**
+     * Returns a default instance of {@code ResponseReceiverCache} with a hard-coded fall-back entry expiry
+     * for an actor system.
+     *
+     * @param actorSystem the actor system.
+     * @return the instance.
+     */
+    static ResponseReceiverCache lookup(final ActorSystem actorSystem) {
+        return EXTENSION_ID.get(actorSystem);
     }
 
     /**
@@ -90,20 +108,20 @@ final class ResponseReceiverCache {
         return new ResponseReceiverCache(fallBackEntryExpiry, createCache(fallBackEntryExpiry));
     }
 
-    private static Cache<CorrelationIdKey, Pair<ActorRef, AuthorizationContext>> createCache(
-            final Duration fallBackEntryExpiry
-    ) {
+    private static Cache<CorrelationIdKey, ActorRef> createCache(final Duration fallBackEntryExpiry) {
         return CaffeineCache.of(Caffeine.newBuilder().expireAfter(new CorrelationIdKeyExpiry(fallBackEntryExpiry)));
     }
 
     /**
-     * Puts the specified response receiver for the correlation ID of the command header's correlation ID.
+     * Caches the specified response receiver for the correlation ID of the signal's correlation ID.
      *
+     * @param signal the signal to extract the correlation ID from used for the cache key.
+     * @param responseReceiver the ActorRef of the response receiver to cache for the correlation ID.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if the headers of {@code command} do not contain a correlation ID.
+     * @throws IllegalArgumentException if the headers of {@code signal} do not contain a correlation ID.
      */
-    public void putCommand(final Command<?> command, final Pair<ActorRef, AuthorizationContext> responseReceiver) {
-        cache.put(getCorrelationIdKeyForInsertion(checkNotNull(command, "command")),
+    public void cacheSignalResponseReceiver(final Signal<?> signal, final ActorRef responseReceiver) {
+        cache.put(getCorrelationIdKeyForInsertion(checkNotNull(signal, "signal")),
                 checkNotNull(responseReceiver, "responseReceiver"));
     }
 
@@ -131,13 +149,80 @@ final class ResponseReceiverCache {
      * @throws NullPointerException if {@code correlationId} is {@code null}.
      * @throws IllegalArgumentException if {@code correlationId} is empty or blank.
      */
-    public CompletableFuture<Optional<Pair<ActorRef, AuthorizationContext>>> get(final CharSequence correlationId) {
-        final var correlationIdString = String.valueOf(checkNotNull(correlationId, "correlationId"));
+    public CompletableFuture<Optional<ActorRef>> get(final CharSequence correlationId) {
+        final var correlationIdString = checkNotNull(correlationId, "correlationId").toString();
         ConditionChecker.checkArgument(correlationIdString,
                 Predicate.not(String::isBlank),
                 () -> "The correlationId must not be blank.");
 
         return cache.get(CorrelationIdKey.forCacheRetrieval(correlationIdString));
+    }
+
+    /**
+     * Insert a response receiver for a live or message command.
+     *
+     * @param signal the live or message command.
+     * @param receiverCreator creator of the receiver actor.
+     * @param responseHandler handler of the response.
+     * @param <T> type of results of the response handler.
+     * @return the result of the response handler.
+     */
+    public <S extends Signal<?>, T> CompletionStage<T> insertResponseReceiverConflictFree(final S signal,
+            final Function<S, ActorRef> receiverCreator,
+            final BiFunction<S, ActorRef, T> responseHandler) {
+
+        return insertResponseReceiverConflictFreeWithFuture(signal,
+                receiverCreator,
+                responseHandler.andThen(CompletableFuture::completedStage));
+    }
+
+    /**
+     * Insert a response receiver for a live or message command.
+     *
+     * @param signal the live or message command.
+     * @param receiverCreator creator of the receiver actor.
+     * @param responseHandler handler of the response.
+     * @param <T> type of results of the response handler.
+     * @return the result of the response handler.
+     */
+    public <S extends Signal<?>, T> CompletionStage<T> insertResponseReceiverConflictFreeWithFuture(final S signal,
+            final Function<S, ActorRef> receiverCreator,
+            final BiFunction<S, ActorRef, CompletionStage<T>> responseHandler) {
+
+        return setUniqueCorrelationIdForGlobalDispatching(signal, false)
+                .thenCompose(commandWithUniqueCorrelationId -> {
+                    final ActorRef receiver = receiverCreator.apply(commandWithUniqueCorrelationId);
+                    cacheSignalResponseReceiver(commandWithUniqueCorrelationId, receiver);
+                    return responseHandler.apply(commandWithUniqueCorrelationId, receiver);
+                });
+    }
+
+    @SuppressWarnings("unchecked")
+    private <S extends Signal<?>> CompletionStage<S> setUniqueCorrelationIdForGlobalDispatching(final S signal,
+            final boolean refreshCorrelationId) {
+
+        final String correlationId;
+        if (refreshCorrelationId) {
+            correlationId = UUID.randomUUID().toString();
+        } else {
+            correlationId = SignalInformationPoint.getCorrelationId(signal)
+                    .orElseGet(() -> UUID.randomUUID().toString());
+        }
+
+        return get(correlationId)
+                .thenCompose(entry -> {
+                    final CompletionStage<S> result;
+                    if (entry.isPresent()) {
+                        result = setUniqueCorrelationIdForGlobalDispatching(signal, true);
+                    } else {
+                        result = CompletableFuture.completedFuture(
+                                (S) signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
+                                        .correlationId(correlationId)
+                                        .build())
+                        );
+                    }
+                    return result;
+                });
     }
 
     @Immutable
@@ -188,9 +273,17 @@ final class ResponseReceiverCache {
 
     }
 
+    static final class ExtensionId extends AbstractExtensionId<ResponseReceiverCache> {
+
+        @Override
+        public ResponseReceiverCache createExtension(final ExtendedActorSystem system) {
+            return newInstance();
+        }
+
+    }
+
     @Immutable
-    private static final class CorrelationIdKeyExpiry
-            implements Expiry<CorrelationIdKey, Pair<ActorRef, AuthorizationContext>> {
+    private static final class CorrelationIdKeyExpiry implements Expiry<CorrelationIdKey, ActorRef> {
 
         private final Duration fallBackEntryExpiry;
 
@@ -199,18 +292,14 @@ final class ResponseReceiverCache {
         }
 
         @Override
-        public long expireAfterCreate(final CorrelationIdKey key,
-                final Pair<ActorRef, AuthorizationContext> value,
-                final long currentTime) {
-
+        public long expireAfterCreate(final CorrelationIdKey key, final ActorRef value, final long currentTime) {
             final var entryExpiry = Objects.requireNonNullElse(key.expiry, fallBackEntryExpiry);
-
             return entryExpiry.toNanos(); // it is crucial to return nanoseconds here
         }
 
         @Override
         public long expireAfterUpdate(final CorrelationIdKey key,
-                final Pair<ActorRef, AuthorizationContext> value,
+                final ActorRef value,
                 final long currentTime,
                 final long currentDuration) {
 
@@ -219,7 +308,7 @@ final class ResponseReceiverCache {
 
         @Override
         public long expireAfterRead(final CorrelationIdKey key,
-                final Pair<ActorRef, AuthorizationContext> value,
+                final ActorRef value,
                 final long currentTime,
                 final long currentDuration) {
 

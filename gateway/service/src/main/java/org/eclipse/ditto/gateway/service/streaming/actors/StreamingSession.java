@@ -22,6 +22,7 @@ import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
 import org.eclipse.ditto.protocol.placeholders.TopicPathPlaceholder;
@@ -40,6 +41,7 @@ public final class StreamingSession {
 
     private static final TopicPathPlaceholder TOPIC_PATH_PLACEHOLDER = TopicPathPlaceholder.getInstance();
     private static final ResourcePlaceholder RESOURCE_PLACEHOLDER = ResourcePlaceholder.getInstance();
+    private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
 
     private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
 
@@ -58,7 +60,8 @@ public final class StreamingSession {
                 : (thing, signal) -> ThingPredicateVisitor.apply(eventFilterCriteria,
                         PlaceholderFactory.newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER,
                                 PROTOCOL_ADAPTER.toTopicPath(signal)),
-                        PlaceholderFactory.newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal)
+                        PlaceholderFactory.newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal),
+                        PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object())
                 )
                 .test(thing);
         this.extraFields = extraFields;

@@ -70,5 +70,6 @@ public interface CreationRestrictionEnforcer {
     /**
      * A default implementation which allows everything.
      */
-    CreationRestrictionEnforcer NULL = (ctx) -> true;
+    CreationRestrictionEnforcer NULL = ctx -> true;
+
 }

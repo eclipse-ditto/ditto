@@ -67,9 +67,9 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.DefaultConnec
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActor;
 import org.eclipse.ditto.internal.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
 import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
 import org.eclipse.ditto.internal.models.signal.type.SemanticSignalType;
@@ -402,9 +402,9 @@ public final class InboundDispatchingSink
     ) {
         final Optional<Signal<?>> result;
         countAndLogIllegalAdaptableExceptionForLiveResponse(illegalAdaptableException, inboundMessage);
-        final var adaptable = illegalAdaptableException.getAdaptable();
-        if (isResponseRequired(adaptable)) {
-            result = Optional.of(toErrorResponseFunction.apply(illegalAdaptableException, adaptable.getTopicPath()));
+        final Optional<TopicPath> topicPath = illegalAdaptableException.getTopicPath();
+        if (isResponseRequired(illegalAdaptableException) && topicPath.isPresent()) {
+            result = Optional.of(toErrorResponseFunction.apply(illegalAdaptableException, topicPath.get()));
         } else {
             result = Optional.empty();
         }
@@ -541,7 +541,7 @@ public final class InboundDispatchingSink
                                 .orElse(acknowledgementConfig.getForwarderFallbackTimeout())
                         ).thenApply(response -> {
                             if (response instanceof WithDittoHeaders) {
-                                return AcknowledgementAggregatorActor.restoreCommandConnectivityHeaders(
+                                return CommandHeaderRestoration.restoreCommandConnectivityHeaders(
                                         (DittoHeadersSettable<?>) response,
                                         originalHeaders);
                             } else {
@@ -558,7 +558,11 @@ public final class InboundDispatchingSink
                                 return ConnectivityErrorResponse.of(dre, originalHeaders);
                             }
                         })
-                        .thenAccept(response -> sender.tell(response, ActorRef.noSender()));
+                        .thenAccept(response -> sender.tell(response, ActorRef.noSender()))
+                        .exceptionally(throwable -> {
+                            logger.warn("Error during dispatching incoming signal <{}>", incomingSignal, throwable);
+                            return null;
+                        });
             } else {
                 proxyActor.tell(signal, sender);
             }
@@ -576,8 +580,7 @@ public final class InboundDispatchingSink
             final Signal<?> signal,
             @Nullable final ActorRef sender) {
 
-        ackregatorStarter.doStart(entityId,
-                signal,
+        ackregatorStarter.doStart(entityId, signal, null,
                 responseSignal -> {
 
                     // potentially publish response/aggregated acks to reply target

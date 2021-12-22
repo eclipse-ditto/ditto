@@ -67,6 +67,7 @@ The following message mappers are included in the Ditto codebase:
 | [ConnectionStatus](#connectionstatus-mapper) | This mapper handles messages containing `creation-time` and `ttd` headers by updating a feature of the targeted thing with [definition](basic-feature.html#feature-definition) [ConnectionStatus](https://github.com/eclipse/vorto/tree/development/models/org.eclipse.ditto-ConnectionStatus-1.0.0.fbmodel). | ✓ |  |
 | [RawMessage](#rawmessage-mapper) | For outgoing message commands and responses, this mapper extracts the payload for publishing directly into the channel. For incoming messages, this mapper wraps them in a configured message command or response envelope. | ✓ | ✓ |
 | [ImplicitThingCreation](#implicitthingcreation-mapper) | This mapper handles messages for which a Thing should be created automatically based on a defined template. | ✓ |  |
+| [UpdateTwinWithLiveResponse](#updatetwinwithliveresponse-mapper) | This mapper creates a [merge Thing command](protocol-specification-things-merge.html) when a [retrieve command](protocol-specification-things-retrieve.html) was received via the [live channel](protocol-twinlive.html#live) patching exactly the retrieved "live" data into the twin. | ✓ |  |
 
 ### Ditto mapper
 
@@ -250,31 +251,67 @@ Example configuration:
 
 This mapper implicitly creates a new thing for an incoming message. 
  
-The created thing contains the values defined in the template, configured in the `mappingDefinitions` `options`. </br>
+The created thing contains the values defined in the template, configured in the `mappingDefinitions` `options`.  
 
 #### Configuration options
 
 * `thing` (required): The values of the thing that is created implicitly. It can either contain fixed values
  or header placeholders (e.g. `{%raw%}{{ header:device_id }}{%endraw%}`).
  
- Example of a template defined in  `options`:
- ```json
- {
-   "thing": {
-   "thingId": "{%raw%}{{ header:device_id }}{%endraw%}",
-   "attributes": {
-     "CreatedBy": "ImplicitThingCreation"
-   }
+Example of a template defined in  `options`:
+```json
+{
+  "thing": {
+    "thingId": "{%raw%}{{ header:device_id }}{%endraw%}",
+    "attributes": {
+      "CreatedBy": "ImplicitThingCreation"
+    }
   }
- }
- ```
+}
+```
+
+### UpdateTwinWithLiveResponse mapper
+
+This mapper creates a [merge Thing command](protocol-specification-things-merge.html) when a 
+[retrieve command](protocol-specification-things-retrieve.html) was received via the 
+[live channel](protocol-twinlive.html#live) patching exactly the retrieved "live" data into the twin.
+ 
+#### Configuration options
+
+* `dittoHeadersForMerge` (optional): The Ditto headers to use for constructing the "merge thing"
+  command for updating the twin, may for example add a condition to apply in order to update the twin
+  (default applied Ditto headers if not configured: `"response-required": false`, `"if-match": "*"`).
+   * in this configured headers, the following placeholders may be used:
+
+       | Placeholder                       | Description                                                                                             |
+       |---------------------------------------------------------------------------------------------------------|--------------|
+       | `{%raw%}{{ header:<header-name> }}{%endraw%}` | header value from the external message, e.g. from protocol headers                                      |
+       | `{%raw%}{{ request:subjectId }}{%endraw%}` | the first authenticated subjectId which did the request - the one of the connection source in this case |
+       | `{%raw%}{{ time:now }}{%endraw%}` | the current timestamp in ISO-8601 format as string in UTC timezone                                                     | 
+       | `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string                                 | 
+
+
+Example configuration:
+```json
+{
+  "dittoHeadersForMerge": {
+    "if-match": "*",
+    "response-required": false,
+    "put-metadata": [
+      {"key":"*/updated-by","value":"{%raw%}{{ request:subjectId }}{%endraw%}"},
+      {"key":"*/updated-via","value":"device-live-response"},
+      {"key":"*/update-hint","value":"{%raw%}{{ header:some-custom-hint }}{%endraw%}"},
+      {"key":"*/updated-at","value":"{%raw%}{{ time:now }}{%endraw%}"}
+    ]
+  }
+}
+```
 
 ## Example connection with multiple mappers
 
-The following example connection defines a `ConnectionStatus` mapping with the ID `status` and references it in a
- source.<br/>
- Messages received via this source will be mapped by the `Ditto` mapping and the `ConnectionStatus` mapping.<br/> 
- The `Ditto` mapping requires no options to be configured, so you can directly use its alias `Ditto`.  
+The following example connection defines a `ConnectionStatus` mapping with the ID `status` and references it in a source.  
+Messages received via this source will be mapped by the `Ditto` mapping and the `ConnectionStatus` mapping.  
+The `Ditto` mapping requires no options to be configured, so you can directly use its alias `Ditto`.  
 
 ```json
 { 

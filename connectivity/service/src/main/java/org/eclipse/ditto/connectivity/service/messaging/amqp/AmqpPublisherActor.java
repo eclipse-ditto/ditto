@@ -115,11 +115,10 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private AmqpPublisherActor(final Connection connection,
             final Session session,
             final String clientId,
-            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
-        super(connection, clientId, proxyActor, connectivityStatusResolver, connectivityConfig);
+        super(connection, clientId, connectivityStatusResolver, connectivityConfig);
         this.session = checkNotNull(session, "session");
 
         final Executor jmsDispatcher = JMSConnectionHandlingActor.getOwnDispatcher(getContext().system());
@@ -176,7 +175,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      * @param connection the connection this publisher belongs to
      * @param session the jms session
      * @param clientId identifier of the client actor.
-     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the connectivity configuration including potential overwrites.
@@ -185,7 +183,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     static Props props(final Connection connection,
             final Session session,
             final String clientId,
-            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
 
@@ -193,7 +190,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 connection,
                 session,
                 clientId,
-                proxyActor,
                 connectivityStatusResolver,
                 connectivityConfig);
     }

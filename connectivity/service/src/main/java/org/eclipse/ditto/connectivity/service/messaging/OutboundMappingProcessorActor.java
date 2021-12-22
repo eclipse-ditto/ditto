@@ -81,6 +81,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.placeholders.PlaceholderResolver;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.protocol.adapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
@@ -125,6 +126,7 @@ public final class OutboundMappingProcessorActor
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final TopicPathPlaceholder TOPIC_PATH_PLACEHOLDER = TopicPathPlaceholder.getInstance();
     private static final ResourcePlaceholder RESOURCE_PLACEHOLDER = ResourcePlaceholder.getInstance();
+    private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
 
     private final ThreadSafeDittoLoggingAdapter dittoLoggingAdapter;
 
@@ -639,15 +641,17 @@ public final class OutboundMappingProcessorActor
                     .newPlaceholderResolver(TOPIC_PATH_PLACEHOLDER, topicPath);
             final PlaceholderResolver<WithResource> resourcePlaceholderResolver = PlaceholderFactory
                     .newPlaceholderResolver(RESOURCE_PLACEHOLDER, signal);
+            final PlaceholderResolver<Object> timePlaceholderResolver = PlaceholderFactory
+                    .newPlaceholderResolver(TIME_PLACEHOLDER, new Object());
             final DittoHeaders dittoHeaders = signal.getDittoHeaders();
             final Criteria criteria = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
-                            topicPathPlaceholderResolver, resourcePlaceholderResolver
+                            topicPathPlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver
                     ).filterCriteria(filter.get(), dittoHeaders);
             return outboundSignalWithExtra.getExtra()
                     .flatMap(extra -> ThingEventToThingConverter
                             .mergeThingWithExtraFields(signal, extraFields.get(), extra)
                             .filter(ThingPredicateVisitor.apply(criteria, topicPathPlaceholderResolver,
-                                    resourcePlaceholderResolver))
+                                    resourcePlaceholderResolver, timePlaceholderResolver))
                             .map(thing -> outboundSignalWithExtra))
                     .map(Collections::singletonList)
                     .orElse(List.of());

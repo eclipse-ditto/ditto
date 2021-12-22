@@ -24,6 +24,8 @@ get:
     - $ref: '../../parameters/timeoutParam.yml'
     - $ref: '../../parameters/conditionParam.yml'
     - $ref: '../../parameters/channelParam.yml'
+    - $ref: '../../parameters/liveChannelConditionParam.yml'
+    - $ref: '../../parameters/liveChannelTimeoutStrategyParam.yml'
   responses:
     '200':
       description: The feature was successfully retrieved.
@@ -32,6 +34,16 @@ get:
           description: |-
             The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
             "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+        live-channel-condition-matched:
+          description: |-
+            Whether or not the live-channel-condition did match and the thing was retrieved from the device.
+          schema:
+            type: boolean
+        channel:
+          description: |-
+            The cannel which was used to retrieve the thing.
           schema:
             type: string
       content:

@@ -213,6 +213,23 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<String> getCondition();
 
     /**
+     * Returns the channel condition, if the live-channel shall be used for the request.
+     *
+     * @return the condition contained in the Condition header.
+     * @since 2.3.0
+     */
+    Optional<String> getLiveChannelCondition();
+
+    /**
+     * Returns whether the live channel condition passed to the things persistence via the
+     * {@link #getLiveChannelCondition()} header did match the persisted state of a thing or not.
+     *
+     * @return whether the live channel condition passed to the things persistence matched or not.
+     * @since 2.3.0
+     */
+    boolean didLiveChannelConditionMatch();
+
+    /**
      * Returns the id of the originating session (e.g. WebSocket, AMQP, ...)
      *
      * @return the "origin" value.
@@ -302,6 +319,15 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * @since 1.1.0
      */
     Optional<Duration> getTimeout();
+
+    /**
+     * Returns what to do when a thing query command with smart channel selection does not receive a valid live
+     * response within the given timeout period.
+     *
+     * @return the live channel timeout strategy if the headers define any.
+     * @since 2.3.0
+     */
+    Optional<LiveChannelTimeoutStrategy> getLiveChannelTimeoutStrategy();
 
     /**
      * Returns the metadata headers to put/set for the (modifying) command they were added to.

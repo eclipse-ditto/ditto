@@ -59,11 +59,14 @@ public final class DefaultCommandConfigTest {
         final DefaultCommandConfig underTest = DefaultCommandConfig.of(ConfigFactory.empty());
 
         softly.assertThat(underTest.getDefaultTimeout())
-                .as(MessageConfig.MessageConfigValue.DEFAULT_TIMEOUT.getConfigPath())
+                .as(CommandConfig.CommandConfigValue.DEFAULT_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(10L));
         softly.assertThat(underTest.getMaxTimeout())
-                .as(MessageConfig.MessageConfigValue.MAX_TIMEOUT.getConfigPath())
+                .as(CommandConfig.CommandConfigValue.MAX_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(60L));
+        softly.assertThat(underTest.getSmartChannelBuffer())
+                .as(CommandConfig.CommandConfigValue.SMART_CHANNEL_BUFFER.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(10L));
     }
 
     @Test
@@ -71,11 +74,14 @@ public final class DefaultCommandConfigTest {
         final DefaultCommandConfig underTest = DefaultCommandConfig.of(commandTestConfig);
 
         softly.assertThat(underTest.getDefaultTimeout())
-                .as(MessageConfig.MessageConfigValue.DEFAULT_TIMEOUT.getConfigPath())
+                .as(CommandConfig.CommandConfigValue.DEFAULT_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(33L));
         softly.assertThat(underTest.getMaxTimeout())
-                .as(MessageConfig.MessageConfigValue.MAX_TIMEOUT.getConfigPath())
+                .as(CommandConfig.CommandConfigValue.MAX_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(55L));
+        softly.assertThat(underTest.getSmartChannelBuffer())
+                .as(CommandConfig.CommandConfigValue.SMART_CHANNEL_BUFFER.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(66L));
     }
 
 }

@@ -173,8 +173,11 @@ public interface HttpConfig extends org.eclipse.ditto.base.service.config.http.H
                 DittoHeaderDefinition.DECLARED_ACKS.getKey(),
                 DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(),
                 DittoHeaderDefinition.TIMEOUT.getKey(),
+                DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY.getKey(),
                 DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT.getKey(),
-                DittoHeaderDefinition.CONDITION.getKey())),
+                DittoHeaderDefinition.CONDITION.getKey(),
+                DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey()
+        )),
 
         /**
          * PUT and POST resources validate that the content-type of a request is supported. With this config value
@@ -190,7 +193,7 @@ public interface HttpConfig extends org.eclipse.ditto.base.service.config.http.H
         private final String path;
         private final Object defaultValue;
 
-        private GatewayHttpConfigValue(final String thePath, final Object theDefaultValue) {
+        GatewayHttpConfigValue(final String thePath, final Object theDefaultValue) {
             path = thePath;
             defaultValue = theDefaultValue;
         }

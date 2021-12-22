@@ -39,6 +39,14 @@ public interface CommandConfig {
     Duration getMaxTimeout();
 
     /**
+     * Return the time buffer for smart channel commands. They need extra time to account for the roundtrip to
+     * thing persistence.
+     *
+     * @return the smart channel buffer.
+     */
+    Duration getSmartChannelBuffer();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code CommandConfig}.
      */
@@ -52,7 +60,13 @@ public interface CommandConfig {
         /**
          * The maximum possible timeout of requested command.
          */
-        MAX_TIMEOUT("max-timeout", "1m");
+        MAX_TIMEOUT("max-timeout", "1m"),
+
+        /**
+         * The timeout buffer for smart channel commands. They need extra time to account for the roundtrip to
+         * thing persistence.
+         */
+        SMART_CHANNEL_BUFFER("smart-channel-buffer", "10s");
 
         private final String path;
         private final Object defaultValue;

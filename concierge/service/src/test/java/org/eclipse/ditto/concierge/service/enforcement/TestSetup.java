@@ -184,15 +184,16 @@ public final class TestSetup {
                     CaffeineCache.of(Caffeine.newBuilder(), thingEnforcementIdCacheLoader);
 
             final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
+            final LiveSignalPub liveSignalPub = new DummyLiveSignalPub(puSubMediatorRef);
             enforcementProviders.add(new ThingCommandEnforcement.Provider(system, thingsShardRegion,
                     policiesShardRegion, thingIdCache, projectedEnforcerCache, preEnforcer,
-                    creationRestrictionEnforcer));
+                    creationRestrictionEnforcer, liveSignalPub, ENFORCEMENT_CONFIG));
             enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache,
                     creationRestrictionEnforcer));
             enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache,
                     projectedEnforcerCache,
                     system,
-                    new DummyLiveSignalPub(puSubMediatorRef),
+                    liveSignalPub,
                     ENFORCEMENT_CONFIG));
             final Props props = EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, preEnforcer,
                     null, null);

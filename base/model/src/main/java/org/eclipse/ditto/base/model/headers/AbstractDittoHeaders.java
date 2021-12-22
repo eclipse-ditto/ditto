@@ -274,6 +274,16 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
     }
 
     @Override
+    public Optional<String> getLiveChannelCondition() {
+        return getStringForDefinition(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION);
+    }
+
+    @Override
+    public boolean didLiveChannelConditionMatch() {
+        return isExpectedBoolean(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED, Boolean.TRUE);
+    }
+
+    @Override
     public Optional<String> getOrigin() {
         return getStringForDefinition(DittoHeaderDefinition.ORIGIN);
     }
@@ -332,6 +342,12 @@ public abstract class AbstractDittoHeaders implements DittoHeaders {
         return getStringForDefinition(DittoHeaderDefinition.TIMEOUT)
                 .map(DittoDuration::parseDuration)
                 .map(DittoDuration::getDuration);
+    }
+
+    @Override
+    public Optional<LiveChannelTimeoutStrategy> getLiveChannelTimeoutStrategy() {
+        return getStringForDefinition(DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY)
+                .flatMap(LiveChannelTimeoutStrategy::forHeaderValue);
     }
 
     @Override

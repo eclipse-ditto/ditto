@@ -68,9 +68,7 @@ final class MessagesRoute extends AbstractRoute {
 
     private static final Pattern INBOX_OUTBOX_PATTERN = Pattern.compile(PATH_INBOX + "|" + PATH_OUTBOX);
 
-    private final Duration defaultMessageTimeout;
     private final Duration maxMessageTimeout;
-    private final Duration defaultClaimTimeout;
     private final Duration maxClaimTimeout;
 
     /**
@@ -86,9 +84,7 @@ final class MessagesRoute extends AbstractRoute {
             final MessageConfig claimMessageConfig) {
 
         super(routeBaseProperties);
-        defaultMessageTimeout = messageConfig.getDefaultTimeout();
         maxMessageTimeout = messageConfig.getMaxTimeout();
-        defaultClaimTimeout = claimMessageConfig.getDefaultTimeout();
         maxClaimTimeout = claimMessageConfig.getMaxTimeout();
     }
 
@@ -138,7 +134,6 @@ final class MessagesRoute extends AbstractRoute {
                                 pathEndOrSingleSlash(() ->
                                         withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
                                                 this::checkClaimTimeout,
-                                                defaultClaimTimeout,
                                                 timeout ->
                                                         extractDataBytes(payloadSource ->
                                                                 handleMessage(ctx, payloadSource,
@@ -173,7 +168,6 @@ final class MessagesRoute extends AbstractRoute {
                         extractUnmatchedPath(msgSubject -> // <msgSubject/with/slashes>
                                 withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
                                         this::checkMessageTimeout,
-                                        defaultMessageTimeout,
                                         timeout ->
                                                 extractDataBytes(payloadSource ->
                                                         handleMessage(ctx, payloadSource,
@@ -214,7 +208,6 @@ final class MessagesRoute extends AbstractRoute {
                         extractUnmatchedPath(msgSubject -> // /messages/<msgSubject/with/slashes>
                                 withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
                                         this::checkMessageTimeout,
-                                        defaultMessageTimeout,
                                         timeout ->
                                                 extractDataBytes(payloadSource ->
                                                         handleMessage(ctx, payloadSource,

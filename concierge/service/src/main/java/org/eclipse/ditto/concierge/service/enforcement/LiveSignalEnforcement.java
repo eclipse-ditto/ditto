@@ -14,15 +14,14 @@ package org.eclipse.ditto.concierge.service.enforcement;
 
 import static org.eclipse.ditto.policies.api.Permission.WRITE;
 
-import java.util.UUID;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
-import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.common.ConditionChecker;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.SignalWithEntityId;
@@ -63,13 +62,16 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
-import akka.japi.Pair;
+import akka.pattern.Patterns;
 
 /**
  * Enforces live commands (including message commands) and live events.
  */
 public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<SignalWithEntityId<?>,
         ThingQueryCommandResponse<?>> {
+
+    private static final Duration MIN_LIVE_TIMEOUT = Duration.ofSeconds(1L);
+    private static final Duration DEFAULT_LIVE_TIMEOUT = Duration.ofSeconds(60L);
 
     private static final AckExtractor<ThingCommand<?>> THING_COMMAND_ACK_EXTRACTOR =
             AckExtractor.of(ThingCommand::getEntityId, ThingCommand::getDittoHeaders);
@@ -124,42 +126,35 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
      */
     public static final class Provider implements EnforcementProvider<SignalWithEntityId<?>> {
 
-        /*
-         * Defined as constant because it is crucial to use the same cache for
-         * multiple instances of LiveSignalEnforcement to ensure that
-         * correlating live commands with live responses works as expected.
-         * Technically this constant could be defined in LiveSignalEnforcement
-         * as well.
-         */
-        private static final ResponseReceiverCache RESPONSE_RECEIVER_CACHE = ResponseReceiverCache.newInstance();
-
         private final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache;
         private final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache;
         private final LiveSignalPub liveSignalPub;
-        private final ActorRefFactory actorRefFactory;
+        private final ActorSystem actorSystem;
         private final EnforcementConfig enforcementConfig;
+        private final ResponseReceiverCache responseReceiverCache;
 
         /**
          * Constructs a {@code Provider}.
          *
          * @param thingIdCache the thing-id-cache.
          * @param policyEnforcerCache the policy-enforcer cache.
-         * @param actorRefFactory the actor ref factory to create new actors with.
+         * @param actorSystem the actor system to create new actors with and lookup extensions.
          * @param liveSignalPub distributed-pub access for live signal publication.
          * @param enforcementConfig configuration properties for enforcement.
          * @throws NullPointerException if any argument but is {@code null}.
          */
         public Provider(final Cache<EnforcementCacheKey, Entry<EnforcementCacheKey>> thingIdCache,
                 final Cache<EnforcementCacheKey, Entry<Enforcer>> policyEnforcerCache,
-                final ActorRefFactory actorRefFactory,
+                final ActorSystem actorSystem,
                 final LiveSignalPub liveSignalPub,
                 final EnforcementConfig enforcementConfig) {
 
             this.thingIdCache = ConditionChecker.checkNotNull(thingIdCache, "thingIdCache");
             this.policyEnforcerCache = ConditionChecker.checkNotNull(policyEnforcerCache, "policyEnforcerCache");
             this.liveSignalPub = ConditionChecker.checkNotNull(liveSignalPub, "liveSignalPub");
-            this.actorRefFactory = ConditionChecker.checkNotNull(actorRefFactory, "actorRefFactory");
+            this.actorSystem = ConditionChecker.checkNotNull(actorSystem, "actorSystem");
             this.enforcementConfig = ConditionChecker.checkNotNull(enforcementConfig, "enforcementConfig");
+            responseReceiverCache = ResponseReceiverCache.lookup(actorSystem);
         }
 
         @Override
@@ -170,7 +165,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
 
         @Override
         public boolean isApplicable(final SignalWithEntityId<?> signal) {
-            return SignalInformationPoint.isChannelLive(signal);
+            return SignalInformationPoint.isChannelLive(signal) && !SignalInformationPoint.isChannelSmart(signal);
         }
 
         @Override
@@ -178,8 +173,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
             return new LiveSignalEnforcement(context,
                     thingIdCache,
                     policyEnforcerCache,
-                    actorRefFactory,
-                    RESPONSE_RECEIVER_CACHE,
+                    actorSystem,
+                    responseReceiverCache,
                     liveSignalPub,
                     enforcementConfig);
         }
@@ -209,7 +204,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                 // claim messages require no enforcement, publish them right away:
                 result = publishMessageCommand((MessageCommand<?, ?>) liveSignal, enforcer);
             } else if (SignalInformationPoint.isCommandResponse(liveSignal)) {
-                result = enforceLiveCommandResponse((CommandResponse<?>) liveSignal, correlationIdOpt.get(), enforcer);
+                result = enforceLiveCommandResponse((CommandResponse<?>) liveSignal, correlationIdOpt.get());
             } else {
                 final var streamingType = StreamingType.fromSignal(liveSignal);
                 if (streamingType.isPresent()) {
@@ -236,12 +231,11 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
 
     private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveCommandResponse(
             final CommandResponse<?> liveResponse,
-            final CharSequence correlationId,
-            final Enforcer enforcer
+            final CharSequence correlationId
     ) {
         final CompletionStage<Contextual<WithDittoHeaders>> result;
         if (enforcementConfig.isDispatchLiveResponsesGlobally()) {
-            result = returnCommandResponseContextual(liveResponse, correlationId, enforcer);
+            result = returnCommandResponseContextual(liveResponse, correlationId);
         } else {
             log().info("Got live response when global dispatching is inactive: <{}> with correlation ID <{}>",
                     liveResponse.getType(),
@@ -255,48 +249,21 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
 
     private CompletionStage<Contextual<WithDittoHeaders>> returnCommandResponseContextual(
             final CommandResponse<?> liveResponse,
-            final CharSequence correlationId,
-            final Enforcer enforcer
-    ) {
+            final CharSequence correlationId) {
+
         return responseReceiverCache.get(correlationId)
                 .thenApply(responseReceiverEntry -> {
                     final Contextual<WithDittoHeaders> commandResponseContextual;
                     if (responseReceiverEntry.isPresent()) {
-                        final var responseReceiver = responseReceiverEntry.get();
-                        final CommandResponse<?> response;
-                        if (liveResponse instanceof ThingQueryCommandResponse) {
-                            final var liveResponseWithRequesterAuthCtx =
-                                    injectRequestersAuthContext((ThingQueryCommandResponse<?>) liveResponse,
-                                            responseReceiver.second());
-
-                            response = ThingCommandEnforcement.buildJsonViewForThingQueryCommandResponse(
-                                    liveResponseWithRequesterAuthCtx,
-                                    enforcer);
-                        } else {
-                            response = liveResponse;
-                        }
-                        log().info("Scheduling CommandResponse <{}> to original sender <{}>", liveResponse,
-                                responseReceiver);
-                        commandResponseContextual = withMessageToReceiver(response, responseReceiver.first());
+                        final var receiver = responseReceiverEntry.get();
+                        log().info("Scheduling CommandResponse <{}> to original sender <{}>", liveResponse, receiver);
+                        commandResponseContextual = withMessageToReceiver(liveResponse, receiver);
                     } else {
                         log().info("Got <{}> with unknown correlation ID: <{}>", liveResponse.getType(), correlationId);
                         commandResponseContextual = withMessageToReceiver(null, null);
                     }
-
                     return commandResponseContextual;
                 });
-    }
-
-    private static ThingQueryCommandResponse<?> injectRequestersAuthContext(
-            final ThingQueryCommandResponse<?> liveResponse,
-            final AuthorizationContext requesterAuthContext) {
-
-        final var dittoHeadersWithResponseReceiverAuthContext = liveResponse.getDittoHeaders()
-                .toBuilder()
-                .authorizationContext(requesterAuthContext)
-                .build();
-
-        return liveResponse.setDittoHeaders(dittoHeadersWithResponseReceiverAuthContext);
     }
 
     private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveSignal(final StreamingType streamingType,
@@ -314,16 +281,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
                 log(withReadSubjects).info("Live Command was authorized: <{}>", withReadSubjects);
                 final boolean isThingQueryCommandRequiringResponse =
                         liveSignal instanceof ThingQueryCommand && liveSignal.getDittoHeaders().isResponseRequired();
-                final boolean hasCustomAckRequests = hasCustomAcknowledgementRequests(withReadSubjects);
-                if (isThingQueryCommandRequiringResponse && !hasCustomAckRequests) {
-                    return addToResponseReceiver(withReadSubjects).thenApply(newSignal ->
-                            askAndBuildJsonView((ThingCommand<?>) newSignal, THING_COMMAND_ACK_EXTRACTOR,
-                                    liveSignalPub.command(), enforcer)
-                    );
-                } else if (isThingQueryCommandRequiringResponse) {
-                    return addToResponseReceiver(withReadSubjects).thenApply(newSignal ->
-                            askAndBuildJsonViewWithAckForwarding((ThingCommand<?>) newSignal,
-                                    THING_COMMAND_ACK_EXTRACTOR, liveSignalPub.command(), enforcer));
+                if (isThingQueryCommandRequiringResponse) {
+                    return publishLiveQueryCommandAndBuildJsonView(withReadSubjects, enforcer);
                 } else {
                     return publishLiveSignal(withReadSubjects, THING_COMMAND_ACK_EXTRACTOR, liveSignalPub.command());
                 }
@@ -336,11 +295,19 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
         }
     }
 
-    private static boolean hasCustomAcknowledgementRequests(final Signal<?> signal) {
-        return !signal.getDittoHeaders()
-                .getAcknowledgementRequests()
-                .stream()
-                .allMatch(request -> DittoAcknowledgementLabel.LIVE_RESPONSE.equals(request.getLabel()));
+    private CompletionStage<Contextual<WithDittoHeaders>> publishLiveQueryCommandAndBuildJsonView(
+            final ThingCommand<?> withReadSubjects, final Enforcer enforcer) {
+        if (enforcementConfig.shouldDispatchGlobally(withReadSubjects)) {
+            return responseReceiverCache.insertResponseReceiverConflictFree(
+                    withReadSubjects,
+                    this::createReceiverActor,
+                    (command, receiver) -> askAndBuildJsonViewWithReceiverActor(command, receiver, enforcer)
+            );
+        } else {
+            final var receiver = createReceiverActor(withReadSubjects);
+            final var result = askAndBuildJsonViewWithReceiverActor(withReadSubjects, receiver, enforcer);
+            return CompletableFuture.completedStage(result);
+        }
     }
 
     /**
@@ -356,7 +323,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
 
         final var resourceKey = ResourceKey.newInstance(ThingConstants.ENTITY_TYPE, signal.getResourcePath());
         final var effectedSubjects = enforcer.getSubjectsWithPermission(resourceKey, Permission.READ);
-        final var newHeaders = DittoHeaders.newBuilder(signal.getDittoHeaders())
+        final var newHeaders = signal.getDittoHeaders()
+                .toBuilder()
                 .readGrantedSubjects(effectedSubjects.getGranted())
                 .readRevokedSubjects(effectedSubjects.getRevoked())
                 .build();
@@ -400,7 +368,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
         final ResourceKey resourceKey =
                 ResourceKey.newInstance(MessageCommand.RESOURCE_TYPE, command.getResourcePath());
         final EffectedSubjects effectedSubjects = enforcer.getSubjectsWithPermission(resourceKey, Permission.READ);
-        final DittoHeaders headersWithReadSubjects = DittoHeaders.newBuilder(command.getDittoHeaders())
+        final var headersWithReadSubjects = command.getDittoHeaders()
+                .toBuilder()
                 .readGrantedSubjects(effectedSubjects.getGranted())
                 .readRevokedSubjects(effectedSubjects.getRevoked())
                 .build();
@@ -423,7 +392,6 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
         return error;
     }
 
-    @SuppressWarnings("unchecked")
     private <T extends Signal<?>, S extends T> CompletionStage<Contextual<WithDittoHeaders>> publishLiveSignal(
             final S signal,
             final AckExtractor<S> ackExtractor,
@@ -432,54 +400,59 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
         // using pub/sub to publish the command to any interested parties (e.g. a Websocket):
         log(signal).debug("Publish message to pub-sub: <{}>", signal);
 
-        return addToResponseReceiver(signal)
-                .thenApply(newSignal -> withMessageToReceiver(newSignal,
-                        pub.getPublisher(),
-                        obj -> pub.wrapForPublicationWithAcks((S) obj, ackExtractor)));
-    }
-
-    private <T extends Signal<?>> Contextual<WithDittoHeaders> askAndBuildJsonViewWithAckForwarding(
-            final T signal,
-            final AckExtractor<T> ackExtractor,
-            final DistributedPub<T> pub,
-            final Enforcer enforcer) {
-
-        final var publish = pub.wrapForPublicationWithAcks(signal, ackExtractor);
-        final var castSignal = (SignalWithEntityId<?>) signal;
-        final var props = LiveResponseAndAcknowledgementForwarder.props(signal, pub.getPublisher(), sender());
-        final var liveResponseForwarder = actorRefFactory.actorOf(props);
-        return withMessageToReceiverViaAskFuture(signal, sender(), () ->
-                askAndBuildJsonView(liveResponseForwarder, castSignal, publish, enforcer, context.getScheduler(),
-                        context.getExecutor()));
-    }
-
-    private <T extends Signal<?>> Contextual<WithDittoHeaders> askAndBuildJsonView(
-            final T signal,
-            final AckExtractor<T> ackExtractor,
-            final DistributedPub<T> pub,
-            final Enforcer enforcer) {
-
-        final var publish = pub.wrapForPublicationWithAcks(signal, ackExtractor);
-        final var castSignal = (SignalWithEntityId<?>) signal;
-        return withMessageToReceiverViaAskFuture(signal, sender(), () ->
-                askAndBuildJsonView(pub.getPublisher(), castSignal, publish, enforcer, context.getScheduler(),
-                        context.getExecutor()));
-    }
-
-    private CompletionStage<Signal<?>> addToResponseReceiver(final Signal<?> signal) {
-        final CompletionStage<Signal<?>> result;
-        final var dittoHeaders = signal.getDittoHeaders();
-        if (enforcementConfig.isDispatchLiveResponsesGlobally() &&
-                SignalInformationPoint.isCommand(signal) &&
-                dittoHeaders.isResponseRequired()) {
-
-            result = insertResponseReceiverConflictFree((Command<?>) signal,
-                    Pair.create(sender(), dittoHeaders.getAuthorizationContext()));
+        if (enforcementConfig.shouldDispatchGlobally(signal)) {
+            return responseReceiverCache.insertResponseReceiverConflictFree(signal,
+                    newSignal -> sender(),
+                    (newSignal, receiver) -> publishSignal(newSignal, ackExtractor, pub));
         } else {
-            result = CompletableFuture.completedStage(signal);
+            return CompletableFuture.completedStage(publishSignal(signal, ackExtractor, pub));
         }
+    }
 
-        return result;
+    @SuppressWarnings("unchecked")
+    private <T extends Signal<?>, S extends T> Contextual<WithDittoHeaders> publishSignal(final T signal,
+            final AckExtractor<S> ackExtractor, final DistributedPub<T> pub) {
+        return withMessageToReceiver(signal, pub.getPublisher(),
+                obj -> pub.wrapForPublicationWithAcks((S) obj, ackExtractor));
+    }
+
+    private ActorRef createReceiverActor(final Command<?> signal) {
+        final var pub = liveSignalPub.command();
+        final var props = LiveResponseAndAcknowledgementForwarder.props(signal, pub.getPublisher(), sender());
+        return actorRefFactory.actorOf(props);
+    }
+
+    private Contextual<WithDittoHeaders> askAndBuildJsonViewWithReceiverActor(
+            final ThingCommand<?> thingCommand,
+            final ActorRef receiver,
+            final Enforcer enforcer) {
+
+        final var startTime = Instant.now();
+        final var pub = liveSignalPub.command();
+        final var responseCaster = getResponseCaster(thingCommand, "before building JsonView")
+                .<CompletionStage<ThingQueryCommandResponse<?>>>andThen(CompletableFuture::completedStage);
+        return withMessageToReceiverViaAskFuture(thingCommand, sender(), () ->
+                adjustTimeoutAndFilterLiveQueryResponse(this, thingCommand, startTime, pub, receiver, enforcer,
+                        responseCaster));
+    }
+
+    static CompletionStage<ThingQueryCommandResponse<?>> adjustTimeoutAndFilterLiveQueryResponse(
+            final AbstractEnforcementWithAsk<? super ThingCommand<?>, ThingQueryCommandResponse<?>> enforcement,
+            final ThingCommand<?> command,
+            final Instant startTime,
+            final DistributedPub<ThingCommand<?>> pub,
+            final ActorRef liveResponseForwarder,
+            final Enforcer enforcer,
+            final Function<Object, CompletionStage<ThingQueryCommandResponse<?>>> responseCaster) {
+
+        final var timeout = getAdjustedTimeout(command, startTime);
+        final var signalWithAdjustedTimeout = adjustTimeout(command, timeout);
+        final var publish = pub.wrapForPublicationWithAcks(signalWithAdjustedTimeout,
+                LiveSignalEnforcement.THING_COMMAND_ACK_EXTRACTOR);
+        return Patterns.ask(liveResponseForwarder, publish, timeout)
+                .exceptionally(e -> e)
+                .thenCompose(responseCaster)
+                .thenApply(response -> enforcement.filterJsonView(replaceAuthContext(response, command), enforcer));
     }
 
     private static boolean isAuthorized(final MessageCommand<?, ?> command, final Enforcer enforcer) {
@@ -499,57 +472,30 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
         }
     }
 
-    private CompletionStage<Signal<?>> insertResponseReceiverConflictFree(final Command<?> command,
-            final Pair<ActorRef, AuthorizationContext> responseReceiver) {
-
-        return setUniqueCorrelationIdForGlobalDispatching(command)
-                .thenApply(commandWithUniqueCorrelationId -> {
-                    responseReceiverCache.putCommand(commandWithUniqueCorrelationId, responseReceiver);
-                    return commandWithUniqueCorrelationId;
-                });
+    static Duration getLiveSignalTimeout(final Signal<?> signal) {
+        return signal.getDittoHeaders().getTimeout().orElse(DEFAULT_LIVE_TIMEOUT);
     }
 
-    private CompletionStage<Command<?>> setUniqueCorrelationIdForGlobalDispatching(final Command<?> command) {
-        final var correlationId = SignalInformationPoint.getCorrelationId(command)
-                .orElseGet(() -> UUID.randomUUID().toString());
-
-        return responseReceiverCache.get(correlationId)
-                .thenCompose(entry -> {
-                    final CompletionStage<String> uniqueCorrelationIdFuture;
-                    if (entry.isPresent()) {
-                        uniqueCorrelationIdFuture = findUniqueCorrelationId(correlationId, getNextSuffix());
-                    } else {
-                        uniqueCorrelationIdFuture = CompletableFuture.completedStage(correlationId);
-                    }
-                    return uniqueCorrelationIdFuture.thenApply(newCorrelationId -> {
-                        final Command<?> result;
-                        if (correlationId.equals(newCorrelationId)) {
-                            result = command;
-                        } else {
-                            result = command.setDittoHeaders(DittoHeaders.newBuilder(command.getDittoHeaders())
-                                    // always set "keep-cid" to true because global dispatching is active
-                                    .correlationId(newCorrelationId)
-                                    .build());
-                        }
-                        return result;
-                    });
-                });
+    private static Duration getAdjustedTimeout(final Signal<?> signal, final Instant startTime) {
+        final var baseTimeout = getLiveSignalTimeout(signal);
+        final var adjustedTimeout = baseTimeout.minus(Duration.between(startTime, Instant.now()));
+        return adjustedTimeout.minus(MIN_LIVE_TIMEOUT).isNegative() ? MIN_LIVE_TIMEOUT : adjustedTimeout;
     }
 
-    private static String getNextSuffix() {
-        return Long.toHexString(Double.doubleToRawLongBits(Math.random()));
+    private static ThingCommand<?> adjustTimeout(final ThingCommand<?> signal, final Duration adjustedTimeout) {
+        return signal.setDittoHeaders(
+                signal.getDittoHeaders()
+                        .toBuilder()
+                        .timeout(adjustedTimeout)
+                        .build()
+        );
     }
 
-    private CompletionStage<String> findUniqueCorrelationId(final String startingId, final String suffix) {
-        final var nextCorrelationId = startingId + "#x" + suffix;
-        return responseReceiverCache.get(nextCorrelationId)
-                .thenCompose(entry -> {
-                    if (entry.isPresent()) {
-                        return findUniqueCorrelationId(startingId, getNextSuffix());
-                    } else {
-                        return CompletableFuture.completedStage(nextCorrelationId);
-                    }
-                });
+    static ThingQueryCommandResponse<?> replaceAuthContext(final ThingQueryCommandResponse<?> response,
+            final WithDittoHeaders command) {
+        return response.setDittoHeaders(response.getDittoHeaders()
+                .toBuilder()
+                .authorizationContext(command.getDittoHeaders().getAuthorizationContext())
+                .build());
     }
-
 }

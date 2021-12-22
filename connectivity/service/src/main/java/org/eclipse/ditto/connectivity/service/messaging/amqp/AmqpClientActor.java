@@ -324,8 +324,11 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final CompletableFuture<Status.Status> future = new CompletableFuture<>();
         stopChildActor(amqpPublisherActor);
         if (null != jmsSession) {
-            final Props props = AmqpPublisherActor.props(connection(), jmsSession, getDefaultClientId(),
-                    getProxyActor(), connectivityStatusResolver, connectivityConfig());
+            final Props props = AmqpPublisherActor.props(connection(),
+                    jmsSession,
+                    getDefaultClientId(),
+                    connectivityStatusResolver,
+                    connectivityConfig());
             amqpPublisherActor = startChildActorConflictFree(AmqpPublisherActor.ACTOR_NAME_PREFIX, props);
             Patterns.ask(amqpPublisherActor, AmqpPublisherActor.Control.INITIALIZE, clientAskTimeout)
                     .whenComplete((result, error) -> {

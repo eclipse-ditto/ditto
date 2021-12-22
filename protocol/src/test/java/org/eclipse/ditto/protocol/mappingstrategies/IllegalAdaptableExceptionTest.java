@@ -29,7 +29,6 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocol.Adaptable;
-import org.eclipse.ditto.protocol.JsonifiableAdaptable;
 import org.eclipse.ditto.protocol.Payload;
 import org.eclipse.ditto.protocol.ProtocolFactory;
 import org.eclipse.ditto.protocol.TopicPath;
@@ -93,7 +92,7 @@ public final class IllegalAdaptableExceptionTest {
                 .usingGetClass()
                 .withRedefinedSuperclass()
                 .suppress(Warning.NONFINAL_FIELDS, Warning.TRANSIENT_FIELDS, Warning.NULL_FIELDS)
-                .withIgnoredFields("cause", "stackTrace", "suppressedExceptions", "adaptableJsonObject")
+                .withIgnoredFields("cause", "stackTrace", "suppressedExceptions")
                 .verify();
     }
 
@@ -138,10 +137,10 @@ public final class IllegalAdaptableExceptionTest {
     }
 
     @Test
-    public void getAdaptableReturnsExpected() {
+    public void getTopicPathReturnsExpected() {
         final IllegalAdaptableException underTest = IllegalAdaptableException.newInstance(MESSAGE, adaptable);
 
-        assertThat(underTest.getAdaptable()).isEqualTo(adaptable);
+        assertThat(underTest.getTopicPath()).contains(adaptable.getTopicPath());
     }
 
     @Test
@@ -180,7 +179,7 @@ public final class IllegalAdaptableExceptionTest {
                     .as("HTTP status")
                     .isEqualTo(IllegalAdaptableException.HTTP_STATUS);
             softly.assertThat(underTest.getMessage()).as("message").isEqualTo(MESSAGE);
-            softly.assertThat(underTest.getAdaptable()).as("adaptable").isEqualTo(adaptable);
+            softly.assertThat(underTest.getTopicPath()).as("topic path").contains(adaptable.getTopicPath());
             softly.assertThat(underTest.getDittoHeaders()).as("Ditto headers").isEqualTo(dittoHeaders);
             softly.assertThat(underTest.getSignalType()).as("signal type").contains(SIGNAL_TYPE);
             softly.assertThat(underTest.getDescription()).as("description").contains(description);
@@ -191,7 +190,6 @@ public final class IllegalAdaptableExceptionTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
         final JsonParseException cause = new JsonParseException("JSON object could not be parsed.");
         final JsonObject jsonObject = JsonObject.newBuilder()
                 .set(DittoRuntimeException.JsonFields.ERROR_CODE, IllegalAdaptableException.ERROR_CODE)
@@ -199,7 +197,7 @@ public final class IllegalAdaptableExceptionTest {
                 .set(DittoRuntimeException.JsonFields.MESSAGE, MESSAGE)
                 .set(DittoRuntimeException.JsonFields.DESCRIPTION, DESCRIPTION)
                 .set(DittoRuntimeException.JsonFields.HREF, href.toString())
-                .set(IllegalAdaptableException.JSON_FIELD_ADAPTABLE, jsonifiableAdaptable.toJson())
+                .set(IllegalAdaptableException.JSON_FIELD_TOPIC_PATH, adaptable.getTopicPath().getPath())
                 .set(IllegalAdaptableException.JSON_FIELD_SIGNAL_TYPE, SIGNAL_TYPE)
                 .build();
         final IllegalAdaptableException underTest = IllegalAdaptableException.newBuilder(MESSAGE, adaptable)

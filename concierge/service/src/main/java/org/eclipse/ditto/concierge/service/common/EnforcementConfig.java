@@ -17,6 +17,8 @@ import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.utils.cacheloaders.config.AskWithRetryConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
@@ -61,6 +63,18 @@ public interface EnforcementConfig {
      * @return the configuration.
      */
     EntityCreationConfig getEntityCreation();
+
+    /**
+     * Check if global dispatch of a signal should be supported.
+     *
+     * @param signal the signal.
+     * @return whether global dispatch support is needed.
+     */
+    default boolean shouldDispatchGlobally(final Signal<?> signal) {
+        return isDispatchLiveResponsesGlobally() &&
+                SignalInformationPoint.isCommand(signal) &&
+                signal.getDittoHeaders().isResponseRequired();
+    }
 
     /**
      * An enumeration of the known config path expressions and their associated default values for

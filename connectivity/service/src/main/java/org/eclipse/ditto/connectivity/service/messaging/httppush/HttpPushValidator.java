@@ -107,12 +107,14 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
                 ConnectivityPlaceholders.newThingPlaceholder(),
                 ConnectivityPlaceholders.newTopicPathPlaceholder(),
                 ConnectivityPlaceholders.newResourcePlaceholder(),
+                ConnectivityPlaceholders.newMiscPlaceholder(),
                 newHeadersPlaceholder(),
                 ConnectivityPlaceholders.newFeaturePlaceholder());
         validateTargetAddress(target.getAddress(), dittoHeaders, targetDescription);
     }
 
-    private void validateTargetAddress(final String targetAddress, final DittoHeaders dittoHeaders,
+    private static void validateTargetAddress(final String targetAddress,
+            final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
 
         final String[] methodAndPath = HttpPublishTarget.splitMethodAndPath(targetAddress);
@@ -129,8 +131,10 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         }
     }
 
-    private void validateHttpMethod(final String methodName, final DittoHeaders dittoHeaders,
+    private static void validateHttpMethod(final String methodName,
+            final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescriptor) {
+
         final Optional<HttpMethod> method = HttpMethods.lookup(methodName);
         if (method.isEmpty() || !SUPPORTED_METHODS.contains(method.get())) {
             final String errorMessage = String.format(
@@ -142,8 +146,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         }
     }
 
-    private void validateParallelism(final Map<String, String> specificConfig, final DittoHeaders dittoHeaders) {
-
+    private static void validateParallelism(final Map<String, String> specificConfig, final DittoHeaders dittoHeaders) {
         final String parallelismString = specificConfig.get(HttpPushFactory.PARALLELISM_JSON_KEY);
         if (parallelismString != null) {
             try {
@@ -157,7 +160,9 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         }
     }
 
-    private void validateOmitBodyMethods(final Map<String, String> specificConfig, final DittoHeaders dittoHeaders) {
+    private static void validateOmitBodyMethods(final Map<String, String> specificConfig,
+            final DittoHeaders dittoHeaders) {
+
         final String omitBody = specificConfig.get(HttpPublisherActor.OMIT_REQUEST_BODY_CONFIG_KEY);
         if (omitBody != null && !omitBody.isEmpty()) {
             final String[] methodsArray = omitBody.split(",");
@@ -179,7 +184,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
             if (credentials instanceof OAuthClientCredentials) {
                 final var oauthClientCredentials = (OAuthClientCredentials) credentials;
                 final var uri = Uri.create(oauthClientCredentials.getTokenEndpoint());
-                if (oauth2EnforceHttps && !"https".equals(uri.getScheme())) {
+                if (oauth2EnforceHttps && !isSecureScheme(uri.getScheme())) {
                     final var errorMessage = "The OAuth2 token endpoint must be accessed via HTTPS " +
                             "in order not to transmit the client secret in plain text.";
                     throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
@@ -205,4 +210,5 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
     static boolean isSecureScheme(final String scheme) {
         return HTTPS.equals(scheme);
     }
+
 }

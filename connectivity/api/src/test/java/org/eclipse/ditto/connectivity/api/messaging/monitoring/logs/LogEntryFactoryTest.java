@@ -130,7 +130,7 @@ public final class LogEntryFactoryTest {
                 commandResponse,
                 DETAIL_MESSAGE_FAILURE);
 
-        assertThat(logEntry.getCorrelationId()).isEqualTo("n/a");
+        assertThat(logEntry.getCorrelationId()).isEqualTo(LogEntryFactory.FALLBACK_CORRELATION_ID);
     }
 
     @Test

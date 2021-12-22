@@ -15,6 +15,8 @@ package org.eclipse.ditto.things.service.persistence.actors.strategies.commands;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.time.Instant;
+
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.TestConstants;
@@ -46,6 +48,20 @@ public class ThingConditionValidatorTest {
                 DittoHeaders.empty());
 
         final var condition = "eq(attributes/maker,\"Bosch\")";
+        final var validationError =
+                ThingConditionValidator.validate(modifyThing, condition, TestConstants.Thing.THING_V2);
+        softly.assertThat(validationError).isEmpty();
+    }
+
+    @Test
+    public void validationSucceedsWithTimeValue() {
+        final var modifyThing = ModifyThing.of(
+                TestConstants.Thing.THING_ID,
+                TestConstants.Thing.THING_V2,
+                null,
+                DittoHeaders.empty());
+
+        final var condition = "eq(_modified,\"" + Instant.EPOCH + "\")";
         final var validationError =
                 ThingConditionValidator.validate(modifyThing, condition, TestConstants.Thing.THING_V2);
         softly.assertThat(validationError).isEmpty();

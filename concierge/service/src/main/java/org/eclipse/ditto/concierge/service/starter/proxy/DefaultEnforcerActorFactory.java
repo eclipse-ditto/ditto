@@ -126,7 +126,8 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(actorSystem, thingsShardRegionProxy,
-                policiesShardRegionProxy, thingIdCache, projectedEnforcerCache, preEnforcer, creationRestriction));
+                policiesShardRegionProxy, thingIdCache, projectedEnforcerCache, preEnforcer, creationRestriction,
+                liveSignalPub, conciergeConfig.getEnforcementConfig()));
         enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegionProxy, policyEnforcerCache,
                 creationRestriction));
         enforcementProviders.add(new LiveSignalEnforcement.Provider(thingIdCache,
@@ -172,7 +173,8 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
      * @param originalSignal A signal with authorization context.
      * @return A copy of the signal with the header "ditto-originator" set.
      */
-    public static DittoHeadersSettable<?> setOriginatorHeader(final DittoHeadersSettable<?> originalSignal) {
+    @SuppressWarnings("unchecked")
+    public static <T extends DittoHeadersSettable<?>> T setOriginatorHeader(final T originalSignal) {
         final DittoHeaders dittoHeaders = originalSignal.getDittoHeaders();
         final AuthorizationContext authorizationContext = dittoHeaders.getAuthorizationContext();
         return authorizationContext.getFirstAuthorizationSubject()
@@ -180,7 +182,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
                 .map(originatorSubjectId -> DittoHeaders.newBuilder(dittoHeaders)
                         .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), originatorSubjectId)
                         .build())
-                .<DittoHeadersSettable<?>>map(originalSignal::setDittoHeaders)
+                .map(originatorHeader -> (T) originalSignal.setDittoHeaders(originatorHeader))
                 .orElse(originalSignal);
     }
 

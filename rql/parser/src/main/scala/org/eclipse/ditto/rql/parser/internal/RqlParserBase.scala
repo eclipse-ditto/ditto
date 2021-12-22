@@ -69,8 +69,11 @@ class RqlParserBase(val input: ParserInput) extends Parser {
   }
 
   protected def Literal: Rule1[java.lang.Object] = rule {
-    (DoubleLiteral | LongLiteral | StringLiteral | StringSingleQuoteLiteral | "true" ~ WhiteSpace ~ push(java.lang.Boolean.TRUE) |
-      "false" ~ WhiteSpace ~ push(java.lang.Boolean.FALSE) | "null" ~ WhiteSpace ~ push(None)) ~ WhiteSpace
+    (DoubleLiteral | LongLiteral | StringLiteral | StringSingleQuoteLiteral | PlaceholderLiteral |
+      "true" ~ WhiteSpace ~ push(java.lang.Boolean.TRUE) |
+      "false" ~ WhiteSpace ~ push(java.lang.Boolean.FALSE) |
+      "null" ~ WhiteSpace ~ push(None)
+      ) ~ WhiteSpace
   }
 
   protected def DoubleLiteral: Rule1[java.lang.Double] = rule {
@@ -99,6 +102,19 @@ class RqlParserBase(val input: ParserInput) extends Parser {
 
   protected def StringSingleQuoteLiteral: Rule1[java.lang.String] = rule {
     '\'' ~ clearSB() ~ CharactersInSingleQuotes ~ ws('\'') ~ push(sb.toString)
+  }
+
+  protected def PlaceholderLiteral: Rule1[org.eclipse.ditto.rql.model.ParsedPlaceholder] = rule {
+    capture(PlaceholderPrefix ~ PlaceholderName) ~> (p => org.eclipse.ditto.rql.model.ParsedPlaceholder.of(p)) ~ WhiteSpace
+  }
+
+  protected def PlaceholderPrefix: Rule[HNil, HNil] = rule {
+    "time:"
+//    "time:"|"header:"
+  }
+
+  protected def PlaceholderName: Rule[HNil, HNil] = rule {
+    Characters
   }
 
   protected def PropertyLiteral: Rule1[java.lang.String] = rule {

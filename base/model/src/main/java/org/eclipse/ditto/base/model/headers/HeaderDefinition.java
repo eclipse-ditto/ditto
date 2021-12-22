@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.base.model.headers;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
@@ -79,7 +78,6 @@ public interface HeaderDefinition {
      *
      * @return the key of this enum constant.
      */
-    @Nonnull
     @Override
     String toString();
 

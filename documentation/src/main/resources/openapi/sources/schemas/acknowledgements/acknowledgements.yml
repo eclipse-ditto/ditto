@@ -11,8 +11,6 @@
 properties:
   acknowledgementLabel1:
     $ref: 'acknowledgement.yml'
-  acknowledgementLabelN:
-    $ref: 'acknowledgement.yml'
 example:
   acknowledgementLabel1:
     status: 200

@@ -473,7 +473,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                                     .origin(connectionCorrelationId)
                                     .build());
                             final var tracedFailure = traceSignalBuildingFailure(failure);
-                            if (isResponseRequired(e.getAdaptable())) {
+                            if (isResponseRequired(e)) {
                                 result = Left.apply(tracedFailure);
                             } else {
                                 result = Right.apply(Left.apply(NoOp.getInstance()));

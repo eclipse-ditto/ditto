@@ -43,6 +43,11 @@ import org.eclipse.ditto.things.model.ThingId;
 @Immutable
 public final class LogEntryFactory {
 
+    /**
+     * The fallback correlation ID to be used if no other was provided.
+     */
+    public static final String FALLBACK_CORRELATION_ID = "<not-provided>";
+
     private LogEntryFactory() {
         throw new AssertionError();
     }
@@ -65,7 +70,7 @@ public final class LogEntryFactory {
         ConditionChecker.checkNotNull(commandResponse, "commandResponse");
 
         final var logEntryBuilder = ConnectivityModelFactory.newLogEntryBuilder(
-                getCorrelationId(command).or(() -> getCorrelationId(commandResponse)).orElse("n/a"),
+                getCorrelationId(command).or(() -> getCorrelationId(commandResponse)).orElse(FALLBACK_CORRELATION_ID),
                 Instant.now(),
                 LogCategory.RESPONSE,
                 LogType.DROPPED,
@@ -111,7 +116,7 @@ public final class LogEntryFactory {
         ConditionChecker.checkNotNull(illegalAdaptableException, "illegalAdaptableException");
 
         final var logEntryBuilder = ConnectivityModelFactory.newLogEntryBuilder(
-                getCorrelationId(illegalAdaptableException).orElse("n/a"),
+                getCorrelationId(illegalAdaptableException).orElse(FALLBACK_CORRELATION_ID),
                 Instant.now(),
                 LogCategory.RESPONSE,
                 LogType.DROPPED,
@@ -125,8 +130,7 @@ public final class LogEntryFactory {
     }
 
     private static Optional<EntityId> getEntityId(final IllegalAdaptableException illegalAdaptableException) {
-        final var adaptable = illegalAdaptableException.getAdaptable();
-        return getEntityIdFromTopicPath(adaptable.getTopicPath());
+        return illegalAdaptableException.getTopicPath().flatMap(LogEntryFactory::getEntityIdFromTopicPath);
     }
 
     private static Optional<EntityId> getEntityIdFromTopicPath(final TopicPath topicPath) {

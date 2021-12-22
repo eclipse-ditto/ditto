@@ -21,6 +21,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.rql.parser.RqlPredicateParser;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.rql.query.things.ThingPredicateVisitor;
@@ -30,6 +32,8 @@ import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 
 @Immutable
 final class ThingConditionValidator {
+
+    private static final TimePlaceholder TIME_PLACEHOLDER = TimePlaceholder.getInstance();
 
     private ThingConditionValidator() {
         throw new AssertionError();
@@ -65,7 +69,8 @@ final class ThingConditionValidator {
                 .modelBased(RqlPredicateParser.getInstance())
                 .filterCriteria(condition, dittoHeaders);
 
-        final var predicate = ThingPredicateVisitor.apply(criteria);
+        final var predicate = ThingPredicateVisitor.apply(criteria,
+                PlaceholderFactory.newPlaceholderResolver(TIME_PLACEHOLDER, new Object()));
 
         final ThingConditionFailedException validationError;
         if (predicate.test(entity)) {

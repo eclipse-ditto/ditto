@@ -107,12 +107,11 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     @SuppressWarnings("unused")
     private RabbitMQPublisherActor(final Connection connection,
             final String clientId,
-            final ActorRef proxyActor,
             final ConnectivityStatusResolver connectivityStatusResolver,
             final ConnectivityConfig connectivityConfig) {
-        super(connection, clientId, proxyActor, connectivityStatusResolver, connectivityConfig);
-        pendingAckTTL = connectivityConfig
-                .getConnectionConfig()
+
+        super(connection, clientId, connectivityStatusResolver, connectivityConfig);
+        pendingAckTTL = connectivityConfig.getConnectionConfig()
                 .getAmqp091Config()
                 .getPublisherPendingAckTTL();
     }
@@ -122,15 +121,20 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
      *
      * @param connection the connection this publisher belongs to
      * @param clientId identifier of the client actor.
-     * @param proxyActor the actor used to send signals into the ditto cluster.
      * @param connectivityStatusResolver connectivity status resolver to resolve occurred exceptions to a connectivity
      * status.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connection connection, final String clientId, final ActorRef proxyActor,
-            final ConnectivityStatusResolver connectivityStatusResolver, final ConnectivityConfig connectivityConfig) {
-        return Props.create(RabbitMQPublisherActor.class, connection, clientId, proxyActor, connectivityStatusResolver,
+    static Props props(final Connection connection,
+            final String clientId,
+            final ConnectivityStatusResolver connectivityStatusResolver,
+            final ConnectivityConfig connectivityConfig) {
+
+        return Props.create(RabbitMQPublisherActor.class,
+                connection,
+                clientId,
+                connectivityStatusResolver,
                 connectivityConfig);
     }
 

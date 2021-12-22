@@ -30,6 +30,7 @@ import org.eclipse.ditto.base.model.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.base.model.entity.Revision;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
@@ -46,6 +47,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.Attributes;
 import org.eclipse.ditto.things.model.Feature;
+import org.eclipse.ditto.things.model.FeatureDefinition;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.PolicyIdMissingException;
 import org.eclipse.ditto.things.model.Thing;
@@ -76,6 +78,10 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttribute;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributes;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeature;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDefinition;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDefinitionResponse;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProperty;
+import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeaturePropertyResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatures;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
@@ -360,7 +366,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 expectMsgEquals(
                         ETagTestUtils.modifyThingResponse(thingWithFirstLevelFields, thingWithDifferentFirstLevelFields,
-                        dittoHeaders, false));
+                                dittoHeaders, false));
 
                 assertPublishEvent(ThingModified.of(thingWithDifferentFirstLevelFields, 2L, TIMESTAMP, dittoHeaders,
                         null));
@@ -412,7 +418,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 underTest.tell(modifyThingCommand, getRef());
 
-                expectMsgEquals(ETagTestUtils.modifyThingResponse(thingWithFirstLevelFields, minimalThing, dittoHeaders, false));
+                expectMsgEquals(ETagTestUtils.modifyThingResponse(thingWithFirstLevelFields, minimalThing, dittoHeaders,
+                                false));
 
                 assertPublishEvent(ThingModified.of(expectedThing, 2L, TIMESTAMP, dittoHeaders, null));
 
@@ -600,12 +607,14 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         ModifyFeatures.of(thingId, featuresToModify, headersMockWithOtherAuth);
                 underTest.tell(modifyFeatures, getRef());
                 expectMsgEquals(
-                        ETagTestUtils.modifyFeaturesResponse(thingId, featuresToModify, headersMockWithOtherAuth, false));
+                        ETagTestUtils.modifyFeaturesResponse(thingId, featuresToModify, headersMockWithOtherAuth,
+                                false));
 
                 final RetrieveFeatures retrieveFeatures = RetrieveFeatures.of(thingId, headersMockWithOtherAuth);
                 underTest.tell(retrieveFeatures, getRef());
-                expectMsgEquals(ETagTestUtils.retrieveFeaturesResponse(thingId, featuresToModify, featuresToModify.toJson(),
-                        headersMockWithOtherAuth));
+                expectMsgEquals(
+                        ETagTestUtils.retrieveFeaturesResponse(thingId, featuresToModify, featuresToModify.toJson(),
+                                headersMockWithOtherAuth));
             }
         };
     }
@@ -644,7 +653,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         ModifyAttributes.of(thingId, attributesToModify, headersMockWithOtherAuth);
                 underTest.tell(modifyAttributes, getRef());
                 expectMsgEquals(
-                        ETagTestUtils.modifyAttributesResponse(thingId, attributesToModify, headersMockWithOtherAuth, false));
+                        ETagTestUtils.modifyAttributesResponse(thingId, attributesToModify, headersMockWithOtherAuth,
+                                false));
 
                 final RetrieveAttributes retrieveAttributes = RetrieveAttributes.of(thingId, headersMockWithOtherAuth);
                 underTest.tell(retrieveAttributes, getRef());
@@ -686,7 +696,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         ModifyAttribute.of(thingId, attributeKey, newAttributeValue, dittoHeadersV2);
                 underTest.tell(authorizedCommand, getRef());
                 expectMsgEquals(
-                        ETagTestUtils.modifyAttributeResponse(thingId, attributeKey, newAttributeValue, dittoHeadersV2, false));
+                        ETagTestUtils.modifyAttributeResponse(thingId, attributeKey, newAttributeValue, dittoHeadersV2,
+                                false));
             }
         };
     }
@@ -891,8 +902,9 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         .withSelectedFields(versionFieldSelector)
                         .build();
                 underTest.tell(retrieveThing, getRef());
-                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, versionFieldSelector,
-                        dittoHeadersV2));
+                expectMsgEquals(
+                        ETagTestUtils.retrieveThingResponse(thingExpected, versionFieldSelector,
+                                dittoHeadersV2));
             }
         };
     }
@@ -938,7 +950,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 Awaitility.await().atMost(10L, TimeUnit.SECONDS).untilAsserted(() -> {
                     underTestAfterRestart.tell(retrieveThing, getRef());
-                    expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, versionFieldSelector,
+                    expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected,
+                            versionFieldSelector,
                             dittoHeadersV2));
                 });
             }
@@ -1140,7 +1153,75 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
             final RetrieveFeature retrieveFeatureCmd = RetrieveFeature.of(thingId, gyroscopeFeatureId, dittoHeadersV2);
             thingPersistenceActor.tell(retrieveFeatureCmd, getRef());
             expectMsgEquals(
-                    ETagTestUtils.retrieveFeatureResponse(thingId, gyroscopeFeature, gyroscopeFeature.toJson(), dittoHeadersV2));
+                    ETagTestUtils.retrieveFeatureResponse(thingId, gyroscopeFeature, gyroscopeFeature.toJson(),
+                            dittoHeadersV2));
+        }};
+    }
+
+    @Test
+    public void retrieveFeaturePropertyWithLiveChannelCondition() {
+        final ThingId thingId = ThingId.of("org.eclipse.ditto", "thing1");
+        final String gyroscopeFeatureId = "Gyroscope.0";
+        final Feature gyroscopeFeature = ThingsModelFactory.newFeatureBuilder()
+                .definition(FeatureDefinition.fromJson("[\"a:b:c\"]"))
+                .properties(ThingsModelFactory.newFeaturePropertiesBuilder()
+                        .set("status", JsonFactory.newObjectBuilder()
+                                .set("minRangeValue", -2000)
+                                .set("xValue", -0.05071427300572395)
+                                .set("units", "Deg/s")
+                                .set("yValue", -0.4192921817302704)
+                                .set("zValue", 0.20766231417655945)
+                                .set("maxRangeValue", 2000)
+                                .build())
+                        .build())
+                .withId(gyroscopeFeatureId)
+                .build();
+        final Thing thing = ThingsModelFactory.newThingBuilder()
+                .setId(thingId)
+                .setPolicyId(POLICY_ID)
+                .setFeature(gyroscopeFeature)
+                .build();
+
+        new TestKit(actorSystem) {{
+            final ActorRef thingPersistenceActor = createPersistenceActorFor(thing);
+
+            // create Thing
+            final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
+            thingPersistenceActor.tell(createThing, getRef());
+            expectMsgClass(CreateThingResponse.class);
+
+            // query: live channel condition matched with no twin fallback
+            final var matchingHeaders = dittoHeadersV2.toBuilder()
+                    .liveChannelCondition(String.format("exists(/features/%s)", gyroscopeFeatureId))
+                    .build();
+            final var command1 =
+                    RetrieveFeatureDefinition.of(thingId, gyroscopeFeatureId, matchingHeaders);
+            thingPersistenceActor.tell(command1, getRef());
+            final var response1 = expectMsgClass(RetrieveFeatureDefinitionResponse.class);
+            assertThat(response1.getDittoHeaders().didLiveChannelConditionMatch()).isTrue();
+            assertThat(response1.getDefinition()).isEqualTo(FeatureDefinition.fromJson(JsonFactory.nullArray()));
+
+            // query: live channel condition matched with twin fallback
+            final var propertiesPointer = JsonPointer.of("/status/minRangeValue");
+            final var withTwinFallback = matchingHeaders.toBuilder()
+                    .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY.getKey(), "use-twin")
+                    .build();
+            final var command2 =
+                    RetrieveFeatureProperty.of(thingId, gyroscopeFeatureId, propertiesPointer, withTwinFallback);
+            thingPersistenceActor.tell(command2, getRef());
+            final var response2 = expectMsgClass(RetrieveFeaturePropertyResponse.class);
+            assertThat(response2.getDittoHeaders().didLiveChannelConditionMatch()).isTrue();
+            assertThat(response2.getPropertyValue()).isEqualTo(JsonValue.of(-2000));
+
+            // query: live channel condition does not match
+            final var mismatchingHeaders = dittoHeadersV2.toBuilder()
+                    .liveChannelCondition("exists(/features/nonexistentFeature)")
+                    .build();
+            final var command3 = RetrieveThing.of(thingId, mismatchingHeaders);
+            thingPersistenceActor.tell(command3, getRef());
+            final var response3 = expectMsgClass(RetrieveThingResponse.class);
+            assertThat(response3.getDittoHeaders().didLiveChannelConditionMatch()).isFalse();
+            assertThat(response3.getEntity().asObject()).isNotEmpty();
         }};
     }
 
@@ -1156,7 +1237,8 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                             JsonSchemaVersion.V_2,
                             thing_2,
                             JsonSchemaVersion.V_2,
-                            modifyThing -> ETagTestUtils.modifyThingResponse(thing, thing_2, modifyThing.getDittoHeaders(),
+                            modifyThing -> ETagTestUtils.modifyThingResponse(thing, thing_2,
+                                    modifyThing.getDittoHeaders(),
                                     false));
             assertPublishEvent(ThingModified.of(thing_2, 2L, TIMESTAMP, headersUsed, null));
         }};

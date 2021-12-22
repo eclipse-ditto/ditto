@@ -4,7 +4,7 @@ published: true
 permalink: 2021-12-20-http-live-channel.html
 layout: post
 author: stefan_maute
-tags: [blog, http, live]
+tags: [blog, http]
 hide_sidebar: true
 sidebar: false
 toc: true
@@ -27,6 +27,10 @@ Ditto supports two types of `channel`s for communication.
   to communicate with the persisted **twin** representation.
 * [live](protocol-twinlive.html#live): The `channel` parameter can be changed to `live` 
   to communicate with the real device.
+
+{% include note.html content="In order to use the live channel, the device receiving live commands must be able to understand
+  and answer in [Ditto Protocol messages](protocol-specification.html) with the
+[topic's channel being `live`](protocol-specification-topic.html#live-channel)." %}
 
 When using the `twin` channel, the command is routed to the Ditto backend and handled by the **twin** persistence.
 Before using the `live` channel, it is necessary to create the **digital twin** of the device in the 

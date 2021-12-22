@@ -111,7 +111,7 @@ final class WrappingMessageMapper implements MessageMapper {
         final var externalMessages = delegate.map(adaptable);
         checkMaxMappedMessagesLimit(externalMessages, outboundMessageLimit, adaptable.getDittoHeaders());
 
-        final var isResponse = isResponse(adaptable);
+        final var isResponse = AbstractMessageMapper.isResponse(adaptable);
         final UnaryOperator<ExternalMessage> markAsResponse =
                 externalMessage -> ExternalMessageFactory.newExternalMessageBuilder(externalMessage)
                         .asResponse(isResponse)
@@ -134,12 +134,6 @@ final class WrappingMessageMapper implements MessageMapper {
                     .build();
         }
         return mappingResult;
-    }
-
-    private static boolean isResponse(final Adaptable adaptable) {
-        final var payload = adaptable.getPayload();
-        final var httpStatus = payload.getHttpStatus();
-        return httpStatus.isPresent();
     }
 
     @Override

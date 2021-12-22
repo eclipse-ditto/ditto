@@ -36,7 +36,6 @@ Conditional requests are supported by HTTP API, WebSocket, Ditto protocol and Di
 
 READ permission is necessary on the resource specified in the condition, otherwise, the request will fail.
 
-
 ## Examples
 
 In this part, we will show how to use conditional updates via HTTP API, Ditto protocol, and Ditto Java Client.
@@ -72,13 +71,13 @@ and Ditto Java Client which is based on the WebSocket protocol.
 Using the HTTP API it is possible to specify the condition via query parameter
 
 ```
-curl -X PUT -H 'Content-Type: application/json' /api/2/things/org.eclipse.ditto:fancy-thing/features/temperature/properties/value?condition=gt(features/temperature/properties/lastModified,2021-08-10T15:10:02.592Z) -d 19.26
+curl -X PUT -H 'Content-Type: application/json' /api/2/things/org.eclipse.ditto:fancy-thing/features/temperature/properties/value?condition=gt(features/temperature/properties/lastModified,'2021-08-10T15:10:02.592Z') -d 19.26
 ```
 
 or via HTTP header
 
 ```
-curl -X PUT -H 'Content-Type: application/json' -H 'condition: gt(features/temperature/properties/lastModified,2021-08-10T15:10:02.592Z)' /api/2/things/org.eclipse.ditto:fancy-thing/features/temperature/properties/value -d 19.26
+curl -X PUT -H 'Content-Type: application/json' -H 'condition: gt(features/temperature/properties/lastModified,"2021-08-10T15:10:02.592Z")' /api/2/things/org.eclipse.ditto:fancy-thing/features/temperature/properties/value -d 19.26
 ```
 
 ### Ditto protocol
@@ -116,6 +115,51 @@ client.twin().forFeature(ThingId.of("org.eclipse.ditto:fancy-thing"), "temperatu
             }
         });
 ```
+
+## Live channel condition
+
+Ditto also supports retrieving thing data with an automatic approach for switching between 
+[twin](protocol-twinlive.html#twin) and [live](protocol-twinlive.html#live) channel.
+
+Conditions are defined with RQL as described [before](#defining-conditions). 
+If a condition is matched, the Thing data is retrieved from the device itself.
+
+Example: retrieve data from the device itself if a certain attribute is configured at the twin:
+```
+GET .../things/{thingId}?live-channel-condition=eq(attributes/useLiveChannel,true)
+```
+
+Example: retrieve data from the device itself if the last modification timestamp is behind a specified timestamp:
+```
+GET .../things/{thingId}?live-channel-condition=lt(_modified,"2021-12-24T12:23:42Z")
+```
+
+### Live channel condition headers
+
+Additionally, a strategy to handle timeouts for retrieving live thing data can be specified with the header
+`live-channel-timeout-strategy`.  
+The header value holds a **strategy** what to do in case a timeout (can also be specified as header) was encountered.
+
+* If the value cannot be retrieved live from the device itself during the specified timeout, the request will
+  `fail` (which is the default strategy if not specified otherwise) with a status code 408.
+* Alternatively, if `use-twin` was defined as the `live-channel-timeout-strategy` strategy, the request will fall back 
+  to the persisted twin and return the latest value stored in the digital twin.
+
+
+### Live channel condition response headers
+
+The response includes two additional headers to indicate which channel was used to retrieve the thing data:
+
+* `live-channel-condition-matched` – value could be `true` or `false` and states whether the passed live-channel-condition was a match or not
+* `channel` – value could be `twin` or `live` and defines which channel was the origin of the returned data.
+
+In line with the procedure described above on how to retrieve live data directly from a device, a new type of 
+pre-configured payload mapping, namely [UpdateTwinWithLiveResponse](connectivity-mapping.html#updatetwinwithliveresponse-mapper)
+was introduced.
+
+Upon activation, the digital twin stored in Eclipse Ditto will implicitly be updated with the latest data from the 
+_live response_ sent by the device.
+
 
 ## Further reading on RQL expressions
 

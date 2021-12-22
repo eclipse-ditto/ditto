@@ -1,0 +1,25 @@
+# Copyright (c) 2021 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: live-channel-condition
+in: query
+description: >-
+  Defines that the request should fetch thing data via `live` channel if the given condition is met.
+  The condition can be specified using RQL syntax.
+  
+  #### Examples
+
+    * ```?live-channel-condition=lt(_modified,"2021-12-24T12:23:42Z")```
+  
+    * ```?live-channel-condition=ge(features/ConnectionStatus/properties/status/readyUntil,time:now)```
+
+required: false
+schema:
+  type: string

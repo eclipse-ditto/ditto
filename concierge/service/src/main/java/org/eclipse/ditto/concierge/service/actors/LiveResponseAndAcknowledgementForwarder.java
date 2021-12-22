@@ -12,17 +12,21 @@
  */
 package org.eclipse.ditto.concierge.service.actors;
 
+import static org.eclipse.ditto.concierge.service.starter.proxy.DefaultEnforcerActorFactory.setOriginatorHeader;
+
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
-import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgements;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
+import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandResponseMatchingValidator;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -44,11 +48,13 @@ public final class LiveResponseAndAcknowledgementForwarder extends AbstractActor
     private final ActorRef messageReceiver;
     private final ActorRef acknowledgementReceiver;
     private final Set<AcknowledgementLabel> pendingAcknowledgements;
+    private final Command<?> command;
+    private final CommandAndCommandResponseMatchingValidator responseValidator;
     private boolean responseReceived = false;
     private ActorRef messageSender;
 
     @SuppressWarnings("unused")
-    private LiveResponseAndAcknowledgementForwarder(final Signal<?> liveSignal,
+    private LiveResponseAndAcknowledgementForwarder(final Command<?> command,
             final ActorRef messageReceiver,
             final ActorRef acknowledgementReceiver) {
 
@@ -56,8 +62,10 @@ public final class LiveResponseAndAcknowledgementForwarder extends AbstractActor
         pendingAcknowledgements = new HashSet<>();
         this.messageReceiver = messageReceiver;
         this.acknowledgementReceiver = acknowledgementReceiver;
-        getContext().setReceiveTimeout(liveSignal.getDittoHeaders().getTimeout().orElse(DEFAULT_TIMEOUT));
-        for (final var ackRequest : liveSignal.getDittoHeaders().getAcknowledgementRequests()) {
+        this.command = command;
+        responseValidator = CommandAndCommandResponseMatchingValidator.getInstance();
+        getContext().setReceiveTimeout(command.getDittoHeaders().getTimeout().orElse(DEFAULT_TIMEOUT));
+        for (final var ackRequest : command.getDittoHeaders().getAcknowledgementRequests()) {
             pendingAcknowledgements.add(ackRequest.getLabel());
         }
     }
@@ -65,24 +73,24 @@ public final class LiveResponseAndAcknowledgementForwarder extends AbstractActor
     /**
      * Create Props object for this actor.
      *
-     * @param liveSignal The live signal whose acknowledgements and responses this actor listens for.
+     * @param command The live command whose acknowledgements and responses this actor listens for.
      * @param messageReceiver Receiver of the message to publish.
      * @param acknowledgementReceiver Receiver of acknowledgements.
      * @return The Props object.
      */
-    public static Props props(final Signal<?> liveSignal,
+    public static Props props(final Command<?> command,
             final ActorRef messageReceiver,
             final ActorRef acknowledgementReceiver) {
-        return Props.create(LiveResponseAndAcknowledgementForwarder.class, liveSignal, messageReceiver,
+        return Props.create(LiveResponseAndAcknowledgementForwarder.class, command, messageReceiver,
                 acknowledgementReceiver);
     }
 
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(ThingQueryCommandResponse.class, this::onQueryCommandResponse)
                 .match(Acknowledgement.class, this::onAcknowledgement)
                 .match(Acknowledgements.class, this::onAcknowledgements)
+                .match(CommandResponse.class, this::onCommandResponse)
                 .match(ReceiveTimeout.class, this::stopSelf)
                 .matchAny(this::sendMessage)
                 .build();
@@ -108,15 +116,21 @@ public final class LiveResponseAndAcknowledgementForwarder extends AbstractActor
         acknowledgementReceiver.forward(acks, getContext());
     }
 
-    private void onQueryCommandResponse(final ThingQueryCommandResponse<?> response) {
-        logger.debug("Got <{}>", response);
-        responseReceived = true;
-        if (messageSender != null) {
-            messageSender.forward(response, getContext());
-            checkCompletion();
+    private void onCommandResponse(final CommandResponse<?> incomingResponse) {
+        final CommandResponse<?> response = setOriginatorHeader(incomingResponse);
+        final boolean validResponse = isValidResponse(response);
+        logger.debug("Got <{}>, valid=<{}>", response, validResponse);
+        if (validResponse) {
+            responseReceived = true;
+            if (messageSender != null) {
+                messageSender.forward(response, getContext());
+                checkCompletion();
+            } else {
+                logger.error("Got response without receiving command");
+                stopSelf("Message sender not found");
+            }
         } else {
-            logger.error("Got response without receiving command");
-            stopSelf("Message sender not found");
+            acknowledgementReceiver.forward(response, getContext());
         }
     }
 
@@ -129,5 +143,13 @@ public final class LiveResponseAndAcknowledgementForwarder extends AbstractActor
     private void stopSelf(final Object trigger) {
         logger.debug("Stopping due to <{}>", trigger);
         getContext().stop(getSelf());
+    }
+
+    private boolean isValidResponse(final CommandResponse<?> response) {
+        try {
+            return responseValidator.apply(command, response).isSuccess();
+        } catch (final ConnectionIdInvalidException e) {
+            return false;
+        }
     }
 }

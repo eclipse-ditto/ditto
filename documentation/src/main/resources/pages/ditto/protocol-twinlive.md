@@ -26,6 +26,11 @@ specific to the solution and thus out of Ditto's scope.
 What Ditto however does, when routing **live** commands/messages, is an [authorization check](basic-auth.html).
 Thus Ditto ensures that only authorized parties are able to send commands or messages.
 
+{% include note.html content="In order to use the live channel, the device receiving live commands must be able to understand
+    and answer in [Ditto Protocol messages](protocol-specification.html) with the 
+    [topic's channel being `live`](protocol-specification-topic.html#live-channel)." %}
+
+
 ## Other
 
 Policy commands do not fit any of the above two categories as they are not directly related to a device. A Policy is 

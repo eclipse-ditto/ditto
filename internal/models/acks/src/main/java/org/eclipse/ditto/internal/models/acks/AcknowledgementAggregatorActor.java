@@ -39,6 +39,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTimeoutException;
 import org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
+import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
 import org.eclipse.ditto.internal.models.signal.SignalInformationPoint;
 import org.eclipse.ditto.internal.models.signal.correlation.CommandAndCommandResponseMatchingValidator;
 import org.eclipse.ditto.internal.models.signal.correlation.MatchingValidationResult;
@@ -64,6 +65,9 @@ import akka.actor.Props;
  */
 public final class AcknowledgementAggregatorActor extends AbstractActorWithTimers {
 
+    private static final Duration COMMAND_TIMEOUT = Duration.ofSeconds(60);
+    private static final Duration SMART_CHANNEL_BUFFER = Duration.ofSeconds(10);
+
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final String correlationId;
@@ -77,6 +81,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
     @SuppressWarnings("java:S1144")
     private AcknowledgementAggregatorActor(final EntityId entityId,
             final Signal<?> originatingSignal,
+            @Nullable final Duration timeoutOverride,
             final Duration maxTimeout,
             final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer,
@@ -91,7 +96,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
                         getSelf().path().name()
                 );
 
-        timeout = getTimeout(signalDittoHeaders, maxTimeout);
+        timeout = getTimeout(originatingSignal, maxTimeout, timeoutOverride);
         this.matchingValidationFailureConsumer = Objects.requireNonNullElseGet(
                 matchingValidationFailureConsumer,
                 this::getDefaultMatchingValidationFailureConsumer
@@ -149,6 +154,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
         return Props.create(AcknowledgementAggregatorActor.class,
                 entityId,
                 signal,
+                null,
                 acknowledgementConfig.getForwarderFallbackTimeout(),
                 headerTranslator,
                 responseSignalConsumer,
@@ -160,6 +166,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
      *
      * @param entityId the entity ID of the originating signal.
      * @param signal the originating signal.
+     * @param timeoutOverride the duration to override the timeout of the signal.
      * @param maxTimeout the maximum timeout of acknowledgement aggregation.
      * @param headerTranslator translates headers from external sources or to external sources.
      * @param responseSignalConsumer a consumer which is invoked with the response signal, e.g. in order to send the
@@ -171,6 +178,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
      */
     static Props props(final EntityId entityId,
             final Signal<?> signal,
+            @Nullable final Duration timeoutOverride,
             final Duration maxTimeout,
             final HeaderTranslator headerTranslator,
             final Consumer<Object> responseSignalConsumer,
@@ -179,6 +187,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
         return Props.create(AcknowledgementAggregatorActor.class,
                 entityId,
                 signal,
+                timeoutOverride,
                 maxTimeout,
                 headerTranslator,
                 responseSignalConsumer,
@@ -202,8 +211,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
         log.withCorrelationId(correlationId).debug("Received thing command response <{}>.", thingCommandResponse);
         final var commandResponseValidationResult = validateResponse(thingCommandResponse);
         if (commandResponseValidationResult.isSuccess()) {
-            final var acknowledgementLabel =
-                    SignalInformationPoint.isChannelLive(thingCommandResponse) ? LIVE_RESPONSE : TWIN_PERSISTED;
+            final var acknowledgementLabel = getAckLabelOfResponse(originatingSignal);
             addCommandResponse(thingCommandResponse, getAcknowledgement(thingCommandResponse, acknowledgementLabel));
         } else {
             handleMatchingValidationFailure(commandResponseValidationResult.asFailureOrThrow());
@@ -212,7 +220,8 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
 
     private MatchingValidationResult validateResponse(final CommandResponse<?> commandResponse) {
         final MatchingValidationResult result;
-        if (SignalInformationPoint.isLiveCommand(originatingSignal)) {
+        if (SignalInformationPoint.isLiveCommand(originatingSignal) ||
+                SignalInformationPoint.isChannelSmart(originatingSignal)) {
             result = tryToValidateLiveResponse((Command<?>) originatingSignal, commandResponse);
         } else {
 
@@ -395,25 +404,9 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
         getContext().stop(getSelf());
     }
 
-    public static DittoHeadersSettable<?> restoreCommandConnectivityHeaders(final DittoHeadersSettable<?> signal,
-            final DittoHeaders requestCommandHeaders) {
-
-        final var signalDittoHeaders = signal.getDittoHeaders();
-        final var enhancedHeadersBuilder = signalDittoHeaders.toBuilder()
-                .removeHeader(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey())
-                .removeHeader(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER.getKey())
-                .removeHeader(DittoHeaderDefinition.REPLY_TARGET.getKey());
-        if (requestCommandHeaders.containsKey(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES.getKey())) {
-            enhancedHeadersBuilder.expectedResponseTypes(requestCommandHeaders.getExpectedResponseTypes());
-        }
-        requestCommandHeaders.getInboundPayloadMapper().ifPresent(enhancedHeadersBuilder::inboundPayloadMapper);
-        requestCommandHeaders.getReplyTarget().ifPresent(enhancedHeadersBuilder::replyTarget);
-
-        return signal.setDittoHeaders(enhancedHeadersBuilder.build());
-    }
-
     private void handleSignal(final DittoHeadersSettable<?> signal) {
-        responseSignalConsumer.accept(restoreCommandConnectivityHeaders(signal, originatingSignal.getDittoHeaders()));
+        responseSignalConsumer.accept(
+                CommandHeaderRestoration.restoreCommandConnectivityHeaders(signal, originatingSignal.getDittoHeaders()));
     }
 
     private static boolean containsOnlyTwinPersistedOrLiveResponse(final Acknowledgements aggregatedAcknowledgements) {
@@ -421,19 +414,35 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
                 aggregatedAcknowledgements.stream()
                         .anyMatch(ack -> {
                             final var label = ack.getLabel();
-                            return TWIN_PERSISTED.equals(label) ||
-                                    LIVE_RESPONSE.equals(label);
+                            return TWIN_PERSISTED.equals(label) || LIVE_RESPONSE.equals(label);
                         });
     }
 
-    private static Duration getTimeout(final DittoHeaders headers, final Duration maxTimeout) {
-        return headers.getTimeout()
-                .filter(timeout -> timeout.minus(maxTimeout).isNegative())
-                .orElse(maxTimeout);
+    private static AcknowledgementLabel getAckLabelOfResponse(final Signal<?> signal) {
+        // check originating signal for ack label of response
+        // because live commands may generate twin responses due to live timeout fallback strategy
+        // smart channel commands are treated as live channel commands
+        final var isChannelLive = SignalInformationPoint.isChannelLive(signal);
+        final var isChannelSmart = SignalInformationPoint.isChannelSmart(signal);
+        return isChannelLive || isChannelSmart ? LIVE_RESPONSE : TWIN_PERSISTED;
+    }
+
+    private static Duration getTimeout(final Signal<?> originatingSignal, final Duration maxTimeout,
+            @Nullable final Duration specifiedTimeout) {
+        if (specifiedTimeout != null) {
+            return specifiedTimeout;
+        } else if (SignalInformationPoint.isChannelSmart(originatingSignal)) {
+            return originatingSignal.getDittoHeaders().getTimeout().orElse(COMMAND_TIMEOUT)
+                    .plus(SMART_CHANNEL_BUFFER);
+        } else {
+            return originatingSignal.getDittoHeaders().getTimeout()
+                    .filter(timeout1 -> timeout1.minus(maxTimeout).isNegative())
+                    .orElse(maxTimeout);
+        }
     }
 
     private enum Control {
-        WAITING_FOR_ACKS_TIMED_OUT;
+        WAITING_FOR_ACKS_TIMED_OUT
     }
 
 }

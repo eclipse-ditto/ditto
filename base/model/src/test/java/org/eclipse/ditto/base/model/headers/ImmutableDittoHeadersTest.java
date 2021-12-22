@@ -109,6 +109,8 @@ public final class ImmutableDittoHeadersTest {
     private static final List<String> KNOWN_JOURNAL_TAGS = Lists.list("tag-a", "tag-b");
     private static final boolean KNOWN_IS_SUDO = true;
     private static final String KNOWN_CONDITION = "eq(attributes/value)";
+    private static final String KNOWN_LIVE_CHANNEL_CONDITION = "eq(attributes/value,\"livePolling\")";
+    private static final boolean KNOWN_LIVE_CHANNEL_CONDITION_MATCHED = true;
     private static final String KNOWN_TRACEPARENT = "00-dfca0d990402884d22e909a87ac677ec-94fc4da95e842f96-01";
     private static final String KNOWN_TRACESTATE = "eclipse=ditto";
     private static final boolean KNOWN_DITTO_RETRIEVE_DELETED = true;
@@ -161,6 +163,7 @@ public final class ImmutableDittoHeadersTest {
                 .acknowledgementRequests(KNOWN_ACK_REQUESTS)
                 .putMetadata(KNOWN_METADATA_HEADER_KEY, KNOWN_METADATA_VALUE)
                 .timeout(KNOWN_TIMEOUT)
+                .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY.getKey(), "use-twin")
                 .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID)
                 .expectedResponseTypes(KNOWN_EXPECTED_RESPONSE_TYPES)
                 .allowPolicyLockout(KNOWN_ALLOW_POLICY_LOCKOUT)
@@ -175,6 +178,9 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), KNOWN_TRACEPARENT)
                 .putHeader(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE)
                 .condition(KNOWN_CONDITION)
+                .liveChannelCondition(KNOWN_LIVE_CHANNEL_CONDITION)
+                .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
+                        String.valueOf(KNOWN_LIVE_CHANNEL_CONDITION_MATCHED))
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -332,12 +338,62 @@ public final class ImmutableDittoHeadersTest {
     }
 
     @Test
+    public void didLiveChannelConditionMatchIsFalseOnMissingHeader() {
+        final DittoHeaders underTest = DittoHeaders.empty();
+
+        assertThat(underTest.didLiveChannelConditionMatch()).isFalse();
+    }
+
+    @Test
+    public void didLiveChannelConditionMatchIsFalseWhenFalse() {
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), "false")
+                .build();
+
+        assertThat(underTest.didLiveChannelConditionMatch()).isFalse();
+    }
+
+    @Test
+    public void didLiveChannelConditionMatchIsTrueWhenTrue() {
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(), "true")
+                .build();
+
+        assertThat(underTest.didLiveChannelConditionMatch()).isTrue();
+    }
+
+    @Test
+    public void liveChannelConditionNotEmptyWhenSet() {
+        final String testValue = "some-condition";
+        final DittoHeaders underTest = DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey(), testValue)
+                .build();
+
+        assertThat(underTest.getLiveChannelCondition()).hasValue(testValue);
+    }
+
+    @Test
     public void getRequestedAckLabelsReturnsExpected() {
         final DittoHeaders underTest = DittoHeaders.newBuilder()
                 .acknowledgementRequests(KNOWN_ACK_REQUESTS)
                 .build();
 
         assertThat(underTest.getAcknowledgementRequests()).containsExactlyInAnyOrderElementsOf(KNOWN_ACK_REQUESTS);
+    }
+
+    @Test
+    public void getLiveChannelTimeoutStrategy() {
+        assertThat(DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY.getKey(), "use-twin")
+                .build()
+                .getLiveChannelTimeoutStrategy())
+                .contains(LiveChannelTimeoutStrategy.USE_TWIN);
+
+        assertThat(DittoHeaders.newBuilder()
+                .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY.getKey(), "fail")
+                .build()
+                .getLiveChannelTimeoutStrategy())
+                .contains(LiveChannelTimeoutStrategy.FAIL);
     }
 
     @Test
@@ -404,6 +460,7 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), ackRequestsToJsonArray(KNOWN_ACK_REQUESTS))
                 .set(DittoHeaderDefinition.DECLARED_ACKS.getKey(), charSequencesToJsonArray(KNOWN_ACK_LABELS))
                 .set(DittoHeaderDefinition.TIMEOUT.getKey(), JsonValue.of(KNOWN_TIMEOUT.toMillis() + "ms"))
+                .set(DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY.getKey(), JsonValue.of("use-twin"))
                 .set(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_ENTITY_ID)
                 .set(DittoHeaderDefinition.REPLY_TO.getKey(), KNOWN_REPLY_TO)
                 .set(DittoHeaderDefinition.WWW_AUTHENTICATE.getKey(), KNOWN_WWW_AUTHENTICATION)
@@ -423,6 +480,9 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), KNOWN_TRACEPARENT)
                 .set(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE)
                 .set(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION)
+                .set(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey(), KNOWN_LIVE_CHANNEL_CONDITION)
+                .set(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
+                        KNOWN_LIVE_CHANNEL_CONDITION_MATCHED)
                 .build();
 
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
@@ -633,6 +693,7 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.DECLARED_ACKS.getKey(),
                 charSequencesToJsonArray(KNOWN_ACK_LABELS).toString());
         result.put(DittoHeaderDefinition.TIMEOUT.getKey(), KNOWN_TIMEOUT.toMillis() + "ms");
+        result.put(DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY.getKey(), "use-twin");
         result.put(DittoHeaderDefinition.ENTITY_ID.getKey(), KNOWN_ENTITY_ID);
         result.put(DittoHeaderDefinition.REPLY_TO.getKey(), KNOWN_REPLY_TO);
         result.put(DittoHeaderDefinition.WWW_AUTHENTICATE.getKey(), KNOWN_WWW_AUTHENTICATION);
@@ -652,6 +713,9 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.W3C_TRACEPARENT.getKey(), KNOWN_TRACEPARENT);
         result.put(DittoHeaderDefinition.W3C_TRACESTATE.getKey(), KNOWN_TRACESTATE);
         result.put(DittoHeaderDefinition.CONDITION.getKey(), KNOWN_CONDITION);
+        result.put(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION.getKey(), KNOWN_LIVE_CHANNEL_CONDITION);
+        result.put(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
+                String.valueOf(KNOWN_LIVE_CHANNEL_CONDITION_MATCHED));
 
         return result;
     }

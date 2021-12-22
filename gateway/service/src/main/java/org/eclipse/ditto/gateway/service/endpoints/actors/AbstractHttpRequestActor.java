@@ -89,6 +89,7 @@ import akka.http.scaladsl.model.EntityStreamSizeException;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.AskTimeoutException;
 import akka.util.ByteString;
+import scala.Option;
 import scala.util.Either;
 
 /**
@@ -154,7 +155,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     () -> logger.withCorrelationId(failure.getCommand())
                             .warning("Discarding invalid response as connection ID of sender could not be determined.");
             failure.getConnectionId()
-                    .map(connectionId -> getAddConnectionLogEntry(connectionId, failure))
+                    .map(connectionId -> getAddConnectionLogEntry(ConnectionId.of(connectionId), failure))
                     .ifPresentOrElse(addConnectionLogEntry, logMissingConnectionId);
         };
     }
@@ -218,10 +219,12 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             logger.setCorrelationId(command);
             receivedCommand = command;
             setDefaultTimeoutExceptionSupplier(command);
+            final var timeoutOverride = getReceiveTimeout(command, commandConfig);
             ackregatorStarter.start(command,
+                    timeoutOverride,
                     this::onAggregatedResponseOrError,
                     this::handleCommandWithAckregator,
-                    this::handleCommandWithoutAckregator
+                    command1 -> handleCommandWithoutAckregator(command1, timeoutOverride)
             );
             final var responseBehavior = ReceiveBuilder.create()
                     .match(Acknowledgements.class, this::completeAcknowledgements)
@@ -238,7 +241,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             final var actorContext = getContext();
 
             return GatewayCommandTimeoutException.newBuilder(actorContext.getReceiveTimeout())
-                    .dittoHeaders(command.getDittoHeaders())
+                    .dittoHeaders(command.getDittoHeaders()
+                            .toBuilder()
+                            .responseRequired(false)
+                            .build())
                     .build();
         };
     }
@@ -256,9 +262,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         return null;
     }
 
-    private Void handleCommandWithoutAckregator(final Signal<?> command) {
+    private Void handleCommandWithoutAckregator(final Signal<?> command, final Duration timeoutOverride) {
         if (isDevOpsCommand(command) || !shallAcceptImmediately(command)) {
-            handleCommandWithResponse(command, getResponseAwaitingBehavior());
+            handleCommandWithResponse(command, getResponseAwaitingBehavior(), timeoutOverride);
             setDefaultTimeoutExceptionSupplier(command);
         } else {
             handleCommandAndAcceptImmediately(command);
@@ -317,21 +323,16 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         return WhoamiResponse.of(userInformation, dittoHeaders);
     }
 
-    private void handleCommandWithResponse(final Signal<?> command, final Receive awaitCommandResponseBehavior) {
+    private void handleCommandWithResponse(final Signal<?> command, final Receive awaitCommandResponseBehavior,
+            final Duration timeoutOverride) {
         logger.debug("Got <{}>. Telling the target actor about it.", command);
         proxyActor.tell(command, getSelf());
 
         final ActorContext context = getContext();
         if (!isDevOpsCommand(command)) {
-            final var dittoHeaders = command.getDittoHeaders();
-
             // DevOpsCommands do have their own timeout mechanism, don't reply with a command timeout for the user
             //  for DevOps commands, so only set the receiveTimeout for non-DevOps commands:
-            context.setReceiveTimeout(
-                    dittoHeaders.getTimeout()
-                            // if no specific timeout was configured, use the default command timeout
-                            .orElse(commandConfig.getDefaultTimeout())
-            );
+            context.setReceiveTimeout(timeoutOverride);
         }
 
         // After a Command was received, this Actor can only receive the correlating CommandResponse:
@@ -349,7 +350,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 // If an actor downstream replies with an HTTP response, simply forward it.
                 .match(HttpResponse.class, this::completeWithResult)
                 .match(MessageCommandResponse.class,
-                        messageCommandResponse -> completeWithResult(handleMessageResponseMessage(messageCommandResponse)))
+                        messageCommandResponse -> completeWithResult(
+                                handleMessageResponseMessage(messageCommandResponse)))
                 .match(CommandResponse.class, WithEntity.class::isInstance, commandResponse -> {
                     logger.withCorrelationId(commandResponse).debug("Got <{}> message.", commandResponse.getType());
                     handleCommandResponseWithEntity(commandResponse);
@@ -436,8 +438,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             final Optional<akka.http.scaladsl.model.ContentType> optionalContentType = message.getContentType()
                     .map(ContentType$.MODULE$::parse)
                     .filter(Either::isRight)
-                    .map(Either::right)
-                    .map(Either.RightProjection::get);
+                    .map(Either::toOption)
+                    .map(Option::get);
 
             final boolean isBinary = optionalContentType
                     .map(akka.http.scaladsl.model.ContentType::value)
@@ -712,6 +714,23 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         final var httpResponse = jsonValueSourceToHttpResponse.apply(jsonValueSourceRef.getSource());
         enhanceResponseWithExternalDittoHeaders(httpResponse, receivedCommand.getDittoHeaders());
         completeWithResult(httpResponse);
+    }
+
+    private static Duration getReceiveTimeout(final Signal<?> originatingSignal, final CommandConfig commandConfig) {
+
+        final var defaultTimeout = commandConfig.getDefaultTimeout();
+        final var maxTimeout = commandConfig.getMaxTimeout();
+        final var headers = originatingSignal.getDittoHeaders();
+        final var candidateTimeout = headers.getTimeout()
+                .or(() -> Optional.of(defaultTimeout))
+                .filter(timeout -> timeout.minus(maxTimeout).isNegative())
+                .orElse(maxTimeout);
+
+        if (SignalInformationPoint.isChannelSmart(originatingSignal)) {
+            return candidateTimeout.plus(commandConfig.getSmartChannelBuffer());
+        } else {
+            return candidateTimeout;
+        }
     }
 
     private static final class HttpAcknowledgementConfig implements AcknowledgementConfig {

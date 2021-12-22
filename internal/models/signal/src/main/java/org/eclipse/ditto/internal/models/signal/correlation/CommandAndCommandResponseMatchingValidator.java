@@ -48,7 +48,7 @@ import org.eclipse.ditto.internal.models.signal.type.SignalTypeFormatException;
  * a success.
  * </p>
  * <p>
- * If validation failed a {@link org.eclipse.ditto.connectivity.model.ConnectionIdInvalidException} might be thrown if
+ * If validation failed a {@link org.eclipse.ditto.base.model.entity.id.EntityIdInvalidException} might be thrown if
  * the headers of the {@code CommandResponse} contain an invalid value for
  * {@link org.eclipse.ditto.base.model.headers.DittoHeaderDefinition#CONNECTION_ID}.
  * </p>

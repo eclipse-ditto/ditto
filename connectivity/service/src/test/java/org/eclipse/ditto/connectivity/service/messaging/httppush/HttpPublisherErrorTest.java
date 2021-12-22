@@ -111,8 +111,11 @@ public final class HttpPublisherErrorTest {
         new TestKit(actorSystem) {{
             final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
                     mock(ConnectionLogger.class), SshTunnelState::disabled);
-            final Props props = HttpPublisherActor.props(connection, factory, "clientId",
-                    actorSystem.deadLetters(), mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
+            final Props props = HttpPublisherActor.props(connection,
+                    factory,
+                    "clientId",
+                    mock(ConnectivityStatusResolver.class),
+                    ConnectivityConfig.of(actorSystem.settings().config()));
             final ActorRef underTest = watch(childActorOf(props));
 
             // WHEN: it is asked to publish events with delay between them larger than connection pool timeout
@@ -145,7 +148,7 @@ public final class HttpPublisherErrorTest {
             final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
                     mock(ConnectionLogger.class), SshTunnelState::disabled);
             final Props props = HttpPublisherActor.props(connection, factory, "clientId",
-                    actorSystem.deadLetters(), mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
+                    mock(ConnectivityStatusResolver.class), ConnectivityConfig.of(actorSystem.settings().config()));
             final ActorRef underTest = watch(childActorOf(props));
 
             // GIVEN: The connection is working.

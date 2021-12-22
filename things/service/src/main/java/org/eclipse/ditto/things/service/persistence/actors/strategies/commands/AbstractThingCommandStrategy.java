@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
+import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.signals.WithOptionalEntity;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.internal.utils.headers.conditional.ConditionalHeadersValidator;
@@ -70,6 +71,10 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
         final var thingConditionFailed = command.getDittoHeaders()
                 .getCondition()
                 .flatMap(condition -> ThingConditionValidator.validate(command, condition, entity));
+        final Boolean liveChannelConditionPassed = command.getDittoHeaders()
+                .getLiveChannelCondition()
+                .map(condition -> ThingConditionValidator.validate(command, condition, entity).isEmpty())
+                .orElse(false);
 
         final Result<ThingEvent<?>> result;
         if (thingConditionFailed.isPresent()) {
@@ -77,6 +82,13 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
             loggerWithCorrelationId.debug("Validating condition failed with exception <{}>.",
                     conditionFailedException.getMessage());
             result = ResultFactory.newErrorResult(conditionFailedException, command);
+        } else if (command.getDittoHeaders().getLiveChannelCondition().isPresent()) {
+            final var enhancedHeaders = command.getDittoHeaders()
+                    .toBuilder()
+                    .putHeader(DittoHeaderDefinition.LIVE_CHANNEL_CONDITION_MATCHED.getKey(),
+                            liveChannelConditionPassed.toString())
+                    .build();
+            result = super.apply(context, entity, nextRevision, command.setDittoHeaders(enhancedHeaders));
         } else {
             result = super.apply(context, entity, nextRevision, command);
         }
@@ -105,5 +117,4 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
     public boolean isDefined(final C command) {
         return command instanceof ThingCommand;
     }
-
 }

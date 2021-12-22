@@ -28,7 +28,6 @@ import java.util.stream.IntStream;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.awaitility.Awaitility;
-import org.eclipse.ditto.base.model.auth.AuthorizationContext;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
@@ -37,7 +36,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import akka.actor.ActorRef;
-import akka.japi.Pair;
 
 /**
  * Unit test for {@link ResponseReceiverCache}.
@@ -75,24 +73,24 @@ public final class ResponseReceiverCacheTest {
     }
 
     @Test
-    public void putNullCommandThrowsException() {
+    public void cacheNullSignalThrowsException() {
         final var underTest = ResponseReceiverCache.newInstance();
 
         assertThatNullPointerException()
-                .isThrownBy(() -> underTest.putCommand(null, Pair.create(null, null)))
-                .withMessage("The command must not be null!")
+                .isThrownBy(() -> underTest.cacheSignalResponseReceiver(null, null))
+                .withMessage("The signal must not be null!")
                 .withNoCause();
     }
 
     @Test
-    public void putNullResponseReceiverThrowsException() {
+    public void cacheNullResponseReceiverThrowsException() {
         final var underTest = ResponseReceiverCache.newInstance();
         final var command = Mockito.mock(Command.class);
         Mockito.when(command.getDittoHeaders())
                 .thenReturn(DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build());
 
         assertThatNullPointerException()
-                .isThrownBy(() -> underTest.putCommand(command, null))
+                .isThrownBy(() -> underTest.cacheSignalResponseReceiver(command, null))
                 .withMessage("The responseReceiver must not be null!")
                 .withNoCause();
     }
@@ -134,14 +132,14 @@ public final class ResponseReceiverCacheTest {
         final var correlationId = testNameCorrelationId.getCorrelationId();
         Mockito.when(command.getDittoHeaders())
                 .thenReturn(getDittoHeadersWithCorrelationIdAndTimeout(correlationId, expiry));
-        final var responseReceiver = Pair.<ActorRef, AuthorizationContext>create(null, null);
         final var underTest = ResponseReceiverCache.newInstance();
 
-        underTest.putCommand(command, responseReceiver);
+        final var mockReceiver = Mockito.mock(ActorRef.class);
+        underTest.cacheSignalResponseReceiver(command, mockReceiver);
 
         final var cacheEntryFuture = underTest.get(correlationId.toString());
 
-        assertThat(cacheEntryFuture).succeedsWithin(expiry).isEqualTo(Optional.of(responseReceiver));
+        assertThat(cacheEntryFuture).succeedsWithin(expiry).isEqualTo(Optional.of(mockReceiver));
     }
 
     @Test
@@ -151,10 +149,9 @@ public final class ResponseReceiverCacheTest {
         final var correlationId = testNameCorrelationId.getCorrelationId();
         Mockito.when(command.getDittoHeaders())
                 .thenReturn(getDittoHeadersWithCorrelationIdAndTimeout(correlationId, expiry));
-        final var responseReceiver = Pair.<ActorRef, AuthorizationContext>create(null, null);
         final var underTest = ResponseReceiverCache.newInstance();
 
-        underTest.putCommand(command, responseReceiver);
+        underTest.cacheSignalResponseReceiver(command, Mockito.mock(ActorRef.class));
 
         final var cacheEntryFuture = Awaitility.await("get expired cache entry")
                 .pollDelay(expiry.plusMillis(250L))
@@ -195,12 +192,12 @@ public final class ResponseReceiverCacheTest {
                 })
                 .collect(Collectors.toList());
         final var responseReceivers = expirySequence.stream()
-                .map(_expiry -> Pair.<ActorRef, AuthorizationContext>create(null, null))
+                .map(_expiry -> Mockito.mock(ActorRef.class))
                 .collect(Collectors.toList());
 
         final var underTest = ResponseReceiverCache.newInstance();
         IntStream.range(0, expirySequence.size())
-                .forEach(index -> underTest.putCommand(commands.get(index), responseReceivers.get(index)));
+                .forEach(index -> underTest.cacheSignalResponseReceiver(commands.get(index), responseReceivers.get(index)));
 
         Awaitility.await()
                 .pollDelay(shortExpiry.plusMillis(100L))
@@ -211,7 +208,7 @@ public final class ResponseReceiverCacheTest {
 
                     IntStream.range(0, cacheEntryFutures.size())
                             .forEach(index -> {
-                                final Optional<Pair<ActorRef, AuthorizationContext>> expected;
+                                final Optional<ActorRef> expected;
                                 if (0 == index % 2) {
                                     expected = Optional.of(responseReceivers.get(index));
                                 } else {

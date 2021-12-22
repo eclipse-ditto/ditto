@@ -62,6 +62,7 @@ import org.eclipse.ditto.internal.utils.pubsub.StreamingType;
 import org.eclipse.ditto.internal.utils.search.SubscriptionManager;
 import org.eclipse.ditto.jwt.model.ImmutableJsonWebToken;
 import org.eclipse.ditto.messages.model.signals.commands.acks.MessageCommandAckRequestSetter;
+import org.eclipse.ditto.placeholders.TimePlaceholder;
 import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.protocol.placeholders.ResourcePlaceholder;
@@ -71,7 +72,6 @@ import org.eclipse.ditto.rql.query.criteria.Criteria;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.things.model.signals.commands.acks.ThingModifyCommandAckRequestSetter;
-import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
 import org.eclipse.ditto.thingsearch.model.signals.events.SubscriptionEvent;
 
@@ -436,8 +436,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                         final Optional<DittoHeaderInvalidException> headerInvalid = checkForAcksWithoutResponse(s);
                         return headerInvalid.map(this::publishResponseOrError)
                                 .orElseGet(() -> ackregatorStarter.doStart(entityIdOptional.get(),
-                                        s,
-                                        this::publishResponseOrError,
+                                        s, null, this::publishResponseOrError,
                                         ackregator -> forwardToCommandRouterAndReturnDone(s, ackregator)));
                     } else {
                         return doNothing(s);
@@ -495,16 +494,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         try {
             getContext().findChild(AcknowledgementForwarderActor.determineActorName(response.getDittoHeaders()))
                     .ifPresentOrElse(
-                            forwarder -> {
-                                if (response instanceof ThingQueryCommandResponse &&
-                                        SignalInformationPoint.isChannelLive(response)) {
-
-                                    // forward live command responses to concierge to filter response
-                                    commandRouter.tell(response, sender);
-                                } else {
-                                    forwarder.tell(response, sender);
-                                }
-                            },
+                            forwarder -> forwarder.tell(response, sender),
                             () -> {
                                 // the Acknowledgement / LiveCommandResponse is meant for someone else:
                                 final var template =
@@ -677,9 +667,12 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {
-        final var queryFilterCriteriaFactory = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
+        final var queryFilterCriteriaFactory = QueryFilterCriteriaFactory.modelBased(
+                RqlPredicateParser.getInstance(),
                 TopicPathPlaceholder.getInstance(),
-                ResourcePlaceholder.getInstance());
+                ResourcePlaceholder.getInstance(),
+                TimePlaceholder.getInstance()
+        );
 
         return queryFilterCriteriaFactory.filterCriteria(filter, dittoHeaders);
     }

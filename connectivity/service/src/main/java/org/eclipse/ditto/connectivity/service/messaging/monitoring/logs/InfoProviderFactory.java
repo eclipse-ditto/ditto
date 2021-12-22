@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.entity.id.WithEntityId;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.connectivity.api.messaging.monitoring.logs.LogEntryFactory;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 
 /**
@@ -34,7 +35,7 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMon
  */
 public final class InfoProviderFactory {
 
-    public static final String FALLBACK_CORRELATION_ID = "<not-provided>";
+    public static final String FALLBACK_CORRELATION_ID = LogEntryFactory.FALLBACK_CORRELATION_ID;
 
     private InfoProviderFactory() {
         throw new AssertionError();

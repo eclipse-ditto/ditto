@@ -81,6 +81,17 @@ public final class HeaderValueValidators {
     }
 
     /**
+     * Returns a validator checking a header value against the string representation of members of an enum class.
+     *
+     * @param enumValues The values of the enum class.
+     * @return The validator.
+     * @since 2.3.0
+     */
+    public static ValueValidator getEnumValidator(final Enum<?>[] enumValues) {
+        return EnumValueValidator.getInstance(enumValues);
+    }
+
+    /**
      * Returns a validator for checking if a CharSequence represents a {@link org.eclipse.ditto.json.JsonArray} which
      * <em>contains only string items.</em>
      *

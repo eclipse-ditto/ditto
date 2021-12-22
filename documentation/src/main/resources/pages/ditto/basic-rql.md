@@ -68,6 +68,7 @@ field in JSON representation inside the Thing.
 Currently supported placeholders for RQL expressions are:
 * `topic:<placeholder-name>`
 * `resource:<placeholder-name>`
+* `time:<placeholder-name>`
 
 The [placeholder](basic-placeholders.html#scope-rql-expressions-when-filtering-for-ditto-protocol-messages) 
 documentation describes which placeholder names are supported.
@@ -75,9 +76,10 @@ documentation describes which placeholder names are supported.
 
 ### Query value
 ```
-<value> = <number>, <string>, true, false, null
-<number> = double, integer
+<value> = <number>, <string>, <placeholder>, true, false, null
+<number> = <double>, <integer>
 <string> = "url-encoded-string", 'url-encoded-string'
+<placeholder> = time:now, time:now_epoch_millis
 ```
 
 String values may either be delimited using single or double quotes.
