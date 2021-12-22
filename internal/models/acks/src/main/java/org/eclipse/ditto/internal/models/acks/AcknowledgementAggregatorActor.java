@@ -220,7 +220,8 @@ public final class AcknowledgementAggregatorActor extends AbstractActorWithTimer
 
     private MatchingValidationResult validateResponse(final CommandResponse<?> commandResponse) {
         final MatchingValidationResult result;
-        if (SignalInformationPoint.isLiveCommand(originatingSignal)) {
+        if (SignalInformationPoint.isLiveCommand(originatingSignal) ||
+                SignalInformationPoint.isChannelSmart(originatingSignal)) {
             result = tryToValidateLiveResponse((Command<?>) originatingSignal, commandResponse);
         } else {
 

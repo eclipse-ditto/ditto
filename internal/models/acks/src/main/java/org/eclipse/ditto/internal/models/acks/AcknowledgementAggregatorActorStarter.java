@@ -280,6 +280,7 @@ public final class AcknowledgementAggregatorActorStarter {
         final boolean result;
 
         final var isLiveSignal = SignalInformationPoint.isChannelLive(signal);
+        final var isChannelSmart = SignalInformationPoint.isChannelSmart(signal);
         final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
         if (signal instanceof ThingModifyCommand && !isLiveSignal) {
             result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotLiveResponse);
@@ -288,7 +289,7 @@ public final class AcknowledgementAggregatorActorStarter {
 
             result = ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted);
         } else {
-            result = false;
+            result = isChannelSmart;
         }
 
         return result;
