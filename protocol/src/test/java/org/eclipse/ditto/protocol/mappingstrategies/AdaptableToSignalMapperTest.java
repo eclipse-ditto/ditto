@@ -22,6 +22,7 @@ import java.util.function.Function;
 import org.eclipse.ditto.base.model.correlationid.TestNameCorrelationId;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.protocol.Adaptable;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
@@ -130,6 +131,7 @@ public final class AdaptableToSignalMapperTest {
     public void mapAdaptableThrowsIllegalAdaptableExceptionIfMappingFunctionThrowsDittoRuntimeException() {
         final Adaptable adaptable = Mockito.mock(Adaptable.class);
         Mockito.when(adaptable.getDittoHeaders()).thenReturn(dittoHeaders);
+        Mockito.when(adaptable.getTopicPath()).thenReturn(Mockito.mock(TopicPath.class));
         final IllegalAdaptableException cause =
                 IllegalAdaptableException.newInstance("This is a message.", "This is a description.", adaptable);
         Mockito.when(mappingFunction.apply(Mockito.any(MappingContext.class))).thenThrow(cause);
@@ -153,6 +155,7 @@ public final class AdaptableToSignalMapperTest {
     public void mapAdaptableThrowsIllegalAdaptableExceptionIfMappingFunctionThrowsRuntimeException() {
         final Adaptable adaptable = Mockito.mock(Adaptable.class);
         Mockito.when(adaptable.getDittoHeaders()).thenReturn(dittoHeaders);
+        Mockito.when(adaptable.getTopicPath()).thenReturn(Mockito.mock(TopicPath.class));
         final IllegalArgumentException illegalArgumentException = new IllegalArgumentException("This is a message.");
         Mockito.when(mappingFunction.apply(Mockito.any(MappingContext.class))).thenThrow(illegalArgumentException);
         final String targetSignalType = CreateThingResponse.TYPE;

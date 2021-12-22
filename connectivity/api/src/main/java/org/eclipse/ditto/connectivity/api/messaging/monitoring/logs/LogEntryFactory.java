@@ -130,7 +130,7 @@ public final class LogEntryFactory {
     }
 
     private static Optional<EntityId> getEntityId(final IllegalAdaptableException illegalAdaptableException) {
-        return illegalAdaptableException.getTopicPath().flatMap(LogEntryFactory::getEntityIdFromTopicPath);
+        return getEntityIdFromTopicPath(illegalAdaptableException.getTopicPath());
     }
 
     private static Optional<EntityId> getEntityIdFromTopicPath(final TopicPath topicPath) {

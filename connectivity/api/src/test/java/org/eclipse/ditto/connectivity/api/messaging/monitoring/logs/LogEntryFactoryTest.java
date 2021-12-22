@@ -62,6 +62,9 @@ public final class LogEntryFactoryTest {
     @Mock
     private Adaptable adaptable;
 
+    @Mock
+    private TopicPath topicPath;
+
     private DittoHeaders dittoHeadersWithCorrelationId;
 
     @Before
@@ -73,6 +76,7 @@ public final class LogEntryFactoryTest {
         Mockito.when(command.getDittoHeaders()).thenReturn(emptyDittoHeaders);
         Mockito.when(commandResponse.getDittoHeaders()).thenReturn(emptyDittoHeaders);
         Mockito.when(adaptable.getDittoHeaders()).thenReturn(dittoHeadersWithCorrelationId);
+        Mockito.when(adaptable.getTopicPath()).thenReturn(topicPath);
     }
 
     @Test

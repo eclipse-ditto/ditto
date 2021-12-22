@@ -69,7 +69,7 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
 
     private static final long serialVersionUID = 1552465013185426687L;
 
-    @Nullable private final transient TopicPath topicPath;
+    private final transient TopicPath topicPath;
     @Nullable private final transient CharSequence signalType;
 
     private IllegalAdaptableException(final String errorCode,
@@ -114,7 +114,6 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
             final Adaptable adaptable) {
 
         return newBuilder(message, adaptable)
-                .withTopicPath(adaptable.getTopicPath())
                 .withDescription(description)
                 .build();
     }
@@ -130,21 +129,7 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
      */
     public static Builder newBuilder(final String message, final Adaptable adaptable) {
         ConditionChecker.checkNotNull(adaptable, "adaptable");
-        return newBuilder(message, adaptable.getDittoHeaders())
-                .withTopicPath(adaptable.getTopicPath());
-    }
-
-    /**
-     * Returns a mutable builder with a fluent API for constructing an instance of {@code IllegalAdaptableException}.
-     *
-     * @param message the detail message of the exception.
-     * @param dittoHeaders the {@code DittoHeaders} to use for the exception.
-     * @return the builder.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code message} is blank.
-     */
-    public static Builder newBuilder(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder(message, dittoHeaders);
+        return new Builder(message, adaptable.getTopicPath(), adaptable.getDittoHeaders());
     }
 
     /**
@@ -165,8 +150,9 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
                     deserializeErrorCode(jsonObject),
                     deserializeHttpStatus(jsonObject),
                     dittoHeaders,
-                    newBuilder(jsonObject.getValueOrThrow(JsonFields.MESSAGE), dittoHeaders)
-                            .withTopicPath(deserializeTopicPath(jsonObject).orElse(null))
+                    new Builder(jsonObject.getValueOrThrow(JsonFields.MESSAGE),
+                            deserializeTopicPath(jsonObject),
+                            dittoHeaders)
                             .withSignalType(deserializeSignalType(jsonObject).orElse(null))
                             .withDescription(jsonObject.getValue(JsonFields.DESCRIPTION).orElse(null))
                             .withHref(deserializeHref(jsonObject).orElse(null))
@@ -210,18 +196,9 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
         }
     }
 
-    private static Optional<TopicPath> deserializeTopicPath(final JsonObject jsonObject) {
-        final Optional<TopicPath> result;
-        final JsonFieldDefinition<String> fieldDefinition = JSON_FIELD_TOPIC_PATH;
-        final Optional<String> deserializedTopicPathOptional = jsonObject.getValue(fieldDefinition);
-        if (deserializedTopicPathOptional.isPresent() && isBlank(deserializedTopicPathOptional.get())) {
-            throw new JsonParseException(
-                    MessageFormat.format("Value of field <{0}> must not be blank.", fieldDefinition.getPointer())
-            );
-        } else {
-            result = deserializedTopicPathOptional.map(ProtocolFactory::newTopicPath);
-        }
-        return result;
+    private static TopicPath deserializeTopicPath(final JsonObject jsonObject) {
+        final String deserializedTopicPathOptional = jsonObject.getValueOrThrow(JSON_FIELD_TOPIC_PATH);
+        return ProtocolFactory.newTopicPath(deserializedTopicPathOptional);
     }
 
     private static Optional<String> deserializeSignalType(final JsonObject jsonObject) {
@@ -257,12 +234,12 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
     }
 
     /**
-     * Returns the{@code TopicPath} if available.
+     * Returns the {@code TopicPath} of the illegal {@code Adaptable}.
      *
-     * @return the optional topic path.
+     * @return the topic path.
      */
-    public Optional<TopicPath> getTopicPath() {
-        return Optional.ofNullable(topicPath);
+    public TopicPath getTopicPath() {
+        return topicPath;
     }
 
     /**
@@ -282,8 +259,7 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
                 getErrorCode(),
                 getHttpStatus(),
                 dittoHeaders,
-                newBuilder(getMessage(), dittoHeaders)
-                        .withTopicPath(topicPath)
+                new Builder(getMessage(), topicPath, dittoHeaders)
                         .withSignalType(signalType)
                         .withDescription(getDescription().orElse(null))
                         .withCause(getCause())
@@ -293,9 +269,7 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
 
     @Override
     protected void appendToJson(final JsonObjectBuilder jsonObjectBuilder, final Predicate<JsonField> predicate) {
-        if (null != topicPath) {
-            jsonObjectBuilder.set(JSON_FIELD_TOPIC_PATH, topicPath.getPath());
-        }
+        jsonObjectBuilder.set(JSON_FIELD_TOPIC_PATH, topicPath.getPath());
         if (null != signalType) {
             jsonObjectBuilder.set(JSON_FIELD_SIGNAL_TYPE, signalType.toString());
         }
@@ -329,15 +303,16 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
     public static final class Builder {
 
         private final String message;
+        private final TopicPath topicPath;
         private final DittoHeaders dittoHeaders;
         @Nullable private CharSequence signalType;
-        @Nullable private TopicPath topicPath;
         @Nullable private String description;
         @Nullable private Throwable cause;
         @Nullable private URI href;
 
-        private Builder(final String message, final DittoHeaders dittoHeaders) {
+        private Builder(final String message, final TopicPath topicPath, final DittoHeaders dittoHeaders) {
             this.message = checkCharSequenceArgumentNotBlank(message, "message");
+            this.topicPath = ConditionChecker.checkNotNull(topicPath, "topicPath");
             this.dittoHeaders = ConditionChecker.checkNotNull(dittoHeaders, "dittoHeaders");
         }
 
@@ -363,17 +338,6 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
                 checkCharSequenceArgumentNotBlank(signalType, "signalType");
             }
             this.signalType = signalType;
-            return this;
-        }
-
-        /**
-         * Sets the specified argument as {@code TopicPath}.
-         *
-         * @param topicPath the topic path.
-         * @return this builder instance for method chaining.
-         */
-        public Builder withTopicPath(@Nullable final TopicPath topicPath) {
-            this.topicPath = topicPath;
             return this;
         }
 

@@ -62,12 +62,15 @@ public final class MappingContextTest {
     @Mock
     private Adaptable adaptable;
 
+    @Mock
+    private TopicPath topicPath;
     private DittoHeaders dittoHeaders;
 
     @Before
     public void before() {
         dittoHeaders = DittoHeaders.newBuilder().correlationId(testNameCorrelationId.getCorrelationId()).build();
         Mockito.when(adaptable.getDittoHeaders()).thenReturn(dittoHeaders);
+        Mockito.when(adaptable.getTopicPath()).thenReturn(topicPath);
     }
 
     @Test
