@@ -402,9 +402,9 @@ public final class InboundDispatchingSink
     ) {
         final Optional<Signal<?>> result;
         countAndLogIllegalAdaptableExceptionForLiveResponse(illegalAdaptableException, inboundMessage);
-        final Optional<TopicPath> topicPath = illegalAdaptableException.getTopicPath();
-        if (isResponseRequired(illegalAdaptableException) && topicPath.isPresent()) {
-            result = Optional.of(toErrorResponseFunction.apply(illegalAdaptableException, topicPath.get()));
+        if (isResponseRequired(illegalAdaptableException)) {
+            result = Optional.of(toErrorResponseFunction.apply(illegalAdaptableException,
+                    illegalAdaptableException.getTopicPath()));
         } else {
             result = Optional.empty();
         }

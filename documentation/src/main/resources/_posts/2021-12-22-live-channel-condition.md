@@ -92,7 +92,7 @@ Another perfect fit for that feature is when the device (or the device connectiv
 connection status of the device in the Ditto managed twin.  
 When e.g. using [Eclipse Hono](https://www.eclipse.org/hono/) in combination with Ditto, the 
 [ConnectionStatus](connectivity-mapping.html#connectionstatus-mapper) mapper can be configured in a Ditto 
-[managed connection](basic-connections.html) which will automatically updates a [feature](basic-thing.html#features) in
+[managed connection](basic-connections.html) which will automatically update a [feature](basic-thing.html#features) in
 the twin based on Hono's [device notifications](https://www.eclipse.org/hono/docs/concepts/device-notifications/) 
 reflecting a `"readySince"` and `"readyUntil"` timestamp:
 

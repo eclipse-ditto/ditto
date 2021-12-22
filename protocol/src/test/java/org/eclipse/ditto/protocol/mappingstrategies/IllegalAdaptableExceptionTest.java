@@ -140,7 +140,7 @@ public final class IllegalAdaptableExceptionTest {
     public void getTopicPathReturnsExpected() {
         final IllegalAdaptableException underTest = IllegalAdaptableException.newInstance(MESSAGE, adaptable);
 
-        assertThat(underTest.getTopicPath()).contains(adaptable.getTopicPath());
+        assertThat(underTest.getTopicPath()).isEqualTo(adaptable.getTopicPath());
     }
 
     @Test
@@ -179,7 +179,7 @@ public final class IllegalAdaptableExceptionTest {
                     .as("HTTP status")
                     .isEqualTo(IllegalAdaptableException.HTTP_STATUS);
             softly.assertThat(underTest.getMessage()).as("message").isEqualTo(MESSAGE);
-            softly.assertThat(underTest.getTopicPath()).as("topic path").contains(adaptable.getTopicPath());
+            softly.assertThat(underTest.getTopicPath()).as("topic path").isEqualTo(adaptable.getTopicPath());
             softly.assertThat(underTest.getDittoHeaders()).as("Ditto headers").isEqualTo(dittoHeaders);
             softly.assertThat(underTest.getSignalType()).as("signal type").contains(SIGNAL_TYPE);
             softly.assertThat(underTest.getDescription()).as("description").contains(description);
