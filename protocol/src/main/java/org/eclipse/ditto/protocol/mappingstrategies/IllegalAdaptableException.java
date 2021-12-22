@@ -129,21 +129,7 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
      */
     public static Builder newBuilder(final String message, final Adaptable adaptable) {
         ConditionChecker.checkNotNull(adaptable, "adaptable");
-        return newBuilder(message, adaptable.getTopicPath(), adaptable.getDittoHeaders());
-    }
-
-    /**
-     * Returns a mutable builder with a fluent API for constructing an instance of {@code IllegalAdaptableException}.
-     *
-     * @param message the detail message of the exception.
-     * @param topicPath the {@code TopicPath} of the {@code Adaptable} which caused the exception to be built.
-     * @param dittoHeaders the {@code DittoHeaders} to use for the exception.
-     * @return the builder.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code message} is blank.
-     */
-    public static Builder newBuilder(final String message, final TopicPath topicPath, final DittoHeaders dittoHeaders) {
-        return new Builder(message, topicPath, dittoHeaders);
+        return new Builder(message, adaptable.getTopicPath(), adaptable.getDittoHeaders());
     }
 
     /**
@@ -164,7 +150,8 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
                     deserializeErrorCode(jsonObject),
                     deserializeHttpStatus(jsonObject),
                     dittoHeaders,
-                    newBuilder(jsonObject.getValueOrThrow(JsonFields.MESSAGE), deserializeTopicPath(jsonObject),
+                    new Builder(jsonObject.getValueOrThrow(JsonFields.MESSAGE),
+                            deserializeTopicPath(jsonObject),
                             dittoHeaders)
                             .withSignalType(deserializeSignalType(jsonObject).orElse(null))
                             .withDescription(jsonObject.getValue(JsonFields.DESCRIPTION).orElse(null))
@@ -272,7 +259,7 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
                 getErrorCode(),
                 getHttpStatus(),
                 dittoHeaders,
-                newBuilder(getMessage(), topicPath, dittoHeaders)
+                new Builder(getMessage(), topicPath, dittoHeaders)
                         .withSignalType(signalType)
                         .withDescription(getDescription().orElse(null))
                         .withCause(getCause())
@@ -316,8 +303,8 @@ public final class IllegalAdaptableException extends DittoRuntimeException {
     public static final class Builder {
 
         private final String message;
-        private final DittoHeaders dittoHeaders;
         private final TopicPath topicPath;
+        private final DittoHeaders dittoHeaders;
         @Nullable private CharSequence signalType;
         @Nullable private String description;
         @Nullable private Throwable cause;
