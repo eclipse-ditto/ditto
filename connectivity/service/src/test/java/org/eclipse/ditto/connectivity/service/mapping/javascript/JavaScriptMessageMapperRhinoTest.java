@@ -26,7 +26,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.annotation.Nullable;
 
@@ -75,6 +77,8 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorSystem;
+import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
 
 /**
  * Tests the {@link JavaScriptMessageMapperRhino} by initializing different mapping templates and ensuring that they
@@ -565,11 +569,12 @@ public final class JavaScriptMessageMapperRhinoTest {
                     "}";
 
 
-
-    private static final JsonValue MAPPING_INCOMING_PROTOBUF_PARSED = JsonFactory.readFrom("{\"header\":{\"message_type\":\"SmokeEvent\",\"timestamp_ms\":\"1595043218316\",\"message_id\":\"95516572-e737-4c90-a5cd-7448f0bcaf37\",\"device_id\":\"com.bosch.cm.ivs_IVS-INTEGRATION-TEST-DEVICE\",\"boot_id\":\"a4e376c3-a288-4db8-8a7b-4657dea5f515\"},\"smoke_start_timestamp_ms\":\"1591096889617\",\"images\":[{\"timestamp_ms\":\"1591251430839\",\"id\":\"39d342bc-93b7-4765-ace6-5ae833739431\",\"camera_identifier\":\"CAM-REAR-01\"}],\"duration_in_seconds\":20,\"confidence\":220,\"total_smoke\":125,\"background_air_quality\":10,\"status\":{}}");
+    private static final JsonValue MAPPING_INCOMING_PROTOBUF_PARSED = JsonFactory.readFrom(
+            "{\"header\":{\"message_type\":\"SmokeEvent\",\"timestamp_ms\":\"1595043218316\",\"message_id\":\"95516572-e737-4c90-a5cd-7448f0bcaf37\",\"device_id\":\"com.bosch.cm.ivs_IVS-INTEGRATION-TEST-DEVICE\",\"boot_id\":\"a4e376c3-a288-4db8-8a7b-4657dea5f515\"},\"smoke_start_timestamp_ms\":\"1591096889617\",\"images\":[{\"timestamp_ms\":\"1591251430839\",\"id\":\"39d342bc-93b7-4765-ace6-5ae833739431\",\"camera_identifier\":\"CAM-REAR-01\"}],\"duration_in_seconds\":20,\"confidence\":220,\"total_smoke\":125,\"background_air_quality\":10,\"status\":{}}");
 
     private static final ByteBuffer MAPPING_INCOMING_PROTOBUF_BYTES = ByteBuffer.wrap(
-            Base64.getDecoder().decode("Co0BCgpTbW9rZUV2ZW50EIyH8P+1LhokOTU1MTY1NzItZTczNy00YzkwLWE1Y2QtNzQ0OGYwYmNhZjM3Iixjb20uYm9zY2guY20uaXZzX0lWUy1JTlRFR1JBVElPTi1URVNULURFVklDRSokYTRlMzc2YzMtYTI4OC00ZGI4LThhN2ItNDY1N2RlYTVmNTE1EJGij6anLho6CLfb5++nLhIkMzlkMzQyYmMtOTNiNy00NzY1LWFjZTYtNWFlODMzNzM5NDMxGgtDQU0tUkVBUi0wMSAUKQAAAAAAgGtAMQAAAAAAQF9AOQAAAAAAACRAQgA=")
+            Base64.getDecoder()
+                    .decode("Co0BCgpTbW9rZUV2ZW50EIyH8P+1LhokOTU1MTY1NzItZTczNy00YzkwLWE1Y2QtNzQ0OGYwYmNhZjM3Iixjb20uYm9zY2guY20uaXZzX0lWUy1JTlRFR1JBVElPTi1URVNULURFVklDRSokYTRlMzc2YzMtYTI4OC00ZGI4LThhN2ItNDY1N2RlYTVmNTE1EJGij6anLho6CLfb5++nLhIkMzlkMzQyYmMtOTNiNy00NzY1LWFjZTYtNWFlODMzNzM5NDMxGgtDQU0tUkVBUi0wMSAUKQAAAAAAgGtAMQAAAAAAQF9AOQAAAAAAACRAQgA=")
     );
 
     private static final String MAPPING_OUTGOING_PROTOBUF_JS =
@@ -753,11 +758,13 @@ public final class JavaScriptMessageMapperRhinoTest {
                 actorSystem
         );
 
-        javaScriptRhinoMapperBinaryWithByteBufferJs = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
+        javaScriptRhinoMapperBinaryWithByteBufferJs =
+                JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
         javaScriptRhinoMapperBinaryWithByteBufferJs.configure(CONNECTION,
                 CONNECTIVITY_CONFIG,
                 JavaScriptMessageMapperFactory
-                        .createJavaScriptMessageMapperConfigurationBuilder("binaryWithByteBufferJS", Collections.emptyMap())
+                        .createJavaScriptMessageMapperConfigurationBuilder("binaryWithByteBufferJS",
+                                Collections.emptyMap())
                         .incomingScript(MAPPING_INCOMING_BINARY_BYTEBUFFER_JS)
                         .loadBytebufferJS(true)
                         .build(),
@@ -1075,7 +1082,6 @@ public final class JavaScriptMessageMapperRhinoTest {
                 .withText(MAPPING_INCOMING_PAYLOAD_STRING)
                 .build();
 
-
         final long startTs = System.nanoTime();
         final List<Adaptable> adaptables = javaScriptRhinoMapperPlain.map(message);
         final Adaptable adaptable = adaptables.get(0);
@@ -1381,7 +1387,8 @@ public final class JavaScriptMessageMapperRhinoTest {
             System.out.println(adaptable);
 
             System.out.println(
-                    "testBinaryWithByteBufferJsJavascriptIncomingMapping Duration: " + (System.nanoTime() - startTs) / 1_000_000.0 +
+                    "testBinaryWithByteBufferJsJavascriptIncomingMapping Duration: " +
+                            (System.nanoTime() - startTs) / 1_000_000.0 +
                             "ms");
 
             assertThat(adaptable.getTopicPath()).satisfies(topicPath -> {
@@ -1413,7 +1420,8 @@ public final class JavaScriptMessageMapperRhinoTest {
             System.out.println(adaptable);
 
             System.out.println(
-                    "testWithProtobufJsJavascriptIncomingMapping Duration: " + (System.nanoTime() - startTs) / 1_000_000.0 +
+                    "testWithProtobufJsJavascriptIncomingMapping Duration: " +
+                            (System.nanoTime() - startTs) / 1_000_000.0 +
                             "ms");
 
             assertThat(adaptable.getTopicPath()).satisfies(topicPath -> {
@@ -1458,7 +1466,8 @@ public final class JavaScriptMessageMapperRhinoTest {
             System.out.println(rawMessage);
 
             System.out.println(
-                    "testWithProtobufJsJavascriptOutgoingMapping Duration: " + (System.nanoTime() - startTs) / 1_000_000.0 +
+                    "testWithProtobufJsJavascriptOutgoingMapping Duration: " +
+                            (System.nanoTime() - startTs) / 1_000_000.0 +
                             "ms");
 
             assertThat(rawMessage.findContentType()).contains("application/vnd.google.protobuf");
@@ -1470,6 +1479,90 @@ public final class JavaScriptMessageMapperRhinoTest {
                     .map(JavaScriptMessageMapperRhinoTest::byteBuffer2String)
                     .isNotEmpty();
         });
+    }
+
+    @Test
+    public void testConcurrentJavascriptIncomingMappingUsingGlobalVariable() {
+        // GIVEN:
+        // Incoming script sleeps for the seconds specified in the text payload,
+        // then reads and sets the thing name as the value of the global variable.
+        final String incomingScript = "var $global = $global;\n" +
+                "function sleep(sec){\n" +
+                "    var start = new Date();\n" +
+                "    var now = new Date();\n" +
+                "    while(now - start < sec*1000) now = new Date();\n" +
+                "}\n" +
+                "function mapToDittoProtocolMsg(\n" +
+                "    headers,\n" +
+                "    textPayload,\n" +
+                "    bytePayload,\n" +
+                "    contentType\n" +
+                ") {\n" +
+                "    $global = textPayload;\n" +
+                "    sleep(parseInt(textPayload, 10));\n" +
+                "    let namespace = \"" + MAPPING_INCOMING_NAMESPACE + "\";\n" +
+                "    let group = \"things\";\n" +
+                "    let channel = \"twin\";\n" +
+                "    let criterion = \"commands\";\n" +
+                "    let action = \"modify\";\n" +
+                "    let path = \"" + MAPPING_INCOMING_PATH + "\";\n" +
+                "    let dittoHeaders = {};\n" +
+                "    dittoHeaders[\"correlation-id\"] = textPayload;\n" +
+                "    let value = textPayload;\n" +
+                "    let name = $global;\n" +
+                "    $global = textPayload;\n" +
+                "    return Ditto.buildDittoProtocolMsg(\n" +
+                "        namespace,\n" +
+                "        name,\n" +
+                "        group,\n" +
+                "        channel,\n" +
+                "        criterion,\n" +
+                "        action,\n" +
+                "        path,\n" +
+                "        dittoHeaders,\n" +
+                "        value\n" +
+                "    );\n" +
+                "}";
+        final var mapper = JavaScriptMessageMapperFactory.createJavaScriptMessageMapperRhino();
+        mapper.configure(CONNECTION,
+                CONNECTIVITY_CONFIG,
+                JavaScriptMessageMapperFactory
+                        .createJavaScriptMessageMapperConfigurationBuilder("plain", Collections.emptyMap())
+                        .incomingScript(incomingScript)
+                        .outgoingScript(MAPPING_OUTGOING_PLAIN)
+                        .build(),
+                actorSystem
+        );
+
+        // WHEN:
+        // Mapper is asked to map the text messages ["5", "4", "3", "2", "1"], which make the mapper sleep for 5 to 1s.
+        final Map<String, String> headers = new HashMap<>();
+        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, CONTENT_TYPE_PLAIN);
+        final var messages = IntStream.range(-5, 0)
+                .map(i -> -i)
+                .mapToObj(i -> ExternalMessageFactory.newExternalMessageBuilder(headers)
+                        .withText(String.valueOf(i))
+                        .build())
+                .collect(Collectors.toList());
+
+        final var results = Source.from(messages)
+                .mapAsync(messages.size(), m -> CompletableFuture.supplyAsync(() -> mapper.map(m)))
+                .mapConcat(ms -> ms)
+                .runWith(Sink.seq(), actorSystem)
+                .toCompletableFuture()
+                .join();
+
+        assertThat(results.size()).isEqualTo(messages.size());
+
+        // THEN:
+        // The results of the mapper should preserve the incoming message order "5", "4", "3", "2", "1".
+        // The results should not be "4", "3", "2", "1", "1" due to the global variable persisting between messages.
+        System.out.println(
+                results.stream().map(a -> a.getTopicPath().getEntityName()).collect(Collectors.joining("\n")));
+        for (int i = 0; i < results.size(); ++i) {
+            final var adaptable = results.get(i);
+            assertThat(adaptable.getTopicPath().getEntityName()).isEqualTo(String.valueOf(5 - i));
+        }
     }
 
 }
