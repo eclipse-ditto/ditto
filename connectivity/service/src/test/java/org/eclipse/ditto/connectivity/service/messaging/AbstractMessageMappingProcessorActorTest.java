@@ -365,7 +365,8 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 ConnectivityConfig.of(actorSystem.settings().config()),
                 null);
 
-        final var inboundMappingSink = InboundMappingSink.createSink(inboundMappingProcessor,
+        final var inboundMappingSink = InboundMappingSink.createSink(
+                List.of(inboundMappingProcessor),
                 CONNECTION_ID,
                 99,
                 inboundDispatchingSink,
@@ -393,8 +394,8 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 protocolAdapter,
                 logger);
 
-        final Props props = OutboundMappingProcessorActor.props(kit.getRef(), outboundMappingProcessor, CONNECTION,
-                TestConstants.CONNECTIVITY_CONFIG, 99);
+        final Props props = OutboundMappingProcessorActor.props(kit.getRef(), List.of(outboundMappingProcessor),
+                CONNECTION, TestConstants.CONNECTIVITY_CONFIG, 99);
         return actorSystem.actorOf(props);
     }
 

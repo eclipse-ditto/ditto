@@ -76,9 +76,11 @@ public final class MappingSinksTest {
             // then reads and sets the thing name as the value of the global variable.
             final int processorPoolSize = 5;
             final var connection = getConnection(getRacyInboundScript(), NOOP_OUTBOUND_SCRIPT, processorPoolSize);
-            final var processor = getInboundMappingProcessor(connection);
+            final var processors = IntStream.range(0, processorPoolSize)
+                    .mapToObj(i -> getInboundMappingProcessor(connection))
+                    .collect(Collectors.toList());
             final var sink = Sink.foreach(o -> testActor().tell(o, ActorRef.noSender()));
-            final var underTest = InboundMappingSink.createSink(processor, connection.getId(),
+            final var underTest = InboundMappingSink.createSink(processors, connection.getId(),
                     processorPoolSize, sink, getMappingConfig(),
                     ThrottlingConfig.of(ConfigFactory.empty()),
                     (MessageDispatcher) resource.getActorSystem().getDispatcher());
@@ -143,8 +145,10 @@ public final class MappingSinksTest {
             // then reads and sets the text payload as the value of the global variable.
             final int processorPoolSize = 5;
             final var connection = getConnection(NOOP_INBOUND_SCRIPT, getRacyOutboundScript(), processorPoolSize);
-            final var processor = getOutboundMappingProcessor(connection);
-            final Props props = OutboundMappingProcessorActor.props(testActor(), processor, connection,
+            final var processors = IntStream.range(0, processorPoolSize)
+                    .mapToObj(i -> getOutboundMappingProcessor(connection))
+                    .collect(Collectors.toList());
+            final Props props = OutboundMappingProcessorActor.props(testActor(), processors, connection,
                     TestConstants.CONNECTIVITY_CONFIG, 3);
             final ActorRef underTest = childActorOf(props);
 

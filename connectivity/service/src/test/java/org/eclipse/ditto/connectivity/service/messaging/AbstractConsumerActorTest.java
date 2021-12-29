@@ -16,6 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -251,8 +252,8 @@ public abstract class AbstractConsumerActorTest<M> {
                 InboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
         final OutboundMappingProcessor outboundMappingProcessor =
                 OutboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
-        final Props props = OutboundMappingProcessorActor.props(clientActor, outboundMappingProcessor, CONNECTION,
-                connectivityConfig, 43);
+        final Props props = OutboundMappingProcessorActor.props(clientActor, List.of(outboundMappingProcessor),
+                CONNECTION, connectivityConfig, 43);
         final ActorRef outboundProcessorActor = actorSystem.actorOf(props,
                 OutboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
 
@@ -266,7 +267,7 @@ public abstract class AbstractConsumerActorTest<M> {
                 ConnectivityConfig.of(actorSystem.settings().config()),
                 null);
 
-        return InboundMappingSink.createSink(inboundMappingProcessor,
+        return InboundMappingSink.createSink(List.of(inboundMappingProcessor),
                 CONNECTION_ID,
                 99,
                 inboundDispatchingSink,

@@ -96,7 +96,7 @@ public final class OutboundMappingProcessorActorTest {
     public void sendWeakAckForAllSourcesAndTargetsWhenDroppedByAllTargets() {
         new TestKit(actorSystem) {{
             final Props props =
-                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION,
+                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessors(), CONNECTION,
                             TestConstants.CONNECTIVITY_CONFIG, 3);
             final ActorRef underTest = actorSystem.actorOf(props);
 
@@ -125,7 +125,7 @@ public final class OutboundMappingProcessorActorTest {
     public void sendWeakAckWhenDroppedBySomeTarget() {
         new TestKit(actorSystem) {{
             final Props props =
-                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION,
+                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessors(), CONNECTION,
                             TestConstants.CONNECTIVITY_CONFIG, 3);
             final ActorRef underTest = actorSystem.actorOf(props);
 
@@ -155,7 +155,7 @@ public final class OutboundMappingProcessorActorTest {
     public void sendWeakAckWhenDroppedByMapper() {
         new TestKit(actorSystem) {{
             final Props props =
-                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION,
+                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessors(), CONNECTION,
                             TestConstants.CONNECTIVITY_CONFIG, 3);
             final ActorRef underTest = actorSystem.actorOf(props);
 
@@ -183,7 +183,7 @@ public final class OutboundMappingProcessorActorTest {
     public void doNotSendWeakAckForLiveResponse() {
         new TestKit(actorSystem) {{
             final Props props =
-                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION,
+                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessors(), CONNECTION,
                             TestConstants.CONNECTIVITY_CONFIG, 3);
             final ActorRef underTest = actorSystem.actorOf(props);
 
@@ -210,7 +210,7 @@ public final class OutboundMappingProcessorActorTest {
     public void expectNoTargetIssuedAckRequestInPublishedSignals() {
         new TestKit(actorSystem) {{
             final Props props =
-                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION,
+                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessors(), CONNECTION,
                             TestConstants.CONNECTIVITY_CONFIG, 3);
             final ActorRef underTest = actorSystem.actorOf(props);
 
@@ -233,10 +233,10 @@ public final class OutboundMappingProcessorActorTest {
         }};
     }
 
-    private OutboundMappingProcessor getProcessor() {
-        return OutboundMappingProcessor.of(CONNECTION, TestConstants.CONNECTIVITY_CONFIG, actorSystem,
+    private List<OutboundMappingProcessor> getProcessors() {
+        return List.of(OutboundMappingProcessor.of(CONNECTION, TestConstants.CONNECTIVITY_CONFIG, actorSystem,
                 protocolAdapterProvider.getProtocolAdapter("test"),
-                AbstractMessageMappingProcessorActorTest.mockLoggingAdapter());
+                AbstractMessageMappingProcessorActorTest.mockLoggingAdapter()));
     }
 
     private static OutboundSignal outboundTwinEvent(final Attributes attributes, final Collection<String> requestedAcks,

@@ -73,7 +73,7 @@ public final class InboundMappingProcessorActorTest {
             final Sink<Object, ?> inboundSink =
                     Sink.foreach(x -> inboundDispatcher.ref().tell(x, ActorRef.noSender()));
             final InboundMappingProcessor throwingProcessor = createThrowingProcessor();
-            final Sink<Object, NotUsed> inboundMappingSink = InboundMappingSink.createSink(throwingProcessor,
+            final Sink<Object, NotUsed> inboundMappingSink = InboundMappingSink.createSink(List.of(throwingProcessor),
                     TestConstants.createRandomConnectionId(),
                     1,
                     inboundSink,

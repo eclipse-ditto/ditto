@@ -12,8 +12,10 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.Nullable;
@@ -35,22 +37,23 @@ import akka.actor.Status;
 import akka.dispatch.MessageDispatcher;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
+import akka.stream.javadsl.Source;
 
 /**
  * This class creates a Sink which is responsible for inbound payload mapping.
- * The instance of this class holds the "state" of the sink (see {@link #inboundMappingProcessor}).
+ * The instance of this class holds the "state" of the sink (see {@link #inboundMappingProcessors}).
  */
 public final class InboundMappingSink {
 
     private final ThreadSafeDittoLogger logger;
 
-    private final InboundMappingProcessor inboundMappingProcessor;
+    private final List<InboundMappingProcessor> inboundMappingProcessors;
     private final Sink<Object, ?> inboundDispatchingSink;
     @Nullable private final ThrottlingConfig throttlingConfig;
     private final MessageDispatcher messageMappingProcessorDispatcher;
     private final int processorPoolSize;
 
-    private InboundMappingSink(final InboundMappingProcessor inboundMappingProcessor,
+    private InboundMappingSink(final List<InboundMappingProcessor> inboundMappingProcessors,
             final ConnectionId connectionId,
             final int processorPoolSize,
             final Sink<Object, ?> inboundDispatchingSink,
@@ -58,7 +61,7 @@ public final class InboundMappingSink {
             @Nullable final ThrottlingConfig throttlingConfig,
             final MessageDispatcher messageMappingProcessorDispatcher) {
 
-        this.inboundMappingProcessor = checkNotNull(inboundMappingProcessor, "inboundMappingProcessor");
+        this.inboundMappingProcessors = checkNotEmpty(inboundMappingProcessors, "inboundMappingProcessors");
         this.inboundDispatchingSink = checkNotNull(inboundDispatchingSink, "inboundDispatchingSink");
         checkNotNull(mappingConfig, "mappingConfig");
         this.throttlingConfig = throttlingConfig;
@@ -75,7 +78,7 @@ public final class InboundMappingSink {
     /**
      * Creates a Sink which is responsible for inbound payload mapping.
      *
-     * @param inboundMappingProcessor the MessageMappingProcessor to use for inbound messages.
+     * @param inboundMappingProcessors the MessageMappingProcessors to use for inbound messages.
      * @param connectionId the connectionId
      * @param processorPoolSize how many message processing may happen in parallel per direction (incoming or outgoing).
      * @param inboundDispatchingSink used to dispatch inbound signals.
@@ -87,7 +90,7 @@ public final class InboundMappingSink {
      * {@code null}.
      */
     public static Sink<Object, NotUsed> createSink(
-            final InboundMappingProcessor inboundMappingProcessor,
+            final List<InboundMappingProcessor> inboundMappingProcessors,
             final ConnectionId connectionId,
             final int processorPoolSize,
             final Sink<Object, ?> inboundDispatchingSink,
@@ -95,7 +98,7 @@ public final class InboundMappingSink {
             @Nullable final ThrottlingConfig throttlingConfig,
             final MessageDispatcher messageMappingProcessorDispatcher) {
 
-        final var inboundMappingSink = new InboundMappingSink(inboundMappingProcessor,
+        final var inboundMappingSink = new InboundMappingSink(inboundMappingProcessors,
                 connectionId,
                 processorPoolSize,
                 inboundDispatchingSink,
@@ -123,9 +126,12 @@ public final class InboundMappingSink {
     private Sink<Object, NotUsed> mapMessage() {
         final Flow<Object, InboundMappingOutcomes, NotUsed> mapMessageFlow =
                 Flow.fromFunction(ExternalMessageWithSender.class::cast)
+                        .zip(getLoopingInboundMappingProcessorSource())
                         // parallelize potentially CPU-intensive payload mapping on this actor's dispatcher
-                        .mapAsync(processorPoolSize, message -> CompletableFuture.supplyAsync(
+                        .mapAsync(processorPoolSize, pair -> CompletableFuture.supplyAsync(
                                 () -> {
+                                    final var message = pair.first();
+                                    final var inboundMappingProcessor = pair.second();
                                     logger.debug("Received inbound Message to map: {}", message);
                                     return mapInboundMessage(message, inboundMappingProcessor);
                                 },
@@ -148,6 +154,11 @@ public final class InboundMappingSink {
                 // map returns outcome
                 .map(Object.class::cast)
                 .to(inboundDispatchingSink);
+    }
+
+    private Source<InboundMappingProcessor, NotUsed> getLoopingInboundMappingProcessorSource() {
+        return Source.from(inboundMappingProcessors)
+                .concatLazy(Source.lazily(this::getLoopingInboundMappingProcessorSource));
     }
 
     private int determinePoolSize(final int connectionPoolSize, final int maxPoolSize) {

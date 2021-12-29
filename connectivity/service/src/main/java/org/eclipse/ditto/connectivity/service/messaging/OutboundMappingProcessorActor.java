@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging;
 
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.connectivity.model.MetricType.DROPPED;
 import static org.eclipse.ditto.connectivity.model.MetricType.MAPPED;
 
@@ -140,11 +141,11 @@ public final class OutboundMappingProcessorActor
     private final SignalEnrichmentFacade signalEnrichmentFacade;
     private final int processorPoolSize;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
-    private final OutboundMappingProcessor outboundMappingProcessor;
+    private final List<OutboundMappingProcessor> outboundMappingProcessors;
 
     @SuppressWarnings("unused")
     private OutboundMappingProcessorActor(final ActorRef clientActor,
-            final OutboundMappingProcessor outboundMappingProcessor,
+            final List<OutboundMappingProcessor> outboundMappingProcessors,
             final Connection connection,
             final ConnectivityConfig connectivityConfig,
             final int processorPoolSize) {
@@ -152,7 +153,7 @@ public final class OutboundMappingProcessorActor
         super(OutboundSignal.class);
 
         this.clientActor = clientActor;
-        this.outboundMappingProcessor = outboundMappingProcessor;
+        this.outboundMappingProcessors = checkNotEmpty(outboundMappingProcessors, "outboundMappingProcessors");
         this.connection = connection;
 
         dittoLoggingAdapter = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
@@ -216,21 +217,21 @@ public final class OutboundMappingProcessorActor
      * Creates Akka configuration object for this actor.
      *
      * @param clientActor the client actor that created this mapping actor.
-     * @param outboundMappingProcessor the MessageMappingProcessor to use for outbound messages.
+     * @param outboundMappingProcessors the MessageMappingProcessors to use for outbound messages.
      * @param connection the connection.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @param processorPoolSize how many message processing may happen in parallel per direction (incoming or outgoing).
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef clientActor,
-            final OutboundMappingProcessor outboundMappingProcessor,
+            final List<OutboundMappingProcessor> outboundMappingProcessors,
             final Connection connection,
             final ConnectivityConfig connectivityConfig,
             final int processorPoolSize) {
 
         return Props.create(OutboundMappingProcessorActor.class,
                 clientActor,
-                outboundMappingProcessor,
+                outboundMappingProcessors,
                 connection,
                 connectivityConfig,
                 processorPoolSize
@@ -241,7 +242,9 @@ public final class OutboundMappingProcessorActor
     public Receive createReceive() {
         final PartialFunction<Object, Object> wrapAsOutboundSignal = new PFBuilder<>()
                 .match(Acknowledgement.class, this::handleNotExpectedAcknowledgement)
-                .match(ErrorResponse.class, errResponse -> handleCommandResponse(errResponse, errResponse.getDittoRuntimeException(), getSender()))
+                .match(ErrorResponse.class,
+                        errResponse -> handleCommandResponse(errResponse, errResponse.getDittoRuntimeException(),
+                                getSender()))
                 .match(CommandResponse.class, response -> handleCommandResponse(response, null, getSender()))
                 .match(Signal.class, signal -> handleSignal(signal, getSender()))
                 .match(DittoRuntimeException.class, this::mapDittoRuntimeException)
@@ -295,17 +298,24 @@ public final class OutboundMappingProcessorActor
         // Targets attached to the OutboundSignal are pre-selected by authorization, topic and filter sans enrichment.
         final Flow<OutboundSignalWithSender, OutboundSignal.MultiMapped, ?> flow =
                 Flow.<OutboundSignalWithSender>create()
-                        .mapAsync(processorPoolSize, outbound -> toMultiMappedOutboundSignal(
-                                outbound,
-                                Source.single(outbound)
+                        .zip(getOutboundMappingProcessorSource())
+                        .mapAsync(processorPoolSize, outboundPair -> toMultiMappedOutboundSignal(
+                                outboundPair.first(),
+                                outboundPair.second(),
+                                Source.single(outboundPair.first())
                                         .via(splitByTargetExtraFieldsFlow())
                                         .mapAsync(mappingConfig.getParallelism(), this::enrichAndFilterSignal)
                                         .mapConcat(x -> x)
-                                        .map(this::handleOutboundSignal)
+                                        .map(outbound -> handleOutboundSignal(outbound, outboundPair.second()))
                                         .flatMapConcat(x -> x)
                         ))
                         .mapConcat(x -> x);
         return flow.to(Sink.foreach(this::forwardToPublisherActor));
+    }
+
+    private Source<OutboundMappingProcessor, NotUsed> getOutboundMappingProcessorSource() {
+        return Source.from(outboundMappingProcessors)
+                .concatLazy(Source.lazily(this::getOutboundMappingProcessorSource));
     }
 
     /**
@@ -493,12 +503,13 @@ public final class OutboundMappingProcessorActor
         }
     }
 
-    private Source<OutboundSignalWithSender, ?> handleOutboundSignal(final OutboundSignalWithSender outbound) {
+    private Source<OutboundSignalWithSender, ?> handleOutboundSignal(final OutboundSignalWithSender outbound,
+            final OutboundMappingProcessor outboundMappingProcessor) {
         final Signal<?> source = outbound.getSource();
         if (dittoLoggingAdapter.isDebugEnabled()) {
             dittoLoggingAdapter.withCorrelationId(source).debug("Handling outbound signal <{}>.", source);
         }
-        return mapToExternalMessage(outbound);
+        return mapToExternalMessage(outbound, outboundMappingProcessor);
     }
 
     private void forwardToPublisherActor(final OutboundSignal.MultiMapped mappedEnvelop) {
@@ -517,7 +528,8 @@ public final class OutboundMappingProcessorActor
         return OutboundSignalWithSender.of(signal, sender);
     }
 
-    private Source<OutboundSignalWithSender, ?> mapToExternalMessage(final OutboundSignalWithSender outbound) {
+    private Source<OutboundSignalWithSender, ?> mapToExternalMessage(final OutboundSignalWithSender outbound,
+            final OutboundMappingProcessor outboundMappingProcessor) {
         final ConnectionMonitor.InfoProvider infoProvider = InfoProviderFactory.forSignal(outbound.getSource());
         final Set<ConnectionMonitor> outboundMapped = getMonitorsForMappedSignal(outbound);
         final Set<ConnectionMonitor> outboundDropped = getMonitorsForDroppedSignal(outbound);
@@ -597,6 +609,7 @@ public final class OutboundMappingProcessorActor
 
     private <T> CompletionStage<Collection<OutboundSignal.MultiMapped>> toMultiMappedOutboundSignal(
             final OutboundSignalWithSender outbound,
+            final OutboundMappingProcessor outboundMappingProcessor,
             final Source<OutboundSignalWithSender, T> source) {
 
         return source.runWith(Sink.seq(), materializer)
@@ -645,8 +658,8 @@ public final class OutboundMappingProcessorActor
                     .newPlaceholderResolver(TIME_PLACEHOLDER, new Object());
             final DittoHeaders dittoHeaders = signal.getDittoHeaders();
             final Criteria criteria = QueryFilterCriteriaFactory.modelBased(RqlPredicateParser.getInstance(),
-                            topicPathPlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver
-                    ).filterCriteria(filter.get(), dittoHeaders);
+                    topicPathPlaceholderResolver, resourcePlaceholderResolver, timePlaceholderResolver
+            ).filterCriteria(filter.get(), dittoHeaders);
             return outboundSignalWithExtra.getExtra()
                     .flatMap(extra -> ThingEventToThingConverter
                             .mergeThingWithExtraFields(signal, extraFields.get(), extra)
