@@ -78,7 +78,8 @@ public final class InboundMappingSink {
     /**
      * Creates a Sink which is responsible for inbound payload mapping.
      *
-     * @param inboundMappingProcessors the MessageMappingProcessors to use for inbound messages.
+     * @param inboundMappingProcessors the MessageMappingProcessors to use for inbound messages. If at least as many
+     * processors are given as `processorPoolSize`, then each processor is guaranteed to be invoked sequentially.
      * @param connectionId the connectionId
      * @param processorPoolSize how many message processing may happen in parallel per direction (incoming or outgoing).
      * @param inboundDispatchingSink used to dispatch inbound signals.

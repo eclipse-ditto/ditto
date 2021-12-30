@@ -217,7 +217,8 @@ public final class OutboundMappingProcessorActor
      * Creates Akka configuration object for this actor.
      *
      * @param clientActor the client actor that created this mapping actor.
-     * @param outboundMappingProcessors the MessageMappingProcessors to use for outbound messages.
+     * @param outboundMappingProcessors the MessageMappingProcessors to use for outbound messages. If at least as many
+     * processors are given as `processorPoolSize`, then each processor is guaranteed to be invoked sequentially.
      * @param connection the connection.
      * @param connectivityConfig the config of the connectivity service with potential overwrites.
      * @param processorPoolSize how many message processing may happen in parallel per direction (incoming or outgoing).
