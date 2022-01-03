@@ -159,7 +159,7 @@ public final class InboundMappingSink {
 
     private Source<InboundMappingProcessor, NotUsed> getLoopingInboundMappingProcessorSource() {
         return Source.from(inboundMappingProcessors)
-                .concatLazy(Source.lazily(this::getLoopingInboundMappingProcessorSource));
+                .concatLazy(Source.lazySource(this::getLoopingInboundMappingProcessorSource));
     }
 
     private int determinePoolSize(final int connectionPoolSize, final int maxPoolSize) {

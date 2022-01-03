@@ -117,7 +117,7 @@ public final class MappingSinksTest {
                         assertThat(signal).isInstanceOf(ModifyAttribute.class);
                         final var modifyAttribute = (ModifyAttribute) signal;
                         assertThat(modifyAttribute.getAttributeValue()).isEqualTo(JsonValue.of(String.valueOf(j)));
-                        assertThat(modifyAttribute.getEntityId().toString()).isEqualTo("ns:" + j);
+                        assertThat(modifyAttribute.getEntityId().toString()).hasToString("ns:" + j);
                         return null;
                     }
 
@@ -173,13 +173,14 @@ public final class MappingSinksTest {
                         expectMsgClass(FiniteDuration.apply(30, "s"), BaseClientActor.PublishMappedMessage.class);
                 assertThat(publish.getOutboundSignal().getMappedOutboundSignals()).hasSize(1);
                 final var outboundSignal = publish.getOutboundSignal().getMappedOutboundSignals().get(0);
-                assertThat(outboundSignal.getExternalMessage().getHeaders().get("i")).isEqualTo(String.valueOf(i));
+                assertThat(outboundSignal.getExternalMessage().getHeaders()).containsEntry("i", String.valueOf(i));
                 assertThat(outboundSignal.getExternalMessage().getTextPayload()).contains(String.valueOf(i));
             }
         }};
     }
 
-    private Map<String, MappingContext> getJavascriptMappings(final String inboundScript, final String outboundScript) {
+    private static Map<String, MappingContext> getJavascriptMappings(final String inboundScript,
+            final String outboundScript) {
         return Map.of("javascript", ConnectivityModelFactory.newMappingContext("JavaScript",
                 JsonObject.newBuilder()
                         .set("incomingScript", inboundScript)
@@ -188,7 +189,7 @@ public final class MappingSinksTest {
                 Map.of(), Collections.emptyMap()));
     }
 
-    private Connection getConnection(final String inboundScript, final String outboundScript, final int poolSize) {
+    private static Connection getConnection(final String inboundScript, final String outboundScript, final int poolSize) {
         final var mappings = getJavascriptMappings(inboundScript, outboundScript);
         final var definition = ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
         final var payloadMapping = ConnectivityModelFactory.newPayloadMapping("javascript");

@@ -316,7 +316,7 @@ public final class OutboundMappingProcessorActor
 
     private Source<OutboundMappingProcessor, NotUsed> getOutboundMappingProcessorSource() {
         return Source.from(outboundMappingProcessors)
-                .concatLazy(Source.lazily(this::getOutboundMappingProcessorSource));
+                .concatLazy(Source.lazySource(this::getOutboundMappingProcessorSource));
     }
 
     /**
@@ -506,6 +506,7 @@ public final class OutboundMappingProcessorActor
 
     private Source<OutboundSignalWithSender, ?> handleOutboundSignal(final OutboundSignalWithSender outbound,
             final OutboundMappingProcessor outboundMappingProcessor) {
+
         final Signal<?> source = outbound.getSource();
         if (dittoLoggingAdapter.isDebugEnabled()) {
             dittoLoggingAdapter.withCorrelationId(source).debug("Handling outbound signal <{}>.", source);
@@ -531,6 +532,7 @@ public final class OutboundMappingProcessorActor
 
     private Source<OutboundSignalWithSender, ?> mapToExternalMessage(final OutboundSignalWithSender outbound,
             final OutboundMappingProcessor outboundMappingProcessor) {
+
         final ConnectionMonitor.InfoProvider infoProvider = InfoProviderFactory.forSignal(outbound.getSource());
         final Set<ConnectionMonitor> outboundMapped = getMonitorsForMappedSignal(outbound);
         final Set<ConnectionMonitor> outboundDropped = getMonitorsForDroppedSignal(outbound);
