@@ -43,6 +43,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -1719,12 +1720,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private Pair<ActorRef, ActorRef> startOutboundActors(final ProtocolAdapter protocolAdapter) {
         final OutboundMappingSettings settings;
-        final OutboundMappingProcessor outboundMappingProcessor;
+        final List<OutboundMappingProcessor> outboundMappingProcessors;
+        final int processorPoolSize = connection.getProcessorPoolSize();
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
             settings = OutboundMappingSettings.of(connection, connectivityConfig, getContext().getSystem(),
                     proxyActorSelection, protocolAdapter, logger);
-            outboundMappingProcessor = OutboundMappingProcessor.of(settings);
+            outboundMappingProcessors = IntStream.range(0, processorPoolSize)
+                    .mapToObj(i -> OutboundMappingProcessor.of(settings))
+                    .collect(Collectors.toList());
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {0}", dre.getMessage());
             logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
@@ -1732,11 +1736,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             throw dre;
         }
 
-        final int processorPoolSize = connection.getProcessorPoolSize();
         logger.debug("Starting mapping processor actors with pool size of <{}>.", processorPoolSize);
         final Props outboundMappingProcessorActorProps =
-                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connection, connectivityConfig,
-                        processorPoolSize);
+                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessors, connection,
+                        connectivityConfig, processorPoolSize);
 
         final ActorRef processorActor =
                 getContext().actorOf(outboundMappingProcessorActorProps, OutboundMappingProcessorActor.ACTOR_NAME);
@@ -1786,13 +1789,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private Sink<Object, NotUsed> getInboundMappingSink(final ProtocolAdapter protocolAdapter,
             final Sink<Object, NotUsed> inboundDispatchingSink) {
 
-        final InboundMappingProcessor inboundMappingProcessor;
+        final List<InboundMappingProcessor> inboundMappingProcessors;
         final var context = getContext();
         final var actorSystem = context.getSystem();
+        final int processorPoolSize = connection.getProcessorPoolSize();
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            inboundMappingProcessor =
-                    InboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
+            inboundMappingProcessors = IntStream.range(0, processorPoolSize)
+                    .mapToObj(i -> InboundMappingProcessor.of(connection, connectivityConfig, actorSystem,
+                            protocolAdapter, logger))
+                    .collect(Collectors.toList());
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {0}", dre.getMessage());
             logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
@@ -1800,10 +1806,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             throw dre;
         }
 
-        final int processorPoolSize = connection.getProcessorPoolSize();
         logger.debug("Starting inbound mapping processor actors with pool size of <{}>.", processorPoolSize);
 
-        return InboundMappingSink.createSink(inboundMappingProcessor,
+        return InboundMappingSink.createSink(inboundMappingProcessors,
                 connection.getId(),
                 processorPoolSize,
                 inboundDispatchingSink,
