@@ -562,6 +562,7 @@
                         <header>${project.basedir}/src/license-header-2018.txt</header>
                         <header>${project.basedir}/src/license-header-2019.txt</header>
                         <header>${project.basedir}/src/license-header-2020.txt</header>
+                        <header>${project.basedir}/src/license-header-2021.txt</header>
                     </validHeaders>
                     <aggregate>true</aggregate>
                     <quiet>false</quiet>
