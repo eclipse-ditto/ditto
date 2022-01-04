@@ -29,6 +29,9 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.api.BaseClientState;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionId;
+import org.eclipse.ditto.connectivity.model.ConnectionType;
+import org.eclipse.ditto.connectivity.model.MetricDirection;
+import org.eclipse.ditto.connectivity.model.MetricType;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.signals.commands.modify.TestConnection;
 import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
@@ -39,6 +42,7 @@ import org.eclipse.ditto.connectivity.service.messaging.BaseClientData;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientConnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ThrottledLoggerMetricsAlert;
 import org.eclipse.ditto.connectivity.service.util.ConnectivityMdcEntryKey;
 
 import com.typesafe.config.Config;
@@ -87,6 +91,11 @@ public final class KafkaClientActor extends BaseClientActor {
 
         this(connection, proxyActor, connectionActor, DefaultKafkaPublisherActorFactory.getInstance(), dittoHeaders,
                 connectivityConfigOverwrites);
+
+        connectionCounterRegistry.registerAlertFactory(ConnectionType.KAFKA, MetricType.THROTTLED,
+                MetricDirection.INBOUND,
+                ThrottledLoggerMetricsAlert.getFactory(
+                        address -> connectionLoggerRegistry.forInboundThrottled(connection, address)));
     }
 
     /**

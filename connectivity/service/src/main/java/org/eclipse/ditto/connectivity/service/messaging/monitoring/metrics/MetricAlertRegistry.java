@@ -13,7 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics;
 
 import java.time.Duration;
-import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,6 +26,8 @@ import org.eclipse.ditto.connectivity.model.MetricDirection;
 import org.eclipse.ditto.connectivity.model.MetricType;
 import org.eclipse.ditto.connectivity.service.config.ConnectionThrottlingConfig;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
+
+import akka.japi.Pair;
 
 /**
  * Registry to keep track and update existing {@code MetricsAlerts}.
@@ -44,40 +46,47 @@ final class MetricAlertRegistry {
      * An alert can be registered for a combination of MetricType and MetricDirection e.g. CONSUMED + INBOUND.
      * These alerts will be instantiated using the registered Creator and passed to created SlidingWindowCounters.
      */
-    private static final Map<MetricsAlert.Key, MetricsAlertFactory> alertDefinitions = Map.of(
-            MetricsAlert.Key.CONSUMED_INBOUND,
-            (source, connectionType, config) -> {
-                // target counter is INBOUND + THROTTLED
-                final CounterKey target = CounterKey.of(source.getConnectionId(), MetricType.THROTTLED,
-                        MetricDirection.INBOUND, source.getAddress());
+    private static final Map<Pair<ConnectionType, MetricsAlert.Key>, MetricsAlertFactory> ALERT_DEFINITIONS = Map.of(
+            Pair.apply(ConnectionType.AMQP_10, MetricsAlert.Key.CONSUMED_INBOUND), getThrottledAlert(),
+            Pair.apply(ConnectionType.KAFKA, MetricsAlert.Key.MAPPED_INBOUND), getThrottledAlert());
 
-                return new ThrottledMetricsAlert(THROTTLING_DETECTION_WINDOW,
-                        calculateThrottlingLimitFromConfig(connectionType, config),
-                        () -> ConnectivityCounterRegistry.lookup(target));
-            }
-    );
+    private static final ConcurrentMap<Pair<ConnectionType, CounterKey>, MetricsAlert> ALERTS =
+            new ConcurrentHashMap<>();
 
-    private static final ConcurrentMap<CounterKey, MetricsAlert> alerts = new ConcurrentHashMap<>();
+    private final Map<Pair<ConnectionType, MetricsAlert.Key>, MetricsAlertFactory> customAlerts = new HashMap<>();
 
-    private final Map<MetricsAlert.Key, MetricsAlertFactory> customAlerts = new EnumMap<>(MetricsAlert.Key.class);
+    private static MetricsAlertFactory getThrottledAlert() {
+        return (source, connectionType, config) -> {
+            // target counter is INBOUND + THROTTLED
+            final CounterKey target = CounterKey.of(source.getConnectionId(), MetricType.THROTTLED,
+                    MetricDirection.INBOUND, source.getAddress());
+
+            return new ThrottledMetricsAlert(THROTTLING_DETECTION_WINDOW,
+                    calculateThrottlingLimitFromConfig(connectionType, config),
+                    () -> ConnectivityCounterRegistry.lookup(target));
+        };
+    }
 
     /**
      * Registers an alert with a custom MetricsAlertFactory.
      *
+     * @param connectionType the type of the connection the alert is applicable for.
      * @param key the alert key
      * @param metricsAlertFactory the factory used to instantiate the alert
      */
-    void registerCustomAlert(final MetricsAlert.Key key, final MetricsAlertFactory metricsAlertFactory) {
-        customAlerts.put(key, metricsAlertFactory);
+    void registerCustomAlert(final ConnectionType connectionType, final MetricsAlert.Key key,
+            final MetricsAlertFactory metricsAlertFactory) {
+        customAlerts.put(Pair.apply(connectionType, key), metricsAlertFactory);
     }
 
     @Nullable
     MetricsAlert getAlert(final CounterKey counterKey, final ConnectionType connectionType,
             final ConnectivityConfig connectivityConfig) {
-        return Optional.ofNullable(alerts.get(counterKey))
+        return Optional.ofNullable(ALERTS.get(Pair.apply(connectionType, counterKey)))
                 .or(() -> MetricsAlert.Key.from(counterKey.getMetricDirection(), counterKey.getMetricType())
-                        .map(key -> Optional.ofNullable(alertDefinitions.get(key)).orElse(customAlerts.get(key)))
-                        .map(creator -> alerts.computeIfAbsent(counterKey,
+                        .map(key -> Optional.ofNullable(ALERT_DEFINITIONS.get(Pair.apply(connectionType, key)))
+                                .orElse(customAlerts.get(Pair.apply(connectionType, key))))
+                        .map(creator -> ALERTS.computeIfAbsent(Pair.apply(connectionType, counterKey),
                                 mk -> creator.create(counterKey, connectionType, connectivityConfig))))
                 .orElse(null);
     }
