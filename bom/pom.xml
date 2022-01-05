@@ -62,7 +62,7 @@
         <commons-net.version>3.8.0</commons-net.version>
 
         <slf4j.version>1.7.31</slf4j.version>
-        <logback.version>1.2.8</logback.version>
+        <logback.version>1.2.10</logback.version>
         <logstash-logback-encoder.version>6.6</logstash-logback-encoder.version>
         <fluency.version>2.6.0</fluency.version>
         <janino.version>2.7.8</janino.version>
