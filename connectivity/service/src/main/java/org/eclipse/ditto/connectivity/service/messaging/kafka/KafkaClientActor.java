@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -57,6 +58,8 @@ import akka.japi.pf.FSMStateFunctionBuilder;
  * Actor which handles connection to Kafka server.
  */
 public final class KafkaClientActor extends BaseClientActor {
+
+    private static final long INIT_TIMEOUT_SECONDS = 5L;
 
     private final KafkaPublisherActorFactory publisherActorFactory;
     private final Set<ActorRef> pendingStatusReportsFromStreams;
@@ -275,7 +278,14 @@ public final class KafkaClientActor extends BaseClientActor {
 
     @Override
     protected CompletionStage<Status.Status> startPublisherActor() {
-        return CompletableFuture.completedFuture(DONE);
+        // wait for actor initialization to be sure any authentication errors are handled with backoff
+        return new CompletableFuture<Status.Status>().completeOnTimeout(DONE, INIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    }
+
+    @Override
+    protected CompletionStage<Status.Status> startConsumerActors(@Nullable final ClientConnected clientConnected) {
+        // wait for actor initialization to be sure any authentication errors are handled with backoff
+        return new CompletableFuture<Status.Status>().completeOnTimeout(DONE, INIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     @Override
