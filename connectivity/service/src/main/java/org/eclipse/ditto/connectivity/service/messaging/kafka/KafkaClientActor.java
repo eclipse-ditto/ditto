@@ -59,8 +59,6 @@ import akka.japi.pf.FSMStateFunctionBuilder;
  */
 public final class KafkaClientActor extends BaseClientActor {
 
-    private static final long INIT_TIMEOUT_SECONDS = 5L;
-
     private final KafkaPublisherActorFactory publisherActorFactory;
     private final Set<ActorRef> pendingStatusReportsFromStreams;
     private final PropertiesFactory propertiesFactory;
@@ -279,13 +277,15 @@ public final class KafkaClientActor extends BaseClientActor {
     @Override
     protected CompletionStage<Status.Status> startPublisherActor() {
         // wait for actor initialization to be sure any authentication errors are handled with backoff
-        return new CompletableFuture<Status.Status>().completeOnTimeout(DONE, INIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        return new CompletableFuture<Status.Status>()
+                .completeOnTimeout(DONE, kafkaConfig.getProducerConfig().getInitTimeoutSeconds(), TimeUnit.SECONDS);
     }
 
     @Override
     protected CompletionStage<Status.Status> startConsumerActors(@Nullable final ClientConnected clientConnected) {
         // wait for actor initialization to be sure any authentication errors are handled with backoff
-        return new CompletableFuture<Status.Status>().completeOnTimeout(DONE, INIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        return new CompletableFuture<Status.Status>()
+                .completeOnTimeout(DONE, kafkaConfig.getConsumerConfig().getInitTimeoutSeconds(), TimeUnit.SECONDS);
     }
 
     @Override
