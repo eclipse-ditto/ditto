@@ -59,8 +59,8 @@ public final class MockMapper implements MessageMapper {
             final MessageMapperConfiguration configuration,
             final ActorSystem actorSystem) {
 
-        configuration.findProperty(OPT_IS_VALID).map(Boolean::valueOf).filter(Boolean.TRUE::equals).orElseThrow
-                (() -> MessageMapperConfigurationInvalidException.newBuilder(OPT_IS_VALID).build());
+//        configuration.findProperty(OPT_IS_VALID).map(Boolean::valueOf).filter(Boolean.TRUE::equals).orElseThrow
+//                (() -> MessageMapperConfigurationInvalidException.newBuilder(OPT_IS_VALID).build());
     }
 
     @Override

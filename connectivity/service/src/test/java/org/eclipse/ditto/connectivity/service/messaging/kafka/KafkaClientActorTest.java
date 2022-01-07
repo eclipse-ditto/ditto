@@ -18,6 +18,7 @@ import static org.eclipse.ditto.connectivity.service.messaging.TestConstants.Aut
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -73,7 +74,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
 
     private static final Status.Success CONNECTED_SUCCESS = new Status.Success(BaseClientState.CONNECTED);
     private static final Status.Success DISCONNECTED_SUCCESS = new Status.Success(BaseClientState.DISCONNECTED);
-    private static final String HOST = "localhost";
+    private static final String HOST = "127.0.0.1";
     private static final String TOPIC = "target";
     private static final Target TARGET = ConnectivityModelFactory.newTargetBuilder()
             .address(TOPIC)
@@ -141,7 +142,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTED_SUCCESS);
+            expectMsg(Duration.ofSeconds(10), CONNECTED_SUCCESS);
 
             kafkaClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
@@ -159,7 +160,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTED_SUCCESS);
+            expectMsg(Duration.ofSeconds(10), CONNECTED_SUCCESS);
 
             final ThingModifiedEvent<?> thingModifiedEvent =
                     TestConstants.thingModified(TARGET.getAuthorizationContext().getAuthorizationSubjects());
@@ -210,7 +211,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), getRef());
-            expectMsg(CONNECTED_SUCCESS);
+            expectMsg(Duration.ofSeconds(10), CONNECTED_SUCCESS);
 
             kafkaClientActor.tell(RetrieveConnectionMetrics.of(connectionId, DittoHeaders.empty()), getRef());
 
