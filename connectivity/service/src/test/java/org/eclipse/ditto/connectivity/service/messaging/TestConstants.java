@@ -65,6 +65,7 @@ import org.eclipse.ditto.base.model.common.ResponseType;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
 import org.eclipse.ditto.connectivity.model.AddressMetric;
@@ -106,6 +107,7 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.Conne
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionSupervisorActor;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.UsageBasedPriorityProvider;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.internal.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.config.PingConfig;
@@ -232,6 +234,17 @@ public final class TestConstants {
     public static final Metadata METADATA = Metadata.newBuilder()
             .set("creator", "The epic Ditto team")
             .build();
+
+    public static ThreadSafeDittoLoggingAdapter mockThreadSafeDittoLoggingAdapter() {
+        final var logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
+        when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
+                .thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.nullable(String.class))).thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.nullable(WithDittoHeaders.class))).thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.nullable(DittoHeaders.class))).thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.nullable(CharSequence.class))).thenReturn(logger);
+        return logger;
+    }
 
     public static DittoProtocolSub dummyDittoProtocolSub(final ActorRef pubSubMediator) {
         return dummyDittoProtocolSub(pubSubMediator, null);

@@ -109,10 +109,11 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
     /**
      * Register a custom alert for the given parameters that is created by the given alert factory.
      */
-    public void registerAlertFactory(final MetricType metricType,
+    public void registerAlertFactory(final ConnectionType connectionType, final MetricType metricType,
             final MetricDirection metricDirection, final MetricsAlertFactory factory) {
+
         MetricsAlert.Key.from(metricDirection, metricType)
-                .ifPresent(alertKey -> alertRegistry.registerCustomAlert(alertKey, factory));
+                .ifPresent(alertKey -> alertRegistry.registerCustomAlert(connectionType, alertKey, factory));
     }
 
     private void initCounter(final Connection connection, final MetricDirection metricDirection, final String address) {

@@ -76,15 +76,7 @@ public final class InboundMappingProcessorTest {
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
-
-        logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
-        when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
-                .thenReturn(logger);
-        when(logger.withCorrelationId(Mockito.nullable(String.class))).thenReturn(logger);
-        when(logger.withCorrelationId(Mockito.nullable(WithDittoHeaders.class))).thenReturn(logger);
-        when(logger.withCorrelationId(Mockito.nullable(DittoHeaders.class))).thenReturn(logger);
-        when(logger.withCorrelationId(Mockito.nullable(CharSequence.class))).thenReturn(logger);
-
+        logger = TestConstants.mockThreadSafeDittoLoggingAdapter();
         protocolAdapterProvider = new DittoProtocolAdapterProvider(Mockito.mock(ProtocolConfig.class));
     }
 

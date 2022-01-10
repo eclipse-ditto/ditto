@@ -351,7 +351,7 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>license-maven-plugin</artifactId>
-                    <version>1.17</version>
+                    <version>2.0.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -562,6 +562,7 @@
                         <header>${project.basedir}/src/license-header-2018.txt</header>
                         <header>${project.basedir}/src/license-header-2019.txt</header>
                         <header>${project.basedir}/src/license-header-2020.txt</header>
+                        <header>${project.basedir}/src/license-header-2021.txt</header>
                     </validHeaders>
                     <aggregate>true</aggregate>
                     <quiet>false</quiet>

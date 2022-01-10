@@ -43,6 +43,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -68,8 +69,6 @@ import org.eclipse.ditto.connectivity.model.ConnectionId;
 import org.eclipse.ditto.connectivity.model.ConnectivityModelFactory;
 import org.eclipse.ditto.connectivity.model.ConnectivityStatus;
 import org.eclipse.ditto.connectivity.model.FilteredTopic;
-import org.eclipse.ditto.connectivity.model.MetricDirection;
-import org.eclipse.ditto.connectivity.model.MetricType;
 import org.eclipse.ditto.connectivity.model.ResourceStatus;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.SshTunnel;
@@ -105,7 +104,6 @@ import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.Connecti
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ConnectivityCounterRegistry;
-import org.eclipse.ditto.connectivity.service.messaging.monitoring.metrics.ThrottledLoggerMetricsAlert;
 import org.eclipse.ditto.connectivity.service.messaging.persistence.ConnectionPersistenceActor;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelActor;
 import org.eclipse.ditto.connectivity.service.messaging.tunnel.SshTunnelState;
@@ -195,8 +193,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final int subscriptionIdPrefixLength;
     private final String actorUUID;
     private final ProtocolAdapter protocolAdapter;
-    private final ConnectivityCounterRegistry connectionCounterRegistry;
-    private final ConnectionLoggerRegistry connectionLoggerRegistry;
+    protected final ConnectivityCounterRegistry connectionCounterRegistry;
+    protected final ConnectionLoggerRegistry connectionLoggerRegistry;
     private final boolean dryRun;
     private final ActorRef proxyActor;
 
@@ -218,7 +216,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final ActorSystem system = getContext().getSystem();
         final Config config = system.settings().config();
         final Config withOverwrites = connectivityConfigOverwrites.withFallback(config);
-        this.connectivityConfig = ConnectivityConfig.of(withOverwrites);
+        connectivityConfig = ConnectivityConfig.of(withOverwrites);
         this.connectionActor = connectionActor;
         this.proxyActor = proxyActor;
 
@@ -248,9 +246,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
         connectionLoggerRegistry.initForConnection(connection);
         connectionLogger = connectionLoggerRegistry.forConnection(connection.getId());
-        connectionCounterRegistry.registerAlertFactory(MetricType.THROTTLED, MetricDirection.INBOUND,
-                ThrottledLoggerMetricsAlert.getFactory(
-                        address -> connectionLoggerRegistry.forInboundThrottled(connection, address)));
         connectionCounterRegistry.initForConnection(connection);
         clientGauge = DittoMetrics.gauge("connection_client")
                 .tag("id", connectionId.toString())
@@ -1719,12 +1714,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private Pair<ActorRef, ActorRef> startOutboundActors(final ProtocolAdapter protocolAdapter) {
         final OutboundMappingSettings settings;
-        final OutboundMappingProcessor outboundMappingProcessor;
+        final List<OutboundMappingProcessor> outboundMappingProcessors;
+        final int processorPoolSize = connection.getProcessorPoolSize();
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
             settings = OutboundMappingSettings.of(connection, connectivityConfig, getContext().getSystem(),
                     proxyActorSelection, protocolAdapter, logger);
-            outboundMappingProcessor = OutboundMappingProcessor.of(settings);
+            outboundMappingProcessors = IntStream.range(0, processorPoolSize)
+                    .mapToObj(i -> OutboundMappingProcessor.of(settings))
+                    .collect(Collectors.toList());
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {0}", dre.getMessage());
             logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
@@ -1732,11 +1730,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             throw dre;
         }
 
-        final int processorPoolSize = connection.getProcessorPoolSize();
         logger.debug("Starting mapping processor actors with pool size of <{}>.", processorPoolSize);
         final Props outboundMappingProcessorActorProps =
-                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connection, connectivityConfig,
-                        processorPoolSize);
+                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessors, connection,
+                        connectivityConfig, processorPoolSize);
 
         final ActorRef processorActor =
                 getContext().actorOf(outboundMappingProcessorActorProps, OutboundMappingProcessorActor.ACTOR_NAME);
@@ -1786,13 +1783,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private Sink<Object, NotUsed> getInboundMappingSink(final ProtocolAdapter protocolAdapter,
             final Sink<Object, NotUsed> inboundDispatchingSink) {
 
-        final InboundMappingProcessor inboundMappingProcessor;
+        final List<InboundMappingProcessor> inboundMappingProcessors;
         final var context = getContext();
         final var actorSystem = context.getSystem();
+        final int processorPoolSize = connection.getProcessorPoolSize();
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            inboundMappingProcessor =
-                    InboundMappingProcessor.of(connection, connectivityConfig, actorSystem, protocolAdapter, logger);
+            inboundMappingProcessors = IntStream.range(0, processorPoolSize)
+                    .mapToObj(i -> InboundMappingProcessor.of(connection, connectivityConfig, actorSystem,
+                            protocolAdapter, logger))
+                    .collect(Collectors.toList());
         } catch (final DittoRuntimeException dre) {
             connectionLogger.failure("Failed to start message mapping processor due to: {0}", dre.getMessage());
             logger.info("Got DittoRuntimeException during initialization of MessageMappingProcessor: {} {} - desc: {}",
@@ -1800,10 +1800,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             throw dre;
         }
 
-        final int processorPoolSize = connection.getProcessorPoolSize();
         logger.debug("Starting inbound mapping processor actors with pool size of <{}>.", processorPoolSize);
 
-        return InboundMappingSink.createSink(inboundMappingProcessor,
+        return InboundMappingSink.createSink(inboundMappingProcessors,
                 connection.getId(),
                 processorPoolSize,
                 inboundDispatchingSink,
