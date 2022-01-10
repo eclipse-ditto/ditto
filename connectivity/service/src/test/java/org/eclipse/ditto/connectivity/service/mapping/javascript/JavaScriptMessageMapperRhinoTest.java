@@ -165,7 +165,7 @@ public final class JavaScriptMessageMapperRhinoTest {
             "    // Insert your mapping logic here\n" +
             "    let headers = {};\n" +
             "    headers['correlation-id'] = dittoHeaders['correlation-id'];\n" +
-            "    let textPayload = \"Thing ID was: \" + namespace + \":\" + name;\n" +
+            "    let textPayload = `Thing ID was: ${namespace}:${name}`;\n" +
             "    let bytePayload = null;\n" +
             "    let contentType = \"" + CONTENT_TYPE_PLAIN + "\";\n" +
             "    // ###\n" +
@@ -260,7 +260,7 @@ public final class JavaScriptMessageMapperRhinoTest {
             "    let headers = {};\n" +
             "    headers['correlation-id'] = dittoHeaders['correlation-id'];\n" +
             "    let textPayload = null;\n" +
-            "    let thingId = namespace + \":\" + name;\n" +
+            "    let thingId = `${namespace}:${name}`;\n" +
             "    let bytePayload = Ditto.stringToArrayBuffer(thingId);\n" +
             "    let contentType = \"" + CONTENT_TYPE_BINARY + "\";\n" +
             "    // ###\n" +
