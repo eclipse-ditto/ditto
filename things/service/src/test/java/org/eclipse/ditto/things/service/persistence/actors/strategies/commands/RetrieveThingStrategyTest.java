@@ -158,7 +158,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
                 "/features/" + TestConstants.Feature.FLUX_CAPACITOR_ID + "/properties/target_year_1",
                 "/features/f1/properties/target_year_1",
                 "/features/f2/properties/target_year_1");
-        assertQueryResult(underTest, THING_V2, command, response -> {
+        assertQueryResult(underTest, thing, command, response -> {
             assertThat(response).isInstanceOf(RetrieveThingResponse.class);
             final RetrieveThingResponse retrieveThingResponse = (RetrieveThingResponse) response;
             assertThat(retrieveThingResponse.getEntity()).isEqualTo(thing.toJson(expandedFieldSelector));
