@@ -18,10 +18,15 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.things.model.FeaturesBuilder;
+import org.eclipse.ditto.things.model.TestConstants;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
@@ -109,4 +114,54 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
         assertUnhandledResult(underTest, THING_V2, command, expectedException);
     }
 
+
+    @Test
+    public void retrieveThingWithSelectedFields() {
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .schemaVersion(JsonSchemaVersion.V_2)
+                .build();
+        final RetrieveThing command = RetrieveThing.getBuilder(context.getState(), dittoHeaders)
+                .withSelectedFields(fieldSelector)
+                .build();
+        final RetrieveThingResponse expectedResponse =
+                ETagTestUtils.retrieveThingResponse(THING_V2, fieldSelector, dittoHeaders);
+
+        assertQueryResult(underTest, THING_V2, command, expectedResponse);
+    }
+
+    @Test
+    public void retrieveThingWithSelectedFieldsWithFeatureWildcard() {
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location",
+                "/features/*/properties/target_year_1");
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .schemaVersion(JsonSchemaVersion.V_2)
+                .build();
+
+        final FeaturesBuilder featuresBuilder = ThingsModelFactory.newFeaturesBuilder();
+        THING_V2.getFeatures().orElseThrow().forEach(featuresBuilder::set);
+        featuresBuilder.set(ThingsModelFactory.newFeature("f1",
+                ThingsModelFactory.newFeaturePropertiesBuilder().set("target_year_1", 2022).build()));
+        featuresBuilder.set(ThingsModelFactory.newFeature("f2", ThingsModelFactory.newFeaturePropertiesBuilder().set(
+                "connected", false).build()));
+        final Thing thing = THING_V2.toBuilder()
+                .setFeatures(featuresBuilder.build())
+                .build();
+
+        final RetrieveThing command = RetrieveThing.getBuilder(context.getState(), dittoHeaders)
+                .withSelectedFields(fieldSelector)
+                .build();
+
+        final JsonFieldSelector expandedFieldSelector = JsonFactory.newFieldSelector("/attribute/location",
+                "/features/" + TestConstants.Feature.FLUX_CAPACITOR_ID + "/properties/target_year_1",
+                "/features/f1/properties/target_year_1",
+                "/features/f2/properties/target_year_1");
+        assertQueryResult(underTest, THING_V2, command, response -> {
+            assertThat(response).isInstanceOf(RetrieveThingResponse.class);
+            final RetrieveThingResponse retrieveThingResponse = (RetrieveThingResponse) response;
+            assertThat(retrieveThingResponse.getEntity()).isEqualTo(thing.toJson(expandedFieldSelector));
+        });
+    }
 }

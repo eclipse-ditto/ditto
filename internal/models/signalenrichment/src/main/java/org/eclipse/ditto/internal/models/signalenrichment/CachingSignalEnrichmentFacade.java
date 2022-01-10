@@ -12,17 +12,29 @@
  */
 package org.eclipse.ditto.internal.models.signalenrichment;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
+
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 /**
  * {@link SignalEnrichmentFacade}, adding functionality to retrieve a whole thing.
  */
-public interface CachingSignalEnrichmentFacade extends SignalEnrichmentFacade{
+public interface CachingSignalEnrichmentFacade extends SignalEnrichmentFacade {
 
     /**
      * Retrieve thing given a list of thing events.
@@ -35,4 +47,36 @@ public interface CachingSignalEnrichmentFacade extends SignalEnrichmentFacade{
      */
     CompletionStage<JsonObject> retrieveThing(ThingId thingId, List<ThingEvent<?>> events, long minAcceptableSeqNr);
 
+    default JsonObject applyJsonFieldSelector(final JsonObject jsonObject,
+            @Nullable final JsonFieldSelector fieldSelector) {
+        if (fieldSelector == null) {
+            return jsonObject;
+        } else {
+            final Collection<JsonKey> featureIds = jsonObject.getValue(Thing.JsonFields.FEATURES.getPointer())
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .map(JsonObject::getKeys)
+                    .orElse(Collections.emptyList());
+            final JsonFieldSelector jsonPointers = expandFeatureIdWildcard(fieldSelector, featureIds);
+            return jsonObject.get(jsonPointers);
+        }
+    }
+
+    private static JsonFieldSelector expandFeatureIdWildcard(final JsonFieldSelector fieldSelector,
+            final Collection<JsonKey> featureIds) {
+
+        return JsonFactory.newFieldSelector(fieldSelector.getPointers().stream().flatMap(p -> {
+            if (p.getLevelCount() > 1
+                    &&
+                    p.getRoot().map(k -> Thing.JsonFields.FEATURES.getPointer().equals(JsonPointer.of(k))).orElse(false)
+                    && p.get(1).map(k -> JsonKey.of("*").equals(k)).orElse(false)) {
+                return featureIds.stream()
+                        .map(fid -> Thing.JsonFields.FEATURES.getPointer()
+                                .append(JsonPointer.of(fid))
+                                .append(p.getSubPointer(2).orElse(JsonPointer.empty())));
+            } else {
+                return Stream.of(p);
+            }
+        }).collect(Collectors.toList()));
+    }
 }

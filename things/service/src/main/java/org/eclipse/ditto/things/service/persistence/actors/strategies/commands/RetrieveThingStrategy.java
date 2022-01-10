@@ -23,9 +23,11 @@ import org.eclipse.ditto.base.model.headers.DittoHeadersSettable;
 import org.eclipse.ditto.base.model.headers.entitytag.EntityTag;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingResponse;
@@ -36,7 +38,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This strategy handles the {@link RetrieveThing} command.
  */
 @Immutable
-final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveThing> {
+final class RetrieveThingStrategy extends AbstractRetrieveThingCommandStrategy<RetrieveThing> {
 
     /**
      * Constructs a new {@code RetrieveThingStrategy} object.
@@ -80,7 +82,12 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
 
     private static JsonObject getThingJson(final Thing thing, final ThingQueryCommand<RetrieveThing> command) {
         return command.getSelectedFields()
-                .map(selectedFields -> thing.toJson(command.getImplementedSchemaVersion(), selectedFields))
+                .map(selectedFields -> {
+                    final JsonFieldSelector expandedFieldSelector = expandFeatureIdWildcard(selectedFields,
+                            Thing.JsonFields.FEATURES.getPointer(),
+                            thing.getFeatures().orElse(ThingsModelFactory.emptyFeatures()));
+                    return thing.toJson(command.getImplementedSchemaVersion(), expandedFieldSelector);
+                })
                 .orElseGet(() -> thing.toJson(command.getImplementedSchemaVersion()));
     }
 

@@ -68,11 +68,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
         final var cacheLoader = SignalEnrichmentCacheLoader.of(cacheLoaderFacade);
         final var cacheName = cacheNamePrefix + CACHE_NAME_SUFFIX;
 
-        extraFieldsCache = CacheFactory.createCache(
-                cacheLoader,
-                cacheConfig,
-                cacheName,
-                cacheLoaderExecutor);
+        extraFieldsCache = CacheFactory.createCache(cacheLoader, cacheConfig, cacheName, cacheLoaderExecutor);
     }
 
     /**
@@ -113,8 +109,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
 
     @Override
     public CompletionStage<JsonObject> retrievePartialThing(final ThingId thingId,
-            @Nullable final JsonFieldSelector jsonFieldSelector,
-            final DittoHeaders dittoHeaders,
+            @Nullable final JsonFieldSelector jsonFieldSelector, final DittoHeaders dittoHeaders,
             @Nullable final Signal<?> concernedSignal) {
 
         final List<ThingEvent<?>> thingEvents =
@@ -124,7 +119,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
         // as second step only return what was originally requested as fields:
         final var cachingParameters = new CachingParameters(jsonFieldSelector, thingEvents, true, 0);
         return doRetrievePartialThing(thingId, dittoHeaders, cachingParameters)
-                .thenApply(jsonObject -> null != jsonFieldSelector ? jsonObject.get(jsonFieldSelector) : jsonObject);
+                .thenApply(jsonObject -> applyJsonFieldSelector(jsonObject, jsonFieldSelector));
     }
 
     /**
@@ -153,7 +148,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
         // as second step only return what was originally requested as fields:
         final var cachingParameters = new CachingParameters(jsonFieldSelector, thingEvents, true, minAcceptableSeqNr);
         return doRetrievePartialThing(thingId, dittoHeaders, cachingParameters)
-                .thenApply(jsonObject -> jsonObject.get(jsonFieldSelector));
+                .thenApply(jsonObject -> applyJsonFieldSelector(jsonObject, jsonFieldSelector));
     }
 
     private CompletionStage<JsonObject> doRetrievePartialThing(final EntityId thingId,
@@ -174,8 +169,9 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
         return smartUpdateCachedObject(idWithResourceType, cachingParametersWithEnhancedFieldSelector);
     }
 
-    private static @Nullable
-    JsonFieldSelector enhanceFieldSelectorWithRevision(@Nullable final Iterable<JsonPointer> fieldSelector) {
+    @Nullable
+    private static JsonFieldSelector enhanceFieldSelectorWithRevision(
+            @Nullable final Iterable<JsonPointer> fieldSelector) {
         final JsonFieldSelector result;
         if (fieldSelector == null) {
             result = null;
@@ -276,8 +272,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
     private CompletableFuture<JsonObject> doCacheLookup(final SignalEnrichmentCacheKey cacheKey,
             final DittoHeaders dittoHeaders) {
 
-        LOGGER.withCorrelationId(dittoHeaders)
-                .debug("Looking up cache entry for <{}>", cacheKey);
+        LOGGER.withCorrelationId(dittoHeaders).debug("Looking up cache entry for <{}>", cacheKey);
         return extraFieldsCache.get(cacheKey)
                 .thenApply(optionalJsonObject -> optionalJsonObject.orElseGet(JsonObject::empty));
     }
@@ -287,8 +282,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
     }
 
     private CompletionStage<JsonObject> doSmartUpdateCachedObject(final SignalEnrichmentCacheKey cacheKey,
-            final JsonObject cachedJsonObject,
-            final CachingParameters cachingParameters,
+            final JsonObject cachedJsonObject, final CachingParameters cachingParameters,
             final DittoHeaders dittoHeaders) {
 
         final CompletionStage<JsonObject> result;
@@ -327,10 +321,8 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
         return list.get(0);
     }
 
-    private CompletionStage<JsonObject> handleNextExpectedThingEvents(
-            final SignalEnrichmentCacheKey cacheKey,
-            final JsonObject cachedJsonObject,
-            final CachingParameters cachingParameters) {
+    private CompletionStage<JsonObject> handleNextExpectedThingEvents(final SignalEnrichmentCacheKey cacheKey,
+            final JsonObject cachedJsonObject, final CachingParameters cachingParameters) {
 
         final var concernedSignals = cachingParameters.concernedEvents;
         final var enhancedFieldSelector = cachingParameters.fieldSelector;
@@ -401,9 +393,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
     }
 
     private Optional<CompletionStage<JsonObject>> invalidateCacheOnPolicyChange(final SignalEnrichmentCacheKey cacheKey,
-            final JsonObject jsonObject,
-            @Nullable final String cachedPolicyIdOpt,
-            final DittoHeaders dittoHeaders) {
+            final JsonObject jsonObject, @Nullable final String cachedPolicyIdOpt, final DittoHeaders dittoHeaders) {
 
         final boolean shouldInvalidate = Optional.ofNullable(cachedPolicyIdOpt).flatMap(cachedPolicyId ->
                         jsonObject.getValue(Thing.JsonFields.POLICY_ID)
@@ -419,7 +409,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
         }
     }
 
-    private static JsonObject enhanceJsonObject(final JsonObject jsonObject, final List<ThingEvent<?>> concernedSignals,
+    private JsonObject enhanceJsonObject(final JsonObject jsonObject, final List<ThingEvent<?>> concernedSignals,
             @Nullable final JsonFieldSelector enhancedFieldSelector) {
 
         final ThingEvent<?> last = getLast(concernedSignals);
@@ -432,9 +422,8 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
                         jsonObjectBuilder.set(Thing.JsonFields.CREATED, timestamp.toString())));
         last.getTimestamp().ifPresent(timestamp ->
                 jsonObjectBuilder.set(Thing.JsonFields.MODIFIED, timestamp.toString()));
-        return enhancedFieldSelector == null
-                ? jsonObjectBuilder.build()
-                : jsonObjectBuilder.build().get(enhancedFieldSelector);
+
+        return applyJsonFieldSelector(jsonObjectBuilder.build(), enhancedFieldSelector);
     }
 
     private static final class CachingParameters {
