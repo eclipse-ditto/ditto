@@ -102,7 +102,9 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
             extraFieldsCache.invalidate(cacheKey);
             return doCacheLookup(cacheKey, dittoHeaders);
         } else {
-            final var cachingParameters = new CachingParameters(null, events, false, minAcceptableSeqNr);
+            final var cachingParameters =
+                    new CachingParameters(null, events, false, minAcceptableSeqNr);
+
             return doRetrievePartialThing(thingId, dittoHeaders, cachingParameters);
         }
     }
@@ -117,7 +119,9 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
                         List.of((ThingEvent<?>) concernedSignal) : List.of();
 
         // as second step only return what was originally requested as fields:
-        final var cachingParameters = new CachingParameters(jsonFieldSelector, thingEvents, true, 0);
+        final var cachingParameters =
+                new CachingParameters(jsonFieldSelector, thingEvents, true, 0);
+
         return doRetrievePartialThing(thingId, dittoHeaders, cachingParameters)
                 .thenApply(jsonObject -> applyJsonFieldSelector(jsonObject, jsonFieldSelector));
     }
@@ -146,7 +150,9 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
                 .collect(Collectors.toList());
 
         // as second step only return what was originally requested as fields:
-        final var cachingParameters = new CachingParameters(jsonFieldSelector, thingEvents, true, minAcceptableSeqNr);
+        final var cachingParameters =
+                new CachingParameters(jsonFieldSelector, thingEvents, true, minAcceptableSeqNr);
+
         return doRetrievePartialThing(thingId, dittoHeaders, cachingParameters)
                 .thenApply(jsonObject -> applyJsonFieldSelector(jsonObject, jsonFieldSelector));
     }
@@ -173,6 +179,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
     private static JsonFieldSelector enhanceFieldSelectorWithRevision(
             @Nullable final Iterable<JsonPointer> fieldSelector) {
         final JsonFieldSelector result;
+
         if (fieldSelector == null) {
             result = null;
         } else {
@@ -181,6 +188,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
                     .addFieldDefinition(Thing.JsonFields.REVISION) // additionally always select the revision
                     .build();
         }
+
         return result;
     }
 
@@ -258,6 +266,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
                 return Optional.of(i);
             }
         }
+
         return Optional.empty();
     }
 
@@ -271,8 +280,8 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
 
     private CompletableFuture<JsonObject> doCacheLookup(final SignalEnrichmentCacheKey cacheKey,
             final DittoHeaders dittoHeaders) {
-
         LOGGER.withCorrelationId(dittoHeaders).debug("Looking up cache entry for <{}>", cacheKey);
+
         return extraFieldsCache.get(cacheKey)
                 .thenApply(optionalJsonObject -> optionalJsonObject.orElseGet(JsonObject::empty));
     }
@@ -310,6 +319,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
             extraFieldsCache.invalidate(cacheKey);
             result = doCacheLookup(cacheKey, dittoHeaders);
         }
+
         return result;
     }
 
@@ -354,6 +364,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
         final var enhancedJsonObject = enhanceJsonObject(jsonObject, concernedSignals, enhancedFieldSelector);
         // update local cache with enhanced object:
         extraFieldsCache.put(cacheKey, enhancedJsonObject);
+
         return CompletableFuture.completedFuture(enhancedJsonObject);
     }
 
@@ -361,6 +372,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
         final var thingMerged = (ThingMerged) thingEvent;
         final JsonValue mergedValue = thingMerged.getValue();
         final JsonObject mergePatch = JsonFactory.newObject(thingMerged.getResourcePath(), mergedValue);
+
         return JsonFactory.mergeJsonValues(mergePatch, jsonObject).asObject();
     }
 
@@ -375,6 +387,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
         } else {
             result = jsonObject.remove(resourcePath);
         }
+
         return result;
     }
 
@@ -389,6 +402,7 @@ public final class DittoCachingSignalEnrichmentFacade implements CachingSignalEn
                     .set(resourcePath.toString(), entity)
             );
         }
+
         return jsonObjectBuilder.build();
     }
 

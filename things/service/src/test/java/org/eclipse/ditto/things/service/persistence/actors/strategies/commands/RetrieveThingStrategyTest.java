@@ -114,7 +114,6 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
         assertUnhandledResult(underTest, THING_V2, command, expectedException);
     }
 
-
     @Test
     public void retrieveThingWithSelectedFields() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
@@ -134,7 +133,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void retrieveThingWithSelectedFieldsWithFeatureWildcard() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location",
+        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attributes/location",
                 "/features/*/properties/target_year_1");
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(JsonSchemaVersion.V_2)
@@ -144,8 +143,8 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
         THING_V2.getFeatures().orElseThrow().forEach(featuresBuilder::set);
         featuresBuilder.set(ThingsModelFactory.newFeature("f1",
                 ThingsModelFactory.newFeaturePropertiesBuilder().set("target_year_1", 2022).build()));
-        featuresBuilder.set(ThingsModelFactory.newFeature("f2", ThingsModelFactory.newFeaturePropertiesBuilder().set(
-                "connected", false).build()));
+        featuresBuilder.set(ThingsModelFactory.newFeature("f2",
+                ThingsModelFactory.newFeaturePropertiesBuilder().set("connected", false).build()));
         final Thing thing = THING_V2.toBuilder()
                 .setFeatures(featuresBuilder.build())
                 .build();
@@ -154,14 +153,16 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
                 .withSelectedFields(fieldSelector)
                 .build();
 
-        final JsonFieldSelector expandedFieldSelector = JsonFactory.newFieldSelector("/attribute/location",
+        final JsonFieldSelector expandedFieldSelector = JsonFactory.newFieldSelector("/attributes/location",
                 "/features/" + TestConstants.Feature.FLUX_CAPACITOR_ID + "/properties/target_year_1",
                 "/features/f1/properties/target_year_1",
                 "/features/f2/properties/target_year_1");
+
         assertQueryResult(underTest, thing, command, response -> {
             assertThat(response).isInstanceOf(RetrieveThingResponse.class);
             final RetrieveThingResponse retrieveThingResponse = (RetrieveThingResponse) response;
             assertThat(retrieveThingResponse.getEntity()).isEqualTo(thing.toJson(expandedFieldSelector));
         });
     }
+
 }

@@ -132,9 +132,9 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
     @Test
     public void retrieveThingWithSelectedFieldsWithFeatureWildcard() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location",
+        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attributes/location",
                 "/features/*/properties/target_year_1");
-        final JsonFieldSelector expandedFieldSelector = JsonFactory.newFieldSelector("/attribute/location",
+        final JsonFieldSelector expandedFieldSelector = JsonFactory.newFieldSelector("/attributes/location",
                 "/features/" + TestConstants.Feature.FLUX_CAPACITOR_ID + "/properties/target_year_1",
                 "/features/f1/properties/target_year_1",
                 "/features/f2/properties/target_year_1");

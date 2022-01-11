@@ -49,8 +49,10 @@ public interface CachingSignalEnrichmentFacade extends SignalEnrichmentFacade {
 
     default JsonObject applyJsonFieldSelector(final JsonObject jsonObject,
             @Nullable final JsonFieldSelector fieldSelector) {
+        final JsonObject result;
+
         if (fieldSelector == null) {
-            return jsonObject;
+            result = jsonObject;
         } else {
             final Collection<JsonKey> featureIds = jsonObject.getValue(Thing.JsonFields.FEATURES.getPointer())
                     .filter(JsonValue::isObject)
@@ -58,25 +60,32 @@ public interface CachingSignalEnrichmentFacade extends SignalEnrichmentFacade {
                     .map(JsonObject::getKeys)
                     .orElse(Collections.emptyList());
             final JsonFieldSelector jsonPointers = expandFeatureIdWildcard(fieldSelector, featureIds);
-            return jsonObject.get(jsonPointers);
+            result = jsonObject.get(jsonPointers);
         }
+
+        return result;
     }
 
     private static JsonFieldSelector expandFeatureIdWildcard(final JsonFieldSelector fieldSelector,
             final Collection<JsonKey> featureIds) {
 
-        return JsonFactory.newFieldSelector(fieldSelector.getPointers().stream().flatMap(p -> {
-            if (p.getLevelCount() > 1
-                    &&
-                    p.getRoot().map(k -> Thing.JsonFields.FEATURES.getPointer().equals(JsonPointer.of(k))).orElse(false)
-                    && p.get(1).map(k -> JsonKey.of("*").equals(k)).orElse(false)) {
-                return featureIds.stream()
-                        .map(fid -> Thing.JsonFields.FEATURES.getPointer()
-                                .append(JsonPointer.of(fid))
-                                .append(p.getSubPointer(2).orElse(JsonPointer.empty())));
-            } else {
-                return Stream.of(p);
-            }
-        }).collect(Collectors.toList()));
+        final List<JsonPointer> jsonPointerList = fieldSelector.getPointers().stream()
+                .flatMap(jsonPointer -> {
+                    if (jsonPointer.getLevelCount() > 1
+                            && jsonPointer.getRoot()
+                            .map(k -> Thing.JsonFields.FEATURES.getPointer().equals(JsonPointer.of(k)))
+                            .orElse(false)
+                            && jsonPointer.get(1).map(k -> JsonKey.of("*").equals(k)).orElse(false)) {
+                        return featureIds.stream()
+                                .map(fid -> Thing.JsonFields.FEATURES.getPointer()
+                                        .append(JsonPointer.of(fid))
+                                        .append(jsonPointer.getSubPointer(2).orElse(JsonPointer.empty())));
+                    } else {
+                        return Stream.of(jsonPointer);
+                    }
+                }).collect(Collectors.toList());
+
+        return JsonFactory.newFieldSelector(jsonPointerList);
     }
+
 }

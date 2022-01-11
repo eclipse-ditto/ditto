@@ -62,12 +62,15 @@ public class AbstractRetrieveThingCommandStrategyTest {
         testReplaceLevel("a/b/c", 0, "a", "a/b/c");
         testReplaceLevel("a/b/*", 2, "c", "a/b/c");
         testReplaceLevel("a/b/c", 3, "x", "a/b/c");
+        testReplaceLevel("a/b/c/d", -1, "x", "a/b/c/d");
     }
 
     private void testReplaceLevel(final String original, final int level, final String replacement,
             final String expected) {
+
         final JsonPointer actual = AbstractRetrieveThingCommandStrategy.replaceLevel(JsonPointer.of(original), level,
                 JsonPointer.of(replacement));
+
         assertThat((Object) actual).isEqualTo(JsonPointer.of(expected));
     }
 }

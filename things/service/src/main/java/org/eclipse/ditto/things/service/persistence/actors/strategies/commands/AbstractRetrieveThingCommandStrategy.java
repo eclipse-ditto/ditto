@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -59,6 +59,7 @@ abstract class AbstractRetrieveThingCommandStrategy<C extends Command<C>> extend
                     return Stream.of(p);
                 }
             }).collect(Collectors.toList());
+
             return JsonFactory.newFieldSelector(expanded);
         }
 
@@ -66,7 +67,7 @@ abstract class AbstractRetrieveThingCommandStrategy<C extends Command<C>> extend
 
     static JsonPointer replaceLevel(final JsonPointer source, final int level, final JsonPointer replacement) {
 
-        if (source.getLevelCount() <= level) {
+        if (source.getLevelCount() <= level || level < 0) {
             return source;
         } else {
             if (level == 0) {
@@ -81,4 +82,5 @@ abstract class AbstractRetrieveThingCommandStrategy<C extends Command<C>> extend
             }
         }
     }
+
 }
