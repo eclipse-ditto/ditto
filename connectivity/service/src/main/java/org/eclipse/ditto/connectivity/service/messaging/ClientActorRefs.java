@@ -55,6 +55,16 @@ public final class ClientActorRefs {
         sortedRefs = sort(refsByPath);
     }
 
+    /**
+     * Add a new client actor.
+     *
+     * @param newClientActors the new client actors.
+     */
+    public void add(final List<ActorRef> newClientActors) {
+        newClientActors.forEach(newClientActor -> refsByPath.put(newClientActor.path(), newClientActor));
+        sortedRefs = sort(refsByPath);
+    }
+
     public void remove(final ActorRef deadClientActor) {
         refsByPath.remove(deadClientActor.path());
         sortedRefs = sort(refsByPath);
@@ -107,6 +117,14 @@ public final class ClientActorRefs {
             final int i = Math.max(0, Math.abs(index));
             return Optional.of(sortedRefs.get(i % sortedRefs.size()));
         }
+    }
+
+    public int size() {
+        return sortedRefs.size();
+    }
+
+    public List<ActorRef> getSortedRefs() {
+        return sortedRefs;
     }
 
     private static List<ActorRef> sort(final Map<ActorPath, ActorRef> refsByPath) {

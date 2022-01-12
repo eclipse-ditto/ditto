@@ -135,6 +135,10 @@ import akka.routing.Broadcast;
 import akka.routing.ConsistentHashingPool;
 import akka.routing.ConsistentHashingRouter;
 import akka.routing.Pool;
+import akka.stream.Materializer;
+import akka.stream.SourceRef;
+import akka.stream.javadsl.Source;
+import akka.stream.javadsl.StreamRefs;
 
 /**
  * Handles {@code *Connection} commands and manages the persistence of connection. The actual connection handling to the
@@ -185,6 +189,7 @@ public final class ConnectionPersistenceActor
     private Instant connectionClosedAt = Instant.now();
     @Nullable private Instant loggingEnabledUntil;
     @Nullable private ActorRef clientActorRouter;
+    @Nullable private ActorRef clientActorRefsAggregationActor;
     @Nullable private Integer priority;
     @Nullable private Instant recoveredAt;
 
@@ -617,6 +622,7 @@ public final class ConnectionPersistenceActor
                 .match(UpdatePriority.class, this::updatePriority)
 
                 // maintain client actor refs
+                .match(ClientActorRefs.class, this::syncClientActorRefs)
                 .match(ActorRef.class, this::addClientActor)
                 .match(Terminated.class, this::removeClientActor)
                 .match(AddConnectionLogEntry.class, this::handleAddConnectionLogEntry)
@@ -1039,6 +1045,10 @@ public final class ConnectionPersistenceActor
 
             // start client actor without name so it does not conflict with its previous incarnation
             clientActorRouter = getContext().actorOf(clusterRouterPoolProps);
+            clientActorRefsAggregationActor = getContext().actorOf(
+                    ClientActorRefsAggregationActor.props(clientCount, getSelf(), clientActorRouter,
+                            connectivityConfig.getClientConfig().getClientActorRefsNotificationDelay(),
+                            clientActorAskTimeout));
             updateLoggingIfEnabled();
         } else if (clientActorRouter != null) {
             log.debug("ClientActor already started.");
@@ -1057,6 +1067,10 @@ public final class ConnectionPersistenceActor
 
     private void stopClientActors() {
         clientActorRefs.clear();
+        if (clientActorRefsAggregationActor != null) {
+            stopChildActor(clientActorRefsAggregationActor);
+            clientActorRefsAggregationActor = null;
+        }
         if (clientActorRouter != null) {
             connectionClosedAt = Instant.now();
             log.debug("Stopping the client actor.");
@@ -1073,6 +1087,14 @@ public final class ConnectionPersistenceActor
             otherClientActor.tell(newClientActor, ActorRef.noSender());
             newClientActor.tell(otherClientActor, ActorRef.noSender());
         });
+    }
+
+    private void syncClientActorRefs(final ClientActorRefs clientActorRefs) {
+        final SourceRef<ActorRef> clientActorRefsSourceRef = Source.from(clientActorRefs.getSortedRefs())
+                .runWith(StreamRefs.sourceRef(), Materializer.createMaterializer(getContext()));
+        if (clientActorRouter != null) {
+            clientActorRouter.tell(new Broadcast(clientActorRefsSourceRef), ActorRef.noSender());
+        }
     }
 
     private void removeClientActor(final Terminated terminated) {
