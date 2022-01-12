@@ -96,6 +96,11 @@ In that case, each emitted Ditto Protocol event would include an `extra` section
 }
 ```
 
+It is possible to use the wildcard operator '*' as feature ID and add a property of multiple features
+(syntax is the same as for [field selector with wildcard](httpapi-concepts.html#field-selector-with-wildcard)):
+```
+extraFields=features/*/properties/unit
+```
 
 ## Enrich and filter
 

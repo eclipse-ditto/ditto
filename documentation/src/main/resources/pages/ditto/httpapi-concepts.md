@@ -205,6 +205,9 @@ structure of the `Thing` or other entity should be kept intact, but not all info
 The field selector is passed as a HTTP query parameter `fields` and contains a comma separated list of fields to include
 in the response.
 
+It is possible to use the wildcard operator '*' as feature ID and retrieve a property of multiple features. 
+For details see the example [below](#field-selector-with-wildcard).
+
 Given, you have the following Thing:
 
 ```json
@@ -225,6 +228,12 @@ Given, you have the following Thing:
       "properties": {
         "on": true,
         "color": "blue"
+      }
+    },
+    "infrared-lamp": {
+      "properties": {
+        "on": false,
+        "color": "red"
       }
     }
   }
@@ -318,6 +327,28 @@ Response:
     "lamp": {
       "properties": {
         "on": true
+      }
+    }
+  }
+}
+```
+
+##### Field selector with wildcard
+
+`GET .../things/{thingId}?fields=features/*/properties/on`<br/>
+Response:
+
+```json
+{
+  "features": {
+    "lamp": {
+      "properties": {
+        "on": true
+      }
+    },
+    "infrared-lamp": {
+      "properties": {
+        "on": false
       }
     }
   }
