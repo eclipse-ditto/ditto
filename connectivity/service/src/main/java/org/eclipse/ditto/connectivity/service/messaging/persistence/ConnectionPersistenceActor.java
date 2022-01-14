@@ -1045,10 +1045,12 @@ public final class ConnectionPersistenceActor
 
             // start client actor without name so it does not conflict with its previous incarnation
             clientActorRouter = getContext().actorOf(clusterRouterPoolProps);
-            clientActorRefsAggregationActor = getContext().actorOf(
-                    ClientActorRefsAggregationActor.props(clientCount, getSelf(), clientActorRouter,
-                            connectivityConfig.getClientConfig().getClientActorRefsNotificationDelay(),
-                            clientActorAskTimeout));
+            if (clientCount > 1) {
+                clientActorRefsAggregationActor = getContext().actorOf(
+                        ClientActorRefsAggregationActor.props(clientCount, getSelf(), clientActorRouter,
+                                connectivityConfig.getClientConfig().getClientActorRefsNotificationDelay(),
+                                clientActorAskTimeout));
+            }
             updateLoggingIfEnabled();
         } else if (clientActorRouter != null) {
             log.debug("ClientActor already started.");
