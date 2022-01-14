@@ -251,7 +251,7 @@ patch:
 
       Examples:
 
-        * an string: `"value"` - Currently the definition should follow the pattern: [_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]
+        * a string: `"value"` - Currently the definition should follow the pattern: [_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]
         * an empty string: `""`
         * `null`: the definition will be deleted
 delete:

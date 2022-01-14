@@ -11,7 +11,7 @@
 name: live-channel-timeout-strategy
 in: query
 description: >-
-  Defines a strategy how to handle timeouts of a live response to a request sent via `channel=true` or with a matching 
+  Defines a strategy how to handle timeouts of a live response to a request sent via `channel=live` or with a matching 
   live-channel-condition.
 
 required: false

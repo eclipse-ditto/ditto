@@ -299,24 +299,23 @@ public final class OutboundMappingProcessorActor
         // Targets attached to the OutboundSignal are pre-selected by authorization, topic and filter sans enrichment.
         final Flow<OutboundSignalWithSender, OutboundSignal.MultiMapped, ?> flow =
                 Flow.<OutboundSignalWithSender>create()
-                        .zip(getOutboundMappingProcessorSource())
-                        .mapAsync(processorPoolSize, outboundPair -> toMultiMappedOutboundSignal(
-                                outboundPair.first(),
-                                outboundPair.second(),
-                                Source.single(outboundPair.first())
-                                        .via(splitByTargetExtraFieldsFlow())
-                                        .mapAsync(mappingConfig.getParallelism(), this::enrichAndFilterSignal)
-                                        .mapConcat(x -> x)
-                                        .map(outbound -> handleOutboundSignal(outbound, outboundPair.second()))
-                                        .flatMapConcat(x -> x)
-                        ))
+                        .zipWithIndex()
+                        .mapAsync(processorPoolSize, outboundPair -> {
+                            final int processorIndex = (int) (outboundPair.second() % outboundMappingProcessors.size());
+                            final var outboundMappingProcessor = outboundMappingProcessors.get(processorIndex);
+                            return toMultiMappedOutboundSignal(
+                                    outboundPair.first(),
+                                    outboundMappingProcessor,
+                                    Source.single(outboundPair.first())
+                                            .via(splitByTargetExtraFieldsFlow())
+                                            .mapAsync(mappingConfig.getParallelism(), this::enrichAndFilterSignal)
+                                            .mapConcat(x -> x)
+                                            .map(outbound -> handleOutboundSignal(outbound, outboundMappingProcessor))
+                                            .flatMapConcat(x -> x)
+                            );
+                        })
                         .mapConcat(x -> x);
         return flow.to(Sink.foreach(this::forwardToPublisherActor));
-    }
-
-    private Source<OutboundMappingProcessor, NotUsed> getOutboundMappingProcessorSource() {
-        return Source.from(outboundMappingProcessors)
-                .concatLazy(Source.lazySource(this::getOutboundMappingProcessorSource));
     }
 
     /**

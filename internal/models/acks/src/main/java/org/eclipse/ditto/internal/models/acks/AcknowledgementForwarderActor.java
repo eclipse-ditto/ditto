@@ -35,6 +35,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorRefFactory;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
 
@@ -127,13 +128,15 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
         return ACTOR_NAME_PREFIX + URLEncoder.encode(correlationId, Charset.defaultCharset());
     }
 
-    static Optional<ActorRef> startAcknowledgementForwarderForTest(final akka.actor.ActorContext context,
+    static Optional<ActorRef> startAcknowledgementForwarderForTest(final ActorRefFactory actorRefFactory,
+            final ActorRef parent,
+            final ActorRef ackRequester,
             final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig) {
 
-        final AcknowledgementForwarderActorStarter starter =
-                AcknowledgementForwarderActorStarter.getInstance(context, entityId, signal, acknowledgementConfig,
+        final AcknowledgementForwarderActorStarter starter = AcknowledgementForwarderActorStarter
+                .getInstance(actorRefFactory, parent, ackRequester, entityId, signal, acknowledgementConfig,
                         label -> true);
         return starter.get();
     }
@@ -145,7 +148,9 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
      * in case that an Actor with this name already exists, a new correlation ID is generated and the process repeated.
      * If the signal does not require acknowledgements, no forwarder starts and the signal itself is returned.
      *
-     * @param context the context ({@code getContext()} of the Actor to start the AcknowledgementForwarderActor in.
+     * @param actorRefFactory the factory to start the forwarder actor in.
+     * @param parent the parent of the forwarder actor.
+     * @param ackRequester the actor which should receive the forwarded acknowledgements.
      * @param entityId the entityId of the {@code Signal} which requested the Acknowledgements.
      * @param signal the signal for which acknowledgements are expected.
      * @param acknowledgementConfig the AcknowledgementConfig to use for looking up config values.
@@ -153,14 +158,16 @@ public final class AcknowledgementForwarderActor extends AbstractActor {
      * @return the signal for which a suitable ack forwarder has started whenever required.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static Signal<?> startAcknowledgementForwarder(final akka.actor.ActorContext context,
+    public static Signal<?> startAcknowledgementForwarder(final ActorRefFactory actorRefFactory,
+            final ActorRef parent,
+            final ActorRef ackRequester,
             final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,
             final Predicate<AcknowledgementLabel> isAckLabelAllowed) {
         final AcknowledgementForwarderActorStarter starter =
-                AcknowledgementForwarderActorStarter.getInstance(context, entityId, signal, acknowledgementConfig,
-                        isAckLabelAllowed);
+                AcknowledgementForwarderActorStarter.getInstance(actorRefFactory, parent, ackRequester, entityId,
+                        signal, acknowledgementConfig, isAckLabelAllowed);
         final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = signal.getDittoHeaders().toBuilder();
         starter.getConflictFree().ifPresent(dittoHeadersBuilder::correlationId);
         if (!signal.getDittoHeaders().getAcknowledgementRequests().isEmpty()) {

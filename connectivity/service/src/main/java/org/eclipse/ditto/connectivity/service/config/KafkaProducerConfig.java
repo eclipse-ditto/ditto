@@ -69,6 +69,11 @@ public interface KafkaProducerConfig {
     Config getAlpakkaConfig();
 
     /**
+     * @return timeout before the producer is initialized and considered "ready".
+     */
+    long getInitTimeoutSeconds();
+
+    /**
      * Returns an instance of {@code KafkaProducerConfig} based on the settings of the specified Config.
      *
      * @param config is supposed to provide the settings.
@@ -93,7 +98,9 @@ public interface KafkaProducerConfig {
 
         MAX_RESTARTS_COUNT("max-restarts-count", 5),
 
-        MAX_RESTARTS_WITHIN("max-restarts-within", Duration.ofMinutes(5));
+        MAX_RESTARTS_WITHIN("max-restarts-within", Duration.ofMinutes(5)),
+
+        INIT_TIMEOUT_SECONDS("init-timeout-seconds", 3);
 
         private final String path;
         private final Object defaultValue;
