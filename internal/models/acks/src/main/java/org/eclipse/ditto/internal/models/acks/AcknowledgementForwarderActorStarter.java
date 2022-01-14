@@ -28,18 +28,18 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
-import org.eclipse.ditto.protocol.TopicPath;
+import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.base.model.signals.acks.AcknowledgementRequestDuplicateCorrelationIdException;
-import org.eclipse.ditto.base.model.signals.Signal;
+import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.messages.model.signals.commands.MessageCommand;
+import org.eclipse.ditto.policies.model.signals.announcements.PolicyAnnouncement;
+import org.eclipse.ditto.protocol.TopicPath;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
-import akka.actor.ActorContext;
 import akka.actor.ActorRef;
+import akka.actor.ActorRefFactory;
 import akka.actor.InvalidActorNameException;
 import akka.actor.Props;
 import akka.japi.Pair;
@@ -54,20 +54,26 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
 
     private static final String PREFIX_COUNTER_SEPARATOR = "#";
 
-    private final ActorContext actorContext;
+    private final ActorRefFactory actorRefFactory;
+    private final ActorRef parent;
+    private final ActorRef ackRequester;
     private final EntityId entityId;
     private final Signal<?> signal;
     private final DittoHeaders dittoHeaders;
     private final AcknowledgementConfig acknowledgementConfig;
     private final Set<AcknowledgementRequest> acknowledgementRequests;
 
-    private AcknowledgementForwarderActorStarter(final ActorContext context,
+    private AcknowledgementForwarderActorStarter(final ActorRefFactory actorRefFactory,
+            final ActorRef parent,
+            final ActorRef ackRequester,
             final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,
             final Predicate<AcknowledgementLabel> isAckLabelAllowed) {
 
-        actorContext = checkNotNull(context, "context");
+        this.actorRefFactory = checkNotNull(actorRefFactory, "actorRefFactory");
+        this.parent = parent;
+        this.ackRequester = ackRequester;
         this.entityId = checkNotNull(entityId, "entityId");
         this.signal = checkNotNull(signal, "signal");
         dittoHeaders = signal.getDittoHeaders();
@@ -81,8 +87,9 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
     /**
      * Returns an instance of {@code ActorStarter}.
      *
-     * @param context the context to start the forwarder actor in. Furthermore provides the sender and self
-     * reference for forwarding.
+     * @param actorRefFactory the factory to start the forwarder actor in.
+     * @param parent the parent of the forwarder actor.
+     * @param ackRequester the actor which should receive the forwarded acknowledgements.
      * @param entityId is used for the NACKs if the forwarder actor cannot be started.
      * @param signal the signal for which the forwarder actor is to start.
      * @param acknowledgementConfig provides configuration setting regarding acknowledgement handling.
@@ -91,13 +98,16 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
      * @return a means to start an acknowledgement forwarder actor.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    static AcknowledgementForwarderActorStarter getInstance(final ActorContext context,
+    static AcknowledgementForwarderActorStarter getInstance(final ActorRefFactory actorRefFactory,
+            final ActorRef parent,
+            final ActorRef ackRequester,
             final EntityId entityId,
             final Signal<?> signal,
             final AcknowledgementConfig acknowledgementConfig,
             final Predicate<AcknowledgementLabel> isAckLabelAllowed) {
 
-        return new AcknowledgementForwarderActorStarter(context, entityId, signal, acknowledgementConfig,
+        return new AcknowledgementForwarderActorStarter(actorRefFactory, parent, ackRequester, entityId, signal,
+                acknowledgementConfig,
                 // live-response is always allowed
                 isAckLabelAllowed.or(DittoAcknowledgementLabel.LIVE_RESPONSE::equals));
     }
@@ -181,9 +191,9 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
     }
 
     private ActorRef startAckForwarderActor(final DittoHeaders dittoHeaders) {
-        final Props props = AcknowledgementForwarderActor.props(actorContext.sender(), dittoHeaders,
+        final Props props = AcknowledgementForwarderActor.props(ackRequester, dittoHeaders,
                 acknowledgementConfig.getForwarderFallbackTimeout());
-        return actorContext.actorOf(props, AcknowledgementForwarderActor.determineActorName(dittoHeaders));
+        return actorRefFactory.actorOf(props, AcknowledgementForwarderActor.determineActorName(dittoHeaders));
     }
 
     private DittoRuntimeException getDuplicateCorrelationIdException(final Throwable cause) {
@@ -195,15 +205,12 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
     }
 
     private void declineAllNonDittoAckRequests(final DittoRuntimeException dittoRuntimeException) {
-        final ActorRef sender = actorContext.sender();
-        final ActorRef self = actorContext.self();
-
         // answer NACKs for all AcknowledgementRequests with labels which were not Ditto-defined
         acknowledgementRequests.stream()
                 .map(AcknowledgementRequest::getLabel)
                 .filter(Predicate.not(DittoAcknowledgementLabel::contains))
                 .map(label -> getNack(label, dittoRuntimeException))
-                .forEach(nack -> sender.tell(nack, self));
+                .forEach(nack -> ackRequester.tell(nack, parent));
     }
 
     private Acknowledgement getNack(final AcknowledgementLabel label,

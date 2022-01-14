@@ -25,11 +25,11 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
+import org.eclipse.ditto.base.model.signals.acks.AcknowledgementRequestDuplicateCorrelationIdException;
 import org.eclipse.ditto.internal.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.internal.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.things.model.ThingId;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
-import org.eclipse.ditto.base.model.signals.acks.AcknowledgementRequestDuplicateCorrelationIdException;
 import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -93,7 +93,6 @@ public final class AcknowledgementForwarderActorStarterTest {
         when(actorContext.actorOf(any(Props.class), anyString()))
                 .thenAnswer((Answer<ActorRef>) invocationOnMock -> actorSystem.actorOf(invocationOnMock.getArgument(0),
                         invocationOnMock.getArgument(1)));
-        when(actorContext.sender()).thenReturn(testProbe.ref());
     }
 
     @Test
@@ -155,7 +154,9 @@ public final class AcknowledgementForwarderActorStarterTest {
     }
 
     private AcknowledgementForwarderActorStarter getActorStarter(final DittoHeaders dittoHeaders) {
-        return AcknowledgementForwarderActorStarter.getInstance(actorContext, KNOWN_ENTITY_ID,
+        return AcknowledgementForwarderActorStarter.getInstance(actorContext, TestProbe.apply(actorSystem).ref(),
+                testProbe.ref(),
+                KNOWN_ENTITY_ID,
                 ThingDeleted.of(KNOWN_ENTITY_ID, 1L, Instant.EPOCH, dittoHeaders, null),
                 acknowledgementConfig, label -> true);
     }

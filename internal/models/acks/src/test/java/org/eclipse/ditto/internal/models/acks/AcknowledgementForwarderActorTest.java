@@ -53,6 +53,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
@@ -130,10 +131,10 @@ public final class AcknowledgementForwarderActorTest {
                 Acknowledgement.of(acknowledgementLabel, entityId, HttpStatus.ACCEPTED, dittoHeaders);
 
         new TestKit(actorSystem) {{
-            when(actorContext.sender()).thenReturn(getRef());
 
             final Optional<ActorRef> underTest =
-                    AcknowledgementForwarderActor.startAcknowledgementForwarderForTest(actorContext, entityId, signal,
+                    AcknowledgementForwarderActor.startAcknowledgementForwarderForTest(actorContext,
+                            TestProbe.apply(actorSystem).ref(), getRef(), entityId, signal,
                             acknowledgementConfig);
 
             softly.assertThat(underTest).isPresent();
