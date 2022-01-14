@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -275,7 +276,16 @@ public final class KafkaClientActor extends BaseClientActor {
 
     @Override
     protected CompletionStage<Status.Status> startPublisherActor() {
-        return CompletableFuture.completedFuture(DONE);
+        // wait for actor initialization to be sure any authentication errors are handled with backoff
+        return new CompletableFuture<Status.Status>()
+                .completeOnTimeout(DONE, kafkaConfig.getProducerConfig().getInitTimeoutSeconds(), TimeUnit.SECONDS);
+    }
+
+    @Override
+    protected CompletionStage<Status.Status> startConsumerActors(@Nullable final ClientConnected clientConnected) {
+        // wait for actor initialization to be sure any authentication errors are handled with backoff
+        return new CompletableFuture<Status.Status>()
+                .completeOnTimeout(DONE, kafkaConfig.getConsumerConfig().getInitTimeoutSeconds(), TimeUnit.SECONDS);
     }
 
     @Override

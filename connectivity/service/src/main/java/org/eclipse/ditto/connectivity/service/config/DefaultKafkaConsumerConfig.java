@@ -38,6 +38,7 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
     private final ExponentialBackOffConfig restartBackOffConfig;
     private final Config alpakkaConfig;
     private final Duration metricCollectingInterval;
+    private final long initTimeoutSeconds;
 
     private DefaultKafkaConsumerConfig(final Config kafkaConsumerScopedConfig) {
         throttlingConfig = ConnectionThrottlingConfig.of(kafkaConsumerScopedConfig);
@@ -49,6 +50,7 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
         if (metricCollectingInterval.isNegative() || metricCollectingInterval.isZero()) {
             throw new DittoConfigError("The Kafka consumer metric collecting interval has to be positive.");
         }
+        initTimeoutSeconds = kafkaConsumerScopedConfig.getLong(ConfigValue.INIT_TIMEOUT_SECONDS.getConfigPath());
     }
 
     /**
@@ -87,6 +89,11 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
     }
 
     @Override
+    public long getInitTimeoutSeconds() {
+        return initTimeoutSeconds;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -98,12 +105,14 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
         return Objects.equals(throttlingConfig, that.throttlingConfig) &&
                 Objects.equals(restartBackOffConfig, that.restartBackOffConfig) &&
                 Objects.equals(alpakkaConfig, that.alpakkaConfig) &&
-                Objects.equals(metricCollectingInterval, that.metricCollectingInterval);
+                Objects.equals(metricCollectingInterval, that.metricCollectingInterval) &&
+                Objects.equals(initTimeoutSeconds, that.initTimeoutSeconds);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(throttlingConfig, restartBackOffConfig, alpakkaConfig, metricCollectingInterval);
+        return Objects.hash(throttlingConfig, restartBackOffConfig, alpakkaConfig, metricCollectingInterval,
+                initTimeoutSeconds);
     }
 
     @Override
@@ -113,6 +122,7 @@ final class DefaultKafkaConsumerConfig implements KafkaConsumerConfig {
                 ", restartBackOffConfig=" + restartBackOffConfig +
                 ", alpakkaConfig=" + alpakkaConfig +
                 ", metricCollectingInterval=" + metricCollectingInterval +
+                ", initTimeoutSeconds=" + initTimeoutSeconds +
                 "]";
     }
 

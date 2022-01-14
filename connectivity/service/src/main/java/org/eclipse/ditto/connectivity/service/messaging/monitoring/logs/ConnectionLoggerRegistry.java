@@ -325,7 +325,10 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
         mapsKeysToDelete.forEach(loggerKey -> {
             // flush logs before removing from loggers:
             try {
-                LOGGERS.get(loggerKey).close();
+                final ConnectionLogger connectionLogger = LOGGERS.get(loggerKey);
+                if (connectionLogger != null) {
+                    connectionLogger.close();
+                }
             } catch (final IOException e) {
                 LOGGER.warn("Exception during closing logger <{}>: <{}>: {}", loggerKey, e.getClass().getSimpleName(),
                         e.getMessage());

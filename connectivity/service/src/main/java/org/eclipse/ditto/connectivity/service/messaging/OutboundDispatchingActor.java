@@ -152,6 +152,8 @@ final class OutboundDispatchingActor extends AbstractActor {
         if (hasSourceDeclaredAcks || liveCommandExpectingResponse) {
             // start ackregator for source declared acks
             return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
+                    self(),
+                    sender(),
                     entityId,
                     signal,
                     settings.getAcknowledgementConfig(),

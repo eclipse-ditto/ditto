@@ -145,6 +145,7 @@ import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
 import akka.stream.Materializer;
+import akka.stream.SourceRef;
 import akka.stream.javadsl.Sink;
 
 /**
@@ -188,7 +189,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
     private final SupervisorStrategy supervisorStrategy;
     private final ClientActorRefs clientActorRefs;
-    private final Duration clientActorRefsNotificationDelay;
     private final DittoProtocolSub dittoProtocolSub;
     private final int subscriptionIdPrefixLength;
     private final String actorUUID;
@@ -257,7 +257,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         reconnectTimeoutStrategy = DuplicationReconnectTimeoutStrategy.fromConfig(clientConfig);
         supervisorStrategy = createSupervisorStrategy(getSelf());
         clientActorRefs = ClientActorRefs.empty();
-        clientActorRefsNotificationDelay = randomize(clientConfig.getClientActorRefsNotificationDelay());
         subscriptionIdPrefixLength =
                 ConnectionPersistenceActor.getSubscriptionPrefixLength(connection.getClientCount());
 
@@ -307,9 +306,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // inform connection actor of my presence if there are other client actors
         if (connection.getClientCount() > 1 && !dryRun) {
             connectionActor.tell(getSelf(), getSelf());
-            startTimerWithFixedDelay(Control.REFRESH_CLIENT_ACTOR_REFS.name(),
-                    Control.REFRESH_CLIENT_ACTOR_REFS,
-                    clientActorRefsNotificationDelay);
         }
         clientActorRefs.add(getSelf());
 
@@ -503,7 +499,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(Signal.class, this::handleSignal)
                 .event(ActorRef.class, this::onOtherClientActorStartup)
                 .event(Terminated.class, this::otherClientActorTerminated)
-                .eventEquals(Control.REFRESH_CLIENT_ACTOR_REFS, this::refreshClientActorRefs)
+                .eventEquals(HealthSignal.PING, (ping, data) -> {
+                    sender().tell(HealthSignal.PONG, self());
+                    return stay();
+                })
+                .event(SourceRef.class, this::refreshClientActorRefs)
+                .event(ClientActorRefs.class, this::refreshClientActorRefs)
                 .event(FatalPubSubException.class, this::failConnectionDueToPubSubException);
     }
 
@@ -538,9 +539,23 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
-    private FSM.State<BaseClientState, BaseClientData> refreshClientActorRefs(final Control refreshClientActorRefs,
+    private FSM.State<BaseClientState, BaseClientData> refreshClientActorRefs(
+            final SourceRef clientActorRefsSourceRef,
             final BaseClientData data) {
-        connectionActor.tell(getSelf(), getSelf());
+        ((SourceRef<ActorRef>) clientActorRefsSourceRef).getSource()
+                .runWith(Sink.seq(), Materializer.createMaterializer(getContext()))
+                .thenAccept(clientActorRefs -> {
+                    final ClientActorRefs newClientActorRefs = ClientActorRefs.empty();
+                    newClientActorRefs.add(clientActorRefs);
+                    self().tell(newClientActorRefs, ActorRef.noSender());
+                });
+        return stay();
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> refreshClientActorRefs(final ClientActorRefs clientActorRefs,
+            final BaseClientData data) {
+        this.clientActorRefs.clear();
+        this.clientActorRefs.add(clientActorRefs.getSortedRefs());
         return stay();
     }
 
@@ -2012,10 +2027,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         }
     }
 
-    private static Duration randomize(final Duration base) {
-        return base.plus(Duration.ofMillis((long) (base.toMillis() * Math.random())));
-    }
-
     private static Optional<Integer> parseHexString(final String hexString) {
         try {
             return Optional.of(Integer.parseUnsignedInt(hexString, 16));
@@ -2216,7 +2227,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private enum Control {
         INIT_COMPLETE,
-        REFRESH_CLIENT_ACTOR_REFS,
         CONNECT_AFTER_TUNNEL_ESTABLISHED,
         GOTO_CONNECTED_AFTER_INITIALIZATION
     }
@@ -2251,6 +2261,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         private CloseConnectionAndShutdown() {
             // no-op
         }
+    }
+
+    public enum HealthSignal {
+        PING,
+        PONG;
     }
 
 }
