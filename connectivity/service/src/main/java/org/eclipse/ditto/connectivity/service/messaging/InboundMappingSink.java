@@ -37,7 +37,6 @@ import akka.actor.Status;
 import akka.dispatch.MessageDispatcher;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Source;
 
 /**
  * This class creates a Sink which is responsible for inbound payload mapping.
@@ -127,13 +126,15 @@ public final class InboundMappingSink {
     private Sink<Object, NotUsed> mapMessage() {
         final Flow<Object, InboundMappingOutcomes, NotUsed> mapMessageFlow =
                 Flow.fromFunction(ExternalMessageWithSender.class::cast)
-                        .zip(getLoopingInboundMappingProcessorSource())
+                        .zipWithIndex()
                         // parallelize potentially CPU-intensive payload mapping on this actor's dispatcher
                         .mapAsync(processorPoolSize, pair -> CompletableFuture.supplyAsync(
                                 () -> {
                                     final var message = pair.first();
-                                    final var inboundMappingProcessor = pair.second();
-                                    logger.debug("Received inbound Message to map: {}", message);
+                                    final int processorIndex = (int) (pair.second() % inboundMappingProcessors.size());
+                                    final var inboundMappingProcessor = inboundMappingProcessors.get(processorIndex);
+                                    logger.debug("Received inbound Message to map with processor no. <{}>: {}",
+                                            processorIndex, message);
                                     return mapInboundMessage(message, inboundMappingProcessor);
                                 },
                                 messageMappingProcessorDispatcher)
@@ -155,11 +156,6 @@ public final class InboundMappingSink {
                 // map returns outcome
                 .map(Object.class::cast)
                 .to(inboundDispatchingSink);
-    }
-
-    private Source<InboundMappingProcessor, NotUsed> getLoopingInboundMappingProcessorSource() {
-        return Source.from(inboundMappingProcessors)
-                .concatLazy(Source.lazySource(this::getLoopingInboundMappingProcessorSource));
     }
 
     private int determinePoolSize(final int connectionPoolSize, final int maxPoolSize) {

@@ -514,7 +514,7 @@ final class ImmutableConnection implements Connection {
         private final List<Source> sources = new ArrayList<>();
         private final List<Target> targets = new ArrayList<>();
         private int clientCount = 1;
-        private int processorPoolSize = 5;
+        private int processorPoolSize = 1;
         private PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.emptyPayloadMappingDefinition();
         private final Map<String, String> specificConfig = new HashMap<>();
@@ -581,7 +581,7 @@ final class ImmutableConnection implements Connection {
 
         @Override
         public ConnectionBuilder processorPoolSize(final int processorPoolSize) {
-            checkArgument(processorPoolSize, ps -> ps > 0, () -> "The consumer count must be positive!");
+            checkArgument(processorPoolSize, ps -> ps > 0, () -> "The processor pool size must be positive!");
             this.processorPoolSize = processorPoolSize;
             return this;
         }
