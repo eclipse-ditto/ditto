@@ -62,7 +62,7 @@ This maps to the following HTTP API endpoints:
 
 #### `/things` in API 2 - dynamic part
 
-Additionally to that "static part" of the HTTP API which is defined by Ditto, the API is dynamically enhanced by the
+Additionally, to that "static part" of the HTTP API which is defined by Ditto, the API is dynamically enhanced by the
 JSON structure of the Thing.<br/>
 
 {% include note.html content="This automatically turns each small aspect of a **digital twin** into an API endpoint." %}
@@ -202,7 +202,7 @@ true
 A further mechanism in the API for partial requests is using a so-called field selector. This is useful when the JSON
 structure of the `Thing` or other entity should be kept intact, but not all information is relevant.
 
-The field selector is passed as a HTTP query parameter `fields` and contains a comma separated list of fields to include
+The field selector is passed as an HTTP query parameter `fields` and contains a comma separated list of fields to include
 in the response.
 
 It is possible to use the wildcard operator '*' as feature ID and retrieve a property of multiple features. 

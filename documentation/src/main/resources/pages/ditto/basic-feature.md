@@ -16,7 +16,7 @@ Within a Thing each Feature is identified by a unique string - the so-called Fea
 A Feature ID often needs to be set in the path of a HTTP request. Due to this fact we strongly recommend using a
 restricted set of characters (e.g. those for [Uniform Resource Identifiers (URI)](https://www.ietf.org/rfc/rfc3986.txt)).
 
-It is not recommended to use '*' as Feature ID because the '*' has a special meaning and can lead to unexpected
+The Feature ID may not be the wildcard operator '*' because it has a special meaning and can lead to unexpected
 results when retrieving or searching for things/features.
 
 ## Feature properties
