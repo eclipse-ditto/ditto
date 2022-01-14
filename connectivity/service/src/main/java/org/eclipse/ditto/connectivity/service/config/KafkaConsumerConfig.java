@@ -57,6 +57,11 @@ public interface KafkaConsumerConfig {
     Duration getMetricCollectingInterval();
 
     /**
+     * @return timeout before the consumer is initialized and considered "ready".
+     */
+    long getInitTimeoutSeconds();
+
+    /**
      * Returns an instance of {@code KafkaConsumerConfig} based on the settings of the specified Config.
      *
      * @param config is supposed to provide the settings.
@@ -76,7 +81,9 @@ public interface KafkaConsumerConfig {
         /**
          * The interval in which Apache Kafka client metrics should be collected.
          */
-        METRIC_COLLECTING_INTERVAL("metric-collecting-interval", Duration.ofSeconds(10L));
+        METRIC_COLLECTING_INTERVAL("metric-collecting-interval", Duration.ofSeconds(10L)),
+
+        INIT_TIMEOUT_SECONDS("init-timeout-seconds", 3);
 
         private final String path;
         private final Object defaultValue;

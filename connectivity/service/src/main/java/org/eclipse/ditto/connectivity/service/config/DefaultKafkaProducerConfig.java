@@ -38,6 +38,7 @@ final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
     private final int maxRestartsCount;
     private final Duration maxRestartsWithin;
     private final Config alpakkaConfig;
+    private final long initTimeoutSeconds;
 
     private DefaultKafkaProducerConfig(final Config kafkaProducerScopedConfig) {
         queueSize = kafkaProducerScopedConfig.getInt(ConfigValue.QUEUE_SIZE.getConfigPath());
@@ -48,6 +49,7 @@ final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
         maxRestartsCount = kafkaProducerScopedConfig.getInt(ConfigValue.MAX_RESTARTS_COUNT.getConfigPath());
         maxRestartsWithin = kafkaProducerScopedConfig.getDuration(ConfigValue.MAX_RESTARTS_WITHIN.getConfigPath());
         alpakkaConfig = kafkaProducerScopedConfig.getConfig(ALPAKKA_PATH);
+        initTimeoutSeconds = kafkaProducerScopedConfig.getLong(ConfigValue.INIT_TIMEOUT_SECONDS.getConfigPath());
     }
 
     /**
@@ -103,6 +105,11 @@ final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
     }
 
     @Override
+    public long getInitTimeoutSeconds() {
+        return initTimeoutSeconds;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -114,13 +121,14 @@ final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
                 Objects.equals(randomFactor, that.randomFactor) &&
                 Objects.equals(maxRestartsCount, that.maxRestartsCount) &&
                 Objects.equals(maxRestartsWithin, that.maxRestartsWithin) &&
-                Objects.equals(alpakkaConfig, that.alpakkaConfig);
+                Objects.equals(alpakkaConfig, that.alpakkaConfig) &&
+                Objects.equals(initTimeoutSeconds, that.initTimeoutSeconds);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(queueSize, parallelism, minBackoff, maxBackoff, maxRestartsCount, maxRestartsWithin,
-                randomFactor, alpakkaConfig);
+                randomFactor, alpakkaConfig, initTimeoutSeconds);
     }
 
     @Override
@@ -134,6 +142,7 @@ final class DefaultKafkaProducerConfig implements KafkaProducerConfig {
                 ", maxRestartsCount=" + maxRestartsCount +
                 ", maxRestartsWithin=" + maxRestartsWithin +
                 ", alpakkaConfig=" + alpakkaConfig +
+                ", initTimeoutSeconds=" + initTimeoutSeconds +
                 "]";
     }
 
