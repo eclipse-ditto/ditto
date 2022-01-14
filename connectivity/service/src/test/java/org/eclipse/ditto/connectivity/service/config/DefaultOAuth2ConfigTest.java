@@ -62,6 +62,11 @@ public final class DefaultOAuth2ConfigTest {
         softly.assertThat(underTest.shouldEnforceHttps())
                 .describedAs(OAuth2Config.ConfigValue.ENFORCE_HTTPS.getConfigPath())
                 .isEqualTo(false);
+
+        softly.assertThat(underTest.getTokenCacheConfig())
+                .isNotNull();
+        softly.assertThat(underTest.getTokenCacheConfig().getMaximumSize())
+                .isEqualTo(1);
     }
 
 }
