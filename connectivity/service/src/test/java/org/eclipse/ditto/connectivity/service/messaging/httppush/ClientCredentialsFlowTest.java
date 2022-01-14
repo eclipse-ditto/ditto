@@ -80,7 +80,7 @@ public final class ClientCredentialsFlowTest {
     @Before
     public void init() throws Exception {
         asyncLoadCounter = new AtomicLong();
-        final ClientCredentialsFlow underTest = initClientCredentialsFlow(DEFAULT_TOKEN_TTL, Duration.ofSeconds(10));
+        final ClientCredentialsFlow underTest = initClientCredentialsFlow(DEFAULT_TOKEN_TTL, Duration.ZERO);
         credentialsFlow = underTest.getFlow();
     }
 
@@ -120,6 +120,8 @@ public final class ClientCredentialsFlowTest {
 
     @Test
     public void reuseToken() {
+
+        // no token requested before first request is processed
         assertThat(asyncLoadCounter).hasValue(0);
 
         final CompletionStage<List<Pair<HttpRequest, HttpPushContext>>> resultFuture =
@@ -130,36 +132,28 @@ public final class ClientCredentialsFlowTest {
 
         final List<Pair<HttpRequest, HttpPushContext>> result = resultFuture.toCompletableFuture().join();
         assertThat(result).hasSize(5);
+
         final HttpHeader expectedHeader =
                 result.get(0).first().getHeader("Authorization").orElseThrow();
         assertThat(result).allSatisfy(
                 pair -> assertThat(pair.first().getHeader("Authorization")).contains(expectedHeader));
 
+        // 1 token was requested for multiple requests within expiration time
         assertThat(asyncLoadCounter).hasValue(1);
     }
 
     @Test
     public void testTokenExpiry() {
-        final Duration tokenTtl = Duration.ofSeconds(1);
+        final Duration tokenTtl = Duration.ofSeconds(2);
         final ClientCredentialsFlow clientCredentialsFlow = initClientCredentialsFlow(tokenTtl, Duration.ZERO);
 
-        // warmup (initial request takes longer and messes up timing)
-        final CompletionStage<Pair<HttpRequest, HttpPushContext>> warmupFuture =
-                Source.single(Pair.create(HTTP_REQUEST, PUSH_CONTEXT))
-                        .via(credentialsFlow)
-                        .runWith(Sink.head(), actorSystem);
-        final Pair<HttpRequest, HttpPushContext> warmup = warmupFuture.toCompletableFuture().join();
-        assertThat(warmup.first().getHeaders()).haveExactly(1,
-                new Condition<>(h -> "Authorization".equals(h.name()) && h.value().startsWith("Bearer"),
-                        "contains bearer token"));
-
-        // make 10 requests with delay of 500 milliseconds and expect 5 + 1(warmup) cache reloads for a ttl of 1s
+        // make 10 requests with delay of 300 milliseconds
         final int tokens = 10;
         final CompletionStage<List<Pair<HttpRequest, HttpPushContext>>> resultFuture =
                 Source.repeat(Pair.create(HTTP_REQUEST, PUSH_CONTEXT))
                         .take(tokens)
                         .via(clientCredentialsFlow.getFlow())
-                        .throttle(1, Duration.ofMillis(500))
+                        .throttle(1, Duration.ofMillis(300))
                         .runWith(Sink.seq(), actorSystem);
 
         final List<Pair<HttpRequest, HttpPushContext>> result = resultFuture.toCompletableFuture().join();
@@ -169,9 +163,11 @@ public final class ClientCredentialsFlowTest {
                 .collect(Collectors.groupingBy(
                         p -> p.first().getHeader("Authorization").map(HttpHeader::value).orElseThrow()));
 
-        final long expectedCacheReloads = 5;
-        assertThat(asyncLoadCounter).hasValue(expectedCacheReloads + 1); // + 1 because warmup is also counted
-        assertThat(requestsGroupedByToken).hasSize((int) expectedCacheReloads);
+        // verification is fuzzy because of timing issues
+        // expect max. 3 requested tokens within 3 seconds (max. 2 reloads within 3 seconds with exp. time of 2
+        // seconds + 1 requested for the initial load)
+        assertThat(asyncLoadCounter).hasValueBetween(2, 3);
+        assertThat(requestsGroupedByToken).hasSizeBetween(2, 3);
     }
 
     @Test

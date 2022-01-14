@@ -110,18 +110,17 @@ final class ClientCredentialsFlowVisitor implements
         }
 
         @Override
-        public long expireAfterCreate(final String key, final JsonWebToken value,
-                final long currentTime) {
-            // currentTime is not related to system time
+        public long expireAfterCreate(final String key, final JsonWebToken value, final long currentTime) {
+            // parameter currentTime is not related to system time
             final long now = System.currentTimeMillis();
             final long expireAfterMs = value.getExpirationTime().toEpochMilli() - now - maxClockSkew;
             return Duration.ofMillis(expireAfterMs).toNanos();
         }
 
         @Override
-        public long expireAfterUpdate(final String key, final JsonWebToken value,
-                final long currentTime, final long currentDuration) {
-            // currentTime is not related to system time
+        public long expireAfterUpdate(final String key, final JsonWebToken value, final long currentTime,
+                final long currentDuration) {
+            // parameter currentTime is not related to system time
             final long now = System.currentTimeMillis();
             final long expireAfterMs = value.getExpirationTime().toEpochMilli() - now - maxClockSkew;
             return Duration.ofMillis(expireAfterMs).toNanos();
