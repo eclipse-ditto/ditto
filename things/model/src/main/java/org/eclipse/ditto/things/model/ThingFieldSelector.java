@@ -13,14 +13,18 @@
 package org.eclipse.ditto.things.model;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.json.JsonPointer;
 
@@ -31,6 +35,8 @@ import org.eclipse.ditto.json.JsonPointer;
  * @since 2.0.0
  */
 public final class ThingFieldSelector implements JsonFieldSelector {
+
+    public static final JsonKey FEATURE_ID_WILDCARD = JsonKey.of("*");
 
     private static final JsonParseOptions JSON_PARSE_OPTIONS = JsonParseOptions.newBuilder()
             .withoutUrlDecoding()
@@ -86,6 +92,37 @@ public final class ThingFieldSelector implements JsonFieldSelector {
             return new ThingFieldSelector(JsonFactory.newFieldSelector(selectionString, JSON_PARSE_OPTIONS));
         }
         throw InvalidThingFieldSelectionException.forExtraFieldSelectionString(selectionString);
+    }
+
+    public JsonFieldSelector expandFeatureIdWildcards(final Features features) {
+        final Collection<JsonKey> featureIds =
+                features.stream().map(Feature::getId).map(JsonKey::of).collect(Collectors.toList());
+        return expandFeatureIdWildcards(featureIds);
+    }
+
+    public JsonFieldSelector expandFeatureIdWildcards(final Collection<JsonKey> featureIds) {
+        final List<JsonPointer> jsonPointerList = jsonFieldSelector.getPointers().stream()
+                .flatMap(jsonPointer -> expandFeatureIdWildcard(featureIds, jsonPointer)).collect(Collectors.toList());
+        return JsonFactory.newFieldSelector(jsonPointerList);
+    }
+
+    private Stream<JsonPointer> expandFeatureIdWildcard(final Collection<JsonKey> featureIds,
+            final JsonPointer jsonPointer) {
+        if (hasFeatureIdWildcard(jsonPointer)) {
+            return featureIds.stream().map(fid -> Thing.JsonFields.FEATURES.getPointer()
+                    .append(JsonPointer.of(fid))
+                    .append(jsonPointer.getSubPointer(2).orElse(JsonPointer.empty())));
+        } else {
+            return Stream.of(jsonPointer);
+        }
+    }
+
+    private boolean hasFeatureIdWildcard(final JsonPointer pointer) {
+        return pointer.getLevelCount() > 1
+                && pointer.getRoot()
+                .filter(root -> Thing.JsonFields.FEATURES.getPointer().equals(JsonPointer.of(root)))
+                .isPresent()
+                && pointer.get(1).filter(FEATURE_ID_WILDCARD::equals).isPresent();
     }
 
     /**

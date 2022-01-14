@@ -16,18 +16,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
@@ -59,33 +56,11 @@ public interface CachingSignalEnrichmentFacade extends SignalEnrichmentFacade {
                     .map(JsonValue::asObject)
                     .map(JsonObject::getKeys)
                     .orElse(Collections.emptyList());
-            final JsonFieldSelector jsonPointers = expandFeatureIdWildcard(fieldSelector, featureIds);
-            result = jsonObject.get(jsonPointers);
+            final JsonFieldSelector expandedSelector =
+                    ThingFieldSelector.fromJsonFieldSelector(fieldSelector).expandFeatureIdWildcards(featureIds);
+            result = jsonObject.get(expandedSelector);
         }
 
         return result;
     }
-
-    private static JsonFieldSelector expandFeatureIdWildcard(final JsonFieldSelector fieldSelector,
-            final Collection<JsonKey> featureIds) {
-
-        final List<JsonPointer> jsonPointerList = fieldSelector.getPointers().stream()
-                .flatMap(jsonPointer -> {
-                    if (jsonPointer.getLevelCount() > 1
-                            && jsonPointer.getRoot()
-                            .map(k -> Thing.JsonFields.FEATURES.getPointer().equals(JsonPointer.of(k)))
-                            .orElse(false)
-                            && jsonPointer.get(1).map(k -> JsonKey.of("*").equals(k)).orElse(false)) {
-                        return featureIds.stream()
-                                .map(fid -> Thing.JsonFields.FEATURES.getPointer()
-                                        .append(JsonPointer.of(fid))
-                                        .append(jsonPointer.getSubPointer(2).orElse(JsonPointer.empty())));
-                    } else {
-                        return Stream.of(jsonPointer);
-                    }
-                }).collect(Collectors.toList());
-
-        return JsonFactory.newFieldSelector(jsonPointerList);
-    }
-
 }

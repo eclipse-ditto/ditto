@@ -117,7 +117,7 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     @Test
     public void retrieveThingWithSelectedFields() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
+        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attributes/location");
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(JsonSchemaVersion.V_2)
                 .build();

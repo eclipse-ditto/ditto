@@ -28,7 +28,9 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
@@ -38,7 +40,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingEvent;
  * This strategy handles the {@link SudoRetrieveThing} command.
  */
 @Immutable
-final class SudoRetrieveThingStrategy extends AbstractRetrieveThingCommandStrategy<SudoRetrieveThing> {
+final class SudoRetrieveThingStrategy extends AbstractThingCommandStrategy<SudoRetrieveThing> {
 
     /**
      * Constructs a new {@code SudoRetrieveThingStrategy} object.
@@ -71,9 +73,9 @@ final class SudoRetrieveThingStrategy extends AbstractRetrieveThingCommandStrate
         final JsonSchemaVersion jsonSchemaVersion = determineSchemaVersion(command, theThing);
         final JsonObject thingJson = command.getSelectedFields()
                 .map(selectedFields -> {
-                    final JsonFieldSelector expandedFieldSelector = expandFeatureIdWildcard(selectedFields,
-                            Thing.JsonFields.FEATURES.getPointer(),
-                            thing.getFeatures().orElse(ThingsModelFactory.emptyFeatures()));
+                    final Features features = thing.getFeatures().orElse(ThingsModelFactory.emptyFeatures());
+                    final JsonFieldSelector expandedFieldSelector =
+                            ThingFieldSelector.fromJsonFieldSelector(selectedFields).expandFeatureIdWildcards(features);
                     return theThing.toJson(jsonSchemaVersion, expandedFieldSelector, FieldType.regularOrSpecial());
                 })
                 .orElseGet(() -> theThing.toJson(jsonSchemaVersion, FieldType.regularOrSpecial()));
