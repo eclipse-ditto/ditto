@@ -40,6 +40,8 @@ import akka.stream.javadsl.Flow;
 final class ClientCredentialsFlowVisitor implements
         CredentialsVisitor<Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed>> {
 
+    private static final String HTTP_PUSH_DISPATCHER = "http-push-connection-dispatcher";
+
     private final ActorSystem actorSystem;
     private final HttpPushConfig config;
 
@@ -88,7 +90,7 @@ final class ClientCredentialsFlowVisitor implements
                         JsonWebTokenExpiry.of(config.getOAuth2Config().getMaxClockSkew()),
                         config.getOAuth2Config().getTokenCacheConfig(),
                         "token-cache",
-                        actorSystem.dispatcher() // TODO use separate dispatcher
+                        actorSystem.dispatchers().lookup(HTTP_PUSH_DISPATCHER)
                 );
 
         return ClientCredentialsFlow.of(tokenCache).getFlow();
