@@ -12,10 +12,15 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub.ddata;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CompletionStage;
+
 import akka.actor.ActorRef;
 import akka.actor.Address;
 import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ORMultiMap;
+import akka.cluster.ddata.Replicator;
 
 /**
  * Reader of distributed Bloom filters of subscribed topics.
@@ -67,4 +72,22 @@ public interface DDataReader<K, T> {
      * @return Key of the distributed data.
      */
     Key<ORMultiMap<K, T>> getKey(int shardNumber);
+
+    /**
+     * Asynchronously retrieves the replicated data of a key.
+     *
+     * @param key the key to get the replicated data for.
+     * @param consistency how many replicas to consult.
+     * @return future of the replicated data that completes exceptionally on error.
+     * @since 2.3.0
+     */
+    CompletionStage<Optional<ORMultiMap<K, T>>> get(Key<ORMultiMap<K, T>> key, Replicator.ReadConsistency consistency);
+
+    /**
+     * Retrieve all replicated data shards.
+     *
+     * @param consistency the read consistency.
+     * @return the list of replicated data.
+     */
+    CompletionStage<List<ORMultiMap<K, T>>> getAllShards(Replicator.ReadConsistency consistency);
 }
