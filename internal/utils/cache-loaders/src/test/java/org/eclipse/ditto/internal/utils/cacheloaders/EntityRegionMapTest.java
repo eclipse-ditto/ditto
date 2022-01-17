@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.policies.model.PolicyConstants;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.junit.AfterClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -44,6 +45,7 @@ public final class EntityRegionMapTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(EntityRegionMap.class, areImmutable(),
                 provided(ActorRef.class).isAlsoImmutable(),

@@ -38,7 +38,7 @@ pipeline {
             agent {
                 docker {
                     args "$DITTO_DOCKER_ARGUMENTS"
-                    image "$DITTO_DOCKER_IMAGE_MAVEN_JDK_11"
+                    image "$DITTO_DOCKER_IMAGE_MAVEN_JDK_17"
                     reuseNode true
                 }
             }
@@ -61,7 +61,7 @@ pipeline {
             agent {
                 docker {
                     args "$DITTO_DOCKER_ARGUMENTS"
-                    image "$DITTO_DOCKER_IMAGE_MAVEN_JDK_11"
+                    image "$DITTO_DOCKER_IMAGE_MAVEN_JDK_17"
                     reuseNode true
                 }
             }

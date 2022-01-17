@@ -25,6 +25,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.policies.model.signals.commands.PolicyCommandResponse;
 import org.eclipse.ditto.policies.model.signals.commands.TestConstants;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -46,6 +47,7 @@ public final class RetrievePolicyEntryResponseTest {
 
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(RetrievePolicyEntryResponse.class, areImmutable(),
                 provided(JsonObject.class, PolicyId.class).isAlsoImmutable());

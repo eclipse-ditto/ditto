@@ -13,6 +13,7 @@
 package org.eclipse.ditto.connectivity.api;
 
 import org.eclipse.ditto.connectivity.model.PayloadMapping;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -23,6 +24,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class MappableOutboundSignalTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(MappableOutboundSignal.class, MutabilityMatchers.areImmutable(),
                 AllowedReason.provided(OutboundSignal.class, PayloadMapping.class).areAlsoImmutable());

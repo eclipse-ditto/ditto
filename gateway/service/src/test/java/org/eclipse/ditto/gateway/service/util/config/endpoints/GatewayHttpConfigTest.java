@@ -35,6 +35,7 @@ import org.eclipse.ditto.base.model.headers.HeaderDefinition;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.internal.utils.config.DittoConfigError;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -60,6 +61,7 @@ public final class GatewayHttpConfigTest {
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(GatewayHttpConfig.class,
                 areImmutable(),

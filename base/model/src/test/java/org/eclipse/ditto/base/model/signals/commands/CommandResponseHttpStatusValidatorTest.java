@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.common.HttpStatus;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -30,6 +31,7 @@ import org.junit.Test;
 public final class CommandResponseHttpStatusValidatorTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(CommandResponseHttpStatusValidator.class, areImmutable());
     }

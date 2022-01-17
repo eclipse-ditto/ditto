@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.entity.id.restriction.LengthRestrictionTestBase;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -31,6 +32,7 @@ public final class ThingsModelFactoryTest extends LengthRestrictionTestBase {
 
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ThingsModelFactory.class, areImmutable());
     }

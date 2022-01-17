@@ -65,10 +65,7 @@ import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.rql.query.filter.QueryFilterCriteriaFactory;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.ExpectedException;
 
 import com.typesafe.config.Config;
@@ -108,6 +105,7 @@ public class ConnectionValidatorTest {
     public final ExpectedException exception = ExpectedException.none();
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void testImmutability() {
         assertInstancesOf(ConnectionValidator.class,
                 areImmutable(),

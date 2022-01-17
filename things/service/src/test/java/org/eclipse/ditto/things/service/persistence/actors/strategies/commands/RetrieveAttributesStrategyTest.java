@@ -27,6 +27,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributes;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveAttributesResponse;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -42,6 +43,7 @@ public final class RetrieveAttributesStrategyTest extends AbstractCommandStrateg
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(RetrieveAttributesStrategy.class, areImmutable());
     }

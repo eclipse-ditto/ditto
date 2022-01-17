@@ -24,6 +24,7 @@ import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -47,6 +48,7 @@ public final class ResourceCreatedTest {
 
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ResourceCreated.class, areImmutable(),
                 provided(Resource.class, Label.class).isAlsoImmutable());

@@ -21,6 +21,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -36,6 +37,7 @@ public final class IntValueValidatorTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(IntValueValidator.class, areImmutable());
     }

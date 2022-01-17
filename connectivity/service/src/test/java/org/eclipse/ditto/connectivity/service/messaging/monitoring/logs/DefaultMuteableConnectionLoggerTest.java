@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collection;
@@ -120,7 +119,7 @@ public final class DefaultMuteableConnectionLoggerTest {
         underTest.exception(INFO_PROVIDER, MESSAGE, MESSAGE_ARGUMENTS);
         underTest.getLogs();
 
-        verifyZeroInteractions(delegate);
+        Mockito.verifyNoInteractions(delegate);
     }
 
     @Test

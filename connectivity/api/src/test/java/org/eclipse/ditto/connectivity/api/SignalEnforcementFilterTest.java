@@ -35,6 +35,7 @@ import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingConstants;
 import org.eclipse.ditto.things.model.ThingId;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -48,6 +49,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class SignalEnforcementFilterTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(SignalEnforcementFilter.class, MutabilityMatchers.areImmutable(),
                 AllowedReason.provided(Enforcement.class, Placeholder.class).areAlsoImmutable(),

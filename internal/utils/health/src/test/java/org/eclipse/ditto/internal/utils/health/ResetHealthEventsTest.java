@@ -14,6 +14,7 @@ package org.eclipse.ditto.internal.utils.health;
 
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 
@@ -25,6 +26,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ResetHealthEventsTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(ResetHealthEvents.class, areImmutable());
     }

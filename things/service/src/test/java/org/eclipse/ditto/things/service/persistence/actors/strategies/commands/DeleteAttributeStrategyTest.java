@@ -29,6 +29,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.DeleteAttribute;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteAttributeResponse;
 import org.eclipse.ditto.things.model.signals.events.AttributeDeleted;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -44,6 +45,7 @@ public final class DeleteAttributeStrategyTest extends AbstractCommandStrategyTe
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DeleteAttributeStrategy.class, areImmutable());
     }

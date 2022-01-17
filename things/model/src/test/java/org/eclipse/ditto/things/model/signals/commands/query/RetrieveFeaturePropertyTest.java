@@ -28,11 +28,12 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
+import org.mockito.junit.MockitoJUnitRunner;
 
 /**
  * Unit test for {@link RetrieveFeatureProperty}.
@@ -52,6 +53,7 @@ public final class RetrieveFeaturePropertyTest {
 
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(RetrieveFeatureProperty.class,
                 areImmutable(),

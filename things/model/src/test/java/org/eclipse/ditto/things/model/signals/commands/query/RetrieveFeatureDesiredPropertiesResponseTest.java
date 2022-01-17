@@ -28,6 +28,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -54,6 +55,7 @@ public final class RetrieveFeatureDesiredPropertiesResponseTest {
             .build();
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(RetrieveFeatureDesiredPropertiesResponse.class, areImmutable(),
                 provided(FeatureProperties.class, ThingId.class).isAlsoImmutable());

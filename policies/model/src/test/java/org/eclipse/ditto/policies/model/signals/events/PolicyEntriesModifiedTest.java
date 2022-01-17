@@ -26,6 +26,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.policies.model.PolicyEntry;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -51,6 +52,7 @@ public final class PolicyEntriesModifiedTest {
 
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(PolicyEntriesModified.class, areImmutable(),
                 provided(Iterable.class, PolicyEntry.class).isAlsoImmutable());

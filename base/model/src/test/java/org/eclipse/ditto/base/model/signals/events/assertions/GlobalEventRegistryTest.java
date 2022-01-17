@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.model.signals.JsonTypeNotParsableException;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class GlobalEventRegistryTest {
@@ -39,6 +40,7 @@ public class GlobalEventRegistryTest {
         testType = TestEvent.TYPE;
     }
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(GlobalEventRegistry.class, areImmutable());
     }

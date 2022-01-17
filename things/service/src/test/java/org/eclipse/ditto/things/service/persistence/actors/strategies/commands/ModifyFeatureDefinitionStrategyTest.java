@@ -29,6 +29,7 @@ import org.eclipse.ditto.things.model.signals.events.FeatureDefinitionModified;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -53,6 +54,7 @@ public final class ModifyFeatureDefinitionStrategyTest extends AbstractCommandSt
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ModifyFeatureDefinitionStrategy.class, areImmutable());
     }

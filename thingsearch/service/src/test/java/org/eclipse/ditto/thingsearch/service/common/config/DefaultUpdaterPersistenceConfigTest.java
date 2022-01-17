@@ -20,6 +20,7 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadConcern;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.ReadPreference;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -45,6 +46,7 @@ public final class DefaultUpdaterPersistenceConfigTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultUpdaterPersistenceConfig.class,
                 areImmutable(),

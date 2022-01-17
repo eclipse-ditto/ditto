@@ -40,6 +40,7 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.policies.model.signals.commands.modify.ModifySubject;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyAttribute;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -67,6 +68,7 @@ public class PlaceholderSubstitutionTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(PlaceholderSubstitution.class, areImmutable(),
                 provided(HeaderBasedPlaceholderSubstitutionAlgorithm.class, SubstitutionStrategyRegistry.class)

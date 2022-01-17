@@ -23,6 +23,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -50,6 +51,7 @@ public final class ImmutableDefinitionIdentifierTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableDefinitionIdentifier.class, areImmutable(),
                 provided(URL.class).isAlsoImmutable());

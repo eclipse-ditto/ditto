@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.function.Function;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -58,6 +59,7 @@ public final class JavaValueFieldDefinitionTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(JavaValueFieldDefinition.class,
                 areImmutable(),

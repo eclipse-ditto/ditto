@@ -25,6 +25,7 @@ import java.util.Set;
 import org.eclipse.ditto.gateway.service.util.config.security.DefaultOAuthConfig;
 import org.eclipse.ditto.gateway.service.util.config.security.OAuthConfig;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
@@ -51,6 +52,7 @@ public final class JwtSubjectIssuersConfigTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(JwtSubjectIssuersConfig.class, areImmutable(),
                 assumingFields("subjectIssuerConfigMap")

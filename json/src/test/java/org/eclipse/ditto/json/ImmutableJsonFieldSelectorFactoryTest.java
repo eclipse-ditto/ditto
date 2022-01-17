@@ -22,6 +22,7 @@ import java.net.URLEncoder;
 import java.util.Set;
 
 import org.assertj.core.api.Assertions;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -37,6 +38,7 @@ public final class ImmutableJsonFieldSelectorFactoryTest {
 
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonFieldSelectorFactory.class, areImmutable());
     }

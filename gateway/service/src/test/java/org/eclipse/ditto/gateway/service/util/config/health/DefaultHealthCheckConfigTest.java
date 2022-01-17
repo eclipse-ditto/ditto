@@ -21,6 +21,7 @@ import java.time.Duration;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.internal.utils.health.config.BasicHealthCheckConfig;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -45,6 +46,7 @@ public final class DefaultHealthCheckConfigTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultHealthCheckConfig.class,
                 areImmutable(),

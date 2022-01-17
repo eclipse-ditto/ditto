@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.signals.commands.assertions.CommandAssertion
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -49,6 +50,7 @@ public final class PurgeEntitiesResponseTest {
             .build();
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(PurgeEntitiesResponse.class,
                 areImmutable(),

@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -47,6 +48,7 @@ public final class ImmutableFeatureDefinitionTest {
             .build();
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableFeatureDefinition.class,
                 areImmutable(),

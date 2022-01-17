@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.eclipsesource.json.Json;
@@ -32,6 +33,7 @@ public final class ImmutableJsonStringTest {
     private static final String KNOWN_STRING_VALUE = "foo";
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonString.class,
                 areImmutable(),

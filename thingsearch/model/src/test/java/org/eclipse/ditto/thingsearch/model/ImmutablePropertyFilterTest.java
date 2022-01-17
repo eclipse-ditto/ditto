@@ -26,6 +26,7 @@ import java.util.Collections;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -40,6 +41,7 @@ public final class ImmutablePropertyFilterTest {
             Arrays.asList(newValue("foo"), newValue("bar"), newValue("baz"));
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutablePropertyFilter.class,
                 areImmutable(),

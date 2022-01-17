@@ -16,6 +16,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.policies.model.enforcers.tree.WeightedPermission;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -26,6 +27,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class WeightedPermissionTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(WeightedPermission.class, areImmutable());
     }

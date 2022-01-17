@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import akka.kafka.ConsumerMessage;
@@ -27,6 +28,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class CommittableTransformationResultTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(CommittableTransformationResult.class, areImmutable(),
                 provided(TransformationResult.class, ConsumerMessage.CommittableOffset.class).isAlsoImmutable());

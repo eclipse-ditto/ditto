@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
@@ -37,6 +38,7 @@ public final class DittoChannelValueValidatorTest {
     public static final class GeneralFunctionalityTest {
 
         @Test
+        @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
         public void assertImmutability() {
             assertInstancesOf(DittoDurationValueValidator.class, areImmutable());
         }

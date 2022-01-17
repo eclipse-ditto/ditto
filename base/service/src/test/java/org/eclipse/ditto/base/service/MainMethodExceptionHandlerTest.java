@@ -22,6 +22,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.text.MessageFormat;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -51,6 +52,7 @@ public final class MainMethodExceptionHandlerTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(MainMethodExceptionHandler.class, areImmutable(), provided(Logger.class).isAlsoImmutable());
     }
@@ -83,7 +85,7 @@ public final class MainMethodExceptionHandlerTest {
             return ActorSystem.create();
         });
 
-        Mockito.verifyZeroInteractions(logger);
+        Mockito.verifyNoInteractions(logger);
     }
 
     @Test

@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.protocol.adapter.UnknownTopicPathException;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -49,6 +50,7 @@ public final class ImmutableTopicPathTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableTopicPath.class, areImmutable(), provided(TopicPath.Group.class).isAlsoImmutable());
     }

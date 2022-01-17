@@ -23,6 +23,7 @@ import org.eclipse.ditto.things.model.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConditionFailedException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.commands.modify.ModifyThing;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -35,6 +36,7 @@ public class ThingConditionValidatorTest {
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ThingConditionValidator.class, areImmutable());
     }

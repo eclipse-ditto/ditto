@@ -28,6 +28,7 @@ import org.eclipse.ditto.messages.model.MessageHeaderDefinition;
 import org.eclipse.ditto.protocol.HeaderTranslator;
 import org.eclipse.ditto.base.model.signals.commands.CommandNotSupportedException;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -53,6 +54,7 @@ public final class DittoRuntimeExceptionToHttpResponseTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DittoRuntimeExceptionToHttpResponse.class,
                 areImmutable(),

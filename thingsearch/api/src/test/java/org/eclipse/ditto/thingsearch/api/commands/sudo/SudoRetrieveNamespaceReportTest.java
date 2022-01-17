@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
 
@@ -39,6 +40,7 @@ public final class SudoRetrieveNamespaceReportTest {
             .build().toString();
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(SudoRetrieveNamespaceReport.class,
                 MutabilityMatchers.areImmutable(),

@@ -16,6 +16,7 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import akka.stream.Materializer;
@@ -26,6 +27,7 @@ import akka.stream.Materializer;
 public class IndexInitializerTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(IndexInitializer.class, areImmutable(),
                 provided(Materializer.class, IndexOperations.class).areAlsoImmutable());

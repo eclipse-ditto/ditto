@@ -31,6 +31,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -57,6 +58,7 @@ public final class MatchingValidationResultTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutabilityForSuccess() {
         final var success = MatchingValidationResult.success();
 
@@ -86,6 +88,7 @@ public final class MatchingValidationResultTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutabilityForFailure() {
         assertInstancesOf(MatchingValidationResult.Failure.class,
                 areImmutable(),

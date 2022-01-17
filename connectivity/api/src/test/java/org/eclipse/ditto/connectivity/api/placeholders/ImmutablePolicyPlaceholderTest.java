@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.api.placeholders;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.eclipse.ditto.policies.model.PolicyId;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -36,6 +37,7 @@ public class ImmutablePolicyPlaceholderTest {
      * Assert immutability.
      */
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(ImmutablePolicyPlaceholder.class, MutabilityMatchers.areImmutable());
     }

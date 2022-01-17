@@ -25,6 +25,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.commands.Command;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -50,6 +51,7 @@ public final class SudoStreamPidsTest {
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(SudoStreamPids.class, areImmutable(), provided(EntityIdWithRevision.class).isAlsoImmutable());
     }

@@ -17,6 +17,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -33,6 +34,7 @@ public class DefaultKafkaConsumerConfigTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultKafkaConsumerConfig.class, areImmutable(), provided(Config.class,
                 ConnectionThrottlingConfig.class).areAlsoImmutable());

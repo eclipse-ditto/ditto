@@ -26,6 +26,7 @@ import java.util.function.Predicate;
 import org.assertj.core.util.Maps;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.HeaderDefinition;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -35,6 +36,7 @@ import org.mockito.Mockito;
 public final class CheckExternalFilterTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(CheckExternalFilter.class,
                 areImmutable(),

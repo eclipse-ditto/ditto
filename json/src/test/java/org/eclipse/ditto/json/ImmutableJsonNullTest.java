@@ -20,6 +20,7 @@ import java.lang.ref.SoftReference;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -30,6 +31,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class ImmutableJsonNullTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonNull.class, areImmutable());
     }

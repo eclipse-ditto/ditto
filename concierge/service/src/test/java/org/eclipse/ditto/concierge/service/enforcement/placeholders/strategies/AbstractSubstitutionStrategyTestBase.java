@@ -29,6 +29,7 @@ import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -66,6 +67,7 @@ public abstract class AbstractSubstitutionStrategyTestBase {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public abstract void assertImmutability();
 
     protected final DittoHeadersSettable<?> applyBlocking(final DittoHeadersSettable<?> input) {

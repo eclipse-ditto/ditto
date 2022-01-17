@@ -18,6 +18,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -31,6 +32,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class UpdateThingResponseTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(UpdateThingResponse.class, MutabilityMatchers.areImmutable(),
                 AllowedReason.provided(ThingId.class, PolicyId.class).areAlsoImmutable());

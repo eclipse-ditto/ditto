@@ -26,6 +26,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -49,6 +50,7 @@ public class PolicyInvalidExceptionTest {
 
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(PolicyInvalidException.class, areImmutable());
     }

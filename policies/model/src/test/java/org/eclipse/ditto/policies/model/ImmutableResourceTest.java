@@ -23,6 +23,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -36,6 +37,7 @@ public final class ImmutableResourceTest {
             EffectedPermissions.newInstance(TestConstants.Policy.PERMISSIONS_ALL, TestConstants.Policy.PERMISSIONS_ALL);
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableResource.class,
                 areImmutable(),

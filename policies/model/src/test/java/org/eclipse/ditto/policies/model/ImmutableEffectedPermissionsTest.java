@@ -20,6 +20,7 @@ import java.util.Arrays;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.policies.model.assertions.DittoPolicyAssertions;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -30,6 +31,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableEffectedPermissionsTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableEffectedPermissions.class,
                 areImmutable(),

@@ -31,6 +31,7 @@ import org.eclipse.ditto.policies.model.signals.events.SubjectDeleted;
 import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.policies.service.persistence.TestConstants;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
@@ -52,6 +53,7 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DeactivateTokenIntegrationStrategy.class, areImmutable());
     }

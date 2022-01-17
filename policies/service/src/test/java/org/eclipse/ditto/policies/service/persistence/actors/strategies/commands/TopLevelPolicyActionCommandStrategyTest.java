@@ -52,6 +52,7 @@ import org.eclipse.ditto.policies.service.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.policies.service.common.config.PolicyConfig;
 import org.eclipse.ditto.policies.service.persistence.TestConstants;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 
@@ -76,6 +77,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(TopLevelPolicyActionCommandStrategy.class, areImmutable(),
                 AllowedReason.assumingFields("policyActionCommandStrategyMap")

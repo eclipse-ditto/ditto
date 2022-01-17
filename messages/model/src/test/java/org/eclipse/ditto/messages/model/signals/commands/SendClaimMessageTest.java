@@ -27,6 +27,7 @@ import org.eclipse.ditto.messages.model.Message;
 import org.eclipse.ditto.messages.model.MessageHeaders;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -71,6 +72,7 @@ public final class SendClaimMessageTest {
             .build();
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(SendClaimMessage.class, MutabilityMatchers.areImmutable());
     }

@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -57,6 +58,7 @@ public final class ShutdownReasonFactoryTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ShutdownReasonFactory.class, areImmutable());
     }

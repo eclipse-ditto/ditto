@@ -36,6 +36,7 @@ import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyConfli
 import org.eclipse.ditto.policies.model.signals.commands.exceptions.PolicyPreconditionFailedException;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.events.PolicyEvent;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -48,6 +49,7 @@ import com.typesafe.config.ConfigFactory;
 public final class PolicyConflictStrategyTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(PolicyConflictStrategy.class, areImmutable());
     }

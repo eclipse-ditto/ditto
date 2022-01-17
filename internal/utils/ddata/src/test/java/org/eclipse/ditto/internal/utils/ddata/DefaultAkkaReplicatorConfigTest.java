@@ -20,6 +20,7 @@ import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
@@ -45,6 +46,7 @@ public final class DefaultAkkaReplicatorConfigTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultAkkaReplicatorConfig.class, areImmutable(),
                 AllowedReason.provided(Config.class).areAlsoImmutable());

@@ -28,6 +28,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.MappingContext;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -51,6 +52,7 @@ public final class CreateConnectionResponseTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(CreateConnectionResponse.class, areImmutable(), provided(Connection.class,
                 MappingContext.class)

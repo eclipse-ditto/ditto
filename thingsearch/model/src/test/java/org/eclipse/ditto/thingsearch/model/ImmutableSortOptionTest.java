@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -33,6 +34,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableSortOptionTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableSortOption.class,
                 areImmutable(),

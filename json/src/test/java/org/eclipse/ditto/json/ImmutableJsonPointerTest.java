@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -38,6 +39,7 @@ public final class ImmutableJsonPointerTest {
     private static final JsonKey KNOWN_KEY_NAME = JsonFactory.newKey("foo");
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonPointer.class,
                 areImmutable(),

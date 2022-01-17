@@ -21,6 +21,7 @@ import org.eclipse.ditto.thingsearch.service.common.config.DefaultUpdaterConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.DittoSearchConfig;
 import org.eclipse.ditto.internal.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.DefaultMongoDbConfig;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -31,6 +32,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DittoSearchConfigTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DittoSearchConfig.class,
                 areImmutable(),

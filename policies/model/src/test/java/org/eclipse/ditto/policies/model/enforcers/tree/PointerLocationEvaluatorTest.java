@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.enforcers.tree.PointerLocation;
 import org.eclipse.ditto.policies.model.enforcers.tree.PointerLocationEvaluator;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -39,6 +40,7 @@ public final class PointerLocationEvaluatorTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(PointerLocationEvaluator.class,
                 areImmutable(),

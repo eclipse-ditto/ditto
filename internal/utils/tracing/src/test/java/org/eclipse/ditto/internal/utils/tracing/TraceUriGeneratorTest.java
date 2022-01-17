@@ -32,6 +32,7 @@ public final class TraceUriGeneratorTest {
     private static final TraceUriGenerator UNDER_TEST = TraceUriGenerator.getInstance();
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(TraceUriGenerator.class,
                 areImmutable(),

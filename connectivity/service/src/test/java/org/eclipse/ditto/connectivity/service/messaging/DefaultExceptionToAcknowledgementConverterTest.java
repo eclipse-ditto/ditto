@@ -30,6 +30,7 @@ import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -55,6 +56,7 @@ public final class DefaultExceptionToAcknowledgementConverterTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultExceptionToAcknowledgementConverter.class, areImmutable());
     }

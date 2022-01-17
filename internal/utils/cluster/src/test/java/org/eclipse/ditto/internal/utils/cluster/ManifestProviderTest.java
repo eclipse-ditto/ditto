@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThingResponse;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -50,6 +51,7 @@ public final class ManifestProviderTest {
 
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ManifestProvider.class, areImmutable());
     }

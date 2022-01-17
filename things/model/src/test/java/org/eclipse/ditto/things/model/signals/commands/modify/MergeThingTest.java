@@ -37,6 +37,7 @@ import org.eclipse.ditto.things.model.ThingTooLargeException;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -59,6 +60,7 @@ public final class MergeThingTest {
             TestConstants.Thing.LOCATION_ATTRIBUTE_POINTER, TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE, DITTO_HEADERS);
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(MergeThing.class,
                 areImmutable(),

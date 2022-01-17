@@ -19,6 +19,7 @@ import java.util.Collections;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -32,6 +33,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ThingsOutOfSyncTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(ThingsOutOfSync.class, MutabilityMatchers.areImmutable(),
                 AllowedReason.provided(DittoHeaders.class).isAlsoImmutable(),

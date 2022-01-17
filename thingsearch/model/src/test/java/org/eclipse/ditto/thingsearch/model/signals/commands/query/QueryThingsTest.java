@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.thingsearch.model.signals.commands.ThingSearchCommand;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -54,6 +55,7 @@ public final class QueryThingsTest {
             .build().toString();
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(QueryThings.class,
                 areEffectivelyImmutable(),

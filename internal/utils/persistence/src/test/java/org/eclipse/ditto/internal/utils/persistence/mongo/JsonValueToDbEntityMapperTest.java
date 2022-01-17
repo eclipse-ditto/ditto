@@ -24,6 +24,7 @@ import java.util.function.Function;
 import org.bson.BsonDocument;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -33,6 +34,7 @@ import org.mockito.Mockito;
 public final class JsonValueToDbEntityMapperTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(JsonValueToDbEntityMapper.class, areImmutable(), provided(Function.class).isAlsoImmutable());
     }

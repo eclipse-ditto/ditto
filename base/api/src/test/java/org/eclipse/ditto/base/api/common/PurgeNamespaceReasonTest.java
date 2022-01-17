@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -57,6 +58,7 @@ public final class PurgeNamespaceReasonTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(PurgeNamespaceReason.class, areImmutable(), provided(ShutdownReason.class).isAlsoImmutable());
     }

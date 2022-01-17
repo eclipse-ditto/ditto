@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.util.Optional;
 
 import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -29,6 +30,7 @@ import org.junit.Test;
 public final class EntityIdStaticFactoryMethodResolverTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(EntityIdStaticFactoryMethodResolver.class, areImmutable());
     }

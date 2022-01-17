@@ -14,6 +14,7 @@ package org.eclipse.ditto.internal.utils.health.mongo;
 
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 
@@ -26,6 +27,7 @@ public final class CurrentMongoStatusTest {
 
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(CurrentMongoStatus.class, areImmutable());
     }

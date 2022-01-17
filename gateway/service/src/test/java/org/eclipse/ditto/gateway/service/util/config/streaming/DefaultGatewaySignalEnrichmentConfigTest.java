@@ -21,6 +21,7 @@ import java.time.Duration;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -46,6 +47,7 @@ public final class DefaultGatewaySignalEnrichmentConfigTest {
 
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultGatewaySignalEnrichmentConfig.class, areImmutable(),
                 provided(CacheConfig.class, Duration.class).areAlsoImmutable());

@@ -24,6 +24,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeatures;
 import org.eclipse.ditto.things.model.signals.commands.modify.DeleteFeaturesResponse;
 import org.eclipse.ditto.things.model.signals.events.FeaturesDeleted;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -39,6 +40,7 @@ public final class DeleteFeaturesStrategyTest extends AbstractCommandStrategyTes
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DeleteFeaturesStrategy.class, areImmutable());
     }

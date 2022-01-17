@@ -21,6 +21,7 @@ import java.util.Collections;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -48,6 +49,7 @@ public final class DefaultMongoDbConfigTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultMongoDbConfig.class,
                 areImmutable(),

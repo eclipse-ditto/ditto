@@ -26,6 +26,7 @@ import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -45,6 +46,7 @@ public final class ThingCreatedTest {
             .build();
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ThingCreated.class, areImmutable(),
                 provided(Thing.class).isAlsoImmutable());

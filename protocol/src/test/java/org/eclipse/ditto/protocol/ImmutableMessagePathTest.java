@@ -23,6 +23,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.assertj.core.api.OptionalAssert;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.messages.model.MessageDirection;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -33,6 +34,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class ImmutableMessagePathTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableMessagePath.class, areImmutable(), provided(JsonPointer.class).isAlsoImmutable());
     }

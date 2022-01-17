@@ -34,6 +34,7 @@ import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicy;
 import org.eclipse.ditto.policies.model.signals.commands.modify.CreatePolicyResponse;
 import org.eclipse.ditto.policies.model.signals.events.PolicyCreated;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
@@ -51,6 +52,7 @@ public final class CreatePolicyStrategyTest extends AbstractPolicyCommandStrateg
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(CreatePolicyStrategy.class, areImmutable());
     }

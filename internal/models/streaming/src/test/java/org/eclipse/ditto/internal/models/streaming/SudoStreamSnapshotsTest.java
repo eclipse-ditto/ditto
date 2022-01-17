@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.Jsonifiable;
 import org.eclipse.ditto.base.model.signals.commands.GlobalCommandRegistry;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -39,6 +40,7 @@ public final class SudoStreamSnapshotsTest {
     private static final EntityType THING_TYPE = EntityType.of("thing");
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(SudoStreamSnapshots.class, areImmutable(),
                 provided(EntityId.class, JsonArray.class).areAlsoImmutable());

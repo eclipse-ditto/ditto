@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -59,6 +60,7 @@ public final class JsonCollectorsTest {
 
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(JsonCollectors.class, areImmutable());
     }

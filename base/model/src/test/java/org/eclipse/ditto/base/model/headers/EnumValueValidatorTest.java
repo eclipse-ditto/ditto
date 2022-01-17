@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoHeaderInvalidException;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -33,6 +34,7 @@ public final class EnumValueValidatorTest {
             DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY;
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(EnumValueValidator.class, areImmutable());
     }

@@ -29,6 +29,7 @@ import org.eclipse.ditto.things.model.signals.commands.modify.ThingModifyCommand
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -44,6 +45,7 @@ public final class ResultFactoryTest {
     private final DittoRuntimeException exception = mock(DittoRuntimeException.class);
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ResultFactory.class, areImmutable());
     }

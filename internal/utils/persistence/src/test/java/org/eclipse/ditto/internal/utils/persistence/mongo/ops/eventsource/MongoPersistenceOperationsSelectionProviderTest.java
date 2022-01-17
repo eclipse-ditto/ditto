@@ -24,6 +24,7 @@ import org.bson.Document;
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.things.model.ThingConstants;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -43,6 +44,7 @@ public final class MongoPersistenceOperationsSelectionProviderTest {
     private static final String ENTITY_NAME = "name";
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(MongoPersistenceOperationsSelectionProvider.class, areImmutable());
     }

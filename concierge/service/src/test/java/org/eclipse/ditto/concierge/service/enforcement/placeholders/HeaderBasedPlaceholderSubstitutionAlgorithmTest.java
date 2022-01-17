@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayPlaceholderNotResolvableException;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -62,6 +63,7 @@ public class HeaderBasedPlaceholderSubstitutionAlgorithmTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(HeaderBasedPlaceholderSubstitutionAlgorithm.class, areImmutable(),
                 assumingFields("replacementDefinitions", "knownPlaceHolders")

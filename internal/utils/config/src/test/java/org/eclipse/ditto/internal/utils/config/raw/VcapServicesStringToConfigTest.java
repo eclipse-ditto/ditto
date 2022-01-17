@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
@@ -61,6 +62,7 @@ public final class VcapServicesStringToConfigTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(VcapServicesStringToConfig.class, areImmutable());
     }

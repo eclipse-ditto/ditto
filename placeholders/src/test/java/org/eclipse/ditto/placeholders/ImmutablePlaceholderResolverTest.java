@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -30,6 +31,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class ImmutablePlaceholderResolverTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(ImmutablePlaceholderResolver.class, MutabilityMatchers.areImmutable(),
                 AllowedReason.provided(Placeholder.class).isAlsoImmutable(),

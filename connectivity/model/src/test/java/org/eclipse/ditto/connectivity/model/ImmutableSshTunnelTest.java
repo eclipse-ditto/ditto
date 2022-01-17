@@ -25,6 +25,7 @@ import java.util.List;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -63,6 +64,7 @@ public final class ImmutableSshTunnelTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableSshTunnel.class, areImmutable(),
                 provided(Credentials.class).isAlsoImmutable());

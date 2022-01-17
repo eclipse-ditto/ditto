@@ -36,6 +36,7 @@ import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import akka.actor.ActorSystem;
@@ -65,6 +66,7 @@ public final class RabbitMQValidatorTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void testImmutability() {
         assertInstancesOf(RabbitMQValidator.class, areImmutable());
     }

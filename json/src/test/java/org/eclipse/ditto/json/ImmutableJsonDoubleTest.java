@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
@@ -54,6 +55,7 @@ public final class ImmutableJsonDoubleTest {
         }
 
         @Test
+        @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
         public void assertImmutability() {
             assertInstancesOf(ImmutableJsonDouble.class, areImmutable());
         }

@@ -29,6 +29,7 @@ import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandResponse;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -52,6 +53,7 @@ public final class MergeThingResponseTest {
             TestConstants.Thing.ABSOLUTE_LOCATION_ATTRIBUTE_POINTER, DITTO_HEADERS);
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(MergeThingResponse.class,
                 areImmutable(),

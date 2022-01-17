@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -31,6 +32,7 @@ public final class FallbackEntityIdTest {
     private static final EntityType UNKNOWN_TYPE = EntityType.of("unknown");
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(FallbackEntityId.class, areImmutable(), provided(EntityType.class).isAlsoImmutable());
     }

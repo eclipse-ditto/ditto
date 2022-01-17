@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 import java.util.function.Supplier;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 
@@ -30,6 +31,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class HealthCheckingActorOptionsTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(HealthCheckingActorOptions.class, areImmutable(),
                 provided(Runnable.class, Supplier.class).isAlsoImmutable());

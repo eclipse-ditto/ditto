@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -38,6 +39,7 @@ public final class EntityIdsTest {
     private BaseEntityIdFactory<NamespacedEntityId> namespacedEntityIdFactory;
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(EntityIds.class, areImmutable(), provided(BaseEntityIdFactory.class).isAlsoImmutable());
     }

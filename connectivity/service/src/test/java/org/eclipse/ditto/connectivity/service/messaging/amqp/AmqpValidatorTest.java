@@ -30,6 +30,7 @@ import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.model.Topic;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -40,6 +41,7 @@ public final class AmqpValidatorTest {
     private static final AmqpValidator UNDER_TEST = AmqpValidator.newInstance();
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void testImmutability() {
         assertInstancesOf(AmqpValidator.class, areImmutable());
     }

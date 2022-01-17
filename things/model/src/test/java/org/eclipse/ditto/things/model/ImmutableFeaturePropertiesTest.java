@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.entity.id.restriction.LengthRestrictionTestBase;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -38,6 +39,7 @@ public final class ImmutableFeaturePropertiesTest extends LengthRestrictionTestB
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableFeatureProperties.class, areImmutable(),
                 provided(JsonObject.class).isAlsoImmutable());

@@ -22,6 +22,7 @@ import java.util.Collection;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -35,6 +36,7 @@ public final class ImmutableResourcesTest {
     private static final JsonPointer KNOWN_RESOURCE_PATH_1 = JsonPointer.of("/foo/bar");
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableResources.class,
                 areImmutable(),

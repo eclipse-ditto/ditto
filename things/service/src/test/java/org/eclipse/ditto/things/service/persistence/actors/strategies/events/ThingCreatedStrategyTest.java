@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingLifecycle;
 import org.eclipse.ditto.things.model.signals.events.ThingCreated;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -38,6 +39,7 @@ public final class ThingCreatedStrategyTest extends AbstractStrategyTest {
     private static final Metadata METADATA = Metadata.newBuilder().set("foo", "bar").build();
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ThingCreatedStrategy.class, areImmutable());
     }

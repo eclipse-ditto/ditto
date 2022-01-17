@@ -23,6 +23,7 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.assertj.core.data.Percentage;
 import org.eclipse.ditto.base.service.config.ThrottlingConfig;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -47,6 +48,7 @@ public final class DefaultWebsocketConfigTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultWebsocketConfig.class, areImmutable(),
                 provided(ThrottlingConfig.class).isAlsoImmutable());

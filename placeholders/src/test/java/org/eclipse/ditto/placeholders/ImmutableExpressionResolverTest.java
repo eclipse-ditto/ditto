@@ -20,6 +20,7 @@ import java.util.Map;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -41,6 +42,7 @@ public class ImmutableExpressionResolverTest {
     private static ImmutableExpressionResolver underTest;
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(ImmutableExpressionResolver.class, MutabilityMatchers.areImmutable(),
                 AllowedReason.assumingFields("placeholderResolvers", "placeholderResolverFunctions")

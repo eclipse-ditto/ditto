@@ -25,6 +25,7 @@ import org.eclipse.ditto.things.model.signals.events.ThingDefinitionCreated;
 import org.eclipse.ditto.things.model.signals.events.ThingDefinitionModified;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -40,6 +41,7 @@ public final class ModifyThingDefinitionStrategyTest extends AbstractCommandStra
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ModifyThingDefinitionStrategy.class, areImmutable());
     }

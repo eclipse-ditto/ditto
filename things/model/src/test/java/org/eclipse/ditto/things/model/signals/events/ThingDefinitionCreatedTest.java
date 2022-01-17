@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.things.model.ThingDefinition;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -44,6 +45,7 @@ public final class ThingDefinitionCreatedTest {
 
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ThingDefinitionCreated.class, areImmutable(),
                 provided(ThingDefinition.class).isAlsoImmutable());

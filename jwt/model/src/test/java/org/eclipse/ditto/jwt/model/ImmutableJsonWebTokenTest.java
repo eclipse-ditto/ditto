@@ -23,9 +23,10 @@ import java.time.Instant;
 import java.util.Base64;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.junit.Test;
+import org.junit.Ignore;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
+import org.junit.Test;
 
 /**
  * Unit test for {@link ImmutableJsonWebToken}.
@@ -34,6 +35,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableJsonWebTokenTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonWebToken.class,
                 areImmutable(),

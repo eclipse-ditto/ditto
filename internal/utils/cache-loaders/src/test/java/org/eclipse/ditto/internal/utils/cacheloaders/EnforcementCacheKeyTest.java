@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -39,6 +40,7 @@ public final class EnforcementCacheKeyTest {
             String.join(EnforcementCacheKey.DELIMITER, THING_TYPE, ENTITY_ID);
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(EnforcementCacheKey.class,
                 areImmutable(),

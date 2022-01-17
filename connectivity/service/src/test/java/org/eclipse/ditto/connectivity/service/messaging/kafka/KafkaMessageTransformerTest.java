@@ -46,6 +46,7 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.placeholders.UnresolvedPlaceholderException;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public final class KafkaMessageTransformerTest {
@@ -72,6 +73,7 @@ public final class KafkaMessageTransformerTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(KafkaMessageTransformer.class, areImmutable(),
                 provided(Source.class, EnforcementFilterFactory.class, ConnectionMonitor.class).areAlsoImmutable());

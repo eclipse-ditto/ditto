@@ -36,6 +36,7 @@ import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
 import org.eclipse.ditto.connectivity.service.messaging.monitoring.ConnectionMonitor;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentMatchers;
 
@@ -84,6 +85,7 @@ public final class AtMostOnceConsumerStreamTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void isImmutable() {
         assertInstancesOf(AtMostOnceConsumerStream.class,
                 areImmutable(),

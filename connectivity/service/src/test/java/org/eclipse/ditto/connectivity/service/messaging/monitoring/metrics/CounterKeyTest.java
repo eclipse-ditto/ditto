@@ -16,6 +16,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.connectivity.model.MetricType;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 
@@ -24,6 +25,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class CounterKeyTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void testImmutability() {
         assertInstancesOf(CounterKey.class, areImmutable(), AllowedReason.provided(MetricType.class).isAlsoImmutable());
     }

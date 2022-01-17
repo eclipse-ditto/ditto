@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.api.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -30,6 +31,7 @@ public final class ImmutableFeaturePlaceholderTest {
     private static final FeaturePlaceholder UNDER_TEST = ImmutableFeaturePlaceholder.INSTANCE;
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(ImmutableFeaturePlaceholder.class, MutabilityMatchers.areImmutable());
     }

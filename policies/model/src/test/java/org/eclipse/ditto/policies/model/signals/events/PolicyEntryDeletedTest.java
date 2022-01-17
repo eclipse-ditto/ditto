@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.policies.model.Label;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -44,6 +45,7 @@ public final class PolicyEntryDeletedTest {
 
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(PolicyEntryDeleted.class, areImmutable(), provided(Label.class).isAlsoImmutable());
     }

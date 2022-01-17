@@ -36,6 +36,7 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -66,6 +67,7 @@ public final class AddConnectionLogEntryTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(AddConnectionLogEntry.class, areImmutable(), provided(LogEntry.class).isAlsoImmutable());
     }

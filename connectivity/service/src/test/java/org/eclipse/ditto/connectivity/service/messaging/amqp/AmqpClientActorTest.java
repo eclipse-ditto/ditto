@@ -397,7 +397,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             amqpClientActor.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
-            Mockito.verifyZeroInteractions(mockConnection);
+            Mockito.verifyNoInteractions(mockConnection);
         }};
     }
 

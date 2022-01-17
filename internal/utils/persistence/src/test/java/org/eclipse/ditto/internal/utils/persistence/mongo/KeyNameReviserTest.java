@@ -24,6 +24,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.text.MessageFormat;
 import java.util.function.Function;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -32,6 +33,7 @@ import org.junit.Test;
 public final class KeyNameReviserTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(KeyNameReviser.class, areImmutable(), provided(Function.class).isAlsoImmutable());
     }

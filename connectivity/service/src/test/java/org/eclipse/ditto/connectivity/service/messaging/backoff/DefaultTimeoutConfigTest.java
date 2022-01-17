@@ -22,6 +22,7 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.connectivity.service.config.DefaultTimeoutConfig;
 import org.eclipse.ditto.connectivity.service.config.TimeoutConfig;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -65,6 +66,7 @@ public final class DefaultTimeoutConfigTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void testImmutability() {
         assertInstancesOf(DefaultTimeoutConfig.class,
                 areImmutable());

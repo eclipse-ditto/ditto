@@ -21,6 +21,7 @@ import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -31,6 +32,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class SubscriptionHasNextPageTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(SubscriptionHasNextPage.class, areImmutable(), provided(JsonArray.class).isAlsoImmutable());
     }

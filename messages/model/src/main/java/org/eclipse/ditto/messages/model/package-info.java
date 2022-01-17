@@ -15,7 +15,7 @@
  * Contains the Messages framework around the cornerstone of this package: {@link org.eclipse.ditto.messages.model.Message}.
  * A Message is sent <em>FROM</em> or <em>TO</em> a {@code Thing} or a {@code Feature}.
  *
- * <h3>Object creation</h3>
+ * <h2>Object creation</h2>
  * {@link org.eclipse.ditto.messages.model.MessagesModelFactory} is the main entry point for obtaining objects of this
  * package's interfaces to work with.
  */

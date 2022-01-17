@@ -22,6 +22,7 @@ import java.net.URI;
 
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.messaging.TestConstants;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -39,6 +40,7 @@ public class SshTunnelStateTest {
     private static final IllegalStateException TUNNEL_FAILED = new IllegalStateException("tunnel failed");
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(SshTunnelState.class, areImmutable(), provided(Throwable.class).isAlsoImmutable());
     }

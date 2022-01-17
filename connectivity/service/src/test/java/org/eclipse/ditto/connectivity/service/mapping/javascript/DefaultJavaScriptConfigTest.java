@@ -23,6 +23,7 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.connectivity.service.config.javascript.DefaultJavaScriptConfig;
 import org.eclipse.ditto.connectivity.service.config.javascript.JavaScriptConfig;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -47,6 +48,7 @@ public final class DefaultJavaScriptConfigTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultJavaScriptConfig.class,
                 areImmutable(),

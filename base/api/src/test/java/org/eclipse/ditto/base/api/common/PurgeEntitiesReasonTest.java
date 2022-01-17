@@ -33,7 +33,7 @@ import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.Test;import org.junit.Ignore;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
@@ -68,6 +68,7 @@ public final class PurgeEntitiesReasonTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(PurgeNamespaceReason.class, areImmutable(), provided(ShutdownReason.class).isAlsoImmutable());
     }

@@ -25,6 +25,7 @@ import java.util.List;
 import org.assertj.core.util.Lists;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -48,6 +49,7 @@ public final class ImmutableFilteredTopicTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableFilteredTopic.class,
                 areImmutable(),

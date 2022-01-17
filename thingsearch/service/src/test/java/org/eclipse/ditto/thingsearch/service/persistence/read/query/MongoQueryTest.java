@@ -40,6 +40,7 @@ import org.eclipse.ditto.base.service.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.mongodb.client.model.Sorts;
@@ -96,6 +97,7 @@ public final class MongoQueryTest {
     }
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void immutability() {
         assertInstancesOf(MongoQuery.class, areImmutable(),
                 provided(Criteria.class, SortOption.class).isAlsoImmutable());

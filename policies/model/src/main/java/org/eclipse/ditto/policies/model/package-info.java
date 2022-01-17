@@ -21,7 +21,7 @@
  * defines the single {@link org.eclipse.ditto.policies.model.Resource}'s together with the granted or revoked permissions
  * for the given subjects.
  *
- * <h3>Object creation</h3>
+ * <h2>Object creation</h2>
  * {@link org.eclipse.ditto.policies.model.PoliciesModelFactory} is the main entry point for obtaining objects of this
  * package's interfaces to work with.
  */

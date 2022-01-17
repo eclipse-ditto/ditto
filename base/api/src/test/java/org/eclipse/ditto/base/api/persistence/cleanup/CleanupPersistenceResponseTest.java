@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.model.entity.id.EntityId;
 import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -43,6 +44,7 @@ public final class CleanupPersistenceResponseTest {
     private static final DittoHeaders HEADERS = DittoHeaders.newBuilder().correlationId("123").build();
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(CleanupPersistenceResponse.class, areImmutable(), provided(EntityId.class).isAlsoImmutable());
     }

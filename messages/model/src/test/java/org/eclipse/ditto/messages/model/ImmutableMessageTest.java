@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.auth.AuthorizationContext;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -31,6 +32,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableMessageTest {
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableMessage.class,
                 areImmutable(),

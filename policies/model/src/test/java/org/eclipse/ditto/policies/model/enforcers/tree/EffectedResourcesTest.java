@@ -22,6 +22,7 @@ import java.util.Set;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.policies.model.enforcers.tree.EffectedResources;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -36,6 +37,7 @@ public class EffectedResourcesTest {
                     JsonFactory.newPointer("/"), "WRITE"));
 
     @Test
+    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(EffectedResources.class, areImmutable(), provided(JsonPointer.class).isAlsoImmutable(),
                 provided(TreeBasedPolicyEnforcer.PointerAndPermission.class).isAlsoImmutable());
