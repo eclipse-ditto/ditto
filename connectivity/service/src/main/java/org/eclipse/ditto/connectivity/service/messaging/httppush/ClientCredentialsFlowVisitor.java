@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
+import java.time.Duration;
+
 import org.eclipse.ditto.connectivity.model.ClientCertificateCredentials;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.CredentialsVisitor;
@@ -20,6 +22,11 @@ import org.eclipse.ditto.connectivity.model.OAuthClientCredentials;
 import org.eclipse.ditto.connectivity.model.SshPublicKeyCredentials;
 import org.eclipse.ditto.connectivity.model.UserPasswordCredentials;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
+import org.eclipse.ditto.internal.utils.cache.Cache;
+import org.eclipse.ditto.internal.utils.cache.CacheFactory;
+import org.eclipse.ditto.jwt.model.JsonWebToken;
+
+import com.github.benmanes.caffeine.cache.Expiry;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
@@ -32,6 +39,8 @@ import akka.stream.javadsl.Flow;
  */
 final class ClientCredentialsFlowVisitor implements
         CredentialsVisitor<Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed>> {
+
+    private static final String HTTP_PUSH_DISPATCHER = "http-push-connection-dispatcher";
 
     private final ActorSystem actorSystem;
     private final HttpPushConfig config;
@@ -75,6 +84,54 @@ final class ClientCredentialsFlowVisitor implements
     @Override
     public Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> oauthClientCredentials(
             final OAuthClientCredentials credentials) {
-        return ClientCredentialsFlow.of(credentials, config).withToken(actorSystem);
+
+        final Cache<String, JsonWebToken> tokenCache =
+                CacheFactory.createCache(new AsyncJwtLoader(actorSystem, credentials),
+                        JsonWebTokenExpiry.of(config.getOAuth2Config().getMaxClockSkew()),
+                        config.getOAuth2Config().getTokenCacheConfig(),
+                        "token-cache",
+                        actorSystem.dispatchers().lookup(HTTP_PUSH_DISPATCHER)
+                );
+
+        return ClientCredentialsFlow.of(tokenCache).getFlow();
+    }
+
+    /**
+     * Implementation of {@code Expiry} interface that reads expiration time from a JsonWebToken.
+     */
+    static final class JsonWebTokenExpiry implements Expiry<String, JsonWebToken> {
+
+        private final long maxClockSkew;
+
+        private JsonWebTokenExpiry(final long maxClockSkew) {
+            this.maxClockSkew = maxClockSkew;
+        }
+
+        static JsonWebTokenExpiry of(final Duration maxClockSkew) {
+            return new JsonWebTokenExpiry(maxClockSkew.toMillis());
+        }
+
+        @Override
+        public long expireAfterCreate(final String key, final JsonWebToken value, final long currentTime) {
+            // parameter currentTime is not related to system time
+            final long now = System.currentTimeMillis();
+            final long expireAfterMs = value.getExpirationTime().toEpochMilli() - now - maxClockSkew;
+            return Duration.ofMillis(expireAfterMs).toNanos();
+        }
+
+        @Override
+        public long expireAfterUpdate(final String key, final JsonWebToken value, final long currentTime,
+                final long currentDuration) {
+            // parameter currentTime is not related to system time
+            final long now = System.currentTimeMillis();
+            final long expireAfterMs = value.getExpirationTime().toEpochMilli() - now - maxClockSkew;
+            return Duration.ofMillis(expireAfterMs).toNanos();
+        }
+
+        @Override
+        public long expireAfterRead(final String key, final JsonWebToken value,
+                final long currentTime, final long currentDuration) {
+            return currentDuration;
+        }
     }
 }

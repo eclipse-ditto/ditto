@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.config;
 
 import java.time.Duration;
 
+import org.eclipse.ditto.internal.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 
 import com.typesafe.config.Config;
@@ -37,6 +38,11 @@ public interface OAuth2Config {
      * @return Maximum expected clock skew. Tokens are renewed before they expire this much time into the future.
      */
     Duration getMaxClockSkew();
+
+    /**
+     * @return configuration for OAuth2.
+     */
+    CacheConfig getTokenCacheConfig();
 
     /**
      * @return Whether HTTPS is the required protocol of the token endpoint. Should be true in a production

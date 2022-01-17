@@ -56,7 +56,7 @@ public final class CacheFactory {
      * Creates a cache.
      *
      * @param cacheLoader the cache loader.
-     * @param cacheConfig the the cache's configuration.
+     * @param cacheConfig the cache's configuration.
      * @param cacheName the name of the cache or {@code null} if metrics should be disabled. Used as metric label.
      * @param executor the executor to use in the cache.
      * @param <K> the type of the cache keys.
@@ -72,6 +72,29 @@ public final class CacheFactory {
         checkNotNull(cacheLoader, "AsyncCacheLoader");
 
         return CaffeineCache.of(caffeine(cacheConfig, executor), cacheLoader, cacheName);
+    }
+
+    /**
+     * Creates a cache with a custom provided expiry policy.
+     *
+     * @param cacheLoader the cache loader.
+     * @param expiry a custom expiry policy, that e.g. reads the expiration time from the cache key or value
+     * @param cacheConfig the cache's configuration (note: expiration times are ignored if expiry is given)
+     * @param cacheName the name of the cache or {@code null} if metrics should be disabled. Used as metric label.
+     * @param executor the executor to use in the cache.
+     * @param <K> the type of the cache keys.
+     * @param <V> the type of the cache values.
+     * @return the created cache.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static <K, V> Cache<K, V> createCache(final AsyncCacheLoader<K, V> cacheLoader,
+            final Expiry<K, V> expiry,
+            final CacheConfig cacheConfig,
+            @Nullable final String cacheName,
+            final Executor executor) {
+        checkNotNull(cacheLoader, "cacheLoader");
+        checkNotNull(expiry, "expiry");
+        return CaffeineCache.of(caffeine(cacheConfig, executor, expiry), cacheLoader, cacheName);
     }
 
     private static Caffeine<Object, Object> caffeine(final CacheConfig cacheConfig, final Executor executor) {
@@ -105,6 +128,19 @@ public final class CacheFactory {
             caffeine.expireAfterWrite(cacheConfig.getExpireAfterWrite());
             caffeine.expireAfterAccess(cacheConfig.getExpireAfterAccess());
         }
+        caffeine.executor(executor);
+        return caffeine;
+    }
+
+    private static Caffeine<Object, Object> caffeine(final CacheConfig cacheConfig, final Executor executor,
+            final Expiry<?, ?> expiry) {
+        checkNotNull(cacheConfig, "CacheConfig");
+        checkNotNull(executor, "Executor");
+        checkNotNull(expiry, "expiry");
+
+        final Caffeine<Object, Object> caffeine = Caffeine.newBuilder();
+        caffeine.maximumSize(cacheConfig.getMaximumSize());
+        caffeine.expireAfter(expiry);
         caffeine.executor(executor);
         return caffeine;
     }
