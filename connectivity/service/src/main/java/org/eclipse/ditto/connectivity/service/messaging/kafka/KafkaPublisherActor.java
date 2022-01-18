@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -53,6 +54,7 @@ import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.ExceptionToAcknowledgementConverter;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -181,6 +183,18 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 .withHeader("ditto-connection-id", connection.getId().toString());
 
         return producerStream.publish(publishTarget, messageWithConnectionIdHeader)
+                .whenComplete((recordMetadata, throwable) -> {
+                    if (null != throwable) {
+                        final var context = getContext();
+                        final var parent = context.getParent();
+                        final var self = getSelf();
+                        parent.tell(ConnectionFailure.of(self,
+                                throwable,
+                                ConnectionFailure.determineFailureDescription(Instant.now(),
+                                        throwable,
+                                        "Broker may not be available.")), self);
+                    }
+                })
                 .thenApply(callback);
     }
 
