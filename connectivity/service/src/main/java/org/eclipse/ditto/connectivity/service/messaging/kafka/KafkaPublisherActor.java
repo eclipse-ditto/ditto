@@ -183,18 +183,6 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 .withHeader("ditto-connection-id", connection.getId().toString());
 
         return producerStream.publish(publishTarget, messageWithConnectionIdHeader)
-                .whenComplete((recordMetadata, throwable) -> {
-                    if (null != throwable) {
-                        final var context = getContext();
-                        final var parent = context.getParent();
-                        final var self = getSelf();
-                        parent.tell(ConnectionFailure.of(self,
-                                throwable,
-                                ConnectionFailure.determineFailureDescription(Instant.now(),
-                                        throwable,
-                                        "Broker may not be available.")), self);
-                    }
-                })
                 .thenApply(callback);
     }
 
@@ -387,6 +375,9 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 logger.debug("Failed to send kafka record: [{}] {}", exception.getClass().getName(),
                         exception.getMessage());
                 resultFuture.completeExceptionally(exception);
+                escalate(exception, ConnectionFailure.determineFailureDescription(Instant.now(),
+                        exception,
+                        "Broker may not be available."));
             }
         }
 
