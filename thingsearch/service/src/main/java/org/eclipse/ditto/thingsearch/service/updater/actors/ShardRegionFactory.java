@@ -115,11 +115,31 @@ public final class ShardRegionFactory {
      * @return the shard region.
      */
     public ActorRef createShardRegion(final int shards, final Props props, final String name, final String role) {
+        return createShardRegion(shards, true, props, name, role);
+    }
+
+    /**
+     * Create a new shard region.
+     *
+     * @param shards number of shards.
+     * @param automaticPassivationEnabled indicates whether the entities should be passivated automatically.
+     * @param props props of actors in the shard region.
+     * @param name name of the shard region.
+     * @param role cluster role where the shard region starts.
+     * @return the shard region.
+     */
+    public ActorRef createShardRegion(final int shards, final boolean automaticPassivationEnabled, final Props props,
+            final String name, final String role) {
         final ClusterSharding clusterSharding = ClusterSharding.get(actorSystem);
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(actorSystem).withRole(role);
         final ShardRegionExtractor shardRegionExtractor = ShardRegionExtractor.of(shards, actorSystem);
-        return clusterSharding.start(name, props, shardingSettings, shardRegionExtractor);
+        if (automaticPassivationEnabled) {
+            return clusterSharding.start(name, props, shardingSettings, shardRegionExtractor);
+        } else {
+            return clusterSharding.start(name, props, shardingSettings.withNoPassivationStrategy(),
+                    shardRegionExtractor);
+        }
     }
 
 }
