@@ -13,10 +13,16 @@
 package org.eclipse.ditto.internal.utils.pubsub.actors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -28,12 +34,16 @@ import org.eclipse.ditto.internal.utils.pubsub.api.ReceiveRemoteAcks;
 import org.eclipse.ditto.internal.utils.pubsub.api.RemoteAcksChanged;
 import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DData;
+import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataReader;
+import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataUpdate;
+import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.literal.AbstractConfigAwareDDataProvider;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.literal.LiteralDData;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.literal.LiteralUpdate;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -42,6 +52,8 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Address;
 import akka.cluster.Cluster;
+import akka.cluster.ddata.ORMultiMap;
+import akka.cluster.ddata.Replicator;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -211,8 +223,71 @@ public final class AckUpdaterTest {
         }};
     }
 
+    @Test
+    public void clusterStateOutOfSync() {
+        new TestKit(system1) {{
+            // GIVEN: distributed data contains entry for nonexistent cluster member and does not contain entry for
+            // the current cluster member
+            final var config = PubSubConfig.of(system1);
+            final var ownAddress = Cluster.get(system1).selfAddress();
+            final var nonexistentAddress = Address.apply("akka", "unknown-system");
+            final var addressMap = Map.of(nonexistentAddress, "unknown-value");
+            final DData<Address, String, LiteralUpdate> ddata = mockDistributedData(addressMap);
+            final ActorRef underTest = system1.actorOf(AckUpdater.props(config, ownAddress, ddata));
+
+            // WHEN: AckUpdater is requested to sync against the cluster state
+            underTest.tell(ClusterStateSyncBehavior.Control.SYNC_CLUSTER_STATE, ActorRef.noSender());
+
+            // THEN: AckUpdater removes the extraneous entry and inserts its entry
+            Mockito.verify(ddata.getReader(), Mockito.timeout(5000))
+                    .getAllShards(eq((Replicator.ReadConsistency) Replicator.readLocal()));
+            Mockito.verify(ddata.getWriter(), Mockito.timeout(5000))
+                    .removeAddress(eq(nonexistentAddress), eq((Replicator.WriteConsistency) Replicator.writeLocal()));
+            Mockito.verify(ddata.getWriter(), Mockito.timeout(5000).atLeast(2))
+                    .put(eq(ownAddress), any(), any());
+        }};
+    }
+
+    @Test
+    public void clusterStateInSync() {
+        new TestKit(system1) {{
+            // GIVEN: distributed data contains entry for the current cluster member and no extraneous entries
+            final var config = PubSubConfig.of(system1);
+            final var ownAddress = Cluster.get(system1).selfAddress();
+            final var addressMap = Map.of(ownAddress, "unknown-value");
+            final DData<Address, String, LiteralUpdate> ddata = mockDistributedData(addressMap);
+            final ActorRef underTest = system1.actorOf(AckUpdater.props(config, ownAddress, ddata));
+
+            // WHEN: AckUpdater is requested to sync against the cluster state
+            underTest.tell(ClusterStateSyncBehavior.Control.SYNC_CLUSTER_STATE, ActorRef.noSender());
+
+            // THEN: AckUpdater does not modify ddata more than needed
+            Mockito.verify(ddata.getReader(), Mockito.timeout(5000))
+                    .getAllShards(eq((Replicator.ReadConsistency) Replicator.readLocal()));
+            Mockito.verify(ddata.getWriter(), Mockito.timeout(5000).times(1))
+                    .put(eq(ownAddress), any(), any());
+            Mockito.verify(ddata.getWriter(), Mockito.never())
+                    .removeAddress(any(), eq((Replicator.WriteConsistency) Replicator.writeLocal()));
+        }};
+    }
+
     private Config getTestConf() {
         return ConfigFactory.load("pubsub-factory-test.conf");
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static <A, B, C extends DDataUpdate<?>> DData<A, B, C> mockDistributedData(final Map<A, B> result) {
+        final ORMultiMap map = Mockito.mock(ORMultiMap.class);
+        Mockito.when(map.getEntries()).thenReturn(result);
+        final var mock = Mockito.mock(DData.class);
+        final var reader = Mockito.mock(DDataReader.class);
+        final var writer = Mockito.mock(DDataWriter.class);
+        Mockito.when(mock.getReader()).thenReturn(reader);
+        Mockito.when(mock.getWriter()).thenReturn(writer);
+        Mockito.when(reader.get(any(), any())).thenReturn(CompletableFuture.completedStage(Optional.of(map)));
+        Mockito.when(reader.getAllShards(any())).thenReturn(CompletableFuture.completedStage(List.of(map)));
+        Mockito.when(writer.put(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));
+        return mock;
     }
 
     private static void waitForHeartBeats(final ActorSystem system, final TestKit kit) {

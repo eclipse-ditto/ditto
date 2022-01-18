@@ -151,7 +151,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     }
 
     @Override
-    public void resetDDataForCurrentMember() {
+    public void verifyNoDDataForCurrentMember() {
         previousUpdate = LiteralUpdate.empty();
     }
 

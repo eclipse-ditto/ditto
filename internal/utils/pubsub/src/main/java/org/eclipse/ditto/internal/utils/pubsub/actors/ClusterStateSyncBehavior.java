@@ -34,7 +34,6 @@ import akka.cluster.ddata.ORMultiMap;
 import akka.cluster.ddata.Replicator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
-import scala.jdk.CollectionConverters;
 
 /**
  * Mixin to subscribe for cluster events.
@@ -67,10 +66,10 @@ interface ClusterStateSyncBehavior<T> extends Actor, Timers {
     DData<T, ?, ?> getDData();
 
     /**
-     * Trigger distributed write of the information related to the current member in the distributed data.
-     * Does NOT have to be thread-safe.
+     * Verify that no distributed data entry is expected for the current member and trigger an update if it is expected.
+     * Called if the distributed data entry for the current member is missing.
      */
-    void resetDDataForCurrentMember();
+    void verifyNoDDataForCurrentMember();
 
     /**
      * Schedule periodic sync between the distributed data and the cluster state.
@@ -105,6 +104,8 @@ interface ClusterStateSyncBehavior<T> extends Actor, Timers {
      * @param trigger The trigger.
      */
     default void syncClusterState(final Control trigger) {
+        log().info("Start to sync cluster state");
+
         final var resultFuture = getDData().getReader()
                 .getAllShards((Replicator.ReadConsistency) Replicator.readLocal())
                 .thenApply(this::checkClusterState)
@@ -131,10 +132,11 @@ interface ClusterStateSyncBehavior<T> extends Actor, Timers {
         if (syncResult.isInSync()) {
             log().info("DData is in sync with cluster state");
         } else {
-            log().warning("DData out of sync: <{}>", syncResult);
+            log().info("Sync result: <{}>", syncResult);
             if (syncResult.myAddressMissing) {
-                log().warning("Resetting missing info of current member <{}>", getCluster().selfMember());
-                resetDDataForCurrentMember();
+                // This can happen during normal operation if no subscription is present for the current member.
+                log().info("Checking missing info of current member <{}>", getCluster().selfMember());
+                verifyNoDDataForCurrentMember();
             }
             if (!syncResult.staleAddresses.isEmpty()) {
                 log().warning("Removing stale addresses <{}>", syncResult.staleAddresses);
@@ -186,8 +188,7 @@ interface ClusterStateSyncBehavior<T> extends Actor, Timers {
      */
     default Set<Address> getDDataAddresses(final List<? extends ORMultiMap<T, ?>> maps) {
         return maps.stream()
-                .flatMap(orMultiMap ->
-                        CollectionConverters.SetHasAsJava(orMultiMap.entries().keySet()).asJava().stream())
+                .flatMap(orMultiMap -> orMultiMap.getEntries().keySet().stream())
                 .map(this::toAddress)
                 .collect(Collectors.toSet());
     }

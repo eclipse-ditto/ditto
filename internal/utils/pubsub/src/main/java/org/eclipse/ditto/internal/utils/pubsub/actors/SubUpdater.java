@@ -399,9 +399,12 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
     }
 
     @Override
-    public void resetDDataForCurrentMember() {
-        previousUpdate = LiteralUpdate.empty();
-        localSubscriptionsChanged = true;
+    public void verifyNoDDataForCurrentMember() {
+        if (!subscriptions.isEmpty()) {
+            previousUpdate = LiteralUpdate.empty();
+            localSubscriptionsChanged = true;
+        }
+        // Do nothing for empty subscriptions: No data is expected for the current member.
     }
 
     private enum Clock {
