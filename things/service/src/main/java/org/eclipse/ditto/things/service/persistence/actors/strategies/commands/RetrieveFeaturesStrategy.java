@@ -30,8 +30,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatures;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeaturesResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -89,8 +89,7 @@ final class RetrieveFeaturesStrategy extends AbstractThingCommandStrategy<Retrie
                 .map(selector -> Thing.JsonFields.FEATURES.getPointer().append(selector))
                 .collect(Collectors.toList());
         final JsonFieldSelector expandedPointers =
-                ThingFieldSelector.fromJsonFieldSelector(JsonFactory.newFieldSelector(normalized))
-                        .expandFeatureIdWildcards(features);
+                ThingsModelFactory.expandFeatureIdWildcards(features, JsonFactory.newFieldSelector(normalized));
         // and remove it again because field selectors are relative to /features
         final List<JsonPointer> denormalized =
                 expandedPointers.getPointers()

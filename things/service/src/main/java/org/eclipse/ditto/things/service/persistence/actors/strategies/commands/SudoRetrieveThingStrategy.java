@@ -30,7 +30,6 @@ import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
@@ -75,7 +74,7 @@ final class SudoRetrieveThingStrategy extends AbstractThingCommandStrategy<SudoR
                 .map(selectedFields -> {
                     final Features features = thing.getFeatures().orElse(ThingsModelFactory.emptyFeatures());
                     final JsonFieldSelector expandedFieldSelector =
-                            ThingFieldSelector.fromJsonFieldSelector(selectedFields).expandFeatureIdWildcards(features);
+                            ThingsModelFactory.expandFeatureIdWildcards(features, selectedFields);
                     return theThing.toJson(jsonSchemaVersion, expandedFieldSelector, FieldType.regularOrSpecial());
                 })
                 .orElseGet(() -> theThing.toJson(jsonSchemaVersion, FieldType.regularOrSpecial()));

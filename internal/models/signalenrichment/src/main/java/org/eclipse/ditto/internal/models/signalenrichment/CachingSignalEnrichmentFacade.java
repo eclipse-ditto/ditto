@@ -24,8 +24,8 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
 /**
@@ -57,7 +57,7 @@ public interface CachingSignalEnrichmentFacade extends SignalEnrichmentFacade {
                     .map(JsonObject::getKeys)
                     .orElse(Collections.emptyList());
             final JsonFieldSelector expandedSelector =
-                    ThingFieldSelector.fromJsonFieldSelector(fieldSelector).expandFeatureIdWildcards(featureIds);
+                    ThingsModelFactory.expandFeatureIdWildcards(featureIds, fieldSelector);
             result = jsonObject.get(expandedSelector);
         }
 

@@ -21,6 +21,11 @@ import org.junit.Test;
 
 public final class ThingFieldSelectorTest {
 
+    private static final Features FEATURES = Features.newBuilder()
+            .set(Feature.newBuilder().withId("f1").build())
+            .set(Feature.newBuilder().withId("f2").build())
+            .build();
+
     @Test
     public void fromNullStringThrows() {
         assertThatExceptionOfType(InvalidThingFieldSelectionException.class)
@@ -99,11 +104,6 @@ public final class ThingFieldSelectorTest {
         assertThat(result).isSameAs(initial);
     }
 
-    private static final Features FEATURES = Features.newBuilder()
-            .set(Feature.newBuilder().withId("f1").build())
-            .set(Feature.newBuilder().withId("f2").build())
-            .build();
-
     @Test
     public void testExpandFeatureIdWildcard() {
         final JsonFieldSelector fieldSelector = JsonFieldSelector.newInstance("thingId",
@@ -112,7 +112,7 @@ public final class ThingFieldSelectorTest {
                 "attributes", "features/f1/properties/connected", "features/f2/properties/connected");
 
         final JsonFieldSelector expanded =
-                ThingFieldSelector.fromJsonFieldSelector(fieldSelector).expandFeatureIdWildcards(FEATURES);
+                ThingsModelFactory.expandFeatureIdWildcards(FEATURES, fieldSelector);
         assertThat(expanded).containsExactlyInAnyOrderElementsOf(expected);
     }
 
@@ -123,7 +123,7 @@ public final class ThingFieldSelectorTest {
                         "/properties/c");
 
         final JsonFieldSelector expanded =
-                ThingFieldSelector.fromJsonFieldSelector(fieldSelector).expandFeatureIdWildcards(FEATURES);
+                ThingsModelFactory.expandFeatureIdWildcards(FEATURES, fieldSelector);
         assertThat(expanded).containsExactlyInAnyOrderElementsOf(fieldSelector);
     }
 

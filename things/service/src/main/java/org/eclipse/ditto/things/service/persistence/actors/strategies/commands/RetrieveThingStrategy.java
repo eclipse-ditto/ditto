@@ -27,7 +27,6 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingFieldSelector;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
@@ -87,7 +86,7 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
                 .map(selectedFields -> {
                     final Features features = thing.getFeatures().orElse(ThingsModelFactory.emptyFeatures());
                     final JsonFieldSelector expandedFieldSelector =
-                            ThingFieldSelector.fromJsonFieldSelector(selectedFields).expandFeatureIdWildcards(features);
+                            ThingsModelFactory.expandFeatureIdWildcards(features, selectedFields);
                     return thing.toJson(command.getImplementedSchemaVersion(), expandedFieldSelector);
                 })
                 .orElseGet(() -> thing.toJson(command.getImplementedSchemaVersion()));
