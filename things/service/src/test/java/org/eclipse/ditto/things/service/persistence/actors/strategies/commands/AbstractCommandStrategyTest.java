@@ -20,21 +20,23 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import java.util.function.Consumer;
+
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.base.model.headers.WithDittoHeaders;
-import org.eclipse.ditto.things.model.Thing;
-import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.base.model.signals.commands.Command;
+import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.AbstractCommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.internal.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultVisitor;
-import org.eclipse.ditto.base.model.signals.commands.Command;
-import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
+import org.eclipse.ditto.things.model.Thing;
+import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommandSizeValidator;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.things.model.signals.events.ThingModifiedEvent;
@@ -108,6 +110,20 @@ public abstract class AbstractCommandStrategyTest {
             final CommandResponse<?> expectedCommandResponse) {
 
         assertInfoResult(applyStrategy(underTest, getDefaultContext(), thing, command), expectedCommandResponse);
+    }
+
+    protected static <C extends Command<?>> void assertQueryResult(
+            final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
+            @Nullable final Thing thing,
+            final C command,
+            final Consumer<CommandResponse<?>> commandResponseAssertions) {
+
+        final Result<ThingEvent<?>> thingEventResult = applyStrategy(underTest, getDefaultContext(), thing, command);
+        final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
+        thingEventResult.accept(mock);
+        final ArgumentCaptor<CommandResponse<?>> captor = ArgumentCaptor.forClass(CommandResponse.class);
+        verify(mock).onQuery(any(), captor.capture());
+        commandResponseAssertions.accept(captor.getValue());
     }
 
 

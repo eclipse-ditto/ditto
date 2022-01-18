@@ -32,12 +32,13 @@ import org.eclipse.ditto.json.JsonPointer;
  */
 public final class ThingFieldSelector implements JsonFieldSelector {
 
+
     private static final JsonParseOptions JSON_PARSE_OPTIONS = JsonParseOptions.newBuilder()
             .withoutUrlDecoding()
             .build();
     static final List<String> SELECTABLE_FIELDS = Arrays.asList("thingId", "policyId", "definition",
-            "_namespace", "_revision", "_created", "_modified", "_metadata", "_policy", "features(/[^,]+)?",
-            "attributes(/[^,]+)?");
+            "_namespace", "_revision", "_created", "_modified", "_metadata", "_policy",
+            "features(/[^,]+)?", "attributes(/[^,]+)?");
     private static final String KNOWN_FIELDS_REGEX = "/?(" + String.join("|", SELECTABLE_FIELDS) + ")";
     private static final String FIELD_SELECTION_REGEX = "^" + KNOWN_FIELDS_REGEX + "(," + KNOWN_FIELDS_REGEX + ")*$";
     private static final Pattern FIELD_SELECTION_PATTERN = Pattern.compile(FIELD_SELECTION_REGEX);
@@ -62,7 +63,7 @@ public final class ThingFieldSelector implements JsonFieldSelector {
     public static ThingFieldSelector fromJsonFieldSelector(final JsonFieldSelector jsonFieldSelector) {
         if (jsonFieldSelector instanceof ThingFieldSelector) {
             return (ThingFieldSelector) jsonFieldSelector;
-        } else if (jsonFieldSelector == null) {
+        } else if (null == jsonFieldSelector) {
             throw InvalidThingFieldSelectionException.forExtraFieldSelectionString(null);
         } else if (FIELD_SELECTION_PATTERN.matcher(jsonFieldSelector.toString()).matches()) {
             return new ThingFieldSelector(jsonFieldSelector);
@@ -80,12 +81,13 @@ public final class ThingFieldSelector implements JsonFieldSelector {
      * @throws InvalidThingFieldSelectionException when the given string is {@code null} or contains invalid fields.
      */
     public static ThingFieldSelector fromString(final String selectionString) {
-        if (selectionString == null) {
+        if (null == selectionString) {
             throw InvalidThingFieldSelectionException.forExtraFieldSelectionString(null);
         } else if (FIELD_SELECTION_PATTERN.matcher(selectionString).matches()) {
             return new ThingFieldSelector(JsonFactory.newFieldSelector(selectionString, JSON_PARSE_OPTIONS));
+        } else {
+            throw InvalidThingFieldSelectionException.forExtraFieldSelectionString(selectionString);
         }
-        throw InvalidThingFieldSelectionException.forExtraFieldSelectionString(selectionString);
     }
 
     /**
