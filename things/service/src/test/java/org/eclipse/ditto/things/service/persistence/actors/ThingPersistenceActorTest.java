@@ -893,7 +893,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 // retrieve the thing's sequence number
                 final JsonFieldSelector versionFieldSelector =
-                        JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.toString(), JSON_PARSE_OPTIONS);
+                        JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.getPointer().toString(), JSON_PARSE_OPTIONS);
                 final long versionExpected = 2;
                 final Thing thingExpected = ThingsModelFactory.newThingBuilder(thingToModify)
                         .setRevision(versionExpected)
@@ -902,9 +902,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
                         .withSelectedFields(versionFieldSelector)
                         .build();
                 underTest.tell(retrieveThing, getRef());
-                expectMsgEquals(
-                        ETagTestUtils.retrieveThingResponse(thingExpected, versionFieldSelector,
-                                dittoHeadersV2));
+                expectMsgEquals(ETagTestUtils.retrieveThingResponse(thingExpected, versionFieldSelector, dittoHeadersV2));
             }
         };
     }
@@ -932,7 +930,7 @@ public final class ThingPersistenceActorTest extends PersistenceActorTestBase {
 
                 // retrieve the thing's sequence number from recovered actor
                 final JsonFieldSelector versionFieldSelector =
-                        JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.toString(), JSON_PARSE_OPTIONS);
+                        JsonFactory.newFieldSelector(Thing.JsonFields.REVISION.getPointer().toString(), JSON_PARSE_OPTIONS);
                 final long versionExpected = 2;
                 final Thing thingExpected = ThingsModelFactory.newThingBuilder(thingToModify)
                         .setRevision(versionExpected)

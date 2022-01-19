@@ -24,11 +24,14 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.internal.utils.persistentactors.results.Result;
 import org.eclipse.ditto.internal.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.things.model.Features;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 
@@ -68,7 +71,12 @@ final class SudoRetrieveThingStrategy extends AbstractThingCommandStrategy<SudoR
 
         final JsonSchemaVersion jsonSchemaVersion = determineSchemaVersion(command, theThing);
         final JsonObject thingJson = command.getSelectedFields()
-                .map(selectedFields -> theThing.toJson(jsonSchemaVersion, selectedFields, FieldType.regularOrSpecial()))
+                .map(selectedFields -> {
+                    final Features features = thing.getFeatures().orElse(ThingsModelFactory.emptyFeatures());
+                    final JsonFieldSelector expandedFieldSelector =
+                            ThingsModelFactory.expandFeatureIdWildcards(features, selectedFields);
+                    return theThing.toJson(jsonSchemaVersion, expandedFieldSelector, FieldType.regularOrSpecial());
+                })
                 .orElseGet(() -> theThing.toJson(jsonSchemaVersion, FieldType.regularOrSpecial()));
 
         return ResultFactory.newQueryResult(command,

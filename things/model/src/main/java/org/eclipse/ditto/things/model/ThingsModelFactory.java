@@ -15,30 +15,37 @@ package org.eclipse.ditto.things.model;
 import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonKeyInvalidException;
-import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataBuilder;
 import org.eclipse.ditto.base.model.entity.metadata.MetadataModelFactory;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonPointer;
 
 /**
  * Factory that creates new {@code things} objects.
  */
 @Immutable
 public final class ThingsModelFactory {
+
+    public static final JsonKey FEATURE_ID_WILDCARD = JsonKey.of("*");
 
     /*
      * Inhibit instantiation of this utility class.
@@ -702,7 +709,7 @@ public final class ThingsModelFactory {
 
     /**
      * Returns a mutable builder with a fluent API for an immutable {@link Thing} based on the given JSON object. The
-     * JSON object is parsed in a fault tolerant way. I. e. all properties which cannot be deserialized are supposed to
+     * JSON object is parsed in a fault-tolerant way. I.e. all properties which cannot be deserialized are supposed to
      * not exist.
      *
      * @param jsonObject the JSON object representation of a Thing.
@@ -716,7 +723,7 @@ public final class ThingsModelFactory {
 
     /**
      * Returns a mutable builder with a fluent API for an immutable {@link Thing} based on the given JSON string. The
-     * JSON string is parsed in a fault tolerant way. I. e. all properties which cannot be deserialized are supposed to
+     * JSON string is parsed in a fault-tolerant way. I.e. all properties which cannot be deserialized are supposed to
      * not exist.
      *
      * @param jsonString string the JSON string representation of a Thing.
@@ -740,6 +747,57 @@ public final class ThingsModelFactory {
      */
     public static ThingBuilder.FromCopy newThingBuilder(final Thing thing) {
         return ImmutableThingFromCopyBuilder.of(thing);
+    }
+
+    /**
+     * Returns a new instance of {@link JsonFieldSelector} with expanded feature id wildcard.
+     *
+     * @return the new instance.
+     * @since 2.3.0
+     */
+    public static JsonFieldSelector expandFeatureIdWildcards(final Features features,
+            final JsonFieldSelector jsonFieldSelector) {
+        final Collection<JsonKey> featureIds =
+                features.stream().map(Feature::getId).map(JsonKey::of).collect(Collectors.toList());
+        return expandFeatureIdWildcards(featureIds, jsonFieldSelector);
+    }
+
+    /**
+     * Returns a new instance of {@link JsonFieldSelector} with expanded feature id wildcard.
+     *
+     * @return the new instance.
+     * @since 2.3.0
+     */
+    public static JsonFieldSelector expandFeatureIdWildcards(final Collection<JsonKey> featureIds,
+            final JsonFieldSelector jsonFieldSelector) {
+        final List<JsonPointer> jsonPointerList = jsonFieldSelector.getPointers().stream()
+                .flatMap(jsonPointer -> expandFeatureIdWildcard(featureIds, jsonPointer)).collect(Collectors.toList());
+        return JsonFactory.newFieldSelector(jsonPointerList);
+    }
+
+    /**
+     * Returns a stream of {@link JsonPointer} with expanded feature id wildcard.
+     *
+     * @return a stream of {@link JsonPointer}.
+     * @since 2.3.0
+     */
+    public static Stream<JsonPointer> expandFeatureIdWildcard(final Collection<JsonKey> featureIds,
+            final JsonPointer jsonPointer) {
+        if (hasFeatureIdWildcard(jsonPointer)) {
+            return featureIds.stream().map(fid -> Thing.JsonFields.FEATURES.getPointer()
+                    .append(JsonPointer.of(fid))
+                    .append(jsonPointer.getSubPointer(2).orElse(JsonPointer.empty())));
+        } else {
+            return Stream.of(jsonPointer);
+        }
+    }
+
+    private static boolean hasFeatureIdWildcard(final JsonPointer pointer) {
+        return pointer.getLevelCount() > 1
+                && pointer.getRoot()
+                .filter(root -> Thing.JsonFields.FEATURES.getPointer().equals(JsonPointer.of(root)))
+                .isPresent()
+                && pointer.get(1).filter(FEATURE_ID_WILDCARD::equals).isPresent();
     }
 
 }

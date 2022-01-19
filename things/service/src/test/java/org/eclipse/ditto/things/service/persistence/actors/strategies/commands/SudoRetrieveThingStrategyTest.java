@@ -27,7 +27,10 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.things.api.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.things.model.TestConstants;
+import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.ThingsModelFactory;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
@@ -114,7 +117,7 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
     @Test
     public void retrieveThingWithSelectedFields() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
+        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attributes/location");
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(JsonSchemaVersion.V_2)
                 .build();
@@ -129,9 +132,35 @@ public final class SudoRetrieveThingStrategyTest extends AbstractCommandStrategy
     }
 
     @Test
+    public void retrieveThingWithSelectedFieldsWithFeatureWildcard() {
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attributes/location",
+                "/features/*/properties/target_year_1");
+        final JsonFieldSelector expandedFieldSelector = JsonFactory.newFieldSelector("/attributes/location",
+                "/features/" + TestConstants.Feature.FLUX_CAPACITOR_ID + "/properties/target_year_1",
+                "/features/f1/properties/target_year_1",
+                "/features/f2/properties/target_year_1");
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .schemaVersion(JsonSchemaVersion.V_2)
+                .build();
+        final Thing thing = THING_V2.toBuilder()
+                .setFeature("f1", ThingsModelFactory.newFeaturePropertiesBuilder().set("target_year_1", 2022).build())
+                .setFeature("f2", ThingsModelFactory.newFeaturePropertiesBuilder().set("connected", false).build())
+                .build();
+
+        final SudoRetrieveThing command = SudoRetrieveThing.of(context.getState(), fieldSelector, dittoHeaders);
+        final JsonObject expectedThingJson = thing.toJson(command.getImplementedSchemaVersion(), expandedFieldSelector,
+                FieldType.regularOrSpecial());
+        final SudoRetrieveThingResponse expectedResponse =
+                ETagTestUtils.sudoRetrieveThingResponse(thing, expectedThingJson, dittoHeaders);
+
+        assertQueryResult(underTest, thing, command, expectedResponse);
+    }
+
+    @Test
     public void retrieveThingWithSelectedFieldsWithOriginalSchemaVersion() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attribute/location");
+        final JsonFieldSelector fieldSelector = JsonFactory.newFieldSelector("/attributes/location");
         final SudoRetrieveThing command =
                 SudoRetrieveThing.of(context.getState(), fieldSelector, DittoHeaders.empty());
         final JsonObject expectedThingJson = THING_V2.toJson(THING_V2.getImplementedSchemaVersion(), fieldSelector,

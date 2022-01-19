@@ -12,9 +12,12 @@ For different contexts or aspects of a Thing different Features can be used whic
 and do not exist without this Thing.
 
 ## Feature ID
-Within a Thing each Feature is identified by a unique string - the so called Feature ID.
-A Feature ID often needs to be set in the path of a HTTP request. Due to this fact we strongly recommend to use a
+Within a Thing each Feature is identified by a unique string - the so-called Feature ID.
+A Feature ID often needs to be set in the path of a HTTP request. Due to this fact we strongly recommend using a
 restricted set of characters (e.g. those for [Uniform Resource Identifiers (URI)](https://www.ietf.org/rfc/rfc3986.txt)).
+
+The Feature ID may not be the wildcard operator '*' because it has a special meaning and can lead to unexpected
+results when retrieving or searching for things/features.
 
 ## Feature properties
 
