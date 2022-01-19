@@ -21,12 +21,10 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
-import org.eclipse.ditto.internal.utils.pubsub.LiteralDDataProvider;
 import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.compressed.CompressedDData;
-import org.eclipse.ditto.internal.utils.pubsub.ddata.literal.AbstractConfigAwareDDataProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,12 +42,9 @@ import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link AckUpdater}.
+ * Tests {@link SubUpdater}.
  */
 public final class SubUpdaterTest {
-
-    private static final AbstractConfigAwareDDataProvider PROVIDER =
-            LiteralDDataProvider.of("dc-default", "topic");
 
     private ActorSystem system;
 

@@ -79,7 +79,6 @@ public interface DDataReader<K, T> {
      * @param key the key to get the replicated data for.
      * @param consistency how many replicas to consult.
      * @return future of the replicated data that completes exceptionally on error.
-     * @since 2.3.0
      */
     CompletionStage<Optional<ORMultiMap<K, T>>> get(Key<ORMultiMap<K, T>> key, Replicator.ReadConsistency consistency);
 

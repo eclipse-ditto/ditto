@@ -246,12 +246,16 @@ interface ClusterStateSyncBehavior<T> extends Actor, Timers {
 
         @Override
         public String toString() {
-            return "SyncResult[myAddressMissing=" + myAddressMissing +
+            return getClass().getSimpleName() + " [" +
+                    "myAddressMissing=" + myAddressMissing +
                     ", staleAddresses=" + staleAddresses +
                     "]";
         }
     }
 
+    /**
+     * Message indicating error during syncing against the cluster state containing the cause.
+     */
     final class SyncError {
 
         private final Throwable error;
