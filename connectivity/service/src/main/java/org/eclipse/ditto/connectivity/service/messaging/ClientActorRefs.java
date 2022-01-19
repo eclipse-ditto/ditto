@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.internal.utils.cluster.AkkaJacksonCborSerializable;
 import org.eclipse.ditto.internal.utils.pubsub.PubSubFactory;
 
 import akka.actor.ActorPath;
@@ -29,7 +30,7 @@ import akka.actor.ActorRef;
  * Collection of all client actor refs of a connection actor.
  */
 @NotThreadSafe
-public final class ClientActorRefs {
+public final class ClientActorRefs implements AkkaJacksonCborSerializable {
 
     private final Map<ActorPath, ActorRef> refsByPath = new HashMap<>();
     private List<ActorRef> sortedRefs = List.of();
