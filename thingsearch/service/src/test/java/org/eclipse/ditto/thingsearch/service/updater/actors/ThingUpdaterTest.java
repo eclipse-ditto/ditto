@@ -183,7 +183,8 @@ public final class ThingUpdaterTest {
     public void recoverLastWriteModel() {
         new TestKit(actorSystem) {{
             final Props props = Props.create(ThingUpdater.class,
-                    () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0, Duration.ofMinutes(1), false, true));
+                    () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
+                            Duration.ofMinutes(1), 0.0, false, true));
             final var underTest = childActorOf(props, THING_ID.toString());
 
             final var document = new BsonDocument()
@@ -213,7 +214,8 @@ public final class ThingUpdaterTest {
             final Duration forceUpdateAfterStartTimeout = Duration.ofSeconds(1);
 
             final Props props = Props.create(ThingUpdater.class,
-                    () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0, forceUpdateAfterStartTimeout, false, true));
+                    () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
+                            forceUpdateAfterStartTimeout, 0.0, false, true));
             final var underTest = childActorOf(props, THING_ID.toString());
 
             final var document = new BsonDocument()
@@ -251,7 +253,8 @@ public final class ThingUpdaterTest {
 
     private ActorRef createThingUpdaterActor() {
         final Props props = Props.create(ThingUpdater.class,
-                () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0, Duration.ofMinutes(1), false, false));
+                () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0, Duration.ofMinutes(1),
+                        0.0, false, false));
         return actorSystem.actorOf(props, THING_ID.toString());
     }
 

@@ -66,6 +66,15 @@ public interface UpdaterConfig {
     Duration getForceUpdateAfterStartTimeout();
 
     /**
+     * Get the factor of the random delay added to "force-update-after-start".
+     * A random delay is introduced so that the active things will not perform force update at the same time and
+     * generate a load spike at the database.
+     *
+     * @return the factor of the random delay.
+     */
+    double getForceUpdateAfterStartRandomFactor();
+
+    /**
      * Returns configuration for the background sync actor.
      *
      * @return the config.
@@ -116,7 +125,12 @@ public interface UpdaterConfig {
         /**
          * The timeout after when to explicitly do a "force update" after a ThingUpdater was started.
          */
-        FORCE_UPDATE_AFTER_START_TIMEOUT("force-update-after-start-timeout", Duration.ofMinutes(5));
+        FORCE_UPDATE_AFTER_START_TIMEOUT("force-update-after-start-timeout", Duration.ofMinutes(5)),
+
+        /**
+         * Random factor added to "force-update-after-start-timeout" to avoid database load spikes.
+         */
+        FORCE_UPDATE_AFTER_START_RANDOM_FACTOR("force-update-after-start-random-factor", 1.0);
 
         private final String path;
         private final Object defaultValue;

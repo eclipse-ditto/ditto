@@ -99,14 +99,17 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     private ThingUpdater(final ActorRef pubSubMediator,
             final ActorRef changeQueueActor,
             final double forceUpdateProbability,
-            final Duration forceUpdateAfterStartTimeout) {
-        this(pubSubMediator, changeQueueActor, forceUpdateProbability, forceUpdateAfterStartTimeout, true, true);
+            final Duration forceUpdateAfterStartTimeout,
+            final double forceUpdateAfterStartRandomFactor) {
+        this(pubSubMediator, changeQueueActor, forceUpdateProbability, forceUpdateAfterStartTimeout,
+                forceUpdateAfterStartRandomFactor, true, true);
     }
 
     ThingUpdater(final ActorRef pubSubMediator,
             final ActorRef changeQueueActor,
             final double forceUpdateProbability,
             final Duration forceUpdateAfterStartTimeout,
+            final double forceUpdateAfterStartRandomFactor,
             final boolean loadPreviousState,
             final boolean awaitRecovery) {
 
@@ -128,7 +131,8 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             final var noLastModel = ThingDeleteModel.of(Metadata.of(thingId, -1L, null, null, null));
             getSelf().tell(noLastModel, getSelf());
         }
-        getTimers().startSingleTimer(FORCE_UPDATE_AFTER_START, FORCE_UPDATE_AFTER_START, forceUpdateAfterStartTimeout);
+        getTimers().startSingleTimer(FORCE_UPDATE_AFTER_START, FORCE_UPDATE_AFTER_START,
+                randomizeTimeout(forceUpdateAfterStartTimeout, forceUpdateAfterStartRandomFactor));
     }
 
     /**
@@ -143,7 +147,9 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             final UpdaterConfig updaterConfig) {
 
         return Props.create(ThingUpdater.class, pubSubMediator, changeQueueActor,
-                updaterConfig.getForceUpdateProbability(), updaterConfig.getForceUpdateAfterStartTimeout());
+                updaterConfig.getForceUpdateProbability(),
+                updaterConfig.getForceUpdateAfterStartTimeout(),
+                updaterConfig.getForceUpdateAfterStartRandomFactor());
     }
 
     @Override
@@ -378,4 +384,8 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
         Patterns.pipe(writeModelFuture, getContext().getDispatcher()).to(getSelf());
     }
 
+    private static Duration randomizeTimeout(final Duration minTimeout, final double randomFactor) {
+        final long randomDelayMillis = (long) (Math.random() * randomFactor * minTimeout.toMillis());
+        return minTimeout.plus(Duration.ofMillis(randomDelayMillis));
+    }
 }
