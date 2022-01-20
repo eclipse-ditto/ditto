@@ -51,17 +51,18 @@ import akka.actor.ActorRef;
 import akka.actor.Address;
 import akka.actor.Props;
 import akka.actor.Terminated;
+import akka.cluster.Cluster;
 import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ORMultiMap;
 import akka.cluster.ddata.Replicator;
-import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
  * Manage the local and remote ternary relation between actors, group names and declared acknowledgement labels.
  * In case of conflict, prefer data from the cluster member with a smaller address.
  */
-public final class AckUpdater extends AbstractActorWithTimers implements ClusterMemberRemovedAware {
+public final class AckUpdater extends AbstractActorWithTimers implements ClusterStateSyncBehavior<Address>,
+        ClusterMemberRemovedAware {
 
     /**
      * Prefix of this actor's name.
@@ -77,6 +78,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     private final java.util.Set<ActorRef> localChangeRecipients;
     private final Gauge ackSizeMetric;
     private final Map<Key<?>, Map<Address, List<Grouped<String>>>> cachedRemoteAcks;
+    private final Cluster cluster;
 
     private Map<String, Set<String>> remoteAckLabels = Map.of();
     private Map<String, Set<String>> remoteGroups = Map.of();
@@ -92,9 +94,11 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         localChangeRecipients = new HashSet<>();
         ackSizeMetric = DittoMetrics.gauge("pubsub-ack-size-bytes");
         cachedRemoteAcks = new HashMap<>();
+        cluster = Cluster.get(getContext().getSystem());
         subscribeForClusterMemberRemovedAware();
         ackDData.getReader().receiveChanges(getSelf());
         getTimers().startTimerAtFixedRate(Clock.TICK, Clock.TICK, config.getUpdateInterval());
+        scheduleClusterStateSync(config);
     }
 
     /**
@@ -122,16 +126,37 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
                 .match(Replicator.Changed.class, this::onChanged)
                 .build()
                 .orElse(receiveClusterMemberRemoved())
+                .orElse(getClusterStateSyncBehavior())
                 .orElse(ReceiveBuilder.create().matchAny(this::logUnhandled).build());
     }
 
     @Override
-    public LoggingAdapter log() {
+    public Cluster getCluster() {
+        return cluster;
+    }
+
+    @Override
+    public Address toAddress(final Address ddataKey) {
+        return ddataKey;
+    }
+
+    @Override
+    public ThreadSafeDittoLoggingAdapter log() {
         return log;
     }
 
     @Override
-    public DDataWriter<?, ?> getDDataWriter() {
+    public DData<Address, ?, ?> getDData() {
+        return ackDData;
+    }
+
+    @Override
+    public void verifyNoDDataForCurrentMember() {
+        previousUpdate = LiteralUpdate.empty();
+    }
+
+    @Override
+    public DDataWriter<Address, ?> getDDataWriter() {
         return ackDData.getWriter();
     }
 
