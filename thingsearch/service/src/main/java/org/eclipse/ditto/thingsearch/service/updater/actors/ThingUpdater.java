@@ -17,6 +17,7 @@ import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -29,6 +30,7 @@ import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
 import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.internal.models.streaming.IdentifiableStreamingMessage;
+import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
@@ -58,7 +60,6 @@ import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.WriteModel;
 
 import akka.Done;
-import akka.actor.AbstractActorWithStash;
 import akka.actor.ActorRef;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
@@ -70,12 +71,14 @@ import akka.stream.javadsl.Sink;
 /**
  * This Actor initiates persistence updates related to 1 thing.
  */
-final class ThingUpdater extends AbstractActorWithStash {
+final class ThingUpdater extends AbstractActorWithStashWithTimers {
 
     private static final String FORCE_UPDATE = "force-update";
 
     private static final AcknowledgementRequest SEARCH_PERSISTED_REQUEST =
             AcknowledgementRequest.of(DittoAcknowledgementLabel.SEARCH_PERSISTED);
+
+    private static final String FORCE_UPDATE_AFTER_START = "FORCE_UPDATE_AFTER_START";
 
     private final DittoDiagnosticLoggingAdapter log;
     private final ThingId thingId;
@@ -90,17 +93,23 @@ final class ThingUpdater extends AbstractActorWithStash {
 
     // cache last update document for incremental updates
     @Nullable AbstractWriteModel lastWriteModel = null;
+    private boolean forceNextUpdate = false;
 
     @SuppressWarnings("unused") //It is used via reflection. See props method.
     private ThingUpdater(final ActorRef pubSubMediator,
             final ActorRef changeQueueActor,
-            final double forceUpdateProbability) {
-        this(pubSubMediator, changeQueueActor, forceUpdateProbability, true, true);
+            final double forceUpdateProbability,
+            final Duration forceUpdateAfterStartTimeout,
+            final double forceUpdateAfterStartRandomFactor) {
+        this(pubSubMediator, changeQueueActor, forceUpdateProbability, forceUpdateAfterStartTimeout,
+                forceUpdateAfterStartRandomFactor, true, true);
     }
 
     ThingUpdater(final ActorRef pubSubMediator,
             final ActorRef changeQueueActor,
             final double forceUpdateProbability,
+            final Duration forceUpdateAfterStartTimeout,
+            final double forceUpdateAfterStartRandomFactor,
             final boolean loadPreviousState,
             final boolean awaitRecovery) {
 
@@ -122,6 +131,8 @@ final class ThingUpdater extends AbstractActorWithStash {
             final var noLastModel = ThingDeleteModel.of(Metadata.of(thingId, -1L, null, null, null));
             getSelf().tell(noLastModel, getSelf());
         }
+        getTimers().startSingleTimer(FORCE_UPDATE_AFTER_START, FORCE_UPDATE_AFTER_START,
+                randomizeTimeout(forceUpdateAfterStartTimeout, forceUpdateAfterStartRandomFactor));
     }
 
     /**
@@ -136,7 +147,9 @@ final class ThingUpdater extends AbstractActorWithStash {
             final UpdaterConfig updaterConfig) {
 
         return Props.create(ThingUpdater.class, pubSubMediator, changeQueueActor,
-                updaterConfig.getForceUpdateProbability());
+                updaterConfig.getForceUpdateProbability(),
+                updaterConfig.getForceUpdateAfterStartTimeout(),
+                updaterConfig.getForceUpdateAfterStartRandomFactor());
     }
 
     @Override
@@ -163,6 +176,10 @@ final class ThingUpdater extends AbstractActorWithStash {
                 .match(UpdateThing.class, this::updateThing)
                 .match(UpdateThingResponse.class, this::processUpdateThingResponse)
                 .match(ReceiveTimeout.class, this::stopThisActor)
+                .matchEquals(FORCE_UPDATE_AFTER_START, s -> {
+                    log.debug("Forcing the next update to be a full 'forceUpdate'");
+                    forceNextUpdate = true;
+                })
                 .matchAny(m -> {
                     log.warning("Unknown message in 'eventProcessing' behavior: {}", m);
                     unhandled(m);
@@ -177,7 +194,8 @@ final class ThingUpdater extends AbstractActorWithStash {
 
     private void onNextWriteModel(final AbstractWriteModel nextWriteModel) {
         final WriteModel<BsonDocument> mongoWriteModel;
-        final boolean forceUpdate = forceUpdateProbability > 0 && Math.random() < forceUpdateProbability;
+        final boolean forceUpdate = (forceUpdateProbability > 0 && Math.random() < forceUpdateProbability) ||
+                forceNextUpdate;
         if (!forceUpdate && lastWriteModel instanceof ThingWriteModel && nextWriteModel instanceof ThingWriteModel) {
             final var last = (ThingWriteModel) lastWriteModel;
             final var next = (ThingWriteModel) nextWriteModel;
@@ -201,7 +219,9 @@ final class ThingUpdater extends AbstractActorWithStash {
         } else {
             mongoWriteModel = nextWriteModel.toMongo();
             if (forceUpdate) {
-                log.debug("Using replacement (forceUpdate) <{}>", mongoWriteModel);
+                log.debug("Using replacement (forceUpdate) <{}> - forceNextUpdate was: <{}>", mongoWriteModel,
+                        forceNextUpdate);
+                forceNextUpdate = false;
             } else {
                 log.debug("Using replacement <{}>", mongoWriteModel);
             }
@@ -364,4 +384,8 @@ final class ThingUpdater extends AbstractActorWithStash {
         Patterns.pipe(writeModelFuture, getContext().getDispatcher()).to(getSelf());
     }
 
+    private static Duration randomizeTimeout(final Duration minTimeout, final double randomFactor) {
+        final long randomDelayMillis = (long) (Math.random() * randomFactor * minTimeout.toMillis());
+        return minTimeout.plus(Duration.ofMillis(randomDelayMillis));
+    }
 }

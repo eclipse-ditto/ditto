@@ -115,7 +115,7 @@ public final class ShardRegionFactory {
      * @return the shard region.
      */
     public ActorRef createShardRegion(final int shards, final Props props, final String name, final String role) {
-        return createShardRegion(shards, true, props, name, role);
+        return createShardRegion(shards, false, props, name, role);
     }
 
     /**

@@ -41,7 +41,7 @@ or subscriptions for live messages, the following placeholders are available in 
 
 | Placeholder                       | Description                                                                                                                                                                                     |
 |-----------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `topic:full` | full [Ditto Protocol topic path](protocol-specification-topic.html)<br/>in the form `{namespace}/{entityId}/{group}/`<br/>`{channel}/{criterion}/{action-subject}`                              |
+| `topic:full` | full [Ditto Protocol topic path](protocol-specification-topic.html)<br/>in the form `{namespace}/{entityName}/{group}/`<br/>`{channel}/{criterion}/{action-subject}`                            |
 | `topic:namespace` | Ditto Protocol [topic namespace](protocol-specification-topic.html#namespace)                                                                                                                   |
 | `topic:entityName` | Ditto Protocol [topic entity name](protocol-specification-topic.html#entity-name)                                                                                                               |
 | `topic:group` | Ditto Protocol [topic group](protocol-specification-topic.html#group)                                                                                                                           |
@@ -70,7 +70,7 @@ In [connections](basic-connections.html), the following placeholders are availab
 | `{%raw%}{{ feature:id }}{%endraw%}` | the ID of the feature (only available if the processed signal was related to a feature)                                                                                                         |
 | `{%raw%}{{ header:<header-name> }}{%endraw%}` | external header value for connection sources, or Ditto protocol header value for targets and reply-targets (both case-insensitive)                                                              |
 | `{%raw%}{{ request:subjectId }}{%endraw%}` | primary authorization subject of a command, or primary authorization subject that caused an event                                                                                               |
-| `{%raw%}{{ topic:full }}{%endraw%}` | full [Ditto Protocol topic path](protocol-specification-topic.html)<br/>in the form `{namespace}/{entityId}/{group}/`<br/>`{channel}/{criterion}/{action-subject}`                              |
+| `{%raw%}{{ topic:full }}{%endraw%}` | full [Ditto Protocol topic path](protocol-specification-topic.html)<br/>in the form `{namespace}/{entityName}/{group}/`<br/>`{channel}/{criterion}/{action-subject}`                            |
 | `{%raw%}{{ topic:namespace }}{%endraw%}` | Ditto Protocol [topic namespace](protocol-specification-topic.html#namespace)                                                                                                                   |
 | `{%raw%}{{ topic:entityName }}{%endraw%}` | Ditto Protocol [topic entity name](protocol-specification-topic.html#entity-name)                                                                                                               |
 | `{%raw%}{{ topic:group }}{%endraw%}` | Ditto Protocol [topic group](protocol-specification-topic.html#group)                                                                                                                           |
@@ -81,7 +81,7 @@ In [connections](basic-connections.html), the following placeholders are availab
 | `{%raw%}{{ topic:action-subject }}{%endraw%}` | either Ditto Protocol [topic action](protocol-specification-topic.html#action-optional) or [topic subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
 | `{%raw%}{{ resource:type }}{%endraw%}` | the type of the Ditto Protocol [path](protocol-specification.html#path) , one of: `thing`, `policy`, `message` or `connection`                                                                  |
 | `{%raw%}{{ resource:path }}{%endraw%}` | the affected resource's path being the Ditto Protocol [path](protocol-specification.html#path) in JsonPointer notation, e.g. `/` when a complete thing was created/modified/deleted             |
-| `{%raw%}{{ time:now }}{%endraw%}` | the current timestamp in ISO-8601 format as string in UTC timezone                                                                                                                                             | 
+| `{%raw%}{{ time:now }}{%endraw%}` | the current timestamp in ISO-8601 format as string in UTC timezone                                                                                                                              | 
 | `{%raw%}{{ time:now_epoch_millis }}{%endraw%}` | the current timestamp in "milliseconds since epoch" formatted as string                                                                                                                         | 
 
 

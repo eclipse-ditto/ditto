@@ -36,7 +36,7 @@ import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
 import org.eclipse.ditto.internal.utils.pubsub.api.Subscribe;
 import org.eclipse.ditto.internal.utils.pubsub.api.Unsubscribe;
 import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
-import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataWriter;
+import org.eclipse.ditto.internal.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.Subscriptions;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.SubscriptionsReader;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.compressed.CompressedDData;
@@ -44,9 +44,11 @@ import org.eclipse.ditto.internal.utils.pubsub.ddata.compressed.CompressedSubscr
 import org.eclipse.ditto.internal.utils.pubsub.ddata.literal.LiteralUpdate;
 
 import akka.actor.ActorRef;
+import akka.actor.Address;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.Terminated;
+import akka.cluster.Cluster;
 import akka.cluster.ddata.Replicator;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -57,7 +59,8 @@ import akka.japi.pf.ReceiveBuilder;
  * the cluster once requested. Local subscribers should most likely not to get any published message before they
  * receive acknowledgement.
  */
-public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
+public final class SubUpdater extends akka.actor.AbstractActorWithTimers
+        implements ClusterStateSyncBehavior<ActorRef> {
 
     /**
      * Prefix of this actor's name.
@@ -68,11 +71,12 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
 
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
     private final Subscriptions<LiteralUpdate> subscriptions;
-    private final DDataWriter<ActorRef, LiteralUpdate> topicsWriter;
     private final ActorRef subscriber;
     private final Gauge topicSizeMetric;
     private final Gauge awaitUpdateMetric;
     private final Gauge awaitSubAckMetric;
+    private final DData<ActorRef, ?, LiteralUpdate> ddata;
+    private final Cluster cluster;
 
     /**
      * Queue of actors demanding SubAck whose subscriptions are not sent to the distributed data replicator.
@@ -101,10 +105,11 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
     private SubUpdater(final PubSubConfig config,
             final ActorRef subscriber,
             final Subscriptions<LiteralUpdate> subscriptions,
-            final DDataWriter<ActorRef, LiteralUpdate> topicsWriter) {
+            final DData<ActorRef, ?, LiteralUpdate> ddata) {
         this.subscriber = subscriber;
         this.subscriptions = subscriptions;
-        this.topicsWriter = topicsWriter;
+        this.ddata = ddata;
+        cluster = Cluster.get(getContext().getSystem());
 
         // tag metrics by parent name + this name prefix
         // so that the tag is finite and distinct between twin and live topics and declared ack labels.
@@ -114,6 +119,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
         this.awaitSubAckMetric = DittoMetrics.gauge("pubsub-await-acknowledge").tag("name", tagName);
 
         getTimers().startTimerAtFixedRate(Clock.TICK, Clock.TICK, config.getUpdateInterval());
+        scheduleClusterStateSync(config);
     }
 
     /**
@@ -126,7 +132,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
      */
     public static Props props(final PubSubConfig config, final ActorRef subscriber, final CompressedDData topicsDData) {
         return Props.create(SubUpdater.class, config, subscriber, CompressedSubscriptions.of(topicsDData.getSeeds()),
-                topicsDData.getWriter());
+                topicsDData);
     }
 
     @Override
@@ -140,16 +146,17 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
                 .match(DDataOpSuccess.class, this::ddataOpSuccess)
                 .match(Status.Failure.class, this::updateFailure)
                 .matchEquals(ActorEvent.PUBSUB_TERMINATED, this::pubSubTerminated)
-                .matchAny(this::logUnhandled)
-                .build();
+                .build()
+                .orElse(getClusterStateSyncBehavior())
+                .orElse(ReceiveBuilder.create().matchAny(this::logUnhandled).build());
     }
 
-    private static boolean isMoreConsistent(final Replicator.WriteConsistency a, final Replicator.WriteConsistency b) {
+    private boolean isMoreConsistent(final Replicator.WriteConsistency a, final Replicator.WriteConsistency b) {
         return rank(a) > rank(b);
     }
 
     // roughly rank write consistency from the most local to the most global.
-    private static int rank(final Replicator.WriteConsistency a) {
+    private int rank(final Replicator.WriteConsistency a) {
         if (writeLocal().equals(a)) {
             return Integer.MIN_VALUE;
         } else if (a instanceof Replicator.WriteAll) {
@@ -161,10 +168,6 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
         } else {
             return 0;
         }
-    }
-
-    private static Replicator.WriteConsistency writeLocal() {
-        return (Replicator.WriteConsistency) Replicator.writeLocal();
     }
 
     private void subscribe(final Subscribe subscribe) {
@@ -220,7 +223,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
             ddataOp = CompletableFuture.completedStage(null);
         } else if (subscriptions.isEmpty()) {
             snapshot = subscriptions.snapshot();
-            ddataOp = topicsWriter.removeSubscriber(subscriber, writeConsistency);
+            ddataOp = ddata.getWriter().removeSubscriber(subscriber, writeConsistency);
             previousUpdate = LiteralUpdate.empty();
             topicSizeMetric.set(0L);
         } else {
@@ -228,7 +231,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
             final LiteralUpdate nextUpdate = subscriptions.export();
             // take snapshot to give to the subscriber; clear accumulated incremental changes.
             snapshot = subscriptions.snapshot();
-            ddataOp = topicsWriter.put(subscriber, nextUpdate.diff(previousUpdate), writeConsistency);
+            ddataOp = ddata.getWriter().put(subscriber, nextUpdate.diff(previousUpdate), writeConsistency);
             previousUpdate = nextUpdate;
             topicSizeMetric.set(subscriptions.estimateSize());
         }
@@ -373,6 +376,35 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
         if (isMoreConsistent(nextWriteConsistency, this.nextWriteConsistency)) {
             this.nextWriteConsistency = nextWriteConsistency;
         }
+    }
+
+    @Override
+    public Cluster getCluster() {
+        return cluster;
+    }
+
+    @Override
+    public Address toAddress(final ActorRef ddataKey) {
+        return ddataKey.path().address();
+    }
+
+    @Override
+    public ThreadSafeDittoLoggingAdapter log() {
+        return log;
+    }
+
+    @Override
+    public DData<ActorRef, ?, ?> getDData() {
+        return ddata;
+    }
+
+    @Override
+    public void verifyNoDDataForCurrentMember() {
+        if (!subscriptions.isEmpty()) {
+            previousUpdate = LiteralUpdate.empty();
+            localSubscriptionsChanged = true;
+        }
+        // Do nothing for empty subscriptions: No data is expected for the current member.
     }
 
     private enum Clock {

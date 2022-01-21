@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -53,6 +54,7 @@ import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.ExceptionToAcknowledgementConverter;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -373,6 +375,9 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 logger.debug("Failed to send kafka record: [{}] {}", exception.getClass().getName(),
                         exception.getMessage());
                 resultFuture.completeExceptionally(exception);
+                escalate(exception, ConnectionFailure.determineFailureDescription(Instant.now(),
+                        exception,
+                        "Broker may not be available."));
             }
         }
 

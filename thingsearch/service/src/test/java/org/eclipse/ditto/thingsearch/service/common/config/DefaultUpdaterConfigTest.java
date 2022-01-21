@@ -65,9 +65,14 @@ public final class DefaultUpdaterConfigTest {
         softly.assertThat(underTest.isEventProcessingActive())
                 .as(UpdaterConfigValue.EVENT_PROCESSING_ACTIVE.getConfigPath())
                 .isEqualTo(UpdaterConfigValue.EVENT_PROCESSING_ACTIVE.getDefaultValue());
+
         softly.assertThat(underTest.getMaxIdleTime())
                 .as(UpdaterConfigValue.MAX_IDLE_TIME.getConfigPath())
                 .isEqualTo(UpdaterConfigValue.MAX_IDLE_TIME.getDefaultValue());
+
+        softly.assertThat(underTest.getForceUpdateAfterStartRandomFactor())
+                .as(UpdaterConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath())
+                .isEqualTo(UpdaterConfigValue.FORCE_UPDATE_AFTER_START_RANDOM_FACTOR.getDefaultValue());
     }
 
     @Test
@@ -87,6 +92,10 @@ public final class DefaultUpdaterConfigTest {
         softly.assertThat(underTest.getForceUpdateProbability())
                 .as(UpdaterConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath())
                 .isEqualTo(0.125);
+
+        softly.assertThat(underTest.getForceUpdateAfterStartRandomFactor())
+                .as(UpdaterConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath())
+                .isEqualTo(3.0);
     }
 
 }

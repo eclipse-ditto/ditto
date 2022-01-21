@@ -90,7 +90,7 @@ proxy_set_header              x-ditto-pre-authenticated "nginx:${remote_user}";
 
 The authentication provider must be added to the ditto-gateway configuration.
 `auth-subjects`, an optional field, takes a list of placeholders that will be
-evaluated against incoming JWT's.
+evaluated against incoming JWTs.
 For each entry in `auth-subjects` and authorization subject will be generated.
 If the entry contains unresolvable placeholders, it will be ignored in full.
 When `auth-subjects` is not provided, the “sub” claim (`{%raw%}{{ jwt:sub }}{%endraw%}`) is used by default.
@@ -114,6 +114,9 @@ ditto.gateway.authentication {
     }
 }
 ```
+
+{% include note.html content="The issuer **must not** include the `http://` or `https://` prefix as this is added 
+    based on the configuration value of `ditto.gateway.authentication.oauth.protocol`." %}
 
 In order to do this by specifying a Java system property, use the following:
 

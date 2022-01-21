@@ -79,7 +79,7 @@ final class CompoundConnectionLogger implements ConnectionLogger, MuteableConnec
 
     @Override
     public void logEntry(final LogEntry logEntry) {
-        connectionLoggers.forEach(logger -> logEntry(logEntry));
+        connectionLoggers.forEach(logger -> logger.logEntry(logEntry));
     }
 
     @Override

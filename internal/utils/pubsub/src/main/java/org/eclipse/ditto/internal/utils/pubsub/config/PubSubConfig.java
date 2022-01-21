@@ -42,6 +42,11 @@ public interface PubSubConfig {
     Duration getUpdateInterval();
 
     /**
+     * @return How often to sync the distributed data against the cluster state.
+     */
+    Duration getSyncInterval();
+
+    /**
      * Create a {@code PubSubConfig} object from a {@code Config} object at the key {@code pubsub}.
      *
      * @param config config with path {@code pubsub}.
@@ -85,7 +90,13 @@ public interface PubSubConfig {
         /**
          * How often to flush local subscriptions to the distributed data replicator.
          */
-        UPDATE_INTERVAL("update-interval", Duration.ofSeconds(3L));
+        UPDATE_INTERVAL("update-interval", Duration.ofSeconds(3L)),
+
+        /**
+         * How often to sync distributed data against cluster state.
+         * There is an additional random delay between 0 and 100% of the configured value.
+         */
+        SYNC_INTERVAL("sync-interval", Duration.ofMinutes(5L));
 
         private final String path;
         private final Object defaultValue;

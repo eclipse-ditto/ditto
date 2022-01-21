@@ -55,6 +55,26 @@ public interface UpdaterConfig {
     double getForceUpdateProbability();
 
     /**
+     * Get the timeout after when to explicitly do a "force update" after a ThingUpdater was started.
+     * This is needed in order to guarantee that during a rolling update (when shard regions are moved to another
+     * cluster node) the thing will eventually be consistent again (within the configured timeout), even if pending
+     * search updates were still processed on the "old" things-search cluster node where the ThingUpdater previously
+     * ran.
+     *
+     * @return the timeout after when to explicitly do a "force update" after a ThingUpdater was started.
+     */
+    Duration getForceUpdateAfterStartTimeout();
+
+    /**
+     * Get the factor of the random delay added to "force-update-after-start".
+     * A random delay is introduced so that the active things will not perform force update at the same time and
+     * generate a load spike at the database.
+     *
+     * @return the factor of the random delay.
+     */
+    double getForceUpdateAfterStartRandomFactor();
+
+    /**
      * Returns configuration for the background sync actor.
      *
      * @return the config.
@@ -100,7 +120,17 @@ public interface UpdaterConfig {
         /**
          * Probability to do a replacement update regardless whether incremental update is possible.
          */
-        FORCE_UPDATE_PROBABILITY("force-update-probability", 0.00);
+        FORCE_UPDATE_PROBABILITY("force-update-probability", 0.00),
+
+        /**
+         * The timeout after when to explicitly do a "force update" after a ThingUpdater was started.
+         */
+        FORCE_UPDATE_AFTER_START_TIMEOUT("force-update-after-start-timeout", Duration.ofMinutes(5)),
+
+        /**
+         * Random factor added to "force-update-after-start-timeout" to avoid database load spikes.
+         */
+        FORCE_UPDATE_AFTER_START_RANDOM_FACTOR("force-update-after-start-random-factor", 1.0);
 
         private final String path;
         private final Object defaultValue;

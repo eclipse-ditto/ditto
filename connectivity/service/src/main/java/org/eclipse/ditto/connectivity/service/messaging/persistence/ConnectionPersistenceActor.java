@@ -135,10 +135,6 @@ import akka.routing.Broadcast;
 import akka.routing.ConsistentHashingPool;
 import akka.routing.ConsistentHashingRouter;
 import akka.routing.Pool;
-import akka.stream.Materializer;
-import akka.stream.SourceRef;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.StreamRefs;
 
 /**
  * Handles {@code *Connection} commands and manages the persistence of connection. The actual connection handling to the
@@ -1092,10 +1088,8 @@ public final class ConnectionPersistenceActor
     }
 
     private void syncClientActorRefs(final ClientActorRefs clientActorRefs) {
-        final SourceRef<ActorRef> clientActorRefsSourceRef = Source.from(clientActorRefs.getSortedRefs())
-                .runWith(StreamRefs.sourceRef(), Materializer.createMaterializer(getContext()));
         if (clientActorRouter != null) {
-            clientActorRouter.tell(new Broadcast(clientActorRefsSourceRef), ActorRef.noSender());
+            clientActorRouter.tell(new Broadcast(clientActorRefs), ActorRef.noSender());
         }
     }
 

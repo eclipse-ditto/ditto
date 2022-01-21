@@ -15,11 +15,13 @@ package org.eclipse.ditto.connectivity.service.messaging;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.internal.utils.cluster.AkkaJacksonCborSerializable;
 import org.eclipse.ditto.internal.utils.pubsub.PubSubFactory;
 
 import akka.actor.ActorPath;
@@ -29,7 +31,7 @@ import akka.actor.ActorRef;
  * Collection of all client actor refs of a connection actor.
  */
 @NotThreadSafe
-public final class ClientActorRefs {
+public final class ClientActorRefs implements AkkaJacksonCborSerializable {
 
     private final Map<ActorPath, ActorRef> refsByPath = new HashMap<>();
     private List<ActorRef> sortedRefs = List.of();
@@ -137,6 +139,24 @@ public final class ClientActorRefs {
                 "refsByPath=" + refsByPath +
                 ", sortedRefs=" + sortedRefs +
                 "]";
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final ClientActorRefs that = (ClientActorRefs) o;
+        return Objects.equals(refsByPath, that.refsByPath) &&
+                Objects.equals(sortedRefs, that.sortedRefs);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(refsByPath, sortedRefs);
     }
 
 }

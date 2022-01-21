@@ -69,6 +69,10 @@ public final class DefaultPubSubConfigTest {
         softly.assertThat(underTest.getUpdateInterval())
                 .as(PubSubConfig.ConfigValue.UPDATE_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(3L));
+
+        softly.assertThat(underTest.getSyncInterval())
+                .as(PubSubConfig.ConfigValue.SYNC_INTERVAL.getConfigPath())
+                .isEqualTo(Duration.ofMinutes(5L));
     }
 
     @Test
@@ -86,6 +90,10 @@ public final class DefaultPubSubConfigTest {
         softly.assertThat(underTest.getUpdateInterval())
                 .as(PubSubConfig.ConfigValue.UPDATE_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(4L));
+
+        softly.assertThat(underTest.getSyncInterval())
+                .as(PubSubConfig.ConfigValue.SYNC_INTERVAL.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(5L));
     }
 
 }
