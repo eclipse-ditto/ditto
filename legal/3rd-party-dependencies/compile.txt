@@ -29,11 +29,12 @@ com.google.j2objc:j2objc-annotations:jar:1.3:compile
 com.google.protobuf:protobuf-java:jar:3.14.0:compile
 com.hierynomus:asn-one:jar:0.5.0:compile
 com.hivemq:hivemq-mqtt-client:jar:1.3.0:compile
-com.lightbend.akka.discovery:akka-discovery-kubernetes-api_2.13:jar:1.0.10:compile
-com.lightbend.akka.management:akka-lease-kubernetes_2.13:jar:1.0.10:compile
-com.lightbend.akka.management:akka-management_2.13:jar:1.0.10:compile
-com.lightbend.akka.management:akka-management-cluster-bootstrap_2.13:jar:1.0.10:compile
-com.lightbend.akka.management:akka-management-cluster-http_2.13:jar:1.0.10:compile
+com.lightbend.akka.discovery:akka-discovery-kubernetes-api_2.13:jar:1.1.2:compile
+com.lightbend.akka.management:akka-lease-kubernetes_2.13:jar:1.1.2:compile
+com.lightbend.akka.management:akka-management_2.13:jar:1.1.2:compile
+com.lightbend.akka.management:akka-management-cluster-bootstrap_2.13:jar:1.1.2:compile
+com.lightbend.akka.management:akka-management-cluster-http_2.13:jar:1.1.2:compile
+com.lightbend.akka.management:akka-management-pki_2.13:jar:1.1.2:compile
 commons-net:commons-net:jar:3.8.0:compile
 com.newmotion:akka-rabbitmq_2.13:jar:5.1.2:compile
 com.rabbitmq:amqp-client:jar:5.7.3:compile
@@ -114,7 +115,7 @@ org.mongodb:mongodb-driver-core:jar:4.1.2:compile
 org.mongodb:mongodb-driver-reactivestreams:jar:4.1.2:compile
 org.mongodb.scala:mongo-scala-bson_2.13:jar:4.1.1:compile
 org.mongodb.scala:mongo-scala-driver_2.13:jar:4.1.1:compile
-org.mozilla:rhino-runtime:jar:1.7.13:compile
+org.mozilla:rhino-runtime:jar:1.7.14:compile
 org.ow2.asm:asm-analysis:jar:7.2:compile
 org.ow2.asm:asm-commons:jar:7.2:compile
 org.ow2.asm:asm:jar:7.2:compile

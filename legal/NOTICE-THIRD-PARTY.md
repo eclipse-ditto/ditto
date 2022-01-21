@@ -210,6 +210,16 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/google/api/grpc/proto-google-common-protos/2.0.1/proto-google-common-protos-2.0.1-sources.jar
 
 
+## error-prone annotations (2.3.4)
+
+* Maven coordinates: `com.google.errorprone:error_prone_annotations:2.3.4`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: http://nexus.sonatype.org/oss-repository-hosting.html/error_prone_parent/error_prone_annotations
+* Sources: 
+   * declared as SCM: https://github.com/google/error-prone/error_prone_annotations
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/google/errorprone/error_prone_annotations/2.3.4/error_prone_annotations-2.3.4-sources.jar
+
+
 ## error-prone annotations (2.4.0)
 
 * Maven coordinates: `com.google.errorprone:error_prone_annotations:2.4.0`
@@ -290,54 +300,64 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=com/hivemq/hivemq-mqtt-client/1.3.0/hivemq-mqtt-client-1.3.0-sources.jar
 
 
-## akka-discovery-kubernetes-api (1.0.10)
+## akka-discovery-kubernetes-api (1.1.2)
 
-* Maven coordinates: `com.lightbend.akka.discovery:akka-discovery-kubernetes-api_2.13:1.0.10`
+* Maven coordinates: `com.lightbend.akka.discovery:akka-discovery-kubernetes-api_2.13:1.1.2`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka-management
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/discovery/akka-discovery-kubernetes-api_2.13/1.0.10/akka-discovery-kubernetes-api_2.13-1.0.10-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/discovery/akka-discovery-kubernetes-api_2.13/1.1.2/akka-discovery-kubernetes-api_2.13-1.1.2-sources.jar
 
 
-## akka-lease-kubernetes (1.0.10)
+## akka-lease-kubernetes (1.1.2)
 
-* Maven coordinates: `com.lightbend.akka.management:akka-lease-kubernetes_2.13:1.0.10`
+* Maven coordinates: `com.lightbend.akka.management:akka-lease-kubernetes_2.13:1.1.2`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka-management
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-lease-kubernetes_2.13/1.0.10/akka-lease-kubernetes_2.13-1.0.10-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-lease-kubernetes_2.13/1.1.2/akka-lease-kubernetes_2.13-1.1.2-sources.jar
 
 
-## akka-management-cluster-bootstrap (1.0.10)
+## akka-management-cluster-bootstrap (1.1.2)
 
-* Maven coordinates: `com.lightbend.akka.management:akka-management-cluster-bootstrap_2.13:1.0.10`
+* Maven coordinates: `com.lightbend.akka.management:akka-management-cluster-bootstrap_2.13:1.1.2`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka-management
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-management-cluster-bootstrap_2.13/1.0.10/akka-management-cluster-bootstrap_2.13-1.0.10-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-management-cluster-bootstrap_2.13/1.1.2/akka-management-cluster-bootstrap_2.13-1.1.2-sources.jar
 
 
-## akka-management-cluster-http (1.0.10)
+## akka-management-cluster-http (1.1.2)
 
-* Maven coordinates: `com.lightbend.akka.management:akka-management-cluster-http_2.13:1.0.10`
+* Maven coordinates: `com.lightbend.akka.management:akka-management-cluster-http_2.13:1.1.2`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka-management
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-management-cluster-http_2.13/1.0.10/akka-management-cluster-http_2.13-1.0.10-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-management-cluster-http_2.13/1.1.2/akka-management-cluster-http_2.13-1.1.2-sources.jar
 
 
-## akka-management (1.0.10)
+## akka-management-pki (1.1.2)
 
-* Maven coordinates: `com.lightbend.akka.management:akka-management_2.13:1.0.10`
+* Maven coordinates: `com.lightbend.akka.management:akka-management-pki_2.13:1.1.2`
 * License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
 * Project: https://akka.io/
 * Sources: 
    * declared as SCM: https://github.com/akka/akka-management
-   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-management_2.13/1.0.10/akka-management_2.13-1.0.10-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-management-pki_2.13/1.1.2/akka-management-pki_2.13-1.1.2-sources.jar
+
+
+## akka-management (1.1.2)
+
+* Maven coordinates: `com.lightbend.akka.management:akka-management_2.13:1.1.2`
+* License: [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html)
+* Project: https://akka.io/
+* Sources: 
+   * declared as SCM: https://github.com/akka/akka-management
+   * Maven sources: https://search.maven.org/remotecontent?filepath=com/lightbend/akka/management/akka-management_2.13/1.1.2/akka-management_2.13-1.1.2-sources.jar
 
 
 ## akka-rabbitmq (5.1.2)
@@ -1140,14 +1160,14 @@
    * Maven sources: https://search.maven.org/remotecontent?filepath=org/mongodb/scala/mongo-scala-driver_2.13/4.1.1/mongo-scala-driver_2.13-4.1.1-sources.jar
 
 
-## rhino-runtime (1.7.13)
+## rhino-runtime (1.7.14)
 
-* Maven coordinates: `org.mozilla:rhino-runtime:1.7.13`
+* Maven coordinates: `org.mozilla:rhino-runtime:1.7.14`
 * License: [MPL-2.0](https://spdx.org/licenses/MPL-2.0.html)
-* Project: https://developer.mozilla.org/en/Rhino
+* Project: https://mozilla.github.io/rhino/
 * Sources: 
    * declared as SCM: https://github.com/mozilla/rhino
-   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mozilla/rhino-runtime/1.7.13/rhino-runtime-1.7.13-sources.jar
+   * Maven sources: https://search.maven.org/remotecontent?filepath=org/mozilla/rhino-runtime/1.7.14/rhino-runtime-1.7.14-sources.jar
 
 
 ## asm (7.2)
