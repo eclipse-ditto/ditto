@@ -176,10 +176,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                 .match(UpdateThing.class, this::updateThing)
                 .match(UpdateThingResponse.class, this::processUpdateThingResponse)
                 .match(ReceiveTimeout.class, this::stopThisActor)
-                .matchEquals(FORCE_UPDATE_AFTER_START, s -> {
-                    log.debug("Forcing the next update to be a full 'forceUpdate'");
-                    forceNextUpdate = true;
-                })
+                .matchEquals(FORCE_UPDATE_AFTER_START, this::forceUpdateAfterStart)
                 .matchAny(m -> {
                     log.warning("Unknown message in 'eventProcessing' behavior: {}", m);
                     unhandled(m);
@@ -190,6 +187,12 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     private void matchAnyDuringRecovery(final Object message) {
         log.debug("Stashing during initialization: <{}>", message);
         stash();
+    }
+
+    private void forceUpdateAfterStart(final String trigger) {
+        log.debug("Forcing the next update to be a full 'forceUpdate'");
+        forceNextUpdate = true;
+        enqueueMetadata(UpdateReason.FORCE_UPDATE_AFTER_START);
     }
 
     private void onNextWriteModel(final AbstractWriteModel nextWriteModel) {
