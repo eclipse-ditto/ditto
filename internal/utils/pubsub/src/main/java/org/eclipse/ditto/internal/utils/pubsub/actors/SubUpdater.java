@@ -231,7 +231,12 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers
             final LiteralUpdate nextUpdate = subscriptions.export();
             // take snapshot to give to the subscriber; clear accumulated incremental changes.
             snapshot = subscriptions.snapshot();
-            ddataOp = ddata.getWriter().put(subscriber, nextUpdate.diff(previousUpdate), writeConsistency);
+            final var diff = nextUpdate.diff(previousUpdate);
+            if (!diff.isEmpty()) {
+                ddataOp = ddata.getWriter().put(subscriber, nextUpdate.diff(previousUpdate), writeConsistency);
+            } else {
+                ddataOp = CompletableFuture.completedStage(null);
+            }
             previousUpdate = nextUpdate;
             topicSizeMetric.set(subscriptions.estimateSize());
         }

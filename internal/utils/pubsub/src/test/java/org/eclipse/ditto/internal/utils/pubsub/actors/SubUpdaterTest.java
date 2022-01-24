@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.internal.utils.pubsub.actors;
 
+import static org.eclipse.ditto.internal.utils.pubsub.actors.ClusterMemberRemovedAware.writeLocal;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 
@@ -21,6 +22,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
+import org.eclipse.ditto.internal.utils.pubsub.api.SubAck;
+import org.eclipse.ditto.internal.utils.pubsub.api.Subscribe;
 import org.eclipse.ditto.internal.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.internal.utils.pubsub.ddata.DDataWriter;
@@ -77,10 +80,10 @@ public final class SubUpdaterTest {
                 final CompressedDData ddata = mockDistributedData(addressMap);
                 final ActorRef underTest = system.actorOf(SubUpdater.props(config, subscriber.ref(), ddata));
 
-                // WHEN: AckUpdater is requested to sync against the cluster state
+                // WHEN: SubUpdater is requested to sync against the cluster state
                 underTest.tell(ClusterStateSyncBehavior.Control.SYNC_CLUSTER_STATE, ActorRef.noSender());
 
-                // THEN: AckUpdater removes the extraneous entry
+                // THEN: SubUpdater removes the extraneous entry
                 Mockito.verify(ddata.getReader(), Mockito.timeout(5000))
                         .getAllShards(eq((Replicator.ReadConsistency) Replicator.readLocal()));
                 Mockito.verify(ddata.getWriter(), Mockito.timeout(5000))
@@ -93,23 +96,28 @@ public final class SubUpdaterTest {
     }
 
     @Test
-    public void clusterStateInSync() {
+    public void clusterStateInSync() throws Exception {
         new TestKit(system) {{
             // GIVEN: distributed data contains entry for the current cluster member and no extraneous entries
             final var subscriberRef = TestProbe.apply(system).ref();
-            final var cluster = Cluster.get(system);
             final var config = PubSubConfig.of(system);
-            final var addressMap = Map.of(mockActorRefWithAddress(subscriberRef, cluster), "unknown-value");
+            final var addressMap = Map.of(subscriberRef, "unknown-value");
             final CompressedDData ddata = mockDistributedData(addressMap);
             final ActorRef underTest = system.actorOf(SubUpdater.props(config, subscriberRef, ddata));
 
-            // WHEN: AckUpdater is requested to sync against the cluster state
+            // GIVEN: local subscriptions are not empty
+            final var subscribe = Subscribe.of(List.of("topic"), subscriberRef, writeLocal(), true, null);
+            underTest.tell(subscribe, getRef());
+            expectMsgClass(SubAck.class);
+
+            // WHEN: SubUpdater is requested to sync against the cluster state
             underTest.tell(ClusterStateSyncBehavior.Control.SYNC_CLUSTER_STATE, ActorRef.noSender());
 
-            // THEN: AckUpdater does not modify ddata more than needed
+            // THEN: SubUpdater does not modify ddata more than needed
             Mockito.verify(ddata.getReader(), Mockito.timeout(5000))
                     .getAllShards(eq((Replicator.ReadConsistency) Replicator.readLocal()));
-            Mockito.verify(ddata.getWriter(), Mockito.never()).put(any(), any(), any());
+            Thread.sleep(3000);
+            Mockito.verify(ddata.getWriter(), Mockito.times(1)).put(any(), any(), any());
             Mockito.verify(ddata.getWriter(), Mockito.never()).removeAddress(any(), any());
         }};
     }
@@ -133,6 +141,7 @@ public final class SubUpdaterTest {
         final var writer = Mockito.mock(DDataWriter.class);
         Mockito.when(mock.getReader()).thenReturn(reader);
         Mockito.when(mock.getWriter()).thenReturn(writer);
+        Mockito.when(mock.getSeeds()).thenReturn(List.of(1, 2));
         Mockito.when(reader.get(any(), any())).thenReturn(CompletableFuture.completedStage(Optional.of(map)));
         Mockito.when(reader.getAllShards(any())).thenReturn(CompletableFuture.completedStage(List.of(map)));
         Mockito.when(writer.put(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));

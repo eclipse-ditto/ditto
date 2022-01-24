@@ -234,6 +234,8 @@ public final class AckUpdaterTest {
             final var addressMap = Map.of(nonexistentAddress, "unknown-value");
             final DData<Address, String, LiteralUpdate> ddata = mockDistributedData(addressMap);
             final ActorRef underTest = system1.actorOf(AckUpdater.props(config, ownAddress, ddata));
+            underTest.tell(DeclareAcks.of(underTest, "group", Set.of("label")), getRef());
+            Mockito.verify(ddata.getWriter(), Mockito.timeout(5000)).put(eq(ownAddress), any(), any());
 
             // WHEN: AckUpdater is requested to sync against the cluster state
             underTest.tell(ClusterStateSyncBehavior.Control.SYNC_CLUSTER_STATE, ActorRef.noSender());
@@ -249,7 +251,7 @@ public final class AckUpdaterTest {
     }
 
     @Test
-    public void clusterStateInSync() {
+    public void clusterStateInSync() throws Exception {
         new TestKit(system1) {{
             // GIVEN: distributed data contains entry for the current cluster member and no extraneous entries
             final var config = PubSubConfig.of(system1);
@@ -264,10 +266,9 @@ public final class AckUpdaterTest {
             // THEN: AckUpdater does not modify ddata more than needed
             Mockito.verify(ddata.getReader(), Mockito.timeout(5000))
                     .getAllShards(eq((Replicator.ReadConsistency) Replicator.readLocal()));
-            Mockito.verify(ddata.getWriter(), Mockito.timeout(5000).times(1))
-                    .put(eq(ownAddress), any(), any());
-            Mockito.verify(ddata.getWriter(), Mockito.never())
-                    .removeAddress(any(), eq((Replicator.WriteConsistency) Replicator.writeLocal()));
+            Thread.sleep(3000);
+            Mockito.verify(ddata.getWriter(), Mockito.never()).put(eq(ownAddress), any(), any());
+            Mockito.verify(ddata.getWriter(), Mockito.never()).removeAddress(any(), any());
         }};
     }
 
