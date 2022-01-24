@@ -18,6 +18,13 @@ The communication protocol envelope is implicitly defined by the underlying mess
 Please refer to the respective [communication protocol binding](protocol-bindings.html) for information how to encode
 the data in a protocol specific way.
 
+### Content-type
+
+Ditto Protocol messages are identified by the "Content-Type":
+
+```
+application/vnd.eclipse.ditto+json
+```
 
 ### Ditto Protocol envelope {#dittoProtocolEnvelope}
 
