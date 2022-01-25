@@ -226,6 +226,7 @@ public final class ConnectionPersistenceActor
     private ConnectivityConfig getConnectivityConfigWithOverwrites(final Config connectivityConfigOverwrites) {
         final Config defaultConfig = getContext().getSystem().settings().config();
         final Config withOverwrites = connectivityConfigOverwrites.withFallback(defaultConfig);
+
         return ConnectivityConfig.of(withOverwrites);
     }
 
@@ -414,6 +415,7 @@ public final class ConnectionPersistenceActor
                     .build();
             return superEvent.setDittoHeaders(headersWithJournalTags);
         }
+
         return superEvent;
     }
 
@@ -776,6 +778,7 @@ public final class ConnectionPersistenceActor
                                 command.withResponse(
                                         toDittoRuntimeException(error, entityId, command.getDittoHeaders())),
                                 ActorRef.noSender());
+
                         return null;
                     });
         }
@@ -885,6 +888,7 @@ public final class ConnectionPersistenceActor
     private CompletionStage<Object> startAndAskClientActors(final SignalWithEntityId<?> cmd, final int clientCount) {
         startClientActorsIfRequired(clientCount, cmd.getDittoHeaders());
         final Object msg = consistentHashableEnvelope(cmd, cmd.getEntityId().toString());
+
         return processClientAskResult(Patterns.ask(clientActorRouter, msg, clientActorAskTimeout));
     }
 
@@ -905,6 +909,7 @@ public final class ConnectionPersistenceActor
         if (clientActorRouter != null && entity != null) {
             // wrap in Broadcast message because these management messages must be delivered to each client actor
             final Broadcast broadcast = new Broadcast(cmd);
+
             return processClientAskResult(Patterns.ask(clientActorRouter, broadcast, clientActorAskTimeout));
         } else {
             return CompletableFuture.completedFuture(null);
@@ -960,6 +965,7 @@ public final class ConnectionPersistenceActor
                 "Operation {0} failed due to {1}", action, dre.getMessage());
         log.warning("Operation <{}> on connection <{}> failed due to {}: {}.", action, entityId,
                 dre.getClass().getSimpleName(), dre.getMessage());
+
         return null;
     }
 
