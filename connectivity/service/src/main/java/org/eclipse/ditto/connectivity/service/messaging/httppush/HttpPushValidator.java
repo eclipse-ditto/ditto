@@ -107,7 +107,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
                 ConnectivityPlaceholders.newThingPlaceholder(),
                 ConnectivityPlaceholders.newTopicPathPlaceholder(),
                 ConnectivityPlaceholders.newResourcePlaceholder(),
-                ConnectivityPlaceholders.newMiscPlaceholder(),
+                ConnectivityPlaceholders.newTimePlaceholder(),
                 newHeadersPlaceholder(),
                 ConnectivityPlaceholders.newFeaturePlaceholder());
         validateTargetAddress(target.getAddress(), dittoHeaders, targetDescription);

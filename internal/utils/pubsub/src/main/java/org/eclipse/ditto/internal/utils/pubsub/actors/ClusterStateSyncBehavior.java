@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -24,6 +25,7 @@ import org.eclipse.ditto.internal.utils.pubsub.ddata.DData;
 
 import akka.actor.AbstractActor;
 import akka.actor.Actor;
+import akka.actor.ActorRef;
 import akka.actor.Address;
 import akka.actor.Timers;
 import akka.cluster.Cluster;
@@ -106,9 +108,10 @@ interface ClusterStateSyncBehavior<T> extends Actor, Timers {
     default void syncClusterState(final Control trigger) {
         log().info("Start to sync cluster state");
 
+        final var self = self();
         final var resultFuture = getDData().getReader()
                 .getAllShards((Replicator.ReadConsistency) Replicator.readLocal())
-                .thenApply(this::checkClusterState)
+                .thenApply(maps -> checkClusterState(maps, self))
                 .handle((result, error) -> result != null ? result : new SyncError(error));
 
         Patterns.pipe(resultFuture, context().dispatcher()).to(self());
@@ -161,15 +164,17 @@ interface ClusterStateSyncBehavior<T> extends Actor, Timers {
      * Compare distributed data addresses against the current cluster state.
      *
      * @param maps The content of the distributed data.
+     * @param self the self actor reference.
      * @return result of comparing distributed data addresses against the cluster state.
      */
-    default SyncResult checkClusterState(final List<? extends ORMultiMap<T, ?>> maps) {
+    default SyncResult checkClusterState(final List<? extends ORMultiMap<T, ?>> maps, final ActorRef self) {
         final var clusterState = getCluster().state();
-        final var clusterAddresses = getClusterMemberAddresses(clusterState);
+        final var clusterAddresses = getClusterMemberAddresses(clusterState, self);
         final var ddataAddresses = getDDataAddresses(maps);
         final var isSelfMemberInCluster = isMemberStayingInCluster(getCluster().selfMember());
         if (isSelfMemberInCluster) {
-            final boolean isMyAddressMissing = !ddataAddresses.contains(getCluster().selfAddress());
+            final boolean isMyAddressMissing = !ddataAddresses.contains(getCluster().selfAddress()) &&
+                    !ddataAddresses.contains(self.path().address());
             final Set<Address> staleAddresses = ddataAddresses.stream()
                     .filter(address -> !clusterAddresses.contains(address))
                     .collect(Collectors.toSet());
@@ -216,15 +221,18 @@ interface ClusterStateSyncBehavior<T> extends Actor, Timers {
 
     /**
      * Retrieve a set of addresses of cluster members that will stay in the cluster.
+     * Enhance the address set with the unserialized self address.
      *
      * @param clusterState The cluster state.
+     * @param self reference of this actor.
      * @return The addresses of members staying in the cluster.
      */
-    static Set<Address> getClusterMemberAddresses(final ClusterEvent.CurrentClusterState clusterState) {
-        return StreamSupport.stream(clusterState.getMembers().spliterator(), false)
+    static Set<Address> getClusterMemberAddresses(final ClusterEvent.CurrentClusterState clusterState,
+            final ActorRef self) {
+        final var clusterMemberStream = StreamSupport.stream(clusterState.getMembers().spliterator(), false)
                 .filter(ClusterStateSyncBehavior::isMemberStayingInCluster)
-                .map(Member::address)
-                .collect(Collectors.toSet());
+                .map(Member::address);
+        return Stream.concat(clusterMemberStream, Stream.of(self.path().address())).collect(Collectors.toSet());
     }
 
     /**
