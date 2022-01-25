@@ -89,6 +89,26 @@ public final class PipelineFunctionFilterTest {
     }
 
     @Test
+    public void eqSucceedsWithTwoValues() {
+        final String params = String.format("(\"%s\",%s)", "eq", "header:some-header");
+
+        when(expressionResolver.resolveAsPipelineElement("header:some-header"))
+                .thenReturn(KNOWN_INPUT);
+
+        assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).contains(KNOWN_VALUE);
+    }
+
+    @Test
+    public void eqFailsWithTwoValues() {
+        final String params = String.format("(\"%s\",%s)", "eq", "header:some-header");
+
+        when(expressionResolver.resolveAsPipelineElement("header:some-header"))
+                .thenReturn(PipelineElement.resolved("test"));
+
+        assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).isEmpty();
+    }
+
+    @Test
     public void eqFailsWithOneUnresolvedValue() {
         final String params = String.format("(%s,\"%s\",%s)", "header:reply-to", "eq", "header:some-header");
 
@@ -102,6 +122,26 @@ public final class PipelineFunctionFilterTest {
                 .thenReturn(PipelineElement.unresolved());
         when(expressionResolver.resolveAsPipelineElement("header:some-header"))
                 .thenReturn(PipelineElement.resolved("true"));
+        assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).isEmpty();
+    }
+
+    @Test
+    public void neSucceedsWithTwoValues() {
+        final String params = String.format("(\"%s\",%s)", "ne", "header:some-header");
+
+        when(expressionResolver.resolveAsPipelineElement("header:some-header"))
+                .thenReturn(PipelineElement.resolved("test"));
+
+        assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).contains(KNOWN_VALUE);
+    }
+
+    @Test
+    public void neFailsWithTwoValues() {
+        final String params = String.format("(\"%s\",%s)", "ne", "header:some-header");
+
+        when(expressionResolver.resolveAsPipelineElement("header:some-header"))
+                .thenReturn(KNOWN_INPUT);
+
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).isEmpty();
     }
 
@@ -163,6 +203,20 @@ public final class PipelineFunctionFilterTest {
                 .thenReturn(PipelineElement.unresolved());
 
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).contains(KNOWN_VALUE);
+    }
+
+    @Test
+    public void likeSucceedsWithTwoValues() {
+        final String params = String.format("(\"%s\",\"%s\")", "like", "*value");
+
+        assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).contains(KNOWN_VALUE);
+    }
+
+    @Test
+    public void likeFailsWithTwoValues() {
+        final String params = String.format("(\"%s\",\"%s\")", "like", "*elavue");
+
+        assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).isEmpty();
     }
 
     @Test
@@ -228,6 +282,43 @@ public final class PipelineFunctionFilterTest {
                 .thenReturn(PipelineElement.unresolved());
         final String params = String.format("(%s,'%s','%s')", "header:reply-to", "exists", "false");
         assertThat(underTest.apply(KNOWN_INPUT_BOOLEAN, params, expressionResolver)).contains(KNOWN_BOOLEAN);
+    }
+
+    @Test
+    public void existsSucceedsWithTwoValues() {
+        final String params = String.format("(\"%s\",%s)", "exists", "header:some-header");
+
+        when(expressionResolver.resolveAsPipelineElement("header:some-header"))
+                .thenReturn(PipelineElement.resolved("true"));
+
+        assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).contains(KNOWN_VALUE);
+    }
+
+    @Test
+    public void existsFailsWithTwoValues() {
+        final String params = String.format("(\"%s\",%s)", "exists", "header:some-header");
+
+        when(expressionResolver.resolveAsPipelineElement("header:some-header"))
+                .thenReturn(PipelineElement.resolved("false"));
+
+        assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).isEmpty();
+    }
+
+    @Test
+    public void existsCustomElementSucceedsWithTwoValues() {
+        final String params = String.format("(%s,\"%s\")", "header:some-header", "exists");
+
+        when(expressionResolver.resolveAsPipelineElement("header:some-header"))
+                .thenReturn(PipelineElement.resolved("test"));
+
+        assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).contains(KNOWN_VALUE);
+    }
+
+    @Test
+    public void existsExistsSucceedsWithTwoValues() {
+        final String params = String.format("(\"%s\",\"%s\")", "exists", "exists");
+
+        assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).contains(KNOWN_VALUE);
     }
 
     private void testPatternMatching(final String arg, final String pattern, final boolean shouldMatch) {

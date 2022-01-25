@@ -48,16 +48,13 @@ final class PipelineFunctionFilter implements PipelineFunction {
     public PipelineElement apply(final PipelineElement value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        final Parameters parameters = parseAndResolve(paramsIncludingParentheses, expressionResolver);
+        final Parameters parameters = parseAndResolve(paramsIncludingParentheses, expressionResolver, value);
 
         return value.onResolved(valueThatShouldBeFilteredConditionally -> {
 
-            final Optional<FilterFunction> rqlFunctionOpt =
-                    FilterFunctions.fromName(parameters.getRqlFunction());
-            final boolean shouldKeepValue = rqlFunctionOpt
+            final boolean shouldKeepValue = parameters.getRqlFunction()
                     .map(rqlFunction -> applyRqlFunction(parameters, rqlFunction))
                     .orElse(false);
-
 
             if (shouldKeepValue) {
                 return PipelineElement.resolved(valueThatShouldBeFilteredConditionally);
@@ -82,30 +79,64 @@ final class PipelineFunctionFilter implements PipelineFunction {
     }
 
     private Parameters parseAndResolve(final String paramsIncludingParentheses,
-            final ExpressionResolver expressionResolver) {
+            final ExpressionResolver expressionResolver, final PipelineElement value) {
 
+        final Parameters result;
         final List<PipelineElement> parameterElements =
                 PipelineFunctionParameterResolverFactory.forDoubleOrTripleStringOrPlaceholderParameter()
-                .apply(paramsIncludingParentheses, expressionResolver, this);
+                        .apply(paramsIncludingParentheses, expressionResolver, this);
+
+        final PipelineElement firstElement = parameterElements.get(0);
+        final PipelineElement secondElement = parameterElements.get(1);
+        if (parameterElements.size() == 2) {
+            final Optional<FilterFunction> firstFilter = firstElement.toOptional().flatMap(FilterFunctions::fromName);
+            if (firstFilter.isPresent() && isExistsExistsFilter(firstElement, secondElement)) {
+                result = handleParameters(firstFilter.orElse(null), secondElement, value);
+            } else {
+                final Optional<FilterFunction> secondFilter =
+                        getFilterFunctionOrThrow(secondElement, paramsIncludingParentheses);
+                result = handleParametersWithOmittedCompared(secondFilter.orElse(null), firstElement);
+            }
+        } else {
+            final Optional<FilterFunction> secondFilter =
+                    getFilterFunctionOrThrow(secondElement, paramsIncludingParentheses);
+            final PipelineElement thirdElement = parameterElements.get(2);
+            result = handleParameters(secondFilter.orElse(null), thirdElement, firstElement);
+        }
+        return result;
+
+    }
+
+    private static boolean isExistsExistsFilter(final PipelineElement firstElement,
+            final PipelineElement secondElement) {
+        final Optional<String> first = firstElement.toOptional();
+        final Optional<String> second = secondElement.toOptional();
+        return !(first.isPresent() && first.get().equals("exists") &&
+                second.isPresent() && second.get().equals("exists"));
+    }
+
+    private Optional<FilterFunction> getFilterFunctionOrThrow(final PipelineElement element, final String params) {
+        return FilterFunctions.fromName(element.toOptional().orElseThrow(() ->
+                PlaceholderFunctionSignatureInvalidException.newBuilder(params, this)
+                        .build()));
+    }
+
+    private static Parameters handleParameters(@Nullable final FilterFunction filter,
+            final PipelineElement comparedElement, final PipelineElement filterElement) {
 
         final ParametersBuilder parametersBuilder = new ParametersBuilder();
+        parametersBuilder.withRqlFunction(filter);
+        parametersBuilder.withComparedValue(comparedElement.toOptional().orElse(""));
+        parametersBuilder.withFilterValue(filterElement.toOptional().orElse(""));
+        return parametersBuilder.build();
+    }
 
-        final PipelineElement filterValueParamElement = parameterElements.get(0);
-        final String filterValueParam = filterValueParamElement.toOptional().orElse("");
-        parametersBuilder.withFilterValue(filterValueParam);
+    private static Parameters handleParametersWithOmittedCompared(@Nullable final FilterFunction filter,
+            final PipelineElement previousElement) {
 
-        final PipelineElement rqlFunctionParamElement = parameterElements.get(1);
-        final String rqlFunctionParam = rqlFunctionParamElement.toOptional().orElseThrow(() ->
-                PlaceholderFunctionSignatureInvalidException.newBuilder(paramsIncludingParentheses, this)
-                        .build());
-        parametersBuilder.withRqlFunction(rqlFunctionParam);
-
-        if (parameterElements.size() > 2) {
-            final PipelineElement comparedValueParamElement = parameterElements.get(2);
-            final String comparedValueParam = comparedValueParamElement.toOptional().orElse("");
-            parametersBuilder.withComparedValue(comparedValueParam);
-        }
-
+        final ParametersBuilder parametersBuilder = new ParametersBuilder();
+        parametersBuilder.withRqlFunction(filter);
+        parametersBuilder.withFilterValue(previousElement.toOptional().orElse(""));
         return parametersBuilder.build();
     }
 
@@ -114,7 +145,7 @@ final class PipelineFunctionFilter implements PipelineFunction {
      */
     static final class FilterFunctionSignature implements Signature {
 
-        private static final FilterFunctionSignature INSTANCE = new FilterFunctionSignature();
+        private static final Signature INSTANCE = new FilterFunctionSignature();
 
         private final ParameterDefinition<String> filterValueParam;
         private final ParameterDefinition<String> rqlFunctionParam;
@@ -222,18 +253,21 @@ final class PipelineFunctionFilter implements PipelineFunction {
 
     @Immutable
     private static final class Parameters {
+
         private final String filterValue;
-        private final String rqlFunction;
+        @Nullable
+        private final FilterFunction rqlFunction;
         @Nullable
         private final String comparedValueParam;
 
 
         private Parameters(
                 final String filterValue,
-                final String rqlFunction,
+                @Nullable final FilterFunction rqlFunction,
                 @Nullable final String comparedValueParam) {
+
             this.filterValue = checkNotNull(filterValue, "filterValue");
-            this.rqlFunction = checkNotNull(rqlFunction, "rqlFuntion");
+            this.rqlFunction = rqlFunction;
             this.comparedValueParam = comparedValueParam;
         }
 
@@ -241,8 +275,8 @@ final class PipelineFunctionFilter implements PipelineFunction {
             return filterValue;
         }
 
-        private String getRqlFunction() {
-            return rqlFunction;
+        private Optional<FilterFunction> getRqlFunction() {
+            return Optional.ofNullable(rqlFunction);
         }
 
         private Optional<String> getComparedValueParam() {
@@ -252,23 +286,21 @@ final class PipelineFunctionFilter implements PipelineFunction {
     }
 
     private static final class ParametersBuilder {
+
         private String filterValue;
-        private String rqlFunction;
+        private FilterFunction rqlFunction;
         private String comparedValue;
 
-        ParametersBuilder withFilterValue(final String filterValue) {
+        void withFilterValue(final String filterValue) {
             this.filterValue = filterValue;
-            return this;
         }
 
-        ParametersBuilder withRqlFunction(final String rqlFunction) {
+        void withRqlFunction(@Nullable final FilterFunction rqlFunction) {
             this.rqlFunction = rqlFunction;
-            return this;
         }
 
-        ParametersBuilder withComparedValue(@Nullable final String comparedValue) {
+        void withComparedValue(@Nullable final String comparedValue) {
             this.comparedValue = comparedValue;
-            return this;
         }
 
         Parameters build() {
