@@ -66,13 +66,13 @@ public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthoriza
                 PlaceholderFactory.newPlaceholderResolver(JwtPlaceholder.getInstance(), jsonWebToken));
 
         return jwtSubjectIssuerConfig.getAuthorizationSubjectTemplates().stream()
-            .map(expressionResolver::resolve)
-            .map(PipelineElement::toOptional)
-            .flatMap(Optional::stream)
-            .flatMap(JwtPlaceholder::expandJsonArraysInResolvedSubject)
-            .map(subject -> SubjectId.newInstance(jwtSubjectIssuerConfig.getSubjectIssuer(), subject))
-            .map(AuthorizationSubject::newInstance)
-            .collect(Collectors.toList());
+                .flatMap(expressionResolver::resolveAsArray)
+                .map(PipelineElement::toOptional)
+                .flatMap(Optional::stream)
+                .flatMap(JwtPlaceholder::expandJsonArraysInResolvedSubject)
+                .map(subject -> SubjectId.newInstance(jwtSubjectIssuerConfig.getSubjectIssuer(), subject))
+                .map(AuthorizationSubject::newInstance)
+                .collect(Collectors.toList());
     }
 
     @Override

@@ -18,6 +18,7 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -67,7 +68,14 @@ final class PipelineFunctionFilter implements PipelineFunction {
         });
     }
 
-    private Boolean applyRqlFunction(final Parameters parameters, final FilterFunction rqlFunction) {
+    @Override
+    public Stream<PipelineElement> applyStreaming(final PipelineElement value, final String paramsIncludingParentheses,
+            final ExpressionResolver expressionResolver) {
+
+        return Stream.of(apply(value, paramsIncludingParentheses, expressionResolver));
+    }
+
+    private static Boolean applyRqlFunction(final Parameters parameters, final FilterFunction rqlFunction) {
         return parameters.getComparedValueParam()
                 .map(comparedValue -> rqlFunction.apply(parameters.getFilterValue(), comparedValue))
                 .orElseGet(() -> rqlFunction.apply(parameters.getFilterValue()));

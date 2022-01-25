@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ * Copyright (c) 2022 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -12,19 +12,21 @@
  */
 package org.eclipse.ditto.placeholders;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Provides the {@code fn:substring-before('...')} function implementation.
+ * Provides the {@code fn:split('separator')} function implementation.
  */
 @Immutable
-final class PipelineFunctionSubstringBefore implements PipelineFunction {
+public class PipelineFunctionSplit implements PipelineFunction {
 
-    private static final String FUNCTION_NAME = "substring-before";
+    private static final String FUNCTION_NAME = "split";
 
     private final PipelineFunctionParameterResolverFactory.SingleParameterResolver parameterResolver =
             PipelineFunctionParameterResolverFactory.forStringParameter();
@@ -36,29 +38,29 @@ final class PipelineFunctionSubstringBefore implements PipelineFunction {
 
     @Override
     public Signature getSignature() {
-        return SubstringBeforeFunctionSignature.INSTANCE;
+        return SplitFunctionSignature.INSTANCE;
     }
 
     @Override
     public PipelineElement apply(final PipelineElement value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        final String splitValue = parseAndResolve(paramsIncludingParentheses, expressionResolver);
-
-        return value.onResolved(previousStage -> {
-            if (previousStage.contains(splitValue)) {
-                return PipelineElement.resolved(previousStage.substring(0, previousStage.indexOf(splitValue)));
-            } else {
-                return PipelineElement.unresolved();
-            }
-        });
+        // Using the split function in a non-streaming way, returns the first element
+        return applyStreaming(value, paramsIncludingParentheses, expressionResolver).findFirst()
+                .orElse(PipelineElement.unresolved());
     }
 
     @Override
     public Stream<PipelineElement> applyStreaming(final PipelineElement value, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        return Stream.of(apply(value, paramsIncludingParentheses, expressionResolver));
+        final String splitValue = parseAndResolve(paramsIncludingParentheses, expressionResolver);
+        final Optional<String> optionalValue = value.toOptional();
+            if (optionalValue.isPresent() && optionalValue.get().contains(splitValue)) {
+                return Arrays.stream(optionalValue.get().split(splitValue)).map(PipelineElement::resolved);
+            } else {
+                return Stream.of(value);
+            }
     }
 
     private String parseAndResolve(final String paramsIncludingParentheses,
@@ -74,13 +76,13 @@ final class PipelineFunctionSubstringBefore implements PipelineFunction {
     /**
      * Describes the signature of the {@code substring-before('givenString')} function.
      */
-    private static final class SubstringBeforeFunctionSignature implements PipelineFunction.Signature {
+    private static final class SplitFunctionSignature implements PipelineFunction.Signature {
 
-        private static final SubstringBeforeFunctionSignature INSTANCE = new SubstringBeforeFunctionSignature();
+        private static final SplitFunctionSignature INSTANCE = new SplitFunctionSignature();
 
         private final PipelineFunction.ParameterDefinition<String> givenStringDescription;
 
-        private SubstringBeforeFunctionSignature() {
+        private SplitFunctionSignature() {
             givenStringDescription = new GivenStringParam();
         }
 
@@ -96,7 +98,7 @@ final class PipelineFunctionSubstringBefore implements PipelineFunction {
     }
 
     /**
-     * Describes the only param of the {@code substring-before('givenString')} function.
+     * Describes the only param of the {@code split('givenString')} function.
      */
     private static final class GivenStringParam implements ParameterDefinition<String> {
 
@@ -115,7 +117,8 @@ final class PipelineFunctionSubstringBefore implements PipelineFunction {
 
         @Override
         public String getDescription() {
-            return "Specifies the string to use in order to determine the substring before the first occurrence of that given string";
+            return "Specifies the string to use in order to determine where to split";
         }
     }
+
 }

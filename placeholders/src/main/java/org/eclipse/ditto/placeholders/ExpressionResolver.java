@@ -14,9 +14,13 @@ package org.eclipse.ditto.placeholders;
 
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.eclipse.ditto.base.model.common.Placeholders;
 
@@ -62,6 +66,29 @@ public interface ExpressionResolver {
     }
 
     /**
+     * Resolve a single pipeline expression.
+     *
+     * @param pipelineExpression the pipeline expression.
+     * @return the pipeline element after evaluation.
+     * @throws UnresolvedPlaceholderException if not all placeholders were resolved
+     */
+    Stream<PipelineElement> resolveAsArrayPipelineElement(String pipelineExpression);
+
+    /**
+     * Resolves a complete expression template starting with a {@link Placeholder} followed by optional pipeline stages
+     * (e.g. functions).
+     *
+     * @param expressionTemplate the expressionTemplate to resolve {@link Placeholder}s and and execute optional
+     * pipeline stages
+     * @return the resolved String, a signifier for resolution failure, or one for deletion.
+     * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
+     * function chain which is too complex (e.g. too much chained function calls)
+     */
+    default Stream<PipelineElement> resolveAsArray(final String expressionTemplate) {
+        return ExpressionResolver.substituteArray(expressionTemplate, this::resolveAsArrayPipelineElement);
+    }
+
+    /**
      * Resolves a complete expression template starting with a {@link Placeholder} followed by optional pipeline stages
      * (e.g. functions). Keep unresolvable expressions as is.
      *
@@ -77,6 +104,7 @@ public interface ExpressionResolver {
      */
     default String resolvePartially(final String expressionTemplate,
             final Collection<String> forbiddenUnresolvedExpressionPrefixes) {
+
         return ExpressionResolver.substitute(expressionTemplate, expression -> {
             final PipelineElement pipelineElement;
             try {
@@ -91,11 +119,11 @@ public interface ExpressionResolver {
             }
 
             return pipelineElement.onUnresolved(() -> {
-                        if (forbiddenUnresolvedExpressionPrefixes.stream().anyMatch(expression::startsWith)) {
-                            throw UnresolvedPlaceholderException.newBuilder(expression).build();
-                        }
-                        return PipelineElement.resolved("{{" + expression + "}}");
-                    });
+                if (forbiddenUnresolvedExpressionPrefixes.stream().anyMatch(expression::startsWith)) {
+                    throw UnresolvedPlaceholderException.newBuilder(expression).build();
+                }
+                return PipelineElement.resolved("{{" + expression + "}}");
+            });
         }).toOptional().orElseThrow(() -> new IllegalStateException("Impossible"));
     }
 
@@ -143,5 +171,55 @@ public interface ExpressionResolver {
         return PipelineElement.resolved(resultBuilder.toString());
 
     }
+
+    /**
+     * Perform simple substitution on a string based on a template function.
+     *
+     * @param input the input string.
+     * @param substitutionFunction the substitution function turning the content of each placeholder into a result.
+     * @return the substitution result.
+     */
+    static Stream<PipelineElement> substituteArray(
+            final String input,
+            final Function<String, Stream<PipelineElement>> substitutionFunction) {
+
+        final Matcher matcher = Placeholders.pattern().matcher(input);
+        Collection<StringBuffer> resultBuilder = new HashSet<>();
+        resultBuilder.add(new StringBuffer());
+
+        while (matcher.find()) {
+            final String placeholderExpression = Placeholders.groupNames()
+                    .stream()
+                    .map(matcher::group)
+                    .filter(Objects::nonNull)
+                    .findAny()
+                    .orElse("");
+
+            final Collection<StringBuffer> finalResultBuilder = resultBuilder;
+
+            final Stream<PipelineElement> elements = substitutionFunction.apply(placeholderExpression);
+
+            final AtomicInteger counter = new AtomicInteger();
+            resultBuilder = elements
+                    .filter(element -> !element.getType().equals(PipelineElement.Type.UNRESOLVED))
+                    .flatMap(element -> {
+                        // append resolved placeholder
+                        return finalResultBuilder.stream()
+                                .peek(builder -> {
+                                    if (counter.get() == 0) {
+                                        counter.getAndIncrement();
+                                        matcher.appendReplacement(builder, "");
+                                    }
+                                })
+                                .map(string -> new StringBuffer(string).append(element.toOptional().get()));
+                    }).collect(Collectors.toSet());
+        }
+        return resultBuilder.stream()
+                .map(matcher::appendTail)
+                .map(StringBuffer::toString)
+                .map(PipelineElement::resolved);
+
+    }
+
 
 }

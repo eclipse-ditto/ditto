@@ -15,10 +15,11 @@ package org.eclipse.ditto.gateway.service.security.authentication.jwt;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
 import java.util.List;
 
-import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.jwt.model.JsonWebToken;
 import org.eclipse.ditto.policies.model.SubjectIssuer;
 import org.junit.Test;
@@ -54,7 +55,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final String tokenAudience = "some-audience";
 
         final JsonWebToken jsonWebToken = createToken("{\"aud\": \"" + tokenAudience + "\"}");
-        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfig(subjectIssuer, List.of("{{ jwt:aud }}"));
+        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfig(subjectIssuer, List.of("test-{{ jwt:aud }}"));
 
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
                 .of(subjectIssuersConfig);
@@ -62,7 +63,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
         assertThat(authSubjects.size()).isEqualTo(1);
-        assertThat(authSubjects.get(0)).isEqualTo(AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience));
+        assertThat(authSubjects.get(0)).isEqualTo(AuthorizationSubject.newInstance(subjectIssuer + ":test-" + tokenAudience));
     }
 
     @Test
@@ -98,7 +99,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
                 "{\"aud\": [\"" + tokenAudience1 + "\", \"" + tokenAudience2 + "\"],\"grp\": \"" + tokenGroup + "\"}");
 
         final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfig(subjectIssuer,
-                List.of("{{ jwt:aud }}", "{{ jwt:grp }}"));
+                List.of("{{ jwt:aud }}", "{{ jwt:grp | fn:lower()}}"));
 
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
                 .of(subjectIssuersConfig);
@@ -121,7 +122,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
                 "{\"grp\": \"" + tokenGroup + "\"}");
 
         final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfig(subjectIssuer,
-                List.of("{{ jwt:aud }}"));
+                List.of("{{ jwt:aud | fn:lower() }}"));
 
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
                 .of(subjectIssuersConfig);
@@ -131,12 +132,54 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         assertThat(authSubjects.size()).isEqualTo(0);
     }
 
+    @Test
+    public void assertComplexSplitPipelineFunctionsWorks() {
+        final String subjectIssuer = "testIssuer";
+        final String scope = "ope,nid all profile noth,ing";
+        final String tokenAudience1 = "some-audience";
+        final String tokenAudience2 = "other audience";
+
+        final JsonWebToken jsonWebToken = createToken(
+                "{\"aud\": [\"" + tokenAudience1 + "\", \""+ tokenAudience2 + "\"],\"scope\": \"" + scope + "\"}");
+
+        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfig(subjectIssuer,
+                List.of("rest-{{ jwt:aud }}{{ jwt:scope | fn:split(\" \") | fn:lower() | fn:split(\",\") }}-test"));
+
+        final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
+                .of(subjectIssuersConfig);
+
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+
+        assertThat(authSubjects.size()).isEqualTo(12);
+        assertThat(authSubjects).contains(AuthorizationSubject.newInstance("testIssuer:rest-some-audienceope-test"));
+    }
+
+    @Test
+    public void assertSplitPipelineFunctionWorks() {
+        final String subjectIssuer = "testIssuer";
+        final String scope = "openid all profile nothing";
+
+        final JsonWebToken jsonWebToken = createToken(
+                "{\"scope\": \"" + scope + "\"}");
+
+        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfig(subjectIssuer,
+                List.of("{{ jwt:scope | fn:split(\" \") | fn:lower() }}"));
+
+        final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
+                .of(subjectIssuersConfig);
+
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+
+        assertThat(authSubjects.size()).isEqualTo(4);
+    }
+
     JsonWebToken createToken(final String body) {
         final JsonWebToken jsonWebToken = mock(JsonWebToken.class);
         when(jsonWebToken.getIssuer()).thenReturn(JwtTestConstants.ISSUER);
         when(jsonWebToken.getBody()).thenReturn(JsonObject.of(body));
         return jsonWebToken;
     }
+
 
     JwtSubjectIssuersConfig createSubjectIssuersConfig(final String subjectIssuer, final List<String> subjectTemplates) {
         final JwtSubjectIssuerConfig subjectIssuerConfig = new JwtSubjectIssuerConfig(
