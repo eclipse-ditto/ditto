@@ -47,6 +47,11 @@ import akka.stream.javadsl.Source;
  */
 public final class SearchUpdaterStream {
 
+    /**
+     * Header to request this actor to perform a force-update due to a previous patch not being applied.
+     */
+    public static final String FORCE_UPDATE_INCORRECT_PATCH = "force-update-incorrect-patch";
+
     private final UpdaterConfig updaterConfig;
     private final EnforcementFlow enforcementFlow;
     private final MongoSearchUpdaterFlow mongoSearchUpdaterFlow;

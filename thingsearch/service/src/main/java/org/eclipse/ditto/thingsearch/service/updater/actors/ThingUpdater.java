@@ -54,6 +54,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ConsistencyLag;
+import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdaterStream;
 import org.eclipse.ditto.thingsearch.service.starter.actors.MongoClientExtension;
 
 import com.mongodb.client.model.UpdateOneModel;
@@ -210,7 +211,10 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                     getSender().tell(Done.getInstance(), getSelf());
                     return;
                 }
-                mongoWriteModel = new UpdateOneModel<>(nextWriteModel.getFilter(), aggregationPipeline);
+                final var filter = ((ThingWriteModel) nextWriteModel)
+                        .asPatchUpdate(lastWriteModel.getMetadata().getThingRevision())
+                        .getFilter();
+                mongoWriteModel = new UpdateOneModel<>(filter, aggregationPipeline);
                 log.debug("Using incremental update <{}>", mongoWriteModel);
             } else {
                 mongoWriteModel = nextWriteModel.toMongo();
@@ -287,6 +291,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                 .info("Requested to update search index <{}> by <{}>", updateThing, getSender());
         if (updateThing.getDittoHeaders().containsKey(FORCE_UPDATE)) {
             lastWriteModel = null;
+            forceNextUpdate = true;
         }
         final Metadata metadata = exportMetadata(null, null)
                 .invalidateCaches(updateThing.shouldInvalidateThing(), updateThing.shouldInvalidatePolicy())
@@ -299,13 +304,17 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     }
 
     private void processUpdateThingResponse(final UpdateThingResponse response) {
-        if (!response.isSuccess()) {
+        final var isFailure = !response.isSuccess();
+        final var isIncorrectPatch =
+                response.getDittoHeaders().containsKey(SearchUpdaterStream.FORCE_UPDATE_INCORRECT_PATCH);
+        if (isFailure || isIncorrectPatch) {
             // discard last write model: index document is not known
             lastWriteModel = null;
             final Metadata metadata = exportMetadata(null, null).invalidateCaches(true, true);
-            log.warning("Got negative acknowledgement for <{}>; updating to <{}>.",
-                    Metadata.fromResponse(response),
-                    metadata);
+            final var warningTemplate = isFailure
+                    ? "Got negative acknowledgement for <{}>; updating to <{}>."
+                    : "Inconsistent patch update detected for <{}>; updating to <{}>.";
+            log.warning(warningTemplate, Metadata.fromResponse(response), metadata);
             enqueueMetadata(metadata.withUpdateReason(UpdateReason.RETRY));
         }
     }

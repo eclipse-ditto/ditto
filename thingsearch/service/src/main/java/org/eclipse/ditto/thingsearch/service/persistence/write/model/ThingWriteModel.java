@@ -18,7 +18,13 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.bson.BsonDocument;
+import org.bson.BsonNull;
+import org.bson.BsonString;
+import org.bson.conversions.Bson;
+import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
+import org.mongodb.scala.bson.BsonNumber;
 
+import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.ReplaceOneModel;
 import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.model.WriteModel;
@@ -30,10 +36,15 @@ import com.mongodb.client.model.WriteModel;
 public final class ThingWriteModel extends AbstractWriteModel {
 
     private final BsonDocument thingDocument;
+    private final boolean isPatchUpdate;
+    private final long previousRevision;
 
-    private ThingWriteModel(final Metadata metadata, final BsonDocument thingDocument) {
+    private ThingWriteModel(final Metadata metadata, final BsonDocument thingDocument, final boolean isPatchUpdate,
+            final long previousRevision) {
         super(metadata);
         this.thingDocument = thingDocument;
+        this.isPatchUpdate = isPatchUpdate;
+        this.previousRevision = previousRevision;
     }
 
     /**
@@ -44,12 +55,23 @@ public final class ThingWriteModel extends AbstractWriteModel {
      * @return a Thing write model.
      */
     public static ThingWriteModel of(final Metadata metadata, final BsonDocument thingDocument) {
-        return new ThingWriteModel(metadata, thingDocument);
+        return new ThingWriteModel(metadata, thingDocument, false, 0L);
+    }
+
+    /**
+     * Return a copy of this object as patch update.
+     *
+     * @param previousRevision The expected previous revision. The patch will not be applied if the previous revision
+     * differ.
+     * @return The patch update.
+     */
+    public ThingWriteModel asPatchUpdate(final long previousRevision) {
+        return new ThingWriteModel(getMetadata(), thingDocument, true, previousRevision);
     }
 
     @Override
     public WriteModel<BsonDocument> toMongo() {
-        return new ReplaceOneModel<>(getFilter(), thingDocument, upsert());
+        return new ReplaceOneModel<>(getFilter(), thingDocument, upsertOption());
     }
 
     /**
@@ -59,8 +81,25 @@ public final class ThingWriteModel extends AbstractWriteModel {
         return thingDocument;
     }
 
-    private static ReplaceOptions upsert() {
-        return new ReplaceOptions().upsert(true);
+    @Override
+    public Bson getFilter() {
+        if (isPatchUpdate) {
+            return Filters.and(
+                    Filters.eq(PersistenceConstants.FIELD_ID, new BsonString(getMetadata().getThingId().toString())),
+                    Filters.eq(PersistenceConstants.FIELD_REVISION, BsonNumber.apply(previousRevision))
+            );
+        } else {
+            return super.getFilter();
+        }
+    }
+
+    @Override
+    public boolean isPatchUpdate() {
+        return isPatchUpdate;
+    }
+
+    private ReplaceOptions upsertOption() {
+        return new ReplaceOptions().upsert(!isPatchUpdate);
     }
 
     @Override
@@ -75,19 +114,23 @@ public final class ThingWriteModel extends AbstractWriteModel {
             return false;
         }
         final ThingWriteModel that = (ThingWriteModel) o;
-        return thingDocument.equals(that.thingDocument);
+        return thingDocument.equals(that.thingDocument) &&
+                isPatchUpdate == that.isPatchUpdate &&
+                previousRevision == that.previousRevision;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), thingDocument);
+        return Objects.hash(super.hashCode(), thingDocument, isPatchUpdate, previousRevision);
     }
 
     @Override
     public String toString() {
         return super.toString() +
-                ", thingDocument=" + thingDocument
-                + "]";
+                ", thingDocument=" + thingDocument +
+                ", isPatchUpdate=" + isPatchUpdate +
+                ", previousRevision=" + previousRevision +
+                "]";
     }
 
 }

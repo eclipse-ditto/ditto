@@ -12,6 +12,13 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 
+import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+
+import org.bson.BsonDocument;
+import org.eclipse.ditto.internal.utils.persistence.mongo.BsonUtil;
+import org.eclipse.ditto.internal.utils.persistence.mongo.DittoBsonJson;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -34,5 +41,4 @@ public final class ThingWriteModelTest extends AbstractWithActorSystemTest {
                 .withPrefabValues(ActorRef.class, probe1.ref(), probe2.ref())
                 .verify();
     }
-
 }
