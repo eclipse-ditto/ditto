@@ -201,9 +201,8 @@ final class BulkWriteResultAckFlow {
         final var result = resultAndErrors.getBulkWriteResult();
         final int writeModelCount = resultAndErrors.getWriteModels().size();
         final int matchedCount = result.getMatchedCount();
-        final int upsertedCount = result.getUpserts().size();
-        final int errorCount = resultAndErrors.getBulkWriteErrors().size();
-        return matchedCount + upsertedCount + errorCount < writeModelCount;
+        final int upsertCount = result.getUpserts().size();
+        return matchedCount + upsertCount < writeModelCount;
     }
 
     private static boolean areAllIndexesWithinBounds(final Collection<BulkWriteError> bulkWriteErrors,

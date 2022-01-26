@@ -18,7 +18,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.bson.BsonDocument;
-import org.bson.BsonNull;
 import org.bson.BsonString;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;

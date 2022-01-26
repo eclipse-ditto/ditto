@@ -21,11 +21,9 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.bson.BsonDocument;
-import org.bson.BsonNull;
 import org.bson.BsonString;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
-import org.mongodb.scala.bson.BsonNumber;
 
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.WriteModel;
