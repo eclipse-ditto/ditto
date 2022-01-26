@@ -195,42 +195,6 @@ public final class BackgroundSyncActorTest {
 
     }
 
-//    @Test
-//    public void providesHealthWarningWhenSameThingIsSynchronizedTwice() {
-//        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null, null);
-//        final long persistedRevision = indexedThingMetadata.getThingRevision() + 1;
-//
-//        new TestKit(actorSystem) {{
-//            whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
-//            whenTimestampPersistenceProvidesTaggedTimestamp();
-//
-//            final ActorRef underTest = thenCreateBackgroundSyncActor(this);
-//
-//            // first synchronization stream
-//            expectSyncActorToStartStreaming(pubSub);
-//            thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, persistedRevision)));
-//            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater,
-//                    List.of(UpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
-//
-//            // second synchronization stream
-//            whenSearchPersistenceHasIndexedThings(List.of(indexedThingMetadata));
-//            expectSyncActorToStartStreaming(pubSub, backgroundSyncConfig.getIdleTimeout());
-//            thenRespondWithPersistedThingsStream(pubSub, List.of(createStreamedSnapshot(THING_ID, persistedRevision)));
-//            expectSyncActorToRequestThingUpdatesInSearch(thingsUpdater,
-//                    List.of(UpdateThing.of(THING_ID, true, false, UpdateReason.BACKGROUND_SYNC, HEADERS)));
-//
-//            // expect health to have events for both runs
-//            syncActorShouldHaveHealth(underTest, this, StatusInfo.Status.UP, List.of(StatusDetailMessage.Level.WARN),
-//                    detailMessages -> {
-//                        final String events = detailMessages.stream()
-//                                .map(StatusDetailMessage::getMessage)
-//                                .map(JsonValue::toString)
-//                                .collect(Collectors.joining());
-//                        assertThat(events).contains(indexedThingMetadata.invalidateCaches(true, false).toString());
-//                    });
-//        }};
-//    }
-
     @Test
     public void noHealthWarningAfterSuccessfulStream() {
         final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null, null);
