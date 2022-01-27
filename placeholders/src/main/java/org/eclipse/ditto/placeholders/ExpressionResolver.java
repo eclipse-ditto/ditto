@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
@@ -200,6 +201,8 @@ public interface ExpressionResolver {
             final Stream<PipelineElement> elements = substitutionFunction.apply(placeholderExpression);
 
             final AtomicInteger counter = new AtomicInteger();
+            final AtomicReference<StringBuffer> appendingBuffer = new AtomicReference<>(new StringBuffer());
+
             resultBuilder = elements
                     .filter(element -> !element.getType().equals(PipelineElement.Type.UNRESOLVED))
                     .flatMap(element -> {
@@ -208,10 +211,11 @@ public interface ExpressionResolver {
                                 .peek(builder -> {
                                     if (counter.get() == 0) {
                                         counter.getAndIncrement();
-                                        matcher.appendReplacement(builder, "");
+                                        matcher.appendReplacement(appendingBuffer.get(), "");
                                     }
                                 })
-                                .map(string -> new StringBuffer(string).append(element.toOptional().get()));
+                                .map(string -> new StringBuffer(string).append(appendingBuffer.get())
+                                        .append(element.toOptional().get()));
                     }).collect(Collectors.toSet());
         }
         return resultBuilder.stream()
