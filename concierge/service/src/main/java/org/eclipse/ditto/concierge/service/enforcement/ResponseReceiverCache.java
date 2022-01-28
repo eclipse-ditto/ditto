@@ -203,13 +203,12 @@ final class ResponseReceiverCache implements Extension {
             final boolean refreshCorrelationId) {
 
         final String correlationId;
-        final AtomicBoolean correlationIdRefreshed = new AtomicBoolean(false);
+        final AtomicBoolean correlationIdRefreshed = new AtomicBoolean(refreshCorrelationId);
         if (refreshCorrelationId) {
             final String newId = UUID.randomUUID().toString();
             correlationId = SignalInformationPoint.getCorrelationId(signal)
                     .map(existingId -> existingId + "_" + newId)
                     .orElse(newId);
-            correlationIdRefreshed.set(true);
         } else {
             correlationId = SignalInformationPoint.getCorrelationId(signal)
                     .orElseGet(() -> {
