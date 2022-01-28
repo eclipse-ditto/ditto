@@ -95,10 +95,7 @@ public final class CommandAndCommandResponseMatchingValidator
             final CommandResponse<?> commandResponse) {
 
         final MatchingValidationResult result;
-
-        final var commandCorrelationId = getCorrelationId(command);
-        final var commandResponseCorrelationId = getCorrelationId(commandResponse);
-        if (commandCorrelationId.equals(commandResponseCorrelationId)) {
+        if (doCommandAndResponseCorrelationIdsMatch(command, commandResponse)) {
             result = MatchingValidationResult.success();
         } else {
             final var pattern = "Correlation ID of live response <{0}> differs from" +
@@ -106,11 +103,32 @@ public final class CommandAndCommandResponseMatchingValidator
             result = MatchingValidationResult.failure(command,
                     commandResponse,
                     MessageFormat.format(pattern,
-                            commandResponseCorrelationId.orElse(null),
-                            commandCorrelationId.orElse(null)));
+                            getCorrelationId(commandResponse).orElse(null),
+                            getCorrelationId(command).orElse(null)));
         }
 
         return result;
+    }
+
+    /**
+     * Checks whether the {@code command} and {@code commandResponse} correlation-ids are either completely equal or
+     * if the response's correlation-id "starts with" the command's correlation-id.
+     * That could be the case for correlation-id collisions detected in concierge's {@code ResponseReceiverCache} in
+     * which case a newly created UUID is appended to the collided previous correlation-id.
+     *
+     * @param command the command to extract the correlation-id to check.
+     * @param commandResponse the commandResponse to extract the correlation-id to check.
+     * @return {@code true} if the IDs match.
+     */
+    private static boolean doCommandAndResponseCorrelationIdsMatch(final Command<?> command,
+            final CommandResponse<?> commandResponse) {
+
+        final var commandCorrelationId = getCorrelationId(command);
+        final var commandResponseCorrelationId = getCorrelationId(commandResponse);
+        return commandCorrelationId.equals(commandResponseCorrelationId) ||
+                commandResponseCorrelationId.filter(responseId ->
+                        commandCorrelationId.filter(responseId::startsWith).isPresent()
+                ).isPresent();
     }
 
     private static Optional<String> getCorrelationId(final Signal<?> signal) {

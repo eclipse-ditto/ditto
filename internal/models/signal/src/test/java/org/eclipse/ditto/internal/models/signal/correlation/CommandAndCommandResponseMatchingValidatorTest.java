@@ -14,6 +14,8 @@ package org.eclipse.ditto.internal.models.signal.correlation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.UUID;
+
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.base.model.acks.AcknowledgementLabel;
 import org.eclipse.ditto.base.model.common.HttpStatus;
@@ -130,6 +132,24 @@ public final class CommandAndCommandResponseMatchingValidatorTest {
                         .isEqualTo("Correlation ID of live response <%s> differs from correlation ID of command <%s>.",
                                 null,
                                 correlationIdCommand));
+    }
+
+    @Test
+    public void applyCommandWithCorrelationIdAndCommandResponseWithSuffixedSameCorrelationId() {
+        final var correlationIdCommand = testNameCorrelationId.getCorrelationId();
+        final var dittoHeaders = DittoHeaders.newBuilder().correlationId(correlationIdCommand).build();
+        final var command = RetrieveThing.of(THING_ID, dittoHeaders);
+        final var correlationIdCommandResponse = correlationIdCommand.withSuffix("_" +
+                UUID.randomUUID());
+        final var responseDittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(correlationIdCommandResponse)
+                .build();
+        final var commandResponse = RetrieveThingResponse.of(THING_ID, JsonObject.empty(), responseDittoHeaders);
+        final var underTest = CommandAndCommandResponseMatchingValidator.getInstance();
+
+        final var validationResult = underTest.apply(command, commandResponse);
+
+        assertThat(validationResult.isSuccess()).isTrue();
     }
 
     @Test

@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -202,11 +203,19 @@ final class ResponseReceiverCache implements Extension {
             final boolean refreshCorrelationId) {
 
         final String correlationId;
+        final AtomicBoolean correlationIdRefreshed = new AtomicBoolean(false);
         if (refreshCorrelationId) {
-            correlationId = UUID.randomUUID().toString();
+            final String newId = UUID.randomUUID().toString();
+            correlationId = SignalInformationPoint.getCorrelationId(signal)
+                    .map(existingId -> existingId + "_" + newId)
+                    .orElse(newId);
+            correlationIdRefreshed.set(true);
         } else {
             correlationId = SignalInformationPoint.getCorrelationId(signal)
-                    .orElseGet(() -> UUID.randomUUID().toString());
+                    .orElseGet(() -> {
+                        correlationIdRefreshed.set(true);
+                        return UUID.randomUUID().toString();
+                    });
         }
 
         return get(correlationId)
@@ -214,12 +223,14 @@ final class ResponseReceiverCache implements Extension {
                     final CompletionStage<S> result;
                     if (entry.isPresent()) {
                         result = setUniqueCorrelationIdForGlobalDispatching(signal, true);
-                    } else {
+                    } else if (correlationIdRefreshed.get()) {
                         result = CompletableFuture.completedFuture(
                                 (S) signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
                                         .correlationId(correlationId)
                                         .build())
                         );
+                    } else {
+                        result = CompletableFuture.completedFuture(signal);
                     }
                     return result;
                 });
