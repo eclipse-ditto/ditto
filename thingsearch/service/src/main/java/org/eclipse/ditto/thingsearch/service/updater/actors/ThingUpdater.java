@@ -36,6 +36,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
@@ -80,6 +81,12 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             AcknowledgementRequest.of(DittoAcknowledgementLabel.SEARCH_PERSISTED);
 
     private static final String FORCE_UPDATE_AFTER_START = "FORCE_UPDATE_AFTER_START";
+
+    private static final Counter INCORRECT_PATCH_UPDATE_COUNT = DittoMetrics.counter("search_incorrect_patch_updates");
+    private static final Counter UPDATE_FAILURE_COUNT = DittoMetrics.counter("search_update_failures");
+    private static final Counter PATCH_UPDATE_COUNT = DittoMetrics.counter("search_patch_updates");
+    private static final Counter PATCH_SKIP_COUNT = DittoMetrics.counter("search_patch_skips");
+    private static final Counter FULL_UPDATE_COUNT = DittoMetrics.counter("search_full_updates");
 
     private final DittoDiagnosticLoggingAdapter log;
     private final ThingId thingId;
@@ -209,6 +216,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                 if (aggregationPipeline.isEmpty()) {
                     log.debug("Skipping update due to empty diff <{}>", nextWriteModel);
                     getSender().tell(Done.getInstance(), getSelf());
+                    PATCH_SKIP_COUNT.increment();
                     return;
                 }
                 final var filter = ((ThingWriteModel) nextWriteModel)
@@ -216,12 +224,14 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                         .getFilter();
                 mongoWriteModel = new UpdateOneModel<>(filter, aggregationPipeline);
                 log.debug("Using incremental update <{}>", mongoWriteModel);
+                PATCH_UPDATE_COUNT.increment();
             } else {
                 mongoWriteModel = nextWriteModel.toMongo();
                 if (log.isDebugEnabled()) {
                     log.debug("Using replacement because diff is bigger or nonexistent. Diff=<{}>",
                             diff.map(BsonDiff::consumeAndExport));
                 }
+                FULL_UPDATE_COUNT.increment();
             }
         } else {
             mongoWriteModel = nextWriteModel.toMongo();
@@ -232,6 +242,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             } else {
                 log.debug("Using replacement <{}>", mongoWriteModel);
             }
+            FULL_UPDATE_COUNT.increment();
         }
         getSender().tell(mongoWriteModel, getSelf());
         lastWriteModel = nextWriteModel;
@@ -311,9 +322,14 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             // discard last write model: index document is not known
             lastWriteModel = null;
             final Metadata metadata = exportMetadata(null, null).invalidateCaches(true, true);
-            final var warningTemplate = isFailure
-                    ? "Got negative acknowledgement for <{}>; updating to <{}>."
-                    : "Inconsistent patch update detected for <{}>; updating to <{}>.";
+            final String warningTemplate;
+            if (isFailure) {
+                warningTemplate = "Got negative acknowledgement for <{}>; updating to <{}>.";
+                UPDATE_FAILURE_COUNT.increment();
+            } else {
+                warningTemplate = "Inconsistent patch update detected for <{}>; updating to <{}>.";
+                INCORRECT_PATCH_UPDATE_COUNT.increment();
+            }
             log.warning(warningTemplate, Metadata.fromResponse(response), metadata);
             enqueueMetadata(metadata.withUpdateReason(UpdateReason.RETRY));
         }
