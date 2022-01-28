@@ -139,8 +139,10 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             final var noLastModel = ThingDeleteModel.of(Metadata.of(thingId, -1L, null, null, null));
             getSelf().tell(noLastModel, getSelf());
         }
-        getTimers().startSingleTimer(FORCE_UPDATE_AFTER_START, FORCE_UPDATE_AFTER_START,
-                randomizeTimeout(forceUpdateAfterStartTimeout, forceUpdateAfterStartRandomFactor));
+        if (forceUpdateAfterStartTimeout.negated().isNegative()) {
+            getTimers().startSingleTimer(FORCE_UPDATE_AFTER_START, FORCE_UPDATE_AFTER_START,
+                    randomizeTimeout(forceUpdateAfterStartTimeout, forceUpdateAfterStartRandomFactor));
+        }
     }
 
     /**
@@ -154,9 +156,13 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     static Props props(final ActorRef pubSubMediator, final ActorRef changeQueueActor,
             final UpdaterConfig updaterConfig) {
 
+        // Use duration 0 to disable force-update-after-start-timeout.
+        final var effectiveForceUpdateAfterStartTimeout = updaterConfig.isForceUpdateAfterStartEnabled()
+                ? updaterConfig.getForceUpdateAfterStartTimeout()
+                : Duration.ZERO;
         return Props.create(ThingUpdater.class, pubSubMediator, changeQueueActor,
                 updaterConfig.getForceUpdateProbability(),
-                updaterConfig.getForceUpdateAfterStartTimeout(),
+                effectiveForceUpdateAfterStartTimeout,
                 updaterConfig.getForceUpdateAfterStartRandomFactor());
     }
 
