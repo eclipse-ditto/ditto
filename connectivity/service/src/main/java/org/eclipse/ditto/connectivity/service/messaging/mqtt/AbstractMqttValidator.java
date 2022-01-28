@@ -14,11 +14,11 @@ package org.eclipse.ditto.connectivity.service.messaging.mqtt;
 
 import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newEntityPlaceholder;
 import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newFeaturePlaceholder;
-import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newMiscPlaceholder;
 import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newPolicyPlaceholder;
 import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newResourcePlaceholder;
 import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newSourceAddressPlaceholder;
 import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newThingPlaceholder;
+import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newTimePlaceholder;
 import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newTopicPathPlaceholder;
 import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
@@ -115,7 +115,7 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
 
         validateTargetQoS(qos.get(), dittoHeaders, targetDescription);
         validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(),
-                newResourcePlaceholder(), newMiscPlaceholder(), newHeadersPlaceholder(), newFeaturePlaceholder());
+                newResourcePlaceholder(), newTimePlaceholder(), newHeadersPlaceholder(), newFeaturePlaceholder());
     }
 
     /**
