@@ -172,8 +172,10 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         final Map<String, String> result = new LinkedHashMap<>(jsonObject.getSize());
         jsonObject.forEach(jsonField -> {
             final JsonValue jsonValue = jsonField.getValue();
-            final String stringValue = jsonValue.isString() ? jsonValue.asString() : jsonValue.toString();
-            result.put(jsonField.getKeyName(), stringValue);
+            if (!jsonValue.isNull()) {
+                final String stringValue = jsonValue.isString() ? jsonValue.asString() : jsonValue.toString();
+                result.put(jsonField.getKeyName(), stringValue);
+            }
         });
 
         return result;
@@ -279,7 +281,9 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     private void putJsonValue(final HeaderDefinition definition, final JsonValue jsonValue) {
-        putCharSequence(definition, jsonValue.isString() ? jsonValue.asString() : jsonValue.toString());
+        if (!jsonValue.isNull()) {
+            putCharSequence(definition, jsonValue.isString() ? jsonValue.asString() : jsonValue.toString());
+        }
     }
 
     @Override
