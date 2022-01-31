@@ -15,9 +15,7 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.Duration;
 import java.util.Arrays;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import org.bson.BsonDocument;
@@ -32,10 +30,8 @@ import org.junit.Test;
 import org.mongodb.scala.bson.BsonNumber;
 
 import com.mongodb.bulk.BulkWriteResult;
-import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.reactivestreams.client.MongoCollection;
 
-import akka.stream.DelayOverflowStrategy;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
@@ -75,7 +71,7 @@ public final class ThingWriteModelIT extends AbstractThingSearchPersistenceITBas
     public void update() {
         final var previousModel = getWriteModel(1, 1);
         executeWrite(previousModel);
-        final var underTest = getWriteModel(1, 2);
+        final var underTest = getWriteModel(2, 2);
         final var result = executeWrite(underTest);
         assertThat(result.getInsertedCount()).isEqualTo(0);
         assertThat(result.getMatchedCount()).isEqualTo(1);

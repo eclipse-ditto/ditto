@@ -18,7 +18,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.bson.BsonDocument;
-import org.bson.BsonString;
 import org.bson.conversions.Bson;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.mongodb.scala.bson.BsonNumber;
@@ -84,7 +83,7 @@ public final class ThingWriteModel extends AbstractWriteModel {
     public Bson getFilter() {
         if (isPatchUpdate) {
             return Filters.and(
-                    Filters.eq(PersistenceConstants.FIELD_ID, new BsonString(getMetadata().getThingId().toString())),
+                    super.getFilter(),
                     Filters.eq(PersistenceConstants.FIELD_REVISION, BsonNumber.apply(previousRevision))
             );
         } else {

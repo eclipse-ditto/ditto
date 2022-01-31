@@ -37,7 +37,7 @@
     <logger name="akka.stream.Materializer" level="ERROR"/>
     <logger name="org.eclipse.ditto.internal.utils" level="WARN"/>
 
-    <root level="${LOG_LEVEL:-WARN}">
+    <root level="${LOG_LEVEL_TEST:-WARN}">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="STDERR"/>
     </root>
