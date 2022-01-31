@@ -20,7 +20,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -203,18 +202,13 @@ final class ResponseReceiverCache implements Extension {
             final boolean refreshCorrelationId) {
 
         final String correlationId;
-        final AtomicBoolean correlationIdRefreshed = new AtomicBoolean(refreshCorrelationId);
-        if (refreshCorrelationId) {
-            final String newId = UUID.randomUUID().toString();
-            correlationId = SignalInformationPoint.getCorrelationId(signal)
-                    .map(existingId -> existingId + "_" + newId)
-                    .orElse(newId);
+        final var previousCorrelationId = SignalInformationPoint.getCorrelationId(signal);
+        final boolean correlationIdRefreshed = refreshCorrelationId || previousCorrelationId.isEmpty();
+        if (correlationIdRefreshed) {
+            correlationId = previousCorrelationId.map(existingId -> existingId + "_" + UUID.randomUUID())
+                    .orElseGet(() -> UUID.randomUUID().toString());
         } else {
-            correlationId = SignalInformationPoint.getCorrelationId(signal)
-                    .orElseGet(() -> {
-                        correlationIdRefreshed.set(true);
-                        return UUID.randomUUID().toString();
-                    });
+            correlationId = previousCorrelationId.get();
         }
 
         return get(correlationId)
@@ -222,7 +216,7 @@ final class ResponseReceiverCache implements Extension {
                     final CompletionStage<S> result;
                     if (entry.isPresent()) {
                         result = setUniqueCorrelationIdForGlobalDispatching(signal, true);
-                    } else if (correlationIdRefreshed.get()) {
+                    } else if (correlationIdRefreshed) {
                         result = CompletableFuture.completedFuture(
                                 (S) signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
                                         .correlationId(correlationId)
