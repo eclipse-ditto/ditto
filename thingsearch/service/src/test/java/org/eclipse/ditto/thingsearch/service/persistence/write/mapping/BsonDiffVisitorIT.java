@@ -63,7 +63,8 @@ public class BsonDiffVisitorIT {
 
     @Before
     public void init() {
-        client = MongoClientWrapper.getBuilder().hostnameAndPort(MONGO_RESOURCE.getBindIp(), MONGO_RESOURCE.getPort())
+        client = MongoClientWrapper.getBuilder()
+                .hostnameAndPort(MONGO_RESOURCE.getBindIp(), MONGO_RESOURCE.getPort())
                 .defaultDatabaseName("test")
                 .build();
 

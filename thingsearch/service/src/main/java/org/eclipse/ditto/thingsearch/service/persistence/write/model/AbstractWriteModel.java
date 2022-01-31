@@ -93,7 +93,16 @@ public abstract class AbstractWriteModel {
      * @return filter on search index documents.
      */
     public Bson getFilter() {
-        return Filters.and(Filters.eq(PersistenceConstants.FIELD_ID, new BsonString(metadata.getThingId().toString())));
+        return Filters.eq(PersistenceConstants.FIELD_ID, new BsonString(metadata.getThingId().toString()));
+    }
+
+    /**
+     * Check whether this update is a patch update based on a specific sequence number.
+     *
+     * @return Whether this is a patch update.
+     */
+    public boolean isPatchUpdate() {
+        return false;
     }
 
     @Override

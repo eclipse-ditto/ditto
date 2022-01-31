@@ -48,6 +48,10 @@ final class BulkWriteResultAckFlow {
 
     private static final String ERRORS_COUNTER_NAME = "search-index-update-errors";
 
+    private static final DittoHeaders INCORRECT_PATCH_HEADERS = DittoHeaders.newBuilder()
+            .putHeader(SearchUpdaterStream.FORCE_UPDATE_INCORRECT_PATCH, "true")
+            .build();
+
     private final ActorRef updaterShard;
     private final Counter errorsCounter;
 
@@ -70,31 +74,54 @@ final class BulkWriteResultAckFlow {
             acknowledgeFailures(getAllMetadata(writeResultAndErrors));
             return Collections.singleton(logResult("NotAcknowledged", writeResultAndErrors, false));
         } else {
-            final Optional<String> consistencyError = checkForConsistencyError(writeResultAndErrors);
-            if (consistencyError.isPresent()) {
-                // write result is not consistent; there is a bug with Ditto or with its environment
-                acknowledgeFailures(getAllMetadata(writeResultAndErrors));
-                return Collections.singleton(consistencyError.get());
-            } else {
-                final List<BulkWriteError> errors = writeResultAndErrors.getBulkWriteErrors();
-                final Collection<String> logEntries = new ArrayList<>(errors.size() + 1);
-                final Collection<Metadata> failedMetadata = new ArrayList<>(errors.size());
-                logEntries.add(logResult("Acknowledged", writeResultAndErrors, errors.isEmpty()));
-                final BitSet failedIndices = new BitSet(writeResultAndErrors.getWriteModels().size());
-                for (final BulkWriteError error : errors) {
-                    final Metadata metadata = writeResultAndErrors.getWriteModels().get(error.getIndex()).getMetadata();
-                    logEntries.add(String.format("UpdateFailed for %s due to %s", metadata, error));
-                    if (error.getCategory() != ErrorCategory.DUPLICATE_KEY) {
-                        failedIndices.set(error.getIndex());
-                        failedMetadata.add(metadata);
-                        // duplicate key error is considered success
-                    }
-                }
-                acknowledgeFailures(failedMetadata);
-                acknowledgeSuccesses(failedIndices, writeResultAndErrors.getWriteModels());
-                return logEntries;
+            final var consistencyError = checkForConsistencyError(writeResultAndErrors);
+            switch (consistencyError.status) {
+                case CONSISTENCY_ERROR:
+                    // write result is not consistent; there is a bug with Ditto or with its environment
+                    acknowledgeFailures(getAllMetadata(writeResultAndErrors));
+                    return Collections.singleton(consistencyError.message);
+                case INCORRECT_PATCH:
+                    reportIncorrectPatch(writeResultAndErrors);
+                    return getConsistencyOKResult(writeResultAndErrors);
+                case OK:
+                default:
+                    return getConsistencyOKResult(writeResultAndErrors);
             }
         }
+    }
+
+    private Iterable<String> getConsistencyOKResult(final WriteResultAndErrors writeResultAndErrors) {
+        return acknowledgeSuccessesAndFailures(writeResultAndErrors);
+    }
+
+    private void reportIncorrectPatch(final WriteResultAndErrors writeResultAndErrors) {
+        // Some patches are not applied due to inconsistent sequence number in the search index.
+        // It is not possible to identify which patches are not applied; therefore request all patch updates to retry.
+        writeResultAndErrors.getWriteModels().stream().filter(AbstractWriteModel::isPatchUpdate).forEach(model -> {
+            final var response =
+                    createFailureResponse(model.getMetadata()).setDittoHeaders(INCORRECT_PATCH_HEADERS);
+            model.getMetadata().getOrigin().ifPresent(updater -> updater.tell(response, ActorRef.noSender()));
+        });
+    }
+
+    private Collection<String> acknowledgeSuccessesAndFailures(final WriteResultAndErrors writeResultAndErrors) {
+        final List<BulkWriteError> errors = writeResultAndErrors.getBulkWriteErrors();
+        final Collection<String> logEntries = new ArrayList<>(errors.size() + 1);
+        final Collection<Metadata> failedMetadata = new ArrayList<>(errors.size());
+        logEntries.add(logResult("Acknowledged", writeResultAndErrors, errors.isEmpty()));
+        final BitSet failedIndices = new BitSet(writeResultAndErrors.getWriteModels().size());
+        for (final BulkWriteError error : errors) {
+            final Metadata metadata = writeResultAndErrors.getWriteModels().get(error.getIndex()).getMetadata();
+            logEntries.add(String.format("UpdateFailed for %s due to %s", metadata, error));
+            if (error.getCategory() != ErrorCategory.DUPLICATE_KEY) {
+                failedIndices.set(error.getIndex());
+                failedMetadata.add(metadata);
+                // duplicate key error is considered success
+            }
+        }
+        acknowledgeFailures(failedMetadata);
+        acknowledgeSuccesses(failedIndices, writeResultAndErrors.getWriteModels());
+        return logEntries;
     }
 
     private static void acknowledgeSuccesses(final BitSet failedIndices, final List<AbstractWriteModel> writeModels) {
@@ -157,14 +184,25 @@ final class BulkWriteResultAckFlow {
      * @param resultAndErrors data structure containing input and output of the bulk write operation.
      * @return whether the data is consistent.
      */
-    private static Optional<String> checkForConsistencyError(final WriteResultAndErrors resultAndErrors) {
+    private static ConsistencyCheckResult checkForConsistencyError(final WriteResultAndErrors resultAndErrors) {
         final int requested = resultAndErrors.getWriteModels().size();
         if (!areAllIndexesWithinBounds(resultAndErrors.getBulkWriteErrors(), requested)) {
             // some indexes not within bounds
-            return Optional.of(String.format("ConsistencyError[indexOutOfBound]: %s", resultAndErrors));
+            final var message = String.format("ConsistencyError[indexOutOfBound]: %s", resultAndErrors);
+            return new ConsistencyCheckResult(ConsistencyStatus.CONSISTENCY_ERROR, message);
+        } else if (areUpdatesMissing(resultAndErrors)) {
+            return new ConsistencyCheckResult(ConsistencyStatus.INCORRECT_PATCH, "");
         } else {
-            return Optional.empty();
+            return new ConsistencyCheckResult(ConsistencyStatus.OK, "");
         }
+    }
+
+    private static boolean areUpdatesMissing(final WriteResultAndErrors resultAndErrors) {
+        final var result = resultAndErrors.getBulkWriteResult();
+        final int writeModelCount = resultAndErrors.getWriteModels().size();
+        final int matchedCount = result.getMatchedCount();
+        final int upsertCount = result.getUpserts().size();
+        return matchedCount + upsertCount < writeModelCount;
     }
 
     private static boolean areAllIndexesWithinBounds(final Collection<BulkWriteError> bulkWriteErrors,
@@ -218,5 +256,22 @@ final class BulkWriteResultAckFlow {
                     writeResultAndErrors.getBulkWriteErrors()
             );
         }
+    }
+
+    private static final class ConsistencyCheckResult {
+
+        private final ConsistencyStatus status;
+        private final String message;
+
+        private ConsistencyCheckResult(final ConsistencyStatus status, final String message) {
+            this.status = status;
+            this.message = message;
+        }
+    }
+
+    private enum ConsistencyStatus {
+        CONSISTENCY_ERROR,
+        INCORRECT_PATCH,
+        OK
     }
 }
