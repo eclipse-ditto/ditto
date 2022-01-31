@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
-import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +20,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.model.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.connectivity.model.ConnectionType;
@@ -31,6 +28,7 @@ import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.ConnectivityConfig;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
+import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
 
 import akka.actor.ActorSystem;
@@ -102,14 +100,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
         validateHeaderMapping(target.getHeaderMapping(), dittoHeaders);
-        validateTemplate(target.getAddress(), dittoHeaders,
-                ConnectivityPlaceholders.newEntityPlaceholder(),
-                ConnectivityPlaceholders.newThingPlaceholder(),
-                ConnectivityPlaceholders.newTopicPathPlaceholder(),
-                ConnectivityPlaceholders.newResourcePlaceholder(),
-                ConnectivityPlaceholders.newTimePlaceholder(),
-                newHeadersPlaceholder(),
-                ConnectivityPlaceholders.newFeaturePlaceholder());
+        validateTemplate(target.getAddress(), dittoHeaders, Resolvers.getPlaceholders());
         validateTargetAddress(target.getAddress(), dittoHeaders, targetDescription);
     }
 

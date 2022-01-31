@@ -13,14 +13,9 @@
 package org.eclipse.ditto.connectivity.service.messaging.mqtt;
 
 import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newEntityPlaceholder;
-import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newFeaturePlaceholder;
 import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newPolicyPlaceholder;
-import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newResourcePlaceholder;
 import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newSourceAddressPlaceholder;
 import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newThingPlaceholder;
-import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newTimePlaceholder;
-import static org.eclipse.ditto.connectivity.api.placeholders.ConnectivityPlaceholders.newTopicPathPlaceholder;
-import static org.eclipse.ditto.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 
 import java.text.MessageFormat;
 import java.util.AbstractMap;
@@ -51,6 +46,7 @@ import org.eclipse.ditto.connectivity.model.Enforcement;
 import org.eclipse.ditto.connectivity.model.Source;
 import org.eclipse.ditto.connectivity.model.Target;
 import org.eclipse.ditto.connectivity.service.config.MqttConfig;
+import org.eclipse.ditto.connectivity.service.messaging.Resolvers;
 import org.eclipse.ditto.connectivity.service.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.ditto.placeholders.ExpressionResolver;
 import org.eclipse.ditto.placeholders.Placeholder;
@@ -114,8 +110,7 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
         }
 
         validateTargetQoS(qos.get(), dittoHeaders, targetDescription);
-        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(),
-                newResourcePlaceholder(), newTimePlaceholder(), newHeadersPlaceholder(), newFeaturePlaceholder());
+        validateTemplate(target.getAddress(), dittoHeaders, Resolvers.getPlaceholders());
     }
 
     /**
