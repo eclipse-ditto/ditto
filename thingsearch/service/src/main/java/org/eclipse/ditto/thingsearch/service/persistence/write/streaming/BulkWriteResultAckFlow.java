@@ -30,6 +30,7 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 
 import com.mongodb.ErrorCategory;
@@ -199,9 +200,11 @@ final class BulkWriteResultAckFlow {
 
     private static boolean areUpdatesMissing(final WriteResultAndErrors resultAndErrors) {
         final var result = resultAndErrors.getBulkWriteResult();
-        final int writeModelCount = resultAndErrors.getWriteModels().size();
-        final int matchedCount = result.getMatchedCount();
-        final int upsertCount = result.getUpserts().size();
+        final long writeModelCount = resultAndErrors.getWriteModels().stream()
+                .filter(writeModel -> !(writeModel instanceof ThingDeleteModel))
+                .count();
+        final long matchedCount = result.getMatchedCount();
+        final long upsertCount = result.getUpserts().size();
         return matchedCount + upsertCount < writeModelCount;
     }
 
