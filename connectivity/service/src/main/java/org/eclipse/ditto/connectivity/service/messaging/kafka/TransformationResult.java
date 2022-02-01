@@ -22,6 +22,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.connectivity.api.ExternalMessage;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
+import org.slf4j.Logger;
 
 /**
  * Kafka transformation result containing either a {@link DittoRuntimeException} in case of a failure or an
@@ -32,12 +34,14 @@ final class TransformationResult {
 
     private static final String CREATION_TIME = "creation-time";
     private static final String TTL = "ttl";
+    private static final Logger LOGGER = DittoLoggerFactory.getLogger(TransformationResult.class);
 
     @Nullable private final DittoRuntimeException dittoRuntimeException;
     @Nullable private final ExternalMessage externalMessage;
 
     private TransformationResult(@Nullable final DittoRuntimeException dittoRuntimeException,
             @Nullable final ExternalMessage externalMessage) {
+
         this.dittoRuntimeException = dittoRuntimeException;
         this.externalMessage = externalMessage;
     }
@@ -76,11 +80,17 @@ final class TransformationResult {
                     .map(Long::parseLong);
             if (creationTimeOptional.isPresent() && ttlOptional.isPresent()) {
                 final long timeSinceCreation = now - creationTimeOptional.get();
-                return timeSinceCreation >= ttlOptional.get();
+                final var result = timeSinceCreation >= ttlOptional.get();
+                LOGGER.debug("Evaluating Kafka message expiry with creation-time: <{}>, time since creation: " +
+                                "<{}> and ttl: <{}> to: <{}>",
+                        creationTimeOptional, timeSinceCreation, ttlOptional, result);
+                return result;
             }
             return false;
         } catch (final Exception e) {
             // Errors during reading/parsing headers should not cause the message to be dropped.
+            final Object message = null != externalMessage ? externalMessage : dittoRuntimeException;
+            LOGGER.warn("Encountered error checking the expiry of Kafka message: <{}>, <{}>", message, e);
             return false;
         }
     }
