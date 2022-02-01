@@ -97,7 +97,7 @@ final class BulkWriteResultAckFlow {
     private void reportIncorrectPatch(final WriteResultAndErrors writeResultAndErrors) {
         // Some patches are not applied due to inconsistent sequence number in the search index.
         // It is not possible to identify which patches are not applied; therefore request all patch updates to retry.
-        writeResultAndErrors.getWriteModels().stream().filter(AbstractWriteModel::isPatchUpdate).forEach(model -> {
+        writeResultAndErrors.getWriteModels().stream().forEach(model -> {
             final var response =
                     createFailureResponse(model.getMetadata()).setDittoHeaders(INCORRECT_PATCH_HEADERS);
             model.getMetadata().getOrigin().ifPresent(updater -> updater.tell(response, ActorRef.noSender()));
