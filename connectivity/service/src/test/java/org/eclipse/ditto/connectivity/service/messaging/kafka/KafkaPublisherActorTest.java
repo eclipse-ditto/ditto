@@ -28,11 +28,13 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.DisconnectException;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
@@ -72,6 +74,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Unit test for {@link KafkaPublisherActor}.
@@ -96,8 +99,9 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         mockSendProducerFactory = MockSendProducerFactory.getInstance(TARGET_TOPIC, published);
     }
 
-    private void setUpMocksToFailWith(final RuntimeException exception) {
-        mockSendProducerFactory = MockSendProducerFactory.getInstance(TARGET_TOPIC, published, exception);
+    private void setUpMocksToFailWith(final RuntimeException exception, final boolean shouldThrowException) {
+        mockSendProducerFactory =
+                MockSendProducerFactory.getInstance(TARGET_TOPIC, published, exception, shouldThrowException);
     }
 
     @Override
@@ -306,8 +310,19 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     @Test
     public void retriableExceptionBecomesInternalErrorAcknowledgement() {
         testSendFailure(new DisconnectException(), (sender, parent) ->
-                assertThat(sender.expectMsgClass(Acknowledgements.class).getHttpStatus())
-                        .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+                        assertThat(sender.expectMsgClass(Acknowledgements.class).getHttpStatus())
+                                .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR),
+                false, 1
+        );
+    }
+
+    @Test
+    public void sendEnvelopeFailureDoesntKillProducerStream() {
+        testSendFailure(new KafkaException(), (sender, parent) ->
+                        assertThat(sender.expectMsgClass(FiniteDuration.apply(5, TimeUnit.SECONDS), Acknowledgements.class)
+                                .getHttpStatus())
+                                .isEqualTo(HttpStatus.BAD_REQUEST),
+                true, 2
         );
     }
 
@@ -336,10 +351,11 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(expectedHeader).isPresent();
     }
 
-    private void testSendFailure(final RuntimeException exception, final BiConsumer<TestProbe, TestKit> assertions) {
+    private void testSendFailure(final RuntimeException exception, final BiConsumer<TestProbe, TestKit> assertions,
+            final boolean shouldThrowException, final int sendMessagesAmount) {
         new TestKit(actorSystem) {{
             // GIVEN
-            setUpMocksToFailWith(exception);
+            setUpMocksToFailWith(exception, shouldThrowException);
 
             final TestProbe senderProbe = TestProbe.apply("sender", actorSystem);
             final OutboundSignal.MultiMapped multiMapped = OutboundSignalFactory.newMultiMappedOutboundSignal(
@@ -349,8 +365,9 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
             final ActorRef publisherActor = childActorOf(getPublisherActorProps());
             publisherCreated(this, publisherActor);
 
-            // WHEN
-            publisherActor.tell(multiMapped, senderProbe.ref());
+            for (int x = 0; x < sendMessagesAmount; x++) {
+                publisherActor.tell(multiMapped, senderProbe.ref());
+            }
 
             // THEN
             assertions.accept(senderProbe, this);
