@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +55,9 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
             .map(HttpMethod::name)
             .collect(Collectors.joining(", "));
 
+    static final Duration MAX_IDLE_TIMEOUT = Duration.of(60, ChronoUnit.SECONDS);
+
+    private final HttpPushConfig httpPushConfig;
     private final boolean oauth2EnforceHttps;
 
     /**
@@ -66,7 +71,8 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
     }
 
     private HttpPushValidator(final HttpPushConfig config) {
-        oauth2EnforceHttps = config.getOAuth2Config().shouldEnforceHttps();
+        httpPushConfig = config;
+        oauth2EnforceHttps = httpPushConfig.getOAuth2Config().shouldEnforceHttps();
     }
 
     @Override
@@ -84,6 +90,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         validateParallelism(connection.getSpecificConfig(), dittoHeaders);
         validateOmitBodyMethods(connection.getSpecificConfig(), dittoHeaders);
         validateCredentials(connection, dittoHeaders);
+        validateSpecificConfig(connection, dittoHeaders);
     }
 
     @Override
@@ -184,6 +191,20 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
                 }
             }
         });
+    }
+
+    private void validateSpecificConfig(final Connection connection, final DittoHeaders dittoHeaders) {
+        final HttpPushSpecificConfig
+                httpPushSpecificConfig = HttpPushSpecificConfig.fromConnection(connection, httpPushConfig);
+        final var idleTimeout = httpPushSpecificConfig.idleTimeout();
+        if (idleTimeout.isNegative() || idleTimeout.compareTo(MAX_IDLE_TIMEOUT) > 0) {
+            throw ConnectionConfigurationInvalidException
+                    .newBuilder("Idle timeout '" + idleTimeout.toSeconds() +
+                            "' is not within the allowed range of [0, " + MAX_IDLE_TIMEOUT.toSeconds() + "] seconds.")
+                    .description("Please adjust the timeout to be within the allowed range.")
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
 
     private static ConnectionConfigurationInvalidException parallelismValidationFailed(final String parallelismString,

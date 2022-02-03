@@ -294,7 +294,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?>
     buildHttpRequestFlow(final HttpPushConfig config) {
 
-        final Duration requestTimeout = config.getRequestTimeout();
+        final Duration requestTimeout = HttpPushSpecificConfig.fromConnection(connection, config).idleTimeout();
 
         final PreparedTimer timer = DittoMetrics.timer("http_publish_request_time")
                 // Set maximum duration higher than request timeout to avoid race conditions
@@ -389,10 +389,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 result = requestWithoutEntity.withEntity(getTextPayload(message));
             } else {
                 result = requestWithoutEntity.withEntity(getBytePayload(message));
-        }
+            }
 
-        return result;
-    }
+            return result;
+        }
 
     }
 
@@ -451,7 +451,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     l.debug("Got response <{} {} {}>", response.status(), response.getHeaders(),
                             response.entity().getContentType());
 
-                    toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize, ackSizeQuota,
+                    toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize,
+                            ackSizeQuota,
                             targetAuthorizationContext)
                             .thenAccept(resultFuture::complete)
                             .exceptionally(e -> {

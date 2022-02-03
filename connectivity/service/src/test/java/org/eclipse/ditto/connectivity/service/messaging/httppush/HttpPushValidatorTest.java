@@ -135,6 +135,18 @@ public final class HttpPushValidatorTest {
     }
 
     @Test
+    public void testInvalidIdleTime() {
+        final var idleTimeout = "-3s";
+        final Connection connection = getConnectionWithTarget("POST:events").toBuilder()
+                .specificConfig(Map.of(HttpPushSpecificConfig.IDLE_TIMEOUT, idleTimeout))
+                .build();
+        verifyConnectionConfigurationInvalidExceptionIsThrown(connection,
+                "Idle timeout '" + idleTimeout.substring(0, idleTimeout.length() - 1) +
+                        "' is not within the allowed range of [0, " + HttpPushValidator.MAX_IDLE_TIMEOUT.toSeconds() +
+                        "] seconds.");
+    }
+
+    @Test
     public void testNullOmitBodyHttpMethods() {
         final Connection connection = getConnectionWithTarget("POST:events").toBuilder().build();
         underTest.validate(connection, DittoHeaders.empty(), actorSystem, connectivityConfig);
@@ -154,7 +166,7 @@ public final class HttpPushValidatorTest {
 
     private static Connection getConnectionWithHostAndTarget(final String host, final String target) {
         return ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.HTTP_PUSH,
-                        ConnectivityStatus.OPEN, "http://" + host + ":80")
+                ConnectivityStatus.OPEN, "http://" + host + ":80")
                 .targets(singletonList(ConnectivityModelFactory.newTargetBuilder()
                         .address(target)
                         .authorizationContext(AUTHORIZATION_CONTEXT)
