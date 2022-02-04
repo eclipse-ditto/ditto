@@ -63,6 +63,7 @@ interface PipelineFunction {
      * @param expressionResolver the expressionResolver to use in order to resolve placeholders occurring in the
      * function.
      * @return processed output values, or an empty stream otherwise.
+     * @since 2.4.0
      */
     Stream<PipelineElement> applyStreaming(PipelineElement value, String paramsIncludingParentheses,
             ExpressionResolver expressionResolver);

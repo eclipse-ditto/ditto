@@ -49,8 +49,8 @@ final class PipelineFunctionLower implements PipelineFunction {
     public Stream<PipelineElement> applyStreaming(final PipelineElement element, final String paramsIncludingParentheses,
             final ExpressionResolver expressionResolver) {
 
-        return Stream.of(apply(element, paramsIncludingParentheses, expressionResolver))
-;    }
+        return Stream.of(apply(element, paramsIncludingParentheses, expressionResolver));
+    }
 
     private void validateOrThrow(final String paramsIncludingParentheses) {
         if (!PipelineFunctionParameterResolverFactory.forEmptyParameters().test(paramsIncludingParentheses)) {

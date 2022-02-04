@@ -114,6 +114,30 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
     }
 
     @Test
+    public void verifyThatFilteringOnMultipleJwtSubjectPlaceholdersWork() {
+        final String subjectIssuer = "testIssuer";
+        final String tokenAudience1 = "some-audience";
+        final String tokenAudience2 = "other-audience";
+        final String tokenAudience3 = "noone-audience";
+
+        final JsonWebToken jsonWebToken = createToken(
+                "{\"aud\": [\"" + tokenAudience1 + "\", \"" + tokenAudience2 + "\", \"" + tokenAudience3 + "\"]}");
+
+        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfig(subjectIssuer,
+                List.of("{{ jwt:aud | fn:filter('like','some*|noone*') }}"));
+
+        final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
+                .of(subjectIssuersConfig);
+
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+
+        assertThat(authSubjects).containsExactlyInAnyOrder(
+            AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience1),
+            AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience3)
+        );
+    }
+
+    @Test
     public void verifyThatUnresolvablePlaceholdersAreDiscarded() {
         final String subjectIssuer = "testIssuer";
         final String tokenGroup = "any-group";

@@ -24,7 +24,7 @@ import javax.annotation.concurrent.Immutable;
  * Immutable implementation of {@link ArrayFunctionExpression} defining which {@link PipelineFunction}s are supported.
  */
 @Immutable
-public class ImmutableArrayFunctionExpression implements ArrayFunctionExpression{
+final class ImmutableArrayFunctionExpression implements ArrayFunctionExpression {
     /**
      * Singleton instance of the ImmutableFunctionExpression.
      */

@@ -13,8 +13,8 @@
 package org.eclipse.ditto.placeholders;
 
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -67,23 +67,25 @@ public interface ExpressionResolver {
     }
 
     /**
-     * Resolve a single pipeline expression.
+     * Resolve a single pipeline expression as a stream of pipeline elements.
      *
      * @param pipelineExpression the pipeline expression.
-     * @return the pipeline element after evaluation.
+     * @return the stream of pipeline elements after evaluation.
      * @throws UnresolvedPlaceholderException if not all placeholders were resolved
+     * @since 2.4.0
      */
     Stream<PipelineElement> resolveAsArrayPipelineElement(String pipelineExpression);
 
     /**
-     * Resolves a complete expression template starting with a {@link Placeholder} followed by optional pipeline stages
-     * (e.g. functions).
+     * Resolves a complete expression template as a stream of pipeline elements starting with a
+     * {@link Placeholder} followed by optional pipeline stages (e.g. functions).
      *
-     * @param expressionTemplate the expressionTemplate to resolve {@link Placeholder}s and and execute optional
+     * @param expressionTemplate the expressionTemplate to resolve {@link Placeholder}s and execute optional
      * pipeline stages
-     * @return the resolved String, a signifier for resolution failure, or one for deletion.
+     * @return the stream of pipeline elements after evaluation.
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
+     * @since 2.4.0
      */
     default Stream<PipelineElement> resolveAsArray(final String expressionTemplate) {
         return ExpressionResolver.substituteArray(expressionTemplate, this::resolveAsArrayPipelineElement);
@@ -93,13 +95,13 @@ public interface ExpressionResolver {
      * Resolves a complete expression template starting with a {@link Placeholder} followed by optional pipeline stages
      * (e.g. functions). Keep unresolvable expressions as is.
      *
-     * @param expressionTemplate the expressionTemplate to resolve {@link Placeholder}s and and execute optional
+     * @param expressionTemplate the expressionTemplate to resolve {@link Placeholder}s and execute optional
      * pipeline stages
      * @param forbiddenUnresolvedExpressionPrefixes a collection of expression prefixes which must be resolved
      * @return the resolved String, a signifier for resolution failure, or one for deletion.
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
-     * @throws UnresolvedPlaceholderException if placeholders could not be resolved which contained prefixed in the a
+     * @throws UnresolvedPlaceholderException if placeholders could not be resolved which contained prefixed in the
      * provided {@code forbiddenUnresolvedExpressionPrefixes} list.
      * @since 2.0.0
      */
@@ -174,18 +176,19 @@ public interface ExpressionResolver {
     }
 
     /**
-     * Perform simple substitution on a string based on a template function.
+     * Perform simple substitution on a string as a stream of pipeline elements based on a template function.
      *
      * @param input the input string.
      * @param substitutionFunction the substitution function turning the content of each placeholder into a result.
-     * @return the substitution result.
+     * @return the stream of substitution results.
+     * @since 2.4.0
      */
     static Stream<PipelineElement> substituteArray(
             final String input,
             final Function<String, Stream<PipelineElement>> substitutionFunction) {
 
         final Matcher matcher = Placeholders.pattern().matcher(input);
-        Collection<StringBuffer> resultBuilder = new HashSet<>();
+        Collection<StringBuffer> resultBuilder = new ArrayList<>();
         resultBuilder.add(new StringBuffer());
 
         while (matcher.find()) {
@@ -205,18 +208,18 @@ public interface ExpressionResolver {
 
             resultBuilder = elements
                     .filter(element -> !element.getType().equals(PipelineElement.Type.UNRESOLVED))
-                    .flatMap(element -> {
-                        // append resolved placeholder
-                        return finalResultBuilder.stream()
-                                .peek(builder -> {
-                                    if (counter.get() == 0) {
-                                        counter.getAndIncrement();
-                                        matcher.appendReplacement(appendingBuffer.get(), "");
-                                    }
-                                })
-                                .map(string -> new StringBuffer(string).append(appendingBuffer.get())
-                                        .append(element.toOptional().get()));
-                    }).collect(Collectors.toSet());
+                    .flatMap(element ->
+                            finalResultBuilder.stream() // append resolved placeholder
+                                    .map(string -> {
+                                        if (counter.get() == 0) {
+                                            counter.getAndIncrement();
+                                            matcher.appendReplacement(appendingBuffer.get(), "");
+                                        }
+                                        return new StringBuffer(string)
+                                                .append(appendingBuffer.get())
+                                                .append(element.toOptional().orElse(""));
+                                    })
+                    ).collect(Collectors.toList());
         }
         return resultBuilder.stream()
                 .map(matcher::appendTail)

@@ -17,6 +17,8 @@ import java.util.stream.Stream;
 /**
  * A Pipeline is able to execute its {@code stageExpressions} starting with a {@code pipelineInput} derived from a
  * {@link Placeholder}. Can apply the {@code stageFunctions} to arrays.
+ *
+ * @since 2.4.0
  */
 public interface ArrayPipeline {
 

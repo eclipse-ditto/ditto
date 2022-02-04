@@ -60,7 +60,7 @@ public final class JwtPlaceholder implements Placeholder<JsonWebToken> {
 
     @Override
     public List<String> getSupportedNames() {
-        return List.of("scope");
+        return List.of();
     }
 
     @Override

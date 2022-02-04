@@ -26,7 +26,7 @@ import javax.annotation.concurrent.Immutable;
  * Immutable implementation of {@link Pipeline} able to execute its {@link FunctionExpression}s.
  */
 @Immutable
-public class ImmutableArrayPipeline implements ArrayPipeline{
+final class ImmutableArrayPipeline implements ArrayPipeline {
 
     private final ArrayFunctionExpression functionExpression;
     private final List<String> stageExpressions;

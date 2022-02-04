@@ -24,7 +24,7 @@ import javax.annotation.concurrent.Immutable;
  * Provides the {@code fn:split('separator')} function implementation.
  */
 @Immutable
-public class PipelineFunctionSplit implements PipelineFunction {
+final class PipelineFunctionSplit implements PipelineFunction {
 
     private static final String FUNCTION_NAME = "split";
 
@@ -56,11 +56,11 @@ public class PipelineFunctionSplit implements PipelineFunction {
 
         final String splitValue = parseAndResolve(paramsIncludingParentheses, expressionResolver);
         final Optional<String> optionalValue = value.toOptional();
-            if (optionalValue.isPresent() && optionalValue.get().contains(splitValue)) {
-                return Arrays.stream(optionalValue.get().split(splitValue)).map(PipelineElement::resolved);
-            } else {
-                return Stream.of(value);
-            }
+        if (optionalValue.isPresent() && optionalValue.get().contains(splitValue)) {
+            return Arrays.stream(optionalValue.get().split(splitValue)).map(PipelineElement::resolved);
+        } else {
+            return Stream.of(value);
+        }
     }
 
     private String parseAndResolve(final String paramsIncludingParentheses,
@@ -74,7 +74,7 @@ public class PipelineFunctionSplit implements PipelineFunction {
     }
 
     /**
-     * Describes the signature of the {@code substring-before('givenString')} function.
+     * Describes the signature of the {@code split('separator')} function.
      */
     private static final class SplitFunctionSignature implements PipelineFunction.Signature {
 
@@ -98,7 +98,7 @@ public class PipelineFunctionSplit implements PipelineFunction {
     }
 
     /**
-     * Describes the only param of the {@code split('givenString')} function.
+     * Describes the only param of the {@code split('separator')} function.
      */
     private static final class GivenStringParam implements ParameterDefinition<String> {
 
@@ -107,7 +107,7 @@ public class PipelineFunctionSplit implements PipelineFunction {
 
         @Override
         public String getName() {
-            return "givenString";
+            return "separator";
         }
 
         @Override
