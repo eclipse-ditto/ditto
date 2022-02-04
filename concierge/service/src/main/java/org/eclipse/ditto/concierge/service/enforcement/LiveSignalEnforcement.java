@@ -16,6 +16,7 @@ import static org.eclipse.ditto.policies.api.Permission.WRITE;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -54,7 +55,6 @@ import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.things.model.signals.commands.ThingCommand;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.EventSendNotAllowedException;
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommand;
 import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
@@ -103,12 +103,10 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
     }
 
     @Override
-    protected DittoRuntimeException handleAskTimeoutForCommand(final SignalWithEntityId<?> signal,
+    protected Optional<DittoRuntimeException> handleAskTimeoutForCommand(final SignalWithEntityId<?> signal,
             final Throwable askTimeout) {
         log().info("Live command timed out. Response may be sent by another channel: <{}>", signal);
-        return ThingUnavailableException.newBuilder(ThingId.of(signal.getEntityId()))
-                .dittoHeaders(signal.getDittoHeaders())
-                .build();
+        return Optional.empty();
     }
 
     @Override
@@ -452,7 +450,13 @@ public final class LiveSignalEnforcement extends AbstractEnforcementWithAsk<Sign
         return Patterns.ask(liveResponseForwarder, publish, timeout)
                 .exceptionally(e -> e)
                 .thenCompose(responseCaster)
-                .thenApply(response -> enforcement.filterJsonView(replaceAuthContext(response, command), enforcer));
+                .thenApply(response -> {
+                    if (null != response) {
+                        return enforcement.filterJsonView(replaceAuthContext(response, command), enforcer);
+                    } else {
+                        return null;
+                    }
+                });
     }
 
     private static boolean isAuthorized(final MessageCommand<?, ?> command, final Enforcer enforcer) {

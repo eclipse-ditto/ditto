@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.concierge.service.enforcement;
 
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
@@ -22,6 +23,7 @@ import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.Signal;
 import org.eclipse.ditto.base.model.signals.commands.CommandResponse;
 import org.eclipse.ditto.base.model.signals.commands.ErrorResponse;
+import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.internal.utils.cacheloaders.AskWithRetry;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 
@@ -72,7 +74,17 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
             final Executor executor) {
 
         return ask(actorToAsk, commandWithReadSubjects, "before building JsonView", scheduler, executor)
-                .thenApply(response -> filterJsonView(response, enforcer));
+                .thenApply(response -> {
+                    if (null != response) {
+                        return filterJsonView(response, enforcer);
+                    } else {
+                        log(commandWithReadSubjects).error("Response before building JsonView was null at a place " +
+                                "where it must never be null");
+                        throw GatewayInternalErrorException.newBuilder()
+                                .dittoHeaders(commandWithReadSubjects.getDittoHeaders())
+                                .build();
+                    }
+                });
     }
 
     /**
@@ -124,7 +136,13 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
                             .cause(cause)
                             .build());
             if (dre instanceof AskException) {
-                throw handleAskTimeoutForCommand(commandWithReadSubjects, throwable);
+                final Optional<DittoRuntimeException> dittoRuntimeException =
+                        handleAskTimeoutForCommand(commandWithReadSubjects, throwable);
+                if (dittoRuntimeException.isPresent()) {
+                    throw dittoRuntimeException.get();
+                } else {
+                    return null;
+                }
             } else {
                 throw dre;
             }
@@ -146,10 +164,14 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
                 return (R) response;
             } else if (response instanceof ErrorResponse) {
                 throw ((ErrorResponse<?>) response).getDittoRuntimeException();
-            } else if (response instanceof AskException) {
-                throw handleAskTimeoutForCommand(commandWithReadSubjects, (Throwable) response);
-            } else if (response instanceof AskTimeoutException) {
-                throw handleAskTimeoutForCommand(commandWithReadSubjects, (Throwable) response);
+            } else if (response instanceof AskException || response instanceof AskTimeoutException) {
+                final Optional<DittoRuntimeException> dittoRuntimeException =
+                        handleAskTimeoutForCommand(commandWithReadSubjects, (Throwable) response);
+                if (dittoRuntimeException.isPresent()) {
+                    throw dittoRuntimeException.get();
+                } else {
+                    return null;
+                }
             } else {
                 throw reportErrorOrResponse(hint, response, null);
             }
@@ -172,13 +194,14 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
     /**
      * Handles the {@link AskTimeoutException} when
      * {@link #ask(ActorRef,Signal, String, Scheduler, Executor) asking}
-     * the given {@code command} by transforming it into a individual {@link DittoRuntimeException}.
+     * the given {@code command} by transforming it into an individual {@link DittoRuntimeException}.
+     * May also respond with an empty Optional if no {@link DittoRuntimeException} should be thrown at all.
      *
      * @param command The command that was used to ask.
      * @param askTimeout the ask timeout exception.
-     * @return the ditto runtime exception.
+     * @return the DittoRuntimeException or an empty Optional if no DittoRuntimeException should be thrown.
      */
-    protected abstract DittoRuntimeException handleAskTimeoutForCommand(C command, Throwable askTimeout);
+    protected abstract Optional<DittoRuntimeException> handleAskTimeoutForCommand(C command, Throwable askTimeout);
 
     /**
      * Filters the given {@code commandResponse} by using the given {@code enforcer}.

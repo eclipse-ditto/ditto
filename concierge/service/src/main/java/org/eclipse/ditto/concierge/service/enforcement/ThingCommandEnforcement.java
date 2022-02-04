@@ -342,8 +342,17 @@ public final class ThingCommandEnforcement
             } else if (thingQueryCommand instanceof RetrieveThing && shouldRetrievePolicyWithThing(thingQueryCommand)) {
                 final var retrieveThing = (RetrieveThing) ensureTwinChannel(thingQueryCommand);
                 result = withMessageToReceiverViaAskFuture(retrieveThing, sender(), () ->
-                        retrieveThingAndPolicy(retrieveThing, policyId, enforcer).thenCompose(response ->
-                                doSmartChannelSelection(thingQueryCommand, response, startTime, enforcer))
+                        retrieveThingAndPolicy(retrieveThing, policyId, enforcer).thenCompose(response -> {
+                                    if (null != response) {
+                                        return doSmartChannelSelection(thingQueryCommand, response, startTime, enforcer);
+                                    } else {
+                                        log(retrieveThing).error("Response was null at a place where it must never " +
+                                                "be null");
+                                        throw GatewayInternalErrorException.newBuilder()
+                                                .dittoHeaders(retrieveThing.getDittoHeaders())
+                                                .build();
+                                    }
+                                })
                 );
             } else {
                 final var twinCommand = ensureTwinChannel(thingQueryCommand);
@@ -627,12 +636,12 @@ public final class ThingCommandEnforcement
      * @param askTimeout the timeout exception.
      */
     @Override
-    protected DittoRuntimeException handleAskTimeoutForCommand(final ThingCommand<?> command,
+    protected Optional<DittoRuntimeException> handleAskTimeoutForCommand(final ThingCommand<?> command,
             final Throwable askTimeout) {
         LOGGER.withCorrelationId(dittoHeaders()).error("Timeout before building JsonView", askTimeout);
-        return ThingUnavailableException.newBuilder(command.getEntityId())
+        return Optional.of(ThingUnavailableException.newBuilder(command.getEntityId())
                 .dittoHeaders(command.getDittoHeaders())
-                .build();
+                .build());
     }
 
     /**
