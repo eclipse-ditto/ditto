@@ -15,7 +15,6 @@ package org.eclipse.ditto.placeholders;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
@@ -55,12 +54,14 @@ final class PipelineFunctionSplit implements PipelineFunction {
             final ExpressionResolver expressionResolver) {
 
         final String splitValue = parseAndResolve(paramsIncludingParentheses, expressionResolver);
-        final Optional<String> optionalValue = value.toOptional();
-        if (optionalValue.isPresent() && optionalValue.get().contains(splitValue)) {
-            return Arrays.stream(optionalValue.get().split(splitValue)).map(PipelineElement::resolved);
-        } else {
-            return Stream.of(value);
-        }
+        return value.toOptionalStream()
+                .flatMap(valueToSplit -> {
+                    if (valueToSplit.contains(splitValue)) {
+                        return Arrays.stream(valueToSplit.split(splitValue)).map(PipelineElement::resolved);
+                    } else {
+                        return Stream.of(PipelineElement.resolved(valueToSplit));
+                    }
+                });
     }
 
     private String parseAndResolve(final String paramsIncludingParentheses,

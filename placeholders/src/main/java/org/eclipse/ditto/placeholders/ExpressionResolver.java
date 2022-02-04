@@ -209,15 +209,17 @@ public interface ExpressionResolver {
             resultBuilder = elements
                     .filter(element -> !element.getType().equals(PipelineElement.Type.UNRESOLVED))
                     .flatMap(element ->
-                            finalResultBuilder.stream() // append resolved placeholder
-                                    .map(string -> {
+                            finalResultBuilder.stream()
+                                    .flatMap(string -> {
                                         if (counter.get() == 0) {
                                             counter.getAndIncrement();
                                             matcher.appendReplacement(appendingBuffer.get(), "");
                                         }
-                                        return new StringBuffer(string)
-                                                .append(appendingBuffer.get())
-                                                .append(element.toOptional().orElse(""));
+                                        return element.toOptionalStream().map(streamElement ->
+                                                new StringBuffer(string)
+                                                        .append(appendingBuffer.get())
+                                                        .append(streamElement)
+                                                );
                                     })
                     ).collect(Collectors.toList());
         }

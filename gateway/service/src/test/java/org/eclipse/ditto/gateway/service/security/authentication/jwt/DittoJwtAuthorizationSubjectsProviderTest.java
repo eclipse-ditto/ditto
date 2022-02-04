@@ -114,7 +114,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
     }
 
     @Test
-    public void verifyThatFilteringOnMultipleJwtSubjectPlaceholdersWork() {
+    public void verifyThatFilteringOnJwtArrayClaimsWork() {
         final String subjectIssuer = "testIssuer";
         final String tokenAudience1 = "some-audience";
         final String tokenAudience2 = "other-audience";
@@ -134,6 +134,32 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         assertThat(authSubjects).containsExactlyInAnyOrder(
             AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience1),
             AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience3)
+        );
+    }
+
+    @Test
+    public void verifyThatFilteringOnJwtArrayClaimsContainingSplitWork() {
+        final String subjectIssuer = "testIssuer";
+        final String tokenAudience1 = "some-audience";
+        final String tokenAudience2 = "veni,vidi,vici";
+        final String tokenAudience3 = "vendetta-audience";
+
+        final JsonWebToken jsonWebToken = createToken(
+                "{\"aud\": [\"" + tokenAudience1 + "\", \"" + tokenAudience2 + "\", \"" + tokenAudience3 + "\"]}");
+
+        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfig(subjectIssuer,
+                List.of("{{ jwt:aud | fn:split(',') | fn:filter('like','v*') | fn:substring-after('v') | fn:replace('-audience','') }}"));
+
+        final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
+                .of(subjectIssuersConfig);
+
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+
+        assertThat(authSubjects).containsExactlyInAnyOrder(
+            AuthorizationSubject.newInstance(subjectIssuer + ":eni"),
+            AuthorizationSubject.newInstance(subjectIssuer + ":idi"),
+            AuthorizationSubject.newInstance(subjectIssuer + ":ici"),
+            AuthorizationSubject.newInstance(subjectIssuer + ":endetta")
         );
     }
 

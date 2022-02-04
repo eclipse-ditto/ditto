@@ -42,8 +42,8 @@ final class ImmutableArrayPipeline implements ArrayPipeline {
 
         Stream<PipelineElement> input = Stream.of(pipelineInput);
         for (final String expression : stageExpressions) {
-            input = input.flatMap(element -> combineElements(element,
-                    functionExpression.resolve(expression, element, expressionResolver)));
+            input = input.flatMap(element ->
+                    functionExpression.resolve(expression, element, expressionResolver));
         }
         return input;
     }
@@ -85,17 +85,6 @@ final class ImmutableArrayPipeline implements ArrayPipeline {
                 "functionExpression=" + functionExpression +
                 ", stageExpressions=" + stageExpressions +
                 "]";
-    }
-
-    private static Stream<PipelineElement> combineElements(final PipelineElement self,
-            final Stream<PipelineElement> other) {
-
-        return other.map(element -> self.onDeleted(() -> self)
-                .onUnresolved(() -> element)
-                .onResolved(s -> element.onDeleted(() -> element)
-                        .onUnresolved(() -> self)
-                        .onResolved(resolved -> element)
-                ));
     }
 
 }
