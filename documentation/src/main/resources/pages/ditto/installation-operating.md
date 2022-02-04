@@ -568,15 +568,15 @@ Example:
 
 ```json
 {
-    "targetActorSelection": "/system/sharding/connection",
-    "headers": {
-        "aggregate": false,
-        "is-group-topic": true
-    },
-    "piggybackCommand": {
-        "type": "connectivity.commands:createConnection",
-        ...
-    }
+  "targetActorSelection": "/system/sharding/connection",
+  "headers": {
+    "aggregate": false,
+    "is-group-topic": true
+  },
+  "piggybackCommand": {
+    "type": "connectivity.commands:createConnection",
+      ...
+  }
 }
 ```
 
@@ -599,7 +599,7 @@ Example piggyback for
   "targetActorSelection": "/system/sharding/policy",
   "headers": {
     "aggregate": false,
-    "is-group-topic": false
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "policies.commands:createPolicy",
@@ -620,7 +620,7 @@ Example piggyback for
   "targetActorSelection": "/system/sharding/policy",
   "headers": {
     "aggregate": false,
-    "is-group-topic": false
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "policies.commands:retrievePolicy",
@@ -648,7 +648,7 @@ Example piggyback for
   "targetActorSelection": "/system/sharding/thing",
   "headers": {
     "aggregate": false,
-    "is-group-topic": false
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "things.commands:createThing",
@@ -667,7 +667,7 @@ Example piggyback for
   "targetActorSelection": "/system/sharding/thing",
   "headers": {
     "aggregate": false,
-    "is-group-topic": false
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "things.commands:retrieveThing",
