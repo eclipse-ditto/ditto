@@ -62,6 +62,7 @@ final class MockSendProducerFactory implements SendProducerFactory {
 
     public static MockSendProducerFactory getInstance(
             final String targetTopic, final Queue<ProducerRecord<String, ByteBuffer>> published) {
+
         return new MockSendProducerFactory(targetTopic, published, false, false, null, false);
     }
 
@@ -78,6 +79,7 @@ final class MockSendProducerFactory implements SendProducerFactory {
      */
     public static MockSendProducerFactory getBlockingInstance(final String targetTopic,
             final Queue<ProducerRecord<String, ByteBuffer>> published) {
+
         return new MockSendProducerFactory(targetTopic, published, true, false, null, false);
     }
 
@@ -112,10 +114,12 @@ final class MockSendProducerFactory implements SendProducerFactory {
                         final ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>> envelope =
                                 invocationOnMock.getArgument(0);
                         final RecordMetadata dummyMetadata =
-                                new RecordMetadata(new TopicPartition(targetTopic, 5), 0L, 0L, 0L, 0L, 0, 0);
+                                new RecordMetadata(new TopicPartition(targetTopic, 5),
+                                        0L, 0L, 0L, 0L, 0, 0);
                         final ProducerMessage.Message<String, ByteBuffer, CompletableFuture<RecordMetadata>> message =
                                 (ProducerMessage.Message<String, ByteBuffer, CompletableFuture<RecordMetadata>>) envelope;
                         published.offer(message.record());
+
                         return CompletableFuture.completedStage(ProducerResultFactory.result(dummyMetadata, message));
                     });
         } else if (!shouldThrowException){
@@ -123,12 +127,15 @@ final class MockSendProducerFactory implements SendProducerFactory {
                     .thenReturn(CompletableFuture.failedStage(exception));
         } else {
             if (counter.get() == 0) {
-                when(producer.sendEnvelope(any(ProducerMessage.Envelope.class))).thenThrow(exception);
+                when(producer.sendEnvelope(any(ProducerMessage.Envelope.class)))
+                        .thenThrow(exception);
                 counter.getAndIncrement();
             } else {
-                when(producer.sendEnvelope(any(ProducerMessage.Envelope.class))).thenReturn(CompletableFuture.failedStage(exception));
+                when(producer.sendEnvelope(any(ProducerMessage.Envelope.class)))
+                        .thenReturn(CompletableFuture.failedStage(exception));
             }
         }
+
         return producer;
     }
 }

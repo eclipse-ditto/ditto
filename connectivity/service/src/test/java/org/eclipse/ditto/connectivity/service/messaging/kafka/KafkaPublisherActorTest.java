@@ -92,6 +92,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
             .getConnectionConfig()
             .getKafkaConfig()
             .getProducerConfig();
+
     private MockSendProducerFactory mockSendProducerFactory;
 
     @Override
@@ -165,7 +166,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(acks.getSize()).isEqualTo(1);
         final Acknowledgement ack = acks.stream().findAny().orElseThrow();
         assertThat(ack.getHttpStatus()).isEqualTo(HttpStatus.NO_CONTENT);
-        assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
+        assertThat(ack.getLabel().toString()).hasToString("please-verify");
         assertThat(ack.getEntity()).isEmpty();
     }
 
@@ -215,6 +216,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                 ack.getEntity().map(JsonValue::asObject).map(o -> MessageSendingFailedException.fromJson(o,
                         ack.getDittoHeaders())).orElseThrow();
         assertThat(messageSendingFailedException.getMessage()).contains("There are too many uncommitted messages");
+
         return true;
     }
 
@@ -293,7 +295,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                         .first()
                         .satisfies(ack -> {
                             assertThat(ack.getHttpStatus()).isEqualTo(HttpStatus.OK);
-                            assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
+                            assertThat(ack.getLabel().toString()).hasToString("please-verify");
                             assertThat(ack.getEntity()).contains(JsonObject.newBuilder()
                                     .set("timestamp", 0)
                                     .set("serializedKeySize", 0)
