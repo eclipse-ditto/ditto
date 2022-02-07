@@ -136,6 +136,12 @@ public final class Mqtt3ValidatorTest extends AbstractMqttValidatorTest {
         Mqtt3Validator.newInstance(mqttConfig)
                 .validate(connectionWithTarget("ditto/{{header:x}}"), DittoHeaders.empty(), actorSystem,
                         connectivityConfig);
+        Mqtt3Validator.newInstance(mqttConfig)
+                .validate(connectionWithTarget("device/{{entity:id}}"), DittoHeaders.empty(), actorSystem,
+                        connectivityConfig);
+        Mqtt3Validator.newInstance(mqttConfig)
+                .validate(connectionWithTarget("connection/{{connection:id}}"), DittoHeaders.empty(), actorSystem,
+                        connectivityConfig);
     }
 
     @Test

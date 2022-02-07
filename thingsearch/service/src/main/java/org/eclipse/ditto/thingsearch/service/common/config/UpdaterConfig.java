@@ -55,6 +55,13 @@ public interface UpdaterConfig {
     double getForceUpdateProbability();
 
     /**
+     * Get whether force-update-after-start is enabled.
+     *
+     * @return whether a force update is executed after thing updater starts.
+     */
+    boolean isForceUpdateAfterStartEnabled();
+
+    /**
      * Get the timeout after when to explicitly do a "force update" after a ThingUpdater was started.
      * This is needed in order to guarantee that during a rolling update (when shard regions are moved to another
      * cluster node) the thing will eventually be consistent again (within the configured timeout), even if pending
@@ -121,6 +128,11 @@ public interface UpdaterConfig {
          * Probability to do a replacement update regardless whether incremental update is possible.
          */
         FORCE_UPDATE_PROBABILITY("force-update-probability", 0.00),
+
+        /**
+         * Whether force-update-after-start is enabled.
+         */
+        FORCE_UPDATE_AFTER_START_ENABLED("force-update-after-start-enabled", true),
 
         /**
          * The timeout after when to explicitly do a "force update" after a ThingUpdater was started.

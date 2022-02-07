@@ -14,7 +14,6 @@ package org.eclipse.ditto.thingsearch.service.updater.actors;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.api.Assertions;
 import org.bson.BsonArray;
@@ -50,6 +49,7 @@ import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Unit test for {@link ThingUpdater}.
@@ -208,7 +208,7 @@ public final class ThingUpdaterTest {
     }
 
     @Test
-    public void forceUpdateAfterInitialStart() throws InterruptedException {
+    public void forceUpdateAfterInitialStart() {
         new TestKit(actorSystem) {{
             final PolicyId policyId = PolicyId.of(THING_ID);
             final Duration forceUpdateAfterStartTimeout = Duration.ofSeconds(1);
@@ -230,24 +230,19 @@ public final class ThingUpdaterTest {
             // GIVEN: updater is recovered with a write model
             underTest.tell(writeModel, ActorRef.noSender());
 
-            TimeUnit.SECONDS.sleep(forceUpdateAfterStartTimeout.multipliedBy(2).toSeconds());
+            // WHEN: force-update-after-start-timeout passes
+            final var waitDuration =
+                    FiniteDuration.apply(forceUpdateAfterStartTimeout.multipliedBy(10).toMillis(), "ms");
 
-            final var document2 = new BsonDocument()
-                    .append("_revision", new BsonInt64(1235))
-                    .append("d", new BsonArray())
-                    .append("s", new BsonDocument().append("Lorem ipsum", new BsonString(
-                            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, " +
-                                    "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
-                    )));
-            final var writeModel2 = ThingWriteModel.of(Metadata.of(THING_ID, 1235L, policyId, 1L, null), document2);
-
+            // THEN: an update is triggered
+            changeQueueTestProbe.expectMsgClass(waitDuration, Metadata.class);
 
             // WHEN: updater is requested to compute incremental update against the same write model
-            underTest.tell(writeModel2, getRef());
+            underTest.tell(writeModel, getRef());
 
             // THEN: expect full forced update
             final ReplaceOneModel<?> replaceOneModel = expectMsgClass(ReplaceOneModel.class);
-            Assertions.assertThat(replaceOneModel.getReplacement()).isEqualTo(document2);
+            Assertions.assertThat(replaceOneModel.getReplacement()).isEqualTo(document);
         }};
     }
 

@@ -42,6 +42,10 @@ public enum UpdateReason {
     /**
      * A search update failed and the update is retried.
      */
-    RETRY;
+    RETRY,
 
+    /**
+     * A force update is executed after actor startup to ensure consistency against the database.
+     */
+    FORCE_UPDATE_AFTER_START
 }

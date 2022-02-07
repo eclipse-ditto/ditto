@@ -12,17 +12,12 @@
  */
 package org.eclipse.ditto.thingsearch.service.updater.actors;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Deque;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
 
-import org.eclipse.ditto.base.model.acks.AcknowledgementRequest;
-import org.eclipse.ditto.base.model.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
-import org.eclipse.ditto.base.model.signals.acks.Acknowledgement;
 import org.eclipse.ditto.internal.models.streaming.LowerBound;
 import org.eclipse.ditto.internal.utils.akka.controlflow.ResumeSource;
 import org.eclipse.ditto.internal.utils.akka.streaming.TimestampPersistence;
@@ -48,7 +43,6 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
@@ -63,13 +57,7 @@ public final class BackgroundSyncActor
      */
     public static final String ACTOR_NAME = "backgroundSync";
 
-    static final DittoHeaders SEARCH_PERSISTED_HEADERS = DittoHeaders.newBuilder()
-            .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.SEARCH_PERSISTED))
-            .build();
-
     private static final ThingId EMPTY_THING_ID = ThingId.of(LowerBound.emptyEntityId(ThingConstants.ENTITY_TYPE));
-
-    private static final Duration UPDATER_TIMEOUT = Duration.ofMinutes(2);
 
     private final ThingsMetadataSource thingsMetadataSource;
     private final ThingsSearchPersistence thingsSearchPersistence;
@@ -79,7 +67,6 @@ public final class BackgroundSyncActor
 
     private final Counter streamedSnapshots = DittoMetrics.counter("search_streamed_snapshots");
     private final Counter scannedIndexDocs = DittoMetrics.counter("search_scanned_index_docs");
-    private final Counter inconsistentThings = DittoMetrics.counter("search_inconsistent_things");
 
     private ThingId progressPersisted = EMPTY_THING_ID;
     private ThingId progressIndexed = EMPTY_THING_ID;
@@ -145,8 +132,6 @@ public final class BackgroundSyncActor
     @Override
     protected void preEnhanceStreamingBehavior(final ReceiveBuilder streamingReceiveBuilder) {
         streamingReceiveBuilder.match(ProgressReport.class, this::setProgress)
-                .match(AckedMetadata.class, this::ackedMetadata)
-                .match(FailedMetadata.class, this::failedMetadata)
                 .matchEquals(Control.BOOKMARK_THING_ID, this::bookmarkThingId);
     }
 
@@ -194,31 +179,6 @@ public final class BackgroundSyncActor
         return level;
     }
 
-    private void ackedMetadata(final AckedMetadata ackedMetadata) {
-        final var ack = ackedMetadata.acknowledgement;
-        final var metadata = ackedMetadata.metadata;
-        log.debug("Got acked metadata. ack=<{}> metadata=<{}>", ack, metadata);
-        if (!ack.isWeak()) {
-            inconsistentThings.increment();
-            if (isInconsistentAgain(metadata)) {
-                getSelf().tell(SyncEvent.inconsistencyAgain(metadata), ActorRef.noSender());
-            } else {
-                getSelf().tell(SyncEvent.inconsistency(metadata), ActorRef.noSender());
-            }
-        }
-        if (!ack.isSuccess()) {
-            getSelf().tell(SyncEvent.updateFailed(metadata), ActorRef.noSender());
-        }
-    }
-
-    private void failedMetadata(final FailedMetadata failedMetadata) {
-        final var error = failedMetadata.error;
-        final var metadata = failedMetadata.metadata;
-        log.error(error, "Got failed metadata=<{}>", metadata);
-        inconsistentThings.increment();
-        getSelf().tell(SyncEvent.updateFailed(metadata), ActorRef.noSender());
-    }
-
     private Source<Metadata, NotUsed> streamMetadataFromLowerBound(final ThingId lowerBound) {
         final Source<Metadata, NotUsed> persistedMetadata = getPersistedMetadataSourceWithProgressReporting(lowerBound)
                 .wireTap(x -> streamedSnapshots.increment());
@@ -227,7 +187,7 @@ public final class BackgroundSyncActor
         return backgroundSyncStream.filterForInconsistencies(persistedMetadata, indexedMetadata);
     }
 
-    private void setProgress(ProgressReport progress) {
+    private void setProgress(final ProgressReport progress) {
         if (progress.persisted) {
             progressPersisted = progress.thingId;
         } else {
@@ -254,32 +214,8 @@ public final class BackgroundSyncActor
         final var thingId = metadata.getThingId();
         final var command =
                 UpdateThing.of(thingId, metadata.shouldInvalidateThing(), metadata.shouldInvalidatePolicy(),
-                        UpdateReason.BACKGROUND_SYNC, SEARCH_PERSISTED_HEADERS);
-        final var askFuture = Patterns.ask(thingsUpdater, command, UPDATER_TIMEOUT)
-                .handle((result, error) -> {
-                    if (result instanceof Acknowledgement) {
-                        return new AckedMetadata((Acknowledgement) result, metadata);
-                    } else {
-                        final var throwable = Objects.requireNonNullElse(error,
-                                new ClassCastException("Expect Acknowledgement, got: " + result));
-                        return new FailedMetadata(throwable, metadata);
-                    }
-                });
-
-        Patterns.pipe(askFuture, getContext().getDispatcher()).to(getSelf());
-    }
-
-    private boolean isInconsistentAgain(final Metadata metadata) {
-        // check if the previous events already contain a SyncEvent for the same thing with the same revision
-        return this.getEventStream()
-                .map(Pair::second)
-                // only consider events in the previous run
-                .dropWhile(event -> !(event instanceof StreamTerminated))
-                .takeWhile(event -> !(event instanceof WokeUp))
-                .filter(event -> SyncEvent.class.isAssignableFrom(event.getClass()))
-                .map(event -> (SyncEvent) event)
-                .anyMatch(event -> metadata.getThingId().equals(event.thingId) &&
-                        metadata.getThingRevision() == event.thingRevision);
+                        UpdateReason.BACKGROUND_SYNC, DittoHeaders.empty());
+        thingsUpdater.tell(command, ActorRef.noSender());
     }
 
     private Source<ThingId, NotUsed> getLowerBoundSource() {
@@ -328,53 +264,6 @@ public final class BackgroundSyncActor
         }
     }
 
-    private static final class SyncEvent implements Event {
-
-        private final String description;
-        private final ThingId thingId;
-        private final long thingRevision;
-        private final StatusDetailMessage.Level level;
-
-        private SyncEvent(final String description, final ThingId thingId, final long thingRevision,
-                final StatusDetailMessage.Level level) {
-            this.description = description;
-            this.thingId = thingId;
-            this.thingRevision = thingRevision;
-            this.level = level;
-        }
-
-        private static Event inconsistency(final Metadata metadata) {
-            return new SyncEvent("Inconsistent: " + metadata, metadata.getThingId(), metadata.getThingRevision(),
-                    StatusDetailMessage.Level.DEFAULT);
-        }
-
-        private static Event inconsistencyAgain(final Metadata metadata) {
-            return new SyncEvent("Inconsistent again: " + metadata, metadata.getThingId(), metadata.getThingRevision(),
-                    StatusDetailMessage.Level.WARN);
-        }
-
-        private static Event updateFailed(final Metadata metadata) {
-            return new SyncEvent("Update failed: " + metadata, metadata.getThingId(), metadata.getThingRevision(),
-                    StatusDetailMessage.Level.WARN);
-        }
-
-        @Override
-        public String name() {
-            return description;
-        }
-
-        @Override
-        public String toString() {
-            return description;
-        }
-
-        @Override
-        public StatusDetailMessage.Level level() {
-            return level;
-        }
-
-    }
-
     private static final class ProgressReport {
 
         private final ThingId thingId;
@@ -383,28 +272,6 @@ public final class BackgroundSyncActor
         private ProgressReport(final ThingId thingId, final boolean persisted) {
             this.thingId = thingId;
             this.persisted = persisted;
-        }
-    }
-
-    private static final class AckedMetadata {
-
-        private final Acknowledgement acknowledgement;
-        private final Metadata metadata;
-
-        private AckedMetadata(final Acknowledgement acknowledgement, final Metadata metadata) {
-            this.acknowledgement = acknowledgement;
-            this.metadata = metadata;
-        }
-    }
-
-    private static final class FailedMetadata {
-
-        private final Throwable error;
-        private final Metadata metadata;
-
-        private FailedMetadata(final Throwable error, final Metadata metadata) {
-            this.error = error;
-            this.metadata = metadata;
         }
     }
 

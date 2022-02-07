@@ -110,6 +110,8 @@ public final class HttpPushValidatorTest {
                 connectivityConfig);
         underTest.validate(getConnectionWithTarget("POST:"), emptyDittoHeaders, actorSystem, connectivityConfig);
         underTest.validate(getConnectionWithTarget("GET:foo"), emptyDittoHeaders, actorSystem, connectivityConfig);
+        underTest.validate(getConnectionWithTarget("POST:connection/{{connection:id}}"), emptyDittoHeaders, actorSystem,
+                connectivityConfig);
     }
 
     @Test

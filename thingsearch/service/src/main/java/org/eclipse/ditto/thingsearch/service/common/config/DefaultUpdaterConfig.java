@@ -36,6 +36,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     private final Duration shardingStatePollInterval;
     private final boolean eventProcessingActive;
     private final double forceUpdateProbability;
+    private final boolean forceUpdateAfterStartEnabled;
     private final Duration forceUpdateAfterStartTimeout;
     private final double forceUpdateAfterStartRandomFactor;
     private final BackgroundSyncConfig backgroundSyncConfig;
@@ -50,8 +51,10 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 updaterScopedConfig.getBoolean(UpdaterConfigValue.EVENT_PROCESSING_ACTIVE.getConfigPath());
         forceUpdateProbability =
                 updaterScopedConfig.getDouble(UpdaterConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath());
+        forceUpdateAfterStartEnabled =
+                updaterScopedConfig.getBoolean(UpdaterConfigValue.FORCE_UPDATE_AFTER_START_ENABLED.getConfigPath());
         forceUpdateAfterStartTimeout = updaterScopedConfig.getNonNegativeDurationOrThrow(
-                        UpdaterConfigValue.FORCE_UPDATE_AFTER_START_TIMEOUT);
+                UpdaterConfigValue.FORCE_UPDATE_AFTER_START_TIMEOUT);
         forceUpdateAfterStartRandomFactor = updaterScopedConfig.getDouble(
                 UpdaterConfigValue.FORCE_UPDATE_AFTER_START_RANDOM_FACTOR.getConfigPath());
         backgroundSyncConfig = DefaultBackgroundSyncConfig.fromUpdaterConfig(updaterScopedConfig);
@@ -92,6 +95,11 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     }
 
     @Override
+    public boolean isForceUpdateAfterStartEnabled() {
+        return forceUpdateAfterStartEnabled;
+    }
+
+    @Override
     public Duration getForceUpdateAfterStartTimeout() {
         return forceUpdateAfterStartTimeout;
     }
@@ -129,6 +137,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 Objects.equals(maxIdleTime, that.maxIdleTime) &&
                 Objects.equals(shardingStatePollInterval, that.shardingStatePollInterval) &&
                 Double.compare(forceUpdateProbability, that.forceUpdateProbability) == 0 &&
+                forceUpdateAfterStartEnabled == that.forceUpdateAfterStartEnabled &&
                 Objects.equals(forceUpdateAfterStartTimeout, that.forceUpdateAfterStartTimeout) &&
                 Double.compare(forceUpdateAfterStartRandomFactor, that.forceUpdateAfterStartRandomFactor) == 0 &&
                 Objects.equals(backgroundSyncConfig, that.backgroundSyncConfig) &&
@@ -139,8 +148,8 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     @Override
     public int hashCode() {
         return Objects.hash(maxIdleTime, shardingStatePollInterval, eventProcessingActive, forceUpdateProbability,
-                forceUpdateAfterStartTimeout, forceUpdateAfterStartRandomFactor, backgroundSyncConfig, streamConfig,
-                updaterPersistenceConfig);
+                forceUpdateAfterStartEnabled, forceUpdateAfterStartTimeout, forceUpdateAfterStartRandomFactor,
+                backgroundSyncConfig, streamConfig, updaterPersistenceConfig);
     }
 
     @Override
@@ -150,6 +159,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 ", shardingStatePollInterval=" + shardingStatePollInterval +
                 ", eventProcessingActive=" + eventProcessingActive +
                 ", forceUpdateProbability=" + forceUpdateProbability +
+                ", forceUpdateAfterStartEnabled=" + forceUpdateAfterStartEnabled +
                 ", forceUpdateAfterStartTimeout=" + forceUpdateAfterStartTimeout +
                 ", forceUpdateAfterStartRandomFactor=" + forceUpdateAfterStartRandomFactor +
                 ", backgroundSyncConfig=" + backgroundSyncConfig +

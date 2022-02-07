@@ -194,7 +194,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                 if (dittoRuntimeException != null) {
                     if (isConsideredSuccess(dittoRuntimeException)) {
                         ackTimer.tag(TracingTags.ACK_SUCCESS, true).stop();
-                        ackCounter.tag(TracingTags.ACK_SUCCESS, true).decrement();
+                        ackCounter.decrement();
                         acknowledgeableMessage.settle();
                     } else {
                         final var shouldRedeliver = requiresRedelivery(dittoRuntimeException.getHttpStatus());

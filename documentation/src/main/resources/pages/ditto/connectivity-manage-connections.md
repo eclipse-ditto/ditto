@@ -41,7 +41,8 @@ Create a new connection by sending the following DevOps command.
 {
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "connectivity.commands:createConnection",
@@ -63,7 +64,8 @@ Modify an existing connection by sending the following DevOps command.
 {
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "connectivity.commands:modifyConnection",
@@ -83,7 +85,8 @@ The only parameter necessary for retrieving a connection is the `connectionId`.
 {
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "connectivity.commands:retrieveConnection",
@@ -101,7 +104,8 @@ The only parameter necessary for opening a connection is the `connectionId`. Whe
 {
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "connectivity.commands:openConnection",
@@ -119,7 +123,8 @@ The only parameter necessary for closing a connection is the `connectionId`. Whe
 {
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
-    "aggregate": false
+    "aggregate": false, 
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "connectivity.commands:closeConnection",
@@ -136,7 +141,8 @@ The only parameter necessary for deleting a connection is the `connectionId`.
 {
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "connectivity.commands:deleteConnection",
@@ -170,7 +176,8 @@ command, it requires a full connection configuration in the piggyback command.
 {
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
-    "aggregate": false
+    "aggregate": false, 
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "connectivity.commands:testConnection",
@@ -191,7 +198,8 @@ This command returns the ids of all connections.
 {
   "targetActorSelection": "/user/connectivityRoot/connectionIdsRetrieval/singleton",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "connectivity.commands:retrieveAllConnectionIds"
@@ -208,7 +216,8 @@ successfully established. The only parameter necessary for retrieving the connec
 {
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-group-topic": true     
   },
   "piggybackCommand": {
     "type": "connectivity.commands:retrieveConnectionStatus",
@@ -231,7 +240,8 @@ The only parameter necessary for retrieving the connection metrics is the `conne
 {
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
-    "aggregate": false
+    "aggregate": false, 
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "connectivity.commands:retrieveConnectionMetrics",
@@ -249,7 +259,8 @@ retrieving the connection metrics is the `connectionId`.
 {
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-group-topic": true 
   },
   "piggybackCommand": {
     "type": "connectivity.commands:resetConnectionMetrics",
@@ -275,7 +286,8 @@ to log possible errors on connection establishing." %}
 {
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-group-topic": true     
   },
   "piggybackCommand": {
     "type": "connectivity.commands:enableConnectionLogs",
@@ -300,7 +312,8 @@ service configuration.
 {
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-group-topic": true 
   },
   "piggybackCommand": {
     "type": "connectivity.commands:retrieveConnectionLogs",
@@ -317,7 +330,8 @@ Clears all currently stored connection logs.
 {
   "targetActorSelection": "/system/sharding/connection",
   "headers": {
-    "aggregate": false
+    "aggregate": false,
+    "is-group-topic": true 
   },
   "piggybackCommand": {
     "type": "connectivity.commands:resetConnectionLogs",

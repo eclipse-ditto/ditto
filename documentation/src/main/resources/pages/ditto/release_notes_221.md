@@ -16,7 +16,7 @@ Compared to the latest release [2.2.0](release_notes_220.html), the following bu
 ### Bugfixes
 
 This is a complete list of the
-[merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A2.2.0), including the fixed bugs.
+[merged pull requests](https://github.com/eclipse/ditto/pulls?q=is%3Apr+milestone%3A2.2.1), including the fixed bugs.
 
 #### [Update logback to 1.2.8 due to "possibility of vulnerability"](https://github.com/eclipse/ditto/pull/1253)
 
