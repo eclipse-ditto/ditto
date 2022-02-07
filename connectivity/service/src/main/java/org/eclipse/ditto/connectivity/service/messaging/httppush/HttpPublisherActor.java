@@ -30,7 +30,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -128,8 +127,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private static final String TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION = "This can have the following reasons:\n" +
             "a) The HTTP endpoint does not consume the messages fast enough.\n" +
             "b) The client count and/or the parallelism of this connection is not configured high enough.";
-
-    static final String OMIT_REQUEST_BODY_CONFIG_KEY = "omitRequestBody";
 
     private final HttpPushFactory factory;
 
@@ -702,20 +699,11 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return ConnectionFailure.of(getSelf(), error, "HttpPublisherActor stream terminated");
     }
 
-    private List<HttpMethod> parseOmitBodyMethods(final Connection connection,
+    private static List<HttpMethod> parseOmitBodyMethods(final Connection connection,
             final HttpPushConfig httpPushConfig) {
-        return Optional.of(connection.getSpecificConfig())
-                .map(specificConfig -> specificConfig.get(OMIT_REQUEST_BODY_CONFIG_KEY))
-                .map(methods -> {
-                    if (methods.isEmpty()) {
-                        return Stream.<String>empty();
-                    } else {
-                        return Arrays.stream(methods.split(","));
-                    }
-                })
-                .map(s -> s.flatMap(m -> HttpMethods.lookup(m).stream()).collect(Collectors.toList()))
-                .orElse(httpPushConfig.getOmitRequestBodyMethods()
-                        .stream().flatMap(m -> HttpMethods.lookup(m).stream()).collect(Collectors.toList()));
+        final var specificConfig = HttpPushSpecificConfig.fromConnection(connection, httpPushConfig);
+        return specificConfig.omitRequestBody().stream()
+                .map(s -> HttpMethods.lookup(s).orElse(null)).collect(Collectors.toList());
     }
 
     private enum ReservedHeaders {

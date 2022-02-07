@@ -14,6 +14,7 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -23,6 +24,7 @@ import org.eclipse.ditto.connectivity.model.Connection;
 import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
 
 /**
@@ -32,6 +34,10 @@ import com.typesafe.config.ConfigFactory;
 public final class HttpPushSpecificConfig {
 
     static final String IDLE_TIMEOUT = "idleTimeout";
+
+    static final String PARALLELISM = "parallelism";
+
+    static final String OMIT_REQUEST_BODY = "omitRequestBody";
 
     private final Config specificConfig;
 
@@ -58,6 +64,8 @@ public final class HttpPushSpecificConfig {
     private static Map<String, Object> toDefaultConfig(final HttpPushConfig httpConfig) {
         final Map<String, Object> defaultMap = new HashMap<>();
         defaultMap.put(IDLE_TIMEOUT, httpConfig.getRequestTimeout());
+        defaultMap.put(PARALLELISM, 1);
+        defaultMap.put(OMIT_REQUEST_BODY, httpConfig.getOmitRequestBodyMethods());
         return defaultMap;
     }
 
@@ -66,6 +74,24 @@ public final class HttpPushSpecificConfig {
      */
     public Duration idleTimeout() {
         return specificConfig.getDuration(IDLE_TIMEOUT);
+    }
+
+    /**
+     * @return the parallelism applied to HTTP publishing.
+     */
+    public Integer parallelism() {
+        return specificConfig.getInt(PARALLELISM);
+    }
+
+    /**
+     * @return for which HTTP methods request bodies should be omitted.
+     */
+    public List<String> omitRequestBody() {
+        try {
+            return specificConfig.getStringList(OMIT_REQUEST_BODY);
+        } catch (final ConfigException.WrongType e) {
+            return List.of(specificConfig.getString(OMIT_REQUEST_BODY).split(","));
+        }
     }
 
     @Override

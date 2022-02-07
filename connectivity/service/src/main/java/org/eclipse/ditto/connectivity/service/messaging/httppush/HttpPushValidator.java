@@ -16,7 +16,6 @@ import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -87,8 +86,6 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         validateSourceConfigs(connection, dittoHeaders);
         validateTargetConfigs(connection, dittoHeaders);
         validatePayloadMappings(connection, actorSystem, connectivityConfig, dittoHeaders);
-        validateParallelism(connection.getSpecificConfig(), dittoHeaders);
-        validateOmitBodyMethods(connection.getSpecificConfig(), dittoHeaders);
         validateCredentials(connection, dittoHeaders);
         validateSpecificConfig(connection, dittoHeaders);
     }
@@ -144,39 +141,6 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         }
     }
 
-    private static void validateParallelism(final Map<String, String> specificConfig, final DittoHeaders dittoHeaders) {
-        final String parallelismString = specificConfig.get(HttpPushFactory.PARALLELISM_JSON_KEY);
-        if (parallelismString != null) {
-            try {
-                final int parallelism = Integer.parseInt(parallelismString);
-                if (parallelism <= 0) {
-                    throw parallelismValidationFailed(parallelismString, dittoHeaders);
-                }
-            } catch (final NumberFormatException e) {
-                throw parallelismValidationFailed(parallelismString, dittoHeaders);
-            }
-        }
-    }
-
-    private static void validateOmitBodyMethods(final Map<String, String> specificConfig,
-            final DittoHeaders dittoHeaders) {
-
-        final String omitBody = specificConfig.get(HttpPublisherActor.OMIT_REQUEST_BODY_CONFIG_KEY);
-        if (omitBody != null && !omitBody.isEmpty()) {
-            final String[] methodsArray = omitBody.split(",");
-            for (final String method : methodsArray) {
-                if (HttpMethods.lookup(method).isEmpty()) {
-                    final String errorMessage = String.format("The configured value '%s' of '%s' is invalid. " +
-                                    "It contains an invalid HTTP method: %s",
-                            omitBody, HttpPublisherActor.OMIT_REQUEST_BODY_CONFIG_KEY, method);
-                    throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
-                            .dittoHeaders(dittoHeaders)
-                            .build();
-                }
-            }
-        }
-    }
-
     private void validateCredentials(final Connection connection, final DittoHeaders dittoHeaders) {
         connection.getCredentials().ifPresent(credentials -> {
             if (credentials instanceof OAuthClientCredentials) {
@@ -196,7 +160,12 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
     private void validateSpecificConfig(final Connection connection, final DittoHeaders dittoHeaders) {
         final HttpPushSpecificConfig
                 httpPushSpecificConfig = HttpPushSpecificConfig.fromConnection(connection, httpPushConfig);
-        final var idleTimeout = httpPushSpecificConfig.idleTimeout();
+        validateIdleTimeout(httpPushSpecificConfig.idleTimeout(), dittoHeaders);
+        validateParallelism(httpPushSpecificConfig.parallelism(), dittoHeaders);
+        validateOmitBodyMethods(httpPushSpecificConfig.omitRequestBody(), dittoHeaders);
+    }
+
+    private static void validateIdleTimeout(final Duration idleTimeout, final DittoHeaders dittoHeaders) {
         if (idleTimeout.isNegative() || idleTimeout.compareTo(MAX_IDLE_TIMEOUT) > 0) {
             throw ConnectionConfigurationInvalidException
                     .newBuilder("Idle timeout '" + idleTimeout.toSeconds() +
@@ -207,13 +176,40 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
         }
     }
 
-    private static ConnectionConfigurationInvalidException parallelismValidationFailed(final String parallelismString,
+    private static void validateParallelism(final int parallelism, final DittoHeaders dittoHeaders) {
+        try {
+            if (parallelism <= 0) {
+                throw parallelismValidationFailed(parallelism, dittoHeaders);
+            }
+        } catch (final NumberFormatException e) {
+            throw parallelismValidationFailed(parallelism, dittoHeaders);
+        }
+    }
+
+    private static void validateOmitBodyMethods(final List<String> omitBodyMethods,
+            final DittoHeaders dittoHeaders) {
+
+        if (!omitBodyMethods.isEmpty()) {
+            for (final String method : omitBodyMethods) {
+                if (!method.equals("") && HttpMethods.lookup(method).isEmpty()) {
+                    final String errorMessage = String.format("The configured value '%s' of '%s' is invalid. " +
+                                    "It contains an invalid HTTP method: %s",
+                            omitBodyMethods, HttpPushSpecificConfig.OMIT_REQUEST_BODY, method);
+                    throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
+                            .dittoHeaders(dittoHeaders)
+                            .build();
+                }
+            }
+        }
+    }
+
+    private static ConnectionConfigurationInvalidException parallelismValidationFailed(final int parallelism,
             final DittoHeaders headers) {
 
         final String errorMessage = String.format("The configured value '%s' of '%s' is invalid. " +
                         "It must be a positive integer.",
-                parallelismString,
-                HttpPushFactory.PARALLELISM_JSON_KEY);
+                parallelism,
+                HttpPushSpecificConfig.PARALLELISM);
         return ConnectionConfigurationInvalidException.newBuilder(errorMessage)
                 .dittoHeaders(headers)
                 .build();

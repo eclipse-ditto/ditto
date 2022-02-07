@@ -15,7 +15,6 @@ package org.eclipse.ditto.connectivity.service.messaging.httppush;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
@@ -93,8 +92,10 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
 
     static HttpPushFactory of(final Connection connection, final HttpPushConfig httpPushConfig,
             final ConnectionLogger connectionLogger, final Supplier<SshTunnelState> tunnelConfigSupplier) {
+
         final Uri baseUri = Uri.create(connection.getUri());
-        final int parallelism = parseParallelism(connection.getSpecificConfig());
+        final var httpPushSpecificConfig = HttpPushSpecificConfig.fromConnection(connection, httpPushConfig);
+        final int parallelism = parseParallelism(httpPushSpecificConfig);
 
         final HttpsConnectionContext httpsConnectionContext;
         if (HttpPushValidator.isSecureScheme(baseUri.getScheme())) {
@@ -256,11 +257,8 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
                         .withParserSettings(parserSettings.withHeaderValueCacheLimits(disambiguator)));
     }
 
-    static int parseParallelism(final Map<String, String> specificConfig) {
-        return Optional.ofNullable(specificConfig.get(HttpPushFactory.PARALLELISM_JSON_KEY))
-                .map(Integer::valueOf)
-                .map(DefaultHttpPushFactory::determineNextPowerOfTwo)
-                .orElse(1);
+    static int parseParallelism(final HttpPushSpecificConfig specificConfig) {
+        return determineNextPowerOfTwo(specificConfig.parallelism());
     }
 
     private static int determineNextPowerOfTwo(final int parallelism) {

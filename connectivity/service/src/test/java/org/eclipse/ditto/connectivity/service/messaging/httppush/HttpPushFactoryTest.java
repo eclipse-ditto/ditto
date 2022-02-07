@@ -386,6 +386,7 @@ public final class HttpPushFactoryTest {
                 ConnectivityStatus.OPEN,
                 "http://127.0.0.1:" + binding.localAddress().getPort())
                 .targets(singletonList(AbstractBaseClientActorTest.HTTP_TARGET))
+                .specificConfig(Map.of())
                 .build();
     }
 
