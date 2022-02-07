@@ -20,6 +20,7 @@ import java.nio.ByteBuffer;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nullable;
 
@@ -39,26 +40,38 @@ final class MockSendProducerFactory implements SendProducerFactory {
     private final String targetTopic;
     private final Queue<ProducerRecord<String, ByteBuffer>> published;
     @Nullable private final RuntimeException exception;
+    final boolean shouldThrowException;
     private final boolean blocking;
     private final AtomicBoolean wait = new AtomicBoolean();
+    private final AtomicInteger counter = new AtomicInteger();
 
-    private MockSendProducerFactory(final String targetTopic, final Queue<ProducerRecord<String, ByteBuffer>> published,
-            final boolean blocking, final boolean slow, @Nullable final RuntimeException exception) {
+    private MockSendProducerFactory(final String targetTopic,
+            final Queue<ProducerRecord<String, ByteBuffer>> published,
+            final boolean blocking,
+            final boolean slow,
+            @Nullable final RuntimeException exception,
+            final boolean shouldThrowException) {
+
         this.targetTopic = targetTopic;
         this.published = published;
         this.blocking = blocking;
         wait.set(slow);
         this.exception = exception;
+        this.shouldThrowException = shouldThrowException;
     }
 
     public static MockSendProducerFactory getInstance(
             final String targetTopic, final Queue<ProducerRecord<String, ByteBuffer>> published) {
-        return new MockSendProducerFactory(targetTopic, published, false, false, null);
+
+        return new MockSendProducerFactory(targetTopic, published, false, false, null, false);
     }
 
     public static MockSendProducerFactory getInstance(final String targetTopic,
-            final Queue<ProducerRecord<String, ByteBuffer>> published, final RuntimeException exception) {
-        return new MockSendProducerFactory(targetTopic, published, false, false, exception);
+            final Queue<ProducerRecord<String, ByteBuffer>> published,
+            final RuntimeException exception,
+            final boolean shouldThrowException) {
+
+        return new MockSendProducerFactory(targetTopic, published, false, false, exception, shouldThrowException);
     }
 
     /**
@@ -66,7 +79,8 @@ final class MockSendProducerFactory implements SendProducerFactory {
      */
     public static MockSendProducerFactory getBlockingInstance(final String targetTopic,
             final Queue<ProducerRecord<String, ByteBuffer>> published) {
-        return new MockSendProducerFactory(targetTopic, published, true, false, null);
+
+        return new MockSendProducerFactory(targetTopic, published, true, false, null, false);
     }
 
     /**
@@ -74,7 +88,7 @@ final class MockSendProducerFactory implements SendProducerFactory {
      */
     public static MockSendProducerFactory getSlowStartInstance(final String targetTopic,
             final Queue<ProducerRecord<String, ByteBuffer>> published) {
-        return new MockSendProducerFactory(targetTopic, published, false, true, null);
+        return new MockSendProducerFactory(targetTopic, published, false, true, null, false);
     }
 
     @Override
@@ -100,15 +114,26 @@ final class MockSendProducerFactory implements SendProducerFactory {
                         final ProducerMessage.Envelope<String, ByteBuffer, CompletableFuture<RecordMetadata>> envelope =
                                 invocationOnMock.getArgument(0);
                         final RecordMetadata dummyMetadata =
-                                new RecordMetadata(new TopicPartition(targetTopic, 5), 0L, 0L, 0L, 0L, 0, 0);
+                                new RecordMetadata(new TopicPartition(targetTopic, 5),
+                                        0L, 0L, 0L, 0L, 0, 0);
                         final ProducerMessage.Message<String, ByteBuffer, CompletableFuture<RecordMetadata>> message =
                                 (ProducerMessage.Message<String, ByteBuffer, CompletableFuture<RecordMetadata>>) envelope;
                         published.offer(message.record());
+
                         return CompletableFuture.completedStage(ProducerResultFactory.result(dummyMetadata, message));
                     });
-        } else {
+        } else if (!shouldThrowException){
             when(producer.sendEnvelope(any(ProducerMessage.Envelope.class)))
                     .thenReturn(CompletableFuture.failedStage(exception));
+        } else {
+            if (counter.get() == 0) {
+                when(producer.sendEnvelope(any(ProducerMessage.Envelope.class)))
+                        .thenThrow(exception);
+                counter.getAndIncrement();
+            } else {
+                when(producer.sendEnvelope(any(ProducerMessage.Envelope.class)))
+                        .thenReturn(CompletableFuture.failedStage(exception));
+            }
         }
 
         return producer;
