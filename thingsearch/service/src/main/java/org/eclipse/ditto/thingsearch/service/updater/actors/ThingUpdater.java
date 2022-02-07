@@ -160,6 +160,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
         final var effectiveForceUpdateAfterStartTimeout = updaterConfig.isForceUpdateAfterStartEnabled()
                 ? updaterConfig.getForceUpdateAfterStartTimeout()
                 : Duration.ZERO;
+
         return Props.create(ThingUpdater.class, pubSubMediator, changeQueueActor,
                 updaterConfig.getForceUpdateProbability(),
                 effectiveForceUpdateAfterStartTimeout,
@@ -223,6 +224,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                     log.debug("Skipping update due to empty diff <{}>", nextWriteModel);
                     getSender().tell(Done.getInstance(), getSelf());
                     PATCH_SKIP_COUNT.increment();
+
                     return;
                 }
                 final var filter = ((ThingWriteModel) nextWriteModel)
@@ -259,6 +261,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             return Optional.of(BsonDiff.minusThingDocs(minuend, subtrahend));
         } catch (BsonInvalidOperationException e) {
             log.error(e, "Failed to compute BSON diff between <{}> and <{}>", minuend, subtrahend);
+
             return Optional.empty();
         }
     }
@@ -327,14 +330,16 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
         if (isFailure || isIncorrectPatch) {
             // discard last write model: index document is not known
             lastWriteModel = null;
-            final Metadata metadata = exportMetadata(null, null).invalidateCaches(true, true);
+            final Metadata metadata =
+                    exportMetadata(null, null).invalidateCaches(true, true);
             final String warningTemplate;
-            if (isFailure) {
-                warningTemplate = "Got negative acknowledgement for <{}>; updating to <{}>.";
-                UPDATE_FAILURE_COUNT.increment();
-            } else {
+            // check first for incorrect patch update otherwise the else branch is never triggered.
+            if (isIncorrectPatch) {
                 warningTemplate = "Inconsistent patch update detected for <{}>; updating to <{}>.";
                 INCORRECT_PATCH_UPDATE_COUNT.increment();
+            } else {
+                warningTemplate = "Got negative acknowledgement for <{}>; updating to <{}>.";
+                UPDATE_FAILURE_COUNT.increment();
             }
             log.warning(warningTemplate, Metadata.fromResponse(response), metadata);
             enqueueMetadata(metadata.withUpdateReason(UpdateReason.RETRY));
