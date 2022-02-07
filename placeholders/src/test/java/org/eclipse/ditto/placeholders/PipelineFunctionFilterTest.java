@@ -180,6 +180,14 @@ public final class PipelineFunctionFilterTest {
         testPatternMatching("x", "*", true);
         testPatternMatching("x", "?", true);
 
+        // OR case
+        testPatternMatching("x", "x|y", true);
+        testPatternMatching("x", "y|z", false);
+        testPatternMatching("x", "y|z|x", true);
+        testPatternMatching("x", "||", false);
+        testPatternMatching("x", "y|*", true);
+        testPatternMatching("x", "?|z", true);
+
         // argument order matters
         testPatternMatching("*y", "xy", false);
         testPatternMatching("xy", "*y", true);
@@ -208,6 +216,13 @@ public final class PipelineFunctionFilterTest {
     @Test
     public void likeSucceedsWithTwoValues() {
         final String params = String.format("(\"%s\",\"%s\")", "like", "*value");
+
+        assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).contains(KNOWN_VALUE);
+    }
+
+    @Test
+    public void likeSucceedsWithTwoValuesUsingOr() {
+        final String params = String.format("(\"%s\",\"%s\")", "like", "foo|bar|*value");
 
         assertThat(underTest.apply(KNOWN_INPUT, params, expressionResolver)).contains(KNOWN_VALUE);
     }

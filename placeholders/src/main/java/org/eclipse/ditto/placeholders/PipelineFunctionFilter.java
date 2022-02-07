@@ -240,8 +240,9 @@ final class PipelineFunctionFilter implements PipelineFunction {
 
         @Override
         public String getDescription() {
-            return "Specifies the value that should be taken into account for filtering. " +
-                    "It may be a constant in single or double quotes or a placeholder";
+            return "Specifies the optional value that should be taken into account for filtering. " +
+                    "It may be a constant in single or double quotes or a placeholder or may be omitted completely " +
+                    "in order to apply the filtering on the previous pipeline element instead.";
         }
 
     }
