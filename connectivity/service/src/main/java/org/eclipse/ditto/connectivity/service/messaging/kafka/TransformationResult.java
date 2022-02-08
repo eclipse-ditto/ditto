@@ -90,7 +90,8 @@ final class TransformationResult {
         } catch (final Exception e) {
             // Errors during reading/parsing headers should not cause the message to be dropped.
             final Object message = null != externalMessage ? externalMessage : dittoRuntimeException;
-            LOGGER.warn("Encountered error checking the expiry of Kafka message: <{}>, <{}>", message, e);
+            LOGGER.warn("Encountered error checking the expiry of Kafka message: <{}>, <{}>: {}", message,
+                    e.getClass().getSimpleName(), e.getMessage(), e);
             return false;
         }
     }
