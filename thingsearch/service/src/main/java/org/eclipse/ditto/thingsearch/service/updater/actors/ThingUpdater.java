@@ -43,6 +43,7 @@ import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
 import org.eclipse.ditto.policies.model.PolicyId;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.api.UpdateReason;
 import org.eclipse.ditto.thingsearch.api.commands.sudo.UpdateThing;
@@ -276,8 +277,8 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
         }
     }
 
-    private void stopThisActor(final ReceiveTimeout receiveTimeout) {
-        log.debug("stopping ThingUpdater <{}> due to <{}>", thingId, receiveTimeout);
+    private void stopThisActor(final Object reason) {
+        log.debug("stopping ThingUpdater <{}> due to <{}>", thingId, reason);
         getContext().getParent().tell(new ShardRegion.Passivate(PoisonPill.getInstance()), getSelf());
     }
 
@@ -400,6 +401,11 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             enqueueMetadata(
                     exportMetadataWithSender(shouldAcknowledge, thingEvent, getSender(), timer).withUpdateReason(
                             UpdateReason.THING_UPDATE));
+        }
+
+        if (thingEvent instanceof ThingDeleted) {
+            // will stop this actor after 5 seconds (finishing up updating the index):
+            getContext().setReceiveTimeout(Duration.ofSeconds(5));
         }
     }
 
