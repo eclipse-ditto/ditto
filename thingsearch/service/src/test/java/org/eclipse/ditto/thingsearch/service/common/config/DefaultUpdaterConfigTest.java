@@ -71,6 +71,10 @@ public final class DefaultUpdaterConfigTest {
         softly.assertThat(underTest.getForceUpdateAfterStartRandomFactor())
                 .as(UpdaterConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath())
                 .isEqualTo(UpdaterConfigValue.FORCE_UPDATE_AFTER_START_RANDOM_FACTOR.getDefaultValue());
+
+        softly.assertThat(underTest.isForceUpdateAfterStartEnabled())
+                .as(UpdaterConfigValue.FORCE_UPDATE_AFTER_START_ENABLED.getConfigPath())
+                .isEqualTo(UpdaterConfigValue.FORCE_UPDATE_AFTER_START_ENABLED.getDefaultValue());
     }
 
     @Test
@@ -94,6 +98,10 @@ public final class DefaultUpdaterConfigTest {
         softly.assertThat(underTest.getForceUpdateAfterStartRandomFactor())
                 .as(UpdaterConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath())
                 .isEqualTo(3.0);
+
+        softly.assertThat(underTest.isForceUpdateAfterStartEnabled())
+                .as(UpdaterConfigValue.FORCE_UPDATE_AFTER_START_ENABLED.getConfigPath())
+                .isEqualTo(false);
     }
 
 }

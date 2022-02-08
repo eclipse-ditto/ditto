@@ -13,7 +13,9 @@
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.AbstractMap;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +41,8 @@ import org.eclipse.ditto.policies.model.PolicyIdInvalidException;
 import org.eclipse.ditto.policies.model.enforcers.Enforcer;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
+import org.eclipse.ditto.things.model.signals.events.ThingDeleted;
+import org.eclipse.ditto.things.model.signals.events.ThingEvent;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamCacheConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.mapping.EnforcedThingMapper;
@@ -207,7 +211,7 @@ final class EnforcementFlow {
                 .<Map.Entry<ThingId, JsonObject>>map(thing -> new AbstractMap.SimpleImmutableEntry<>(thingId, thing))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<Map.Entry<ThingId, JsonObject>, NotUsed>>()
                         .match(Throwable.class, error -> {
-                            log.error("Unexpected response for SudoRetrieveThing " + thingId, error);
+                            log.error("Unexpected response for SudoRetrieveThing via cache" + thingId, error);
                             return Source.empty();
                         })
                         .build());
@@ -217,7 +221,13 @@ final class EnforcementFlow {
             @Nullable final JsonObject thing) {
 
         ConsistencyLag.startS4GetEnforcer(metadata);
-        if (thing == null) {
+        final ThingEvent<?> latestEvent = metadata.getEvents()
+                .stream().max(Comparator.comparing(e -> e.getTimestamp().orElseGet(() -> {
+                    log.warn("Event <{}> did not contain a timestamp.", e);
+                    return Instant.EPOCH;
+                })))
+                .orElse(null);
+        if (latestEvent instanceof ThingDeleted || thing == null) {
             return Source.single(ThingDeleteModel.of(metadata));
         } else {
             return getEnforcer(metadata, thing)

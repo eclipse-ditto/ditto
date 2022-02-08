@@ -58,9 +58,9 @@ import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayCommandTi
 import org.eclipse.ditto.base.model.signals.commands.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.concierge.api.ConciergeMessagingConstants;
 import org.eclipse.ditto.concierge.service.actors.LiveResponseAndAcknowledgementForwarder;
-import org.eclipse.ditto.concierge.service.common.EnforcementConfig;
 import org.eclipse.ditto.concierge.service.common.ConciergeConfig;
 import org.eclipse.ditto.concierge.service.common.DittoConciergeConfig;
+import org.eclipse.ditto.concierge.service.common.EnforcementConfig;
 import org.eclipse.ditto.concierge.service.enforcement.placeholders.references.PolicyIdReferencePlaceholderResolver;
 import org.eclipse.ditto.concierge.service.enforcement.placeholders.references.ReferencePlaceholder;
 import org.eclipse.ditto.internal.models.signal.CommandHeaderRestoration;
@@ -137,6 +137,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.ThingQueryCommandRe
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.pattern.AskTimeoutException;
+import akka.pattern.Patterns;
 
 /**
  * Authorize {@code ThingCommand}.
@@ -341,8 +342,17 @@ public final class ThingCommandEnforcement
             } else if (thingQueryCommand instanceof RetrieveThing && shouldRetrievePolicyWithThing(thingQueryCommand)) {
                 final var retrieveThing = (RetrieveThing) ensureTwinChannel(thingQueryCommand);
                 result = withMessageToReceiverViaAskFuture(retrieveThing, sender(), () ->
-                        retrieveThingAndPolicy(retrieveThing, policyId, enforcer).thenCompose(response ->
-                                doSmartChannelSelection(thingQueryCommand, response, startTime, enforcer))
+                        retrieveThingAndPolicy(retrieveThing, policyId, enforcer).thenCompose(response -> {
+                                    if (null != response) {
+                                        return doSmartChannelSelection(thingQueryCommand, response, startTime, enforcer);
+                                    } else {
+                                        log(retrieveThing).error("Response was null at a place where it must never " +
+                                                "be null");
+                                        throw GatewayInternalErrorException.newBuilder()
+                                                .dittoHeaders(retrieveThing.getDittoHeaders())
+                                                .build();
+                                    }
+                                })
                 );
             } else {
                 final var twinCommand = ensureTwinChannel(thingQueryCommand);
@@ -626,12 +636,12 @@ public final class ThingCommandEnforcement
      * @param askTimeout the timeout exception.
      */
     @Override
-    protected DittoRuntimeException handleAskTimeoutForCommand(final ThingCommand<?> command,
+    protected Optional<DittoRuntimeException> handleAskTimeoutForCommand(final ThingCommand<?> command,
             final Throwable askTimeout) {
         LOGGER.withCorrelationId(dittoHeaders()).error("Timeout before building JsonView", askTimeout);
-        return ThingUnavailableException.newBuilder(command.getEntityId())
+        return Optional.of(ThingUnavailableException.newBuilder(command.getEntityId())
                 .dittoHeaders(command.getDittoHeaders())
-                .build();
+                .build());
     }
 
     /**
@@ -1219,9 +1229,9 @@ public final class ThingCommandEnforcement
         invalidatePolicyCache(createPolicy.getEntityId());
 
         return preEnforcer.apply(createPolicy)
-                .thenCompose(msg -> AskWithRetry.askWithRetry(policiesShardRegion, msg,
-                        getAskWithRetryConfig(), context.getScheduler(), context.getExecutor(),
-                        policyResponse -> {
+                .thenCompose(msg -> Patterns.ask(policiesShardRegion, msg, getAskWithRetryConfig().getAskTimeout()
+                                .multipliedBy(5L)) // don't retry creating policy (not idempotent!) - but increase default timeout for doing so
+                        .thenApply(policyResponse -> {
                             handlePolicyResponseForCreateThing(createPolicy, createThing, policyResponse);
                             invalidateThingCaches(createThing.getEntityId());
                             return createThing;

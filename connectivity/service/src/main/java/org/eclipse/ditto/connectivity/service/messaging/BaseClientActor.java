@@ -146,7 +146,6 @@ import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.FSMStateFunctionBuilder;
 import akka.pattern.Patterns;
 import akka.stream.Materializer;
-import akka.stream.SourceRef;
 import akka.stream.javadsl.Sink;
 
 /**
@@ -175,7 +174,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private static final String MESSAGE_MAPPING_PROCESSOR_DISPATCHER = "message-mapping-processor-dispatcher";
     private static final Pattern EXCLUDED_ADDRESS_REPORTING_CHILD_NAME_PATTERN = Pattern.compile(
             OutboundMappingProcessorActor.ACTOR_NAME + "|" + OutboundDispatchingActor.ACTOR_NAME + "|" +
-                    "StreamSupervisor-.*|subscriptionManager");
+                    "ackr.*" + "|" + "StreamSupervisor-.*|subscriptionManager");
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
     private static final String CLOSED_BECAUSE_OF_UNKNOWN_FAILURE_MISCONFIGURATION_STATUS_IN_CLIENT =
@@ -504,7 +503,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     sender().tell(HealthSignal.PONG, self());
                     return stay();
                 })
-                .event(SourceRef.class, this::refreshClientActorRefs)
                 .event(ClientActorRefs.class, this::refreshClientActorRefs)
                 .event(FatalPubSubException.class, this::failConnectionDueToPubSubException);
     }
@@ -537,19 +535,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSM.State<BaseClientState, BaseClientData> otherClientActorTerminated(final Terminated terminated,
             final BaseClientData data) {
         clientActorRefs.remove(terminated.getActor());
-        return stay();
-    }
-
-    private FSM.State<BaseClientState, BaseClientData> refreshClientActorRefs(
-            final SourceRef clientActorRefsSourceRef,
-            final BaseClientData data) {
-        ((SourceRef<ActorRef>) clientActorRefsSourceRef).getSource()
-                .runWith(Sink.seq(), Materializer.createMaterializer(getContext()))
-                .thenAccept(clientActorRefs -> {
-                    final ClientActorRefs newClientActorRefs = ClientActorRefs.empty();
-                    newClientActorRefs.add(clientActorRefs);
-                    self().tell(newClientActorRefs, ActorRef.noSender());
-                });
         return stay();
     }
 

@@ -202,11 +202,13 @@ final class ResponseReceiverCache implements Extension {
             final boolean refreshCorrelationId) {
 
         final String correlationId;
-        if (refreshCorrelationId) {
-            correlationId = UUID.randomUUID().toString();
-        } else {
-            correlationId = SignalInformationPoint.getCorrelationId(signal)
+        final var previousCorrelationId = SignalInformationPoint.getCorrelationId(signal);
+        final boolean correlationIdRefreshed = refreshCorrelationId || previousCorrelationId.isEmpty();
+        if (correlationIdRefreshed) {
+            correlationId = previousCorrelationId.map(existingId -> existingId + "_" + UUID.randomUUID())
                     .orElseGet(() -> UUID.randomUUID().toString());
+        } else {
+            correlationId = previousCorrelationId.get();
         }
 
         return get(correlationId)
@@ -214,12 +216,14 @@ final class ResponseReceiverCache implements Extension {
                     final CompletionStage<S> result;
                     if (entry.isPresent()) {
                         result = setUniqueCorrelationIdForGlobalDispatching(signal, true);
-                    } else {
+                    } else if (correlationIdRefreshed) {
                         result = CompletableFuture.completedFuture(
                                 (S) signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
                                         .correlationId(correlationId)
                                         .build())
                         );
+                    } else {
+                        result = CompletableFuture.completedFuture(signal);
                     }
                     return result;
                 });

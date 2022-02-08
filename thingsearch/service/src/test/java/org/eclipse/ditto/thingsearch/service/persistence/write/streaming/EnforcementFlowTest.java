@@ -12,8 +12,10 @@
  */
 package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -42,6 +44,7 @@ import org.eclipse.ditto.thingsearch.service.common.config.DefaultStreamConfig;
 import org.eclipse.ditto.thingsearch.service.common.config.StreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
+import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -262,6 +265,60 @@ public final class EnforcementFlowTest {
             assertThat(document.getValue("_revision")).contains(JsonValue.of(6));
             assertThat(document.getValue("__policyRev")).contains(JsonValue.of(1));
             assertThat(document.getValue("s/attributes")).contains(JsonObject.of("{\"x\":5,\"y\":6,\"z\":7}"));
+
+            // THEN: thing is computed in the cache
+            thingsProbe.expectNoMessage(FiniteDuration.Zero());
+        }};
+    }
+
+    @Test
+    public void computeThingCacheValueFromThingEventsWhenLastEventWasDeleted() {
+        new TestKit(system) {{
+            // GIVEN: enqueued metadata contains events sufficient to determine the thing state
+            final DittoHeaders headers = DittoHeaders.empty();
+            final ThingId thingId = ThingId.of("thing:id");
+            final PolicyId policyId = PolicyId.of("policy:id");
+            final Thing thing = Thing.newBuilder().setId(thingId).setPolicyId(policyId).build();
+            final Instant deletedTime = Instant.now();
+            final List<ThingEvent<?>> events = List.of(
+                    ThingModified.of(thing, 1, deletedTime.minusSeconds(1), headers, null),
+                    ThingDeleted.of(thingId, 2, deletedTime, headers, null),
+                    ThingCreated.of(thing.toBuilder()
+                                    .setAttribute(JsonPointer.of("w"), JsonValue.of(4))
+                                    .setAttribute(JsonPointer.of("x"), JsonValue.of(5))
+                                    .build(), 3,
+                            deletedTime.minusSeconds(5), headers, null),
+                    ThingMerged.of(thingId, JsonPointer.of("attributes/y"), JsonValue.of(6), 4, deletedTime.minusSeconds(4), headers, null),
+                    AttributeModified.of(thingId, JsonPointer.of("z"), JsonValue.of(7), 5, deletedTime.minusSeconds(3), headers, null),
+                    AttributeDeleted.of(thingId, JsonPointer.of("w"), 6, deletedTime.minusSeconds(2), headers, null)
+            );
+
+            final Metadata metadata = Metadata.of(thingId, 5L, policyId, 1L, events, null, null);
+            final Map<ThingId, Metadata> inputMap = Map.of(thingId, metadata);
+
+            final TestProbe thingsProbe = TestProbe.apply(system);
+            final TestProbe policiesProbe = TestProbe.apply(system);
+
+            final StreamConfig streamConfig = DefaultStreamConfig.of(ConfigFactory.empty());
+            final EnforcementFlow underTest =
+                    EnforcementFlow.of(system, streamConfig, thingsProbe.ref(), policiesProbe.ref(),
+                            system.dispatchers().defaultGlobalDispatcher(), system.getScheduler());
+
+            materializeTestProbes(underTest.create(1));
+
+            sinkProbe.ensureSubscription();
+            sourceProbe.ensureSubscription();
+            sinkProbe.request(1);
+            assertThat(sourceProbe.expectRequest()).isEqualTo(1);
+            sourceProbe.sendNext(inputMap);
+            sourceProbe.sendComplete();
+
+            // THEN: the write model contains up-to-date revisions
+            final AbstractWriteModel deleteModel = sinkProbe.expectNext().get(0);
+            sinkProbe.expectComplete();
+            assertThat(deleteModel).isInstanceOf(ThingDeleteModel.class);
+            final var modelMetadata = deleteModel.getMetadata();
+            assertThat(modelMetadata.getThingId().toString()).isEqualTo(thingId.toString());
 
             // THEN: thing is computed in the cache
             thingsProbe.expectNoMessage(FiniteDuration.Zero());

@@ -15,6 +15,7 @@ package org.eclipse.ditto.connectivity.service.messaging.kafka;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -53,6 +54,7 @@ import org.eclipse.ditto.connectivity.service.messaging.BasePublisherActor;
 import org.eclipse.ditto.connectivity.service.messaging.ConnectivityStatusResolver;
 import org.eclipse.ditto.connectivity.service.messaging.ExceptionToAcknowledgementConverter;
 import org.eclipse.ditto.connectivity.service.messaging.SendResult;
+import org.eclipse.ditto.connectivity.service.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -79,8 +81,7 @@ import akka.stream.javadsl.Source;
 import akka.stream.javadsl.SourceQueueWithComplete;
 
 /**
- * Responsible for publishing {@link org.eclipse.ditto.connectivity.api.ExternalMessage}s into an Kafka
- * broker.
+ * Responsible for publishing {@link org.eclipse.ditto.connectivity.api.ExternalMessage}s into a Kafka broker.
  */
 final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
@@ -177,11 +178,10 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         final Function<RecordMetadata, SendResult> callback =
                 new ProducerCallback(signal, autoAckLabel, ackSizeQuota, connection);
 
-        final ExternalMessage messageWithConnectionIdHeader = message
-                .withHeader("ditto-connection-id", connection.getId().toString());
+        final ExternalMessage messageWithConnectionIdHeader =
+                message.withHeader("ditto-connection-id", connection.getId().toString());
 
-        return producerStream.publish(publishTarget, messageWithConnectionIdHeader)
-                .thenApply(callback);
+        return producerStream.publish(publishTarget, messageWithConnectionIdHeader).thenApply(callback);
     }
 
     @Override
@@ -259,6 +259,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             } else {
                 issuedAck = null;
             }
+
             return new SendResult(issuedAck, dittoHeaders);
         }
 
@@ -275,6 +276,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             if (metadata.hasOffset()) {
                 builder.set("offset", metadata.offset(), this::isQuotaSufficient);
             }
+
             return builder.build();
         }
 
@@ -291,8 +293,8 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
         private boolean isDebugEnabled() {
             final Map<String, String> specificConfig = connection.getSpecificConfig();
-            return Boolean.parseBoolean(specificConfig.getOrDefault("debugEnabled", Boolean.FALSE.toString()));
 
+            return Boolean.parseBoolean(specificConfig.getOrDefault("debugEnabled", Boolean.FALSE.toString()));
         }
 
     }
@@ -365,14 +367,15 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 } else {
                     // should never happen, we provide only ProducerMessage.single to the source
                     logger.warning("Received multipart result, ignoring: {}", results);
-                    resultFuture
-                            .completeExceptionally(
-                                    new IllegalArgumentException("Received unexpected multipart result."));
+                    resultFuture.completeExceptionally(
+                            new IllegalArgumentException("Received unexpected multipart result."));
                 }
             } else {
                 logger.debug("Failed to send kafka record: [{}] {}", exception.getClass().getName(),
                         exception.getMessage());
                 resultFuture.completeExceptionally(exception);
+                escalate(exception, ConnectionFailure.determineFailureDescription(Instant.now(),
+                        exception, "Broker may not be available."));
             }
         }
 
@@ -390,6 +393,7 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
                 logger.error(ex, ex.getMessage());
                 resultFuture.completeExceptionally(ex);
             }
+
             return resultFuture;
         }
 

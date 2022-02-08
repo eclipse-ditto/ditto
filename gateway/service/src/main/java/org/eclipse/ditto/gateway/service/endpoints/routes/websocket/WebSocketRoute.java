@@ -161,6 +161,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private static final Counter DROPPED_COUNTER = DittoMetrics.counter(STREAMING_MESSAGES)
             .tag(TYPE, WS)
             .tag(DIRECTION, "dropped");
+    private static final String MDC_CONNECTION_CORRELATION_ID = "connection-correlation-id";
 
     private final ActorRef streamingActor;
     private final StreamingConfig streamingConfig;
@@ -284,7 +285,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 : signalEnrichmentProvider.getFacade(request);
 
         final AuthorizationContext authContext = dittoHeaders.getAuthorizationContext();
-        final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(connectionCorrelationId);
+        final ThreadSafeDittoLogger logger = LOGGER.withMdcEntry(MDC_CONNECTION_CORRELATION_ID,
+                connectionCorrelationId);
         logger.info("Creating WebSocket for connection authContext: <{}>", authContext);
 
         return signalEnrichmentFacadeStage.thenCompose(signalEnrichmentFacade -> retrieveWebsocketConfig()
@@ -675,29 +677,30 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             throw e.setDittoHeaders(e.getDittoHeaders().toBuilder().origin(connectionCorrelationId).build());
         }
 
-        logger.debug("WebSocket message has been converted to signal <{}>.", signal);
+        final ThreadSafeDittoLogger l = logger.withCorrelationId(signal);
+        l.debug("WebSocket message has been converted to signal <{}>.", signal);
         final DittoHeaders signalHeaders = signal.getDittoHeaders();
 
         // add initial internal header values
-        logger.trace("Adding initialInternalHeaders: <{}>.", initialInternalHeaders);
+        l.trace("Adding initialInternalHeaders: <{}>.", initialInternalHeaders);
 
         final DittoHeadersBuilder<?, ?> internalHeadersBuilder = DittoHeaders.newBuilder(initialInternalHeaders);
 
         // add headers given by parent route first so that protocol message may override them
         final Map<String, String> wellKnownAdditionalHeaders =
                 headerTranslator.retainKnownHeaders(additionalHeaders);
-        logger.trace("Adding wellKnownAdditionalHeaders: <{}>.", wellKnownAdditionalHeaders);
+        l.trace("Adding wellKnownAdditionalHeaders: <{}>.", wellKnownAdditionalHeaders);
         internalHeadersBuilder.putHeaders(wellKnownAdditionalHeaders);
         // add any headers from protocol adapter to internal headers
-        logger.trace("Adding signalHeaders: <{}>.", signalHeaders);
+        l.trace("Adding signalHeaders: <{}>.", signalHeaders);
         internalHeadersBuilder.putHeaders(signalHeaders);
         // generate correlation ID if it is not set in protocol message
         if (signalHeaders.getCorrelationId().isEmpty()) {
             final String correlationId = UUID.randomUUID().toString();
-            logger.trace("Adding generated correlationId: <{}>.", correlationId);
+            l.trace("Adding generated correlationId: <{}>.", correlationId);
             internalHeadersBuilder.correlationId(correlationId);
         }
-        logger.debug("Generated internalHeaders are: <{}>.", internalHeadersBuilder);
+        l.debug("Generated internalHeaders are: <{}>.", internalHeadersBuilder);
 
         return signal.setDittoHeaders(internalHeadersBuilder.build());
     }

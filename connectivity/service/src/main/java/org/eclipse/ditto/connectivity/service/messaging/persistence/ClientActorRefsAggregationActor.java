@@ -65,7 +65,7 @@ final class ClientActorRefsAggregationActor extends AbstractFSM<AggregationState
 
     /**
      * @param clientCount the expected number of clients
-     * @param receiver the receiver of the aggregated {@link ClientActorRefs}. Make sure that this actor ref is not remote as {@link ClientActorRefs} cannot be serialized.
+     * @param receiver the receiver of the aggregated {@link ClientActorRefs}.
      * @param clientActorRouter the client actor router used to send broadcasts to all clients.
      * @param aggregationInterval the interval for aggregation of client actor refs.
      * @param aggregationTimeout the maximum time the aggregation actor should wait for a response from all client actors.

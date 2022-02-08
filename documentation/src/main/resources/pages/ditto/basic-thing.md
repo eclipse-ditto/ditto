@@ -76,8 +76,8 @@ semantics of the data or adding other useful information about the data points o
 
 ```json
 {
-  "thingId": "the.namespace:theId",
-  "policyId": "the.namespace:thePolicyId",
+  "thingId": "the.namespace:theName",
+  "policyId": "the.namespace:thePolicyName",
   "definition": "org.eclipse.ditto:HeatingDevice:2.1.0",
   "attributes": {
       "someAttr": 32,

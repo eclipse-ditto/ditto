@@ -147,6 +147,20 @@ public final class DefaultDittoHeadersBuilderTest {
     }
 
     @Test
+    public void jsonRepresentationOfDittoHeadersWithNullCorrelationIdHasNoCorrelationId() {
+        final DittoHeaders expectedDittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(null)
+                .build();
+        final JsonObject jsonHeadersWithNullCorrelationId = JsonObject.newBuilder()
+                .set(DittoHeaderDefinition.CORRELATION_ID.getKey(), JsonValue.nullLiteral())
+                .build();
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder(jsonHeadersWithNullCorrelationId).build();
+
+        assertThat(dittoHeaders).isEqualTo(expectedDittoHeaders);
+        assertThat(dittoHeaders.getCorrelationId()).isEmpty();
+    }
+
+    @Test
     public void jsonRepresentationOfDittoHeadersWithCorrelationIdOnlyIsExpected() {
         final DittoHeaders dittoHeaders = underTest.correlationId(CORRELATION_ID).build();
         final JsonObject jsonObject = dittoHeaders.toJson();

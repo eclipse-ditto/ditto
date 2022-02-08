@@ -74,7 +74,7 @@ public final class ConnectivityPlaceholders {
     /**
      * @return the singleton instance of {@link TimePlaceholder}
      */
-    public static TimePlaceholder newMiscPlaceholder() {
+    public static TimePlaceholder newTimePlaceholder() {
         return TimePlaceholder.getInstance();
     }
 

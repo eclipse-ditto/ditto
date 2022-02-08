@@ -36,6 +36,7 @@ import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.internal.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.internal.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.internal.utils.tracing.DittoTracing;
 import org.eclipse.ditto.policies.api.PolicyReferenceTag;
@@ -54,6 +55,7 @@ import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.ThingWriteModel;
 import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.ConsistencyLag;
+import org.eclipse.ditto.thingsearch.service.persistence.write.streaming.SearchUpdaterStream;
 import org.eclipse.ditto.thingsearch.service.starter.actors.MongoClientExtension;
 
 import com.mongodb.client.model.UpdateOneModel;
@@ -79,6 +81,12 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             AcknowledgementRequest.of(DittoAcknowledgementLabel.SEARCH_PERSISTED);
 
     private static final String FORCE_UPDATE_AFTER_START = "FORCE_UPDATE_AFTER_START";
+
+    private static final Counter INCORRECT_PATCH_UPDATE_COUNT = DittoMetrics.counter("search_incorrect_patch_updates");
+    private static final Counter UPDATE_FAILURE_COUNT = DittoMetrics.counter("search_update_failures");
+    private static final Counter PATCH_UPDATE_COUNT = DittoMetrics.counter("search_patch_updates");
+    private static final Counter PATCH_SKIP_COUNT = DittoMetrics.counter("search_patch_skips");
+    private static final Counter FULL_UPDATE_COUNT = DittoMetrics.counter("search_full_updates");
 
     private final DittoDiagnosticLoggingAdapter log;
     private final ThingId thingId;
@@ -131,8 +139,10 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             final var noLastModel = ThingDeleteModel.of(Metadata.of(thingId, -1L, null, null, null));
             getSelf().tell(noLastModel, getSelf());
         }
-        getTimers().startSingleTimer(FORCE_UPDATE_AFTER_START, FORCE_UPDATE_AFTER_START,
-                randomizeTimeout(forceUpdateAfterStartTimeout, forceUpdateAfterStartRandomFactor));
+        if (forceUpdateAfterStartTimeout.negated().isNegative()) {
+            getTimers().startSingleTimer(FORCE_UPDATE_AFTER_START, FORCE_UPDATE_AFTER_START,
+                    randomizeTimeout(forceUpdateAfterStartTimeout, forceUpdateAfterStartRandomFactor));
+        }
     }
 
     /**
@@ -146,9 +156,14 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     static Props props(final ActorRef pubSubMediator, final ActorRef changeQueueActor,
             final UpdaterConfig updaterConfig) {
 
+        // Use duration 0 to disable force-update-after-start-timeout.
+        final var effectiveForceUpdateAfterStartTimeout = updaterConfig.isForceUpdateAfterStartEnabled()
+                ? updaterConfig.getForceUpdateAfterStartTimeout()
+                : Duration.ZERO;
+
         return Props.create(ThingUpdater.class, pubSubMediator, changeQueueActor,
                 updaterConfig.getForceUpdateProbability(),
-                updaterConfig.getForceUpdateAfterStartTimeout(),
+                effectiveForceUpdateAfterStartTimeout,
                 updaterConfig.getForceUpdateAfterStartRandomFactor());
     }
 
@@ -176,10 +191,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                 .match(UpdateThing.class, this::updateThing)
                 .match(UpdateThingResponse.class, this::processUpdateThingResponse)
                 .match(ReceiveTimeout.class, this::stopThisActor)
-                .matchEquals(FORCE_UPDATE_AFTER_START, s -> {
-                    log.debug("Forcing the next update to be a full 'forceUpdate'");
-                    forceNextUpdate = true;
-                })
+                .matchEquals(FORCE_UPDATE_AFTER_START, this::forceUpdateAfterStart)
                 .matchAny(m -> {
                     log.warning("Unknown message in 'eventProcessing' behavior: {}", m);
                     unhandled(m);
@@ -190,6 +202,12 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     private void matchAnyDuringRecovery(final Object message) {
         log.debug("Stashing during initialization: <{}>", message);
         stash();
+    }
+
+    private void forceUpdateAfterStart(final String trigger) {
+        log.debug("Forcing the next update to be a full 'forceUpdate'");
+        forceNextUpdate = true;
+        enqueueMetadata(UpdateReason.FORCE_UPDATE_AFTER_START);
     }
 
     private void onNextWriteModel(final AbstractWriteModel nextWriteModel) {
@@ -205,16 +223,23 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                 if (aggregationPipeline.isEmpty()) {
                     log.debug("Skipping update due to empty diff <{}>", nextWriteModel);
                     getSender().tell(Done.getInstance(), getSelf());
+                    PATCH_SKIP_COUNT.increment();
+
                     return;
                 }
-                mongoWriteModel = new UpdateOneModel<>(nextWriteModel.getFilter(), aggregationPipeline);
+                final var filter = ((ThingWriteModel) nextWriteModel)
+                        .asPatchUpdate(lastWriteModel.getMetadata().getThingRevision())
+                        .getFilter();
+                mongoWriteModel = new UpdateOneModel<>(filter, aggregationPipeline);
                 log.debug("Using incremental update <{}>", mongoWriteModel);
+                PATCH_UPDATE_COUNT.increment();
             } else {
                 mongoWriteModel = nextWriteModel.toMongo();
                 if (log.isDebugEnabled()) {
                     log.debug("Using replacement because diff is bigger or nonexistent. Diff=<{}>",
                             diff.map(BsonDiff::consumeAndExport));
                 }
+                FULL_UPDATE_COUNT.increment();
             }
         } else {
             mongoWriteModel = nextWriteModel.toMongo();
@@ -225,6 +250,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             } else {
                 log.debug("Using replacement <{}>", mongoWriteModel);
             }
+            FULL_UPDATE_COUNT.increment();
         }
         getSender().tell(mongoWriteModel, getSelf());
         lastWriteModel = nextWriteModel;
@@ -235,6 +261,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             return Optional.of(BsonDiff.minusThingDocs(minuend, subtrahend));
         } catch (BsonInvalidOperationException e) {
             log.error(e, "Failed to compute BSON diff between <{}> and <{}>", minuend, subtrahend);
+
             return Optional.empty();
         }
     }
@@ -284,6 +311,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                 .info("Requested to update search index <{}> by <{}>", updateThing, getSender());
         if (updateThing.getDittoHeaders().containsKey(FORCE_UPDATE)) {
             lastWriteModel = null;
+            forceNextUpdate = true;
         }
         final Metadata metadata = exportMetadata(null, null)
                 .invalidateCaches(updateThing.shouldInvalidateThing(), updateThing.shouldInvalidatePolicy())
@@ -296,13 +324,24 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     }
 
     private void processUpdateThingResponse(final UpdateThingResponse response) {
-        if (!response.isSuccess()) {
+        final var isFailure = !response.isSuccess();
+        final var isIncorrectPatch =
+                response.getDittoHeaders().containsKey(SearchUpdaterStream.FORCE_UPDATE_INCORRECT_PATCH);
+        if (isFailure || isIncorrectPatch) {
             // discard last write model: index document is not known
             lastWriteModel = null;
-            final Metadata metadata = exportMetadata(null, null).invalidateCaches(true, true);
-            log.warning("Got negative acknowledgement for <{}>; updating to <{}>.",
-                    Metadata.fromResponse(response),
-                    metadata);
+            final Metadata metadata =
+                    exportMetadata(null, null).invalidateCaches(true, true);
+            final String warningTemplate;
+            // check first for incorrect patch update otherwise the else branch is never triggered.
+            if (isIncorrectPatch) {
+                warningTemplate = "Inconsistent patch update detected for <{}>; updating to <{}>.";
+                INCORRECT_PATCH_UPDATE_COUNT.increment();
+            } else {
+                warningTemplate = "Got negative acknowledgement for <{}>; updating to <{}>.";
+                UPDATE_FAILURE_COUNT.increment();
+            }
+            log.warning(warningTemplate, Metadata.fromResponse(response), metadata);
             enqueueMetadata(metadata.withUpdateReason(UpdateReason.RETRY));
         }
     }

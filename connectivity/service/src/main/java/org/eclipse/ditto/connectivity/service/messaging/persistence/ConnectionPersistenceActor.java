@@ -135,10 +135,6 @@ import akka.routing.Broadcast;
 import akka.routing.ConsistentHashingPool;
 import akka.routing.ConsistentHashingRouter;
 import akka.routing.Pool;
-import akka.stream.Materializer;
-import akka.stream.SourceRef;
-import akka.stream.javadsl.Source;
-import akka.stream.javadsl.StreamRefs;
 
 /**
  * Handles {@code *Connection} commands and manages the persistence of connection. The actual connection handling to the
@@ -230,6 +226,7 @@ public final class ConnectionPersistenceActor
     private ConnectivityConfig getConnectivityConfigWithOverwrites(final Config connectivityConfigOverwrites) {
         final Config defaultConfig = getContext().getSystem().settings().config();
         final Config withOverwrites = connectivityConfigOverwrites.withFallback(defaultConfig);
+
         return ConnectivityConfig.of(withOverwrites);
     }
 
@@ -418,6 +415,7 @@ public final class ConnectionPersistenceActor
                     .build();
             return superEvent.setDittoHeaders(headersWithJournalTags);
         }
+
         return superEvent;
     }
 
@@ -780,6 +778,7 @@ public final class ConnectionPersistenceActor
                                 command.withResponse(
                                         toDittoRuntimeException(error, entityId, command.getDittoHeaders())),
                                 ActorRef.noSender());
+
                         return null;
                     });
         }
@@ -889,6 +888,7 @@ public final class ConnectionPersistenceActor
     private CompletionStage<Object> startAndAskClientActors(final SignalWithEntityId<?> cmd, final int clientCount) {
         startClientActorsIfRequired(clientCount, cmd.getDittoHeaders());
         final Object msg = consistentHashableEnvelope(cmd, cmd.getEntityId().toString());
+
         return processClientAskResult(Patterns.ask(clientActorRouter, msg, clientActorAskTimeout));
     }
 
@@ -909,6 +909,7 @@ public final class ConnectionPersistenceActor
         if (clientActorRouter != null && entity != null) {
             // wrap in Broadcast message because these management messages must be delivered to each client actor
             final Broadcast broadcast = new Broadcast(cmd);
+
             return processClientAskResult(Patterns.ask(clientActorRouter, broadcast, clientActorAskTimeout));
         } else {
             return CompletableFuture.completedFuture(null);
@@ -964,6 +965,7 @@ public final class ConnectionPersistenceActor
                 "Operation {0} failed due to {1}", action, dre.getMessage());
         log.warning("Operation <{}> on connection <{}> failed due to {}: {}.", action, entityId,
                 dre.getClass().getSimpleName(), dre.getMessage());
+
         return null;
     }
 
@@ -1092,10 +1094,8 @@ public final class ConnectionPersistenceActor
     }
 
     private void syncClientActorRefs(final ClientActorRefs clientActorRefs) {
-        final SourceRef<ActorRef> clientActorRefsSourceRef = Source.from(clientActorRefs.getSortedRefs())
-                .runWith(StreamRefs.sourceRef(), Materializer.createMaterializer(getContext()));
         if (clientActorRouter != null) {
-            clientActorRouter.tell(new Broadcast(clientActorRefsSourceRef), ActorRef.noSender());
+            clientActorRouter.tell(new Broadcast(clientActorRefs), ActorRef.noSender());
         }
     }
 

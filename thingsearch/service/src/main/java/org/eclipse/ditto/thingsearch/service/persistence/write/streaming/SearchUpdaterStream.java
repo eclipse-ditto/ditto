@@ -47,6 +47,11 @@ import akka.stream.javadsl.Source;
  */
 public final class SearchUpdaterStream {
 
+    /**
+     * Header to request this actor to perform a force-update due to a previous patch not being applied.
+     */
+    public static final String FORCE_UPDATE_INCORRECT_PATCH = "force-update-incorrect-patch";
+
     private final UpdaterConfig updaterConfig;
     private final EnforcementFlow enforcementFlow;
     private final MongoSearchUpdaterFlow mongoSearchUpdaterFlow;
@@ -120,6 +125,7 @@ public final class SearchUpdaterStream {
     public KillSwitch start(final ActorContext actorContext) {
         final Source<Source<AbstractWriteModel, NotUsed>, NotUsed> restartSource = createRestartSource();
         final Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> restartSink = createRestartSink();
+
         return restartSource.viaMat(KillSwitches.single(), Keep.right())
                 .toMat(restartSink, Keep.left())
                 .run(actorContext.system());
@@ -144,6 +150,7 @@ public final class SearchUpdaterStream {
                                 writeModelSource.via(blockNamespaceFlow(SearchUpdaterStream::namespaceOfWriteModel)));
 
         final var backOffConfig = retrievalConfig.getExponentialBackOffConfig();
+
         return RestartSource.withBackoff(
                 RestartSettings.create(backOffConfig.getMin(), backOffConfig.getMax(), backOffConfig.getRandomFactor()),
                 () -> source);
@@ -167,6 +174,7 @@ public final class SearchUpdaterStream {
                         .to(Sink.ignore());
 
         final var backOffConfig = persistenceConfig.getExponentialBackOffConfig();
+
         return RestartSink.withBackoff(
                 RestartSettings.create(backOffConfig.getMin(), backOffConfig.getMax(), backOffConfig.getRandomFactor()),
                 () -> sink);
@@ -200,6 +208,5 @@ public final class SearchUpdaterStream {
     private static String namespaceOfWriteModel(final AbstractWriteModel writeModel) {
         return writeModel.getMetadata().getThingId().getNamespace();
     }
-
 
 }

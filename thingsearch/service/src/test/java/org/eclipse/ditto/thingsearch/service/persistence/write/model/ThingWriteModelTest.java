@@ -34,5 +34,4 @@ public final class ThingWriteModelTest extends AbstractWithActorSystemTest {
                 .withPrefabValues(ActorRef.class, probe1.ref(), probe2.ref())
                 .verify();
     }
-
 }

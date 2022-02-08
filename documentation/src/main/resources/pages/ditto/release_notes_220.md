@@ -33,7 +33,7 @@ The following non-functional work is also included:
 <br/>
 
 For a complete list of all merged PRs, inspect the following milestones:
-* [merged pull requests for milestone 2.1.0](https://github.com/eclipse/ditto/pulls?q=is:pr+milestone:2.2.0)
+* [merged pull requests for milestone 2.2.0](https://github.com/eclipse/ditto/pulls?q=is:pr+milestone:2.2.0)
 
 <br/>
 <br/>

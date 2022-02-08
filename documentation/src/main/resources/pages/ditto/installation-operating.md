@@ -558,18 +558,28 @@ A piggyback command must conform to the following schema:
 
 {% include docson.html schema="jsonschema/piggyback-command.json" %}
 
+Piggyback commands can be sent to only one actor in the cluster or to a group of actors.   
+To have control this there are two headers which can be used for piggyback commands:
+* is-group-topic: `true`|`false` - Default: `false`
+* aggregate: `true`|`false` - Default: `true` 
+
+The `is-group-topic` header indicates if the piggyback command should be forwarded to only one actor or all actors of a group.
+The `aggregate` header indicates if the responses should be aggregated or not. 
+If `false` the first response is sent back and all other responses are ignored (if `is-group-topic` was `false`).
+
 Example:
 
 ```json
 {
-    "targetActorSelection": "/system/sharding/connection",
-    "headers": {
-        "aggregate": false
-    },
-    "piggybackCommand": {
-        "type": "connectivity.commands:createConnection",
-        ...
-    }
+  "targetActorSelection": "/system/sharding/connection",
+  "headers": {
+    "aggregate": false,
+    "is-group-topic": true
+  },
+  "piggybackCommand": {
+    "type": "connectivity.commands:createConnection",
+      ...
+  }
 }
 ```
 
@@ -592,7 +602,7 @@ Example piggyback for
   "targetActorSelection": "/system/sharding/policy",
   "headers": {
     "aggregate": false,
-    "is-group-topic": false
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "policies.commands:createPolicy",
@@ -613,7 +623,7 @@ Example piggyback for
   "targetActorSelection": "/system/sharding/policy",
   "headers": {
     "aggregate": false,
-    "is-group-topic": false
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "policies.commands:retrievePolicy",
@@ -641,7 +651,7 @@ Example piggyback for
   "targetActorSelection": "/system/sharding/thing",
   "headers": {
     "aggregate": false,
-    "is-group-topic": false
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "things.commands:createThing",
@@ -660,7 +670,7 @@ Example piggyback for
   "targetActorSelection": "/system/sharding/thing",
   "headers": {
     "aggregate": false,
-    "is-group-topic": false
+    "is-group-topic": true
   },
   "piggybackCommand": {
     "type": "things.commands:retrieveThing",

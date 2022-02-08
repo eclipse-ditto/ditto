@@ -80,9 +80,9 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     protected static QueryBuilderFactory qbf;
 
-    private static DittoMongoClient mongoClient;
+    protected static DittoMongoClient mongoClient;
 
-    private MongoCollection<Document> thingsCollection;
+    protected MongoCollection<Document> thingsCollection;
     protected MongoThingsSearchPersistence readPersistence;
     protected TestSearchUpdaterStream writePersistence;
 
