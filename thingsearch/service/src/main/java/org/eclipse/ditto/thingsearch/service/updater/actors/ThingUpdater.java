@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -93,6 +94,8 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     private final ShutdownBehaviour shutdownBehaviour;
     private final ActorRef changeQueueActor;
     private final double forceUpdateProbability;
+    private final MongoClientExtension mongoClientExtension;
+    private final Consumer<AbstractWriteModel> recoveryCompleteConsumer;
 
     // state of Thing and Policy
     private long thingRevision = -1L;
@@ -110,7 +113,8 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             final Duration forceUpdateAfterStartTimeout,
             final double forceUpdateAfterStartRandomFactor) {
         this(pubSubMediator, changeQueueActor, forceUpdateProbability, forceUpdateAfterStartTimeout,
-                forceUpdateAfterStartRandomFactor, true, true);
+                forceUpdateAfterStartRandomFactor, null, true, true,
+                writeModel -> {});
     }
 
     ThingUpdater(final ActorRef pubSubMediator,
@@ -118,8 +122,10 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             final double forceUpdateProbability,
             final Duration forceUpdateAfterStartTimeout,
             final double forceUpdateAfterStartRandomFactor,
+            @Nullable final MongoClientExtension mongoClientExtension,
             final boolean loadPreviousState,
-            final boolean awaitRecovery) {
+            final boolean awaitRecovery,
+            final Consumer<AbstractWriteModel> recoveryCompleteConsumer) {
 
         log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
         final var dittoSearchConfig = DittoSearchConfig.of(
@@ -129,6 +135,9 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
         shutdownBehaviour = ShutdownBehaviour.fromId(thingId, pubSubMediator, getSelf());
         this.changeQueueActor = changeQueueActor;
         this.forceUpdateProbability = forceUpdateProbability;
+        this.mongoClientExtension = Objects.requireNonNullElseGet(mongoClientExtension,
+                () -> MongoClientExtension.get(getContext().getSystem()));
+        this.recoveryCompleteConsumer = recoveryCompleteConsumer;
 
         getContext().setReceiveTimeout(dittoSearchConfig.getUpdaterConfig().getMaxIdleTime());
 
@@ -181,6 +190,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
         lastWriteModel = writeModel;
         getContext().become(recoveredBehavior());
         unstashAll();
+        recoveryCompleteConsumer.accept(writeModel);
     }
 
     private Receive recoveredBehavior() {
@@ -417,7 +427,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     private void recoverLastWriteModel(final ThingId thingId) {
         final var actorSystem = getContext().getSystem();
         // using search client instead of updater client for READ to ensure consistency in case of shard migration
-        final var client = MongoClientExtension.get(actorSystem).getSearchClient();
+        final var client = mongoClientExtension.getSearchClient();
         final var searchPersistence = new MongoThingsSearchPersistence(client, actorSystem);
         final var writeModelFuture = searchPersistence.recoverLastWriteModel(thingId).runWith(Sink.head(), actorSystem);
         Patterns.pipe(writeModelFuture, getContext().getDispatcher()).to(getSelf());
