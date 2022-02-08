@@ -29,7 +29,6 @@ import org.junit.Test;
 public final class FeatureDeletedStrategyTest extends AbstractStrategyTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(FeatureDeletedStrategy.class, areImmutable());
     }

@@ -85,7 +85,6 @@ public final class SendFeatureMessageTest {
             .build();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(SendFeatureMessage.class, MutabilityMatchers.areImmutable());
     }

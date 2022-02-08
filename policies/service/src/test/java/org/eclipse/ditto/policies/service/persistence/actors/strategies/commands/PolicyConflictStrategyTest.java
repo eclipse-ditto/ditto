@@ -49,7 +49,6 @@ import com.typesafe.config.ConfigFactory;
 public final class PolicyConflictStrategyTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(PolicyConflictStrategy.class, areImmutable());
     }

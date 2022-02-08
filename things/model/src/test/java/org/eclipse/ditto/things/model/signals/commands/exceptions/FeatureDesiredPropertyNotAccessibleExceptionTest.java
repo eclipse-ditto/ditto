@@ -46,7 +46,6 @@ public class FeatureDesiredPropertyNotAccessibleExceptionTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(FeatureDesiredPropertyNotAccessibleException.class, areImmutable());
     }

@@ -35,7 +35,6 @@ public final class ImmutablePolicyEntryTest {
     private static final Label LABEL_END_USER = Label.of("EndUser");
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutablePolicyEntry.class,
                 areImmutable(),

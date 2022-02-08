@@ -34,7 +34,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class ImmutableMessagePathTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableMessagePath.class, areImmutable(), provided(JsonPointer.class).isAlsoImmutable());
     }

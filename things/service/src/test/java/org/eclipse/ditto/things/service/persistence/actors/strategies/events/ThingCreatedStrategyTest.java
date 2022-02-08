@@ -39,7 +39,6 @@ public final class ThingCreatedStrategyTest extends AbstractStrategyTest {
     private static final Metadata METADATA = Metadata.newBuilder().set("foo", "bar").build();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ThingCreatedStrategy.class, areImmutable());
     }

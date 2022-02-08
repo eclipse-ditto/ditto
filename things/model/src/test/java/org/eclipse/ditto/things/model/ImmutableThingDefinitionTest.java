@@ -30,7 +30,6 @@ public class ImmutableThingDefinitionTest {
     private static final String VERSION = "1.0.0";
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableThingDefinition.class,
                 areImmutable(),

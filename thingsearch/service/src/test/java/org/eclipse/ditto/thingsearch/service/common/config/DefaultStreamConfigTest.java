@@ -47,7 +47,6 @@ public final class DefaultStreamConfigTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultStreamConfig.class,
                 areImmutable(),

@@ -37,7 +37,6 @@ public final class ImmutableResourceTest {
             EffectedPermissions.newInstance(TestConstants.Policy.PERMISSIONS_ALL, TestConstants.Policy.PERMISSIONS_ALL);
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableResource.class,
                 areImmutable(),

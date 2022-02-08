@@ -60,7 +60,6 @@ public final class Mqtt3ValidatorTest extends AbstractMqttValidatorTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void testImmutability() {
         assertInstancesOf(Mqtt3Validator.class, areImmutable());
     }

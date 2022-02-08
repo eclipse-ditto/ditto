@@ -24,7 +24,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class MappableOutboundSignalTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(MappableOutboundSignal.class, MutabilityMatchers.areImmutable(),
                 AllowedReason.provided(OutboundSignal.class, PayloadMapping.class).areAlsoImmutable());

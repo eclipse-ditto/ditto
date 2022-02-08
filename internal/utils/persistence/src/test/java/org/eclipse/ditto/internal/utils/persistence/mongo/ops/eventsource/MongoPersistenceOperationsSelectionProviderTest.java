@@ -44,7 +44,6 @@ public final class MongoPersistenceOperationsSelectionProviderTest {
     private static final String ENTITY_NAME = "name";
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(MongoPersistenceOperationsSelectionProvider.class, areImmutable());
     }

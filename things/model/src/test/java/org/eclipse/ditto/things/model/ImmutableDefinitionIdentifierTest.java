@@ -51,7 +51,6 @@ public final class ImmutableDefinitionIdentifierTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableDefinitionIdentifier.class, areImmutable(),
                 provided(URL.class).isAlsoImmutable());

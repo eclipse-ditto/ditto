@@ -60,7 +60,6 @@ public final class ShutdownTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(Shutdown.class, areImmutable(), provided(ShutdownReason.class).isAlsoImmutable());
     }

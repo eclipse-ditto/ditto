@@ -28,7 +28,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableSubjectIssuerTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableSubjectIssuer.class, areImmutable());
     }

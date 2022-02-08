@@ -62,7 +62,6 @@ public final class PurgeEntitiesTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(PurgeEntities.class, areImmutable(),
                 provided(EntityType.class).isAlsoImmutable(),

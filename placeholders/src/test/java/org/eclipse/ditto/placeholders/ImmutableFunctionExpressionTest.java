@@ -57,7 +57,6 @@ public class ImmutableFunctionExpressionTest {
     private static final ImmutableFunctionExpression UNDER_TEST = ImmutableFunctionExpression.INSTANCE;
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(ImmutableFunctionExpression.class, MutabilityMatchers.areImmutable());
     }

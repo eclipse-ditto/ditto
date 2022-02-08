@@ -38,7 +38,6 @@ public final class NullFeatureTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(NullFeature.class, areImmutable(), provided(JsonSchemaVersion.class).isAlsoImmutable());
     }

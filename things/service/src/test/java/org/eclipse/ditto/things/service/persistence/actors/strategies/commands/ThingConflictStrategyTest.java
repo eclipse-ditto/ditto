@@ -46,7 +46,6 @@ import org.mockito.Mockito;
 public final class ThingConflictStrategyTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ThingConflictStrategy.class, areImmutable());
     }

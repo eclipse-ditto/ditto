@@ -37,7 +37,6 @@ public final class TransformationResultTest {
             Map.of("creation-time", String.valueOf(Instant.now().toEpochMilli()), "ttl", "100000");
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(TransformationResult.class, areImmutable(),
                 provided(DittoRuntimeException.class, ExternalMessage.class).isAlsoImmutable());

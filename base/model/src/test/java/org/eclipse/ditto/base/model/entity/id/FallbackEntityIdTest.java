@@ -32,7 +32,6 @@ public final class FallbackEntityIdTest {
     private static final EntityType UNKNOWN_TYPE = EntityType.of("unknown");
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(FallbackEntityId.class, areImmutable(), provided(EntityType.class).isAlsoImmutable());
     }

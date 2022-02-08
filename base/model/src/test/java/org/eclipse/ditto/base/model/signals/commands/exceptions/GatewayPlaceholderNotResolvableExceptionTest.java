@@ -24,7 +24,6 @@ import org.junit.Test;
 public final class GatewayPlaceholderNotResolvableExceptionTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(GatewayPlaceholderNotResolvableException.class, areImmutable());
     }

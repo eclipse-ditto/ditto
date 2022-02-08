@@ -42,7 +42,6 @@ public class ImmutableExpressionResolverTest {
     private static ImmutableExpressionResolver underTest;
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(ImmutableExpressionResolver.class, MutabilityMatchers.areImmutable(),
                 AllowedReason.assumingFields("placeholderResolvers", "placeholderResolverFunctions")

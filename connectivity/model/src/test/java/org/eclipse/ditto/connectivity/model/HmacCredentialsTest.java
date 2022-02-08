@@ -34,7 +34,6 @@ public final class HmacCredentialsTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(HmacCredentials.class, areImmutable(), provided(JsonObject.class).isAlsoImmutable());
     }

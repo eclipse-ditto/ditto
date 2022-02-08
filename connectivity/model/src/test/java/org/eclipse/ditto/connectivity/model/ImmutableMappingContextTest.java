@@ -36,7 +36,6 @@ public final class ImmutableMappingContextTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableMappingContext.class, areImmutable(), provided(JsonObject.class).isAlsoImmutable());
     }

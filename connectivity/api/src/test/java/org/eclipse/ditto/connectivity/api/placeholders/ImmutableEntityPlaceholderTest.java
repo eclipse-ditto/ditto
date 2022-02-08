@@ -39,7 +39,6 @@ public class ImmutableEntityPlaceholderTest {
      * Assert immutability.
      */
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(ImmutablePolicyPlaceholder.class, MutabilityMatchers.areImmutable());
     }

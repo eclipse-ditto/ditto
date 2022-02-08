@@ -55,7 +55,6 @@ public final class ModifySubjectsStrategyTest extends AbstractPolicyCommandStrat
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ModifySubjectsStrategy.class, areImmutable());
     }

@@ -47,7 +47,6 @@ public final class PurgeNamespaceResponseTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(PurgeNamespaceResponse.class, areImmutable());
     }

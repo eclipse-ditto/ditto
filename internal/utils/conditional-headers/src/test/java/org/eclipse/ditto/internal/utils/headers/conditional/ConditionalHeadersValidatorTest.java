@@ -29,7 +29,6 @@ import org.junit.Test;
 public final class ConditionalHeadersValidatorTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ConditionalHeadersValidator.class, areImmutable(),
                 provided(ConditionalHeadersValidator.ValidationSettings.class, Predicate.class).areAlsoImmutable());

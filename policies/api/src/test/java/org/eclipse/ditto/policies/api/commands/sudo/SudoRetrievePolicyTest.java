@@ -43,7 +43,6 @@ public final class SudoRetrievePolicyTest {
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(SudoRetrievePolicy.class, areImmutable(),
                 provided(JsonFieldSelector.class, PolicyId.class).isAlsoImmutable());

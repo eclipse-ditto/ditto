@@ -45,7 +45,6 @@ public final class DefaultClusterConfigTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultClusterConfig.class,
                 areImmutable(),

@@ -46,7 +46,6 @@ public final class ThingModifiedTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ThingModified.class, areImmutable(),
                 provided(Thing.class).isAlsoImmutable());

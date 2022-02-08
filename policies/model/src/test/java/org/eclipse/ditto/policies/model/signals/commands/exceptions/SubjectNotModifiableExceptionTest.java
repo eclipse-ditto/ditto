@@ -46,7 +46,6 @@ public class SubjectNotModifiableExceptionTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(SubjectNotModifiableException.class, areImmutable());
     }

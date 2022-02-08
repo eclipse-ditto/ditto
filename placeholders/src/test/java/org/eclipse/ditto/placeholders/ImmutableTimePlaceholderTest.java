@@ -35,7 +35,6 @@ public final class ImmutableTimePlaceholderTest {
     private static final Object SOME_OBJECT = new Object();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(ImmutableTimePlaceholder.class, MutabilityMatchers.areImmutable());
     }

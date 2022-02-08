@@ -72,7 +72,6 @@ public final class SendClaimMessageTest {
             .build();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(SendClaimMessage.class, MutabilityMatchers.areImmutable());
     }

@@ -59,7 +59,6 @@ public final class SudoRetrieveThingsResponseTest {
     private static final DittoHeaders EMPTY_DITTO_HEADERS = DittoHeaders.empty();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(SudoRetrieveThingsResponse.class,
                 areImmutable(),

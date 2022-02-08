@@ -60,7 +60,6 @@ public final class MergeThingTest {
             TestConstants.Thing.LOCATION_ATTRIBUTE_POINTER, TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE, DITTO_HEADERS);
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(MergeThing.class,
                 areImmutable(),

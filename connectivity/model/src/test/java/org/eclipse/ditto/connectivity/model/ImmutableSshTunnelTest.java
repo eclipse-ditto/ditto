@@ -64,7 +64,6 @@ public final class ImmutableSshTunnelTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableSshTunnel.class, areImmutable(),
                 provided(Credentials.class).isAlsoImmutable());

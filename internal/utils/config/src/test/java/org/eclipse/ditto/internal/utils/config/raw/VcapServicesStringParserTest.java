@@ -63,7 +63,6 @@ public final class VcapServicesStringParserTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(VcapServicesStringParser.class, areImmutable());
     }

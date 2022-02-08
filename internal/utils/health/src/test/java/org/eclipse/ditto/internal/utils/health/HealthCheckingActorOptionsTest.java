@@ -31,7 +31,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class HealthCheckingActorOptionsTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(HealthCheckingActorOptions.class, areImmutable(),
                 provided(Runnable.class, Supplier.class).isAlsoImmutable());

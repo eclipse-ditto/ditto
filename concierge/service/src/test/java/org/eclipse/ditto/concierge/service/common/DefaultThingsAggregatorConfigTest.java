@@ -44,7 +44,6 @@ public final class DefaultThingsAggregatorConfigTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultThingsAggregatorConfig.class, areImmutable());
     }

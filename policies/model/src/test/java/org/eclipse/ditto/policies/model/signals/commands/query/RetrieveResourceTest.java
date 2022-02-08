@@ -49,7 +49,6 @@ public final class RetrieveResourceTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(RetrieveResource.class, areImmutable(),
                 provided(Label.class, ResourceKey.class, JsonPointer.class, PolicyId.class).isAlsoImmutable());

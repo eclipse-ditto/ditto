@@ -31,7 +31,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class ImmutablePlaceholderResolverTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(ImmutablePlaceholderResolver.class, MutabilityMatchers.areImmutable(),
                 AllowedReason.provided(Placeholder.class).isAlsoImmutable(),

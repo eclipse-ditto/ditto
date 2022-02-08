@@ -73,7 +73,6 @@ public final class RetrieveConnectionMetricsResponseTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(RetrieveConnectionMetricsResponse.class,
                 areImmutable(),

@@ -48,7 +48,6 @@ public final class ResourceModifiedTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ResourceModified.class, areImmutable(),
                 provided(Resource.class, Label.class).isAlsoImmutable());

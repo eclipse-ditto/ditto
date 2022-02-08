@@ -46,7 +46,6 @@ public final class DeleteAttributeTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DeleteAttribute.class, areImmutable(),
                 provided(JsonPointer.class, ThingId.class).isAlsoImmutable());

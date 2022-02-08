@@ -61,7 +61,6 @@ public final class RetrieveFeatureTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(RetrieveFeature.class, areImmutable(),
                 provided(JsonFieldSelector.class, ThingId.class).isAlsoImmutable());

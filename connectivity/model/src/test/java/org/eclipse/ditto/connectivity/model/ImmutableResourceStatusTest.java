@@ -50,7 +50,6 @@ public class ImmutableResourceStatusTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableResourceStatus.class, areImmutable());
     }

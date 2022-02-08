@@ -52,7 +52,6 @@ public final class ImmutableJsonFieldTest {
     private JsonFieldMarker schemaVersionMarkerMock;
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonField.class,
                 areImmutable(),

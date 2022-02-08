@@ -33,7 +33,6 @@ public final class DefaultStatisticsShardConfigTest {
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultStatisticsShardConfig.class, areImmutable());
     }

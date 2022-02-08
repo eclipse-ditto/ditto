@@ -51,7 +51,6 @@ public final class ImmutableSubjectAnnouncementTest {
             .build();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableSubjectAnnouncement.class, areImmutable(),
                 provided(DittoDuration.class, AcknowledgementRequest.class).isAlsoImmutable());

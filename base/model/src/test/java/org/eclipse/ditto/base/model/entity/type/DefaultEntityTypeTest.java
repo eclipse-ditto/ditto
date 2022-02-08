@@ -32,7 +32,6 @@ public final class DefaultEntityTypeTest {
     private static final String KNOWN_VALUE = "shub-niggurath";
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultEntityType.class, areImmutable());
     }

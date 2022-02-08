@@ -59,7 +59,6 @@ public class ImmutablePipelineTest {
     private ExpressionResolver expressionResolver;
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(ImmutablePipeline.class, MutabilityMatchers.areImmutable(),
                 AllowedReason.provided(FunctionExpression.class).isAlsoImmutable());

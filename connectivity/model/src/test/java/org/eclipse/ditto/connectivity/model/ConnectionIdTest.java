@@ -26,7 +26,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class ConnectionIdTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void testImmutability() {
         assertInstancesOf(ConnectionId.class, areImmutable(), provided(EntityId.class).isAlsoImmutable());
     }

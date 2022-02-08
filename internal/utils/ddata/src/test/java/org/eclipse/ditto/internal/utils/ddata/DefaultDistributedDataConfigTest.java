@@ -46,7 +46,6 @@ public final class DefaultDistributedDataConfigTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultDistributedDataConfig.class, areImmutable(),
                 AllowedReason.provided(DefaultAkkaReplicatorConfig.class,

@@ -46,7 +46,6 @@ public final class RetrieveAttributeTest {
             .build();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(RetrieveAttribute.class, areImmutable(),
                 provided(JsonPointer.class, ThingId.class).isAlsoImmutable());

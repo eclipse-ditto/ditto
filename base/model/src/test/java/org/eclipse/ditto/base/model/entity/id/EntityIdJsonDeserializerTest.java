@@ -32,7 +32,6 @@ public final class EntityIdJsonDeserializerTest {
     private static final JsonFieldDefinition<String> FIELD_DEFINITION = JsonFieldDefinition.ofString("entityId");
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(EntityIdJsonDeserializer.class, areImmutable());
     }

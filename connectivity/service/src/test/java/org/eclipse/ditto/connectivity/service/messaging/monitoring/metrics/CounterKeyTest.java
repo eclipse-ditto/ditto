@@ -25,7 +25,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class CounterKeyTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void testImmutability() {
         assertInstancesOf(CounterKey.class, areImmutable(), AllowedReason.provided(MetricType.class).isAlsoImmutable());
     }

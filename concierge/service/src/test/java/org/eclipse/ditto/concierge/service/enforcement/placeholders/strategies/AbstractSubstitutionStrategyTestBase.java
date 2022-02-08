@@ -67,7 +67,6 @@ public abstract class AbstractSubstitutionStrategyTestBase {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public abstract void assertImmutability();
 
     protected final DittoHeadersSettable<?> applyBlocking(final DittoHeadersSettable<?> input) {

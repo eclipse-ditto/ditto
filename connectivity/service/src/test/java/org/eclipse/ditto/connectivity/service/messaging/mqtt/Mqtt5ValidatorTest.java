@@ -55,7 +55,6 @@ public final class Mqtt5ValidatorTest extends AbstractMqttValidatorTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void testImmutability() {
         assertInstancesOf(Mqtt5Validator.class, areImmutable());
     }

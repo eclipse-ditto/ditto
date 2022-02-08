@@ -44,7 +44,6 @@ public class DefaultMapperLimitsConfigTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultMapperLimitsConfig.class,
                 areImmutable(),

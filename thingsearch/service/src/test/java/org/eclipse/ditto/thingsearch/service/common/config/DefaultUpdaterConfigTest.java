@@ -44,7 +44,6 @@ public final class DefaultUpdaterConfigTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultUpdaterConfig.class, areImmutable(),
                 provided(BackgroundSyncConfig.class, DefaultStreamConfig.class, DefaultUpdaterPersistenceConfig.class)

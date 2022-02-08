@@ -35,7 +35,6 @@ public final class DefaultCleanupConfigTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultCleanupConfig.class, areImmutable());
     }

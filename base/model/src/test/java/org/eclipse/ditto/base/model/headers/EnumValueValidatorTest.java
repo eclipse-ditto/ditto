@@ -34,7 +34,6 @@ public final class EnumValueValidatorTest {
             DittoHeaderDefinition.LIVE_CHANNEL_TIMEOUT_STRATEGY;
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(EnumValueValidator.class, areImmutable());
     }

@@ -43,7 +43,6 @@ public final class AttributesDeletedTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(AttributesDeleted.class, areImmutable(), provided(Attributes.class).isAlsoImmutable());
     }

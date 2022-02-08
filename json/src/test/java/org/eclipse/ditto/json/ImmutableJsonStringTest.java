@@ -33,7 +33,6 @@ public final class ImmutableJsonStringTest {
     private static final String KNOWN_STRING_VALUE = "foo";
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonString.class,
                 areImmutable(),

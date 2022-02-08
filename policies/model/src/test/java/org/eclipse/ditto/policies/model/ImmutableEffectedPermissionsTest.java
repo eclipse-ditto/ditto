@@ -31,7 +31,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableEffectedPermissionsTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableEffectedPermissions.class,
                 areImmutable(),

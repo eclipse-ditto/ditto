@@ -32,7 +32,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DittoAuthorizationContextTypeTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DittoAuthorizationContextType.class, areImmutable());
     }

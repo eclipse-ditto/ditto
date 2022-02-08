@@ -55,7 +55,6 @@ public final class CreateSubscriptionTest {
             .build().toString();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(CreateSubscription.class,
                 areEffectivelyImmutable(),

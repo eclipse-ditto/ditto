@@ -48,7 +48,6 @@ public final class SubjectModifiedTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(SubjectModified.class, areImmutable(),
                 provided(Subject.class, Label.class).isAlsoImmutable());

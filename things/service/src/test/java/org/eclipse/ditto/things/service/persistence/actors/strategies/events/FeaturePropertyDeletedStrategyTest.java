@@ -34,7 +34,6 @@ import org.junit.Test;
 public final class FeaturePropertyDeletedStrategyTest extends AbstractStrategyTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(FeaturePropertyDeletedStrategy.class, areImmutable());
     }

@@ -39,7 +39,6 @@ public final class EntityIdsTest {
     private BaseEntityIdFactory<NamespacedEntityId> namespacedEntityIdFactory;
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(EntityIds.class, areImmutable(), provided(BaseEntityIdFactory.class).isAlsoImmutable());
     }

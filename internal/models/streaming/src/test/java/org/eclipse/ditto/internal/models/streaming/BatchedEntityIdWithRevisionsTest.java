@@ -47,7 +47,6 @@ public final class BatchedEntityIdWithRevisionsTest {
             .build();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(BatchedEntityIdWithRevisions.class, areImmutable(),
                 FieldAssumptions.named(Collections.singleton("elements"))

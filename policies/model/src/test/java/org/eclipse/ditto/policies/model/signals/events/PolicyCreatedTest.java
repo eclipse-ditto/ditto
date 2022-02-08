@@ -56,7 +56,6 @@ public final class PolicyCreatedTest {
             .build();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(PolicyCreated.class, areImmutable(), provided(Policy.class).isAlsoImmutable());
     }

@@ -34,7 +34,6 @@ import org.mockito.Mockito;
 public final class JsonValueToDbEntityMapperTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(JsonValueToDbEntityMapper.class, areImmutable(), provided(Function.class).isAlsoImmutable());
     }

@@ -37,7 +37,6 @@ public class EffectedResourcesTest {
                     JsonFactory.newPointer("/"), "WRITE"));
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(EffectedResources.class, areImmutable(), provided(JsonPointer.class).isAlsoImmutable(),
                 provided(TreeBasedPolicyEnforcer.PointerAndPermission.class).isAlsoImmutable());

@@ -46,7 +46,6 @@ public final class JsonFactoryTest {
     private static final long KNOWN_LONG = 422308154711L;
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(JsonFactory.class, areImmutable());
     }

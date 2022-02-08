@@ -32,7 +32,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class SudoRetrievePolicyRevisionResponseTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(SudoRetrievePolicyRevisionResponse.class, areImmutable(),
                 provided(JsonFieldSelector.class, PolicyId.class).isAlsoImmutable());

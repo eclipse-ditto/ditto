@@ -31,7 +31,6 @@ public class StreamAckTest {
     private static final String KNOWN_ELEMENT_ID = "knownElementId";
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(StreamAck.class, areImmutable());
     }

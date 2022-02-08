@@ -74,7 +74,6 @@ public final class ActivateTokenIntegrationTest {
             SubjectAnnouncement.of(DittoDuration.parseDuration("1m"), true);
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ActivateTokenIntegration.class,
                 areImmutable(),

@@ -219,7 +219,6 @@ public final class ImmutableConnectionTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableConnection.class, areImmutable(),
                 provided(AuthorizationContext.class, Source.class, Target.class,

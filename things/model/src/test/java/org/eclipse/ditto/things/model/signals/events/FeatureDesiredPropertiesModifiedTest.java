@@ -49,7 +49,6 @@ public final class FeatureDesiredPropertiesModifiedTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(FeatureDesiredPropertiesModified.class,
                 areImmutable(),

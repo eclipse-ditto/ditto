@@ -34,7 +34,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class SubscriptionFailedTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(SubscriptionFailed.class, areImmutable(),
                 provided(DittoRuntimeException.class).isAlsoImmutable());

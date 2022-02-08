@@ -97,7 +97,6 @@ public final class MongoQueryTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void immutability() {
         assertInstancesOf(MongoQuery.class, areImmutable(),
                 provided(Criteria.class, SortOption.class).isAlsoImmutable());

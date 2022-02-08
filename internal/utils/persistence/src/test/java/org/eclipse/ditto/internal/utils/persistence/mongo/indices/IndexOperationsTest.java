@@ -27,7 +27,6 @@ import com.mongodb.reactivestreams.client.MongoDatabase;
 public class IndexOperationsTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(IndexOperations.class, areImmutable(),
                 provided(MongoDatabase.class).isAlsoImmutable());

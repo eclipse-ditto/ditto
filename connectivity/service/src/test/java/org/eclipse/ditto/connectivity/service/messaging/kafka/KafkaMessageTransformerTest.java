@@ -73,7 +73,6 @@ public final class KafkaMessageTransformerTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(KafkaMessageTransformer.class, areImmutable(),
                 provided(Source.class, EnforcementFilterFactory.class, ConnectionMonitor.class).areAlsoImmutable());

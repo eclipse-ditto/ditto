@@ -43,7 +43,6 @@ public final class DeleteFeatureDesiredPropertiesStrategyTest extends AbstractCo
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DeleteFeatureDesiredPropertiesStrategy.class, areImmutable());
     }

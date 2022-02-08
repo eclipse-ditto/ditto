@@ -28,7 +28,6 @@ import org.junit.Test;
 public final class AttributeCreatedStrategyTest extends AbstractStrategyTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(AttributeCreatedStrategy.class, areImmutable());
     }

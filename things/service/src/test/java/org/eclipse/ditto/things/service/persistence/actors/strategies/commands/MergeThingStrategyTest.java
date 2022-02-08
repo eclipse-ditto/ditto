@@ -50,7 +50,6 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(MergeThingStrategy.class, areImmutable());
     }

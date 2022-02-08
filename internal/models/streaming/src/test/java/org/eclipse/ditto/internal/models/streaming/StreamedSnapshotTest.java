@@ -31,7 +31,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class StreamedSnapshotTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(StreamedSnapshot.class, areImmutable(),
                 provided(EntityId.class, JsonObject.class).areAlsoImmutable());

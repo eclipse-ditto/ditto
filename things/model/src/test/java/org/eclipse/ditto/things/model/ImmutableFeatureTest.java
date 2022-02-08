@@ -66,7 +66,6 @@ public final class ImmutableFeatureTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         final Class<?>[] knownImmutableTypes = new Class[]{
                 JsonObject.class,

@@ -42,7 +42,6 @@ public final class HttpStatusCodeValueValidatorTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(HttpStatusCodeValueValidator.class, areImmutable());
     }

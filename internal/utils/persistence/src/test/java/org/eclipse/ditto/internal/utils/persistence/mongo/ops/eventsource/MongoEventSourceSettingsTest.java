@@ -40,7 +40,6 @@ public class MongoEventSourceSettingsTest {
     private static final String SNAPSHOT_PLUGIN_ID = "my-snapshot-plugin-id";
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(MongoEventSourceSettings.class, areImmutable());
     }

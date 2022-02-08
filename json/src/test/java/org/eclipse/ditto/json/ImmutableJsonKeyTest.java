@@ -28,7 +28,6 @@ import nl.jqno.equalsverifier.Warning;
 public final class ImmutableJsonKeyTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonKey.class, areImmutable());
     }

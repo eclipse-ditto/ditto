@@ -27,7 +27,6 @@ import org.junit.Test;
 public final class NamespaceBlockedExceptionTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(NamespaceBlockedException.class, areImmutable());
     }

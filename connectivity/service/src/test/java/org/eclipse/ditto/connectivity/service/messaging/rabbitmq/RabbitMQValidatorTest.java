@@ -66,7 +66,6 @@ public final class RabbitMQValidatorTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void testImmutability() {
         assertInstancesOf(RabbitMQValidator.class, areImmutable());
     }

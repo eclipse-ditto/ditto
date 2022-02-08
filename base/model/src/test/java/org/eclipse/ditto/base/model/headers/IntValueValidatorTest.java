@@ -37,7 +37,6 @@ public final class IntValueValidatorTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(IntValueValidator.class, areImmutable());
     }

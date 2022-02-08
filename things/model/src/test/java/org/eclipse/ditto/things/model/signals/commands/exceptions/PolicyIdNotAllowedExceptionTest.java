@@ -46,7 +46,6 @@ public class PolicyIdNotAllowedExceptionTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(PolicyIdNotAllowedException.class, areImmutable());
     }

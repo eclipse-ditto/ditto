@@ -44,7 +44,6 @@ public final class DefaultEffectedSubjectsTest {
     private static final Collection<AuthorizationSubject> KNOWN_REVOKED = Sets.newSet(REVOKED_1, REVOKED_2);
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultEffectedSubjects.class,
                 areImmutable(),

@@ -88,7 +88,6 @@ public final class AtLeastOnceConsumerStreamTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void isImmutable() {
         assertInstancesOf(AtLeastOnceConsumerStream.class,
                 areImmutable(),

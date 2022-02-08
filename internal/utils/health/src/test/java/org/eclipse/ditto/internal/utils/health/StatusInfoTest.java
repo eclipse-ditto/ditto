@@ -98,7 +98,6 @@ public final class StatusInfoTest {
             .build();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(StatusInfo.class, areImmutable(),
                 provided(StatusInfo.class, StatusDetailMessage.class)

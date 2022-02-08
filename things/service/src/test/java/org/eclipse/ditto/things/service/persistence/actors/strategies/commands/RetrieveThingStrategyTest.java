@@ -48,7 +48,6 @@ public final class RetrieveThingStrategyTest extends AbstractCommandStrategyTest
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(RetrieveThingStrategy.class, areImmutable());
     }

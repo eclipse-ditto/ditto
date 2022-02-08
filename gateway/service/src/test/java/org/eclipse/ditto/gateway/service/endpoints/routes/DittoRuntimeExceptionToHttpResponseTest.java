@@ -54,7 +54,6 @@ public final class DittoRuntimeExceptionToHttpResponseTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DittoRuntimeExceptionToHttpResponse.class,
                 areImmutable(),

@@ -58,7 +58,6 @@ public final class MatchingValidationResultTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutabilityForSuccess() {
         final var success = MatchingValidationResult.success();
 
@@ -88,7 +87,6 @@ public final class MatchingValidationResultTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutabilityForFailure() {
         assertInstancesOf(MatchingValidationResult.Failure.class,
                 areImmutable(),

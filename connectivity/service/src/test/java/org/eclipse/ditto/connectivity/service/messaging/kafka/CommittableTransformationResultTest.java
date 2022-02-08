@@ -28,7 +28,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class CommittableTransformationResultTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(CommittableTransformationResult.class, areImmutable(),
                 provided(TransformationResult.class, ConsumerMessage.CommittableOffset.class).isAlsoImmutable());

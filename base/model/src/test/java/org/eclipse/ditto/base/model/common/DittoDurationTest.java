@@ -31,7 +31,6 @@ import org.junit.Test;
 public final class DittoDurationTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DittoDuration.class,
                 areImmutable(),

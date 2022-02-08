@@ -40,7 +40,6 @@ public final class DeleteThingDefinitionStrategyTest extends AbstractCommandStra
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DeleteThingDefinitionStrategy.class, areImmutable());
     }

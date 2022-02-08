@@ -63,7 +63,6 @@ public class HeaderBasedPlaceholderSubstitutionAlgorithmTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(HeaderBasedPlaceholderSubstitutionAlgorithm.class, areImmutable(),
                 assumingFields("replacementDefinitions", "knownPlaceHolders")

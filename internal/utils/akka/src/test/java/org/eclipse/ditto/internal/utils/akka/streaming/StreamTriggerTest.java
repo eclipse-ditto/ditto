@@ -35,7 +35,6 @@ public class StreamTriggerTest {
     private static final Duration STREAM_INTERVAL = Duration.ofMinutes(5);
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(StreamTrigger.class, areImmutable());
     }

@@ -29,7 +29,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableSortOptionEntryTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableSortOptionEntry.class, areImmutable(),
                 provided(JsonPointer.class).isAlsoImmutable());

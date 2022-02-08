@@ -54,7 +54,6 @@ public final class ModifyThingDefinitionResponseTest {
             .build();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ModifyThingDefinitionResponse.class,
                 areImmutable(),

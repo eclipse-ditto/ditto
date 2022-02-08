@@ -34,7 +34,6 @@ import org.junit.Test;
 public final class ThingLiveCommandAckRequestSetterTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ThingLiveCommandAckRequestSetter.class, areImmutable());
     }

@@ -41,7 +41,6 @@ public final class SudoCountThingsTest {
             .build().toString();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(SudoCountThings.class, MutabilityMatchers.areImmutable());
     }

@@ -71,7 +71,6 @@ public final class RootRouteExceptionHandlerTest extends JUnitRouteTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(RootRouteExceptionHandler.class,
                 areImmutable(),

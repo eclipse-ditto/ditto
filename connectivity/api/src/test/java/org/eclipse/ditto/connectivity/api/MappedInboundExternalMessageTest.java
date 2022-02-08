@@ -26,7 +26,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class MappedInboundExternalMessageTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         // The field "bytePayload" is mutable.
         // Assume the user never modifies it.

@@ -50,7 +50,6 @@ public final class OpenConnectionTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(OpenConnection.class,
                 areImmutable(),

@@ -36,7 +36,6 @@ public final class ImmutableFeatureDefinitionIdentifierTest {
     private static final String VALID_IDENTIFIER_STRING = NAMESPACE + ":" + NAME + ":" + VERSION;
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableFeatureDefinitionIdentifier.class, areImmutable(),
                 provided(DefinitionIdentifier.class).areAlsoImmutable());

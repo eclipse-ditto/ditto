@@ -45,7 +45,6 @@ public final class DefaultStreamingConfigTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultStreamingConfig.class, areImmutable(),
                 provided(Config.class, WebsocketConfig.class, SseConfig.class, GatewaySignalEnrichmentConfig.class)

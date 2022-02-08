@@ -64,7 +64,6 @@ public final class SubjectsDeletedPartiallyTest {
             .build();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(SubjectsDeletedPartially.class, areImmutable(),
                 provided(Subject.class, SubjectId.class, Label.class).isAlsoImmutable(),

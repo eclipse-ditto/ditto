@@ -45,7 +45,6 @@ public final class EntityRegionMapTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(EntityRegionMap.class, areImmutable(),
                 provided(ActorRef.class).isAlsoImmutable(),

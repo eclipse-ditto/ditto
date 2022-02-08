@@ -41,7 +41,6 @@ public final class AmqpValidatorTest {
     private static final AmqpValidator UNDER_TEST = AmqpValidator.newInstance();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void testImmutability() {
         assertInstancesOf(AmqpValidator.class, areImmutable());
     }

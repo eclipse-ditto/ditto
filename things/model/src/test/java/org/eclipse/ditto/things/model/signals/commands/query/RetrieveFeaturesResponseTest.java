@@ -47,7 +47,6 @@ public final class RetrieveFeaturesResponseTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(RetrieveFeaturesResponse.class, areImmutable(),
                 provided(Features.class, ThingId.class).isAlsoImmutable());

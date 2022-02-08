@@ -33,7 +33,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ThingsOutOfSyncTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(ThingsOutOfSync.class, MutabilityMatchers.areImmutable(),
                 AllowedReason.provided(DittoHeaders.class).isAlsoImmutable(),

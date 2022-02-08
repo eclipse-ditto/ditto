@@ -49,7 +49,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class SignalEnforcementFilterTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(SignalEnforcementFilter.class, MutabilityMatchers.areImmutable(),
                 AllowedReason.provided(Enforcement.class, Placeholder.class).areAlsoImmutable(),

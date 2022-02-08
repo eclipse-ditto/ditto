@@ -30,7 +30,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class CancelSubscriptionTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(CancelSubscription.class, areImmutable());
     }

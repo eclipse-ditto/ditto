@@ -32,7 +32,6 @@ public final class ImmutableSubjectIdTest extends LengthRestrictionTestBase {
     private static final String ISSUER_WITH_SEPARATOR = SubjectIssuer.GOOGLE.toString() + ":";
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableSubjectId.class, areImmutable(), provided(SubjectIssuer.class).areAlsoImmutable());
     }

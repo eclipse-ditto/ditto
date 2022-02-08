@@ -44,7 +44,6 @@ public final class AttributesCreatedTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(AttributesCreated.class, areImmutable(), provided(Attributes.class).isAlsoImmutable());
     }

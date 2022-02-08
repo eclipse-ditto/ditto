@@ -28,7 +28,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableJavaScriptMessageMapperConfigurationTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableJavaScriptMessageMapperConfiguration.class,
                 areImmutable(),

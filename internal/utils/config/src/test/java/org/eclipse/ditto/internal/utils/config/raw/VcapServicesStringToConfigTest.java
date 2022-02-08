@@ -62,7 +62,6 @@ public final class VcapServicesStringToConfigTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(VcapServicesStringToConfig.class, areImmutable());
     }

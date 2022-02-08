@@ -105,7 +105,6 @@ public class ConnectionValidatorTest {
     public final ExpectedException exception = ExpectedException.none();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void testImmutability() {
         assertInstancesOf(ConnectionValidator.class,
                 areImmutable(),

@@ -46,7 +46,6 @@ public final class DefaultAkkaReplicatorConfigTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultAkkaReplicatorConfig.class, areImmutable(),
                 AllowedReason.provided(Config.class).areAlsoImmutable());

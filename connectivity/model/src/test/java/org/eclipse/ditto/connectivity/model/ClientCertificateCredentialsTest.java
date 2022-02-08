@@ -32,7 +32,6 @@ public final class ClientCertificateCredentialsTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ClientCertificateCredentials.class, areImmutable());
     }

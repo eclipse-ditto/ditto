@@ -159,7 +159,6 @@ public final class RetrieveConnectionStatusResponseTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(RetrieveConnectionStatusResponse.class, areImmutable(),
                 provided(JsonObject.class, ConnectionId.class).isAlsoImmutable());

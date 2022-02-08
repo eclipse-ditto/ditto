@@ -27,7 +27,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultMessageMapperConfigurationTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultMessageMapperConfiguration.class, areImmutable(),
                 AllowedReason.provided(MergedJsonObjectMap.class).isAlsoImmutable());

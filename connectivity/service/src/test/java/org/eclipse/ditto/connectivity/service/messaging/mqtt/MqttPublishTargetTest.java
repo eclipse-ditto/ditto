@@ -26,7 +26,6 @@ public class MqttPublishTargetTest {
     private static final String TOPIC = "eclipse/ditto/mqtt/topic";
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void testImmutability() {
         assertInstancesOf(MqttPublishTarget.class, areImmutable());
     }

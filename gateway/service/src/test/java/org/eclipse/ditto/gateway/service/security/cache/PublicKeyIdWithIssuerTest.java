@@ -26,7 +26,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class PublicKeyIdWithIssuerTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(PublicKeyIdWithIssuer.class, areImmutable());
     }

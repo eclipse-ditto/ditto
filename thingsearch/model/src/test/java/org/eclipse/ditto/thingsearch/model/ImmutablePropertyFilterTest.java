@@ -41,7 +41,6 @@ public final class ImmutablePropertyFilterTest {
             Arrays.asList(newValue("foo"), newValue("bar"), newValue("baz"));
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutablePropertyFilter.class,
                 areImmutable(),

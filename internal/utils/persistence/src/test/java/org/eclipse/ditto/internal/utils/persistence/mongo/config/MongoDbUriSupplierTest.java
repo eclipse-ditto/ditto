@@ -46,7 +46,6 @@ public final class MongoDbUriSupplierTest {
     private static final String KEY_URI = MongoDbUriSupplier.URI_CONFIG_PATH;
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(MongoDbUriSupplier.class,
                 areImmutable(),

@@ -36,7 +36,6 @@ public class ImmutablePayloadMappingDefinitionTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutablePayloadMappingDefinition.class, areImmutable(),
                 provided(MappingContext.class).areAlsoImmutable(),

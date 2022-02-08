@@ -27,7 +27,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableLabelTest extends LengthRestrictionTestBase {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableLabel.class, areImmutable());
     }

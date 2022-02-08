@@ -47,7 +47,6 @@ public final class LoggingExpiredTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(LoggingExpired.class,
                 areImmutable(),

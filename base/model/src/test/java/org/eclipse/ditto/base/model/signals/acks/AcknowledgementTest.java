@@ -63,7 +63,6 @@ public final class AcknowledgementTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(Acknowledgement.class, areImmutable(),
                 provided(AcknowledgementLabel.class,

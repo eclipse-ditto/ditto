@@ -52,7 +52,6 @@ public final class CreateConnectionResponseTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(CreateConnectionResponse.class, areImmutable(), provided(Connection.class,
                 MappingContext.class)

@@ -56,7 +56,6 @@ public final class ModifyResourceResponseTest {
             .build();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ModifyResourceResponse.class,
                 areImmutable(),

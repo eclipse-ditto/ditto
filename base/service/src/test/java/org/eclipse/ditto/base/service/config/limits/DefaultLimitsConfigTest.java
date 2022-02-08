@@ -42,7 +42,6 @@ public class DefaultLimitsConfigTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultLimitsConfig.class,
                 areImmutable());

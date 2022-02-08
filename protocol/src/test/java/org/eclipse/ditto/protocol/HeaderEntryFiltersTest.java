@@ -38,7 +38,6 @@ import org.junit.Test;
 public final class HeaderEntryFiltersTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(HeaderEntryFilters.class, areImmutable());
     }

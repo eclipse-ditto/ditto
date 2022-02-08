@@ -61,7 +61,6 @@ public class ThingsConditionalHeadersValidatorTest {
     private static final ConditionalHeadersValidator SUT = ThingsConditionalHeadersValidatorProvider.getInstance();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ThingsConditionalHeadersValidatorProvider.class, areImmutable());
     }

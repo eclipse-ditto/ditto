@@ -46,7 +46,6 @@ public final class DefaultUpdaterPersistenceConfigTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultUpdaterPersistenceConfig.class,
                 areImmutable(),

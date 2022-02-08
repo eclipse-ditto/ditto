@@ -95,7 +95,6 @@ public final class ImmutableJsonifiableAdaptableTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonifiableAdaptable.class, areImmutable(),
                 provided(Adaptable.class).areAlsoImmutable());

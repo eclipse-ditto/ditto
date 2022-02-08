@@ -99,7 +99,7 @@
         <junit.version>4.13.2</junit.version>
         <junit-jupiter.version>5.8.2</junit-jupiter.version>
         <assertj.version>3.22.0</assertj.version>
-        <mutability-detector.version>0.10.4</mutability-detector.version>
+        <mutability-detector.version>0.10.6</mutability-detector.version>
         <equals-verifier.version>3.8.2</equals-verifier.version>
         <mockito.version>4.2.0</mockito.version>
         <jsonassert.version>1.5.0</jsonassert.version>

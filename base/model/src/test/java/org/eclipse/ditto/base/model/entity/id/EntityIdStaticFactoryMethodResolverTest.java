@@ -30,7 +30,6 @@ import org.junit.Test;
 public final class EntityIdStaticFactoryMethodResolverTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(EntityIdStaticFactoryMethodResolver.class, areImmutable());
     }

@@ -46,7 +46,6 @@ public final class PolicyEntryNotAccessibleExceptionTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(PolicyEntryNotAccessibleException.class, areImmutable());
     }

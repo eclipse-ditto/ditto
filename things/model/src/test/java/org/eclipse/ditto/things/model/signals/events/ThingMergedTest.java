@@ -47,7 +47,6 @@ public final class ThingMergedTest {
             .build();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ThingMerged.class, areImmutable(),
                 provided(JsonPointer.class, JsonValue.class).isAlsoImmutable());

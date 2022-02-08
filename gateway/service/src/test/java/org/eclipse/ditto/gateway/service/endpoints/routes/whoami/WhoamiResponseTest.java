@@ -101,7 +101,6 @@ public final class WhoamiResponseTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void testImmutability() {
         assertInstancesOf(WhoamiResponse.class, areImmutable(), provided(JsonObject.class).isAlsoImmutable());
     }

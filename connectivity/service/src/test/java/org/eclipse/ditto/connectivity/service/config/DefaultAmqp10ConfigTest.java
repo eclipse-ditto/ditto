@@ -48,7 +48,6 @@ public final class DefaultAmqp10ConfigTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultAmqp10Config.class,
                 areImmutable(),

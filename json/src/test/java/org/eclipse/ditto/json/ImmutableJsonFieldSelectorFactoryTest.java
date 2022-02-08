@@ -38,7 +38,6 @@ public final class ImmutableJsonFieldSelectorFactoryTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonFieldSelectorFactory.class, areImmutable());
     }

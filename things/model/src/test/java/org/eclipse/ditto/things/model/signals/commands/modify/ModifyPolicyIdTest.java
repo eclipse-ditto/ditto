@@ -49,7 +49,6 @@ public final class ModifyPolicyIdTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ModifyPolicyId.class, areImmutable(),
                 provided(ThingId.class, PolicyId.class).isAlsoImmutable());

@@ -23,7 +23,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class RetrieveHealthTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(RetrieveHealth.class, areImmutable());
     }

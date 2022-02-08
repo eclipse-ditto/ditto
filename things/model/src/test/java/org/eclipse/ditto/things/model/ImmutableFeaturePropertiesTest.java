@@ -39,7 +39,6 @@ public final class ImmutableFeaturePropertiesTest extends LengthRestrictionTestB
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableFeatureProperties.class, areImmutable(),
                 provided(JsonObject.class).isAlsoImmutable());

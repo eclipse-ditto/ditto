@@ -61,7 +61,6 @@ public final class ModifyFeaturePropertyStrategyTest extends AbstractCommandStra
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ModifyFeaturePropertyStrategy.class, areImmutable());
     }

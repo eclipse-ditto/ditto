@@ -45,7 +45,6 @@ public final class ResultFactoryTest {
     private final DittoRuntimeException exception = mock(DittoRuntimeException.class);
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ResultFactory.class, areImmutable());
     }

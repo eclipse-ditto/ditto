@@ -55,7 +55,6 @@ public final class ModifyAttributesTest {
             .build();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ModifyAttributes.class, areImmutable(),
                 provided(Attributes.class, ThingId.class).isAlsoImmutable());

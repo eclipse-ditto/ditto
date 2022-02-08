@@ -27,7 +27,6 @@ public class ImmutableSourceAddressPlaceholderTest {
     private static final String SOME_MQTT_TOPIC = "some/mqtt/topic";
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void testImmutability() {
         assertInstancesOf(ImmutableSourceAddressPlaceholder.class, areImmutable());
     }

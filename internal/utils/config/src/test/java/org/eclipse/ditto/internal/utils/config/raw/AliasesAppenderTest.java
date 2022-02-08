@@ -52,7 +52,6 @@ public final class AliasesAppenderTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(AliasesAppender.class,
                 areImmutable(),

@@ -77,7 +77,6 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(TopLevelPolicyActionCommandStrategy.class, areImmutable(),
                 AllowedReason.assumingFields("policyActionCommandStrategyMap")

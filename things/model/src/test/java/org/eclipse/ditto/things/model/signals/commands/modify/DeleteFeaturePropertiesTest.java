@@ -44,7 +44,6 @@ public final class DeleteFeaturePropertiesTest {
             .build();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DeleteFeatureProperties.class, areImmutable(), provided(ThingId.class).isAlsoImmutable());
     }

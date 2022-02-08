@@ -26,7 +26,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultCachesConfigTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultCachesConfig.class, areImmutable());
     }

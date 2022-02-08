@@ -42,7 +42,6 @@ public final class ImmutableSearchPropertyTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableSearchProperty.class, areImmutable(), provided(JsonPointer.class).isAlsoImmutable());
     }

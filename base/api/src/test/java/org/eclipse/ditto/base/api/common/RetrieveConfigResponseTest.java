@@ -28,7 +28,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class RetrieveConfigResponseTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(RetrieveConfigResponse.class, areImmutable(), provided(JsonValue.class).isAlsoImmutable());
     }

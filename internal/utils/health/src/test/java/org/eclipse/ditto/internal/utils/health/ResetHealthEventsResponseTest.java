@@ -26,7 +26,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ResetHealthEventsResponseTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(ResetHealthEventsResponse.class, areImmutable());
     }

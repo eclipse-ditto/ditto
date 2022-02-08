@@ -39,7 +39,6 @@ public final class ImmutableJsonPointerTest {
     private static final JsonKey KNOWN_KEY_NAME = JsonFactory.newKey("foo");
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonPointer.class,
                 areImmutable(),

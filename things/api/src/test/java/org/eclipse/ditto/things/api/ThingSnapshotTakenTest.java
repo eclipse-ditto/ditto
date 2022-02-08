@@ -65,7 +65,6 @@ public final class ThingSnapshotTakenTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ThingSnapshotTaken.class, areImmutable(), provided(PolicyId.class).isAlsoImmutable());
     }

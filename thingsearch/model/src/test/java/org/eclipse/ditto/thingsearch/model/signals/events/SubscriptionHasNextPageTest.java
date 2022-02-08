@@ -32,7 +32,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class SubscriptionHasNextPageTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(SubscriptionHasNextPage.class, areImmutable(), provided(JsonArray.class).isAlsoImmutable());
     }

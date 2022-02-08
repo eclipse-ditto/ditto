@@ -86,7 +86,6 @@ public final class ImmutableTargetTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableTarget.class, areImmutable(),
                 provided(AuthorizationContext.class,

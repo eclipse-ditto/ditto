@@ -49,7 +49,6 @@ public final class RetrievePolicyResponseTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(RetrievePolicyResponse.class, areImmutable(),
                 provided(JsonObject.class, PolicyId.class).areAlsoImmutable());

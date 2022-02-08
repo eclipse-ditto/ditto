@@ -41,7 +41,6 @@ public class CleanupPersistenceTest {
     private static final DittoHeaders HEADERS = DittoHeaders.newBuilder().correlationId("123").build();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(CleanupPersistence.class, areImmutable(), provided(EntityId.class).isAlsoImmutable());
     }

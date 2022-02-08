@@ -35,7 +35,6 @@ public class IndexFactoryTest {
     private static final String FIELD_2_NAME = "field2";
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(IndexFactory.class, areImmutable());
     }

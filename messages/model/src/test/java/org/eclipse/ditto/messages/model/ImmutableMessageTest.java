@@ -32,7 +32,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableMessageTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableMessage.class,
                 areImmutable(),

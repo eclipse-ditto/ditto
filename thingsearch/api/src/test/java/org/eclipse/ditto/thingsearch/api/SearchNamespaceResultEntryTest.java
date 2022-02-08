@@ -25,7 +25,6 @@ import org.mutabilitydetector.unittesting.MutabilityMatchers;
 public class SearchNamespaceResultEntryTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(SearchNamespaceResultEntry.class, MutabilityMatchers.areImmutable());
     }

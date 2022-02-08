@@ -29,7 +29,6 @@ public final class ConnectionFailedExceptionTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ConnectionFailedException.class, areImmutable());
     }

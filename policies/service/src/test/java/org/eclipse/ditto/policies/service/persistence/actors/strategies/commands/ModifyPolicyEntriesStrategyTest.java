@@ -54,7 +54,6 @@ public final class ModifyPolicyEntriesStrategyTest extends AbstractPolicyCommand
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ModifyPolicyEntriesStrategy.class, areImmutable());
     }

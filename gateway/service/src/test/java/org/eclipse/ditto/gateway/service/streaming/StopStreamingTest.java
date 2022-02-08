@@ -29,7 +29,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class StopStreamingTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(StopStreaming.class, areImmutable());
     }

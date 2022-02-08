@@ -41,7 +41,6 @@ public final class StatusDetailMessageTest {
             .build();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(StatusDetailMessage.class, areImmutable(),
                 provided(JsonValue.class).isAlsoImmutable());

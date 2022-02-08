@@ -44,7 +44,6 @@ public final class DefaultPublicHealthConfigTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultPublicHealthConfig.class, areImmutable());
     }

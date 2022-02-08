@@ -33,7 +33,6 @@ import org.junit.Test;
 public final class KeyNameReviserTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(KeyNameReviser.class, areImmutable(), provided(Function.class).isAlsoImmutable());
     }

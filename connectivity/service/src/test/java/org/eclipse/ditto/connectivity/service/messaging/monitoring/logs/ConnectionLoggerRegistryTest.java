@@ -428,7 +428,6 @@ public final class ConnectionLoggerRegistryTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void testImmutabilityOfCollectionLogs() {
         assertInstancesOf(ConnectionLoggerRegistry.ConnectionLogs.class, areImmutable(),
                 assumingFields("logs").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),

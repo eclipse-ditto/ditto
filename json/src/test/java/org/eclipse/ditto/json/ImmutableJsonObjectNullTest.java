@@ -25,7 +25,6 @@ import org.junit.Test;
 public final class ImmutableJsonObjectNullTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(ImmutableJsonObjectNull.class, areImmutable());
     }

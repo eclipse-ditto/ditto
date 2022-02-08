@@ -40,7 +40,6 @@ public final class NullAttributesTest {
 
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(NullAttributes.class, areImmutable(), provided(JsonObject.class).isAlsoImmutable());
     }

@@ -40,7 +40,6 @@ public final class DeleteFeaturesStrategyTest extends AbstractCommandStrategyTes
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DeleteFeaturesStrategy.class, areImmutable());
     }

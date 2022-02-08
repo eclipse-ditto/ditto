@@ -67,7 +67,6 @@ public final class AddConnectionLogEntryTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(AddConnectionLogEntry.class, areImmutable(), provided(LogEntry.class).isAlsoImmutable());
     }

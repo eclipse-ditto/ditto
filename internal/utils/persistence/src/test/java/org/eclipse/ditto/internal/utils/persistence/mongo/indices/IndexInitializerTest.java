@@ -27,7 +27,6 @@ import akka.stream.Materializer;
 public class IndexInitializerTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(IndexInitializer.class, areImmutable(),
                 provided(Materializer.class, IndexOperations.class).areAlsoImmutable());

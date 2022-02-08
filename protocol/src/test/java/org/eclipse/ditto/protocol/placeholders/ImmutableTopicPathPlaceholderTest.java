@@ -55,7 +55,6 @@ public final class ImmutableTopicPathPlaceholderTest {
      * Assert immutability.
      */
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(ImmutableTopicPathPlaceholder.class, MutabilityMatchers.areImmutable());
     }

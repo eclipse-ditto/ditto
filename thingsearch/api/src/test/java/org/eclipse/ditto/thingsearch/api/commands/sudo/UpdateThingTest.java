@@ -32,7 +32,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class UpdateThingTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         MutabilityAssert.assertInstancesOf(UpdateThing.class, MutabilityMatchers.areImmutable(),
                 AllowedReason.provided(ThingId.class).isAlsoImmutable());

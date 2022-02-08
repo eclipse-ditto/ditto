@@ -42,7 +42,6 @@ public final class AcknowledgementCorrelationIdMissingExceptionTest {
     public final TestName testName = new TestName();
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(AcknowledgementCorrelationIdMissingException.class, areImmutable());
     }

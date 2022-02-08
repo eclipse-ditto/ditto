@@ -28,7 +28,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public class IndexTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(Index.class, areImmutable(),
                 // workaround: BsonDocument is actually not immutable, but we make sure that all other fields are

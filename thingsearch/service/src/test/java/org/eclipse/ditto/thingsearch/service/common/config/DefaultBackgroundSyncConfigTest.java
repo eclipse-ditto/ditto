@@ -45,7 +45,6 @@ public final class DefaultBackgroundSyncConfigTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(DefaultBackgroundSyncConfig.class, areImmutable(), provided(Config.class).isAlsoImmutable());
     }

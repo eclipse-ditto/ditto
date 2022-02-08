@@ -48,7 +48,6 @@ public class EnableConnectionLogsTest {
     }
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(EnableConnectionLogs.class,
                 areImmutable(),

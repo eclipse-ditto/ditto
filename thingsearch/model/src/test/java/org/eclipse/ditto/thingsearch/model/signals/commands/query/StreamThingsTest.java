@@ -30,7 +30,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class StreamThingsTest {
 
     @Test
-    @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
     public void assertImmutability() {
         assertInstancesOf(StreamThings.class, areImmutable(), provided(JsonArray.class).isAlsoImmutable());
     }
