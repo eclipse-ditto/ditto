@@ -36,7 +36,7 @@ The following placeholders may be used inside the configuration file:
 |----------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `{%raw%}{{ jwt:<claim-pointer> }}{%endraw%}` | Any standard or custom claims in the body of the authenticated JWT in JsonPointer notation - e.g., `jwt:sub` for the JWT "subject" or `jwt:extra/roles` for (potentially multiple) "roles" extracted from a JsonObject in the JWT named `extra`.<br/>JWT claims being JSON arrays are expanded (each value of the array is added) and provided [functions](#function-expressions) are performed on each array element.  |
 
-In combination with [functions](#function-expressions) use of this placeholder can provide and modify the subjects to
+In combination with [functions](#function-expressions), use of this placeholder can provide and modify the subjects to
 extract from a JWT in a very powerful way.  
 The `fn:split(' ')` function may for example be used in order to further split the default claim "scope", which is by 
 default a whitespace separated list of scopes, as an array, producing multiple entries for each provided scope.
