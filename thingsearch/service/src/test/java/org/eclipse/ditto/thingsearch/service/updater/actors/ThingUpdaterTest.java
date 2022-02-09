@@ -267,20 +267,9 @@ public final class ThingUpdaterTest {
                 return null;
             }).when(findPublisher).subscribe(any());
 
-            final CountDownLatch recoveryCompleteLatch = new CountDownLatch(1);
-            final Consumer<AbstractWriteModel> recoveryCompleteConsumer = writeModel -> {
-                recoveryCompleteLatch.countDown();
-            };
-            final Props props = Props.create(ThingUpdater.class,
-                    () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
-                            forceUpdateAfterStartTimeout, 0.0, mongoClientExtension, true, true,
-                            recoveryCompleteConsumer));
-            final var underTest = childActorOf(props, THING_ID.toString());
-
-            final long request = probe.expectRequest();
             DocumentCodec codec = new DocumentCodec();
             DecoderContext decoderContext = DecoderContext.builder().build();
-            final var existingIndexDocument = codec.decode(new BsonDocumentReader(new BsonDocument()
+            final BsonDocument existingIndexBsonDocument = new BsonDocument()
                     .append(PersistenceConstants.FIELD_ID, new BsonString(THING_ID.toString()))
                     .append(PersistenceConstants.FIELD_REVISION, new BsonInt64(1234L))
                     .append(PersistenceConstants.FIELD_POLICY_ID, new BsonString(THING_ID.toString()))
@@ -290,8 +279,25 @@ public final class ThingUpdaterTest {
                     .append(PersistenceConstants.FIELD_SORTING, new BsonDocument().append("Lorem ipsum",
                             new BsonString("Lorem ipsum dolor sit amet, consectetur adipiscing elit, " +
                                     "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")))
-                    .append(PersistenceConstants.FIELD_INTERNAL, new BsonArray())
-            ), decoderContext);
+                    .append(PersistenceConstants.FIELD_INTERNAL, new BsonArray());
+
+            final CountDownLatch recoveryCompleteLatch = new CountDownLatch(1);
+            final Consumer<AbstractWriteModel> recoveryCompleteConsumer = writeModel -> {
+                assertThat(writeModel).isEqualTo(
+                        ThingWriteModel.of(
+                                Metadata.of(THING_ID, 1234L, PolicyId.of(THING_ID), 1L, null),
+                                existingIndexBsonDocument));
+                recoveryCompleteLatch.countDown();
+            };
+            final Props props = Props.create(ThingUpdater.class,
+                    () -> new ThingUpdater(pubSubTestProbe.ref(), changeQueueTestProbe.ref(), 0.0,
+                            forceUpdateAfterStartTimeout, 0.0, mongoClientExtension, true, true,
+                            recoveryCompleteConsumer));
+            final var underTest = childActorOf(props, THING_ID.toString());
+
+            final long request = probe.expectRequest();
+            final var existingIndexDocument = codec.decode(new BsonDocumentReader(existingIndexBsonDocument),
+                    decoderContext);
             probe.sendNext(existingIndexDocument);
 
             // wait until Actor was recovered:
