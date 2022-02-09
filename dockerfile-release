@@ -9,7 +9,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 
-FROM docker.io/eclipse-temurin:17-jdk-alpine
+FROM docker.io/eclipse-temurin:17-jdk
 
 ARG MAVEN_REPO=https://repo.eclipse.org/service/local/artifact/maven/content
 ARG SERVICE_STARTER
@@ -24,9 +24,8 @@ ENV HTTP_PORT=8080 \
 EXPOSE 8080
 
 RUN set -x \
-    && apk upgrade --update-cache \
-    && apk add --no-cache tini openssl \
-    && apk add --no-cache --virtual .tmp-deps wget ca-certificates shadow \
+    && apt-get update \
+    && apt-get install -y tini \
     && mkdir -p $DITTO_HOME \
     && groupadd --system --gid 1000 ditto \
     && useradd --no-log-init --system --home-dir $DITTO_HOME --shell /bin/sh --gid ditto --uid 1000 ditto \
@@ -37,10 +36,9 @@ RUN set -x \
     && ln -s ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar starter.jar \
     && chown -R ditto:ditto $DITTO_HOME \
     && cd $DITTO_LOGS \
-    && chown -R ditto:ditto $DITTO_LOGS \
-    && apk del .tmp-deps
+    && chown -R ditto:ditto $DITTO_LOGS
 
 USER ditto
 WORKDIR $DITTO_HOME
-ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["java", "-jar", "/opt/ditto/starter.jar"]
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["sh", "-c", "java $JAVA_OPTIONS -jar /opt/ditto/starter.jar"]
