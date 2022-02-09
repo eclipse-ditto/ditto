@@ -80,9 +80,11 @@ final class BulkWriteResultAckFlow {
                 case CONSISTENCY_ERROR:
                     // write result is not consistent; there is a bug with Ditto or with its environment
                     acknowledgeFailures(getAllMetadata(writeResultAndErrors));
+
                     return Collections.singleton(consistencyError.message);
                 case INCORRECT_PATCH:
                     reportIncorrectPatch(writeResultAndErrors);
+
                     return getConsistencyOKResult(writeResultAndErrors);
                 case OK:
                 default:
@@ -98,7 +100,7 @@ final class BulkWriteResultAckFlow {
     private void reportIncorrectPatch(final WriteResultAndErrors writeResultAndErrors) {
         // Some patches are not applied due to inconsistent sequence number in the search index.
         // It is not possible to identify which patches are not applied; therefore request all patch updates to retry.
-        writeResultAndErrors.getWriteModels().stream().forEach(model -> {
+        writeResultAndErrors.getWriteModels().forEach(model -> {
             final var response =
                     createFailureResponse(model.getMetadata()).setDittoHeaders(INCORRECT_PATCH_HEADERS);
             model.getMetadata().getOrigin().ifPresent(updater -> updater.tell(response, ActorRef.noSender()));
@@ -122,6 +124,7 @@ final class BulkWriteResultAckFlow {
         }
         acknowledgeFailures(failedMetadata);
         acknowledgeSuccesses(failedIndices, writeResultAndErrors.getWriteModels());
+
         return logEntries;
     }
 
@@ -190,6 +193,7 @@ final class BulkWriteResultAckFlow {
         if (!areAllIndexesWithinBounds(resultAndErrors.getBulkWriteErrors(), requested)) {
             // some indexes not within bounds
             final var message = String.format("ConsistencyError[indexOutOfBound]: %s", resultAndErrors);
+
             return new ConsistencyCheckResult(ConsistencyStatus.CONSISTENCY_ERROR, message);
         } else if (areUpdatesMissing(resultAndErrors)) {
             return new ConsistencyCheckResult(ConsistencyStatus.INCORRECT_PATCH, "");
@@ -205,12 +209,12 @@ final class BulkWriteResultAckFlow {
                 .count();
         final long matchedCount = result.getMatchedCount();
         final long upsertCount = result.getUpserts().size();
+
         return matchedCount + upsertCount < writeModelCount;
     }
 
     private static boolean areAllIndexesWithinBounds(final Collection<BulkWriteError> bulkWriteErrors,
             final int requested) {
-
         return bulkWriteErrors.stream().mapToInt(BulkWriteError::getIndex).allMatch(i -> 0 <= i && i < requested);
     }
 
@@ -232,6 +236,7 @@ final class BulkWriteResultAckFlow {
             return stackTraceWriter.append("]").toString();
         } else if (isCompleteSuccess) {
             final BulkWriteResult bulkWriteResult = writeResultAndErrors.getBulkWriteResult();
+
             return String.format(
                     "%s: Success[ack=%b,errors=%d,matched=%d,upserts=%d,inserted=%d,modified=%d,deleted=%d]",
                     status,
@@ -245,6 +250,7 @@ final class BulkWriteResultAckFlow {
         } else {
             // partial success
             final BulkWriteResult bulkWriteResult = writeResultAndErrors.getBulkWriteResult();
+
             return String.format(
                     "%s: PartialSuccess[ack=%b,errorCount=%d,matched=%d,upserts=%d,inserted=%d,modified=%d," +
                             "deleted=%d,errors=%s]",
@@ -277,4 +283,5 @@ final class BulkWriteResultAckFlow {
         INCORRECT_PATCH,
         OK
     }
+
 }

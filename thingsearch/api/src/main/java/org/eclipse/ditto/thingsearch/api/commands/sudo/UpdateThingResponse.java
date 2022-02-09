@@ -41,7 +41,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 /**
  * Command response to acknowledge a search index update.
- * Currently a Ditto-internal message, but could become public API at some point.
+ * Currently, a Ditto-internal message, but could become public API at some point.
  */
 @Immutable
 @AllValuesAreNonnullByDefault
