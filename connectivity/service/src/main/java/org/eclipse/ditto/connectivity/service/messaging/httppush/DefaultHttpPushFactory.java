@@ -135,6 +135,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         if (passwordSeparatorLocation >= 0) {
             final String username = userInfo.substring(0, passwordSeparatorLocation);
             final String password = userInfo.substring(Math.min(userInfo.length(), passwordSeparatorLocation + 1));
+
             return request.addCredentials(HttpCredentials.createBasicHttpCredentials(username, password));
         } else {
             return request;
@@ -154,6 +155,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         } else {
             baseUriStrToUse = baseUriStr;
         }
+
         return baseUriStrToUse;
     }
 
@@ -166,6 +168,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         } else {
             pathWithQueryToUse = PATH_DELIMITER + pathWithQuery;
         }
+
         return pathWithQueryToUse;
     }
 
@@ -232,6 +235,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
     private static <T> Pair<Try<HttpResponse>, T> onRequestTimeout(final Pair<HttpRequest, T> requestPair) {
         final Try<HttpResponse> failure =
                 new Failure<>(new TimeoutException("Request timed out: " + requestPair.first().getUri()));
+
         return Pair.create(failure, requestPair.second());
     }
 

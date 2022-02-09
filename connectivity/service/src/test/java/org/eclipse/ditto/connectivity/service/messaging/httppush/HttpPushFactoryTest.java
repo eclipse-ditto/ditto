@@ -386,7 +386,6 @@ public final class HttpPushFactoryTest {
                 ConnectivityStatus.OPEN,
                 "http://127.0.0.1:" + binding.localAddress().getPort())
                 .targets(singletonList(AbstractBaseClientActorTest.HTTP_TARGET))
-                .specificConfig(Map.of())
                 .build();
     }
 
@@ -398,6 +397,7 @@ public final class HttpPushFactoryTest {
                 "  username = \"username\"\n" +
                 "  password = \"password\"\n" +
                 "}");
+
         return DefaultHttpProxyConfig.ofProxy(config);
     }
 }

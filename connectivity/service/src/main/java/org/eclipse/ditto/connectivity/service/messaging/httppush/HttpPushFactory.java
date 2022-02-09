@@ -91,4 +91,5 @@ public interface HttpPushFactory {
             final ConnectionLogger connectionLogger, final Supplier<SshTunnelState> tunnelConfigSupplier) {
         return DefaultHttpPushFactory.of(connection, httpPushConfig, connectionLogger, tunnelConfigSupplier);
     }
+
 }

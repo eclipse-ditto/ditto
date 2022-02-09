@@ -26,6 +26,7 @@ import org.eclipse.ditto.connectivity.service.config.HttpPushConfig;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueType;
 
 /**
  * Class providing access to HTTP push specific configuration.
@@ -34,9 +35,7 @@ import com.typesafe.config.ConfigFactory;
 public final class HttpPushSpecificConfig {
 
     static final String IDLE_TIMEOUT = "idleTimeout";
-
     static final String PARALLELISM = "parallelism";
-
     static final String OMIT_REQUEST_BODY = "omitRequestBody";
 
     private final Config specificConfig;
@@ -66,6 +65,7 @@ public final class HttpPushSpecificConfig {
         defaultMap.put(IDLE_TIMEOUT, httpConfig.getRequestTimeout());
         defaultMap.put(PARALLELISM, 1);
         defaultMap.put(OMIT_REQUEST_BODY, httpConfig.getOmitRequestBodyMethods());
+
         return defaultMap;
     }
 
@@ -90,7 +90,11 @@ public final class HttpPushSpecificConfig {
         try {
             return specificConfig.getStringList(OMIT_REQUEST_BODY);
         } catch (final ConfigException.WrongType e) {
-            return List.of(specificConfig.getString(OMIT_REQUEST_BODY).split(","));
+            final var configValue = specificConfig.getValue(OMIT_REQUEST_BODY);
+            if (ConfigValueType.STRING == configValue.valueType()) {
+                return List.of(specificConfig.getString(OMIT_REQUEST_BODY).split(","));
+            }
+            throw e;
         }
     }
 

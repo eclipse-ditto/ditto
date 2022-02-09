@@ -204,6 +204,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         if (query != null) {
             newUri = newUri.rawQueryString(query);
         }
+
         return newUri;
     }
 
@@ -221,6 +222,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 }
             }
         }
+
         return Pair.create(headers, contentType);
     }
 
@@ -255,7 +257,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private static CompletionStage<JsonValue> getResponseBody(final HttpResponse response, final int maxBytes,
             final Materializer materializer) {
-
         return response.entity()
                 .withSizeLimit(maxBytes)
                 .toStrict(READ_BODY_TIMEOUT_MS, materializer)
@@ -301,7 +302,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         final BiConsumer<Duration, ConnectionMonitor.InfoProvider> logRequestTimes =
                 (duration, infoProvider) -> connectionLogger.success(infoProvider,
                         "HTTP request took <{0}> ms.", duration.toMillis());
-
 
         final Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> oauthFlow =
                 ClientCredentialsFlowVisitor.eval(getContext().getSystem(), config, connection);
@@ -449,8 +449,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                             response.entity().getContentType());
 
                     toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize,
-                            ackSizeQuota,
-                            targetAuthorizationContext)
+                            ackSizeQuota, targetAuthorizationContext)
                             .thenAccept(resultFuture::complete)
                             .exceptionally(e -> {
                                 resultFuture.completeExceptionally(e);
@@ -528,7 +527,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     // There is an issued ack declared but its not live-response => handle response as acknowledgement.
                     result = Acknowledgement.of(autoAckLabel.get(), entityId, httpStatus, mergedDittoHeaders, body);
                 }
-
             } else {
                 // No Acks declared as issued acks => Handle response either as live response or as acknowledgement
                 // or as fallback build a response for local diagnostics.
@@ -590,6 +588,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         } else {
             result = null;
         }
+
         return Optional.ofNullable(result);
     }
 
