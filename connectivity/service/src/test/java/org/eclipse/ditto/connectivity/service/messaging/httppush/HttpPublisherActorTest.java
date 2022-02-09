@@ -13,7 +13,7 @@
 package org.eclipse.ditto.connectivity.service.messaging.httppush;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPublisherActor.OMIT_REQUEST_BODY_CONFIG_KEY;
+import static org.eclipse.ditto.connectivity.service.messaging.httppush.HttpPushSpecificConfig.OMIT_REQUEST_BODY;
 import static org.eclipse.ditto.connectivity.service.messaging.httppush.HttpTestDittoProtocolHelper.signalToJsonString;
 import static org.eclipse.ditto.connectivity.service.messaging.httppush.HttpTestDittoProtocolHelper.signalToMultiMapped;
 import static org.mockito.Mockito.mock;
@@ -907,13 +907,13 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     @Test
     public void testOmitRequestBody() throws Exception {
         testOmitRequestBody(HttpMethods.GET, Map.of(), true);
-        testOmitRequestBody(HttpMethods.GET, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, "GET"), true);
-        testOmitRequestBody(HttpMethods.GET, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, "POST"), false);
-        testOmitRequestBody(HttpMethods.GET, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, ""), false);
+        testOmitRequestBody(HttpMethods.GET, Map.of(OMIT_REQUEST_BODY, "GET"), true);
+        testOmitRequestBody(HttpMethods.GET, Map.of(OMIT_REQUEST_BODY, "POST"), false);
+        testOmitRequestBody(HttpMethods.GET, Map.of(OMIT_REQUEST_BODY, ""), false);
         testOmitRequestBody(HttpMethods.DELETE, Map.of(), true);
-        testOmitRequestBody(HttpMethods.DELETE, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, "GET,DELETE"), true);
-        testOmitRequestBody(HttpMethods.DELETE, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, "GET"), false);
-        testOmitRequestBody(HttpMethods.DELETE, Map.of(OMIT_REQUEST_BODY_CONFIG_KEY, ""), false);
+        testOmitRequestBody(HttpMethods.DELETE, Map.of(OMIT_REQUEST_BODY, "GET,DELETE"), true);
+        testOmitRequestBody(HttpMethods.DELETE, Map.of(OMIT_REQUEST_BODY, "GET"), false);
+        testOmitRequestBody(HttpMethods.DELETE, Map.of(OMIT_REQUEST_BODY, ""), false);
     }
 
     private void testOmitRequestBody(final HttpMethod method, final Map<String, String> specificConfig,
