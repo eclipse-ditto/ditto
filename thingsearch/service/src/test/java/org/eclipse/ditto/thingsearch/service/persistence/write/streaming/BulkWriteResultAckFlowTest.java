@@ -73,7 +73,7 @@ public final class BulkWriteResultAckFlowTest {
         );
 
         // WHEN
-        final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.success(writeModels, result);
+        final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.success(writeModels, result, "correlation");
         final String message = runBulkWriteResultAckFlowAndGetFirstLogEntry(resultAndErrors);
 
         // THEN
@@ -92,7 +92,7 @@ public final class BulkWriteResultAckFlowTest {
 
         // WHEN: BulkWriteResultAckFlow receives partial update success with errors, one of which is not duplicate key
         final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.failure(writeModels,
-                new MongoBulkWriteException(result, updateFailure, null, new ServerAddress(), Set.of()));
+                new MongoBulkWriteException(result, updateFailure, null, new ServerAddress(), Set.of()), "correlation");
         final String message = runBulkWriteResultAckFlowAndGetFirstLogEntry(resultAndErrors);
 
         // THEN: the non-duplicate-key error triggers a failure acknowledgement
@@ -110,7 +110,7 @@ public final class BulkWriteResultAckFlowTest {
         // WHEN: BulkWriteResultAckFlow receives unexpected error
         final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.unexpectedError(writeModels,
                 new MongoSocketReadException("Gee, database is down. Whatever shall I do?", new ServerAddress(),
-                        new IllegalMonitorStateException("Unsupported resolution")));
+                        new IllegalMonitorStateException("Unsupported resolution")), "correlation");
         final String message = runBulkWriteResultAckFlowAndGetFirstLogEntry(resultAndErrors);
 
         // THEN: all ThingUpdaters receive negative acknowledgement.
@@ -136,7 +136,7 @@ public final class BulkWriteResultAckFlowTest {
 
         // WHEN: BulkWriteResultAckFlow receives partial update success with at least 1 error with out-of-bound index
         final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.failure(writeModels,
-                new MongoBulkWriteException(result, updateFailure, null, new ServerAddress(), Set.of()));
+                new MongoBulkWriteException(result, updateFailure, null, new ServerAddress(), Set.of()), "correlation");
         final String message = runBulkWriteResultAckFlowAndGetFirstLogEntry(resultAndErrors);
 
         // THEN: All updates are considered failures
@@ -161,7 +161,7 @@ public final class BulkWriteResultAckFlowTest {
 
         // WHEN: BulkWriteResultAckFlow receives partial update success with errors, one of which is not duplicate key
         final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.failure(writeModels,
-                new MongoBulkWriteException(result, updateFailure, null, new ServerAddress(), Set.of()));
+                new MongoBulkWriteException(result, updateFailure, null, new ServerAddress(), Set.of()), "correlation");
         runBulkWriteResultAckFlowAndGetFirstLogEntry(resultAndErrors);
 
         // THEN: only the non-duplicate-key sender receives negative acknowledgement
