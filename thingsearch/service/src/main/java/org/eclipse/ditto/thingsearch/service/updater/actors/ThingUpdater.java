@@ -188,6 +188,8 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
 
     private void recoveryComplete(final AbstractWriteModel writeModel) {
         log.debug("Recovered: <{}>", writeModel);
+        thingRevision = writeModel.getMetadata().getThingRevision();
+        writeModel.getMetadata().getPolicyRevision().ifPresent(policyRevision -> this.policyRevision = policyRevision);
         lastWriteModel = writeModel;
         getContext().become(recoveredBehavior());
         unstashAll();
