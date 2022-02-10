@@ -55,7 +55,8 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final String tokenAudience = "some-audience";
 
         final JsonWebToken jsonWebToken = createToken("{\"aud\": \"" + tokenAudience + "\"}");
-        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfig(subjectIssuer, List.of("test-{{ jwt:aud }}"));
+        final JwtSubjectIssuersConfig subjectIssuersConfig =
+                createSubjectIssuersConfig(subjectIssuer, List.of("test-{{ jwt:aud }}"));
 
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
                 .of(subjectIssuersConfig);
@@ -63,7 +64,8 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
         assertThat(authSubjects.size()).isEqualTo(1);
-        assertThat(authSubjects.get(0)).isEqualTo(AuthorizationSubject.newInstance(subjectIssuer + ":test-" + tokenAudience));
+        assertThat(authSubjects.get(0)).isEqualTo(
+                AuthorizationSubject.newInstance(subjectIssuer + ":test-" + tokenAudience));
     }
 
     @Test
@@ -83,8 +85,8 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
         assertThat(authSubjects).containsExactlyInAnyOrder(
-            AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience1),
-            AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience2)
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience1),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience2)
         );
     }
 
@@ -107,9 +109,9 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
         assertThat(authSubjects).containsExactlyInAnyOrder(
-            AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience1),
-            AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience2),
-            AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenGroup)
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience1),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience2),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenGroup)
         );
     }
 
@@ -132,8 +134,8 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
         assertThat(authSubjects).containsExactlyInAnyOrder(
-            AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience1),
-            AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience3)
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience1),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + tokenAudience3)
         );
     }
 
@@ -156,10 +158,10 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
         assertThat(authSubjects).containsExactlyInAnyOrder(
-            AuthorizationSubject.newInstance(subjectIssuer + ":eni"),
-            AuthorizationSubject.newInstance(subjectIssuer + ":idi"),
-            AuthorizationSubject.newInstance(subjectIssuer + ":ici"),
-            AuthorizationSubject.newInstance(subjectIssuer + ":endetta")
+                AuthorizationSubject.newInstance(subjectIssuer + ":eni"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":idi"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":ici"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":endetta")
         );
     }
 
@@ -179,29 +181,7 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
 
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
-        assertThat(authSubjects.size()).isEqualTo(0);
-    }
-
-    @Test
-    public void assertComplexSplitPipelineFunctionsWorks() {
-        final String subjectIssuer = "testIssuer";
-        final String scope = "ope,nid all profile noth,ing";
-        final String tokenAudience1 = "some-audience";
-        final String tokenAudience2 = "other audience";
-
-        final JsonWebToken jsonWebToken = createToken(
-                "{\"aud\": [\"" + tokenAudience1 + "\", \""+ tokenAudience2 + "\"],\"scope\": \"" + scope + "\"}");
-
-        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfig(subjectIssuer,
-                List.of("rest-{{ jwt:aud }}{{ jwt:scope | fn:split(\" \") | fn:lower() | fn:split(\",\") }}-test"));
-
-        final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
-                .of(subjectIssuersConfig);
-
-        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
-
-        assertThat(authSubjects.size()).isEqualTo(12);
-        assertThat(authSubjects).contains(AuthorizationSubject.newInstance("testIssuer:rest-some-audienceope-test"));
+        assertThat(authSubjects).isEmpty();
     }
 
     @Test
@@ -213,17 +193,91 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
                 "{\"scope\": \"" + scope + "\"}");
 
         final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfig(subjectIssuer,
-                List.of("{{ jwt:scope | fn:split(\" \") | fn:lower() }}"));
+                List.of("{{ jwt:scope | fn:split(\" \") }}"));
+
+        // jwt:scope -> "openid all profile nothing"
+        // fn:split(" ") -> ["openid", "all", "profile", "nothing"]
 
         final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
                 .of(subjectIssuersConfig);
 
         final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
 
-        assertThat(authSubjects.size()).isEqualTo(4);
+        assertThat(authSubjects).containsExactly(
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "openid"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "all"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "profile"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "nothing")
+        );
     }
 
-    JsonWebToken createToken(final String body) {
+    @Test
+    public void assertComplexFunctionWorks() {
+        final String subjectIssuer = "testIssuer";
+        final String scope = "[\"openid:test hello profile nothing\", \"only rest\", \"relax,a\"]";
+
+        final JsonWebToken jsonWebToken = createToken(
+                "{\"scope\": " + scope + "}");
+
+        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfig(subjectIssuer,
+                List.of("{{ jwt:scope | fn:split(\" \") | fn:filter('ne', 'hello') | fn:filter('like', '*o*|*x*') }}"));
+
+        // jwt:scope -> ["openid:test hello profile nothing", "only rest", "relax,a"]
+        // fn:split(" ") -> ["openid:test", "hello", "profile", "nothing", "only", "rest", "relax,a"]
+        // fn:filter('ne', 'hello') -> ["openid:test", "profile", "nothing", "only", "rest", "relax,a"]
+        // fn:filter('like', '*o*|*x*') -> ["openid:test", "profile", "nothing", "only", "relax,a"]
+
+        final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
+                .of(subjectIssuersConfig);
+
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+
+        assertThat(authSubjects).containsExactly(
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "openid:test"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "profile"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "nothing"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "only"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "relax,a")
+        );
+    }
+
+    @Test
+    public void assertComplexFunctionWithTextWorks() {
+        final String subjectIssuer = "testIssuer";
+        final String scope = "ope,nid all profile nothing";
+        final String tokenAudience1 = "some-audience";
+        final String tokenAudience2 = "other:audience";
+
+        final JsonWebToken jsonWebToken = createToken(
+                "{\"aud\": [\"" + tokenAudience1 + "\", \"" + tokenAudience2 + "\"],\"scope\": \"" + scope + "\"}");
+
+        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfig(subjectIssuer,
+                List.of("rest-{{ jwt:aud  | fn:split(\":\") }}-{{ jwt:scope | fn:split(\" \") | fn:split(\",\") | fn:filter('like', 'ope|all') }}-test"));
+
+        // jwt:aud -> ["some-audience", "other:audience"]
+        // fn:split(":") -> ["some-audience", "other", "audience"]
+
+        // jwt:scope -> "ope,nid all profile nothing"
+        // fn:split(" ") -> ["ope,nid", "all", "profile", "nothing"]
+        // fn:split(",") -> ["ope", "nid", "all", "profile", "nothing"]
+        // fn:filter('like', 'ope|all') -> ["ope", "all"]
+
+        final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
+                .of(subjectIssuersConfig);
+
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+
+        assertThat(authSubjects).containsExactly(
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "rest-some-audience-ope-test"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "rest-other-ope-test"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "rest-audience-ope-test"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "rest-some-audience-all-test"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "rest-other-all-test"),
+                AuthorizationSubject.newInstance(subjectIssuer + ":" + "rest-audience-all-test")
+        );
+    }
+
+    private static JsonWebToken createToken(final String body) {
         final JsonWebToken jsonWebToken = mock(JsonWebToken.class);
         when(jsonWebToken.getIssuer()).thenReturn(JwtTestConstants.ISSUER);
         when(jsonWebToken.getBody()).thenReturn(JsonObject.of(body));
@@ -231,18 +285,19 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
     }
 
 
-    JwtSubjectIssuersConfig createSubjectIssuersConfig(final String subjectIssuer, final List<String> subjectTemplates) {
+    private static JwtSubjectIssuersConfig createSubjectIssuersConfig(final String subjectIssuer,
+            final List<String> subjectTemplates) {
         final JwtSubjectIssuerConfig subjectIssuerConfig = new JwtSubjectIssuerConfig(
-            SubjectIssuer.newInstance(subjectIssuer),
-            JwtTestConstants.ISSUER,
-            subjectTemplates);
+                SubjectIssuer.newInstance(subjectIssuer),
+                JwtTestConstants.ISSUER,
+                subjectTemplates);
         return JwtSubjectIssuersConfig.fromJwtSubjectIssuerConfigs(List.of(subjectIssuerConfig));
     }
 
-    JwtSubjectIssuersConfig createSubjectIssuersConfig(final String subjectIssuer) {
+    private static JwtSubjectIssuersConfig createSubjectIssuersConfig(final String subjectIssuer) {
         final JwtSubjectIssuerConfig subjectIssuerConfig = new JwtSubjectIssuerConfig(
-            SubjectIssuer.newInstance(subjectIssuer),
-            JwtTestConstants.ISSUER);
+                SubjectIssuer.newInstance(subjectIssuer),
+                JwtTestConstants.ISSUER);
         return JwtSubjectIssuersConfig.fromJwtSubjectIssuerConfigs(List.of(subjectIssuerConfig));
     }
 
