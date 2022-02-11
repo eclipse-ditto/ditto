@@ -12,11 +12,13 @@
  */
 package org.eclipse.ditto.placeholders;
 
-import javax.annotation.concurrent.Immutable;
+import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
-import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * Provides the {@code fn:replace('from', 'to')} function implementation.
@@ -43,6 +45,13 @@ final class PipelineFunctionReplace implements PipelineFunction {
         final Parameters parameters = parseAndResolve(paramsIncludingParentheses, expressionResolver);
 
         return value.map(str -> str.replace(parameters.getFrom(), parameters.getTo()));
+    }
+
+    @Override
+    public Stream<PipelineElement> applyStreaming(final PipelineElement value, final String paramsIncludingParentheses,
+            final ExpressionResolver expressionResolver) {
+
+        return Stream.of(apply(value, paramsIncludingParentheses, expressionResolver));
     }
 
     private PipelineFunctionReplace.Parameters parseAndResolve(final String paramsIncludingParentheses,

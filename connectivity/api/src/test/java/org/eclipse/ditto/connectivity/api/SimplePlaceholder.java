@@ -17,10 +17,12 @@ import java.util.List;
 import java.util.Optional;
 
 import org.eclipse.ditto.placeholders.Placeholder;
+import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 
 /**
  * Simple placeholder for test purposes.
  */
+@AllParametersAndReturnValuesAreNonnullByDefault
 class SimplePlaceholder implements Placeholder<String> {
 
     static final SimplePlaceholder INSTANCE = new SimplePlaceholder();

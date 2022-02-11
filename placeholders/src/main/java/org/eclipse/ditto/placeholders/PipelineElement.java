@@ -15,11 +15,24 @@ package org.eclipse.ditto.placeholders;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * An element going through some pipeline of functions.
  */
 public interface PipelineElement extends Iterable<String> {
+
+    /**
+     * Compiled Pattern of a string containing any unresolved non-empty JsonArray-String notations inside.
+     * All strings matching this pattern are valid JSON arrays. Not all JSON arrays match this pattern.
+     * @since 2.4.0
+     */
+    Pattern JSON_ARRAY_PATTERN = Pattern.compile("(\\[\"(?:\\\\\"|[^\"])*+\"(?:,\"(?:\\\\\"|[^\"])*+\")*+])");
 
     /**
      * Get the type of this pipeline element.
@@ -99,6 +112,53 @@ public interface PipelineElement extends Iterable<String> {
                 .unresolved(Optional::empty)
                 .resolved(Optional::of)
                 .build());
+    }
+
+    /**
+     * Converts this pipeline element into a stream of strings, expanding elements being a JsonArray via the
+     * {@link #expandJsonArraysInString(String)} method.
+     * If the PipelineElement contains a String not being in JsonArray format, this simply returns a Stream of one
+     * element.
+     * Unresolved or deleted elements will result in an empty stream.
+     *
+     * @return a stream of strings which this pipeline element did resolve.
+     * @since 2.4.0
+     */
+    default Stream<String> toOptionalStream() {
+        return toOptional().map(PipelineElement::expandJsonArraysInString)
+                .orElse(Stream.empty());
+    }
+
+    /**
+     * Checks whether the passed {@code elementValue} contains JsonArrays ({@code ["..."]} and expands those JsonArrays
+     * to multiple strings returned as resulting stream of this operation.
+     * <p>
+     * Is able to handle an arbitrary amount of JsonArrays in the passed elementValue.
+     *
+     * @param elementValue the string value potentially containing JsonArrays as JsonArray-String values.
+     * @return a stream of a single subject when the passed in {@code elementValue} did not contain any
+     * JsonArray-String notation or else a stream of multiple strings with the JsonArrays being resolved to multiple
+     * results of the stream.
+     * @since 2.4.0
+     */
+    static Stream<String> expandJsonArraysInString(final String elementValue) {
+        final Matcher jsonArrayMatcher = JSON_ARRAY_PATTERN.matcher(elementValue);
+        final int group = 1;
+        if (jsonArrayMatcher.find()) {
+            final String beforeMatched = elementValue.substring(0, jsonArrayMatcher.start(group));
+            final String matchedStr =
+                    elementValue.substring(jsonArrayMatcher.start(group), jsonArrayMatcher.end(group));
+            final String afterMatched = elementValue.substring(jsonArrayMatcher.end(group));
+            return JsonArray.of(matchedStr).stream()
+                    .filter(JsonValue::isString)
+                    .map(JsonValue::asString)
+                    .flatMap(arrayStringElem -> expandJsonArraysInString(beforeMatched) // recurse!
+                            .flatMap(before -> expandJsonArraysInString(afterMatched) // recurse!
+                                    .map(after -> before.concat(arrayStringElem).concat(after))
+                            )
+                    );
+        }
+        return Stream.of(elementValue);
     }
 
     /**
