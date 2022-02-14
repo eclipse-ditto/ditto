@@ -16,7 +16,6 @@ import static org.eclipse.ditto.base.model.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -66,13 +65,12 @@ public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthoriza
                 PlaceholderFactory.newPlaceholderResolver(JwtPlaceholder.getInstance(), jsonWebToken));
 
         return jwtSubjectIssuerConfig.getAuthorizationSubjectTemplates().stream()
-            .map(expressionResolver::resolve)
-            .map(PipelineElement::toOptional)
-            .flatMap(Optional::stream)
-            .flatMap(JwtPlaceholder::expandJsonArraysInResolvedSubject)
-            .map(subject -> SubjectId.newInstance(jwtSubjectIssuerConfig.getSubjectIssuer(), subject))
-            .map(AuthorizationSubject::newInstance)
-            .collect(Collectors.toList());
+                .flatMap(expressionResolver::resolveAsArray)
+                .flatMap(PipelineElement::toOptionalStream)
+                .flatMap(JwtPlaceholder::expandJsonArraysInResolvedSubject)
+                .map(subject -> SubjectId.newInstance(jwtSubjectIssuerConfig.getSubjectIssuer(), subject))
+                .map(AuthorizationSubject::newInstance)
+                .collect(Collectors.toList());
     }
 
     @Override

@@ -30,7 +30,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -129,8 +128,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             "a) The HTTP endpoint does not consume the messages fast enough.\n" +
             "b) The client count and/or the parallelism of this connection is not configured high enough.";
 
-    static final String OMIT_REQUEST_BODY_CONFIG_KEY = "omitRequestBody";
-
     private final HttpPushFactory factory;
 
     private final Materializer materializer;
@@ -207,6 +204,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         if (query != null) {
             newUri = newUri.rawQueryString(query);
         }
+
         return newUri;
     }
 
@@ -224,6 +222,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 }
             }
         }
+
         return Pair.create(headers, contentType);
     }
 
@@ -258,7 +257,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private static CompletionStage<JsonValue> getResponseBody(final HttpResponse response, final int maxBytes,
             final Materializer materializer) {
-
         return response.entity()
                 .withSizeLimit(maxBytes)
                 .toStrict(READ_BODY_TIMEOUT_MS, materializer)
@@ -294,7 +292,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?>
     buildHttpRequestFlow(final HttpPushConfig config) {
 
-        final Duration requestTimeout = config.getRequestTimeout();
+        final Duration requestTimeout = HttpPushSpecificConfig.fromConnection(connection, config).idleTimeout();
 
         final PreparedTimer timer = DittoMetrics.timer("http_publish_request_time")
                 // Set maximum duration higher than request timeout to avoid race conditions
@@ -304,7 +302,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         final BiConsumer<Duration, ConnectionMonitor.InfoProvider> logRequestTimes =
                 (duration, infoProvider) -> connectionLogger.success(infoProvider,
                         "HTTP request took <{0}> ms.", duration.toMillis());
-
 
         final Flow<Pair<HttpRequest, HttpPushContext>, Pair<HttpRequest, HttpPushContext>, NotUsed> oauthFlow =
                 ClientCredentialsFlowVisitor.eval(getContext().getSystem(), config, connection);
@@ -389,10 +386,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 result = requestWithoutEntity.withEntity(getTextPayload(message));
             } else {
                 result = requestWithoutEntity.withEntity(getBytePayload(message));
-        }
+            }
 
-        return result;
-    }
+            return result;
+        }
 
     }
 
@@ -451,8 +448,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     l.debug("Got response <{} {} {}>", response.status(), response.getHeaders(),
                             response.entity().getContentType());
 
-                    toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize, ackSizeQuota,
-                            targetAuthorizationContext)
+                    toCommandResponseOrAcknowledgement(signal, autoAckTarget, response, maxTotalMessageSize,
+                            ackSizeQuota, targetAuthorizationContext)
                             .thenAccept(resultFuture::complete)
                             .exceptionally(e -> {
                                 resultFuture.completeExceptionally(e);
@@ -530,7 +527,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     // There is an issued ack declared but its not live-response => handle response as acknowledgement.
                     result = Acknowledgement.of(autoAckLabel.get(), entityId, httpStatus, mergedDittoHeaders, body);
                 }
-
             } else {
                 // No Acks declared as issued acks => Handle response either as live response or as acknowledgement
                 // or as fallback build a response for local diagnostics.
@@ -592,6 +588,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         } else {
             result = null;
         }
+
         return Optional.ofNullable(result);
     }
 
@@ -701,20 +698,11 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return ConnectionFailure.of(getSelf(), error, "HttpPublisherActor stream terminated");
     }
 
-    private List<HttpMethod> parseOmitBodyMethods(final Connection connection,
+    private static List<HttpMethod> parseOmitBodyMethods(final Connection connection,
             final HttpPushConfig httpPushConfig) {
-        return Optional.of(connection.getSpecificConfig())
-                .map(specificConfig -> specificConfig.get(OMIT_REQUEST_BODY_CONFIG_KEY))
-                .map(methods -> {
-                    if (methods.isEmpty()) {
-                        return Stream.<String>empty();
-                    } else {
-                        return Arrays.stream(methods.split(","));
-                    }
-                })
-                .map(s -> s.flatMap(m -> HttpMethods.lookup(m).stream()).collect(Collectors.toList()))
-                .orElse(httpPushConfig.getOmitRequestBodyMethods()
-                        .stream().flatMap(m -> HttpMethods.lookup(m).stream()).collect(Collectors.toList()));
+        final var specificConfig = HttpPushSpecificConfig.fromConnection(connection, httpPushConfig);
+        return specificConfig.omitRequestBody().stream()
+                .map(s -> HttpMethods.lookup(s).orElse(null)).collect(Collectors.toList());
     }
 
     private enum ReservedHeaders {

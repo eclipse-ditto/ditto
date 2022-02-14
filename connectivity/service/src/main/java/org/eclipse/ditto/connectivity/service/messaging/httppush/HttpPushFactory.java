@@ -39,11 +39,6 @@ import scala.util.Try;
 public interface HttpPushFactory {
 
     /**
-     * Specific config name for the amount of concurrent HTTP requests to make.
-     */
-    String PARALLELISM_JSON_KEY = "parallelism";
-
-    /**
      * Create a request template without headers or payload for an HTTP publish target.
      * Published external messages set the headers and payload.
      *
@@ -96,4 +91,5 @@ public interface HttpPushFactory {
             final ConnectionLogger connectionLogger, final Supplier<SshTunnelState> tunnelConfigSupplier) {
         return DefaultHttpPushFactory.of(connection, httpPushConfig, connectionLogger, tunnelConfigSupplier);
     }
+
 }

@@ -46,7 +46,7 @@ public final class JwtSubjectIssuersConfig {
      * @param protocol the protocol prefix of all URIs of OAuth endpoints.
      */
     private JwtSubjectIssuersConfig(final Iterable<JwtSubjectIssuerConfig> configItems, final String protocol) {
-        this.protocolPrefix = protocol + "://";
+        protocolPrefix = protocol + "://";
         requireNonNull(configItems);
         final Map<String, JwtSubjectIssuerConfig> modifiableSubjectIssuerConfigMap = new HashMap<>();
 
@@ -66,7 +66,8 @@ public final class JwtSubjectIssuersConfig {
                 // merge the default and extension config
                 Stream.concat(config.getOpenIdConnectIssuers().entrySet().stream(),
                         config.getOpenIdConnectIssuersExtension().entrySet().stream())
-                        .map(entry -> new JwtSubjectIssuerConfig(entry.getKey(), entry.getValue().getIssuer(), entry.getValue().getAuthorizationSubjectTemplates()))
+                        .map(entry -> new JwtSubjectIssuerConfig(entry.getKey(), entry.getValue().getIssuer(),
+                                entry.getValue().getAuthorizationSubjectTemplates()))
                         .collect(Collectors.toSet());
         return new JwtSubjectIssuersConfig(configItems, config.getProtocol());
     }
@@ -90,7 +91,14 @@ public final class JwtSubjectIssuersConfig {
      * for this issuer
      */
     public Optional<JwtSubjectIssuerConfig> getConfigItem(final String issuer) {
-        return Optional.ofNullable(subjectIssuerConfigMap.get(issuer));
+        return Optional.ofNullable(getConfigItemByIssuer(issuer).orElse(subjectIssuerConfigMap.get(issuer)));
+    }
+
+    private Optional<JwtSubjectIssuerConfig> getConfigItemByIssuer(final String issuer) {
+        return subjectIssuerConfigMap.values()
+                .stream()
+                .filter(jwtSubjectIssuerConfig -> jwtSubjectIssuerConfig.getIssuer().equals(issuer))
+                .findFirst();
     }
 
     /**

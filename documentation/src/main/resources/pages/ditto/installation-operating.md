@@ -95,6 +95,9 @@ For each entry in `auth-subjects` and authorization subject will be generated.
 If the entry contains unresolvable placeholders, it will be ignored in full.
 When `auth-subjects` is not provided, the “sub” claim (`{%raw%}{{ jwt:sub }}{%endraw%}`) is used by default.
 
+Please read [more details on the OpenId Connect configuration placeholder](basic-placeholders.html#scope-openid-connect-configuration)
+to find out what is possible when defining the `auth-subjects`.
+
 
 ```
 ditto.gateway.authentication {

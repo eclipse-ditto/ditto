@@ -20,6 +20,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -250,7 +252,7 @@ public final class PersistenceCleanupActorTest {
         Object lastResponse = null;
         for (int i = 1; i <= retries; ++i) {
             underTest.tell(RetrieveHealth.newInstance(), testKit.getRef());
-            final var response = testKit.expectMsgClass(RetrieveHealthResponse.class);
+            final var response = testKit.expectMsgClass(Duration.of(30, ChronoUnit.SECONDS), RetrieveHealthResponse.class);
             if (response.equals(expectedResponse)) {
                 return;
             }

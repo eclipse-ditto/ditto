@@ -239,7 +239,7 @@ final class PipelineFunctionParameterResolverFactory {
                 final ExpressionResolver resolver,
                 final PipelineFunction pipelineFunction) {
 
-            final Matcher matcher = this.pattern.matcher(paramsIncludingParentheses);
+            final Matcher matcher = pattern.matcher(paramsIncludingParentheses);
 
             if (matcher.matches()) {
                 final ArrayList<PipelineElement> parameters = new ArrayList<>(requiredParameters);
@@ -283,6 +283,7 @@ final class PipelineFunctionParameterResolverFactory {
         public PipelineElement apply(final String paramsIncludingParentheses,
                 final ExpressionResolver resolver,
                 final PipelineFunction pipelineFunction) {
+
             return parameterResolver.apply(paramsIncludingParentheses, resolver, pipelineFunction).get(0);
         }
 

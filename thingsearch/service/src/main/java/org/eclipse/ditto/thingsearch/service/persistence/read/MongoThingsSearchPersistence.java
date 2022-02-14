@@ -79,7 +79,7 @@ import scala.PartialFunction;
 /**
  * Persistence Service Implementation for asynchronous MongoDB search.
  */
-public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
+public final class MongoThingsSearchPersistence implements ThingsSearchPersistence {
 
     private final MongoCollection<Document> collection;
     private final LoggingAdapter log;
@@ -93,7 +93,6 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
      *
      * @param mongoClient the mongoDB persistence wrapper.
      * @param actorSystem the Akka ActorSystem.
-     * @since 1.0.0
      */
     public MongoThingsSearchPersistence(final DittoMongoClient mongoClient, final ActorSystem actorSystem) {
         final MongoDatabase database = mongoClient.getDefaultDatabase();
@@ -228,7 +227,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         final var emptySource =
                 Source.<AbstractWriteModel>single(ThingDeleteModel.of(metadata));
         return Source.fromPublisher(publisher)
-                .map(document -> documentToWriteModel(metadata, document))
+                .map(MongoThingsSearchPersistence::documentToWriteModel)
                 .orElse(emptySource);
     }
 
@@ -359,8 +358,9 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         return Metadata.of(thingId, thingRevision, policyId, policyRevision, modified, null);
     }
 
-    private static AbstractWriteModel documentToWriteModel(final Metadata metadata, final Document document) {
+    private static AbstractWriteModel documentToWriteModel(final Document document) {
         final var bsonDocument = document.toBsonDocument(Document.class, MongoClient.DEFAULT_CODEC_REGISTRY());
-        return ThingWriteModel.of(metadata, bsonDocument);
+        final Metadata actualMetadata = readAsMetadata(document);
+        return ThingWriteModel.of(actualMetadata, bsonDocument);
     }
 }
