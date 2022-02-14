@@ -14,7 +14,7 @@ package org.eclipse.ditto.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import java.util.Arrays;
 import java.util.List;
@@ -44,7 +44,7 @@ public class PipelineFunctionSplitTest {
 
     @After
     public void verifyExpressionResolverUnused() {
-        verifyZeroInteractions(expressionResolver);
+        verifyNoInteractions(expressionResolver);
     }
 
     @Test
