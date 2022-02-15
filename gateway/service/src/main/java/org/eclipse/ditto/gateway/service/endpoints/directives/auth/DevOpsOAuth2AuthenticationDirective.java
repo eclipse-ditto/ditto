@@ -129,7 +129,7 @@ public final class DevOpsOAuth2AuthenticationDirective implements DevopsAuthenti
             } else {
                 final List<String> authorizationSubjectIds =
                         authenticationResult.getAuthorizationContext().getAuthorizationSubjectIds();
-                final boolean isAuthorized = authorizationSubjectIds.stream().anyMatch(expectedSubjects::contains);
+                final boolean isAuthorized = expectedSubjects.isEmpty() || authorizationSubjectIds.stream().anyMatch(expectedSubjects::contains);
                 if (isAuthorized) {
                     LOGGER.info("DevOps Oauth authentication was successful.");
                     return inner;
