@@ -302,13 +302,6 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "#Deprecated old format of Kamon. Kept for compatibility during release phase. Can be removed after deplyoment of 222-1.2.1-bosch-6\nsum(idelta(jvm_memory_bytes_sum{segment=\"heap\",job=\"$Application\", instance=~\"$Instance\"}[5m])) by (measure, instance)\n/\nsum(idelta(jvm_memory_bytes_count{segment=\"heap\",job=\"$Application\", instance=~\"$Instance\"}[5m])) by (measure, instance)",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "{{measure}} : {{instance}}",
-          "refId": "A"
-        },
-        {
           "expr": "#Max memory of JVM. Enable for analysis purpose\nsum(jvm_memory_pool_max_bytes{job=~\"$Application\", instance=~\"$Instance\"}) by(job, instance)",
           "hide": true,
           "legendFormat": "max_pool: {{instance}}",
@@ -421,13 +414,6 @@
       "stack": false,
       "steppedLine": false,
       "targets": [
-        {
-          "expr": "#Deprecated old format of Kamon. Kept for compatibility during release phase. Can be removed after deplyoment of 222-1.2.1-bosch-6\nsum(idelta(jvm_memory_bytes_sum{segment=\"non-heap\",job=\"$Application\", instance=~\"$Instance\"}[5m])) by (measure, instance)\n/\nsum(idelta(jvm_memory_bytes_count{segment=\"non-heap\",job=\"$Application\", instance=~\"$Instance\"}[5m])) by (measure, instance)",
-          "format": "time_series",
-          "intervalFactor": 1,
-          "legendFormat": "{{measure}} : {{instance}}",
-          "refId": "A"
-        },
         {
           "expr": "jvm_memory_max_bytes{region=\"non-heap\",job=\"$Application\", instance=~\"$Instance\"}",
           "legendFormat": "max: {{instance}}",
@@ -656,11 +642,6 @@
       "stack": false,
       "steppedLine": false,
       "targets": [
-        {
-          "expr": "#Deprecated old format of Kamon. Kept for compatibility during release phase. Can be removed after deplyoment of 222-1.2.1-bosch-6\nsum(jvm_threads{job=\"$Application\",instance=~\"$Instance\"}) by (measure)",
-          "legendFormat": "{{measure}}",
-          "refId": "D"
-        },
         {
           "expr": "sum(jvm_threads_peak{job=\"$Application\",instance=~\"$Instance\"})",
           "legendFormat": "peak",
