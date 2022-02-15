@@ -51,7 +51,7 @@ This is a complete list of the
 
 Migrations required updating from Ditto 2.3.x:
 * With this release we not only switched from Java 11 to Java 17 but also from OpenJ9 to Hotspot.
-  This means that the environment variable OPENJ9_JAVA_OPTIONS needs to be renamed to JAVA_OPTIONS.
+  This means that the environment variable OPENJ9_JAVA_OPTIONS needs to be renamed to JAVA_TOOL_OPTIONS.
   Make sure that all options that are defined are valid for the Hotspot JVM.
 
 ## Ditto clients

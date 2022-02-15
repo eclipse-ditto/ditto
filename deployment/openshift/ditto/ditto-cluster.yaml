@@ -71,7 +71,7 @@ spec:
           # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
         - name: TZ
           value: "Europe/Berlin"
-        - name: JAVA_OPTIONS
+        - name: JAVA_TOOL_OPTIONS
           value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s"
         - name: MONGO_DB_URI
           valueFrom:
@@ -148,7 +148,7 @@ spec:
           # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
         - name: TZ
           value: "Europe/Berlin"
-        - name: JAVA_OPTIONS
+        - name: JAVA_TOOL_OPTIONS
           value: "-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s -Dakka.cluster.distributed-data.durable.lmdb.dir=/var/tmp/ddata"
         - name: MONGO_DB_URI
           valueFrom:
@@ -225,7 +225,7 @@ spec:
           # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
         - name: TZ
           value: "Europe/Berlin"
-        - name: JAVA_OPTIONS
+        - name: JAVA_TOOL_OPTIONS
           value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s"
         - name: MONGO_DB_URI
           valueFrom:
@@ -300,7 +300,7 @@ spec:
           value: "kubernetes-api"
         - name: TZ
           value: "Europe/Berlin"
-        - name: JAVA_OPTIONS
+        - name: JAVA_TOOL_OPTIONS
           value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s"
         - name: MONGO_DB_URI
           valueFrom:
@@ -376,7 +376,7 @@ spec:
           # namespace in which the Ditto service is running according to this the pod-reader-role have to be created in the same namespace
         - name: TZ
           value: "Europe/Berlin"
-        - name: JAVA_OPTIONS
+        - name: JAVA_TOOL_OPTIONS
           value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s"
         - name: MONGO_DB_URI
           valueFrom:
@@ -456,7 +456,7 @@ spec:
           value: 0.0.0.0
         - name: TZ
           value: "Europe/Berlin"∆
-        - name: JAVA_OPTIONS
+        - name: JAVA_TOOL_OPTIONS
           value: "-XX:+ExitOnOutOfMemoryError -XX:+UseContainerSupport -XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:MaxGCPauseMillis=150 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=60s -Dakka.cluster.failure-detector.threshold=15.0 -Dakka.cluster.failure-detector.expected-response-after=3s -Dakka.cluster.failure-detector.acceptable-heartbeat-pause=7s"
         - name: DEVOPS_PASSWORD
           value: "dittoPW1!"

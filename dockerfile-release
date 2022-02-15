@@ -41,4 +41,4 @@ RUN set -x \
 USER ditto
 WORKDIR $DITTO_HOME
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh", "-c", "java $JAVA_OPTIONS -jar /opt/ditto/starter.jar"]
+CMD ["java", "-jar", "/opt/ditto/starter.jar"]
