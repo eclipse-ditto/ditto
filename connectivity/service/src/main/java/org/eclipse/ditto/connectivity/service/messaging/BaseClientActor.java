@@ -651,7 +651,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         if (to == CONNECTING) {
             clientConnectingGauge.set(1L);
         }
-        // dont use else if since we might use goTo(CONNECTING) if in CONNECTING state. This will cause another onTransition.
+        // do not use else if since we might use goTo(CONNECTING) if in CONNECTING state. This will cause another onTransition.
         if (from == CONNECTING) {
             clientConnectingGauge.reset();
         }
@@ -1017,6 +1017,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSM.State<BaseClientState, BaseClientData> connectionTimedOut(final BaseClientData data) {
         data.getSessionSenders().forEach(sender -> {
             final DittoRuntimeException error = ConnectionFailedException.newBuilder(connectionId())
+                    .description("Connection attempt timed out.")
                     .dittoHeaders(sender.second())
                     .build();
             sender.first().tell(new Status.Failure(error), getSelf());
