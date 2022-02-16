@@ -243,6 +243,17 @@ entries:
             url: /basic-acknowledgements.html
             output: web
 
+            subfolders:
+              - title: WoT (Web of Things)
+                output: web
+                subfolderitems:
+                  - title: WoT integration
+                    url: /basic-wot-integration.html
+                    output: web
+                  - title: WoT integration example
+                    url: /basic-wot-integration-example.html
+                    output: web
+
       - title: Advanced concepts
         output: web
 

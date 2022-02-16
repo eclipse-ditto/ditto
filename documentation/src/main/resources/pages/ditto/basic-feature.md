@@ -48,7 +48,7 @@ Ditto supports specifying a definition for a feature in order to document how a 
 
 A feature's definition is a list of definition identifiers containing 
 * either a *namespace*, *name* and *version* separated by colons: `<namespace>:<name>:<version>`
-* or valid HTTP(s) URLs
+* or valid HTTP(s) URLs (e.g. in order to define that the Feature is described by [WoT (Web of Things) Thing Models](basic-wot-integration.html#thing-model-describing-a-ditto-feature))
 
 A Definition can be seen as some kind of type for features. The [properties](#feature-properties) of a 
 feature containing a definition identifier `"org.eclipse.ditto:lamp:1.0.0"` can be expected to follow the structure
@@ -213,27 +213,16 @@ The capabilities or behavior of this "lamp" feature would be defined as [message
 * Message with subject `changeColor` which is sent `TO` a feature containing a JSON payload which follows the type
   `Color` defined in another Vorto function block.
 
-### The link to W3C Web of Things
+### The link to W3C WoT (Web of Things)
 
 If a [feature definition](#feature-definition) has the form of an HTTP(s) URL, this URL pointing to a resource may be
 interpreted as the link to a [W3C WoT (Web of Things)](https://www.w3.org/TR/wot-thing-description11/) 
 [Thing Model](https://www.w3.org/TR/wot-thing-description11/#thing-model) in [JSON-LD](https://www.w3.org/TR/json-ld11/) 
 format.
 
-#### Mapping WoT Thing Model elements
+For a detailed explanation how WoT and its concepts link to Ditto, please have a look at the 
+[dedicated WoT integration documentation](basic-wot-integration.html).
 
-A WoT Thing Model describes the following elements a "thing" supports:
-* properties
-* actions
-* events
-
-The following table shows an overview of how those elements map to Ditto concepts:
-
-| WoT element           | Ditto concept  |
-| [Thing](https://www.w3.org/TR/wot-thing-description11/#thing) | Feature.<br/>In Ditto, a Feature is an aspect of a [Ditto Thing](basic-thing.html). As the feature is defined by its properties and messages it supports, it maps to a WoT Thing. |
-| [Properties](https://www.w3.org/TR/wot-thing-description11/#propertyaffordance) | Feature [properties](#feature-properties) and [desired properties](#feature-desired-properties) |
-| [Actions](https://www.w3.org/TR/wot-thing-description11/#actionaffordance) | [Messages](basic-messages.html#elements) with **Direction** *to* ("inbox") of a Thing ID + Feature ID combination |
-| [Events](https://www.w3.org/TR/wot-thing-description11/#eventaffordance) | [Messages](basic-messages.html#elements) with **Direction** *from* ("outbox") of a Thing ID + Feature ID combination  |
 
 # Example
 

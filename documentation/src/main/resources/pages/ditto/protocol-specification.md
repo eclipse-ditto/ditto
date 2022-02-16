@@ -20,7 +20,8 @@ the data in a protocol specific way.
 
 ### Content-type
 
-Ditto Protocol messages are identified by the "Content-Type":
+Ditto Protocol messages are identified by the 
+[IANA registered](https://www.iana.org/assignments/media-types/application/vnd.eclipse.ditto+json) "Content-Type":
 
 ```
 application/vnd.eclipse.ditto+json
