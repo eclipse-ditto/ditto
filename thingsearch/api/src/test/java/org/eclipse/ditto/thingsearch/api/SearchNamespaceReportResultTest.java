@@ -29,15 +29,6 @@ import org.mutabilitydetector.unittesting.MutabilityMatchers;
  */
 public final class SearchNamespaceReportResultTest {
 
-    @Ignore("The class is immutable")
-    @Test
-    public void assertImmutability() {
-        MutabilityAssert.assertInstancesOf(SearchNamespaceReportResult.class, //
-                MutabilityMatchers.areEffectivelyImmutable(), //
-                AllowedReason.assumingFields(
-                        "searchNamespaceResultEntries").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
-
     @Test
     public void jsonTest() {
         final List<SearchNamespaceResultEntry> entries = new ArrayList<>();

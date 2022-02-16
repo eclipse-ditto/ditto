@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.model.entity.metadata.Metadata;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.signals.events.FeatureDesiredPropertiesDeleted;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

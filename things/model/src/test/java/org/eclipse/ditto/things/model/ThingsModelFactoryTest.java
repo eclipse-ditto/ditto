@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.base.model.entity.id.restriction.LengthRestrictionTestBase;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

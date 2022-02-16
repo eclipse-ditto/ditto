@@ -35,6 +35,7 @@ import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingConflictE
 import org.eclipse.ditto.things.model.signals.commands.exceptions.ThingPreconditionFailedException;
 import org.eclipse.ditto.things.model.signals.commands.modify.CreateThing;
 import org.eclipse.ditto.things.model.signals.events.ThingEvent;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 

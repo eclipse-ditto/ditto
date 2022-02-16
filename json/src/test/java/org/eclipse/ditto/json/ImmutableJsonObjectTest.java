@@ -33,6 +33,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import org.assertj.core.api.Assertions;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

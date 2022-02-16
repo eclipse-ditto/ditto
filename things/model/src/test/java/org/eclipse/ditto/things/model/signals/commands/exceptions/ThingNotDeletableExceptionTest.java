@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.things.model.ThingId;
 import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
 import org.eclipse.ditto.things.model.signals.commands.TestConstants;
+import org.junit.Ignore;
 import org.junit.Test;
 
 

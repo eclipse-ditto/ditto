@@ -14,16 +14,14 @@ package org.eclipse.ditto.policies.model.enforcers.tree;
 
 import java.util.Collections;
 
-import org.eclipse.ditto.policies.model.enforcers.tree.PolicyTreeNode;
-import org.eclipse.ditto.policies.model.enforcers.tree.ResourceNode;
 import org.eclipse.ditto.policies.model.EffectedPermissions;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
+import org.mockito.junit.MockitoJUnitRunner;
 
 /**
  * Unit test for {@link org.eclipse.ditto.policies.model.enforcers.tree.ResourceNode}.

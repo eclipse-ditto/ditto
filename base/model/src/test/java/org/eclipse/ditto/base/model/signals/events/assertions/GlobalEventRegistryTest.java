@@ -24,6 +24,7 @@ import org.eclipse.ditto.base.model.signals.JsonTypeNotParsableException;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.GlobalEventRegistry;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class GlobalEventRegistryTest {

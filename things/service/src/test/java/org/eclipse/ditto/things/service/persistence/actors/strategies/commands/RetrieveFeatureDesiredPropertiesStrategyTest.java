@@ -31,6 +31,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDesi
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureDesiredPropertiesResponse;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

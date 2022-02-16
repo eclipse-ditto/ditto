@@ -25,6 +25,7 @@ import java.util.List;
 import org.assertj.core.util.Lists;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.things.model.ThingFieldSelector;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

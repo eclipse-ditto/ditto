@@ -23,6 +23,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.assertj.core.api.OptionalAssert;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.messages.model.MessageDirection;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

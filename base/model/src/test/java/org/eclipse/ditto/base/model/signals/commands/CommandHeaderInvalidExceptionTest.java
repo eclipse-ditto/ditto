@@ -23,6 +23,7 @@ import org.eclipse.ditto.base.model.assertions.DittoBaseAssertions;
 import org.eclipse.ditto.base.model.common.HttpStatus;
 import org.eclipse.ditto.base.model.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.base.model.signals.GlobalErrorRegistry;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

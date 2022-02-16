@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.assertj.core.util.Lists;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.runner.RunWith;
@@ -39,6 +40,7 @@ public final class AcknowledgementLabelsTest {
         private static final String KNOWN_LABEL_VALUE = "PROCESSING-DONE";
 
         @Test
+        @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
         public void assertImmutability() {
             assertInstancesOf(AcknowledgementLabels.class, areImmutable());
         }

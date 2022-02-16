@@ -20,6 +20,7 @@ import java.lang.ref.SoftReference;
 
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

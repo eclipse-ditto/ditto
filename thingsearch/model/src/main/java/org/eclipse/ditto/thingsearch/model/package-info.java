@@ -19,7 +19,7 @@
  * A SearchResult has an array of result values and a value indicating the offset of the next page of search results or
  * that the current page is the last one.
  *
- * <h3>Object creation</h3>
+ * <h2>Object creation</h2>
  * {@link org.eclipse.ditto.thingsearch.model.SearchModelFactory} is the main entry point for obtaining objects of this
  * package's interfaces to work with.
  */

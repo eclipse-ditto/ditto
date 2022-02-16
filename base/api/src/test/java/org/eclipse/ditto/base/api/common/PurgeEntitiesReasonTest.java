@@ -33,7 +33,7 @@ import org.eclipse.ditto.base.model.entity.type.EntityType;
 import org.eclipse.ditto.base.model.json.FieldType;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.Test;import org.junit.Ignore;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 

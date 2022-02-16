@@ -26,6 +26,7 @@ import org.eclipse.ditto.internal.models.signalenrichment.SignalEnrichmentConfig
 import org.eclipse.ditto.internal.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.internal.utils.persistentactors.cleanup.CleanupConfig;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 

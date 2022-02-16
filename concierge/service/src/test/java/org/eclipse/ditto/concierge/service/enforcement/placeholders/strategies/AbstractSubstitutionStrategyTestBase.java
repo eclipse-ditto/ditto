@@ -29,6 +29,7 @@ import org.eclipse.ditto.policies.model.Resource;
 import org.eclipse.ditto.things.model.Thing;
 import org.eclipse.ditto.things.model.ThingId;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

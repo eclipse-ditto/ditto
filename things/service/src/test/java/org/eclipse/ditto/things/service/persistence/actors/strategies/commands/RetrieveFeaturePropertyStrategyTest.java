@@ -28,6 +28,7 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeatureProp
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveFeaturePropertyResponse;
 import org.eclipse.ditto.things.service.persistence.actors.ETagTestUtils;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

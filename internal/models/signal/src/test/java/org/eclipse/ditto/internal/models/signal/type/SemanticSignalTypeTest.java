@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
@@ -38,6 +39,7 @@ public final class SemanticSignalTypeTest {
     public static final class GeneralFunctionalityTest {
 
         @Test
+        @Ignore("https://github.com/MutabilityDetector/MutabilityDetector/issues/185")
         public void assertImmutability() {
             assertInstancesOf(SemanticSignalType.class, areImmutable());
         }

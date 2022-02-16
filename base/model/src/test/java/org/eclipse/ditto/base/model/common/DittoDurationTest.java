@@ -22,6 +22,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**

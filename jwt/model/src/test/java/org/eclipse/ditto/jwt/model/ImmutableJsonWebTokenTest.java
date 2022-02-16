@@ -23,9 +23,10 @@ import java.time.Instant;
 import java.util.Base64;
 
 import org.eclipse.ditto.base.model.auth.AuthorizationSubject;
-import org.junit.Test;
+import org.junit.Ignore;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
+import org.junit.Test;
 
 /**
  * Unit test for {@link ImmutableJsonWebToken}.

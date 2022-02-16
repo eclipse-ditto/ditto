@@ -23,6 +23,7 @@ import org.eclipse.ditto.base.model.json.FieldType;
 import org.eclipse.ditto.things.model.FeatureProperties;
 import org.eclipse.ditto.base.model.signals.events.Event;
 import org.eclipse.ditto.base.model.signals.events.EventsourcedEvent;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;

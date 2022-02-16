@@ -16,6 +16,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 

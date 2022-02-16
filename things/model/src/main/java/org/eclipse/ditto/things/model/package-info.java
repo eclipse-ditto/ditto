@@ -22,7 +22,7 @@
  * Furthermore a Thing can have a {@link org.eclipse.ditto.things.model.ThingLifecycle} and a
  * {@link org.eclipse.ditto.things.model.ThingRevision} which is incremented with each change of the Thing.
  *
- * <h3>Object creation</h3>
+ * <h2>Object creation</h2>
  * {@link org.eclipse.ditto.things.model.ThingsModelFactory} is the main entry point for obtaining objects of this
  * package's interfaces to work with.
  */
