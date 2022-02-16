@@ -38,7 +38,7 @@ RUN set -x \
     && chown -R ditto:ditto $DITTO_HOME \
     && cd $DITTO_LOGS \
     && chown -R ditto:ditto $DITTO_LOGS \
-    && apt-get remove -y wget \
+    && apt-get remove -y wget
 
 USER ditto
 WORKDIR $DITTO_HOME
