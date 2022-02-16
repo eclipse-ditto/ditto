@@ -33,9 +33,38 @@ public interface Version extends Jsonifiable<JsonObject> {
         return new ImmutableVersion(jsonObject);
     }
 
+    static Version.Builder newBuilder() {
+        return Version.Builder.newBuilder();
+    }
+
+    static Version.Builder newBuilder(final JsonObject jsonObject) {
+        return Version.Builder.newBuilder(jsonObject);
+    }
+
+    default Version.Builder toBuilder() {
+        return Version.Builder.newBuilder(toJson());
+    }
+
     Optional<String> getInstance();
 
     Optional<String> getModel();
+
+    interface Builder {
+
+        static Builder newBuilder() {
+            return new MutableVersionBuilder(JsonObject.newBuilder());
+        }
+
+        static Builder newBuilder(final JsonObject jsonObject) {
+            return new MutableVersionBuilder(jsonObject.toBuilder());
+        }
+
+        Builder setInstance(String instance);
+
+        Builder setModel(String model);
+
+        Version build();
+    }
 
     /**
      * An enumeration of the known {@link JsonFieldDefinition}s of a Version.

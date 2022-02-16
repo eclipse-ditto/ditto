@@ -93,6 +93,7 @@ import org.eclipse.ditto.wot.model.ThingDescription;
 import org.eclipse.ditto.wot.model.ThingModel;
 import org.eclipse.ditto.wot.model.Title;
 import org.eclipse.ditto.wot.model.UriVariables;
+import org.eclipse.ditto.wot.model.Version;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
 
 import akka.actor.ActorSystem;
@@ -154,7 +155,8 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
         final ThingModel cleanedTm = removeThingModelSpecificElements(thingModelWithExtensionsAndImports, dittoHeaders);
 
         final ThingDescription.Builder tdBuilder = ThingDescription.newBuilder(cleanedTm.toJson());
-        addThingDescriptionIdAndBase(tdBuilder, thingId, featureId);
+        addBase(tdBuilder, thingId, featureId);
+        addInstanceVersion(tdBuilder, cleanedTm.getVersion().orElse(null));
         addThingDescriptionLinks(tdBuilder, thingModelUrl, null != featureId, thingId);
         convertThingDescriptionTmSubmodelLinksToItems(tdBuilder, dittoHeaders);
         addThingDescriptionTemplateFromConfig(tdBuilder);
@@ -265,7 +267,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                         .build());
 
         if (atType.equals(SingleAtType.of("tm:ThingModel"))) {
-            tmBuilder.setAtType(null);
+            tmBuilder.setAtType(AtType.newSingleAtType("Thing"));
         } else if (atType instanceof SingleAtType) {
             throw WotThingModelInvalidException.newBuilder(
                             "The WoT ThingModel must be of '@type' being 'tm:ThingModel'")
@@ -278,7 +280,8 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                     .forEach(st -> {
                         if (st.equals(SingleAtType.of("tm:ThingModel"))) {
                             tmThingModelWasPresent.set(true);
-                            // remove tm:ThingModel by not adding it again..
+                            // remove tm:ThingModel by not adding it again
+                            keptTypes.add(AtType.newSingleAtType("Thing"));
                         } else {
                             keptTypes.add(st);
                         }
@@ -297,7 +300,7 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
         builder.remove(ThingModel.JsonFields.TM_REQUIRED);
     }
 
-    private void addThingDescriptionIdAndBase(final ThingDescription.Builder thingDescriptionBuilder,
+    private void addBase(final ThingDescription.Builder thingDescriptionBuilder,
             final ThingId thingId, @Nullable final String featureId) {
         if (null != featureId) {
             final String featurePath = "/features/" + featureId;
@@ -307,6 +310,16 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
             thingDescriptionBuilder.setId(IRI.of("urn:" + thingId))
                     .setBase(IRI.of(buildThingIdBasePath(thingId)));
         }
+    }
+
+    private void addInstanceVersion(final ThingDescription.Builder thingDescriptionBuilder,
+            @Nullable final Version tmVersion) {
+        final Version versionWithInstance = Optional.ofNullable(tmVersion)
+                .map(Version::toBuilder)
+                .map(vBuilder -> vBuilder.setInstance(tmVersion.getModel().orElseThrow()))
+                .map(Version.Builder::build)
+                .orElse(null);
+        thingDescriptionBuilder.setVersion(versionWithInstance);
     }
 
     private String buildThingIdBasePath(final ThingId thingId) {
