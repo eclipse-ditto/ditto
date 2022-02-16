@@ -218,11 +218,13 @@ public final class SshTunnelActor extends AbstractActorWithTimers implements Cre
 
     private void handleTunnelClosed(final TunnelClosed tunnelClosed) {
         if (tunnelClosed.getError() != null) {
-            connectionLogger.failure("SSH Tunnel failed: {0}", getMessage(tunnelClosed.getError()));
-            logger.debug("SSH Tunnel failed: {0}", getMessage(tunnelClosed.getError()));
+            final String message = String.format("SSH Tunnel failed: %s", getMessage(tunnelClosed.getError()));
+            connectionLogger.failure(message);
+            logger.warning(message);
         } else {
-            connectionLogger.success("SSH Tunnel closed");
-            logger.debug("SSH Tunnel closed");
+            final String msg = "SSH Tunnel closed";
+            connectionLogger.success(msg);
+            logger.debug(msg);
         }
         notifyParentAndCleanup(tunnelClosed);
     }
