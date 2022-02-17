@@ -55,7 +55,7 @@ feature containing a definition identifier `"org.eclipse.ditto:lamp:1.0.0"` can 
 described in the `lamp` type of namespace `org.eclipse.ditto` semantically versioned with version `1.0.0`.
 
 {% include note.html content="Ditto does not contain a type system on its own and does not specify how to describe types. 
-   You may either use [Eclipse Vorto](#the-link-to-eclipse-vorto) or [W3C Web of Things](#the-link-to-w3c-web-of-things)
+   You may either use [Eclipse Vorto](#the-link-to-eclipse-vorto) or [W3C Web of Things](#the-link-to-w3c-wot-web-of-things)
    to describe data structures and supported messages of Ditto features." %}
 
 {% include warning.html content="Currently Ditto **does not** ensure that the `properties` or 

@@ -110,6 +110,98 @@ It does not need to contain the instance specific parts which a TD must include 
 it focuses on the possible interactions (`properties`, `actions`, `events`) and their data types / semantics in a more 
 abstract way.
 
+#### Thing Model modeling good practices
+
+When writing new WoT Thing Models to describe the capabilities of your devices, here are some good practices and tips
+which you should consider:
+
+* put a version in your Thing Model filename:
+    * The WoT specification does not require you to put the version of the Thing Model in the filename, however you should
+      really do so.
+    * If you don't and e.g. just provide the file as `lamp.tm.jsonld`, you will probably just overwrite the file whenever
+      you do a change to the model.
+    * Think about an application consuming that model - on the one day a Thing would be correctly defined by the model, on
+      the next day the Thing would no longer follow the model, even if the URL to the model was not changed. 
+* apply semantic versioning:
+    * if you only to a "bugfix" to a model, increase the "micro" version: `1.0.X`
+    * if you add something new to a model without removing/renaming (breaking) existing definitions, increase the "minor" version: `1.X.0`
+    * if you need to break a model (e.g. by removing/renaming something or changing a datatype), increase the "major" version: `X.0.0`
+* treat published Thing Models as "immutable":
+    * never change a "released" TM once published and accessible via public HTTP endpoint
+* provide a `title` and a `description` for your Thing Models
+    * you as the model creator can add the most relevant human-readable descriptions
+    * also, for `properties`, `actions`, `events` and all defined data types
+    * if you need internationalization, add those to `tiles` and `descriptions` 
+* provide a semantic context by referencing ontologies in your JSON-LD `@context`
+    * at some point, a machine learning or reasoning engine will try to make sense of your things and their data
+    * support the machines to be able to understand your things semantics
+    * find out more about Linked Data and JSON-LD here: [https://json-ld.org](https://json-ld.org)
+    * e.g. make use of public ontologies
+        * for defining time related data (e.g. durations, timestamps), you can use: [W3C Time Ontology](https://www.w3.org/TR/owl-time/)  
+          ```json
+          {
+            "@context": {
+              "https://www.w3.org/2022/wot/td/v1.1",
+              {
+                "time": "http://www.w3.org/2006/time#"
+              }
+            }
+          }
+          ```
+        * for defining units you can choose between:
+            * [QUDT.org](http://www.qudt.org)  
+              ```json
+              {
+                "@context": {
+                  "https://www.w3.org/2022/wot/td/v1.1",
+                  {
+                    "qudt": "http://qudt.org/schema/qudt/",
+                    "unit": "http://qudt.org/vocab/unit/",
+                    "quantitykind": "http://qudt.org/vocab/quantitykind/"
+                  }
+                }
+              }
+              ```
+            * [OM 2: Units of Measure](http://www.ontology-of-units-of-measure.org/page/om-2):  
+              ```json
+              {
+                "@context": {
+                  "https://www.w3.org/2022/wot/td/v1.1",
+                  {
+                    "om2": "http://www.ontology-of-units-of-measure.org/resource/om-2/"
+                  }
+                }
+              }
+              ```
+        * for defining "assets", you can use:
+            * [SAREF](https://ontology.tno.nl/saref/)  
+              ```json
+              {
+                "@context": {
+                  "https://www.w3.org/2022/wot/td/v1.1",
+                  {
+                    "saref": "https://w3id.org/saref#"
+                  }
+                }
+              }
+              ```
+* use the linked ontologies in order to describe your model in a semantic way, e.g. in the `properties` of a 
+  "Temperature sensor" model:
+    ```json
+    {
+      "properties": {
+        "currentTemperature": {
+          "@type": "om2:CelsiusTemperature",
+          "title": "Current temperature",
+          "description": "The last or current measured temperature in '°C'.",
+          "type": "number",
+          "unit": "om2:degreeCelsius",
+          "minimum": -273.15
+        }
+      }
+    }
+    ```
+
 
 ## Mapping of WoT concepts to Ditto
 
