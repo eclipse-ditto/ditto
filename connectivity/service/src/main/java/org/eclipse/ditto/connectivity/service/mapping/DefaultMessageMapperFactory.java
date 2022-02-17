@@ -184,6 +184,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
             final Iterable<Class<?>> payloadMappers = ClassIndex.getAnnotated(PayloadMapper.class);
             final Map<String, Class<?>> mappers = new HashMap<>();
             for (final Class<?> payloadMapper : payloadMappers) {
+                LOGGER.info("Loading payload mapper <{}>.", payloadMapper);
                 if (!MessageMapper.class.isAssignableFrom(payloadMapper)) {
                     throw new IllegalStateException("The class " + payloadMapper.getName() + " does not implement " +
                             MessageMapper.class.getName());
