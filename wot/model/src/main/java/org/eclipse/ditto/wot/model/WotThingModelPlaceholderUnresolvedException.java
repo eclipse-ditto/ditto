@@ -29,29 +29,30 @@ import org.eclipse.ditto.base.model.json.JsonParsableException;
 import org.eclipse.ditto.json.JsonObject;
 
 /**
- * Thrown if a WoT (Web of Things) ThingModel {@code tm:ref} was not in the specified format being:
- * {@code <uri>#<jsonPointer>}
+ * Thrown if a downloaded WoT (Web of Things) ThingModel placeholder could not be resolved during creation of a TD.
  *
  * @since 2.4.0
  */
 @Immutable
-@JsonParsableException(errorCode = WotThingModelRefInvalidException.ERROR_CODE)
-public final class WotThingModelRefInvalidException extends DittoRuntimeException implements WotException {
+@JsonParsableException(errorCode = WotThingModelPlaceholderUnresolvedException.ERROR_CODE)
+public final class WotThingModelPlaceholderUnresolvedException extends DittoRuntimeException implements WotException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "tm.ref.invalid";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "tm.placeholder.unresolved";
 
     private static final String MESSAGE_TEMPLATE =
-            "The WoT ThingModel tm:ref ''{0}'' is invalid.";
+            "The WoT ThingModel contained placeholder ''{0}'' which could not be resolved " +
+                    "during TD generation.";
 
     private static final String DEFAULT_DESCRIPTION =
-            "Please ensure that is in the specified format '<uri>#<jsonPointer>'.";
+            "Please ensure that all used placeholders from the ThingModel are provided, e.g. via the " +
+                    "'model-placeholders' object in the Thing/Feature.";
 
-    private static final long serialVersionUID = 947845200833356146L;
+    private static final long serialVersionUID = 931233466787293456L;
 
-    private WotThingModelRefInvalidException(final DittoHeaders dittoHeaders,
+    private WotThingModelPlaceholderUnresolvedException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
@@ -60,58 +61,59 @@ public final class WotThingModelRefInvalidException extends DittoRuntimeExceptio
     }
 
     /**
-     * Constructs a new {@code WotThingModelRefInvalidException} object.
+     * Constructs a new {@code WotThingModelPlaceholderUnresolvedException} object.
      *
-     * @param tmRefValue the {@code tm:ref} value which was invalid.
+     * @param placeholder the unresolved placeholder.
      * @param dittoHeaders the headers with which this Exception should be reported back to the user.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public WotThingModelRefInvalidException(final CharSequence tmRefValue, final DittoHeaders dittoHeaders) {
-        this(dittoHeaders, getMessage(tmRefValue), DEFAULT_DESCRIPTION, null, null);
+    public WotThingModelPlaceholderUnresolvedException(final CharSequence placeholder,
+            final DittoHeaders dittoHeaders) {
+        this(dittoHeaders, getMessage(placeholder), DEFAULT_DESCRIPTION, null, null);
     }
 
-    private static String getMessage(final CharSequence tmRefValue) {
-        checkNotNull(tmRefValue, "tmRefValue");
-        return MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(tmRefValue));
+    private static String getMessage(final CharSequence placeholder) {
+        checkNotNull(placeholder, "placeholder");
+        return MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(placeholder));
     }
 
     /**
-     * A mutable builder for a {@code WotThingModelRefInvalidException}.
+     * A mutable builder for a {@code WotThingModelPlaceholderUnresolvedException}.
      *
-     * @param tmRefValue the {@code tm:ref} value which was invalid.
+     * @param placeholder the unresolved placeholder.
      * @return the builder.
-     * @throws NullPointerException if {@code thingId} is {@code null}.
+     * @throws NullPointerException if {@code placeholder} is {@code null}.
      */
-    public static Builder newBuilder(final CharSequence tmRefValue) {
-        return new Builder(tmRefValue);
+    public static Builder newBuilder(final CharSequence placeholder) {
+        return new Builder(placeholder);
     }
 
     /**
-     * Constructs a new {@code WotThingModelRefInvalidException} object with given message.
+     * Constructs a new {@code WotThingModelPlaceholderUnresolvedException} object with given message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new WotThingModelRefInvalidException.
+     * @return the new WotThingModelPlaceholderUnresolvedException.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static WotThingModelRefInvalidException fromMessage(@Nullable final String message,
+    public static WotThingModelPlaceholderUnresolvedException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
-     * Constructs a new {@code WotThingModelRefInvalidException} object with the exception message extracted from the given
+     * Constructs a new {@code WotThingModelPlaceholderUnresolvedException} object with the exception message extracted from the given
      * JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.base.model.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new WotThingModelRefInvalidException.
+     * @return the new WotThingModelPlaceholderUnresolvedException.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static WotThingModelRefInvalidException fromJson(final JsonObject jsonObject,
+    public static WotThingModelPlaceholderUnresolvedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
@@ -128,27 +130,28 @@ public final class WotThingModelRefInvalidException extends DittoRuntimeExceptio
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link org.eclipse.ditto.wot.model.WotThingModelRefInvalidException}.
+     * A mutable builder with a fluent API for a {@link WotThingModelPlaceholderUnresolvedException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<WotThingModelRefInvalidException> {
+    public static final class Builder
+            extends DittoRuntimeExceptionBuilder<WotThingModelPlaceholderUnresolvedException> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final CharSequence tmRefValue) {
+        private Builder(final CharSequence placeholder) {
             this();
-            message(WotThingModelRefInvalidException.getMessage(tmRefValue));
+            message(WotThingModelPlaceholderUnresolvedException.getMessage(placeholder));
         }
 
         @Override
-        protected WotThingModelRefInvalidException doBuild(final DittoHeaders dittoHeaders,
+        protected WotThingModelPlaceholderUnresolvedException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new WotThingModelRefInvalidException(dittoHeaders, message, description, cause, href);
+            return new WotThingModelPlaceholderUnresolvedException(dittoHeaders, message, description, cause, href);
         }
 
     }

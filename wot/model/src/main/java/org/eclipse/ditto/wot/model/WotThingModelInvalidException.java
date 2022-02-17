@@ -31,6 +31,7 @@ import org.eclipse.ditto.json.JsonObject;
 
 /**
  * Thrown if a downloaded WoT (Web of Things) ThingModel was invalid.
+ *
  * @since 2.4.0
  */
 @Immutable

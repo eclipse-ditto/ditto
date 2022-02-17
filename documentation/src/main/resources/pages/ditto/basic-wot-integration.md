@@ -250,28 +250,32 @@ curl -u ditto:ditto 'http://localhost:8080/api/2/things/io.eclipserpojects.ditto
 #### Resolving Thing Model placeholders
 
 WoT Thing Models may contain [placeholders](https://www.w3.org/TR/wot-thing-description11/#thing-model-td-placeholder)
-which must be resolved during generation of the TD from a TM.  
-Those placeholders can be configured in Ditto via the 
-[things.conf](https://github.com/eclipse/ditto/blob/master/things/service/src/main/resources/things.conf) configuration
-file of the [things](architecture-services-things.html) service at path 
-`ditto.things.wot.to-thing-description.placeholders`.  
-This map may either contain static values, or also contain dynamic values which are then resolved by the Thing's or Feature's 
-JSON payload:
+which **must** be resolved during generation of the TD from a TM.  
 
-```
-TITLE = "json:/attributes/title" # dynamically resolve variables via thing content
-```
+In order to resolve TM placeholders, Ditto applies the following strategy:
+* when generating a TD for a Thing, it looks in the Things' attribute `"model-placeholders"` (being a JsonObject) in
+   order to lookup placeholders
+* when generating a TD for a Feature, it looks in the Feature's property `"model-placeholders"` (being a JsonObject) in
+   order to lookup placeholders
+* when a placeholder was not found in the `"model-placeholders"` of the Thing/Feature, a fallback to the Ditto 
+  configuration is done:
+    * placeholder fallbacks can be configured in Ditto via the 
+      [things.conf](https://github.com/eclipse/ditto/blob/master/things/service/src/main/resources/things.conf) 
+      configuration file of the [things](architecture-services-things.html) service at path 
+      `ditto.things.wot.to-thing-description.placeholders`.<br/>  
+      This map may contain static values, but use and Json type as value (e.g. also a JsonObject), e.g.:
+      ```
+      FOO = "bar"
+      TM_REQUIRED = [
+        "#/properties/status",
+        "#/actions/toggle"
+      ]
+      ```
 
-This way, the Thing Model must not contain Ditto specific paths, but only define placeholders like `{{ TITLE }}` and via
-Ditto configuration, such placeholders may dynamically be resolved by e.g. a Thing attribute value.
-
-{% include warning.html content="Please be aware that such dynamically resolved placeholders from the Thing are not 
+{% include warning.html content="Please be aware that placeholders put into the `"model-placeholders"` attribute/property 
+    of a Thing/Feature may be used in TM placeholders and therefore are not 
     protected by any authorization check based on the Thing's [Policy](basic-policy.html) as TDs are available for all
     authenticated users which know the Thing ID."
-%}
-
-{% include note.html content="Currently, Ditto only supports string placeholders, the datatype is not converted to e.g. 
-    an integer or a boolean after resolving placeholders."
 %}
 
 ### Thing skeleton generation upon Thing creation

@@ -95,6 +95,7 @@ import org.eclipse.ditto.wot.model.Title;
 import org.eclipse.ditto.wot.model.UriVariables;
 import org.eclipse.ditto.wot.model.Version;
 import org.eclipse.ditto.wot.model.WotThingModelInvalidException;
+import org.eclipse.ditto.wot.model.WotThingModelPlaceholderUnresolvedException;
 
 import akka.actor.ActorSystem;
 
@@ -177,7 +178,8 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                 Map.of(SCHEMA_DITTO_ERROR, buildDittoErrorSchema())
         ));
 
-        final ThingDescription thingDescription = resolvePlaceholders(tdBuilder.build(), placeholderLookupObject);
+        final ThingDescription thingDescription = resolvePlaceholders(tdBuilder.build(), placeholderLookupObject,
+                dittoHeaders);
         LOGGER.withCorrelationId(dittoHeaders)
                 .info("Created ThingDescription for thingId <{}> and featureId <{}>: <{}>", thingId, featureId,
                         thingDescription);
@@ -804,21 +806,32 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
     }
 
     private ThingDescription resolvePlaceholders(final ThingDescription tdWithPotentialPlaceholders,
-            @Nullable final JsonObject o) {
-        return ThingDescription.fromJson(resolvePlaceholders(tdWithPotentialPlaceholders.toJson(), o));
+            @Nullable final JsonObject modelPlaceholders, final DittoHeaders dittoHeaders) {
+        return ThingDescription.fromJson(
+                resolvePlaceholders(tdWithPotentialPlaceholders.toJson(), modelPlaceholders, dittoHeaders)
+        );
     }
 
-    private JsonObject resolvePlaceholders(final JsonObject jsonObject, @Nullable final JsonObject o) {
+    private JsonObject resolvePlaceholders(final JsonObject jsonObject, @Nullable final JsonObject modelPlaceholders,
+            final DittoHeaders dittoHeaders) {
         return jsonObject.stream()
                 .map(field -> {
                     final JsonKey key = field.getKey();
                     final JsonValue value = field.getValue();
                     if (value.isString()) {
-                        return JsonField.newInstance(key, JsonValue.of(resolvePlaceholder(value.asString(), o)));
+                        return JsonField.newInstance(key, resolvePlaceholder(value.asString(), modelPlaceholders)
+                                .orElseThrow(() -> WotThingModelPlaceholderUnresolvedException
+                                        .newBuilder(value.asString())
+                                        .dittoHeaders(dittoHeaders)
+                                        .build()));
                     } else if (value.isObject()) {
-                        return JsonField.newInstance(key, resolvePlaceholders(value.asObject(), o)); // recurse!
+                        return JsonField.newInstance(key,
+                                resolvePlaceholders(value.asObject(), modelPlaceholders, dittoHeaders) // recurse!
+                        );
                     } else if (value.isArray()) {
-                        return JsonField.newInstance(key, resolvePlaceholders(value.asArray(), o));
+                        return JsonField.newInstance(key,
+                                resolvePlaceholders(value.asArray(), modelPlaceholders, dittoHeaders)
+                        );
                     } else {
                         return field;
                     }
@@ -826,15 +839,20 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                 .collect(JsonCollectors.fieldsToObject());
     }
 
-    private JsonArray resolvePlaceholders(final JsonArray jsonArray, @Nullable final JsonObject o) {
+    private JsonArray resolvePlaceholders(final JsonArray jsonArray, @Nullable final JsonObject modelPlaceholders,
+            final DittoHeaders dittoHeaders) {
         return jsonArray.stream()
                 .map(arrValue -> {
                     if (arrValue.isString()) {
-                        return JsonValue.of(resolvePlaceholder(arrValue.asString(), o));
+                        return resolvePlaceholder(arrValue.asString(), modelPlaceholders)
+                                .orElseThrow(() -> WotThingModelPlaceholderUnresolvedException
+                                        .newBuilder(arrValue.asString())
+                                        .dittoHeaders(dittoHeaders)
+                                        .build());
                     } else if (arrValue.isObject()) {
-                        return resolvePlaceholders(arrValue.asObject(), o);
+                        return resolvePlaceholders(arrValue.asObject(), modelPlaceholders, dittoHeaders);
                     } else if (arrValue.isArray()) {
-                        return resolvePlaceholders(arrValue.asArray(), o); // recurse!
+                        return resolvePlaceholders(arrValue.asArray(), modelPlaceholders, dittoHeaders); // recurse!
                     } else {
                         return arrValue;
                     }
@@ -842,28 +860,19 @@ final class DefaultWotThingDescriptionGenerator implements WotThingDescriptionGe
                 .collect(JsonCollectors.valuesToArray());
     }
 
-    private String resolvePlaceholder(final String value, @Nullable final JsonObject o) {
+    private Optional<JsonValue> resolvePlaceholder(final String value, @Nullable final JsonObject modelPlaceholders) {
         final Matcher matcher = TM_PLACEHOLDER_PATTERN.matcher(value);
         if (matcher.matches()) {
             final String placeholderToResolve = matcher.group(TM_PLACEHOLDER_PL_GROUP).trim();
-            final String staticallyResolvedPlaceholder = toThingDescriptionConfig.getPlaceholders()
-                    .getOrDefault(placeholderToResolve, placeholderToResolve);
-
-            if (null != o && staticallyResolvedPlaceholder.startsWith("json:/")) {
-                return resolvePlaceholderInThingPayload(o, staticallyResolvedPlaceholder);
+            if (null != modelPlaceholders) {
+                return modelPlaceholders.getValue(placeholderToResolve)
+                        .or(() -> Optional.ofNullable(toThingDescriptionConfig.getPlaceholders().get(placeholderToResolve)));
             } else {
-                return "{{" + staticallyResolvedPlaceholder + "}}";
+                return Optional.ofNullable(toThingDescriptionConfig.getPlaceholders().get(placeholderToResolve));
             }
         } else {
-            return value;
+            return Optional.of(JsonValue.of(value));
         }
-    }
-
-    private String resolvePlaceholderInThingPayload(final JsonObject jsonObject, final String placeholderToResolve) {
-        final JsonPointer pointerToResolve = JsonPointer.of(placeholderToResolve.substring("json:".length()));
-        return jsonObject.getValue(pointerToResolve)
-                .map(JsonValue::formatAsString)
-                .orElse("{{" + placeholderToResolve + "}}");
     }
 
 }

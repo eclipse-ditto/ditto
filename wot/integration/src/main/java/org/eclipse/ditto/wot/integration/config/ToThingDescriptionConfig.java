@@ -18,6 +18,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.internal.utils.config.KnownConfigValue;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 
 /**
  * Provides configuration settings for WoT (Web of Things) integration regarding the Thing Description transformation
@@ -49,7 +50,7 @@ public interface ToThingDescriptionConfig {
      *
      * @return the map containing placeholder constants to use in order to resolve WoT TM placeholders.
      */
-    Map<String, String> getPlaceholders();
+    Map<String, JsonValue> getPlaceholders();
 
     /**
      * Returns whether to add {@code "created"} to each TD reflecting the created timestamp of the Thing.

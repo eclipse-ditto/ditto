@@ -32,6 +32,7 @@ import org.eclipse.ditto.json.JsonObject;
 /**
  * Thrown if a WoT (Web of Things) ThingModel could not be accessed (e.g. because the URL is not accessible or public
  * access to it is restricted).
+ *
  * @since 2.4.0
  */
 @Immutable
@@ -44,7 +45,7 @@ public final class WotThingModelNotAccessibleException extends DittoRuntimeExcep
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "tm.notfound";
 
     private static final String MESSAGE_TEMPLATE =
-            "The ThingModel at URI ''{0}'' could not be accessed.";
+            "The WoT ThingModel at URI ''{0}'' could not be accessed.";
 
     private static final String DEFAULT_DESCRIPTION =
             "Please ensure that the linked ThingModel is publicly available in order to be downloaded.";

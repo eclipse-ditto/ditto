@@ -21,7 +21,9 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.internal.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.internal.utils.config.ScopedConfig;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigRenderOptions;
@@ -36,7 +38,7 @@ final class DefaultToThingDescriptionConfig implements ToThingDescriptionConfig 
 
     private final String basePrefix;
     private final JsonObject jsonTemplate;
-    private final Map<String, String> placeholders;
+    private final Map<String, JsonValue> placeholders;
     private final boolean addCreated;
     private final boolean addModified;
 
@@ -49,7 +51,7 @@ final class DefaultToThingDescriptionConfig implements ToThingDescriptionConfig 
                 scopedConfig.getValue(ConfigValue.PLACEHOLDERS.getConfigPath()).render(ConfigRenderOptions.concise())
         ).asObject()
                 .stream()
-                .collect(Collectors.toMap(f -> f.getKey().toString(), f -> f.getValue().formatAsString()));
+                .collect(Collectors.toMap(f -> f.getKey().toString(), JsonField::getValue));
         addCreated = scopedConfig.getBoolean(ConfigValue.ADD_CREATED.getConfigPath());
         addModified = scopedConfig.getBoolean(ConfigValue.ADD_MODIFIED.getConfigPath());
     }
@@ -77,7 +79,7 @@ final class DefaultToThingDescriptionConfig implements ToThingDescriptionConfig 
     }
 
     @Override
-    public Map<String, String> getPlaceholders() {
+    public Map<String, JsonValue> getPlaceholders() {
         return placeholders;
     }
 

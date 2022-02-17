@@ -27,6 +27,7 @@ import org.eclipse.ditto.base.model.signals.FeatureToggle;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.things.model.DefinitionIdentifier;
 import org.eclipse.ditto.things.model.Feature;
 import org.eclipse.ditto.things.model.FeatureDefinition;
@@ -53,6 +54,8 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
 
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(DefaultWotThingDescriptionProvider.class);
+
+    public static final String MODEL_PLACEHOLDERS_KEY = "model-placeholders";
 
     private final WotConfig wotConfig;
     private final WotThingModelFetcher thingModelFetcher;
@@ -194,7 +197,12 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
                         .thenApply(thingModel -> thingDescriptionGenerator
                                 .generateThingDescription(thingId,
                                         thing,
-                                        Optional.ofNullable(thing).map(Thing::toJson).orElse(null),
+                                        Optional.ofNullable(thing)
+                                                .flatMap(Thing::getAttributes)
+                                                .flatMap(a -> a.getValue(MODEL_PLACEHOLDERS_KEY))
+                                                .filter(JsonValue::isObject)
+                                                .map(JsonValue::asObject)
+                                                .orElse(null),
                                         null,
                                         thingModel,
                                         url,
@@ -235,7 +243,11 @@ final class DefaultWotThingDescriptionProvider implements WotThingDescriptionPro
                         .thenApply(thingModel -> thingDescriptionGenerator
                                 .generateThingDescription(thingId,
                                         thing,
-                                        feature.toJson(),
+                                        feature.getProperties()
+                                                .flatMap(p -> p.getValue(MODEL_PLACEHOLDERS_KEY))
+                                                .filter(JsonValue::isObject)
+                                                .map(JsonValue::asObject)
+                                                .orElse(null),
                                         feature.getId(),
                                         thingModel,
                                         url,
