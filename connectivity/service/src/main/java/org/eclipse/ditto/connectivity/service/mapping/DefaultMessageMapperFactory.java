@@ -131,6 +131,9 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         final MessageMapperConfiguration options =
                 DefaultMessageMapperConfiguration.of(mapperId, configuredAndDefaultOptions,
                         configuredIncomingConditions, configuredOutgoingConditions);
+        if (mapper.isEmpty()) {
+            LOGGER.info("Mapper {} with mapping engine {} not found.", mapperId, mappingContext.getMappingEngine());
+        }
         return mapper.map(WrappingMessageMapper::wrap).flatMap(m -> configureInstance(m, options));
     }
 
@@ -273,14 +276,18 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
             final Throwable error = mapperTry.failed().get();
             if (error instanceof ClassNotFoundException || error instanceof InstantiationException ||
                     error instanceof ClassCastException) {
+                LOGGER.warn("Could not instantiate message mapper.", error);
                 return null;
             } else {
                 throw new IllegalStateException("There was an unknown error when trying to creating instance for '"
                         + clazz + "'", error);
             }
         }
-
-        return mapperTry.get();
+        final MessageMapper messageMapper = mapperTry.get();
+        if (messageMapper == null) {
+            LOGGER.warn("Could not instantiate message mapper because result was null.");
+        }
+        return messageMapper;
     }
 
     private Predicate<? super Map.Entry<String, Class<?>>> requiresNoMandatoryConfiguration() {
