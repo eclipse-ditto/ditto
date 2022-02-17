@@ -199,16 +199,20 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
                 }
 
                 Stream.of(aliases).forEach(alias -> {
-                    final Class<?> mappingClass = mappers.putIfAbsent(alias, payloadMapper);
-
-                    if (null != mappingClass &&
-                            annotation.priority() == mappingClass.getAnnotation(PayloadMapper.class).priority()) {
+                    final Class<?> existingMapper = mappers.get(alias);
+                    if (existingMapper == null) {
+                        mappers.put(alias, payloadMapper);
+                        LOGGER.info("Registered mapper {} for alias {}.", payloadMapper.getName(), alias);
+                    } else if (annotation.priority() == existingMapper.getAnnotation(PayloadMapper.class).priority()) {
                         throw new IllegalStateException("Mapper alias <" + alias + "> was already registered and is " +
                                 "tried to register again for " + payloadMapper.getName());
                     } else if (annotation.priority() >
-                            mappers.get(alias).getAnnotation(PayloadMapper.class).priority()) {
+                            existingMapper.getAnnotation(PayloadMapper.class).priority()) {
                         mappers.replace(alias, payloadMapper);
                         LOGGER.info("Replaced mapper {} by higher priority", payloadMapper.getName());
+                    } else {
+                        LOGGER.info("Skipped registration of mapper {} because of lower priority",
+                                payloadMapper.getName());
                     }
                 });
             }
@@ -261,7 +265,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
             }
             return Optional.ofNullable(result);
         } else {
-            log.info("Mapper {} not found.", mappingEngine);
+            log.info("Mapper {} not found in {}.", mappingEngine, registeredMappers);
             return Optional.empty();
         }
     }
