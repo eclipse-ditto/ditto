@@ -272,7 +272,7 @@ In order to resolve TM placeholders, Ditto applies the following strategy:
       ]
       ```
 
-{% include warning.html content="Please be aware that placeholders put into the `"model-placeholders"` attribute/property 
+{% include warning.html content="Please be aware that placeholders put into the `\"model-placeholders\"` attribute/property 
     of a Thing/Feature may be used in TM placeholders and therefore are not 
     protected by any authorization check based on the Thing's [Policy](basic-policy.html) as TDs are available for all
     authenticated users which know the Thing ID."
