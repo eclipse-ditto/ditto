@@ -136,57 +136,10 @@ which you should consider:
     * at some point, a machine learning or reasoning engine will try to make sense of your things and their data
     * support the machines to be able to understand your things semantics
     * find out more about Linked Data and JSON-LD here: [https://json-ld.org](https://json-ld.org)
-    * e.g. make use of public ontologies
-        * for defining time related data (e.g. durations, timestamps), you can use: [W3C Time Ontology](https://www.w3.org/TR/owl-time/)  
-          ```json
-          {
-            "@context": {
-              "https://www.w3.org/2022/wot/td/v1.1",
-              {
-                "time": "http://www.w3.org/2006/time#"
-              }
-            }
-          }
-          ```
-        * for defining units you can choose between:
-            * [QUDT.org](http://www.qudt.org)  
-              ```json
-              {
-                "@context": {
-                  "https://www.w3.org/2022/wot/td/v1.1",
-                  {
-                    "qudt": "http://qudt.org/schema/qudt/",
-                    "unit": "http://qudt.org/vocab/unit/",
-                    "quantitykind": "http://qudt.org/vocab/quantitykind/"
-                  }
-                }
-              }
-              ```
-            * [OM 2: Units of Measure](http://www.ontology-of-units-of-measure.org/page/om-2):  
-              ```json
-              {
-                "@context": {
-                  "https://www.w3.org/2022/wot/td/v1.1",
-                  {
-                    "om2": "http://www.ontology-of-units-of-measure.org/resource/om-2/"
-                  }
-                }
-              }
-              ```
-        * for defining "assets", you can use:
-            * [SAREF](https://ontology.tno.nl/saref/)  
-              ```json
-              {
-                "@context": {
-                  "https://www.w3.org/2022/wot/td/v1.1",
-                  {
-                    "saref": "https://w3id.org/saref#"
-                  }
-                }
-              }
-              ```
+    * e.g. make use of [public ontologies](#public-available-ontologies-to-reference)
 * use the linked ontologies in order to describe your model in a semantic way, e.g. in the `properties` of a 
-  "Temperature sensor" model:
+  "Temperature sensor" model 
+  (see also the [example in the TD specification](https://www.w3.org/TR/wot-thing-description11/#semantic-annotations-example-version-units)):
     ```json
     {
       "properties": {
@@ -201,6 +154,72 @@ which you should consider:
       }
     }
     ```
+
+#### Public available ontologies to reference
+
+Here collected are some ontologies which you can use in order to provide semantic context:
+
+To describe time related data (e.g. durations, timestamps), you can use: [W3C Time Ontology](https://www.w3.org/TR/owl-time/)  
+```json
+{
+  "@context": {
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "time": "http://www.w3.org/2006/time#"
+    }
+  }
+}
+```
+
+To describe geolocations, you can use: [W3C Basic Geo (WGS84 lat/long) Vocabulary](https://www.w3.org/2003/01/geo/):  
+```json
+{
+  "@context": {
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "geo": "http://www.w3.org/2003/01/geo/wgs84_pos#"
+    }
+  }
+}
+```
+
+To describe units you can choose between:
+* [QUDT.org](http://www.qudt.org)  
+  ```json
+  {
+    "@context": {
+      "https://www.w3.org/2022/wot/td/v1.1",
+      {
+        "qudt": "http://qudt.org/schema/qudt/",
+        "unit": "http://qudt.org/vocab/unit/",
+        "quantitykind": "http://qudt.org/vocab/quantitykind/"
+      }
+    }
+  }
+  ```
+* [OM 2: Units of Measure](http://www.ontology-of-units-of-measure.org/page/om-2):  
+  ```json
+  {
+    "@context": {
+      "https://www.w3.org/2022/wot/td/v1.1",
+      {
+        "om2": "http://www.ontology-of-units-of-measure.org/resource/om-2/"
+      }
+    }
+  }
+  ```
+
+To describe "assets", you can use: [SAREF](https://ontology.tno.nl/saref/)  
+```json
+{
+  "@context": {
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "saref": "https://w3id.org/saref#"
+    }
+  }
+}
+```
 
 
 ## Mapping of WoT concepts to Ditto
