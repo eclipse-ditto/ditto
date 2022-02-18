@@ -15,6 +15,7 @@ package org.eclipse.ditto.thingsearch.service.persistence.write.streaming;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.bson.BsonDocument;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
@@ -24,7 +25,6 @@ import org.eclipse.ditto.internal.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.thingsearch.service.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.thingsearch.service.persistence.PersistenceConstants;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.AbstractWriteModel;
-import org.eclipse.ditto.thingsearch.service.persistence.write.model.Metadata;
 import org.eclipse.ditto.thingsearch.service.persistence.write.model.WriteResultAndErrors;
 
 import com.mongodb.MongoBulkWriteException;
@@ -138,10 +138,13 @@ final class MongoSearchUpdaterFlow {
         final String bulkWriteCorrelationId = UUID.randomUUID().toString();
         if (LOGGER.isDebugEnabled()) {
             LOGGER.withCorrelationId(bulkWriteCorrelationId)
-                    .debug("Executing BulkWrite containing correlationIds: {}", abstractWriteModels.stream()
-                            .map(AbstractWriteModel::getMetadata)
-                            .map(Metadata::getEventsCorrelationIds)
-                            .flatMap(List::stream)
+                    .debug("Executing BulkWrite containing [<thingId>:{correlationIds}:<filter>]: {}", abstractWriteModels.stream()
+                            .map(writeModel -> "<" + writeModel.getMetadata().getThingId() + ">:" +
+                                    writeModel.getMetadata().getEventsCorrelationIds()
+                                            .stream()
+                                            .collect(Collectors.joining(",", "{", "}"))
+                                    + ":<" + writeModel.getFilter() + ">"
+                            )
                             .toList());
 
             // only log the complete MongoDB writeModels on "TRACE" as they get really big and almost crash the logging backend:
