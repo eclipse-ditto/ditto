@@ -1,0 +1,21 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="ThingsService" type="Application" factoryName="Application" folderName="Ditto" nameIsGenerated="true">
+    <option name="ALTERNATIVE_JRE_PATH" value="11" />
+    <envs>
+      <env name="DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED" value="true" />
+      <env name="LOG_LEVEL_APPLICATION" value="INFO" />
+    </envs>
+    <option name="MAIN_CLASS_NAME" value="org.eclipse.ditto.things.service.starter.ThingsService" />
+    <module name="ditto-things-service" />
+    <option name="VM_PARAMETERS" value="-Xms512m -Xmx512m" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="org.eclipse.ditto.services.things.starter.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

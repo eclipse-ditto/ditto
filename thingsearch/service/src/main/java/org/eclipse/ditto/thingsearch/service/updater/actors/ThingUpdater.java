@@ -406,8 +406,10 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
         }
 
         if (thingEvent instanceof ThingDeleted) {
-            // will stop this actor after 5 seconds (finishing up updating the index):
-            getContext().setReceiveTimeout(Duration.ofSeconds(5));
+            // will stop this actor after 5 minutes (finishing up updating the index):
+            // this time should be longer than the consistency lag, otherwise the actor will be stopped before the
+            // actual "delete" is applied to the search index:
+            getContext().setReceiveTimeout(Duration.ofMinutes(5));
         }
     }
 
