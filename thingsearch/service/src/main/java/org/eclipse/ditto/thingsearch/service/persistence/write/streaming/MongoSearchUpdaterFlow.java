@@ -124,8 +124,8 @@ final class MongoSearchUpdaterFlow {
         } else {
             theCollection = collection;
         }
-        final var abstractWriteModels = pairs.stream().map(Pair::first).collect(Collectors.toList());
-        final var writeModels = pairs.stream().map(Pair::second).collect(Collectors.toList());
+        final var abstractWriteModels = pairs.stream().map(Pair::first).toList();
+        final var writeModels = pairs.stream().map(Pair::second).toList();
 
         if (writeModels.isEmpty()) {
             LOGGER.debug("Requested to make empty update by write models <{}>", abstractWriteModels);
@@ -136,8 +136,21 @@ final class MongoSearchUpdaterFlow {
         }
 
         final String bulkWriteCorrelationId = UUID.randomUUID().toString();
-        LOGGER.withCorrelationId(bulkWriteCorrelationId)
-                .debug("Executing BulkWrite <{}>", writeModels);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.withCorrelationId(bulkWriteCorrelationId)
+                    .debug("Executing BulkWrite containing [<thingId>:{correlationIds}:<filter>]: {}", abstractWriteModels.stream()
+                            .map(writeModel -> "<" + writeModel.getMetadata().getThingId() + ">:" +
+                                    writeModel.getMetadata().getEventsCorrelationIds()
+                                            .stream()
+                                            .collect(Collectors.joining(",", "{", "}"))
+                                    + ":<" + writeModel.getFilter() + ">"
+                            )
+                            .toList());
+
+            // only log the complete MongoDB writeModels on "TRACE" as they get really big and almost crash the logging backend:
+            LOGGER.withCorrelationId(bulkWriteCorrelationId)
+                    .trace("Executing BulkWrite <{}>", writeModels);
+        }
         final var bulkWriteTimer = startBulkWriteTimer(writeModels);
         return Source.fromPublisher(theCollection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))
                 .map(bulkWriteResult -> WriteResultAndErrors.success(
