@@ -12,7 +12,6 @@
   -->
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="ConciergeService" type="Application" factoryName="Application" folderName="Ditto" nameIsGenerated="true">
-    <option name="ALTERNATIVE_JRE_PATH" value="11" />
     <envs>
       <env name="ENFORCEMENT_SPECIAL_LOGGING_INSPECTED_NAMESPACES.0" value="org.eclipse.ditto" />
       <env name="DITTO_DEVOPS_FEATURE_WOT_INTEGRATION_ENABLED" value="true" />
