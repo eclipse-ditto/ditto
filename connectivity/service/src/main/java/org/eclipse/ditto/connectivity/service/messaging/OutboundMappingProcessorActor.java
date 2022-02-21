@@ -415,6 +415,7 @@ public final class OutboundMappingProcessorActor
     }
 
     // Called inside future; must be thread-safe
+    @Nullable
     private OutboundSignalWithSender recoverFromEnrichmentError(final OutboundSignalWithSender outboundSignal,
             final Target target, final Throwable error) {
 
@@ -441,7 +442,11 @@ public final class OutboundMappingProcessorActor
                     ConnectionFailure.internal(getSelf(), dittoRuntimeException, "Signal enrichment failed");
             clientActor.tell(connectionFailure, getSelf());
         }
-        return outboundSignal.setTargets(Collections.singletonList(target));
+        if (mappingConfig.getPublishFailedEnrichments()) {
+            return outboundSignal.setTargets(Collections.singletonList(target));
+        } else {
+            return null;
+        }
     }
 
     private void logEnrichmentFailure(final OutboundSignal outboundSignal, final DittoRuntimeException error) {
