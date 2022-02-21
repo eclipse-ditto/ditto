@@ -22,6 +22,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -51,13 +53,11 @@ import org.eclipse.ditto.json.JsonValue;
 import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.Status;
-import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.server.AllDirectives;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
-import akka.japi.function.Function;
 import akka.stream.ActorAttributes;
 import akka.stream.Attributes;
 import akka.stream.Supervision;
@@ -183,7 +183,7 @@ public abstract class AbstractRoute extends AllDirectives {
     }
 
     protected Route handlePerRequest(final RequestContext ctx, final Command<?> command,
-            final Function<JsonValue, JsonValue> responseTransformFunction) {
+            @Nullable final BiFunction<JsonValue, HttpResponse, HttpResponse> responseTransformFunction) {
 
         return handlePerRequest(ctx, command.getDittoHeaders(), Source.empty(),
                 emptyRequestBody -> command, responseTransformFunction);
@@ -193,12 +193,13 @@ public abstract class AbstractRoute extends AllDirectives {
             final DittoHeaders dittoHeaders,
             final Source<ByteString, ?> payloadSource,
             final Function<String, Command<?>> requestJsonToCommandFunction,
-            @Nullable final Function<JsonValue, JsonValue> responseTransformFunction) {
+            @Nullable final BiFunction<JsonValue, HttpResponse, HttpResponse> responseTransformFunction) {
 
         return withCustomRequestTimeout(dittoHeaders.getTimeout().orElse(null),
                 this::validateCommandTimeout,
                 timeout -> doHandlePerRequest(ctx, dittoHeaders.toBuilder().timeout(timeout).build(), payloadSource,
-                        requestJsonToCommandFunction, responseTransformFunction));
+                        requestJsonToCommandFunction,
+                        null != responseTransformFunction ? responseTransformFunction : (json, resp) -> resp));
     }
 
     protected <M> M runWithSupervisionStrategy(final RunnableGraph<M> graph) {
@@ -209,7 +210,7 @@ public abstract class AbstractRoute extends AllDirectives {
             final DittoHeaders dittoHeaders,
             final Source<ByteString, ?> payloadSource,
             final Function<String, Command<?>> requestJsonToCommandFunction,
-            @Nullable final Function<JsonValue, JsonValue> responseTransformFunction) {
+            @Nullable final BiFunction<JsonValue, HttpResponse, HttpResponse> responseValueTransformFunction) {
 
         final CompletableFuture<HttpResponse> httpResponseFuture = new CompletableFuture<>();
 
@@ -235,7 +236,7 @@ public abstract class AbstractRoute extends AllDirectives {
         );
 
         // optional step: transform the response entity:
-        if (responseTransformFunction != null) {
+        if (responseValueTransformFunction != null) {
             final CompletableFuture<HttpResponse> transformedResponse = httpResponseFuture.thenApply(response -> {
                 final boolean isSuccessfulResponse = response.status().isSuccess();
                 // we have to check if response is empty, because otherwise we'll get an IOException when trying to
@@ -249,8 +250,7 @@ public abstract class AbstractRoute extends AllDirectives {
                     );
                     final JsonValue jsonValue = JsonFactory.readFrom(new InputStreamReader(inputStream));
                     try {
-                        final JsonValue transformed = responseTransformFunction.apply(jsonValue);
-                        return response.withEntity(ContentTypes.APPLICATION_JSON, transformed.toString());
+                        return responseValueTransformFunction.apply(jsonValue, response);
                     } catch (final Exception e) {
                         throw JsonParseException.newBuilder()
                                 .message("Could not transform JSON: " + e.getMessage())

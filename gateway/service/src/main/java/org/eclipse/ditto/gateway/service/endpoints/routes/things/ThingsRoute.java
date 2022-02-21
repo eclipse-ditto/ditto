@@ -14,8 +14,10 @@ package org.eclipse.ditto.gateway.service.endpoints.routes.things;
 
 import static org.eclipse.ditto.base.model.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -25,11 +27,15 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.base.model.exceptions.DittoJsonException;
 import org.eclipse.ditto.base.model.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.base.model.headers.DittoHeaders;
+import org.eclipse.ditto.base.model.headers.contenttype.ContentType;
 import org.eclipse.ditto.base.model.json.JsonSchemaVersion;
 import org.eclipse.ditto.base.service.UriEncoding;
 import org.eclipse.ditto.gateway.service.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.gateway.service.endpoints.routes.RouteBaseProperties;
+import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchParameter;
+import org.eclipse.ditto.gateway.service.endpoints.routes.thingsearch.ThingSearchRoute;
 import org.eclipse.ditto.gateway.service.util.config.endpoints.MessageConfig;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
@@ -61,11 +67,20 @@ import org.eclipse.ditto.things.model.signals.commands.query.RetrievePolicyId;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThing;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThingDefinition;
 import org.eclipse.ditto.things.model.signals.commands.query.RetrieveThings;
+import org.eclipse.ditto.thingsearch.model.SearchResult;
+import org.eclipse.ditto.thingsearch.model.signals.commands.query.QueryThings;
 
+import akka.http.javadsl.model.ContentTypes;
+import akka.http.javadsl.model.HttpCharsets;
+import akka.http.javadsl.model.HttpResponse;
+import akka.http.javadsl.model.MediaTypes;
+import akka.http.javadsl.model.headers.Accept;
+import akka.http.javadsl.model.headers.Link;
+import akka.http.javadsl.model.headers.LinkParams;
+import akka.http.javadsl.model.headers.LinkValue;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
-import akka.stream.javadsl.Source;
 
 /**
  * Builder for creating Akka HTTP routes for {@code /things}.
@@ -162,12 +177,98 @@ public final class ThingsRoute extends AbstractRoute {
     }
 
     private Route buildRetrieveThingsRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+        // GET /things?ids=...
         return parameter(ThingsParameter.IDS.toString(), idsString ->
                 parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
-                        handlePerRequest(ctx, dittoHeaders, Source.empty(),
-                                emptyRequestBody -> RetrieveThings.getBuilder(splitThingIdString(idsString))
+                        handlePerRequest(ctx, RetrieveThings.getBuilder(splitThingIdString(idsString))
                                         .selectedFields(calculateSelectedFields(fieldsString))
-                                        .dittoHeaders(dittoHeaders).build())));
+                                        .dittoHeaders(dittoHeaders)
+                                        .build(),
+                                (responseValue, response) ->
+                                        response.withEntity(determineResponseContentType(ctx), responseValue.toString())
+                        )
+                )
+        ).orElse( // GET /things
+                thingSearchParameterOptional(params ->
+                        parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
+                                handlePerRequest(ctx, QueryThings.of(null, // allow filter only on /search/things but not here
+                                                ThingSearchRoute.calculateOptions(params.get(ThingSearchParameter.OPTION)),
+                                                calculateSelectedFields(fieldsString).orElse(null),
+                                                ThingSearchRoute.calculateNamespaces(
+                                                        params.get(ThingSearchParameter.NAMESPACES)),
+                                                dittoHeaders),
+                                        (responseValue, response) ->
+                                                transformQueryThingsResult(ctx, responseValue, response)
+                                )
+                        )
+                )
+        );
+    }
+
+    private Route thingSearchParameterOptional(
+            final Function<EnumMap<ThingSearchParameter, Optional<String>>, Route> inner) {
+        return thingSearchParameterOptionalImpl(ThingSearchParameter.values(),
+                new EnumMap<>(ThingSearchParameter.class), inner);
+    }
+
+    private Route thingSearchParameterOptionalImpl(final ThingSearchParameter[] values,
+            final EnumMap<ThingSearchParameter, Optional<String>> accumulator,
+            final Function<EnumMap<ThingSearchParameter, Optional<String>>, Route> inner) {
+        if (accumulator.size() >= values.length) {
+            return inner.apply(accumulator);
+        } else {
+            final ThingSearchParameter parameter = values[accumulator.size()];
+            return parameterOptional(parameter.toString(), parameterValueOptional -> {
+                accumulator.put(parameter, parameterValueOptional);
+                return thingSearchParameterOptionalImpl(values, accumulator, inner);
+            });
+        }
+    }
+
+    private HttpResponse transformQueryThingsResult(final RequestContext ctx,
+            final JsonValue responseValue,
+            final HttpResponse response) {
+
+        HttpResponse theResponse = response;
+        final JsonArray resultArray;
+        if (responseValue.isObject()) {
+            final JsonObject responseObject = responseValue.asObject();
+            resultArray = responseObject
+                    .getValue(SearchResult.JsonFields.ITEMS)
+                    .orElse(JsonArray.empty());
+
+            theResponse = theResponse.addHeader(Link.create(
+                    LinkValue.create(ctx.getRequest().getUri().toRelative(), LinkParams.rel("canonical"))
+            ));
+
+            final Optional<String> cursor = responseObject
+                    .getValue(SearchResult.JsonFields.CURSOR);
+            if (cursor.isPresent()) {
+                // Link: </api/2/things?option=cursor(...)>; rel="next"
+                theResponse = theResponse.addHeader(Link.create(
+                        LinkValue.create(ctx.getRequest().getUri().toRelative()
+                                        .rawQueryString("option=cursor(" + cursor.get() + ")"),
+                                LinkParams.next)
+                ));
+            }
+        } else {
+            resultArray = JsonArray.empty();
+        }
+
+        return theResponse.withEntity(determineResponseContentType(ctx), resultArray.toString());
+    }
+
+    private static akka.http.javadsl.model.ContentType.NonBinary determineResponseContentType(
+            final RequestContext ctx) {
+        final akka.http.javadsl.model.ContentType.NonBinary contentType;
+        if (ctx.getRequest().getHeader(Accept.class)
+                .filter(accept -> accept.value().equals(ContentType.APPLICATION_TD_JSON.getValue()))
+                .isPresent()) {
+            contentType = ContentTypes.create(MediaTypes.applicationWithFixedCharset("td+json", HttpCharsets.UTF_8));
+        } else {
+            contentType = ContentTypes.APPLICATION_JSON;
+        }
+        return contentType;
     }
 
     private static List<ThingId> splitThingIdString(final String thingIdString) {
@@ -464,7 +565,7 @@ public final class ThingsRoute extends AbstractRoute {
             } else {
                 result = ThingsModelFactory.newDefinition(jsonValue.asString());
             }
-            return  result;
+            return result;
         });
     }
 
