@@ -33,6 +33,7 @@ import org.eclipse.ditto.base.service.actors.ShutdownBehaviour;
 import org.eclipse.ditto.internal.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.internal.utils.akka.actors.AbstractActorWithStashWithTimers;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.internal.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.internal.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.internal.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.internal.utils.config.DefaultScopedConfig;
@@ -89,6 +90,8 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     private static final Counter PATCH_UPDATE_COUNT = DittoMetrics.counter("search_patch_updates");
     private static final Counter PATCH_SKIP_COUNT = DittoMetrics.counter("search_patch_skips");
     private static final Counter FULL_UPDATE_COUNT = DittoMetrics.counter("search_full_updates");
+
+    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(ThingUpdater.class); // logger for "trace" statements
 
     private final DittoDiagnosticLoggingAdapter log;
     private final ThingId thingId;
@@ -187,9 +190,10 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     }
 
     private void recoveryComplete(final AbstractWriteModel writeModel) {
-        log.debug("Recovered: <{}>", writeModel);
+        log.debug("Recovered");
+        LOGGER.trace("Recovered: <{}>", writeModel);
         thingRevision = writeModel.getMetadata().getThingRevision();
-        writeModel.getMetadata().getPolicyRevision().ifPresent(policyRevision -> this.policyRevision = policyRevision);
+        writeModel.getMetadata().getPolicyRevision().ifPresent(rev -> this.policyRevision = rev);
         lastWriteModel = writeModel;
         getContext().become(recoveredBehavior());
         unstashAll();
@@ -234,7 +238,8 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
             if (diff.isPresent() && diff.get().isDiffSmaller()) {
                 final var aggregationPipeline = diff.get().consumeAndExport();
                 if (aggregationPipeline.isEmpty()) {
-                    log.debug("Skipping update due to empty diff <{}>", nextWriteModel);
+                    log.debug("Skipping update due to empty diff");
+                    LOGGER.trace("Skipping update due to empty diff <{}>", nextWriteModel);
                     getSender().tell(Done.getInstance(), getSelf());
                     PATCH_SKIP_COUNT.increment();
 
@@ -244,12 +249,14 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                         .asPatchUpdate(lastWriteModel.getMetadata().getThingRevision())
                         .getFilter();
                 mongoWriteModel = new UpdateOneModel<>(filter, aggregationPipeline);
-                log.debug("Using incremental update <{}>", mongoWriteModel);
+                log.debug("Using incremental update");
+                LOGGER.trace("Using incremental update <{}>", mongoWriteModel);
                 PATCH_UPDATE_COUNT.increment();
             } else {
                 mongoWriteModel = nextWriteModel.toMongo();
-                if (log.isDebugEnabled()) {
-                    log.debug("Using replacement because diff is bigger or nonexistent. Diff=<{}>",
+                log.debug("Using replacement because diff is bigger or nonexistent.");
+                if (LOGGER.isTraceEnabled()) {
+                    LOGGER.trace("Using replacement because diff is bigger or nonexistent. Diff=<{}>",
                             diff.map(BsonDiff::consumeAndExport));
                 }
                 FULL_UPDATE_COUNT.increment();
@@ -257,11 +264,13 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
         } else {
             mongoWriteModel = nextWriteModel.toMongo();
             if (forceUpdate) {
-                log.debug("Using replacement (forceUpdate) <{}> - forceNextUpdate was: <{}>", mongoWriteModel,
+                log.debug("Using replacement (forceUpdate) - forceNextUpdate was: <{}>", forceNextUpdate);
+                LOGGER.trace("Using replacement (forceUpdate) <{}> - forceNextUpdate was: <{}>", mongoWriteModel,
                         forceNextUpdate);
                 forceNextUpdate = false;
             } else {
-                log.debug("Using replacement <{}>", mongoWriteModel);
+                log.debug("Using replacement");
+                LOGGER.trace("Using replacement <{}>", mongoWriteModel);
             }
             FULL_UPDATE_COUNT.increment();
         }
@@ -272,7 +281,7 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
     private Optional<BsonDiff> tryComputeDiff(final BsonDocument minuend, final BsonDocument subtrahend) {
         try {
             return Optional.of(BsonDiff.minusThingDocs(minuend, subtrahend));
-        } catch (BsonInvalidOperationException e) {
+        } catch (final BsonInvalidOperationException e) {
             log.error(e, "Failed to compute BSON diff between <{}> and <{}>", minuend, subtrahend);
 
             return Optional.empty();
@@ -354,7 +363,8 @@ final class ThingUpdater extends AbstractActorWithStashWithTimers {
                 warningTemplate = "Got negative acknowledgement for <{}>; updating to <{}>.";
                 UPDATE_FAILURE_COUNT.increment();
             }
-            log.warning(warningTemplate, Metadata.fromResponse(response), metadata);
+            log.withCorrelationId(response)
+                    .warning(warningTemplate, Metadata.fromResponse(response), metadata);
             enqueueMetadata(metadata.withUpdateReason(UpdateReason.RETRY));
         }
     }
